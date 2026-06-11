@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
-import { AlertTriangle, FileJson, Plus, RotateCw, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, FileJson, Loader2, Plus, Rocket, RotateCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -211,10 +211,9 @@ function UpgradeJsonBuilderInner() {
   const timestampTouchedRef = useRef(false);
   const [balanceChanges, setBalanceChanges] = useState<BalanceChange[]>([]);
   const [codeChanges, setCodeChanges] = useState<UiCodeChange[]>([]);
-  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
-  const [isWritingManaged, setIsWritingManaged] = useState(false);
-  const [isRestartingManaged, setIsRestartingManaged] = useState(false);
-  const [managedWritten, setManagedWritten] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyPhase, setApplyPhase] = useState<string | null>(null);
+  const [applyResult, setApplyResult] = useState<'idle' | 'success' | 'error'>('idle');
 
   const parsedBase = useMemo(() => parseUpgradeJson(baseText), [baseText]);
   const baseConfig = parsedBase.config ?? emptyUpgradeJson();
@@ -256,7 +255,7 @@ function UpgradeJsonBuilderInner() {
     async function loadInitialState() {
       setIsLoadingSource(true);
       setRpcError(null);
-      setManagedWritten(false);
+      setApplyResult('idle');
       try {
         const [snapshotResult, managedResult, rpcResult] = await Promise.allSettled([
           fetch(
@@ -352,7 +351,6 @@ function UpgradeJsonBuilderInner() {
     );
   }
 
-  const hasBlockingErrors = Boolean(parsedBase.error) || !validation.valid;
   const canWriteManaged =
     selection.isManaged && managedInfo?.managed !== false && validation.valid && !parsedBase.error;
   const timestampError = validation.errors.find((error) => error.includes('Activation timestamp')) ?? null;
@@ -366,41 +364,15 @@ function UpgradeJsonBuilderInner() {
     setBaseSource(file.name);
   };
 
-  const saveSnapshot = async (status = 'draft') => {
-    setIsSavingSnapshot(true);
+  // Managed nodes: one action writes upgrade.json to every node then restarts
+  // them. Both endpoints persist their own snapshot, so no separate save step
+  // is needed. Surfaces a single phase label while it runs.
+  const applyToAllNodes = async () => {
+    setIsApplying(true);
+    setApplyResult('idle');
     const promise = (async () => {
-      const response = await fetch('/api/console/l1-upgrade/snapshot', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subnetId: selection.subnetId,
-          blockchainId: selection.blockchainId,
-          chainName: selection.chainName,
-          rpcUrl: selection.rpcUrl,
-          upgradeJson: generatedConfig,
-          source: 'builder',
-          status,
-        }),
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(data?.message ?? 'Failed to save snapshot.');
-      }
-    })();
-    notify({ name: 'Upgrade Snapshot Save', type: 'local' }, promise);
-    try {
-      await promise;
-    } catch {
-      // Failure is surfaced via the console notification.
-    } finally {
-      setIsSavingSnapshot(false);
-    }
-  };
-
-  const writeManaged = async () => {
-    setIsWritingManaged(true);
-    const promise = (async () => {
-      const response = await fetch('/api/console/l1-upgrade/managed', {
+      setApplyPhase('Writing upgrade.json to your nodes…');
+      const writeResponse = await fetch('/api/console/l1-upgrade/managed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -411,26 +383,12 @@ function UpgradeJsonBuilderInner() {
           upgradeJson: generatedConfig,
         }),
       });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(data?.message ?? 'Failed to write managed upgrade.json.');
+      if (!writeResponse.ok) {
+        const data = (await writeResponse.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(data?.message ?? 'Failed to write upgrade.json to managed nodes.');
       }
-    })();
-    notify({ name: 'Managed upgrade.json Write', type: 'local' }, promise);
-    try {
-      await promise;
-      setManagedWritten(true);
-    } catch {
-      // Failure is surfaced via the console notification.
-    } finally {
-      setIsWritingManaged(false);
-    }
-  };
-
-  const restartManaged = async () => {
-    setIsRestartingManaged(true);
-    const promise = (async () => {
-      const response = await fetch('/api/console/l1-upgrade/managed/restart', {
+      setApplyPhase('Restarting nodes to load the upgrade…');
+      const restartResponse = await fetch('/api/console/l1-upgrade/managed/restart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -438,19 +396,20 @@ function UpgradeJsonBuilderInner() {
           blockchainId: selection.blockchainId,
         }),
       });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(data?.message ?? 'Failed to restart managed nodes.');
+      if (!restartResponse.ok) {
+        const data = (await restartResponse.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(data?.message ?? 'Wrote the file, but failed to restart managed nodes.');
       }
     })();
-    notify({ name: 'Managed Node Restart', type: 'local' }, promise);
+    notify({ name: 'Apply Upgrade to Managed Nodes', type: 'local' }, promise);
     try {
       await promise;
-      await saveSnapshot('restart-requested');
+      setApplyResult('success');
     } catch {
-      // Failure is surfaced via the console notification.
+      setApplyResult('error');
     } finally {
-      setIsRestartingManaged(false);
+      setIsApplying(false);
+      setApplyPhase(null);
     }
   };
 
@@ -610,68 +569,29 @@ function UpgradeJsonBuilderInner() {
           <div>
             <h2 className="text-sm font-semibold mb-1">Apply the Upgrade</h2>
             <p className="text-xs text-muted-foreground">
-              Every validator node must load the file and restart before the activation timestamp.
+              {selection.isManaged
+                ? 'Builder Hub writes upgrade.json to every managed node and restarts them so the new rules load before the activation timestamp.'
+                : 'Run these commands on every validator node so it loads the file and restarts before the activation timestamp.'}
             </p>
           </div>
 
-          <div className="space-y-4">
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-sm font-semibold">
-                    {selection.isManaged ? 'Managed nodes' : 'Save to Builder Hub'}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {selection.isManaged
-                      ? 'Builder Hub writes the file to your managed nodes, then restarts them to load it.'
-                      : 'Snapshots keep your work so the builder restores it next time you open this L1.'}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-auto"
-                    loading={isSavingSnapshot}
-                    disabled={hasBlockingErrors}
-                    onClick={() => void saveSnapshot()}
-                  >
-                    Save Snapshot
-                  </Button>
-                  {selection.isManaged && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-auto"
-                        loading={isWritingManaged}
-                        disabled={!canWriteManaged}
-                        onClick={() => void writeManaged()}
-                      >
-                        Write Managed File
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        className="w-auto"
-                        loading={isRestartingManaged}
-                        disabled={!managedWritten}
-                        onClick={() => void restartManaged()}
-                      >
-                        Restart Managed Nodes
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
+          {selection.isManaged ? (
+            <ManagedApplyCard
+              nodeCount={managedInfo?.nodes?.length ?? selection.managedNodeCount}
+              noActiveNodes={managedInfo?.managed === false}
+              disabled={!canWriteManaged}
+              isApplying={isApplying}
+              phase={applyPhase}
+              result={applyResult}
+              onApply={() => void applyToAllNodes()}
+            />
+          ) : (
             <SelfHostedInstructions
               blockchainId={selection.blockchainId}
               rpcUrl={selection.rpcUrl}
               upgradeJson={generatedJson}
             />
-          </div>
+          )}
         </Step>
       </Steps>
     </div>
@@ -1232,6 +1152,73 @@ function StateUpgradesSection({
         ))}
       </div>
     </SectionWrapper>
+  );
+}
+
+function ManagedApplyCard({
+  nodeCount,
+  noActiveNodes,
+  disabled,
+  isApplying,
+  phase,
+  result,
+  onApply,
+}: {
+  nodeCount: number;
+  noActiveNodes: boolean;
+  disabled: boolean;
+  isApplying: boolean;
+  phase: string | null;
+  result: 'idle' | 'success' | 'error';
+  onApply: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold">Managed nodes</h3>
+        <p className="text-xs text-muted-foreground mt-1">
+          {noActiveNodes
+            ? 'No active managed nodes were found for this L1. They may have expired — recreate a managed node to apply upgrades from here.'
+            : `Builder Hub applies the upgrade to ${
+                nodeCount === 1 ? 'your managed node' : `all ${nodeCount} managed nodes`
+              } for you — no manual commands needed.`}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={onApply}
+        disabled={disabled || isApplying}
+        className="w-full group relative flex flex-col items-center gap-2 px-6 py-5 rounded-2xl border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100/50 dark:hover:bg-blue-950/30 hover:border-blue-300 dark:hover:border-blue-700/50 shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-sm"
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white dark:bg-blue-500">
+          <Rocket className="h-5 w-5" />
+        </div>
+        {isApplying ? (
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">{phase ?? 'Applying…'}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold text-foreground">Apply to All Nodes</span>
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+          </div>
+        )}
+      </button>
+
+      {result === 'success' && (
+        <p className="text-xs text-green-700 dark:text-green-400">
+          Upgrade written and nodes restarting. The new rules activate at the scheduled timestamp once every node is
+          back online.
+        </p>
+      )}
+      {result === 'error' && (
+        <p className="text-xs text-red-600 dark:text-red-400">
+          Apply failed — see the notification for details, then try again.
+        </p>
+      )}
+    </div>
   );
 }
 
