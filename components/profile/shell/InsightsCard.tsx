@@ -39,13 +39,20 @@ const ACCENT_SIGNUPS = "#E84142";
 const ACCENT_VISITS = "#7FA6FF";
 const ACCENT_CONSOLE = "#B88DFF";
 
-// Per-platform accents for the profile-completion bars.
+// Per-platform accents for the profile-completion bars — neon variants in
+// line with the shell's vivid tokens (--pr-avax-hover, --pr-success-main).
 const PLATFORM_ACCENT: Record<SocialPlatform, string> = {
-  x: "#E84142",
-  linkedin: "#7FA6FF",
-  github: "#B88DFF",
-  telegram: "#34B27B",
+  x: "#ff5658",
+  linkedin: "#38bdf8",
+  github: "#c084fc",
+  telegram: "#9be055",
 };
+
+// Soft glow behind neon fills, matching the shell's glowing-dot treatment
+// (e.g. the devrel badge). Skipped for CSS-var colors (can't carry alpha).
+function neonGlow(accent: string, blur = 8): string | undefined {
+  return accent.startsWith("#") ? `0 0 ${blur}px ${accent}73` : undefined;
+}
 
 function PlatformIcon({
   platform,
@@ -66,14 +73,14 @@ function PlatformIcon({
   }
 }
 
-// Completion-quality scale for the depth view: gray (no links) up to green
-// (fully linked), reusing the section's established palette.
+// Completion-quality heat scale for the depth view: gray (no links) through
+// the shell's neon red / amber / limes (--pr-warning-main, --pr-success-main).
 const DEPTH_ACCENT: Record<number, string> = {
   0: "var(--pr-g-650)",
-  1: "#E84142",
-  2: "#B88DFF",
-  3: "#7FA6FF",
-  4: "#34B27B",
+  1: "#ff5658",
+  2: "#fdc85d",
+  3: "#b9eb7c",
+  4: "#9be055",
 };
 
 export function InsightsCard({ data, loading, error }: Props) {
@@ -585,7 +592,11 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
                     <span className="pr-completion-bar__track">
                       <span
                         className="pr-completion-bar__fill"
-                        style={{ width: `${Math.min(s.pct, 100)}%`, background: accent }}
+                        style={{
+                          width: `${Math.min(s.pct, 100)}%`,
+                          background: accent,
+                          boxShadow: neonGlow(accent),
+                        }}
                       />
                     </span>
                     <span className="pr-completion-bar__value">
@@ -611,7 +622,10 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
                         <span className="pr-completion-bar__label">
                           <span
                             className="pr-completion-bar__dot"
-                            style={{ background: accent }}
+                            style={{
+                              background: accent,
+                              boxShadow: neonGlow(accent, 6),
+                            }}
                           />
                           {d.linkCount} {d.linkCount === 1 ? "link" : "links"}
                         </span>
@@ -621,6 +635,7 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
                             style={{
                               width: `${Math.min(d.pct, 100)}%`,
                               background: accent,
+                              boxShadow: neonGlow(accent),
                             }}
                           />
                         </span>

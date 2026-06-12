@@ -2155,7 +2155,8 @@
   height: 8px;
   background: var(--pr-g-300);
   border-radius: 999px;
-  overflow: hidden;
+  /* No overflow clip: the fill is self-rounded and carries a neon glow
+     that should bleed past the track. */
 }
 .profile .pr-completion-bar__fill {
   display: block;
