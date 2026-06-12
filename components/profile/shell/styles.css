@@ -690,6 +690,19 @@
   border-color: var(--pr-avax);
   box-shadow: 0 0 0 3px rgba(232, 65, 66, 0.18);
 }
+/* Invalid social handle: red border on the field + message beneath it. */
+.profile .pr-input-group--error {
+  border-color: var(--pr-error-main);
+}
+.profile .pr-input-group--error:focus-within {
+  border-color: var(--pr-error-main);
+  box-shadow: 0 0 0 3px rgba(210, 54, 33, 0.18);
+}
+.profile .pr-error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--pr-error-text);
+}
 .profile .pr-input-group .pr-pre {
   display: flex;
   align-items: center;
