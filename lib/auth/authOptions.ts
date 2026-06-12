@@ -90,6 +90,30 @@ const authUserSelect = {
   team_id: true,
 } as const;
 
+function getSameOriginUrl(url: string, baseUrl: string): URL | null {
+  try {
+    const parsedUrl = new URL(url, baseUrl);
+    return parsedUrl.origin === baseUrl ? parsedUrl : null;
+  } catch {
+    return null;
+  }
+}
+
+function getLoginErrorRedirectUrl(url: string, baseUrl: string): string | null {
+  const parsedUrl = getSameOriginUrl(url, baseUrl);
+  if (!parsedUrl || parsedUrl.pathname !== '/login') return null;
+
+  const error = parsedUrl.searchParams.get('error');
+  const callbackUrl = parsedUrl.searchParams.get('callbackUrl');
+  if (!error || !callbackUrl) return null;
+
+  const parsedCallbackUrl = getSameOriginUrl(callbackUrl, baseUrl);
+  if (!parsedCallbackUrl) return baseUrl;
+
+  parsedCallbackUrl.searchParams.set('authError', error);
+  return parsedCallbackUrl.toString();
+}
+
 export const AuthOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -242,6 +266,9 @@ export const AuthOptions: NextAuthOptions = {
       return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
     },
     async redirect({ url, baseUrl }) {
+      const loginErrorRedirectUrl = getLoginErrorRedirectUrl(url, baseUrl);
+      if (loginErrorRedirectUrl) return loginErrorRedirectUrl;
+
       // If the URL is relative, convert it to absolute
       if (url.startsWith("/")) return `${baseUrl}${url}`
       // If the URL is from the same domain, allow the redirection
