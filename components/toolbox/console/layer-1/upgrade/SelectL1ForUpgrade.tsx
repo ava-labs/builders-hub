@@ -18,7 +18,7 @@ import { useL1UpgradeStore } from '@/components/toolbox/stores/l1UpgradeStore';
 import { useL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
 import { useMyL1s, type MyL1 } from '@/hooks/useMyL1s';
-import { validateL1UpgradeSelection } from '@/lib/console/l1-upgrade-selection';
+import { isValidAvalancheId, validateL1UpgradeSelection } from '@/lib/console/l1-upgrade-selection';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Select L1',
@@ -54,6 +54,14 @@ type BlockchainOption = {
   rpcUrl: string;
   source: 'subnet' | 'wallet' | 'managed' | 'created';
 };
+
+type ManagedCheck = {
+  status: 'idle' | 'loading' | 'ok' | 'error';
+  managed: boolean;
+  nodeCount: number;
+};
+
+const IDLE_MANAGED_CHECK: ManagedCheck = { status: 'idle', managed: false, nodeCount: 0 };
 
 function SelectL1ForUpgradeInner() {
   const store = useL1UpgradeStore();
@@ -169,9 +177,52 @@ function SelectL1ForUpgradeInner() {
 
   const selectedOption = blockchainOptions.find((option) => option.blockchainId === blockchainId);
 
+  // Authoritative managed check: ask the backend whether this user has active
+  // managed-service nodes registered for the selected L1. The client-side
+  // dashboard match + query-param hint are only fallbacks while it runs.
+  const [managedCheck, setManagedCheck] = useState<ManagedCheck>(IDLE_MANAGED_CHECK);
+  useEffect(() => {
+    const trimmedSubnetId = subnetId.trim();
+    const trimmedBlockchainId = blockchainId.trim();
+    if (!isValidAvalancheId(trimmedSubnetId) || !isValidAvalancheId(trimmedBlockchainId)) {
+      setManagedCheck(IDLE_MANAGED_CHECK);
+      return;
+    }
+
+    const controller = new AbortController();
+    setManagedCheck((prev) => ({ ...prev, status: 'loading' }));
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/console/l1-upgrade/managed?subnetId=${encodeURIComponent(trimmedSubnetId)}&blockchainId=${encodeURIComponent(trimmedBlockchainId)}&mode=detect`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) {
+          setManagedCheck({ status: 'error', managed: false, nodeCount: 0 });
+          return;
+        }
+        const data = (await response.json()) as { managed?: boolean; nodes?: unknown[] };
+        const nodeCount = data.nodes?.length ?? 0;
+        setManagedCheck({ status: 'ok', managed: Boolean(data.managed) && nodeCount > 0, nodeCount });
+      } catch {
+        if (!controller.signal.aborted) setManagedCheck({ status: 'error', managed: false, nodeCount: 0 });
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [blockchainId, subnetId]);
+
   const managedMatch = managedL1s.find((l1: MyL1) => l1.subnetId === subnetId && l1.blockchainId === blockchainId);
-  const managedNodeCount = managedMatch?.nodes.filter((node) => node.status === 'active').length ?? 0;
-  const isManaged = managedNodeCount > 0 || (isManagedHint && Boolean(subnetId && blockchainId));
+  const clientManagedNodeCount = managedMatch?.nodes.filter((node) => node.status === 'active').length ?? 0;
+  const managedNodeCount = managedCheck.status === 'ok' ? managedCheck.nodeCount : clientManagedNodeCount;
+  const isManaged =
+    managedCheck.status === 'ok'
+      ? managedCheck.managed
+      : clientManagedNodeCount > 0 || (isManagedHint && Boolean(subnetId && blockchainId));
+  const isCheckingManaged = managedCheck.status === 'loading' || isLoadingManaged;
 
   const selectionErrors = useMemo(
     () => validateL1UpgradeSelection({ subnetId, blockchainId, rpcUrl, chainName }),
@@ -323,9 +374,20 @@ function SelectL1ForUpgradeInner() {
             <InfoRow label="RPC URL" value={rpcUrl || 'Not set'} />
             <InfoRow
               label="Node type"
-              value={isManaged ? `Managed (${managedNodeCount} active)` : 'Self-hosted/manual'}
+              value={
+                isCheckingManaged && managedCheck.status !== 'ok'
+                  ? 'Checking…'
+                  : isManaged
+                    ? `Managed (${managedNodeCount} active)`
+                    : 'Self-hosted/manual'
+              }
             />
-            {isLoadingManaged && <p className="text-xs text-muted-foreground">Checking managed node status...</p>}
+            {isCheckingManaged && <p className="text-xs text-muted-foreground">Checking managed node status...</p>}
+            {managedCheck.status === 'error' && (
+              <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                Couldn&apos;t verify managed node status. Sign in to Builder Hub if this L1 uses managed nodes.
+              </p>
+            )}
             {!hasValidSelection && (
               <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-3 text-xs text-red-700 dark:text-red-300 space-y-1">
                 {selectionErrors.map((error) => (

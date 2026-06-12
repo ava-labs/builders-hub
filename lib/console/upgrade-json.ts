@@ -6,7 +6,10 @@ export type PrecompileConfigKey =
   | 'rewardManagerConfig'
   | 'warpConfig';
 
-export type PrecompileMode = 'none' | 'enable' | 'disable';
+// 'update' schedules a disable entry immediately followed by a re-enable with
+// the new allowlist — the documented way to change an active precompile's
+// configuration (subnet-evm rejects enabling an already-enabled precompile).
+export type PrecompileMode = 'none' | 'enable' | 'disable' | 'update';
 
 export interface PrecompileDefinition {
   key: PrecompileConfigKey;
@@ -36,6 +39,8 @@ export interface CodeChange {
   id: string;
   address: string;
   code: string;
+  /** Optional storage-slot initialization, set by predeploy presets (not user-edited). */
+  storage?: Record<string, string>;
 }
 
 export interface UpgradeJson {
@@ -117,13 +122,237 @@ export function parseUpgradeJson(input: string): { config: UpgradeJson | null; e
 
   try {
     const parsed = JSON.parse(trimmed);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { config: null, error: 'upgrade.json must be a JSON object.' };
+    const structureErrors = validateUpgradeJsonStructure(parsed);
+    if (structureErrors.length > 0) {
+      const shown = structureErrors.slice(0, 3).join(' ');
+      const hidden = structureErrors.length - 3;
+      return { config: null, error: hidden > 0 ? `${shown} (+${hidden} more issue${hidden === 1 ? '' : 's'})` : shown };
     }
     return { config: parsed as UpgradeJson, error: null };
   } catch (error) {
     return { config: null, error: error instanceof Error ? error.message : 'Invalid JSON.' };
   }
+}
+
+const TOP_LEVEL_KEYS = ['precompileUpgrades', 'stateUpgrades', 'networkUpgradeOverrides'];
+const STATE_UPGRADE_ENTRY_KEYS = ['blockTimestamp', 'accounts'];
+const STATE_UPGRADE_ACCOUNT_KEYS = ['code', 'storage', 'balanceChange'];
+const ALLOWLIST_ROLE_KEYS = ['adminAddresses', 'managerAddresses', 'enabledAddresses'];
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+// blockTimestamp must be a positive integer; the docs show both raw numbers
+// and digit strings, so both are accepted.
+function isValidUpgradeTimestamp(value: unknown): boolean {
+  if (typeof value === 'number') return Number.isInteger(value) && value > 0;
+  if (typeof value === 'string') return DECIMAL_POSITIVE_RE.test(value) && Number(value) > 0;
+  return false;
+}
+
+/**
+ * Structural validation for an existing/imported upgrade.json. Checks the
+ * shapes subnet-evm actually parses (known top-level keys, one precompile per
+ * entry, timestamps, address lists, stateUpgrades accounts) while staying
+ * lenient about precompile-specific config fields like initialFeeConfig so
+ * real-world files keep working.
+ */
+export function validateUpgradeJsonStructure(value: unknown): string[] {
+  if (!isPlainObject(value)) return ['upgrade.json must be a JSON object.'];
+
+  const errors: string[] = [];
+  for (const key of Object.keys(value)) {
+    if (!TOP_LEVEL_KEYS.includes(key)) {
+      errors.push(`Unknown top-level key "${key}" (allowed: ${TOP_LEVEL_KEYS.join(', ')}).`);
+    }
+  }
+
+  if (value.precompileUpgrades !== undefined) {
+    if (!Array.isArray(value.precompileUpgrades)) {
+      errors.push('precompileUpgrades must be an array.');
+    } else {
+      value.precompileUpgrades.forEach((entry, index) => {
+        errors.push(...validatePrecompileUpgradeEntry(entry, `precompileUpgrades[${index}]`));
+      });
+    }
+  }
+
+  if (value.stateUpgrades !== undefined) {
+    if (!Array.isArray(value.stateUpgrades)) {
+      errors.push('stateUpgrades must be an array.');
+    } else {
+      value.stateUpgrades.forEach((entry, index) => {
+        errors.push(...validateStateUpgradeEntry(entry, `stateUpgrades[${index}]`));
+      });
+    }
+  }
+
+  if (value.networkUpgradeOverrides !== undefined && !isPlainObject(value.networkUpgradeOverrides)) {
+    errors.push('networkUpgradeOverrides must be an object.');
+  }
+
+  return errors;
+}
+
+function validatePrecompileUpgradeEntry(entry: unknown, label: string): string[] {
+  if (!isPlainObject(entry)) return [`${label} must be an object with exactly one precompile config.`];
+
+  const keys = Object.keys(entry);
+  if (keys.length !== 1) {
+    return [`${label} must contain exactly one precompile config, found ${keys.length}.`];
+  }
+
+  const key = keys[0];
+  if (!PRECOMPILE_DEFINITIONS.some((definition) => definition.key === key)) {
+    return [`${label} has unknown precompile "${key}" (known: ${PRECOMPILE_DEFINITIONS.map((d) => d.key).join(', ')}).`];
+  }
+
+  const config = entry[key];
+  if (!isPlainObject(config)) return [`${label}.${key} must be an object.`];
+
+  const errors: string[] = [];
+  if (!isValidUpgradeTimestamp(config.blockTimestamp)) {
+    errors.push(`${label}.${key} needs a positive integer blockTimestamp.`);
+  }
+  if (config.disable !== undefined && typeof config.disable !== 'boolean') {
+    errors.push(`${label}.${key}.disable must be a boolean.`);
+  }
+  for (const role of ALLOWLIST_ROLE_KEYS) {
+    const list = config[role];
+    if (list === undefined || list === null) continue;
+    if (!Array.isArray(list)) {
+      errors.push(`${label}.${key}.${role} must be an array of addresses.`);
+      continue;
+    }
+    for (const address of list) {
+      if (typeof address !== 'string' || !isValidAddress(address)) {
+        errors.push(`${label}.${key}.${role} contains an invalid address: ${JSON.stringify(address)}.`);
+      }
+    }
+  }
+  return errors;
+}
+
+function validateStateUpgradeEntry(entry: unknown, label: string): string[] {
+  if (!isPlainObject(entry)) return [`${label} must be an object.`];
+
+  const errors: string[] = [];
+  for (const key of Object.keys(entry)) {
+    if (!STATE_UPGRADE_ENTRY_KEYS.includes(key)) {
+      errors.push(`${label} has unknown key "${key}" (allowed: ${STATE_UPGRADE_ENTRY_KEYS.join(', ')}).`);
+    }
+  }
+  if (!isValidUpgradeTimestamp(entry.blockTimestamp)) {
+    errors.push(`${label} needs a positive integer blockTimestamp.`);
+  }
+  if (!isPlainObject(entry.accounts)) {
+    errors.push(`${label}.accounts must be an object keyed by address.`);
+    return errors;
+  }
+
+  for (const [address, account] of Object.entries(entry.accounts)) {
+    const accountLabel = `${label}.accounts["${address}"]`;
+    if (!isValidAddress(address)) {
+      errors.push(`${label}.accounts has an invalid address key: "${address}".`);
+    }
+    if (!isPlainObject(account)) {
+      errors.push(`${accountLabel} must be an object.`);
+      continue;
+    }
+    for (const key of Object.keys(account)) {
+      if (!STATE_UPGRADE_ACCOUNT_KEYS.includes(key)) {
+        errors.push(`${accountLabel} has unknown key "${key}" (allowed: ${STATE_UPGRADE_ACCOUNT_KEYS.join(', ')}).`);
+      }
+    }
+    if (account.code !== undefined && (typeof account.code !== 'string' || !isValidRuntimeBytecode(account.code))) {
+      errors.push(`${accountLabel}.code must be 0x-prefixed hex bytecode.`);
+    }
+    if (account.balanceChange !== undefined && !isValidBalanceChange(account.balanceChange)) {
+      errors.push(`${accountLabel}.balanceChange must be a positive decimal or hex amount.`);
+    }
+    if (account.storage !== undefined && !isPlainObject(account.storage)) {
+      errors.push(`${accountLabel}.storage must be an object of storage slots.`);
+    }
+  }
+  return errors;
+}
+
+function isValidBalanceChange(value: unknown): boolean {
+  if (typeof value === 'number') return Number.isInteger(value) && value > 0;
+  return typeof value === 'string' && isPositiveAmount(value);
+}
+
+function parseTimestampValue(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && DECIMAL_POSITIVE_RE.test(value)) return Number(value);
+  return null;
+}
+
+/**
+ * Derive which precompiles are active right now from eth_getChainConfig
+ * output: genesis-level precompile configs plus `upgrades.precompileUpgrades`
+ * replayed in order up to the chain's latest block timestamp. Fallback for
+ * RPCs that don't expose eth_getActiveRulesAt (e.g. hosted public RPCs).
+ */
+export function deriveActivePrecompiles(
+  chainConfig: unknown,
+  latestBlockTimestamp: number | null,
+): Record<string, unknown> {
+  if (!isPlainObject(chainConfig)) return {};
+  const cutoff = latestBlockTimestamp ?? Math.floor(Date.now() / 1000);
+  const active: Record<string, unknown> = {};
+
+  for (const definition of PRECOMPILE_DEFINITIONS) {
+    const genesisConfig = chainConfig[definition.key];
+    if (!isPlainObject(genesisConfig)) continue;
+    const timestamp = parseTimestampValue(genesisConfig.blockTimestamp) ?? 0;
+    if (timestamp <= cutoff) active[definition.key] = genesisConfig;
+  }
+
+  const upgrades = isPlainObject(chainConfig.upgrades) ? chainConfig.upgrades.precompileUpgrades : undefined;
+  if (Array.isArray(upgrades)) {
+    for (const entry of upgrades) {
+      if (!isPlainObject(entry)) continue;
+      for (const definition of PRECOMPILE_DEFINITIONS) {
+        const config = entry[definition.key];
+        if (!isPlainObject(config)) continue;
+        const timestamp = parseTimestampValue(config.blockTimestamp);
+        if (timestamp === null || timestamp > cutoff) continue;
+        if (config.disable === true) {
+          delete active[definition.key];
+        } else {
+          active[definition.key] = config;
+        }
+      }
+    }
+  }
+
+  return active;
+}
+
+/**
+ * Pull the node's current upgrade.json content out of eth_getChainConfig
+ * output (`upgrades` carries precompileUpgrades / stateUpgrades /
+ * networkUpgradeOverrides). Returns null when the chain has no upgrades, so
+ * callers can fall back to an empty base.
+ */
+export function extractUpgradeJsonFromChainConfig(chainConfig: unknown): UpgradeJson | null {
+  if (!isPlainObject(chainConfig) || !isPlainObject(chainConfig.upgrades)) return null;
+
+  const upgrades = chainConfig.upgrades;
+  const extracted: UpgradeJson = {};
+  if (Array.isArray(upgrades.precompileUpgrades) && upgrades.precompileUpgrades.length > 0) {
+    extracted.precompileUpgrades = upgrades.precompileUpgrades as UpgradeJson['precompileUpgrades'];
+  }
+  if (Array.isArray(upgrades.stateUpgrades) && upgrades.stateUpgrades.length > 0) {
+    extracted.stateUpgrades = upgrades.stateUpgrades as UpgradeJson['stateUpgrades'];
+  }
+  if (isPlainObject(upgrades.networkUpgradeOverrides)) {
+    extracted.networkUpgradeOverrides = upgrades.networkUpgradeOverrides as Record<string, number>;
+  }
+
+  return Object.keys(extracted).length > 0 ? extracted : null;
 }
 
 export function formatUpgradeJson(config: UpgradeJson): string {
@@ -194,20 +423,21 @@ export function buildUpgradeJson({
   for (const selection of precompiles) {
     if (selection.mode === 'none') continue;
 
-    const blockTimestamp = activationTimestamp + offset;
-    offset += 1;
-
-    if (selection.mode === 'disable') {
+    // 'update' = disable + re-enable pair, the required sequence for changing
+    // an already-active precompile's configuration.
+    if (selection.mode === 'disable' || selection.mode === 'update') {
       precompileUpgrades.push({
         [selection.key]: {
-          blockTimestamp,
+          blockTimestamp: activationTimestamp + offset,
           disable: true,
         },
       });
-      continue;
+      offset += 1;
+      if (selection.mode === 'disable') continue;
     }
 
-    const config: Record<string, unknown> = { blockTimestamp };
+    const config: Record<string, unknown> = { blockTimestamp: activationTimestamp + offset };
+    offset += 1;
     if (selection.key === 'warpConfig') {
       config.quorumNumerator = selection.quorumNumerator ?? 67;
       config.requirePrimaryNetworkSigners = selection.requirePrimaryNetworkSigners ?? true;
@@ -240,6 +470,7 @@ export function buildUpgradeJson({
       accounts: {
         [change.address]: {
           code: change.code,
+          ...(change.storage && Object.keys(change.storage).length > 0 ? { storage: change.storage } : {}),
         },
       },
     });
@@ -267,6 +498,8 @@ export function validateUpgradePlan(input: BuildUpgradeJsonInput): ValidationRes
 
   for (const selection of input.precompiles) {
     if (selection.mode === 'none' || selection.mode === 'disable') continue;
+    // 'update' falls through: the re-enable half of the pair carries the new
+    // allowlist, so it needs the same address validation as a plain enable.
     if (selection.key === 'warpConfig') {
       const quorum = selection.quorumNumerator ?? 67;
       if (!Number.isInteger(quorum) || quorum < 1 || quorum > 100) {
