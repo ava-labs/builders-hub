@@ -39,8 +39,7 @@ const ACCENT_SIGNUPS = "#E84142";
 const ACCENT_VISITS = "#7FA6FF";
 const ACCENT_CONSOLE = "#B88DFF";
 
-// Per-platform accents, reused by the completion bars and the cohort chart so
-// the two profile-completion views read as a matched set.
+// Per-platform accents for the profile-completion bars.
 const PLATFORM_ACCENT: Record<SocialPlatform, string> = {
   x: "#E84142",
   linkedin: "#7FA6FF",
@@ -67,12 +66,14 @@ function PlatformIcon({
   }
 }
 
-const DEPTH_LABELS: Record<number, string> = {
-  0: "No links",
-  1: "1 link",
-  2: "2 links",
-  3: "3 links",
-  4: "All 4 links",
+// Completion-quality scale for the depth view: gray (no links) up to green
+// (fully linked), reusing the section's established palette.
+const DEPTH_ACCENT: Record<number, string> = {
+  0: "var(--pr-g-650)",
+  1: "#E84142",
+  2: "#B88DFF",
+  3: "#7FA6FF",
+  4: "#34B27B",
 };
 
 export function InsightsCard({ data, loading, error }: Props) {
@@ -118,7 +119,6 @@ function InsightsBody({ data }: { data: BuilderInsightsData }) {
       <KPIStrip data={data} />
       <ChartSection data={data} />
       <ProfileCompletionSection data={data} />
-      <CompletionCohortSection data={data} />
       <LeaderboardSection data={data} />
       <EventHistorySection data={data} />
     </div>
@@ -330,23 +330,13 @@ function ChartSection({ data }: { data: BuilderInsightsData }) {
 function BigChart({
   series,
   normalized,
-  domain,
-  unit,
 }: {
   series: Series[];
   normalized: boolean;
-  // When set, all series share this fixed y-domain (e.g. 0–100 for %) instead
-  // of the per-series auto-scaling used by the absolute/normalized views.
-  domain?: { min: number; max: number };
-  unit?: string;
 }) {
-  // Lines only (no area fill / point markers) for normalized or shared-domain
-  // multi-series charts; a left axis is shown whenever there are y-ticks.
-  const linesOnly = normalized || !!domain;
-  const showAxis = !normalized || !!domain;
   const W = 880;
   const H = 260;
-  const PAD_L = showAxis ? 52 : 14;
+  const PAD_L = normalized ? 14 : 52;
   const PAD_R = 14;
   const PAD_T = 20;
   const PAD_B = 32;
@@ -384,14 +374,6 @@ function BigChart({
   };
 
   const seriesScales = series.map((s) => {
-    if (domain) {
-      return {
-        vals: s.data.map((r) => r.value),
-        max: domain.max,
-        min: domain.min,
-        span: Math.max(domain.max - domain.min, 1),
-      };
-    }
     const vals = s.data.map((r) => r.value);
     const max = Math.max(...vals, 1);
     const min = normalized ? 0 : Math.min(...vals, 0);
@@ -404,7 +386,7 @@ function BigChart({
   };
 
   const ticks =
-    showAxis && seriesScales[0]
+    !normalized && seriesScales[0]
       ? [0, 0.25, 0.5, 0.75, 1].map(
           (t) => seriesScales[0].min + t * seriesScales[0].span,
         )
@@ -442,11 +424,7 @@ function BigChart({
             fill="var(--pr-g-650)"
             fontFamily="ui-monospace, monospace"
           >
-            {unit
-              ? `${Math.round(t)}${unit}`
-              : t >= 1000
-                ? `${(t / 1000).toFixed(1)}k`
-                : Math.round(t)}
+            {t >= 1000 ? `${(t / 1000).toFixed(1)}k` : Math.round(t)}
           </text>
         </g>
       ))}
@@ -463,7 +441,7 @@ function BigChart({
         const gradId = `pr-chart-grad-${s.accent.replace(/\W/g, "")}`;
         return (
           <g key={`${s.label}-${sIdx}`}>
-            {!linesOnly && <path d={area} fill={`url(#${gradId})`} />}
+            {!normalized && <path d={area} fill={`url(#${gradId})`} />}
             <path
               d={line}
               fill="none"
@@ -472,7 +450,7 @@ function BigChart({
               strokeLinejoin="round"
               strokeLinecap="round"
             />
-            {!linesOnly &&
+            {!normalized &&
               s.data.map((r) => {
                 const px = xForMonth(r.month);
                 const py = yFor(sIdx, r.value);
@@ -555,6 +533,13 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
     .reduce((sum, d) => sum + d.users, 0);
   const anyLinkPct =
     data.totalAccounts > 0 ? (withAnyLink / data.totalAccounts) * 100 : 0;
+  const avgLinks =
+    data.totalAccounts > 0
+      ? data.socialCompletionDepth.reduce(
+          (sum, d) => sum + d.linkCount * d.users,
+          0,
+        ) / data.totalAccounts
+      : 0;
 
   return (
     <section className="pr-insights__section">
@@ -614,114 +599,48 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
               })}
             </div>
           ) : (
-            <div className="pr-leaderboard">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Links</th>
-                    <th className="pr-num">Users</th>
-                    <th className="pr-num">Share</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...data.socialCompletionDepth]
-                    .sort((a, b) => b.linkCount - a.linkCount)
-                    .map((d) => (
-                      <tr key={d.linkCount}>
-                        <td>
-                          <span className="pr-leaderboard__name">
-                            {DEPTH_LABELS[d.linkCount] ?? `${d.linkCount} links`}
+            <>
+              <div className="pr-completion-bars">
+                {[...data.socialCompletionDepth]
+                  .sort((a, b) => b.linkCount - a.linkCount)
+                  .map((d) => {
+                    const accent =
+                      DEPTH_ACCENT[d.linkCount] ?? "var(--pr-g-650)";
+                    return (
+                      <div key={d.linkCount} className="pr-completion-bar">
+                        <span className="pr-completion-bar__label">
+                          <span
+                            className="pr-completion-bar__dot"
+                            style={{ background: accent }}
+                          />
+                          {d.linkCount} {d.linkCount === 1 ? "link" : "links"}
+                        </span>
+                        <span className="pr-completion-bar__track">
+                          <span
+                            className="pr-completion-bar__fill"
+                            style={{
+                              width: `${Math.min(d.pct, 100)}%`,
+                              background: accent,
+                            }}
+                          />
+                        </span>
+                        <span className="pr-completion-bar__value">
+                          <strong>{d.pct.toFixed(1)}%</strong>
+                          <span className="pr-completion-bar__count">
+                            {formatNumber(d.users)}
                           </span>
-                        </td>
-                        <td className="pr-num">{formatNumber(d.users)}</td>
-                        <td className="pr-num">
-                          <span className="pr-depth-cell">
-                            <span className="pr-depth-bar">
-                              <span
-                                className="pr-depth-bar__fill"
-                                style={{ width: `${Math.min(d.pct, 100)}%` }}
-                              />
-                            </span>
-                            {d.pct.toFixed(1)}%
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+              <p className="pr-completion-foot">
+                {avgLinks.toFixed(1)} links per account on average
+              </p>
+            </>
           )}
         </>
       )}
-    </section>
-  );
-}
-
-// ───────────────────────────────────────────────────────────────────────────
-// Completion by signup cohort — share of each signup month's users that have
-// each link today (completion measured now, attributed to signup month).
-// ───────────────────────────────────────────────────────────────────────────
-
-function CompletionCohortSection({ data }: { data: BuilderInsightsData }) {
-  const cohort = data.socialCompletionByCohort;
-
-  const series: Series[] = React.useMemo(
-    () => [
-      {
-        label: "X",
-        accent: PLATFORM_ACCENT.x,
-        data: cohort.map((r) => ({ month: r.month, value: r.xPct })),
-      },
-      {
-        label: "LinkedIn",
-        accent: PLATFORM_ACCENT.linkedin,
-        data: cohort.map((r) => ({ month: r.month, value: r.linkedinPct })),
-      },
-      {
-        label: "GitHub",
-        accent: PLATFORM_ACCENT.github,
-        data: cohort.map((r) => ({ month: r.month, value: r.githubPct })),
-      },
-      {
-        label: "Telegram",
-        accent: PLATFORM_ACCENT.telegram,
-        data: cohort.map((r) => ({ month: r.month, value: r.telegramPct })),
-      },
-    ],
-    [cohort],
-  );
-
-  return (
-    <section className="pr-insights__section">
-      <header className="pr-insights__heading">
-        <span className="pr-insights__heading-icon">
-          <GlobeIcon size={18} />
-        </span>
-        <h4 className="pr-insights__title">Completion by signup cohort</h4>
-        <span className="pr-insights__subtitle">
-          Trailing 12 months · share of each month&apos;s signups with the link
-          today
-        </span>
-      </header>
-      <div className="pr-chart">
-        <BigChart
-          series={series}
-          normalized={false}
-          domain={{ min: 0, max: 100 }}
-          unit="%"
-        />
-        <div className="pr-chart__legend">
-          {series.map((s) => (
-            <span key={s.label} className="pr-chart__legend-item">
-              <span
-                className="pr-chart__legend-swatch"
-                style={{ background: s.accent }}
-              />
-              {s.label}
-            </span>
-          ))}
-        </div>
-      </div>
     </section>
   );
 }

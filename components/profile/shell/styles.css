@@ -2181,26 +2181,18 @@
   color: var(--pr-g-650);
 }
 
-/* Profile completion — depth table share bar */
-.profile .pr-depth-cell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-.profile .pr-depth-bar {
-  width: 80px;
-  height: 6px;
-  background: var(--pr-g-300);
+/* Profile completion — depth view color swatch + footer */
+.profile .pr-completion-bar__dot {
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  overflow: hidden;
+  flex-shrink: 0;
 }
-.profile .pr-depth-bar__fill {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: var(--pr-accent-main);
-  transition: width 0.4s ease;
+.profile .pr-completion-foot {
+  margin: 10px 0 0;
+  font-family: var(--pr-mono);
+  font-size: 11px;
+  color: var(--pr-g-650);
 }
 
 /* Leaderboard table */
