@@ -281,7 +281,11 @@ export default function StageSubmitPageContent({
       isRequiredFieldEmpty(field, watchedValues[field.id])
   )
   const hasValidationErrors: boolean = Object.keys(form.formState.errors).length > 0
-  const isSaveDisabled: boolean = isSubmitting || hasMissingRequiredFields || hasValidationErrors
+  // Mirrors the server-side check in /api/project/form-data — the API rejects
+  // writes to locked stages, this just keeps the UI honest about it.
+  const isFormLocked: boolean = stage.formLocked === true
+  const isSaveDisabled: boolean =
+    isFormLocked || isSubmitting || hasMissingRequiredFields || hasValidationErrors
   const fieldLabelClassName: string = 'font-medium text-zinc-800 dark:text-white'
   const fieldDescriptionClassName: string = 'text-sm text-zinc-600 dark:text-zinc-400'
   const inputClassName: string =
@@ -1357,6 +1361,12 @@ export default function StageSubmitPageContent({
                   onSubmit={form.handleSubmit(handleSubmit)}
                   className="space-y-5"
                 >
+                  {isFormLocked && (
+                    <div className="rounded-md border border-zinc-500/40 bg-zinc-500/10 p-4 text-sm text-zinc-600 dark:text-zinc-300">
+                      Submissions for this stage are locked. Your last saved
+                      answers are final.
+                    </div>
+                  )}
                   {stage.submitForm.fields.map(renderField)}
 
                   <div className="flex justify-center pt-4">
@@ -1365,7 +1375,7 @@ export default function StageSubmitPageContent({
                       disabled={isSaveDisabled}
                       className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
                     >
-                      {isSubmitting ? 'Saving...' : 'Save'}
+                      {isFormLocked ? 'Locked' : isSubmitting ? 'Saving...' : 'Save'}
                     </Button>
                   </div>
                 </form>

@@ -47,6 +47,12 @@ function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
       if (detectMarkdownInjection(value)) {
         return { ok: false, error: `Field "${key}" contains dangerous Markdown link content.` };
       }
+      // Same protocol policy as array items: single-string fields can end up
+      // in Project URL columns (logo_url, demo_video_link, …), so data:/
+      // javascript: values must be rejected here too.
+      if (detectDangerousUrl(value)) {
+        return { ok: false, error: `Field "${key}" contains a dangerous URL protocol.` };
+      }
       continue;
     }
 
@@ -110,6 +116,30 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     const sanitizeResult = sanitizeStageValues(values);
     if (!sanitizeResult.ok) {
       return NextResponse.json({ error: sanitizeResult.error }, { status: 400 });
+    }
+
+    /**
+     * SECURITY: Validate the target stage server-side. Hiding the Submit
+     * button on the public page is not enforcement — without these checks a
+     * project member could keep writing answers to a locked stage (e.g. while
+     * judging is underway) or to a stage index that doesn't exist.
+     */
+    const hackathon = await prisma.hackathon.findUnique({
+      where: { id: hackathonId },
+      select: { content: true },
+    });
+    if (!hackathon) {
+      return NextResponse.json({ error: 'Hackathon not found' }, { status: 404 });
+    }
+    const stages: any[] = (hackathon.content as any)?.stages ?? [];
+    if (body.stageIndex >= stages.length) {
+      return NextResponse.json({ error: 'Invalid stageIndex' }, { status: 400 });
+    }
+    if (stages[body.stageIndex]?.formLocked === true) {
+      return NextResponse.json(
+        { error: 'Submissions for this stage are locked' },
+        { status: 403 }
+      );
     }
 
     const sessionUserId: string = session.user.id;
@@ -187,12 +217,8 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
       });
 
-      const hackathon = await tx.hackathon.findUnique({
-        where: { id: hackathonId },
-        select: { content: true },
-      });
       const stageFields: Array<{ id?: string; label?: string; type?: string }> =
-        (hackathon?.content as any)?.stages?.[body.stageIndex]?.submitForm?.fields ?? [];
+        stages[body.stageIndex]?.submitForm?.fields ?? [];
       const fieldMeta = new Map<string, { label?: string; type?: string }>(
         stageFields
           .filter((f): f is { id: string; label?: string; type?: string } => typeof f?.id === 'string')
