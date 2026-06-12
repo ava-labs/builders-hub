@@ -37,6 +37,8 @@ export enum SubmitFormFieldType {
   Link = 'link',
   Chips = 'chips',
   MultiSelect = 'multiSelect',
+  Boolean = 'boolean',
+  Image = 'image',
 }
 
 export type TextStagesSubmitFormField = {
@@ -79,11 +81,33 @@ export type MultiSelectStagesSubmitFormField = {
   maxSelections?: number | null;
 };
 
+export type BooleanStagesSubmitFormField = {
+  id: string;
+  type: SubmitFormFieldType.Boolean;
+  label: string;
+  description: string;
+  required: boolean;
+};
+
+export type ImageStagesSubmitFormField = {
+  id: string;
+  type: SubmitFormFieldType.Image;
+  label: string;
+  description: string;
+  required: boolean;
+  /** Max images the participant can upload (default 1). */
+  maxImages?: number;
+  /** Per-image size cap in MB (default 2). */
+  maxSizeMb?: number;
+};
+
 export type SubmitFormField = (
   | TextStagesSubmitFormField
   | LinkStagesSubmitFormField
   | ChipsStagesSubmitFormField
   | MultiSelectStagesSubmitFormField
+  | BooleanStagesSubmitFormField
+  | ImageStagesSubmitFormField
 ) & {
   predefinedField?: boolean;
 };

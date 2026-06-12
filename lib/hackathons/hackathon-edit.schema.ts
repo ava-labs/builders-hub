@@ -65,11 +65,33 @@ const multiSelectFieldSchema = z.object({
   predefinedField: z.boolean().optional(),
 });
 
+const booleanFieldSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal(SubmitFormFieldType.Boolean),
+  label: z.string().trim().min(1).max(120),
+  description: z.string().max(400).optional(),
+  required: z.boolean(),
+  predefinedField: z.boolean().optional(),
+});
+
+const imageFieldSchema = z.object({
+  id: z.string().min(1),
+  type: z.literal(SubmitFormFieldType.Image),
+  label: z.string().trim().min(1).max(120),
+  description: z.string().max(400).optional(),
+  required: z.boolean(),
+  maxImages: z.number().int().positive().max(20).optional(),
+  maxSizeMb: z.number().int().positive().max(50).optional(),
+  predefinedField: z.boolean().optional(),
+});
+
 const submitFieldSchema = z.discriminatedUnion("type", [
   textFieldSchema,
   linkFieldSchema,
   chipsFieldSchema,
   multiSelectFieldSchema,
+  booleanFieldSchema,
+  imageFieldSchema,
 ]);
 
 const stageSchema = z.object({

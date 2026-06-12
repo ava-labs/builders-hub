@@ -31,10 +31,21 @@ export default async function HackathonSubmitPage({
     redirect('/hackathons')
   }
 
-  let isRegistered: boolean = false
   const session = await getAuthSession()
 
-  if (session?.user?.email) {
+  // Submitting a project requires an authenticated user (project ownership,
+  // file uploads and the form-data API all need a session). Without this gate
+  // a logged-out visitor could open the form and only hit an opaque 401 when
+  // uploading or saving. Send them to login and back here afterwards.
+  if (!session?.user) {
+    redirect(
+      `/login?callbackUrl=${encodeURIComponent(`/hackathons/${id}/stage-form?stage=${stageIndex}`)}`
+    )
+  }
+
+  let isRegistered: boolean = false
+
+  if (session.user.email) {
     const registration = await getRegisterForm(session.user.email, id)
     isRegistered = !!registration
   }
