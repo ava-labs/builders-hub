@@ -1,0 +1,287 @@
+---
+title: Native AVAX Staking on the P-Chain with Fireblocks Raw Signing
+description: Fireblocks has no built-in Avalanche staking — but its Raw Signing API can sign any P-Chain transaction. Here's the complete flow, from C-Chain export to delegation or validation, with working TypeScript.
+date: 2026-06-09
+authors: [owenwg]
+topics: [Staking, P-Chain, Fireblocks, Custody]
+comments: true
+---
+
+import { Step, Steps } from 'fumadocs-ui/components/steps';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+Custodians and institutions holding AVAX in Fireblocks regularly ask how to stake it. Fireblocks' native Staking API covers ETH, SOL, and a few Cosmos chains — Avalanche isn't on the list, and Fireblocks only models Avalanche as its C-Chain asset. There is no P-Chain asset, no staking button.
+
+There is still a fully supported path: **Raw Signing**. Avalanche's C-Chain, P-Chain, and X-Chain all use the same secp256k1 key, so the key behind your Fireblocks AVAX wallet *is* your P-Chain key. Build the P-Chain transaction yourself, ask Fireblocks to sign its hash with that key, and broadcast. The MPC custody model stays fully intact — the private key never leaves Fireblocks, and your approval policies still gate every signature.
+
+This post walks the complete flow with working code: derive the P-Chain address, move AVAX from the C-Chain via atomic transfer (export + import), then stake it — by delegating to an existing validator or by registering a validator you run. Everything you need is inline — the only dependencies are [`@avalabs/avalanchejs`](https://github.com/ava-labs/avalanchejs), the [`@fireblocks/ts-sdk`](https://developers.fireblocks.com/docs/getting-started-with-the-fireblocks-sdks), and `@noble/hashes`.
+
+## How raw signing maps to Avalanche
+
+Every Avalanche transaction signature is secp256k1 over `sha256(unsignedTxBytes)`. That gives us a clean contract with the Fireblocks API:
+
+1. Build the unsigned transaction with [`@avalabs/avalanchejs`](https://github.com/ava-labs/avalanchejs)
+2. Hash it: `sha256(unsignedTx.toBytes())` — a 32-byte digest
+3. Submit the digest as a Fireblocks transaction with `operation: "RAW"`
+4. Fireblocks returns `{ r, s, v }` where `v` is the recovery id — `0` or `1`, **not** Ethereum's 27/28
+5. Assemble the 65-byte `[R(32) ‖ S(32) ‖ V(1)]` signature, attach it, broadcast
+
+The assembly and digest logic is a few lines:
+
+```typescript
+import { utils, type UnsignedTx } from "@avalabs/avalanchejs";
+import { sha256 } from "@noble/hashes/sha2";
+
+// The exact payload submitted to Fireblocks Raw Signing
+export function signingDigest(unsignedTx: UnsignedTx): Uint8Array {
+  return sha256(unsignedTx.toBytes());
+}
+
+// Fireblocks' { fullSig, v } -> the 65-byte signature Avalanche expects
+export function assembleSignature(fullSig: string, v: number): Uint8Array {
+  return utils.hexToBuffer(fullSig + v.toString(16).padStart(2, "0"));
+}
+```
+
+And the Fireblocks side — create a `RAW` transaction with the digest, poll until the MPC signing ceremony completes, assemble:
+
+```typescript
+import { Fireblocks, TransactionOperation, TransactionStateEnum, TransferPeerPathType } from "@fireblocks/ts-sdk";
+import { type UnsignedTx } from "@avalabs/avalanchejs";
+
+export async function rawSign(unsignedTx: UnsignedTx, note: string): Promise<Uint8Array> {
+  const digest = signingDigest(unsignedTx);
+
+  const { data: created } = await fireblocks.transactions.createTransaction({
+    transactionRequest: {
+      operation: TransactionOperation.Raw,
+      assetId: "AVAX", // "AVAXTEST" on Fuji
+      source: { type: TransferPeerPathType.VaultAccount, id: vaultAccountId },
+      note,
+      extraParameters: {
+        rawMessageData: {
+          messages: [{ content: Buffer.from(digest).toString("hex") }],
+        },
+      },
+    },
+  });
+
+  // Poll until your approval policy + MPC signing complete
+  let tx;
+  do {
+    await new Promise((r) => setTimeout(r, 2000));
+    tx = (await fireblocks.transactions.getTransaction({ txId: created.id! })).data;
+  } while (tx.status !== TransactionStateEnum.Completed);
+
+  const { fullSig, v } = tx.signedMessages![0]!.signature!;
+  return assembleSignature(fullSig!, Number(v));
+}
+```
+
+One property does a lot of work here: avalanchejs's `addSignature()` recovers the public key from the signature and attaches it to **every** input owned by that address. A staking transaction consuming five UTXOs still needs exactly one Fireblocks round-trip.
+
+## Before you start: enable Raw Signing
+
+Raw Signing is **disabled by default in production workspaces** (sandbox has it on). This is the long pole — start it before writing any code:
+
+1. Request Raw Signing enablement from your Fireblocks CSM
+2. Add a [TAP policy rule](https://developers.fireblocks.com/docs/define-policy-rules) allowing `RAW` operations for the AVAX asset from your vault
+
+Without the policy rule, every signing request fails with `BLOCKED_BY_POLICY`.
+
+## The four steps
+
+<Steps>
+<Step>
+
+### Derive the P-Chain address
+
+Fetch the vault's compressed public key for the AVAX wallet and encode it both ways — Ethereum-style for the C-Chain, bech32 of `ripemd160(sha256(pubkey))` for the P-Chain:
+
+```typescript
+import { Context, secp256k1, utils } from "@avalabs/avalanchejs";
+
+const { data } = await fireblocks.vaults.getPublicKeyInfoForAddress({
+  vaultAccountId,
+  assetId: "AVAX",
+  change: 0,
+  addressIndex: 0,
+  compressed: true,
+});
+
+const publicKey = utils.hexToBuffer(data.publicKey!);
+const context = await Context.getContextFromURI("https://api.avax.network");
+
+const pAddress = `P-${utils.formatBech32(context.hrp, secp256k1.publicKeyBytesToAddress(publicKey))}`;
+const cAddress = `0x${Buffer.from(secp256k1.publicKeyToEthAddress(publicKey)).toString("hex")}`;
+```
+
+Same key, two encodings. Anything you export from the C-Chain lands at this P-Chain address.
+
+</Step>
+<Step>
+
+### Export AVAX from the C-Chain
+
+Moving value between Avalanche chains is a two-transaction atomic transfer: an `ExportTx` on the source chain places funds into shared atomic memory, and an `ImportTx` on the destination claims them. Both are Avalanche-native transactions, so both go through `rawSign`.
+
+The C-Chain export spends from an EVM account, so it needs the current nonce (via `eth_getTransactionCount`) and base fee:
+
+```typescript
+import { evm, utils } from "@avalabs/avalanchejs";
+
+const evmApi = new evm.EVMApi("https://api.avax.network");
+const baseFee = await evmApi.getBaseFee();
+
+const exportTx = evm.newExportTxFromBaseFee(
+  context,
+  baseFee / BigInt(1e9),          // wei -> nAVAX
+  BigInt(25e9),                   // 25 AVAX, in nAVAX
+  context.pBlockchainID,
+  utils.hexToBuffer(cAddress),
+  [utils.bech32ToBytes(pAddress)],
+  nonce,
+);
+
+exportTx.addSignature(await rawSign(exportTx, "Export 25 AVAX to P-Chain"));
+const { txID } = await evmApi.issueSignedTx(exportTx.getSignedTx());
+```
+
+Poll `evmApi.getAtomicTxStatus(txID)` until `Accepted`.
+
+</Step>
+<Step>
+
+### Import on the P-Chain
+
+Ask the P-Chain for atomic UTXOs that arrived from the C-Chain, then claim them:
+
+```typescript
+import { pvm, utils } from "@avalabs/avalanchejs";
+
+const pvmApi = new pvm.PVMApi("https://api.avax.network");
+const { utxos } = await pvmApi.getUTXOs({ sourceChain: "C", addresses: [pAddress] });
+const feeState = await pvmApi.getFeeState();
+
+const importTx = pvm.e.newImportTx(
+  {
+    feeState,
+    fromAddressesBytes: [utils.bech32ToBytes(pAddress)],
+    sourceChainId: context.cBlockchainID,
+    toAddressesBytes: [utils.bech32ToBytes(pAddress)],
+    utxos,
+  },
+  context,
+);
+
+importTx.addSignature(await rawSign(importTx, "Import AVAX on P-Chain"));
+await pvmApi.issueSignedTx(importTx.getSignedTx());
+```
+
+</Step>
+<Step>
+
+### Stake: delegate or validate
+
+With AVAX on the P-Chain, one transaction remains — but it's worth being precise here, because staking on Avalanche is **two distinct operations**:
+
+- **Delegation** (`AddPermissionlessDelegatorTx`) adds your stake to a validator someone else operates. Minimum 25 AVAX on mainnet; the validator takes a delegation fee from your rewards. No infrastructure to run.
+- **Validation** (`AddPermissionlessValidatorTx`) registers a node *you* operate. Minimum 2,000 AVAX on mainnet, and it requires the node's BLS key and proof of possession. In return you earn the delegation fees.
+
+Both lock the stake for the full period and return it to `rewardAddresses`' owner automatically when the period ends. Custodians typically delegate to partner validators; validator-as-a-service operators need the second form.
+
+<Tabs items={['Delegate', 'Validate']}>
+<Tab value="Delegate">
+
+```typescript
+import { networkIDs, pvm, utils } from "@avalabs/avalanchejs";
+
+const { utxos } = await pvmApi.getUTXOs({ addresses: [pAddress] });
+const start = BigInt(Math.floor(Date.now() / 1000) + 60);
+const pAddressBytes = utils.bech32ToBytes(pAddress);
+
+const delegateTx = pvm.e.newAddPermissionlessDelegatorTx(
+  {
+    feeState,
+    fromAddressesBytes: [pAddressBytes],
+    utxos,
+    nodeId: "NodeID-...",                              // your chosen validator
+    subnetId: networkIDs.PrimaryNetworkID.toString(),  // the Primary Network
+    start,
+    end: start + BigInt(14 * 24 * 60 * 60),            // 2 weeks
+    weight: BigInt(25e9),                              // 25 AVAX minimum on mainnet
+    rewardAddresses: [pAddressBytes],
+  },
+  context,
+);
+
+delegateTx.addSignature(await rawSign(delegateTx, "Delegate 25 AVAX"));
+const { txID } = await pvmApi.issueSignedTx(delegateTx.getSignedTx());
+```
+
+</Tab>
+<Tab value="Validate">
+
+First grab the BLS public key and proof of possession from your node:
+
+```bash
+curl -s -X POST --data '{"jsonrpc":"2.0","id":1,"method":"info.getNodeID"}' \
+  -H 'content-type:application/json' http://<your-node>:9650/ext/info
+# -> result.nodeID, result.nodePOP.publicKey, result.nodePOP.proofOfPossession
+```
+
+```typescript
+import { networkIDs, pvm, utils } from "@avalabs/avalanchejs";
+
+const { utxos } = await pvmApi.getUTXOs({ addresses: [pAddress] });
+const start = BigInt(Math.floor(Date.now() / 1000) + 60);
+const pAddressBytes = utils.bech32ToBytes(pAddress);
+
+const validateTx = pvm.e.newAddPermissionlessValidatorTx(
+  {
+    feeState,
+    fromAddressesBytes: [pAddressBytes],
+    utxos,
+    nodeId: "NodeID-...",                              // your node's ID
+    subnetId: networkIDs.PrimaryNetworkID.toString(),  // the Primary Network
+    start,
+    end: start + BigInt(14 * 24 * 60 * 60),
+    weight: BigInt(2000e9),                            // 2,000 AVAX minimum on mainnet
+    rewardAddresses: [pAddressBytes],
+    delegatorRewardsOwner: [pAddressBytes],            // where delegation fees go
+    shares: 20_000,                                    // fee in 0.0001% units: 2% (the minimum)
+    publicKey: utils.hexToBuffer(nodePOP.publicKey),
+    signature: utils.hexToBuffer(nodePOP.proofOfPossession),
+  },
+  context,
+);
+
+validateTx.addSignature(await rawSign(validateTx, "Add validator with 2,000 AVAX"));
+const { txID } = await pvmApi.issueSignedTx(validateTx.getSignedTx());
+```
+
+</Tab>
+</Tabs>
+
+Either way, poll `pvmApi.getTxStatus({ txID })` until `Committed`, then watch your stake on the [explorer](https://subnets.avax.network/validators).
+
+</Step>
+</Steps>
+
+## Gotchas worth knowing
+
+- **`v` is a recovery id.** Fireblocks returns `0`/`1`. If you add 27 out of Ethereum habit, the recovered public key won't match and avalanchejs will silently refuse to attach the signature — check `unsignedTx.hasAllSignatures()` before broadcasting.
+- **Pre-hash with SHA-256 yourself** on standard MPC workspaces, as shown above. Cold-storage and SGX workspaces instead send the raw payload with a `preHash: { hashAlgorithm: "SHA256" }` parameter — see the [Fireblocks raw signing docs](https://developers.fireblocks.com/docs/raw-message-signing).
+- **Low-S signatures.** Avalanche rejects high-S (malleable) signatures. Fireblocks returns canonical low-S, so this just works — but it matters if you ever swap in another signer.
+- **Stake is locked** for the full period, with no early unstake. Mainnet minimums: 25 AVAX (delegation) or 2,000 AVAX (validation), 2 weeks either way; on Fuji it's 1 AVAX for 24 hours, which makes testnet iteration cheap.
+- **Test on Fuji first.** Use `assetId: "AVAXTEST"`, point at `https://api.avax-test.network`, and fund the C-Chain address from the [faucet](https://core.app/tools/testnet-faucet/).
+
+## Staking UX is about to get better
+
+Two ACPs currently moving through the proposal process would significantly improve the custodial staking story: [ACP-236](/docs/acps/236-continuous-staking) adds auto-renewal and auto-compounding so positions don't need to be manually re-established every period, and [ACP-273](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md) cuts the minimum stake duration to roughly two days. Same transaction flow as above — just better parameters.
+
+## Try it
+
+Spin up a free [Fireblocks developer sandbox](https://developers.fireblocks.com/docs/sandbox-quickstart) (Raw Signing is enabled there by default), point the code above at Fuji, and you can run the full flow end to end with faucet AVAX before touching production. The [Fireblocks raw signing docs](https://developers.fireblocks.com/docs/raw-message-signing) cover the API surface in depth, and the [serialization format reference](/docs/rpcs/other/standards/serialization-primitives) has the byte-level details if you want them.
+
+Questions or stuck on enablement? Reach out on the [Avalanche Discord](https://discord.gg/avax).

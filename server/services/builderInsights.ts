@@ -307,13 +307,14 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
                h."title" AS "event",
                h."start_date" AS "startDate",
                h."end_date" AS "endDate",
-               COUNT(DISTINCT u."id")::bigint AS "participants",
+               -- Participants = total team members across the hackathon's teams
+               -- (number of teams, then people per team). Counts member rows
+               -- directly so email-only invitees without an account still count.
+               COUNT(DISTINCT m."id")::bigint AS "participants",
                COUNT(DISTINCT p."id")::bigint AS "projects"
         FROM "Hackathon" h
         LEFT JOIN "Project" p ON p."hackaton_id" = h."id"
         LEFT JOIN "Member" m ON m."project_id" = p."id"
-        LEFT JOIN "User" u ON u."id" = m."user_id"
-          OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
         WHERE COALESCE(h."event", 'hackathon') = 'hackathon'
           AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
         GROUP BY h."id", h."title", h."start_date", h."end_date"

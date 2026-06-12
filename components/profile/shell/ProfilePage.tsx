@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { toast as sonnerToast } from "sonner";
 
 import SignOutComponent from "@/components/login/sign-out/SignOut";
@@ -127,7 +126,6 @@ interface Props {
 
 export default function ProfilePage({ teamLabel }: Props) {
   const { data: session } = useSession();
-  const router = useRouter();
   const avatarContext = useUserAvatar();
   const [signOutOpen, setSignOutOpen] = React.useState(false);
   const {
@@ -436,7 +434,7 @@ export default function ProfilePage({ teamLabel }: Props) {
       });
     }
     await signOut({ redirect: false });
-    router.push("/");
+    window.location.href = "/";
   };
 
   const handleNounAvatarSave = async (seed: AvatarSeed, enabled: boolean) => {

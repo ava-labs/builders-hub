@@ -14,28 +14,28 @@ export default function TrackCard(props: Props) {
     >
       <CardHeader className="pb-3">
         <CardTitle>
-          <div className="flex justify-between items-center gap-2">
-            <h2 className="text-red-500 text-lg font-bold">
+          <div className="flex justify-between items-start gap-2">
+            <h2 className="text-red-500 text-lg font-bold flex-1 min-w-0 break-words">
               {props.track.name}
             </h2>
             {props.track.icon && props.track.icon.trim() !== "" ? (
               <DynamicIcon
                 name={props.track.icon as any}
                 size={20}
-                className="!text-red-500"
+                className="!text-red-500 shrink-0 mt-1"
               />
             ) : (
               <DynamicIcon
                 name="wrench"
                 size={20}
-                className="!text-red-500"
+                className="!text-red-500 shrink-0 mt-1"
               />
             )}
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <p className="text-sm text-zinc-700 text-left leading-relaxed dark:text-zinc-100">
+        <p className="text-sm text-zinc-700 text-left leading-relaxed dark:text-zinc-100 break-words">
           {props.track.short_description || 'No description available'}
         </p>
       </CardContent>

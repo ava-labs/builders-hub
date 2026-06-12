@@ -155,6 +155,7 @@ model Project {
   short_description   String
   full_description    String?             @default("")
   tech_stack          String?             @default("")
+  tech_stack_tags     String[]            @default([])
   github_repository   String?             @default("")
   demo_link           String?             @default("")
   logo_url            String?             @default("")
