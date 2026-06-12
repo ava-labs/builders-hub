@@ -14,6 +14,10 @@ import {
   extractXUsername,
   extractLinkedInSlug,
 } from "./adapter";
+import {
+  normalizeTelegram,
+  normalizeLinkedInUrl,
+} from "@/lib/profile/socialAccountFormat";
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
 
@@ -249,7 +253,7 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
                 <input
                   id="pr-github"
                   value={githubDisplay}
-                  onChange={(e) => onGithubChange(e.target.value.trim())}
+                  onChange={(e) => onGithubChange(extractGithubUsername(e.target.value))}
                   placeholder="username"
                   disabled={githubConnected}
                 />
@@ -320,8 +324,9 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <span className="pr-pre">@</span>
               <input
                 id="pr-telegram"
-                value={telegram}
+                value={telegram.replace(/^@+/, "")}
                 onChange={(e) => onTelegramChange(e.target.value)}
+                onBlur={(e) => onTelegramChange(normalizeTelegram(e.target.value))}
                 placeholder="username"
               />
             </div>
@@ -336,10 +341,7 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <input
                 id="pr-linkedin"
                 value={linkedinDisplay}
-                onChange={(e) => {
-                  const slug = e.target.value.trim().replace(/^\/+|\/+$/g, "");
-                  onLinkedinChange(slug ? `https://linkedin.com/in/${slug}` : "");
-                }}
+                onChange={(e) => onLinkedinChange(normalizeLinkedInUrl(e.target.value, "in"))}
                 placeholder="username"
               />
             </div>

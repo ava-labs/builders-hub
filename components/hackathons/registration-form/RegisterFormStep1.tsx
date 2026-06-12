@@ -21,6 +21,7 @@ import { User } from "next-auth";
 import { countries } from "@/constants/countries";
 import { hsEmploymentRoles } from "@/constants/hs_employment_role";
 import { EventsLang, t } from "@/lib/events/i18n";
+import { formatTelegramDisplay } from "@/lib/profile/socialAccountFormat";
 
 const hackathonParticipationOptions = [
   { value: "yes", label: "Yes" },
@@ -130,6 +131,10 @@ export default function RegisterFormStep1({ user, lang = "en" }: Step1Props) {
                     placeholder={t(lang, "reg.step1.telegram.placeholder")}
                     className="bg-transparent placeholder-zinc-600"
                     {...field}
+                    onBlur={(e) => {
+                      field.onChange(formatTelegramDisplay(e.target.value));
+                      field.onBlur();
+                    }}
                   />
                 </FormControl>
                 <FormMessage className="text-zinc-600" />

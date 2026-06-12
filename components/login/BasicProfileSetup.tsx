@@ -37,6 +37,10 @@ import {
   TELEGRAM_ACCOUNT_PATTERN,
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
+import {
+  formatTelegramDisplay,
+  normalizeLinkedInUrl,
+} from '@/lib/profile/socialAccountFormat';
 
 // Form schema. Social fields are optional; only name + country + at least
 // one role are required to complete the basic setup. When a social field is
@@ -354,6 +358,10 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                       <Input
                         placeholder="https://www.linkedin.com/in/username"
                         {...field}
+                        onBlur={(e) => {
+                          field.onChange(normalizeLinkedInUrl(e.target.value, "in"));
+                          field.onBlur();
+                        }}
                         className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                       />
                     </FormControl>
@@ -455,8 +463,12 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
                     <FormLabel className="text-sm sm:text-base">Telegram</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter your Telegram username (without @)"
+                        placeholder="@username"
                         {...field}
+                        onBlur={(e) => {
+                          field.onChange(formatTelegramDisplay(e.target.value));
+                          field.onBlur();
+                        }}
                         className="bg-zinc-50 dark:bg-zinc-950 text-sm sm:text-base"
                       />
                     </FormControl>

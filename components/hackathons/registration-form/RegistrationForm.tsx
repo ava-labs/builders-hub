@@ -38,6 +38,7 @@ import {
   GITHUB_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
+import { normalizeTelegram } from "@/lib/profile/socialAccountFormat";
 
 const optionalSocial = (pattern: RegExp, message: string) =>
   z
@@ -277,7 +278,7 @@ export function RegisterForm({
         name: step1.name ?? existing.name,
         email: step1.email ?? existing.email,
         country: (step1.city ?? "").trim() || existing.country,
-        telegram_account: (step1.telegram_account ?? "").trim() || existing.telegram_account,
+        telegram_account: normalizeTelegram(step1.telegram_account) || existing.telegram_account,
         user_type: {
           ...userType,
           is_student: Boolean(step1.is_student),
@@ -512,6 +513,7 @@ export function RegisterForm({
 
       const finalData = {
         ...data,
+        telegram_account: normalizeTelegram(data.telegram_account),
         hackathon_id: hackathon_id,
         ...buildReferralAttributionPayload(referrer),
         interests: data.interests ?? [],
