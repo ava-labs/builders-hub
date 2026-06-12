@@ -1,7 +1,7 @@
 "use client"
 import type React from "react"
 import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight, RotateCw, EyeOff, HelpCircle, ArrowRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, RotateCw, EyeOff, HelpCircle, ArrowRight, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { saveFlashcardProgress, getFlashcardProgress, resetFlashcardProgress } from "@/utils/quizzes/indexedDB"
@@ -119,9 +119,18 @@ const CleanFlashcard: React.FC<FlashcardProps> = ({ flashcardSetId, quizUrl }) =
         <div className="flex items-center justify-center p-4">
             <div className="w-full max-w-2xl bg-card shadow-lg rounded-lg overflow-hidden border">
                 {/* Header */}
-                <div className="text-center p-6 border-b">
+                <div className="relative text-center p-6 border-b">
                     <h2 className="text-xl font-semibold mb-2">Study Flashcards</h2>
                     <p className="text-sm text-muted-foreground">Click reveal to see the answer and track your progress</p>
+                    <a
+                        href={`/api/flashcards/download/${encodeURIComponent(flashcardSetId)}`}
+                        download
+                        className="absolute right-4 top-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        title="Download these flashcards as an Anki deck (.apkg)"
+                    >
+                        <Download className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline">Anki</span>
+                    </a>
                 </div>
 
                 {/* Progress */}

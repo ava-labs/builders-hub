@@ -1,16 +1,21 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check } from 'lucide-react';
+import { Github, AlertCircle, MessageSquare, ChevronDown, ExternalLink, Copy, Check, Sparkles, BookOpen, Library } from 'lucide-react';
 import newGithubIssueUrl from 'new-github-issue-url';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { getExistingDeckForCoursePath } from '@/lib/flashcards/deck-resolver';
+import { courseRootFromPath } from '@/lib/flashcards/course-path';
+import { listUserDecksForCoursePath, type UserFlashcardDeck } from '@/utils/quizzes/indexedDB';
 
 export interface SidebarActionsProps {
   editUrl: string;
@@ -189,6 +194,98 @@ Page: [${pagePath}](https://build.avax.network${pagePath})
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <FlashcardsAction fullPath={fullPath} title={title} pageType={pageType} />
     </div>
+  );
+}
+
+interface FlashcardsActionProps {
+  fullPath: string;
+  title: string;
+  pageType: 'docs' | 'academy';
+}
+
+function FlashcardsAction({ fullPath, title, pageType }: FlashcardsActionProps) {
+  const existing = useMemo(() => getExistingDeckForCoursePath(fullPath), [fullPath]);
+  const coursePath = useMemo(() => courseRootFromPath(fullPath), [fullPath]);
+  const generateHref = `/academy/flashcards?source=${encodeURIComponent(fullPath)}&title=${encodeURIComponent(title)}&kind=${pageType}`;
+  const [userDecks, setUserDecks] = useState<UserFlashcardDeck[] | null>(null);
+
+  useEffect(() => {
+    if (!coursePath) {
+      setUserDecks([]);
+      return;
+    }
+    let cancelled = false;
+    listUserDecksForCoursePath(coursePath).then((decks) => {
+      if (!cancelled) {
+        setUserDecks(decks.sort((a, b) => b.updatedAt - a.updatedAt));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [coursePath]);
+
+  const hasUserDecks = (userDecks?.length ?? 0) > 0;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+          <Sparkles className="size-4" />
+          Flashcards
+          <ChevronDown className="size-3 ml-auto" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-64">
+        {existing ? (
+          <DropdownMenuItem asChild>
+            <a
+              href={`/academy/flashcards/play/${encodeURIComponent(existing.setId)}`}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <BookOpen className="size-4" />
+              <span className="flex-1">Study existing deck</span>
+              <span className="text-xs text-muted-foreground">{existing.cardCount}</span>
+            </a>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem disabled className="flex items-center gap-2 opacity-60">
+            <BookOpen className="size-4" />
+            <span className="flex-1">Study existing deck</span>
+            <span className="text-xs">No deck yet</span>
+          </DropdownMenuItem>
+        )}
+        {hasUserDecks && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Library className="size-3" />
+              My saved decks
+            </DropdownMenuLabel>
+            {userDecks!.map((deck) => (
+              <DropdownMenuItem asChild key={deck.id}>
+                <a
+                  href={`/academy/flashcards/play/user/${encodeURIComponent(deck.id)}`}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <span className="flex-1 truncate">{deck.name}</span>
+                  <span className="text-xs text-muted-foreground">{deck.items.length}</span>
+                </a>
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <a href={generateHref} className="flex items-center gap-2 cursor-pointer">
+            <Sparkles className="size-4" />
+            <span className="flex-1">Generate new deck</span>
+          </a>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

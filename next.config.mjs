@@ -17,6 +17,12 @@ const config = {
     'snarkjs',
     'ffjavascript',
     'blake-hash',
+    // anki-apkg-export's top-level code branches on `typeof window` and uses
+    // a legacy webpack-loader-prefix require (`require('script-loader!sql.js')`)
+    // that no current bundler resolves. The server branch (`require('sql.js')`)
+    // works at Node runtime, so keep it off the static graph and let the
+    // Node API routes do the require at request time via dynamic import.
+    'anki-apkg-export',
   ],
   // Include tsconfig.json in serverless function bundles for twoslash
   outputFileTracingIncludes: {
