@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, memo, useCallback, useRef, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, memo, useCallback, useRef, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, X, Save, Eye, EyeOff, ExternalLink, Check } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Trash, ChevronDown, ChevronRight, Database, PlusCircle, FileText, Layers, ImageIcon, Users, AlignLeft, LayoutGrid, X, Save, Eye, EyeOff, ExternalLink, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import TrackDialogContent from '@/components/hackathons/hackathon/TrackDialogContent';
 import type { Track } from '@/types/hackathons';
@@ -14,14 +15,19 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import HackathonsList from '@/components/hackathons/edit/HackathonsList';
 import { t } from './translations';
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import useHackathonsFilters from '@/hooks/useHackathonsFilters';
 import axios from 'axios';
 import { initialData, IDataMain, IDataContent, IDataLatest, ITrack, ISchedule, ISpeaker, IResource, IPartner } from './initials';
 import { LanguageButton } from './language-button';
 import PartnerItem from '@/components/hackathons/edit/PartnerItem';
-import { EmailListInput } from '@/components/common/EmailListInput';
+import { UserSearchPicker } from '@/components/common/UserSearchPicker';
+import { TimezoneCombobox } from '@/components/events/TimezoneCombobox';
 import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+import { REFERRAL_TEAM_LABELS } from '@/lib/referrals/team-labels';
+import { COUNTRIES } from '@/components/profile/shell/data';
+import { getDefaultTargetCountries } from '@/lib/hackathons/countryTargetDefaults';
 import HackathonsEditStages from '@/components/hackathons/edit/stages/Stages';
 import HackathonPreviewTabs from '@/components/hackathons/edit/preview/Preview';
 import { zodResolver } from '@/lib/zodResolver';
@@ -42,6 +48,38 @@ import { resolveFieldLabel } from '@/lib/events-field-labels';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { ThemeToggle } from '@/components/console/theme-toggle';
+
+// --- Location: structured pickers ↔ legacy string ----------------------------
+// The DB still stores a free-text `location` (legacy filter checks use
+// `location === "Online"`). The admin form now drives two structured fields
+// (`content.country` + `content.is_remote`) and we derive `location` from
+// them on save. These helpers parse the legacy string back into the new
+// shape when editing an existing hackathon whose content fields aren't set.
+
+function hydrateCountryFromLocation(location: string | null | undefined): string | undefined {
+  if (!location) return undefined;
+  const trimmed = location.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.toLowerCase() === 'online') return undefined;
+  // Common legacy values: "InPerson", "Hybrid" — no country to recover.
+  if (/^(inperson|in person|hybrid)$/i.test(trimmed)) return undefined;
+  const match = COUNTRIES.find((c) => c.toLowerCase() === trimmed.toLowerCase());
+  return match ?? undefined;
+}
+
+function hydrateRemoteFromLocation(location: string | null | undefined): boolean {
+  if (!location) return false;
+  const t = location.trim().toLowerCase();
+  return t === 'online' || t === 'hybrid';
+}
+
+function composeLocation(country: string | undefined, isRemote: boolean | undefined): string {
+  const hasCountry = !!country?.trim();
+  if (hasCountry && isRemote) return `Hybrid - ${country!.trim()}`;
+  if (hasCountry) return country!.trim();
+  if (isRemote) return 'Online';
+  return '';
+}
 
 function toLocalDatetimeString(isoString: string) {
   if (!isoString) return '';
@@ -1129,6 +1167,11 @@ const HackathonsEdit = () => {
   const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([]);
   const [loadingResourceTemplates, setLoadingResourceTemplates] = useState<boolean>(false);
   const { data: session, status } = useSession();
+  // Org scoping: every organizer (devrel included) organizes for their own
+  // team — the organizing team is derived from the logged-in user's team_id
+  // and the server enforces organizers = team_id, so the UI shows it read-only
+  // rather than offering a picker.
+  const userTeamId = session?.user?.team_id ?? null;
   // Fetch all hackathons at once instead of paginating (max 10000)
   const HACKATHONS_PAGE_SIZE = 10000;
   const {
@@ -1162,8 +1205,8 @@ const HackathonsEdit = () => {
       reValidateMode: 'onChange',
     });
   const formDataMain = useWatch({ control, name: 'main' }) ?? initialData.main;
-  const formDataContent =
-    useWatch({ control, name: 'content' }) ??
+  const formDataContent: IDataContent =
+    (useWatch({ control, name: 'content' }) as IDataContent | undefined) ??
     ({
       ...initialData.content,
       partners: [],
@@ -1287,6 +1330,31 @@ const HackathonsEdit = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, status]);
 
+  // Every organizer (devrel included) organizes for their own team, so derive
+  // the organizing team from the logged-in user's team_id. The server enforces
+  // the same on create, so this just keeps the UI in sync.
+  useEffect(() => {
+    if (status === 'authenticated' && userTeamId) {
+      setFormDataMain(prev =>
+        prev.organizers === userTeamId ? prev : { ...prev, organizers: userTeamId }
+      );
+    }
+  }, [status, userTeamId]);
+
+  const searchParams = useSearchParams();
+  const requestedEventId = searchParams?.get("event") ?? null;
+  const autoSelectedRef = useRef(false);
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (!requestedEventId) return;
+    if (myHackathons.length === 0) return;
+    const match = myHackathons.find((h) => h.id === requestedEventId);
+    if (match) {
+      autoSelectedRef.current = true;
+      handleSelectHackathon(match);
+    }
+  }, [requestedEventId, myHackathons]);
+
   const handleApplySpeakerTemplate = useCallback(
     (idx: number, template: SpeakerTemplate): void => {
       setFormDataContent((prev: IDataContent) => {
@@ -1362,6 +1430,14 @@ const HackathonsEdit = () => {
       judging_guidelines: hackathon.content?.judging_guidelines ?? '',
       submission_deadline: toLocalDatetimeString(hackathon.content?.submission_deadline ?? ''),
       registration_deadline: toLocalDatetimeString(hackathon.content?.registration_deadline ?? ''),
+      team_size_min: hackathon.content?.team_size_min,
+      team_size_max: hackathon.content?.team_size_max,
+      tech_stack_options: hackathon.content?.tech_stack_options ?? [],
+      target_countries: hackathon.content?.target_countries ?? [],
+      country: hackathon.content?.country ?? hydrateCountryFromLocation(hackathon.location),
+      is_remote: typeof hackathon.content?.is_remote === 'boolean'
+        ? hackathon.content.is_remote
+        : hydrateRemoteFromLocation(hackathon.location),
     });
     setRawTrackText(hackathon.content?.tracks_text ?? "");
     const trackDescriptions: { [key: number]: string } = {};
@@ -1446,8 +1522,6 @@ const HackathonsEdit = () => {
   const step6Ref = useRef<HTMLDivElement | null>(null);
   const step1BasicTabRef = useRef<HTMLButtonElement | null>(null);
   const step1DatesTabRef = useRef<HTMLButtonElement | null>(null);
-  const advancedOptionsRef = useRef<HTMLDivElement | null>(null);
-  const [advancedOptionsOpen, setAdvancedOptionsOpen] = React.useState<string>('');
 
   // Preview error flags and refs to clear any leftover inline styles
   const [bannerPreviewError, setBannerPreviewError] = useState<boolean>(false);
@@ -1472,7 +1546,7 @@ const HackathonsEdit = () => {
 
   const [activeStep, setActiveStep] = useState<'step1' | 'step2' | 'step3' | 'step4' | 'step5' | 'step6'>('step1');
   const [contentTab, setContentTab] = useState<
-    'tracks' | 'schedule' | 'resources' | 'speakers' | 'partners'
+    'tracks' | 'tech-stack' | 'schedule' | 'resources' | 'speakers' | 'partners'
   >('tracks');
   const [step1Tab, setStep1Tab] = useState<'basicInfo' | 'datesTime'>('basicInfo');
   const [scheduleMode, setScheduleMode] = useState<'calendar' | 'manual'>('calendar');
@@ -1603,10 +1677,14 @@ const HackathonsEdit = () => {
   }, [formDataContent.resources.length]);
 
   useEffect(() => {
-    if (formDataLatest.event !== 'hackathon' && contentTab === 'tracks') {
-      setContentTab('schedule');
+    // Tracks and Tech Stack tabs are hackathon-only. For other event types,
+    // send the user to the Schedule tab so they don't sit on an empty section.
+    if (formDataLatest.event !== 'hackathon') {
+      if (contentTab === 'tracks' || contentTab === 'tech-stack') {
+        setContentTab('schedule');
+      }
     }
-  }, [formDataLatest.event]);
+  }, [formDataLatest.event, contentTab]);
 
   useEffect(() => {
     if (formDataLatest.google_calendar_id) {
@@ -1892,19 +1970,6 @@ const HackathonsEdit = () => {
 
     if (section === 'Participants & Prizes') {
       collapsedKey = 'about'; targetRef = step4Ref; stepKey = 'step4';
-    } else if (section === 'Advanced Options' || path === 'latest.custom_link' || path === 'content.join_custom_link' || path === 'content.submission_custom_link') {
-      // Advanced Options is an accordion below the Content section — expand it and scroll to it.
-      setAdvancedOptionsOpen('options');
-      requestAnimationFrame(() => {
-        const container = leftPanelRef.current;
-        const el = advancedOptionsRef.current;
-        if (!container || !el) return;
-        const elRect = el.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const scrollPosition = container.scrollTop + (elRect.top - containerRect.top);
-        container.scrollTo({ top: scrollPosition - 16, behavior: 'smooth' });
-      });
-      return;
     } else if (section === 'Basic Info' || path.startsWith('main.') || path === 'cohostsEmails') {
       collapsedKey = 'main'; targetRef = step1Ref; stepKey = 'step1';
     } else if (section === 'Stages' || path.startsWith('content.stages.')) {
@@ -2147,9 +2212,12 @@ const HackathonsEdit = () => {
           return true;
         } else {
           const data = await response.json().catch(() => ({}));
+          const details = Array.isArray(data?.details) && data.details.length > 0
+            ? data.details.map((d: any) => `• ${d.field}: ${d.message}`).join('\n')
+            : null;
           toast({
             title: 'Error creating event',
-            description: typeof data?.error === 'string' ? data.error : 'Failed to create event. Please try again.',
+            description: details ?? (typeof data?.error === 'string' ? data.error : 'Failed to create event. Please try again.'),
             variant: 'destructive',
           });
           return false;
@@ -2210,9 +2278,12 @@ const HackathonsEdit = () => {
           return true;
         } else {
           const data = await response.json().catch(() => ({}));
+          const details = Array.isArray(data?.details) && data.details.length > 0
+            ? data.details.map((d: any) => `• ${d.field}: ${d.message}`).join('\n')
+            : null;
           toast({
             title: 'Error updating event',
-            description: typeof data?.error === 'string' ? data.error : 'Failed to update event. Please try again.',
+            description: details ?? (typeof data?.error === 'string' ? data.error : 'Failed to update event. Please try again.'),
             variant: 'destructive',
           });
           return false;
@@ -2419,7 +2490,7 @@ const HackathonsEdit = () => {
       location: "Virtual & In-Person Events Worldwide",
       total_prizes: 10000,
       tags: ["Blockchain", "Web3", "DeFi", "NFT", "Avalanche"],
-      participants: 100,
+      participants: 0,
       organizers: "Avalanche Foundation & Partners",
       is_public: false
     });
@@ -3035,15 +3106,39 @@ const HackathonsEdit = () => {
                   <p className="text-sm text-blue-700/90 dark:text-blue-200 mb-4">
                     {t[language].cohostsDescription}
                   </p>
-                  <EmailListInput
-                    value={cohostsEmails}
-                    onChange={(emails) => {
-                      setCohostsEmails(emails);
-                    }}
+                  <UserSearchPicker
+                    scope="admin"
                     placeholder={t[language].cohostsPlaceholder}
-                    label={t[language].cohostsLabel}
-                    description={t[language].cohostsHelp}
+                    onSelect={(user) => {
+                      const email = user.email?.trim();
+                      if (!email) return;
+                      setCohostsEmails((prev) =>
+                        prev.includes(email) ? prev : [...prev, email]
+                      );
+                    }}
                   />
+                  {cohostsEmails.length > 0 && (
+                    <ul className="mt-3 flex flex-wrap gap-2">
+                      {cohostsEmails.map((email) => (
+                        <li
+                          key={email}
+                          className="flex items-center gap-1.5 rounded-full border border-blue-300 dark:border-blue-600 bg-blue-100 dark:bg-blue-800/40 px-3 py-1 text-sm text-blue-800 dark:text-blue-200"
+                        >
+                          <span className="truncate max-w-[220px]">{email}</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCohostsEmails((prev) => prev.filter((e) => e !== email))
+                            }
+                            aria-label={`Remove ${email}`}
+                            className="text-blue-500 hover:text-red-500 dark:text-blue-300 dark:hover:text-red-400"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {getInlineError('cohostsEmails') && (
                     <p className="text-red-500 text-sm mt-2">{getInlineError('cohostsEmails')}</p>
                   )}
@@ -3186,6 +3281,53 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.location')}</p>
                             )}
 
+                            {/* Structured location: host country + remote toggle.
+                                Source of truth for country targeting; also composes
+                                the legacy free-text `location` string above. */}
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Host country &amp; availability</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">
+                              Pick a host country, toggle &quot;Available remotely&quot;, or both for a hybrid event.
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                              <div className="flex-1">
+                                <Select
+                                  value={formDataContent.country ?? '__none__'}
+                                  onValueChange={(value) => {
+                                    const next = value === '__none__' ? undefined : value;
+                                    setFormDataContent((prev) => ({ ...prev, country: next }));
+                                    setFormDataMain((prev) => ({
+                                      ...prev,
+                                      location: composeLocation(next, formDataContent.is_remote),
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="Host country (optional)" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">— No host country —</SelectItem>
+                                    {COUNTRIES.map((c) => (
+                                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 cursor-pointer">
+                                <Checkbox
+                                  checked={!!formDataContent.is_remote}
+                                  onCheckedChange={(checked) => {
+                                    const next = checked === true;
+                                    setFormDataContent((prev) => ({ ...prev, is_remote: next }));
+                                    setFormDataMain((prev) => ({
+                                      ...prev,
+                                      location: composeLocation(formDataContent.country, next),
+                                    }));
+                                  }}
+                                />
+                                <span className="text-sm">Available remotely</span>
+                              </label>
+                            </div>
+
                             <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">
                               {t[language].address}
                             </div>
@@ -3284,72 +3426,32 @@ const HackathonsEdit = () => {
                                 )}
                               </div>
                               {formDataLatest.event === 'hackathon' && (
-                                <div>
-                                  <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
-                                  <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
-                                  <Input
-                                    type="datetime-local"
-                                    placeholder="Submission Deadline"
-                                    value={formDataContent.submission_deadline}
-                                    onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
-                                    className="w-full mb-4"
-                                  />
-                                  {getInlineError('content.submission_deadline') && (
-                                    <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
-                                  )}
-                                </div>
+                                <>
+                                  <div>
+                                    <label className="font-medium text-xl mb-2 block">{t[language].submissionDeadline}:</label>
+                                    <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionDeadlineHelp}</div>
+                                    <Input
+                                      type="datetime-local"
+                                      placeholder="Submission Deadline"
+                                      value={formDataContent.submission_deadline}
+                                      onChange={(e) => setFormDataContent({ ...formDataContent, submission_deadline: e.target.value })}
+                                      className="w-full mb-4"
+                                    />
+                                    {getInlineError('content.submission_deadline') && (
+                                      <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_deadline')}</p>
+                                    )}
+                                  </div>
+                                </>
                               )}
                               <div>
                                 <label className="font-medium text-xl mb-2 block">{t[language].timezone}:</label>
                                 <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].timezoneHelp}</div>
-                                <Select
+                                <TimezoneCombobox
                                   value={formDataLatest.timezone}
-                                  onValueChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
-                                >
-                                  <SelectTrigger className="w-full mb-4">
-                                    <SelectValue placeholder="Select timezone" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="America/New_York">New York (EST/EDT) - GMT-5/-4</SelectItem>
-                                    <SelectItem value="America/Chicago">Chicago (CST/CDT) - GMT-6/-5</SelectItem>
-                                    <SelectItem value="America/Denver">Denver (MST/MDT) - GMT-7/-6</SelectItem>
-                                    <SelectItem value="America/Los_Angeles">Los Angeles (PST/PDT) - GMT-8/-7</SelectItem>
-                                    <SelectItem value="America/Toronto">Toronto (EST/EDT) - GMT-5/-4</SelectItem>
-                                    <SelectItem value="America/Vancouver">Vancouver (PST/PDT) - GMT-8/-7</SelectItem>
-                                    <SelectItem value="America/Mexico_City">Mexico City (CST/CDT) - GMT-6/-5</SelectItem>
-                                    <SelectItem value="America/Bogota">Bogotá, Colombia (COT) - GMT-5</SelectItem>
-                                    <SelectItem value="America/Costa_Rica">San José, Costa Rica (CST) - GMT-6</SelectItem>
-                                    <SelectItem value="America/Panama">Panama City, Panama (EST) - GMT-5</SelectItem>
-                                    <SelectItem value="America/Caracas">Caracas, Venezuela (VET) - GMT-4</SelectItem>
-                                    <SelectItem value="America/La_Paz">La Paz, Bolivia (BOT) - GMT-4</SelectItem>
-                                    <SelectItem value="America/Lima">Lima, Peru (PET) - GMT-5</SelectItem>
-                                    <SelectItem value="America/Sao_Paulo">São Paulo, Brazil (BRT) - GMT-3</SelectItem>
-                                    <SelectItem value="America/Santiago">Santiago, Chile (CLT) - GMT-3</SelectItem>
-                                    <SelectItem value="America/Buenos_Aires">Buenos Aires, Argentina (ART) - GMT-3</SelectItem>
-                                    <SelectItem value="Europe/London">London (GMT/BST) - GMT+0/+1</SelectItem>
-                                    <SelectItem value="Europe/Paris">Paris (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Berlin">Berlin (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Rome">Rome (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Madrid">Madrid (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Amsterdam">Amsterdam (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Zurich">Zurich (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Stockholm">Stockholm (CET/CEST) - GMT+1/+2</SelectItem>
-                                    <SelectItem value="Europe/Moscow">Moscow (MSK) - GMT+3</SelectItem>
-                                    <SelectItem value="Asia/Tokyo">Tokyo (JST) - GMT+9</SelectItem>
-                                    <SelectItem value="Asia/Shanghai">Shanghai (CST) - GMT+8</SelectItem>
-                                    <SelectItem value="Asia/Hong_Kong">Hong Kong (HKT) - GMT+8</SelectItem>
-                                    <SelectItem value="Asia/Singapore">Singapore (SGT) - GMT+8</SelectItem>
-                                    <SelectItem value="Asia/Seoul">Seoul (KST) - GMT+9</SelectItem>
-                                    <SelectItem value="Asia/Mumbai">Mumbai (IST) - GMT+5:30</SelectItem>
-                                    <SelectItem value="Asia/Dubai">Dubai (GST) - GMT+4</SelectItem>
-                                    <SelectItem value="Asia/Jerusalem">Jerusalem (IST) - GMT+2/+3</SelectItem>
-                                    <SelectItem value="Australia/Sydney">Sydney (AEST/AEDT) - GMT+10/+11</SelectItem>
-                                    <SelectItem value="Australia/Melbourne">Melbourne (AEST/AEDT) - GMT+10/+11</SelectItem>
-                                    <SelectItem value="Australia/Perth">Perth (AWST) - GMT+8</SelectItem>
-                                    <SelectItem value="Pacific/Auckland">Auckland (NZST/NZDT) - GMT+12/+13</SelectItem>
-                                    <SelectItem value="Pacific/Honolulu">Honolulu (HST) - GMT-10</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                  onChange={(value) => setFormDataLatest({ ...formDataLatest, timezone: value })}
+                                  placeholder="Select timezone"
+                                  className="mb-4"
+                                />
                                 {getInlineError('latest.timezone') && (
                                   <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.timezone')}</p>
                                 )}
@@ -3827,7 +3929,7 @@ const HackathonsEdit = () => {
                   <div className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 my-6">
                     <div className="flex items-center justify-between mb-4">
                       <h2 ref={step4Ref} className="text-2xl font-bold">
-                        {formDataLatest.event === 'hackathon' ? 'Participants & Prizes' : 'Organizer'}
+                        {formDataLatest.event === 'hackathon' ? 'Team & Prizes' : 'Organizer'}
                       </h2>
                       {collapsed.about && (
                         <button onClick={() => setCollapsed({ ...collapsed, about: false })} className="flex items-center gap-1 text-zinc-400 hover:text-red-500 cursor-pointer">
@@ -3840,26 +3942,21 @@ const HackathonsEdit = () => {
                         {formDataLatest.event === 'hackathon' && (
                           <>
                             <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-lg">
-                              <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Participants &amp; Prize Information</h3>
-                              <p className="text-sm text-purple-800 dark:text-purple-200">Now let's add details about participants and the prize pool.</p>
+                              <h3 className="text-lg font-semibold text-purple-700 dark:text-purple-300 mb-2">Team &amp; Prize Information</h3>
+                              <p className="text-sm text-purple-800 dark:text-purple-200">Now let's add details about the organizing team and prize pool.</p>
                             </div>
                           </>
                         )}
 
                         <>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Organizer Name/Organization</div>
-                          <Input
-                            type="text"
-                            name="organizers"
-                            placeholder="e.g., Avalanche Foundation, DevRel Team"
-                            value={formDataMain.organizers || ''}
-                            onChange={(e) => {
-                              setFormDataMain(prev => ({ ...prev, organizers: e.target.value }));
-                              scrollToSection('about');
-                            }}
-                            className="w-full mb-4"
-                            required
-                          />
+                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Organizing team</div>
+                          {/* Read-only for everyone: the organizing team is always the
+                              creator's own team_id (server-enforced on create). */}
+                          <div className="w-full mb-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 rounded-md px-3 py-2 text-zinc-700 dark:text-zinc-300">
+                            {userTeamId
+                              ? (REFERRAL_TEAM_LABELS[userTeamId] ?? userTeamId)
+                              : 'Your account is not assigned to a team — contact DevRel.'}
+                          </div>
                           {getInlineError('main.organizers') && (
                             <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.organizers')}</p>
                           )}
@@ -3885,22 +3982,106 @@ const HackathonsEdit = () => {
                               <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.total_prizes')}</p>
                             )}
 
-                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].participants}</div>
+
+                            {/* Team-size range — defines how many participants per team
+                                can register for this event. */}
+                            <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Min team size</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">Smallest allowed team size. Leave empty to allow solo (1).</div>
                             <Input
                               type="number"
-                              name="participants"
-                              placeholder="e.g., 100, 500, 1000"
-                              value={formDataMain.participants?.toString() || ''}
+                              min={1}
+                              placeholder="(1 — solo allowed)"
+                              value={formDataContent.team_size_min ?? ''}
                               onChange={(e) => {
-                                setFormDataMain(prev => ({ ...prev, participants: Number(e.target.value) || 0 }));
-                                scrollToSection('about');
+                                const raw = e.target.value.trim();
+                                const parsed = raw === '' ? undefined : Number(raw);
+                                setFormDataContent({
+                                  ...formDataContent,
+                                  team_size_min: Number.isFinite(parsed) ? parsed : undefined,
+                                });
                               }}
                               className="w-full mb-4"
-                              required
                             />
-                            {getInlineError('main.participants') && (
-                              <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('main.participants')}</p>
-                            )}
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].teamSizeMax}</div>
+                            <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-xs">{t[language].teamSizeMaxHelp}</div>
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="(no cap)"
+                              value={formDataContent.team_size_max ?? ''}
+                              onChange={(e) => {
+                                const raw = e.target.value.trim();
+                                const parsed = raw === '' ? undefined : Number(raw);
+                                setFormDataContent({
+                                  ...formDataContent,
+                                  team_size_max: Number.isFinite(parsed) ? parsed : undefined,
+                                });
+                              }}
+                              className="w-full mb-4"
+                            />
+
+                            {/* Participation scope — Global vs Local. "Local" derives the
+                                allowed-country list from the organizing team's region
+                                (e.g., team1-latam → all LatAm; team1-brazil → just Brazil). */}
+                            {(() => {
+                              const localCountries = getDefaultTargetCountries(formDataMain.organizers);
+                              const hasLocalOption = localCountries.length > 0;
+                              const isLocal = (formDataContent.target_countries ?? []).length > 0;
+                              const orgLabel = formDataMain.organizers
+                                ? REFERRAL_TEAM_LABELS[formDataMain.organizers] ?? formDataMain.organizers
+                                : null;
+                              return (
+                                <>
+                                  <div className="mt-6 mb-2 text-zinc-700 dark:text-zinc-400 text-sm">Participation scope</div>
+                                  <div className="mb-3 text-zinc-700 dark:text-zinc-400 text-xs">
+                                    {hasLocalOption
+                                      ? `"Local" restricts registration to participants in the ${orgLabel} region.`
+                                      : 'Select an organizing team above to unlock "Local" scope.'}
+                                  </div>
+                                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setFormDataContent({ ...formDataContent, target_countries: [] })
+                                      }
+                                      className={`flex-1 px-4 py-3 rounded-md border text-left transition-colors ${
+                                        !isLocal
+                                          ? 'bg-red-600 text-white border-red-500'
+                                          : 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                      }`}
+                                    >
+                                      <div className="font-medium">🌍 Global</div>
+                                      <div className="text-xs opacity-80 mt-1">Anyone can register from any country.</div>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={!hasLocalOption}
+                                      onClick={() => {
+                                        if (!hasLocalOption) return;
+                                        setFormDataContent({
+                                          ...formDataContent,
+                                          target_countries: [...localCountries],
+                                        });
+                                      }}
+                                      className={`flex-1 px-4 py-3 rounded-md border text-left transition-colors ${
+                                        isLocal
+                                          ? 'bg-red-600 text-white border-red-500'
+                                          : hasLocalOption
+                                            ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                            : 'bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 border-zinc-300 dark:border-zinc-600 opacity-60 cursor-not-allowed'
+                                      }`}
+                                    >
+                                      <div className="font-medium">📍 Local{orgLabel ? ` — ${orgLabel}` : ''}</div>
+                                      <div className="text-xs opacity-80 mt-1">
+                                        {hasLocalOption
+                                          ? localCountries.join(', ')
+                                          : 'No regional defaults configured for this team.'}
+                                      </div>
+                                    </button>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </>
                         )}
                         <div className="flex justify-end mt-4">
@@ -3943,6 +4124,11 @@ const HackathonsEdit = () => {
                             {formDataLatest.event === 'hackathon' && (
                               <TabsTrigger value="tracks" className="flex-1">
                                 {t[language].tracks}
+                              </TabsTrigger>
+                            )}
+                            {formDataLatest.event === 'hackathon' && (
+                              <TabsTrigger value="tech-stack" className="flex-1">
+                                Tech Stack
                               </TabsTrigger>
                             )}
                             <TabsTrigger value="schedule" className="flex-1">
@@ -3988,6 +4174,57 @@ const HackathonsEdit = () => {
                                 <div className="flex justify-end">
                                   <Button type="button" onClick={addTrack} className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2">
                                     <Plus className="w-4 h-4" /> {t[language].addTrack}
+                                  </Button>
+                                </div>
+                              </div>
+                            </TabsContent>
+                          )}
+
+                          {/* Tech Stack Options — admin-defined per event. Empty list
+                              falls back to DEFAULT_TECH_STACK_OPTIONS at submission time. */}
+                          {formDataLatest.event === 'hackathon' && (
+                            <TabsContent value="tech-stack">
+                              <div className="space-y-4">
+                                <label className="font-medium text-xl">Tech Stack Options:</label>
+                                <p className="text-sm text-zinc-700 dark:text-zinc-400">
+                                  These are the options participants pick from in the submission form. Leave empty to use the defaults (Frontend, Backend, Smart Contract, AI/ML, Mobile, Infra, Other).
+                                </p>
+                                {(formDataContent.tech_stack_options ?? []).map((opt, index) => (
+                                  <div key={index} className="flex items-center gap-2">
+                                    <Input
+                                      type="text"
+                                      placeholder="e.g. Smart Contract"
+                                      value={opt.name}
+                                      onChange={(e) => {
+                                        const next = [...(formDataContent.tech_stack_options ?? [])];
+                                        next[index] = { name: e.target.value };
+                                        setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                                      }}
+                                      className="flex-1"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => {
+                                        const next = (formDataContent.tech_stack_options ?? []).filter((_, i) => i !== index);
+                                        setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                                      }}
+                                      aria-label="Remove tech stack option"
+                                    >
+                                      <Trash className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      const next = [...(formDataContent.tech_stack_options ?? []), { name: '' }];
+                                      setFormDataContent({ ...formDataContent, tech_stack_options: next });
+                                    }}
+                                    className="mt-2 bg-red-500 hover:bg-red-600 text-white flex items-center gap-2"
+                                  >
+                                    <Plus className="w-4 h-4" /> Add Option
                                   </Button>
                                 </div>
                               </div>
@@ -4225,74 +4462,6 @@ const HackathonsEdit = () => {
                       <div className="text-zinc-600 dark:text-zinc-400 italic">{t[language].contentCompleted}</div>
                     )}
                   </div>
-                  <Accordion
-                    type="single"
-                    collapsible
-                    value={advancedOptionsOpen}
-                    onValueChange={setAdvancedOptionsOpen}
-                    className="w-full rounded-md border mt-6 px-4 py-2"
-                  >
-                    <AccordionItem value={'options'}>
-                      <AccordionPrimitive.Header className="flex" ref={advancedOptionsRef}>
-                        <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between gap-2 py-1 text-sm font-medium outline-none [&[data-state=open]_svg.chevron]:rotate-180">
-                          <span>Advanced options</span>
-                          <div className="flex items-center gap-2">
-                            <ChevronDown className="chevron text-muted-foreground size-4 shrink-0 transition-transform duration-200" />
-                          </div>
-                        </AccordionPrimitive.Trigger>
-                      </AccordionPrimitive.Header>
-
-                      <AccordionContent>
-                        <div className='pt-4'>
-                          <label className="font-medium text-xl mb-2 block">{t[language].customLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].customLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataLatest.custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataLatest(prev => ({ ...prev, custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('latest.custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('latest.custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].joinCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].joinCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="join_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.join_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, join_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.join_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.join_custom_link')}</p>
-                          )}
-                          <label className="font-medium text-xl mb-2 block">{t[language].submissionCustomLink}:</label>
-                          <div className="mb-2 text-zinc-700 dark:text-zinc-400 text-sm">{t[language].submissionCustomLinkHelp}</div>
-                          <Input
-                            type="text"
-                            name="submission_custom_link"
-                            placeholder="e.g., https://hackathon.custom..."
-                            value={formDataContent.submission_custom_link ?? ''}
-                            onChange={(e) => {
-                              setFormDataContent(prev => ({ ...prev, submission_custom_link: e.target.value }));
-                            }}
-                            className="w-full mb-4"
-                          />
-                          {getInlineError('content.submission_custom_link') && (
-                            <p className="text-red-500 text-sm -mt-2 mb-3">{getInlineError('content.submission_custom_link')}</p>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
                 </form>
               </>
             )}
@@ -4329,5 +4498,9 @@ const HackathonsEdit = () => {
 };
 
 export default function Page() {
-  return <HackathonsEdit />;
+  return (
+    <Suspense fallback={null}>
+      <HackathonsEdit />
+    </Suspense>
+  );
 }

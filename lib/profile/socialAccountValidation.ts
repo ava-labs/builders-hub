@@ -1,4 +1,4 @@
-export const X_ACCOUNT_PATTERN = /^https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?$/i;
+export const X_ACCOUNT_PATTERN = /^(?:@?[A-Za-z0-9_]{1,15}|https?:\/\/(?:www\.)?(?:twitter|x)\.com\/[A-Za-z0-9_]{1,15}\/?)$/i;
 // Accepts personal profiles (`/in/`, `/pub/`) AND company / school pages.
 // Project profiles use the company variants; user profiles still work with
 // /in/ as before.

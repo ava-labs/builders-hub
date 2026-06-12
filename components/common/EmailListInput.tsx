@@ -43,15 +43,15 @@ export function EmailListInput({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-sm font-medium text-zinc-500">
+        <label className="block text-sm font-medium text-foreground">
           {label}
         </label>
       )}
       {description && (
-        <p className="text-xs text-zinc-400">{description}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       )}
       <div
-        className="flex flex-wrap items-center gap-2 bg-[#00000000] px-3 py-2 rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-zinc-600 border border-zinc-700"
+        className="flex flex-wrap items-center gap-2 bg-background px-3 py-2 rounded-md min-h-[42px] focus-within:ring-2 focus-within:ring-ring border border-input"
         onClick={() => {
           const input = document.getElementById("email-list-input") as HTMLInputElement | null;
           input?.focus();
@@ -60,15 +60,15 @@ export function EmailListInput({
         {value.map((email) => (
           <div
             key={email}
-            className="flex items-center bg-transparent text-white text-sm rounded-full px-2 py-1"
+            className="flex items-center bg-secondary text-foreground text-sm rounded-full px-2 py-1"
           >
-            <span className="text-zinc-300">{email}</span>
+            <span className="text-foreground">{email}</span>
             {!disabled && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="ml-2 h-4 w-4 text-zinc-400 hover:text-red-400 p-0"
+                className="ml-2 h-4 w-4 text-muted-foreground hover:text-red-400 p-0"
                 onClick={() => handleRemoveEmail(email)}
               >
                 ✕
@@ -93,7 +93,7 @@ export function EmailListInput({
               }
             }}
             placeholder={value.length === 0 ? placeholder : ""}
-            className="text-sm outline-none flex-1 min-w-[120px] py-1 px-3 bg-transparent text-zinc-100 placeholder-zinc-500"
+            className="text-sm outline-none flex-1 min-w-[120px] py-1 px-3 bg-transparent text-foreground placeholder:text-muted-foreground"
           />
         )}
       </div>
