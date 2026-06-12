@@ -1,0 +1,121 @@
+name: Agent Score CI
+
+# Pins the AI-readiness invariants (Fern Agent Score) so they can't silently
+# regress. Does NOT call the live score — that number is noisy; we assert the
+# source-level pieces instead. Failure messages explain each check.
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'lib/llm-utils.ts'
+      - 'app/layout.tsx'
+      - 'app/robots.ts'
+      - 'app/sitemap.ts'
+      - 'app/llms.txt/**'
+      - 'app/llms-full.txt/**'
+      - 'app/api/raw/**'
+      - 'app/docs/[...slug]/page.tsx'
+      - 'app/academy/[...slug]/page.tsx'
+      - 'app/blog/[...slug]/page.tsx'
+      - 'app/integrations/[...slug]/page.tsx'
+      - 'next.config.mjs'
+      - 'proxy.ts'
+      - 'source.config.ts'
+      - 'tests/unit/seo/**'
+      - '.github/workflows/agent-score-ci.yml'
+
+concurrency:
+  group: agent-score-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Agent Score invariants
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: SEO unit tests
+        run: npx vitest run tests/unit/seo
+
+      - name: llms.txt directive present (markdown helper + HTML + doc pages)
+        run: |
+          errors=0
+
+          if ! grep -q "LLMS_TXT_DIRECTIVE" lib/llm-utils.ts \
+            || ! grep -q "/llms.txt" lib/llm-utils.ts; then
+            echo "::error file=lib/llm-utils.ts::getLLMText must append the /llms.txt directive (LLMS_TXT_DIRECTIVE)"
+            errors=$((errors + 1))
+          fi
+
+          # In-body anchor — afdocs does not credit the <head> <link> tag.
+          if ! grep -q 'href="/llms.txt"' app/layout.tsx; then
+            echo "::error file=app/layout.tsx::root layout must render an in-body <a href=\"/llms.txt\"> (the <head> tag alone does not count)"
+            errors=$((errors + 1))
+          fi
+
+          for page in \
+            'app/docs/[...slug]/page.tsx' \
+            'app/academy/[...slug]/page.tsx' \
+            'app/blog/[...slug]/page.tsx' \
+            'app/integrations/[...slug]/page.tsx'; do
+            if [ ! -f "$page" ]; then
+              echo "::error::$page is missing"; errors=$((errors + 1)); continue
+            fi
+            grep -q "text/markdown" "$page" || { echo "::error file=$page::missing text/markdown alternate"; errors=$((errors + 1)); }
+            grep -q "/llms.txt" "$page"    || { echo "::error file=$page::missing /llms.txt alternate"; errors=$((errors + 1)); }
+          done
+
+          [ $errors -eq 0 ] && echo "✓ llms.txt directives present" || exit 1
+
+      - name: Discovery routes exist
+        run: |
+          errors=0
+          for f in \
+            app/llms.txt/route.ts \
+            app/llms-full.txt/route.ts \
+            app/robots.ts \
+            app/sitemap.ts \
+            'app/api/raw/[...slug]/route.ts'; do
+            [ -f "$f" ] || { echo "::error::$f is missing"; errors=$((errors + 1)); }
+          done
+          [ $errors -eq 0 ] && echo "✓ discovery + raw-markdown routes present" || exit 1
+
+      - name: .md URLs wired for every doc section
+        run: |
+          errors=0
+          for section in docs academy blog integrations; do
+            grep -q "/${section}/:path\*.md" next.config.mjs || { echo "::error file=next.config.mjs::missing .md rewrite for /${section}"; errors=$((errors + 1)); }
+          done
+          [ $errors -eq 0 ] && echo "✓ .md rewrites present" || exit 1
+
+      - name: Markdown content negotiation intact (proxy.ts)
+        run: |
+          errors=0
+          grep -q "text/markdown" proxy.ts || { echo "::error file=proxy.ts::must serve markdown on 'Accept: text/markdown'"; errors=$((errors + 1)); }
+          grep -q "/api/raw" proxy.ts       || { echo "::error file=proxy.ts::markdown requests must rewrite to /api/raw"; errors=$((errors + 1)); }
+          for prefix in "/docs/" "/academy/" "/blog/" "/integrations/"; do
+            grep -q "'${prefix}'" proxy.ts || { echo "::error file=proxy.ts::content prefix '${prefix}' dropped from contentPrefixes"; errors=$((errors + 1)); }
+          done
+          for m in "/docs/:path\*" "/blog/:path\*" "/integrations/:path\*"; do
+            grep -q "\"${m}\"" proxy.ts || { echo "::error file=proxy.ts::config.matcher missing content path \"${m}\""; errors=$((errors + 1)); }
+          done
+          [ $errors -eq 0 ] && echo "✓ proxy.ts content negotiation + matcher intact" || exit 1
+
+      - name: Processed markdown enabled (content parity)
+        run: |
+          grep -q "includeProcessedMarkdown" source.config.ts \
+            || { echo "::error file=source.config.ts::includeProcessedMarkdown must stay enabled (markdown-content-parity)"; exit 1; }
+          echo "✓ includeProcessedMarkdown enabled"

@@ -161,11 +161,20 @@ export async function generateMetadata(props: {
     height: 630,
   };
 
+  const pagePath = `/blog/${page.slugs.join("/")}`;
+
   return createMetadata({
     title: page.data.title,
     description,
+    alternates: {
+      canonical: pagePath,
+      types: {
+        "text/markdown": `${pagePath}.md`,
+        "text/plain": "/llms.txt",
+      },
+    },
     openGraph: {
-      url: `/blog/${page.slugs.join("/")}`,
+      url: pagePath,
       images: image,
     },
     twitter: {
