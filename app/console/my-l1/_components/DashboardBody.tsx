@@ -19,6 +19,7 @@ import { chainKey, useChainOrder, useHiddenL1s } from '@/lib/console/my-l1/chain
 import { HeroCard } from './HeroCard';
 import { SwitchChainRail } from './SwitchChainRail';
 import { L1Details } from './L1Details';
+import { TokenList } from './TokenList';
 import { EmptyState, ErrorState, HeaderSkeleton } from './states';
 
 export function DashboardBody() {
@@ -28,6 +29,7 @@ export function DashboardBody() {
   const walletL1s = useL1List();
   const walletChainId = useWalletStore((s) => s.walletChainId);
   const isWalletTestnet = useWalletStore((s) => s.isTestnet);
+  const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const chainOrder = useChainOrder();
   const hiddenL1s = useHiddenL1s();
   // The create-l1 wizard parks the in-progress L1's genesis JSON in this
@@ -289,6 +291,15 @@ export function DashboardBody() {
               health={health}
               onRefresh={refetch}
               isRefreshing={isLoading}
+            />
+            <TokenList
+              l1={selectedL1}
+              userAddress={walletEVMAddress}
+              enabled={
+                walletEVMAddress !== '' &&
+                selectedL1.evmChainId !== null &&
+                walletChainId === selectedL1.evmChainId
+              }
             />
             <L1Details
               l1={selectedL1}

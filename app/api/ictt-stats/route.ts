@@ -128,7 +128,6 @@ export async function GET(request: Request) {
     }
 
     // Fetch ICTT data from the internal ClickHouse-backed aggregator
-    // (replaces the dead `idx6.solokhin.com/api/global/ictt/transfers` upstream).
     const transfers: ICTTTransfer[] = await getGlobalICTTTransfers();
 
     // Collect unique token addresses with CoinGecko IDs
