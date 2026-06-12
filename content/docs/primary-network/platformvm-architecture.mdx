@@ -13,7 +13,7 @@ At a glance:
 ## Responsibilities
 
 - **Validator registry & staking**: Tracks Primary Network validators and delegators, uptime, staking rewards, and validator fees.
-- **Subnet/L1 orchestration**: Creates Subnets and chains (`CreateSubnetTx`, `CreateChainTx`), maintains Subnet validator sets (including permissionless add/remove).
+- **Subnet/L1 orchestration**: Creates Subnets and chains (`CreateSubnetTx`, `CreateChainTx`), converts Subnets into L1s (`ConvertSubnetToL1Tx`), and maintains Subnet and L1 validator sets (including permissionless add/remove and warp-authorized L1 validator changes).
 - **Warp messaging**: Signs warp messages for cross-chain communication on Avalanche L1s.
 - **Atomic transfers**: Handles import/export of AVAX to/from other chains via shared memory.
 
@@ -32,6 +32,11 @@ At a glance:
 | `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` | Permissionless validation on Subnets that allow it |
 | `CreateSubnetTx` | Create a new Subnet and owner controls |
 | `CreateChainTx` | Launch a new blockchain (VM + genesis) on a Subnet |
+| `ConvertSubnetToL1Tx` | Convert a Subnet into an L1 with its initial validator set ([ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets)) |
+| `RegisterL1ValidatorTx` | Add a validator to an L1, authorized by a warp message from the L1's validator manager |
+| `SetL1ValidatorWeightTx` | Change an L1 validator's weight (a weight of 0 removes the validator) |
+| `IncreaseL1ValidatorBalanceTx` | Top up an L1 validator's continuous-fee balance |
+| `DisableL1ValidatorTx` | Deactivate an L1 validator and reclaim its remaining balance |
 | `ImportTx` / `ExportTx` | Move AVAX to/from other chains via atomic UTXOs |
 | `RewardValidatorTx` | Mint rewards after successful staking periods |
 | `TransformSubnetTx` | Legacy subnet transform (disabled post-Etna) |

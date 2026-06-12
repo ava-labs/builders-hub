@@ -262,7 +262,7 @@ export default function ResearchProposalForm() {
           </div>
 
           <p className="rounded-lg border border-border bg-secondary/40 px-4 py-3 text-sm font-medium text-foreground">
-            Deadline: Monday, June 1st, 2026.
+            Applications are open on a rolling basis - earlier submissions are encouraged.
           </p>
         </div>
 
