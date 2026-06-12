@@ -104,6 +104,12 @@ export default function ModernEventLayout({
 
   const isHackathon = (hackathon.event || "hackathon") === "hackathon";
 
+  // Stages own the whole submission experience, so the top-bar progress chip
+  // must route to the stage form (and the legacy field-based % is meaningless).
+  const hasStages =
+    Array.isArray(hackathon.content.stages) &&
+    hackathon.content.stages.length > 0;
+
   const scheduleSource = hackathon.google_calendar_id
     ? "google-calendar"
     : "database";
@@ -170,9 +176,11 @@ export default function ModernEventLayout({
         {isHackathon && isAuthenticated && submissionStatus !== "none" && (
           <Link
             href={
-              submissionProjectId
-                ? `/events/project-submission?event=${id}&project=${submissionProjectId}`
-                : `/events/project-submission?event=${id}`
+              hasStages
+                ? `/hackathons/${id}/stage-form`
+                : submissionProjectId
+                  ? `/events/project-submission?event=${id}&project=${submissionProjectId}`
+                  : `/events/project-submission?event=${id}`
             }
             className={
               "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-opacity hover:opacity-80 " +
@@ -187,7 +195,9 @@ export default function ModernEventLayout({
             } />
             {submissionStatus === "complete"
               ? t(lang, "section.submission.editProject")
-              : `${submissionProgress}% · ${t(lang, "section.submission.continueProject")}`}
+              : hasStages
+                ? t(lang, "section.submission.continueProject")
+                : `${submissionProgress}% · ${t(lang, "section.submission.continueProject")}`}
           </Link>
         )}
       </div>
