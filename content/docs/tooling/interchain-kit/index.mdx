@@ -1,0 +1,93 @@
+---
+title: Overview
+description: Develop and test Interchain Messaging (ICM) and Interchain Token Transfer (ICTT) on a local Avalanche network
+---
+
+**Interchain Kit** is a local development toolkit for building and testing [Interchain Messaging (ICM)](/docs/cross-chain/icm-contracts/overview) and [Interchain Token Transfer (ICTT)](/docs/cross-chain/interchain-token-transfer/overview). It gives you two ways to iterate on cross-chain Solidity: a fast Foundry harness for unit testing, and a one-command local Avalanche network — Primary Network, L1s, ICM relayer, and signature aggregator — for end-to-end validation before you touch Fuji.
+
+It is the next-gen replacement for [`avalanche-starter-kit`](https://github.com/ava-labs/avalanche-starter-kit), built directly on the [Avalanche SDK](/docs/tooling/avalanche-sdk) (`@avalanche-sdk/client` and `@avalanche-sdk/interchain`) and the `subnet-evm` bundled with AvalancheGo. Every primitive is driven directly — `avalanche-cli` is intentionally not used — so you can see exactly what each step does.
+
+<Callout type="info" title="Local development tool">
+Interchain Kit runs entirely on your machine and is not published to npm. You use it by cloning the repository and running it with `pnpm`. It is meant for development and testing, not as a dependency you install into a production app.
+</Callout>
+
+## Two Development Flows
+
+Interchain Kit ships the same contracts in two environments. Iterate fast in the harness, then prove it end-to-end against a real local network.
+
+| Flow | Boots in | What you get |
+|------|----------|--------------|
+| **Foundry harness** | ~100 ms | Real, unmodified `icm-contracts` (Teleporter + ICTT) running end-to-end inside a single EVM. Best for test-driven development on your Solidity. |
+| **Local tmpnet + relayer** | ~3 min cold (snapshot after) | A real local Avalanche network (Primary Network + L1s) with `icm-relayer` and `signature-aggregator`. Best for end-to-end validation before Fuji. |
+
+Contract addresses stay consistent across both modes, so a scenario you prove in the harness behaves the same on the live network.
+
+## What You Get
+
+| Capability | Description |
+|------------|-------------|
+| **One-command network** | `pnpm run up` boots the Primary Network, an L1, Teleporter, the ICM relayer, and the signature aggregator. |
+| **Foundry harness** | `MockWarpPrecompile` + `FoundryWarpHarness` exercise real Teleporter/ICTT contracts inside `forge test`. |
+| **Example contracts** | `SimpleSender`/`SimpleReceiver`, ERC-20 and native ICTT, and Teleporter patterns (PingPong, CrossChainCounter). |
+| **TypeScript SDK** | `tmpnetjs` provides `loadNetwork`, `makeClients`, `pickL1`, and `pollUntil` so you can script scenarios with [viem](https://viem.sh). |
+| **End-to-end demos** | Ready-to-run scripts for ICM messaging, ICTT transfers, and validator management. |
+
+## Repository Layout
+
+```text
+contracts/                      Foundry-first. icm-contracts v1.0.9 pinned.
+  src/examples/
+    icm-basics/                 SimpleSender + SimpleReceiver
+    ictt-erc20/                 ERC20 round-trip + DemoERC20
+    ictt-native/                Native token home/remote
+    teleporter-patterns/        PingPong + CrossChainCounter
+  test/examples/                Harness tests, all green
+packages/
+  harness/                      FoundryWarpHarness + MockWarpPrecompile
+  tmpnetjs/                     JS analog of AvalancheGo's tmpnet. Producer
+                                (boot network → L1 → ICM → validator set →
+                                relayer + sigagg → artifacts) + consumer SDK
+                                (loadNetwork, makeClients, …).
+  icm-services-installer/       Downloads icm-relayer + signature-aggregator
+examples/                       End-to-end demos against the live network
+  send-message.ts               ICM hello-world
+  transfer-token.ts             ICTT ERC20 transfer
+  validator-manager-setup.ts    Deploy + upgrade + initialize ValidatorManager
+  add-validator.ts              Register a new L1 validator
+```
+
+## Prerequisites
+
+| Requirement | Notes |
+|-------------|-------|
+| **Node.js 20+** and **pnpm 9+** | The repo is a pnpm workspace (`packageManager: pnpm@9.12.0`). |
+| **Foundry** (`forge`) | Used by the harness and contract builds. |
+| **AvalancheGo** with the `subnet-evm` plugin | Built from source; required only for the live-network flow. |
+| **`AVALANCHEGO_PATH`** | Environment variable pointing to the built `avalanchego` binary. |
+
+See [Installation](/docs/tooling/interchain-kit/installation) for the full setup.
+
+## Getting Started
+
+<Cards>
+  <Card title="Installation" href="/docs/tooling/interchain-kit/installation">
+    Install the prerequisites and build AvalancheGo + the subnet-evm plugin
+  </Card>
+  <Card title="Foundry Harness" href="/docs/tooling/interchain-kit/foundry-harness">
+    Iterate on cross-chain Solidity in ~100 ms
+  </Card>
+  <Card title="Local Network" href="/docs/tooling/interchain-kit/local-network">
+    Boot a real local network with relayer + sigagg
+  </Card>
+  <Card title="ICM Messaging" href="/docs/tooling/interchain-kit/icm-messaging">
+    Send your first interchain message
+  </Card>
+</Cards>
+
+## Support & Resources
+
+- [Interchain Kit on GitHub](https://github.com/ava-labs/interchain-kit)
+- [ICM Contracts (Teleporter) documentation](/docs/cross-chain/icm-contracts/overview)
+- [Interchain Token Transfer documentation](/docs/cross-chain/interchain-token-transfer/overview)
+- [Running ICM contracts on a local network](/docs/cross-chain/icm-contracts/icm-contracts-on-local-network)
+- [Avalanche Discord](https://chat.avalabs.org/)

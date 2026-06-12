@@ -1,0 +1,39 @@
+---
+title: Troubleshooting
+description: Fixes for common Interchain Kit setup, network, and example errors
+---
+
+Errors are grouped by the phase where they show up: setup, the local network, and the example scripts.
+
+## Setup
+
+| Symptom | Fix |
+|---------|-----|
+| `forge: command not found` | Install Foundry and ensure `~/.foundry/bin` is on your `PATH`. See [Installation step 2](/docs/tooling/interchain-kit/installation). |
+| `pnpm: command not found` | Enable Corepack (`corepack enable`) or install pnpm 9+ directly. |
+| `No such file or directory` for `contracts/lib/forge-std/...`, `contracts/lib/icm-contracts/...`, or `contracts/lib/openzeppelin-...` | The contract dependencies aren't installed. Run the `git clone --recurse-submodules` commands in [Installation step 6](/docs/tooling/interchain-kit/installation). |
+
+## Local Network
+
+| Symptom | Fix |
+|---------|-----|
+| `ERR_MODULE_NOT_FOUND … packages/tmpnetjs/dist/cli.js` | The workspace packages aren't built. Run `pnpm run build`, then `pnpm run up`. |
+| `avalanchego binary not found` (lists tried paths) | Set `AVALANCHEGO_PATH` to the absolute path of the built binary, e.g. `<avalanchego>/build/avalanchego`. |
+| Node never goes healthy / "plugin not found" / L1 won't bootstrap | The `subnet-evm` plugin isn't where AvalancheGo expects it. Confirm `<avalanchego>/build/plugins/srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy` exists; rebuild via `cd <avalanchego>/graft/subnet-evm && ./scripts/build.sh` if missing. |
+| `Timed out after 60000ms waiting for /ext/info` | A node started then exited before going healthy. A common cause is **low disk** — AvalancheGo refuses to run below 3% free space. Free up disk (node databases are large) and retry. Check the node logs under `.interchain-kit/` for the underlying `FATAL` line. |
+| `up` fails partway, then keeps failing on retry | Stale data in `.interchain-kit/` is being reused. Run `pnpm run clean`, then `pnpm run up`. |
+| Port already in use (`:9650+`, `:8080`, `:8090`, `:9090`) | Kill the process holding the port (`lsof -iTCP:<port> -sTCP:LISTEN`) or stop the conflicting service. |
+
+## Examples
+
+| Symptom | Likely cause | Fix |
+|---------|--------------|-----|
+| `network.json not found` | The network isn't running, or you're running from outside the repo tree. | `cd` to the repo root and run `pnpm run up`. |
+| `Forge artifact not found: contracts/out/...` | You haven't compiled the contracts. | `forge build --root contracts` |
+| `Timed out after 60000ms waiting for receiver.latestMessage to update` | The `icm-relayer` isn't running or hasn't picked up the message. | Check `.interchain-kit/logs/relayer.log`; if it's down, `pnpm run down && pnpm run up`. |
+| `No L1 named "X" in network.json. Available: ...` | `--destination` doesn't match any L1 name. | Use one of the names listed in the error. |
+
+## Still Stuck?
+
+- Browse open issues or file a new one on [GitHub](https://github.com/ava-labs/interchain-kit/issues).
+- Ask in the [Avalanche Discord](https://chat.avalabs.org/).

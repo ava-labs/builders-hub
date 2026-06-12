@@ -1,0 +1,21 @@
+{
+  "title": "Interchain Kit",
+  "description": "Local toolkit for developing and testing ICM and ICTT",
+  "root": true,
+  "pages": [
+    "index",
+    "---Get Started---",
+    "installation",
+    "---Flows---",
+    "foundry-harness",
+    "local-network",
+    "---Examples---",
+    "icm-messaging",
+    "token-transfer",
+    "validator-management",
+    "---Reference---",
+    "tmpnetjs-sdk",
+    "example-contracts",
+    "troubleshooting"
+  ]
+}
