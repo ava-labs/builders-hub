@@ -6,6 +6,19 @@ interface HackathonContext {
   banner?: string;
 }
 
+// Generic hosted hackathon banner (same fallback the event page uses).
+const DEFAULT_BANNER_URL =
+  'https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png';
+
+// Only hosted images render reliably in email: data-URI banners are blocked
+// by most clients and can push the HTML past Gmail's ~102KB clipping limit,
+// so anything that isn't an absolute http(s) URL falls back to the generic
+// banner.
+function resolveBannerUrl(banner?: string): string {
+  const trimmed = (banner ?? '').trim();
+  return /^https?:\/\//i.test(trimmed) ? trimmed : DEFAULT_BANNER_URL;
+}
+
 export async function sendInvitation(
   email: string,
   projectName: string,
@@ -35,8 +48,8 @@ export async function sendInvitation(
   const footer = t(lang, "invitation.email.footer");
 
   const text = `${body} "${headline}" — ${inviteLink}`;
-  const bannerHtml = hackathon?.banner
-    ? `<img src="${hackathon.banner}" alt="${hackathon.title}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; margin-bottom: 0;">`
+  const bannerHtml = useHackathonCopy
+    ? `<img src="${resolveBannerUrl(hackathon?.banner)}" alt="${hackathon!.title}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; margin-bottom: 0;">`
     : "";
   const html = `
     <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">

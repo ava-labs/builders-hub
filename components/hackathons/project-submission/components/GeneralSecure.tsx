@@ -471,12 +471,10 @@ export default function GeneralSecureComponent({
           {submissionStatus === "closed" && (
             <div className="rounded-md border border-zinc-500/40 bg-zinc-500/10 p-4">
               <h3 className="font-semibold mb-1">
-                {lang === "es" ? "Las entregas están cerradas" : "Submissions are closed"}
+                {t(lang, "submission.status.closedTitle")}
               </h3>
               <p className="text-sm text-zinc-300">
-                {lang === "es"
-                  ? "Tu última versión guardada es la final. Ya no puedes editarla."
-                  : "Your last saved version is final. Edits are no longer accepted."}
+                {t(lang, "submission.status.closedDesc")}
               </p>
             </div>
           )}

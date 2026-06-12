@@ -419,6 +419,20 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.prohibited.label": "I agree not to bring any of the following prohibited items. *",
     "reg.step3.prohibited.hint": "Review the list of restricted items before attending in-person events.",
 
+    // Team formation
+    "reg.team.title": "Team",
+    "reg.team.sizeRange": "Teams of {min}–{max}.",
+    "reg.team.sizeUpTo": "Up to {max} per team. Your teammate confirms by signing in via Builder Hub.",
+    "reg.team.solo": "Solo",
+    "reg.team.duo": "Duo",
+    "reg.team.emailsLabel": "Teammate emails",
+    "reg.team.emailsPlaceholder": "teammate@example.com",
+    "reg.team.inviteTitle": "Teammate doesn't have an account yet?",
+    "reg.team.inviteDesc": "Share this link so they can sign up for this event. They'll show as confirmed once they sign in.",
+    "reg.team.copy": "Copy",
+    "reg.team.copied": "Copied",
+    "reg.team.generatingLink": "Generating link…",
+
     // Grouped User-level consents (used in account creation and event registration)
     "consents.group.label": "Stay connected with Avalanche",
     "consents.notifications.label":
@@ -499,6 +513,8 @@ const dict: Record<EventsLang, Dict> = {
     "submission.status.complete": "Your project is submitted!",
     "submission.status.completeSub": "All required fields are complete. You can still edit before the deadline.",
     "submission.status.editCta": "Edit submission",
+    "submission.status.closedTitle": "Submissions are closed",
+    "submission.status.closedDesc": "Your last saved version is final. Edits are no longer accepted.",
 
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
@@ -948,6 +964,20 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step3.prohibited.label": "Acepto no traer ninguno de los artículos prohibidos. *",
     "reg.step3.prohibited.hint": "Revisa la lista de artículos restringidos antes de asistir a eventos presenciales.",
 
+    // Formación de equipo
+    "reg.team.title": "Equipo",
+    "reg.team.sizeRange": "Equipos de {min} a {max} personas.",
+    "reg.team.sizeUpTo": "Hasta {max} personas por equipo. Tu compañero se registra al confirmar el correo.",
+    "reg.team.solo": "Solo",
+    "reg.team.duo": "Dúo",
+    "reg.team.emailsLabel": "Correos de tus compañeros",
+    "reg.team.emailsPlaceholder": "compañero@ejemplo.com",
+    "reg.team.inviteTitle": "¿Tu compañero aún no tiene cuenta?",
+    "reg.team.inviteDesc": "Comparte este enlace para que se registren en el evento. Cuando inicien sesión, podrás verlos como confirmados.",
+    "reg.team.copy": "Copiar",
+    "reg.team.copied": "Copiado",
+    "reg.team.generatingLink": "Generando enlace…",
+
     // Consentimientos a nivel usuario (creación de cuenta y registro a eventos)
     "consents.group.label": "Mantente conectado con Avalanche",
     "consents.notifications.label":
@@ -1028,6 +1058,8 @@ const dict: Record<EventsLang, Dict> = {
     "submission.status.complete": "¡Tu proyecto está enviado!",
     "submission.status.completeSub": "Todos los campos obligatorios están completos. Aún puedes editar antes de la fecha límite.",
     "submission.status.editCta": "Editar envío",
+    "submission.status.closedTitle": "Las entregas están cerradas",
+    "submission.status.closedDesc": "Tu última versión guardada es la final. Ya no puedes editarla.",
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",

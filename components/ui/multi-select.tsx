@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Command,
@@ -24,6 +24,12 @@ interface MultiSelectProps {
   onChange: (values: string[]) => void;
   placeholder?: string;
   searchPlaceholder?: string;
+  /**
+   * When true, lets the user add a value that isn't in `options` by typing it
+   * and confirming (Enter or the "Create" row). Used for free-form tag inputs
+   * like tech-stack tags. Space is left typable so multi-word tags work.
+   */
+  allowCreate?: boolean;
 }
 
 export function MultiSelect({
@@ -31,7 +37,8 @@ export function MultiSelect({
   selected = [],
   onChange,
   placeholder = 'Select options',
-  searchPlaceholder = 'Search framework'
+  searchPlaceholder = 'Search framework',
+  allowCreate = false,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -116,6 +123,27 @@ export function MultiSelect({
     );
   }, [selected, onChange]);
 
+  const trimmedQuery = searchQuery.trim();
+  const canCreate =
+    allowCreate &&
+    trimmedQuery.length > 0 &&
+    !options.some(
+      (o) =>
+        o.label.toLowerCase() === trimmedQuery.toLowerCase() ||
+        o.value.toLowerCase() === trimmedQuery.toLowerCase()
+    ) &&
+    !(selected || []).some((s) => s.toLowerCase() === trimmedQuery.toLowerCase());
+
+  const handleCreate = React.useCallback((value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    const already = (selected || []).some(
+      (s) => s.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (!already) onChange([...(selected || []), trimmed]);
+    setSearchQuery('');
+  }, [selected, onChange]);
+
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent) => {
     if (!open && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
@@ -144,10 +172,22 @@ export function MultiSelect({
         setFocusedIndex((prev) => (prev > 0 ? prev - 1 : prev));
         break;
       case 'Enter':
-      case ' ':
         e.preventDefault();
         if (focusedIndex >= 0) {
           handleSelect(filteredOptions[focusedIndex].value);
+        } else if (canCreate) {
+          handleCreate(trimmedQuery);
+        }
+        break;
+      case ' ':
+        // When creating free-form tags, let the space character be typed into
+        // the search input so multi-word tags work. Otherwise keep the legacy
+        // behaviour where space toggles the focused option.
+        if (!allowCreate) {
+          e.preventDefault();
+          if (focusedIndex >= 0) {
+            handleSelect(filteredOptions[focusedIndex].value);
+          }
         }
         break;
       case 'Escape':
@@ -162,7 +202,7 @@ export function MultiSelect({
         setSearchQuery('');
         break;
     }
-  }, [open, focusedIndex, filteredOptions, handleSelect]);
+  }, [open, focusedIndex, filteredOptions, handleSelect, allowCreate, canCreate, trimmedQuery, handleCreate]);
 
   React.useEffect(() => {
     if (focusedIndex >= 0 && listRef.current) {
@@ -254,8 +294,22 @@ export function MultiSelect({
               onValueChange={setSearchQuery}
               onKeyDown={handleKeyDown}
             />
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>
+              {canCreate ? null : 'No results found.'}
+            </CommandEmpty>
             <CommandGroup className="max-h-[200px] overflow-auto p-1">
+              {canCreate && (
+                <CommandItem
+                  key={`__create__${trimmedQuery}`}
+                  value={trimmedQuery}
+                  onSelect={() => handleCreate(trimmedQuery)}
+                  className="cursor-pointer dark:focus:!bg-red-500 focus:text-foreground"
+                  role="option"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Create &ldquo;{trimmedQuery}&rdquo;</span>
+                </CommandItem>
+              )}
               {filteredOptions.map((option, index) => {
                 const isSelected = (selected || []).some(
                   (s) => s.toLowerCase() === option.value.toLowerCase()
