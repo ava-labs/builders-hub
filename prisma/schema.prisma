@@ -97,6 +97,7 @@ model User {
   hackathon_judge_roles      HackathonJudge[]
   updated_hackathons         Hackathon[]               @relation("HackathonUpdatedBy")
   memberships                Member[]
+  l1UpgradeSnapshots         L1UpgradeSnapshot[]
   managedTestnetNodes        NodeRegistration[]
   Notification               Notification[]
   oauthCodes                 OAuthCode[]
@@ -269,6 +270,26 @@ model NodeRegistration {
   @@index([user_id])
   @@index([status])
   @@index([subnet_id])
+}
+
+model L1UpgradeSnapshot {
+  id            String   @id @default(uuid())
+  user_id       String
+  subnet_id     String
+  blockchain_id String
+  chain_name    String?
+  rpc_url       String?
+  upgrade_json  Json
+  source        String   @default("builder")
+  status        String   @default("draft")
+  created_at    DateTime @default(now()) @db.Timestamptz(3)
+  updated_at    DateTime @updatedAt @db.Timestamptz(3)
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, subnet_id, blockchain_id])
+  @@index([user_id])
+  @@index([subnet_id])
+  @@index([blockchain_id])
 }
 
 model ConsoleLog {

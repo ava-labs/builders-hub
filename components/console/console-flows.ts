@@ -131,6 +131,30 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     ],
   },
 
+  "layer-1/upgrade": {
+    title: "Upgrade Your L1",
+    completionSummary:
+      "Your upgrade.json is built. Once every validator node loads it and restarts, the new rules activate at the scheduled timestamp.",
+    accomplishments: [
+      "Selected the L1 and inspected its active precompile rules",
+      "Built an upgrade.json with your precompile and state upgrades",
+    ],
+    nextSteps: [
+      {
+        path: "/console/my-l1",
+        title: "Open My L1 Dashboard",
+        description: "Track your L1's nodes and verify the upgrade after activation",
+        priority: "recommended",
+      },
+      {
+        path: "/console/layer-1/performance-monitor",
+        title: "Monitor Performance",
+        description: "Watch your L1's health while the upgrade activates",
+        priority: "optional",
+      },
+    ],
+  },
+
   "create-l1": {
     title: "Create L1 Flow",
     completionSummary: "Your Avalanche L1 is fully deployed and configured.",

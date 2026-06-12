@@ -22,6 +22,8 @@ const isValidInput = (input: string): boolean => {
   return addresses.length > 0 && addresses.every((address) => isAddress(address, { strict: false }));
 };
 
+const parseAddresses = (input: string): string[] => input.split(/[\s,]+/).filter((addr) => addr.trim() !== '');
+
 const getRoleDescription = (role: Role, precompileAction: string) => {
   switch (role) {
     case 'Admin':
@@ -45,14 +47,25 @@ export default function EthereumAddressList({
 }: EthereumAddressListProps) {
   const [newAddress, setNewAddress] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const newAddresses = parseAddresses(newAddress);
+  const hasDuplicateInInput = newAddresses.some(
+    (address, index) => newAddresses.findIndex((candidate) => candidate.toLowerCase() === address.toLowerCase()) !== index,
+  );
+  const hasExistingDuplicate = newAddresses.some((address) => checkDuplicate?.(address));
+  const canAddAddress = isValidInput(newAddress) && !hasDuplicateInInput && !hasExistingDuplicate;
+  const inputError =
+    newAddress && !isValidInput(newAddress)
+      ? 'Enter one or more valid Ethereum addresses.'
+      : newAddress && (hasDuplicateInInput || hasExistingDuplicate)
+        ? 'Duplicate address'
+        : null;
 
   const handleInputChange = (inputValue: string) => {
     setNewAddress(inputValue);
   };
 
   const handleAddAddress = () => {
-    if (isValidInput(newAddress)) {
-      const newAddresses = newAddress.split(/[\s,]+/).filter((addr) => addr.trim() !== '');
+    if (canAddAddress) {
       onAddAddresses(newAddresses);
       setNewAddress('');
     }
@@ -81,7 +94,7 @@ export default function EthereumAddressList({
               <TooltipTrigger className="inline-flex">
                 <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
+              <TooltipContent sideOffset={6} className="max-w-[320px] whitespace-normal break-words text-left leading-relaxed">
                 <p className="text-xs">{getRoleDescription(role, precompileAction)}</p>
               </TooltipContent>
             </Tooltip>
@@ -133,8 +146,9 @@ export default function EthereumAddressList({
               className="flex-1 border-none bg-transparent shadow-none focus:ring-0 p-0 font-mono text-[12px]"
             />
             <button
+              type="button"
               onClick={handleAddAddress}
-              disabled={!isValidInput(newAddress)}
+              disabled={!canAddAddress}
               className="px-2.5 py-1 text-xs bg-blue-500 hover:bg-blue-600 text-white rounded-md disabled:opacity-50 transition-colors font-medium"
             >
               Add
@@ -145,6 +159,7 @@ export default function EthereumAddressList({
               addressSource={!checkDuplicate ? addresses : undefined}
             />
           </div>
+          {inputError && <p className="px-3 pb-2 text-[11px] text-red-500 dark:text-red-400">{inputError}</p>}
         </div>
       </div>
     </div>
