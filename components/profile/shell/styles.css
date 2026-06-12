@@ -2126,6 +2126,76 @@
   border-radius: 2px;
 }
 
+/* Profile completion — per-platform adoption bars */
+.profile .pr-completion-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.profile .pr-completion-bar {
+  display: grid;
+  grid-template-columns: 120px 1fr max-content;
+  align-items: center;
+  gap: 14px;
+}
+.profile .pr-completion-bar__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pr-g-1000);
+}
+.profile .pr-completion-bar__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.profile .pr-completion-bar__track {
+  height: 8px;
+  background: var(--pr-g-300);
+  border-radius: 999px;
+  /* No overflow clip: the fill is self-rounded and carries a neon glow
+     that should bleed past the track. */
+}
+.profile .pr-completion-bar__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.profile .pr-completion-bar__value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--pr-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.profile .pr-completion-bar__value strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pr-g-1000);
+}
+.profile .pr-completion-bar__count {
+  font-size: 11px;
+  color: var(--pr-g-650);
+}
+
+/* Profile completion — depth view color swatch + footer */
+.profile .pr-completion-bar__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.profile .pr-completion-foot {
+  margin: 10px 0 0;
+  font-family: var(--pr-mono);
+  font-size: 11px;
+  color: var(--pr-g-650);
+}
+
 /* Leaderboard table */
 .profile .pr-leaderboard {
   border: 1px solid var(--pr-hairline);
