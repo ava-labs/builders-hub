@@ -28,6 +28,7 @@ import {
   DraftingCompass,
   Gamepad2,
   Flame,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
