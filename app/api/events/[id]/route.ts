@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
 import { withAuthRole } from "@/lib/protectedRoute";
+import { getAuthSession } from "@/lib/auth/authSession";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -13,6 +14,17 @@ export async function GET(req: NextRequest, context: any) {
     }
 
     const hackathon = await getHackathon(id)
+
+    // Private events: only logged-in users may read the record (mirrors the
+    // page-level guard in app/(home)/events/[id]/page.tsx). Anonymous callers
+    // get a 404 so a private event's details aren't exposed via the raw API.
+    if (hackathon?.is_public !== true) {
+      const session = await getAuthSession();
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+      }
+    }
+
     return NextResponse.json(hackathon);
   } catch (error) {
     console.error("Error in GET /api/events/[id]:");

@@ -52,6 +52,7 @@ const createHackathonSchema = z.object({
   tags: z.array(z.string()).min(1),
   timezone: z.string().optional(),
   cohosts: z.array(z.string().email()).optional(),
+  organizers: z.string().max(200).optional(),
   icon: z.string().optional(),
   banner: z.string().optional(),
   small_banner: z.string().optional(),
@@ -179,18 +180,27 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
 
     const validatedBody = parseResult.data;
 
+    // Org attribution (enforced server-side): every creator — devrel included —
+    // organizes for their own team, so we force organizers = their team_id
+    // regardless of what the client sent. team_id is attribution only; it does
+    // not restrict the event's country scope (that is content.target_countries).
+    const userTeamId = session?.user?.team_id ?? null;
+    const organizers = userTeamId ?? validatedBody.organizers;
+
     // SECURITY: Audit log — record who is creating the hackathon and which
     // role was used to authorise the action.  Do NOT log the full body as it
     // may contain PII.
     console.warn('[AUDIT] POST /api/events — hackathon creation', {
       userId: session.user.id,
       roleUsed,
+      organizers,
       title: validatedBody.title,
       timestamp: new Date().toISOString(),
     });
 
     const newHackathon = await createHackathon({
       ...validatedBody,
+      organizers,
       // `content` is a freeform JSON column; cast to satisfy the Partial<HackathonHeader> type.
       content: validatedBody.content as any,
       created_by: session.user.id,

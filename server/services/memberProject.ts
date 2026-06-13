@@ -125,6 +125,26 @@ async function deleteProjectIfNoMembers(projectId: string) {
 }
 
 export async function GetMembersByProjectId(project_id: string) {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: project_id },
+      select: { hackathon: { select: { content: true } } },
+    });
+    const registrationDeadlineRaw =
+      (project?.hackathon?.content as any)?.registration_deadline ?? null;
+    if (registrationDeadlineRaw) {
+      const deadline = new Date(registrationDeadlineRaw);
+      if (Number.isFinite(deadline.getTime()) && Date.now() > deadline.getTime()) {
+        await prisma.member.updateMany({
+          where: { project_id, status: "Pending Confirmation" },
+          data: { status: "Removed" },
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[Members] Lazy pending-teammate cleanup failed:", err);
+  }
+
   const members = await prisma.member.findMany({
     where: { project_id: project_id, status: { not: "Removed" } },
     include: {

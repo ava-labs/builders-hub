@@ -1,5 +1,5 @@
 import React from "react";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
 import { getHackathon } from "@/server/services/hackathons";
 import { getRegisterForm } from "@/server/services/registerForms";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -36,6 +36,13 @@ export async function generateMetadata({
         description: t(lang, "meta.notFound.description"),
       });
     }
+    if (hackathon.is_public !== true) {
+      const lang = normalizeEventsLang(hackathon.content?.language);
+      return createMetadata({
+        title: t(lang, "meta.events.title"),
+        description: t(lang, "meta.events.description"),
+      });
+    }
     const lang = normalizeEventsLang(hackathon.content?.language);
 
     return createMetadata({
@@ -68,6 +75,11 @@ export default async function HackathonPage({
 
   // Check if user is authenticated and registered
   const session = await getAuthSession();
+
+  if (hackathon && hackathon.is_public !== true && !session?.user?.id) {
+    notFound();
+  }
+
   const isAuthenticated = !!session?.user;
   let isRegistered = false;
   let submissionStatus: SubmissionStatus = "none";
@@ -91,6 +103,7 @@ export default async function HackathonPage({
               short_description: true,
               full_description: true,
               tech_stack: true,
+              tech_stack_tags: true,
               github_repository: true,
               demo_link: true,
               tracks: true,
