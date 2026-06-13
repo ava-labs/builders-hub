@@ -1,0 +1,45 @@
+---
+title: Ophis
+category: DeFi
+available: ["C-Chain"]
+description: "Ophis is an intent-based DEX aggregator built on CoW Protocol that settles MEV-protected, batch-cleared swaps on Avalanche C-Chain via a competitive solver network."
+logo: /images/ophis.png
+developer: Ophis
+website: https://ophis.fi/
+documentation: https://docs.ophis.fi/
+---
+
+## Overview
+
+Ophis is an intent-based decentralized exchange (DEX) aggregator built on CoW Protocol. On Avalanche's C-Chain, users and autonomous agents express a swap as an intent rather than signing a fixed route, and a competitive solver network settles it in batches. This delivers MEV protection, price-improvement surplus, and gasless signatures. Ophis adds an agent-native layer on top of the protocol: natural-language intents, an MCP server, a TypeScript SDK, and an embeddable swap widget.
+
+## Features
+
+- **Intent-Based Swaps**: Express a trade as an intent and let solvers compete to fill it at the best price, instead of routing through a single fixed path.
+- **MEV Protection**: Batch settlement with uniform clearing prices shields trades from front-running and sandwich attacks.
+- **Surplus Capture**: Price improvement found by solvers is returned to the trader as surplus.
+- **Gasless Signatures**: Orders are submitted as signed messages, so traders do not need native gas to place a swap.
+- **Agent-Native Layer**: A natural-language interface, an MCP server (fi.ophis/mcp), and the @ophis/sdk TypeScript SDK let autonomous agents trade programmatically.
+- **Embeddable Widget**: Drop-in widget for integrating Ophis swaps into any Avalanche dApp.
+
+## Getting Started
+
+To begin using Ophis on Avalanche:
+
+1. **Access Platform**: Visit [Ophis](https://swap.ophis.fi/) and select the Avalanche C-Chain network.
+2. **Connect Wallet**: Link your Web3 wallet and pick the tokens to swap.
+3. **Place an Intent**: Choose your sell and buy tokens, review the quote, and sign the order. Solvers compete to settle it with MEV protection.
+4. **Build Programmatically**: Integrate the [@ophis/sdk](https://www.npmjs.com/package/@ophis/sdk) or connect the MCP server (https://mcp.ophis.fi/mcp) to let agents trade.
+
+## Documentation
+
+For integration guides, the SDK, and API references, visit the [Ophis Documentation](https://docs.ophis.fi/).
+
+## Use Cases
+
+Ophis serves various DeFi and agent needs on Avalanche:
+
+- **MEV-Protected Trading**: Swap tokens with protection from front-running and sandwich attacks.
+- **Agent-Driven Swaps**: Let autonomous agents execute trades through the MCP server and TypeScript SDK.
+- **Best-Execution Aggregation**: Source liquidity competitively across solvers for improved pricing.
+- **dApp Integration**: Embed the Ophis widget or SDK to add intent-based swaps to an application.
