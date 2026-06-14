@@ -11,16 +11,16 @@ documentation: https://docs.ophis.fi/
 
 ## Overview
 
-Ophis is an intent-based decentralized exchange (DEX) aggregator built on CoW Protocol. On Avalanche's C-Chain, users and autonomous agents express a swap as an intent rather than signing a fixed route, and a competitive solver network settles it in batches. This delivers MEV protection, price-improvement surplus, and gasless signatures. Ophis adds an agent-native layer on top of the protocol: natural-language intents, an MCP server, a TypeScript SDK, and an embeddable swap widget.
+Ophis is an intent-based decentralized exchange (DEX) aggregator built on CoW Protocol. On Avalanche's C-Chain, users and autonomous agents express a swap as an intent rather than signing a fixed route, and a competitive solver network settles it in batches. This delivers MEV protection, price-improvement surplus, and gasless signatures. Ophis adds an agent-native layer on top of the protocol: natural-language intents, an MCP server, and a TypeScript SDK. Its swaps can also be embedded in any dApp via the CoW Protocol widget pointed at swap.ophis.fi.
 
 ## Features
 
 - **Intent-Based Swaps**: Express a trade as an intent and let solvers compete to fill it at the best price, instead of routing through a single fixed path.
 - **MEV Protection**: Batch settlement with uniform clearing prices shields trades from front-running and sandwich attacks.
 - **Surplus Capture**: Price improvement found by solvers is returned to the trader as surplus.
-- **Gasless Signatures**: Orders are submitted as signed messages, so traders do not need native gas to place a swap.
+- **Gasless Order Signing**: Once a token is approved, orders are submitted as off-chain signed messages with no gas to place the order itself. First-time token approvals and native-token (eth-flow) swaps are on-chain and still require AVAX.
 - **Agent-Native Layer**: A natural-language interface, an MCP server (fi.ophis/mcp), and the @ophis/sdk TypeScript SDK let autonomous agents trade programmatically.
-- **Embeddable Widget**: Drop-in widget for integrating Ophis swaps into any Avalanche dApp.
+- **Embeddable Swaps**: Embed Ophis swaps in any dApp via the CoW Protocol widget pointed at swap.ophis.fi (see docs.ophis.fi/widget).
 
 ## Getting Started
 
@@ -42,4 +42,4 @@ Ophis serves various DeFi and agent needs on Avalanche:
 - **MEV-Protected Trading**: Swap tokens with protection from front-running and sandwich attacks.
 - **Agent-Driven Swaps**: Let autonomous agents execute trades through the MCP server and TypeScript SDK.
 - **Best-Execution Aggregation**: Source liquidity competitively across solvers for improved pricing.
-- **dApp Integration**: Embed the Ophis widget or SDK to add intent-based swaps to an application.
+- **dApp Integration**: Add intent-based swaps to an app via the CoW Protocol widget (pointed at swap.ophis.fi) or the @ophis/sdk.
