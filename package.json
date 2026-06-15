@@ -26,6 +26,7 @@
     "e2e": "playwright test --config e2e/playwright.config.ts",
     "qa:manifest": "tsx ./scripts/generate-qa-manifest.mts",
     "qa:check-embeds": "tsx ./scripts/check-academy-embeds.mts",
+    "qa:summary": "tsx ./e2e/summarize-failures.mts",
     "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
     "postbuild": "tsx ./utils/update-index.ts",
     "commitlint": "commitlint --edit",

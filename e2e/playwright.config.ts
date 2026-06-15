@@ -26,7 +26,9 @@ export default defineConfig({
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: [
-    ['list'],
+    // Deduped terminal output: one failure report per root cause, not per
+    // page (a broken component otherwise reports once per embedding page).
+    ['./reporters/root-cause-reporter.ts'],
     ['json', { outputFile: './artifacts/results.json' }],
     ['html', { outputFolder: './artifacts/html-report', open: 'never' }],
   ],

@@ -34,6 +34,18 @@ import { createAvalancheWalletClient } from '@avalanche-sdk/client';
 // root viem/chains (it is a verbatim re-export), so import the chains there.
 import { avalanche as sdkAvalanche, avalancheFuji as sdkAvalancheFuji } from 'viem/chains';
 import { privateKeyToAvalancheAccount } from '@avalanche-sdk/client/accounts';
+// Top-level avalanchejs (the SDK nests its own copy; see resolveSubnetAuth
+// for why mixing them is safe here).
+import {
+  utils as ajsUtils,
+  avaxSerial,
+  Credential,
+  Signature,
+  UnsignedTx,
+  EVMUnsignedTx,
+  PChainOwner,
+  Int as AjsInt,
+} from '@avalabs/avalanchejs';
 import { createWalletClient, defineChain, http } from 'viem';
 
 type Hex = `0x${string}`;
@@ -170,6 +182,126 @@ function sdkClient() {
   });
 }
 
+// ── Subnet-auth resolution for P-Chain txs ───────────────────────
+// Txs that modify a subnet (CreateChainTx, ConvertSubnetToL1Tx,
+// AddSubnetValidatorTx, ...) carry a subnetAuth credential that must be
+// signed by the subnet's owner key. Real Core resolves the owners inside
+// the wallet; the SDK only signs that credential when subnetOwners +
+// subnetAuth are passed explicitly — without them it ships a zeroed
+// signature and the node rejects with "unauthorized modification:
+// invalid signature". This mirrors Core: parse the tx, and if it's a
+// subnet-auth type, look up the owning CreateSubnetTx for its owner set.
+async function resolveSubnetAuth(
+  transactionHex: string,
+): Promise<{ subnetOwners?: unknown; subnetAuth?: number[] }> {
+  try {
+    const manager = ajsUtils.getManagerForVM('PVM');
+    const tx: any = manager.unpackTransaction(Buffer.from(ajsUtils.strip0x(transactionHex), 'hex'));
+    if (typeof tx?.getSubnetAuth !== 'function' || typeof tx?.getSubnetID !== 'function') {
+      return {};
+    }
+    const subnetId: string = tx.getSubnetID().toString();
+    const subnetAuth: number[] = tx.getSubnetAuth().values();
+
+    const rpcBase = currentChain().isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network';
+    const res = await fetch(`${rpcBase}/ext/bc/P`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: rpcId++,
+        method: 'platform.getTx',
+        params: { txID: subnetId, encoding: 'hex' },
+      }),
+    });
+    const body = await res.json();
+    if (body.error || !body.result?.tx) return {};
+    const signed: any = manager.unpack(
+      Buffer.from(ajsUtils.strip0x(body.result.tx), 'hex'),
+      avaxSerial.SignedTx as any,
+    );
+    const owners = signed.unsignedTx?.getSubnetOwners?.();
+    if (!owners) return {};
+    // 5.0.0 classes into the SDK's nested 5.1.0 types — only duck-typed
+    // surface (addresses[].toString(hrp)) crosses the boundary.
+    const subnetOwners = new PChainOwner(new AjsInt(owners.threshold.value()), owners.addrs);
+    return { subnetOwners, subnetAuth };
+  } catch {
+    // Best effort: non-subnet txs (and anything unparseable) use the
+    // plain signing path, which is correct for them.
+    return {};
+  }
+}
+
+// ── Single-key atomic tx signing (cross-chain export/import) ─────
+// A cross-chain transfer has one C-Chain *atomic* leg (an EVM export/import)
+// and one P-Chain *atomic* leg (a PVM import). The SDK's sendXPTransaction
+// re-signs from hex via a path that (a) reads `baseTx.inputs` and throws on
+// EVM atomic txs, and (b) only credentials `baseTx.inputs`, missing the
+// `importedInputs` a PVM import is paid from. Real Core signs both natively.
+//
+// Because this shim is a SINGLE-KEY wallet, every input is owned by our one
+// key. We sign the UnsignedTx byte form (the exact sequence avalanchego
+// hashes — NOT the bare inner-tx bytes, which differ for PVM) and place that
+// one signature into every credential slot getSigIndices enumerates (which
+// includes importedInputs). Verified end-to-end against Fuji.
+async function signAndIssueSingleKey(
+  transactionHex: string,
+  vm: 'EVM' | 'PVM',
+  endpointPath: string,
+  issueMethod: string,
+): Promise<string> {
+  const manager = ajsUtils.getManagerForVM(vm);
+  const codec = manager.getDefaultCodec();
+  const innerTx = manager.unpackTransaction(ajsUtils.hexToBuffer(transactionHex));
+  const Wrapper = vm === 'EVM' ? EVMUnsignedTx : UnsignedTx;
+  const wrapped = new Wrapper(innerTx as any, [], new ajsUtils.AddressMaps(), []);
+
+  // Sign the UnsignedTx byte form — the exact sequence avalanchego hashes.
+  // (For PVM this differs from the bare inner-tx bytes; for EVM they match.)
+  const sig = await xpAccount.signTransaction(wrapped.toBytes());
+  const sigBytes = typeof sig === 'string' ? ajsUtils.hexToBuffer(sig) : sig;
+  // One credential per input, each holding our single signature, in the order
+  // getSigIndices enumerates (covers fee inputs AND importedInputs).
+  const credentials = wrapped
+    .getSigIndices()
+    .map((idxs) => new Credential(idxs.map(() => new Signature(sigBytes))));
+
+  const signedTx = new avaxSerial.SignedTx(innerTx, credentials);
+  // SignedTx.toBytes is typed 0-arg but accepts a codec at runtime (verified
+  // against Fuji); cast to pass the VM's codec explicitly.
+  const signedHex = ajsUtils.bufferToHex(
+    ajsUtils.addChecksum((signedTx as { toBytes(c: unknown): Uint8Array }).toBytes(codec)),
+  );
+
+  const rpcBase = currentChain().isTestnet ? 'https://api.avax-test.network' : 'https://api.avax.network';
+  const res = await fetch(`${rpcBase}${endpointPath}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: rpcId++,
+      method: issueMethod,
+      params: { tx: signedHex, encoding: 'hex' },
+    }),
+  });
+  const body = await res.json();
+  if (body.error) throw new RpcError(body.error.code ?? -32000, body.error.message ?? `${issueMethod} error`);
+  return body.result.txID as string;
+}
+
+/** True for a PVM ImportTx — the cross-chain import leg the SDK can't sign. */
+function isPvmImportTx(transactionHex: string): boolean {
+  try {
+    const innerTx = ajsUtils
+      .getManagerForVM('PVM')
+      .unpackTransaction(ajsUtils.hexToBuffer(transactionHex)) as any;
+    return innerTx?._type === 'pvm.ImportTx' || typeof innerTx?.importedInputs !== 'undefined';
+  } catch {
+    return false;
+  }
+}
+
 // ── Raw JSON-RPC proxy for read methods ──────────────────────────
 
 let rpcId = 1;
@@ -276,15 +408,28 @@ async function request({ method, params }: RequestArgs): Promise<any> {
     case 'avalanche_sendTransaction': {
       assertNotMainnet('avalanche_sendTransaction');
       const p = params ?? {};
+      // Cross-chain atomic legs need native signing the SDK's XP re-sign path
+      // can't do: the C-Chain (EVM) export/import, and the P-Chain import
+      // (whose value lives in importedInputs the SDK leaves uncredentialed).
+      if (p.chainAlias === 'C') {
+        return await signAndIssueSingleKey(p.transactionHex, 'EVM', '/ext/bc/C/avax', 'avax.issueTx');
+      }
+      if (p.chainAlias === 'P' && isPvmImportTx(p.transactionHex)) {
+        return await signAndIssueSingleKey(p.transactionHex, 'PVM', '/ext/bc/P', 'platform.issueTx');
+      }
+      const auth = p.chainAlias === 'P' ? await resolveSubnetAuth(p.transactionHex) : {};
       const result = await sdkClient().sendXPTransaction({
         tx: p.transactionHex,
         chainAlias: p.chainAlias,
         utxoIds: p.utxos,
+        ...auth,
       } as any);
-      // Normalize to Core's response shape.
-      if (typeof result === 'string') return { txHash: result };
-      if (result && typeof (result as any).txHash === 'string') return result;
-      if (result && typeof (result as any).txID === 'string') return { txHash: (result as any).txID };
+      // Real Core returns the bare tx hash string here; callers like the
+      // SDK's sendXPTransaction wrap it into { txHash } themselves, so
+      // returning an object double-wraps and the UI stores [object Object].
+      if (typeof result === 'string') return result;
+      if (result && typeof (result as any).txHash === 'string') return (result as any).txHash;
+      if (result && typeof (result as any).txID === 'string') return (result as any).txID;
       return result;
     }
 

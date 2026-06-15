@@ -1,0 +1,135 @@
+name: Academy E2E
+
+# Runs the full Playwright suite (e2e/) against every Vercel deployment, so
+# every change gets browser-level QA on the actual built artifact — BOTH
+# tiers in one run:
+#
+#   - Render smoke   — loads every embed page, asserts the tools mount.
+#   - Transaction    — drives the console to submit REAL Fuji P-Chain txs
+#                      (Create Subnet → Create Chain) and verifies them
+#                      on-chain.
+#
+# Triggers:
+#   - Preview deployments    → every push to every branch/PR. Requires the
+#     VERCEL_AUTOMATION_BYPASS_SECRET Actions secret (previews sit behind
+#     SSO deployment protection).
+#   - Production deployment  → post-merge run against the live site.
+#   - workflow_dispatch      → run against an arbitrary URL on demand.
+#
+# Secrets:
+#   - VERCEL_AUTOMATION_BYPASS_SECRET — unlock SSO-protected previews.
+#   - QA_WALLET_KEY — funded Fuji key for the transaction tier. If absent,
+#     the flow tier SKIPS itself and only the render smoke runs (the shim
+#     falls back to an ephemeral key), so the workflow still passes.
+#
+# NOTE: with QA_WALLET_KEY set, transactions run on EVERY deploy — each run
+# spends a little testnet AVAX and leaves a throwaway subnet/chain on Fuji.
+# To run transactions only on production deploys, gate the flow with an `if`
+# on github.event.deployment.environment (see e2e/README.md).
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Base URL to test (transactions always hit Fuji testnet)'
+        required: false
+        default: 'https://build.avax.network'
+
+concurrency:
+  group: academy-e2e-${{ github.event.deployment.environment || 'manual' }}-${{ github.event.deployment.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Playwright smoke (${{ github.event.deployment.environment || 'manual' }})
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # Deployment events check out the deployed commit; branches cut before
+      # the harness landed on master have no e2e/ — skip instead of failing.
+      - name: Check harness present at this commit
+        id: harness
+        run: |
+          if [ -f e2e/playwright.config.ts ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::e2e/ harness not present at this commit — skipping smoke"
+          fi
+
+      - name: Resolve target URL
+        if: steps.harness.outputs.present == 'true'
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            url="${{ github.event.inputs.target_url }}"
+          else
+            url="${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}"
+          fi
+          if [ -z "$url" ]; then
+            echo "::error::No target URL on the deployment event"; exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Smoke target: $url"
+
+      - name: Check deployment protection bypass
+        if: steps.harness.outputs.present == 'true' && github.event.deployment.environment == 'Preview'
+        env:
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          if [ -z "$BYPASS" ]; then
+            echo "::error::VERCEL_AUTOMATION_BYPASS_SECRET is not set. Preview deployments are SSO-protected — enable 'Protection Bypass for Automation' on the Vercel builder-hub project and add the secret to this repo's Actions secrets."
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        if: steps.harness.outputs.present == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        if: steps.harness.outputs.present == 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        if: steps.harness.outputs.present == 'true'
+        run: npx playwright install --with-deps chromium
+
+      # One invocation runs both tiers → one results.json, one deduped
+      # report. The flow tier (e2e/flows/*) is a serial describe, so even at
+      # --workers=4 its tx tests run one-at-a-time on a single worker (no
+      # UTXO races) while render specs parallelize across the others. Without
+      # QA_WALLET_KEY the flow tier skips and only render runs.
+      - name: Run suite (render + transactions)
+        if: steps.harness.outputs.present == 'true'
+        env:
+          QA_TARGET_URL: ${{ steps.target.outputs.url }}
+          QA_WALLET_KEY: ${{ secrets.QA_WALLET_KEY }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: yarn e2e --workers=4
+
+      # One bug can break many pages; report each root cause once (grouped
+      # by the tool that failed to mount), not once per page.
+      - name: Failure summary (deduped by root cause)
+        if: always() && steps.harness.outputs.present == 'true'
+        run: npx tsx e2e/summarize-failures.mts
+
+      - name: Upload artifacts
+        if: always() && steps.harness.outputs.present == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: academy-e2e-artifacts
+          path: |
+            e2e/artifacts/results.json
+            e2e/artifacts/html-report
+            e2e/artifacts/test-output
+            e2e/artifacts/screenshots
+          retention-days: 14
+          if-no-files-found: ignore
