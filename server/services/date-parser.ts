@@ -1,4 +1,15 @@
 // All comments in English (as requested).
+
+function isSupportedTimeZone(timeZone: string): boolean {
+    if (!timeZone) return false;
+    try {
+        new Intl.DateTimeFormat('en-US', { timeZone });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function getDateWithTimezone(dateStr: string, timeZone: string): Date {
     if (!dateStr) {
         throw new Error(`Invalid date string: "${dateStr}"`);
@@ -10,10 +21,12 @@ export function getDateWithTimezone(dateStr: string, timeZone: string): Date {
     if (endsWithZ) {
       const utcDate: Date = new Date(s);
       if (isNaN(utcDate.getTime())) throw new Error(`Invalid date string: "${dateStr}"`);
-  
+
+      const safeTimeZone: string = isSupportedTimeZone(timeZone) ? timeZone : 'UTC';
+
       // Extract wall-clock parts in the target time zone
       const fmt: Intl.DateTimeFormat = new Intl.DateTimeFormat('en-US', {
-        timeZone,
+        timeZone: safeTimeZone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',

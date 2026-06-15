@@ -8,7 +8,8 @@
     "fast-xml-parser": ">=5.5.9",
     "katex": "0.16.35",
     "@shikijs/types": "3.23.0",
-    "next": "^16.2.6"
+    "next": "^16.2.6",
+    "@noble/secp256k1": "^2.0.0"
   },
   "scripts": {
     "build": "tsc --noEmit && next build",

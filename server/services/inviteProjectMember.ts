@@ -177,8 +177,22 @@ async function sendInvitationEmail(
       ? `${baseUrl.origin}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
       : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { title: true, banner: true },
+  });
+  const hackathonContext = hackathon?.title
+    ? { title: hackathon.title, banner: hackathon.banner || undefined }
+    : undefined;
   try {
-    await sendInvitation(email, project.project_name, inviterName, inviteLink, lang);
+    await sendInvitation(
+      email,
+      project.project_name,
+      inviterName,
+      inviteLink,
+      lang,
+      hackathonContext,
+    );
   } catch (error) {
     result.success = false;
   }
@@ -189,6 +203,8 @@ async function createProject(hackathonId: string, userId: string) {
   // Atomic transaction to prevent race conditions during invitations
   return await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${hackathonId}:${userId}`}, 0))`;
+
       // Find existing project WITHIN transaction
       const existingProject = await tx.project.findFirst({
         where: {

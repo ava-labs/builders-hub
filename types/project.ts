@@ -14,6 +14,7 @@ export interface Project {
   short_description: string;
   full_description?: string;
   tech_stack?: string,
+  tech_stack_tags?: string[],
   github_repository?: string,
   explanation?: string,
   demo_link?: string,

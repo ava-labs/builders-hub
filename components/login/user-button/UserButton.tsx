@@ -18,7 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
-import { canAccessEvaluationTools, canAccessBuilderInsights } from '@/lib/auth/permissions';
+import { canAccessBuilderInsights } from '@/lib/auth/permissions';
 
 const AVATAR_PX = 36;
 
@@ -46,7 +46,6 @@ function initialsFromName(name?: string | null): string {
 
 export function UserButton() {
   const { data: session, status } = useSession() ?? {};
-  const router = useRouter();
   const [localSeed, setLocalSeed] = useState<AvatarSeed | null>(null);
   const [localEnabled, setLocalEnabled] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
@@ -54,11 +53,11 @@ export function UserButton() {
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
   const { openLoginModal } = useLoginModalTrigger();
+  const router = useRouter();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
 
-  const canAccessEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
   const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
@@ -112,7 +111,7 @@ export function UserButton() {
       });
     }
     await signOut({ redirect: false });
-    router.push('/');
+    window.location.href = '/';
   };
 
   const renderAvatar = () => {
@@ -200,22 +199,6 @@ export function UserButton() {
             <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
-            {
-              (session?.user?.custom_attributes.includes('devrel') ||
-                session?.user?.custom_attributes?.includes('hackathonCreator') ||
-                session?.user?.custom_attributes?.includes('team1-admin')) && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/events/edit'>Event Management</Link>
-                </DropdownMenuItem>
-              )
-            }
-            {
-              canAccessEvaluate && (
-                <DropdownMenuItem asChild className='cursor-pointer'>
-                  <Link href='/evaluate'>Evaluate Hackathons</Link>
-                </DropdownMenuItem>
-              )
-            }
             <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-700" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}

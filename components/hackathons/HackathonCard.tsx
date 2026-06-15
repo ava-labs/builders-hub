@@ -3,6 +3,7 @@ import { CalendarIcon } from "lucide-react";
 import { MapPinIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { formatTeamLabel } from "@/lib/referrals/team-labels";
 import { HackathonHeader } from "@/types/hackathons";
 import { Button } from "../ui/button";
 import HackathonStatus from "./hackathon/HackathonStatus";
@@ -93,7 +94,7 @@ export default function HackathonCard({
         )} */}
         <div>
           <p className="text-xs dark:text-zinc-300 text-zinc-800">
-            {hackathon.organizers}
+            {formatTeamLabel(hackathon.organizers)}
           </p>
         </div>
         <div className="flex flex-wrap gap-y-2 justify-around items-center text-gray-300 text-sm py-[10px]">
