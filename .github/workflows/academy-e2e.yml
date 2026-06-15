@@ -50,20 +50,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # Deployment events check out the deployed commit; branches cut before
-      # the harness landed on master have no e2e/ — skip instead of failing.
-      - name: Check harness present at this commit
-        id: harness
+      # Decide whether to run, and SKIP (not fail) when we legitimately can't:
+      #  - the e2e/ harness isn't on the deployed commit (branch predates it), or
+      #  - it's an SSO-protected Preview deploy and the bypass secret isn't
+      #    configured, so the suite can't reach the preview URL.
+      # Skipping keeps the check green with a notice instead of red-flagging
+      # every PR until a Vercel admin adds the secret.
+      - name: Decide whether to run
+        id: gate
+        env:
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
-          if [ -f e2e/playwright.config.ts ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
+          if [ ! -f e2e/playwright.config.ts ]; then
             echo "::notice::e2e/ harness not present at this commit — skipping smoke"
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          if [ "${{ github.event.deployment.environment }}" = "Preview" ] && [ -z "$BYPASS" ]; then
+            echo "::notice::VERCEL_AUTOMATION_BYPASS_SECRET not set — preview deployments are SSO-protected, so the smoke suite can't reach them. Skipping. To enable preview smoke, turn on 'Protection Bypass for Automation' on the Vercel builder-hub project and add the secret to this repo's Actions secrets."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Resolve target URL
-        if: steps.harness.outputs.present == 'true'
+        if: steps.gate.outputs.run == 'true'
         id: target
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -77,29 +86,19 @@ jobs:
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Smoke target: $url"
 
-      - name: Check deployment protection bypass
-        if: steps.harness.outputs.present == 'true' && github.event.deployment.environment == 'Preview'
-        env:
-          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-        run: |
-          if [ -z "$BYPASS" ]; then
-            echo "::error::VERCEL_AUTOMATION_BYPASS_SECRET is not set. Preview deployments are SSO-protected — enable 'Protection Bypass for Automation' on the Vercel builder-hub project and add the secret to this repo's Actions secrets."
-            exit 1
-          fi
-
       - name: Setup Node.js
-        if: steps.harness.outputs.present == 'true'
+        if: steps.gate.outputs.run == 'true'
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
           cache: 'yarn'
 
       - name: Install dependencies
-        if: steps.harness.outputs.present == 'true'
+        if: steps.gate.outputs.run == 'true'
         run: yarn install --frozen-lockfile
 
       - name: Install Playwright browsers
-        if: steps.harness.outputs.present == 'true'
+        if: steps.gate.outputs.run == 'true'
         run: npx playwright install --with-deps chromium
 
       # One invocation runs both tiers → one results.json, one deduped
@@ -108,7 +107,7 @@ jobs:
       # UTXO races) while render specs parallelize across the others. Without
       # QA_WALLET_KEY the flow tier skips and only render runs.
       - name: Run suite (render + transactions)
-        if: steps.harness.outputs.present == 'true'
+        if: steps.gate.outputs.run == 'true'
         env:
           QA_TARGET_URL: ${{ steps.target.outputs.url }}
           QA_WALLET_KEY: ${{ secrets.QA_WALLET_KEY }}
@@ -118,11 +117,11 @@ jobs:
       # One bug can break many pages; report each root cause once (grouped
       # by the tool that failed to mount), not once per page.
       - name: Failure summary (deduped by root cause)
-        if: always() && steps.harness.outputs.present == 'true'
+        if: always() && steps.gate.outputs.run == 'true'
         run: npx tsx e2e/summarize-failures.mts
 
       - name: Upload artifacts
-        if: always() && steps.harness.outputs.present == 'true'
+        if: always() && steps.gate.outputs.run == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: academy-e2e-artifacts

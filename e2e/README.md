@@ -92,14 +92,16 @@ they must never overlap; a serial file runs on a single worker even at
   and the chain cross-checked via `platform.getBlockchains`.
 - **C-Chain deploy** — deploys ExampleERC20 to Fuji C-Chain (ordinary EVM
   `eth_sendTransaction`); verified with `eth_getCode` at the address.
-- **cross-chain transfer (C→P)** — `test.fixme`, blocked: the C-Chain export
-  is an EVM *atomic* tx and the shim's `avalanche_sendTransaction` re-signs
-  via the SDK's P/X path, which can't handle EVM atomic txs. Needs the shim
-  to sign EVM atomic export/import natively (real Core does).
+- **cross-chain transfer (C→P)** — real export + import, the import verified
+  `Committed`. The C-Chain export and P-Chain import are both *atomic* txs;
+  the shim signs them natively via `signAndIssueSingleKey` (sign the
+  `UnsignedTx` byte form, credential every input from `getSigIndices`), since
+  the SDK's hex re-sign path can't. The test self-heals leftover pending
+  UTXOs and reloads on a post-deploy `prepareExportTxn` stall.
 
-Transaction classes, by reach: P/X-Chain txs and ordinary C-Chain EVM
-deploys work today; C-Chain *atomic* txs need the shim fix above; anything
-that transacts **on a freshly-created L1** (tokenomics precompiles, staking,
+Transaction classes, by reach: P/X-Chain txs, ordinary C-Chain EVM deploys,
+and C-Chain *atomic* txs (cross-chain) all work today. Anything that
+transacts **on a freshly-created L1** (tokenomics precompiles, staking,
 validator mgmt) needs the L1 actually running (validator nodes) — out of
 scope for the funded-key-only harness.
 
@@ -143,8 +145,10 @@ A single `yarn e2e --workers=4` runs both tiers, so the result is one
 `results.json` and one deduped report. What runs depends on which secrets
 are set:
 
-- `VERCEL_AUTOMATION_BYPASS_SECRET` — unlocks SSO-protected previews
-  (required for preview deploys).
+- `VERCEL_AUTOMATION_BYPASS_SECRET` — unlocks SSO-protected previews. If it's
+  absent, preview deploys can't be reached, so the job **skips** with a notice
+  (stays green) rather than failing — it doesn't red-flag PRs until an admin
+  configures it. Production deploys are public and need no bypass.
 - `QA_WALLET_KEY` — funded Fuji key that activates the transaction tier. If
   it's absent, the flow tier skips and only the render smoke runs (the shim
   falls back to an ephemeral key), so the job still passes.
