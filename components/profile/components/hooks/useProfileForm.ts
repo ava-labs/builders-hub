@@ -13,7 +13,7 @@ import {
 } from "@/lib/profile/socialAccountValidation";
 
 export const profileSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().optional().default(''),
   username: z.string().optional(),
   bio: z.string().max(250, "Bio must not exceed 250 characters").optional(),
   email: z.email("Invalid email").optional(),
@@ -332,8 +332,17 @@ export function useProfileForm() {
 
   // Debounced auto-save effect - watches form values and triggers save after user stops editing
   useEffect(() => {
-    // Skip auto-save during initial load
-    if (isInitialLoadRef.current || !formState.isDirty || isLoading || isAutoSaving) {
+    // Skip auto-save during initial load, or while the form has validation
+    // errors (e.g. a half-typed social handle). Auto-saving invalid values
+    // just spams the API with 400s; the inline field error already tells the
+    // user what to fix. The save resumes automatically once the form is valid.
+    if (
+      isInitialLoadRef.current ||
+      !formState.isDirty ||
+      !formState.isValid ||
+      isLoading ||
+      isAutoSaving
+    ) {
       return;
     }
 
@@ -360,17 +369,18 @@ export function useProfileForm() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [watchedValues, formState.isDirty, isLoading, isAutoSaving, autoSave, form]);
+  }, [watchedValues, formState.isDirty, formState.isValid, isLoading, isAutoSaving, autoSave, form]);
 
-  // Handle form submission
-  const onSubmit = async (data: ProfileFormValues) => {
+  // Handle form submission. Returns true only when the profile was actually
+  // persisted, so callers can show an accurate success/failure message.
+  const onSubmit = async (data: ProfileFormValues): Promise<boolean> => {
     if (!session?.user?.id) {
       toast({
         title: "Authentication required",
         description: "You must be logged in to update your profile",
         variant: "destructive",
       });
-      return;
+      return false;
     }
 
     // Only format validations - no required fields
@@ -392,7 +402,7 @@ export function useProfileForm() {
     }
 
     if (hasErrors) {
-      return;
+      return false;
     }
 
     setIsSaving(true);
@@ -526,9 +536,10 @@ export function useProfileForm() {
       };
 
       form.reset(newFormData);
-      
+
       // Update last saved data reference
       lastSavedDataRef.current = JSON.stringify(newFormData);
+      return true;
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({
@@ -536,6 +547,7 @@ export function useProfileForm() {
         description: error instanceof Error ? error.message : "Error saving profile. Please try again.",
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
@@ -600,6 +612,22 @@ export function useProfileForm() {
     handleRemoveSocial,
     handleAddWallet,
     handleRemoveWallet,
-    onSubmit: form.handleSubmit(onSubmit),
+    // Reports the real outcome so callers can show an accurate message:
+    //   'saved'   - validation passed and the server persisted the update
+    //   'invalid' - client validation failed (e.g. an invalid social handle);
+    //               the offending fields are already highlighted inline
+    //   'error'   - validation passed but the server rejected/failed the save
+    onSubmit: async (): Promise<"saved" | "invalid" | "error"> => {
+      let result: "saved" | "invalid" | "error" = "invalid";
+      await form.handleSubmit(
+        async (data) => {
+          result = (await onSubmit(data)) ? "saved" : "error";
+        },
+        () => {
+          result = "invalid";
+        },
+      )();
+      return result;
+    },
   };
 }

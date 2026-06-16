@@ -38,11 +38,15 @@ interface Props {
   onEmployeeRoleChange: (v: string) => void;
   github: string;
   onGithubChange: (v: string) => void;
+  /** Validation message shown under the GitHub field when the value is invalid. */
+  githubError?: string;
   githubConnected: boolean;
   onGithubConnect: () => void;
   onGithubDisconnect: () => void;
   telegram: string;
   onTelegramChange: (v: string) => void;
+  /** Validation message shown under the Telegram field when the value is invalid. */
+  telegramError?: string;
   xAccount: string;
   xConnected: boolean;
   onXConnect: () => void;
@@ -50,6 +54,8 @@ interface Props {
   linkedinAccount: string;
   /** Receives the rebuilt full URL (or empty when cleared). */
   onLinkedinChange: (url: string) => void;
+  /** Validation message shown under the LinkedIn field when the value is invalid. */
+  linkedinError?: string;
   siteLinks: ProfileLink[];
   onSiteLinksChange: (links: ProfileLink[]) => void;
   wallets: ProfileWallet[];
@@ -83,17 +89,20 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
     onEmployeeRoleChange,
     github,
     onGithubChange,
+    githubError,
     githubConnected,
     onGithubConnect,
     onGithubDisconnect,
     telegram,
     onTelegramChange,
+    telegramError,
     xAccount,
     xConnected,
     onXConnect,
     onXDisconnect,
     linkedinAccount,
     onLinkedinChange,
+    linkedinError,
     siteLinks,
     onSiteLinksChange,
     wallets,
@@ -125,7 +134,7 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
       <div className="pr-body">
         <div className="pr-field">
           <label htmlFor="pr-fullname">
-            Full name <span className="pr-req">*</span>
+            Full name
           </label>
           <input
             id="pr-fullname"
@@ -244,7 +253,10 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <span className="pr-sr-only">GitHub</span>
             </label>
             <div className="pr-social-row">
-              <div className="pr-input-group" style={{ flex: 1, minWidth: 0 }}>
+              <div
+                className={`pr-input-group${githubError ? " pr-input-group--error" : ""}`}
+                style={{ flex: 1, minWidth: 0 }}
+              >
                 <span className="pr-pre">github.com/</span>
                 <input
                   id="pr-github"
@@ -272,6 +284,7 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
                 </button>
               )}
             </div>
+            {githubError && <p className="pr-error">{githubError}</p>}
           </div>
           <div className="pr-field">
             <label htmlFor="pr-x">
@@ -316,7 +329,9 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
               <TelegramIcon size={16} />
               <span className="pr-sr-only">Telegram</span>
             </label>
-            <div className="pr-input-group">
+            <div
+              className={`pr-input-group${telegramError ? " pr-input-group--error" : ""}`}
+            >
               <span className="pr-pre">@</span>
               <input
                 id="pr-telegram"
@@ -325,13 +340,16 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
                 placeholder="username"
               />
             </div>
+            {telegramError && <p className="pr-error">{telegramError}</p>}
           </div>
           <div className="pr-field">
             <label htmlFor="pr-linkedin">
               <LinkedInIcon size={16} />
               <span className="pr-sr-only">LinkedIn</span>
             </label>
-            <div className="pr-input-group">
+            <div
+              className={`pr-input-group${linkedinError ? " pr-input-group--error" : ""}`}
+            >
               <span className="pr-pre">linkedin.com/in/</span>
               <input
                 id="pr-linkedin"
@@ -343,6 +361,7 @@ export const PersonalCard = React.forwardRef<HTMLDivElement, Props>(function Per
                 placeholder="username"
               />
             </div>
+            {linkedinError && <p className="pr-error">{linkedinError}</p>}
           </div>
         </div>
 

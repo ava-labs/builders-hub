@@ -269,7 +269,7 @@ export default function ProfilePage({ teamLabel }: Props) {
       key: Parameters<typeof form.setValue>[0],
       value: Parameters<typeof form.setValue>[1],
     ) => {
-      form.setValue(key, value, { shouldDirty: true });
+      form.setValue(key, value, { shouldDirty: true, shouldValidate: true });
     },
     [form],
   );
@@ -287,6 +287,13 @@ export default function ProfilePage({ teamLabel }: Props) {
   const telegram = watchedValues.telegram_account ?? "";
   const xAccount = watchedValues.x_account ?? "";
   const linkedinAccount = watchedValues.linkedin_account ?? "";
+
+  // Validation messages for the freeform social handles (optional fields that
+  // must still match their platform format when filled in).
+  const fieldErrors = form.formState.errors;
+  const githubError = fieldErrors.github_account?.message;
+  const telegramError = fieldErrors.telegram_account?.message;
+  const linkedinError = fieldErrors.linkedin_account?.message;
   const skills = skillsFromValues(watchedValues);
   const wallets = walletsFromValues(watchedValues);
   const siteLinks = siteLinksFromValues(watchedValues);
@@ -389,8 +396,14 @@ export default function ProfilePage({ teamLabel }: Props) {
 
   const handleSave = async () => {
     try {
-      await onSubmit();
-      pushToast("Profile saved");
+      const result = await onSubmit();
+      if (result === "saved") {
+        pushToast("Profile saved");
+      } else if (result === "invalid") {
+        pushToast("Please fix the highlighted fields before saving", "error");
+      } else {
+        pushToast("Could not save profile", "error");
+      }
     } catch {
       pushToast("Could not save profile", "error");
     }
@@ -633,6 +646,7 @@ export default function ProfilePage({ teamLabel }: Props) {
                 onGithubChange={(v) =>
                   setField("github_account" as never, v as never)
                 }
+                githubError={githubError}
                 githubConnected={githubConnected}
                 onGithubConnect={handleConnectGithub}
                 onGithubDisconnect={handleDisconnectGithub}
@@ -640,6 +654,7 @@ export default function ProfilePage({ teamLabel }: Props) {
                 onTelegramChange={(v) =>
                   setField("telegram_account" as never, v as never)
                 }
+                telegramError={telegramError}
                 xAccount={xAccount}
                 xConnected={Boolean(xAccount)}
                 onXConnect={handleConnectX}
@@ -648,6 +663,7 @@ export default function ProfilePage({ teamLabel }: Props) {
                 onLinkedinChange={(v) =>
                   setField("linkedin_account" as never, v as never)
                 }
+                linkedinError={linkedinError}
                 siteLinks={siteLinks}
                 onSiteLinksChange={onSiteLinksChange}
                 wallets={wallets}
