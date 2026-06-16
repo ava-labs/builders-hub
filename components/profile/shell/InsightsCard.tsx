@@ -556,7 +556,7 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
         </span>
         <h4 className="pr-insights__title">Profile completion</h4>
         <span className="pr-insights__subtitle">
-          {anyLinkPct.toFixed(1)}% have at least one social link ·{" "}
+          {anyLinkPct.toFixed(1)}% have at least one of these links ·{" "}
           {formatNumber(data.totalAccounts)} accounts
         </span>
       </header>
