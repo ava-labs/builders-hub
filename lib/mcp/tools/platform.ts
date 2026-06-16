@@ -2,6 +2,62 @@ import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 
+// ---------------------------------------------------------------------------
+// Pagination — list endpoints like platform.getBlockchains / getCurrentValidators
+// can return tens of thousands of entries (86 KB+), overflowing an MCP client's
+// token budget. We slice the array field and attach pagination metadata.
+// ---------------------------------------------------------------------------
+
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 200;
+
+const PAGINATION_PROPS = {
+  limit: {
+    type: 'number',
+    minimum: 1,
+    maximum: MAX_PAGE_SIZE,
+    description: `Max items to return (default: ${DEFAULT_PAGE_SIZE}). Use with "offset" to page.`,
+  },
+  offset: {
+    type: 'number',
+    minimum: 0,
+    description: 'Number of items to skip from the start (default: 0).',
+  },
+} as const;
+
+function clampInt(value: unknown, fallback: number, min: number, max: number): number {
+  const n = typeof value === 'number' ? Math.floor(value) : fallback;
+  return Math.min(Math.max(n, min), max);
+}
+
+/**
+ * Slice the array under `arrayKey` according to limit/offset args and append a
+ * `_pagination` summary. Non-array / non-object results pass through unchanged.
+ */
+function paginateArrayField(result: unknown, arrayKey: string, args: Record<string, unknown>): unknown {
+  if (!result || typeof result !== 'object') return result;
+  const obj = result as Record<string, unknown>;
+  const arr = obj[arrayKey];
+  if (!Array.isArray(arr)) return result;
+
+  const total = arr.length;
+  const limit = clampInt(args.limit, DEFAULT_PAGE_SIZE, 1, MAX_PAGE_SIZE);
+  const offset = clampInt(args.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+  const page = arr.slice(offset, offset + limit);
+
+  return {
+    ...obj,
+    [arrayKey]: page,
+    _pagination: {
+      total,
+      offset,
+      limit,
+      returned: page.length,
+      hasMore: offset + page.length < total,
+    },
+  };
+}
+
 export const platformTools: ToolDomain = {
   tools: [
     {
@@ -68,7 +124,7 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_blockchains',
-      description: 'Get all blockchains that exist on the P-Chain',
+      description: 'Get all blockchains that exist on the P-Chain (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
@@ -77,6 +133,7 @@ export const platformTools: ToolDomain = {
             enum: ['mainnet', 'fuji'],
             description: 'Avalanche network to query (default: mainnet)',
           },
+          ...PAGINATION_PROPS,
         },
       },
     },
@@ -96,12 +153,13 @@ export const platformTools: ToolDomain = {
             enum: ['mainnet', 'fuji'],
             description: 'Avalanche network to query (default: mainnet)',
           },
+          ...PAGINATION_PROPS,
         },
       },
     },
     {
       name: 'platform_get_current_validators',
-      description: 'Get the current validators of a subnet',
+      description: 'Get the current validators of a subnet (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
@@ -119,12 +177,13 @@ export const platformTools: ToolDomain = {
             enum: ['mainnet', 'fuji'],
             description: 'Avalanche network to query (default: mainnet)',
           },
+          ...PAGINATION_PROPS,
         },
       },
     },
     {
       name: 'platform_get_pending_validators',
-      description: 'Get the pending validators of a subnet (validators not yet validating)',
+      description: 'Get the pending validators of a subnet (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
@@ -142,6 +201,7 @@ export const platformTools: ToolDomain = {
             enum: ['mainnet', 'fuji'],
             description: 'Avalanche network to query (default: mainnet)',
           },
+          ...PAGINATION_PROPS,
         },
       },
     },
@@ -402,7 +462,8 @@ export const platformTools: ToolDomain = {
           CACHE_TTL.CHAINS,
           () => avalancheRPC(network, 'pchain', 'platform.getBlockchains', {})
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        const paged = paginateArrayField(result, 'blockchains', args);
+        return { content: [{ type: 'text', text: JSON.stringify(paged) }] };
       } catch (err) {
         return {
           content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
@@ -421,7 +482,8 @@ export const platformTools: ToolDomain = {
           CACHE_TTL.CHAINS,
           () => avalancheRPC(network, 'pchain', 'platform.getSubnets', params)
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        const paged = paginateArrayField(result, 'subnets', args);
+        return { content: [{ type: 'text', text: JSON.stringify(paged) }] };
       } catch (err) {
         return {
           content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
@@ -443,7 +505,8 @@ export const platformTools: ToolDomain = {
           CACHE_TTL.FEES,
           () => avalancheRPC(network, 'pchain', 'platform.getCurrentValidators', params)
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        const paged = paginateArrayField(result, 'validators', args);
+        return { content: [{ type: 'text', text: JSON.stringify(paged) }] };
       } catch (err) {
         return {
           content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
@@ -465,7 +528,8 @@ export const platformTools: ToolDomain = {
           60 * 1000,
           () => avalancheRPC(network, 'pchain', 'platform.getPendingValidators', params)
         );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
+        const paged = paginateArrayField(result, 'validators', args);
+        return { content: [{ type: 'text', text: JSON.stringify(paged) }] };
       } catch (err) {
         return {
           content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],

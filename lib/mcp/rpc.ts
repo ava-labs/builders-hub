@@ -26,20 +26,113 @@ export const ENDPOINTS = {
 export type Endpoint = keyof typeof ENDPOINTS;
 
 const TIMEOUT_MS = 15_000;
+const MAX_RETRIES = 3;
+const BASE_BACKOFF_MS = 250;
+// The public api.avax.network nodes throttle aggressively (429) and serve HTML gateway
+// pages (502/503/504) under load — both are transient, so we back off and retry.
+const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
+
+/** Error from an RPC call. `status` is set for HTTP-level failures. */
+export class RpcError extends Error {
+  status?: number;
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'RpcError';
+    this.status = status;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 // ---------------------------------------------------------------------------
 // RPC call helper
 // ---------------------------------------------------------------------------
 
 /**
- * Make a JSON-RPC call to an AvalancheGo public node.
+ * POST a JSON-RPC request to an arbitrary node URL with exponential backoff on
+ * transient failures (429/5xx, honoring Retry-After) and a content-type guard
+ * that turns a rate-limit HTML page into a clean error instead of a
+ * `JSON.parse` "Unexpected token '<'" crash.
+ *
+ * @returns The `result` field of the JSON-RPC response.
+ * @throws  {RpcError} On HTTP failure, non-JSON body, or JSON-RPC error response.
+ */
+export async function jsonRpcPost(
+  url: string,
+  method: string,
+  params: Record<string, unknown> | unknown[] = {}
+): Promise<unknown> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+        signal: controller.signal,
+      });
+
+      if (RETRYABLE_STATUS.has(response.status) && attempt < MAX_RETRIES) {
+        const retryAfter = Number(response.headers.get('retry-after'));
+        const backoff =
+          Number.isFinite(retryAfter) && retryAfter > 0
+            ? retryAfter * 1000
+            : BASE_BACKOFF_MS * 2 ** attempt;
+        await sleep(backoff);
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new RpcError(`HTTP ${response.status}: ${response.statusText}`, response.status);
+      }
+
+      // Rate-limit / gateway responses can arrive as HTML even with a 200 — guard before parsing.
+      const contentType = response.headers.get('content-type') || '';
+      const text = await response.text();
+      if (!contentType.includes('json') && text.trimStart().startsWith('<')) {
+        throw new RpcError(`Non-JSON response from node (status ${response.status})`, response.status);
+      }
+
+      const json = JSON.parse(text) as {
+        result?: unknown;
+        error?: { code: number; message: string };
+      };
+
+      if (json.error) {
+        throw new RpcError(`RPC error ${json.error.code}: ${json.error.message}`);
+      }
+
+      return json.result;
+    } catch (err) {
+      lastError = err;
+      // Surface immediately (don't retry): RPC/HTTP errors, and timeouts — retrying a
+      // 15s timeout just multiplies latency (a hung node would cost 60s+ across attempts).
+      const isAbort = err instanceof Error && err.name === 'AbortError';
+      if (err instanceof RpcError || isAbort || attempt >= MAX_RETRIES) throw err;
+      // Transient network blips (e.g. fetch TypeError) get a short backoff retry.
+      await sleep(BASE_BACKOFF_MS * 2 ** attempt);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('RPC request failed');
+}
+
+/**
+ * Make a JSON-RPC call to an AvalancheGo public API node.
  *
  * @param network  'mainnet' | 'fuji'
  * @param endpoint One of the ENDPOINTS keys
  * @param method   JSON-RPC method name
  * @param params   Params object (P-Chain / Info) or array (EVM / X-Chain)
  * @returns        The `result` field of the JSON-RPC response
- * @throws         On network error, timeout, or JSON-RPC error response
  */
 export async function avalancheRPC(
   network: Network,
@@ -48,40 +141,7 @@ export async function avalancheRPC(
   params: Record<string, unknown> | unknown[] = {}
 ): Promise<unknown> {
   const url = `${BASE_URLS[network]}${ENDPOINTS[endpoint]}`;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method,
-        params,
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const json = await response.json() as {
-      result?: unknown;
-      error?: { code: number; message: string };
-    };
-
-    if (json.error) {
-      throw new Error(`RPC error ${json.error.code}: ${json.error.message}`);
-    }
-
-    return json.result;
-  } finally {
-    clearTimeout(timer);
-  }
+  return jsonRpcPost(url, method, params);
 }
 
 // ---------------------------------------------------------------------------
