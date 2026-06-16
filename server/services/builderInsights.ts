@@ -462,10 +462,10 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       Array<{ x: bigint; linkedin: bigint; github: bigint; telegram: bigint }>
     >`
       SELECT
-        COUNT(*) FILTER (WHERE "x_account" IS NOT NULL AND "x_account" <> '')::bigint AS "x",
-        COUNT(*) FILTER (WHERE "linkedin_account" IS NOT NULL AND "linkedin_account" <> '')::bigint AS "linkedin",
-        COUNT(*) FILTER (WHERE "github_account" IS NOT NULL AND "github_account" <> '')::bigint AS "github",
-        COUNT(*) FILTER (WHERE "telegram_account" IS NOT NULL AND "telegram_account" <> '')::bigint AS "telegram"
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("x_account"), '') IS NOT NULL)::bigint AS "x",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("linkedin_account"), '') IS NOT NULL)::bigint AS "linkedin",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("github_account"), '') IS NOT NULL)::bigint AS "github",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("telegram_account"), '') IS NOT NULL)::bigint AS "telegram"
       FROM "User"
     `,
     prisma.$queryRaw<Array<{ linkCount: number; users: bigint }>>`
