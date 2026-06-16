@@ -2,7 +2,16 @@ import { NextResponse, NextRequest } from 'next/server';
 import { MCPServer } from '@/lib/mcp/server';
 import { validateOrigin, getCORSHeaders } from '@/lib/mcp/cors';
 import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
-import { docsTools, blockchainTools, githubTools, platformTools, infoTools } from '@/lib/mcp/tools';
+import {
+  docsTools,
+  blockchainTools,
+  githubTools,
+  platformTools,
+  infoTools,
+  dataTools,
+  actionTools,
+  consoleTools,
+} from '@/lib/mcp/tools';
 import { docsResources } from '@/lib/mcp/resources';
 
 // ---------------------------------------------------------------------------
@@ -11,9 +20,9 @@ import { docsResources } from '@/lib/mcp/resources';
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.1.0',
+  version: '2.2.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain lookups, P-Chain, and Info API',
+  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain & P-Chain lookups, indexed Data/Stats API, L1/ICTT build plans, and Builder Console guidance',
 });
 
 server.registerToolDomain(docsTools);
@@ -21,6 +30,9 @@ server.registerToolDomain(blockchainTools);
 server.registerToolDomain(githubTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
+server.registerToolDomain(dataTools);
+server.registerToolDomain(actionTools);
+server.registerToolDomain(consoleTools);
 server.registerResourceDomain(docsResources);
 
 // ---------------------------------------------------------------------------

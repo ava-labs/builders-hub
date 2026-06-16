@@ -1,7 +1,7 @@
 {
   "name": "avalanche-mcp",
-  "version": "2.1.0",
-  "description": "Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, code search, public blockchain lookups, P-Chain RPCs, and Info API calls.",
+  "version": "2.2.0",
+  "description": "Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, code search, blockchain & P-Chain lookups, indexed Data/Stats API reads, L1/ICTT build plans, and Builder Console guidance.",
   "endpoint": "https://build.avax.network/api/mcp",
   "protocol": "mcp/http",
   "readOnly": true,
@@ -208,6 +208,66 @@
     {
       "name": "info_acps",
       "description": "Get live ACP voting/status information from the Info API."
+    },
+    {
+      "name": "data_get_address_balances",
+      "description": "Indexed native + ERC-20 balances for an address via the Data API (no RPC rate limits)."
+    },
+    {
+      "name": "data_list_transactions",
+      "description": "List recent transactions for an address via the indexed Data API (paginated)."
+    },
+    {
+      "name": "data_list_transfers",
+      "description": "List ERC-20 token transfers for an address via the indexed Data API (paginated)."
+    },
+    {
+      "name": "data_list_blockchains",
+      "description": "List blockchains/subnets via the Data API (paginated; avoids the RPC getBlockchains overflow)."
+    },
+    {
+      "name": "data_lookup_subnet",
+      "description": "Rich subnet metadata via the Data API — blockchains, validator count, configuration."
+    },
+    {
+      "name": "data_lookup_validator",
+      "description": "Validator details via the Data API — stake, uptime, delegations."
+    },
+    {
+      "name": "stats_chain_metrics",
+      "description": "Time-series chain metrics via the Metrics/Stats API (txCount, activeAddresses, gasUsed, feesPaid)."
+    },
+    {
+      "name": "stats_network_metrics",
+      "description": "Network-wide time-series metrics via the Metrics/Stats API (validatorCount, delegatorCount, weights)."
+    },
+    {
+      "name": "l1_build_plan",
+      "description": "Generate an L1-creation plan — Builder Console (Quick Build) deep-link plus the equivalent platform-cli sequence."
+    },
+    {
+      "name": "ictt_build_plan",
+      "description": "Generate an Interchain Token Transfer (ICTT) bridging plan — console deep-link plus @avalanche-sdk/interchain steps."
+    },
+    {
+      "name": "validator_manager_plan",
+      "description": "Generate validator-manager (PoA/PoS) deployment and initialization steps."
+    },
+    {
+      "name": "faucet_link",
+      "description": "Return the Builder Console faucet link for funding a Fuji testnet address."
+    },
+    {
+      "name": "console_deep_link",
+      "description": "Deep-link into a specific Builder Console flow (create-l1, convert-to-l1, validator-manager, ictt, faucet, multisig)."
+    },
+    {
+      "name": "console_list_flows",
+      "description": "List the Builder Console flows the MCP knows, with summaries and deep-links."
+    },
+    {
+      "name": "console_explain_flow",
+      "description": "Explain a Builder Console flow — steps, equivalent CLI, whether it signs, and a deep-link."
     }
   ],
   "resources": [

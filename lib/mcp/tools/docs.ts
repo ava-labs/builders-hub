@@ -22,8 +22,37 @@ const CLI_PATH_PREFIXES: Record<(typeof CLI_VALUES)[number], string[]> = {
   'avalanche-cli': ['/docs/tooling/avalanche-cli'],
   'platform-cli': ['/docs/tooling/platform-cli'],
   tmpnet: ['/docs/tooling/tmpnet'],
-  all: ['/docs/tooling/avalanche-cli', '/docs/tooling/platform-cli', '/docs/tooling/tmpnet'],
+  // avalanche-cli is deprecated, so it is intentionally excluded from the default ("all")
+  // search surface — it is only searched when a caller explicitly passes cli:"avalanche-cli".
+  all: ['/docs/tooling/platform-cli', '/docs/tooling/tmpnet'],
 };
+
+const QUICK_BUILD_URL = 'https://build.avax.network/console';
+const PLATFORM_CLI_DOCS = 'https://build.avax.network/docs/tooling/platform-cli';
+
+const AVALANCHE_CLI_DEPRECATION =
+  'Note: avalanche-cli is deprecated and no longer actively maintained. For L1/subnet and ' +
+  'P-Chain operations, prefer platform-cli or the Builder Console (Quick Build).';
+
+// Matches "make/create/deploy/build/launch/spin up ... an L1 / subnet / blockchain / chain".
+const L1_CREATION_INTENT =
+  /\b(make|create|deploy|build|launch|spin\s?up|start)\b.{0,40}\b(l1|subnet|blockchain|chain|network)\b/i;
+
+// Steers L1-creation requests to the supported paths instead of the deprecated avalanche-cli.
+function buildL1CreationGuidance(): string {
+  return [
+    'Recommended ways to create an Avalanche L1 (avalanche-cli is deprecated and not shown):',
+    '',
+    `1. **Quick Build (no-code, recommended):** create and deploy an L1 from the Builder Console — ${QUICK_BUILD_URL}`,
+    '2. **platform-cli (scriptable):** run, in order:',
+    '   - `platform subnet create --key-name <key> --network <fuji|mainnet>`',
+    '   - `platform subnet convert-l1 --subnet-id <id> --chain-id <id> --manager <addr>`',
+    '   - `platform l1 register-validator --balance <AVAX> --pop <hex> --message <hex>`',
+    `   Full command reference: ${PLATFORM_CLI_DOCS}`,
+    '',
+    'Tip: call `l1_build_plan` for a complete, parameterized command sequence.',
+  ].join('\n');
+}
 
 const RPC_PATH_PREFIXES: Record<(typeof RPC_CHAIN_VALUES)[number], string[]> = {
   'p-chain': ['/docs/rpcs/p-chain'],
@@ -478,8 +507,22 @@ export const docsTools: ToolDomain = {
         pathPrefixes: CLI_PATH_PREFIXES[cli],
       });
 
+      const sections: string[] = [];
+
+      // Steer "make an L1" style requests to Quick Build + platform-cli instead of avalanche-cli.
+      if (cli !== 'avalanche-cli' && L1_CREATION_INTENT.test(query)) {
+        sections.push(buildL1CreationGuidance());
+      }
+
+      // If avalanche-cli is explicitly requested, lead with the deprecation notice.
+      if (cli === 'avalanche-cli') {
+        sections.push(AVALANCHE_CLI_DEPRECATION);
+      }
+
+      sections.push(formatSearchResults(query, results, 'CLI results'));
+
       return {
-        content: [{ type: 'text', text: formatSearchResults(query, results, 'CLI results') }],
+        content: [{ type: 'text', text: sections.join('\n\n') }],
       };
     },
 

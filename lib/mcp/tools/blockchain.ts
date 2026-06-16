@@ -5,7 +5,7 @@
  * calling a non-existent /api/mcp/blockchain route.
  */
 
-import { avalancheRPC } from '../rpc';
+import { avalancheRPC, jsonRpcPost } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 
@@ -204,22 +204,10 @@ const BASE_URLS: Record<Network, string> = {
 };
 
 async function evmRPC(network: Network, method: string, params: unknown[]): Promise<unknown> {
+  // Delegates to the shared helper so C-Chain EVM calls get the same retry/backoff
+  // and the HTML-response guard (a rate-limit page previously crashed JSON.parse here).
   const url = `${BASE_URLS[network]}/ext/bc/C/rpc`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-      signal: controller.signal,
-    });
-    const json = await res.json() as { result?: unknown; error?: { message: string } };
-    if (json.error) throw new Error(json.error.message);
-    return json.result;
-  } finally {
-    clearTimeout(timer);
-  }
+  return jsonRpcPost(url, method, params);
 }
 
 // ---------------------------------------------------------------------------
