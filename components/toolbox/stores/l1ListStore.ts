@@ -293,13 +293,21 @@ export const useSetNativeCurrencyInfo = () => {
 };
 
 export const useNativeCurrencyInfo = (chainId?: number) => {
-  const { walletChainId } = useWalletStore();
-  const l1ListStore = useL1ListStore();
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const effectiveChainId = chainId || walletChainId;
-
+  // Subscribe to l1List (nativeCurrency is stored on the L1 item), mirroring
+  // useSelectedL1, so writes via setNativeCurrencyInfo are reflected. The old
+  // version read store.getState() inside a useMemo whose deps never changed on
+  // write, so it returned a STALE value forever — which made consumers that
+  // "cache it once" (DeployWrappedNative) re-fire their write every render and
+  // spin into a setState loop ("Maximum update depth exceeded").
+  const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
   return useMemo(() => {
-    return l1ListStore.getState().getNativeCurrencyInfo(effectiveChainId);
-  }, [l1ListStore, effectiveChainId]);
+    const activeFirstLists = isTestnet ? [testnetL1List, mainnetL1List] : [mainnetL1List, testnetL1List];
+    return activeFirstLists.flat().find((l1: L1ListItem) => l1.evmChainId === effectiveChainId)?.nativeCurrency;
+  }, [effectiveChainId, isTestnet, testnetL1List, mainnetL1List]);
 };
 
 // Wrapped native token hooks
