@@ -24,7 +24,7 @@ platform l1 register-validator \
 ## Set Validator Weight
 
 ```bash
-platform l1 set-weight \
+platform l1 set-validator-weight \
   --message 0xabc123... \
   --key-name mykey
 ```
@@ -33,12 +33,12 @@ platform l1 set-weight \
 |------|-------------|
 | `--message` | Warp message authorizing weight change (required) |
 
-## Add Validator Balance
+## Increase Validator Balance
 
 Top up a validator's balance for continuous fee payments:
 
 ```bash
-platform l1 add-balance \
+platform l1 increase-validator-balance \
   --validation-id 2QYfFcfZ9... \
   --balance 5.0 \
   --key-name mykey

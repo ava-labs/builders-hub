@@ -1,6 +1,6 @@
 ---
 title: Subnets
-description: Create subnets, transfer ownership, and convert to L1 blockchains
+description: Create subnets, add validators, transfer ownership, and convert to L1 blockchains
 ---
 
 Platform CLI supports creating subnets, transferring ownership, and converting them to L1 blockchains.
@@ -32,6 +32,21 @@ platform subnet transfer-ownership \
   --key-name mykey
 ```
 
+## Add a Validator (Permissioned Subnet)
+
+Add a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must **already be a primary network validator**, and the subnet owner key authorizes the transaction.
+
+```bash
+platform subnet add-validator \
+  --subnet-id 2QYfFcfZ9... \
+  --node-id NodeID-BFa1paAAAA... \
+  --weight 100 \
+  --duration 336h \
+  --key-name mykey
+```
+
+The validation period must fall within the node's primary network validation window. `--weight` is the validator's sampling weight on the subnet (not a stake amount). To add validators to a subnet that has already been converted to an L1, use [`l1 register-validator`](/docs/tooling/platform-cli/l1-validators) instead.
+
 ## Convert Subnet to L1
 
 Convert a permissioned subnet to an L1 blockchain. This operation is **irreversible**.
@@ -41,7 +56,7 @@ Convert a permissioned subnet to an L1 blockchain. This operation is **irreversi
 Provide validator node addresses and let the CLI fetch NodeID and BLS credentials:
 
 ```bash
-platform subnet convert-l1 \
+platform subnet convert-to-l1 \
   --subnet-id 2QYfFcfZ9... \
   --chain-id 3RZgGdaH1... \
   --manager 0x1234567890abcdef1234567890abcdef12345678 \
@@ -55,7 +70,7 @@ platform subnet convert-l1 \
 Provide validator data explicitly (all lists must be comma-separated and aligned by index):
 
 ```bash
-platform subnet convert-l1 \
+platform subnet convert-to-l1 \
   --subnet-id 2QYfFcfZ9... \
   --chain-id 3RZgGdaH1... \
   --manager 0x1234... \
@@ -71,7 +86,7 @@ platform subnet convert-l1 \
 For local testing, generate a mock validator with random BLS credentials:
 
 ```bash
-platform subnet convert-l1 \
+platform subnet convert-to-l1 \
   --subnet-id 2QYfFcfZ9... \
   --chain-id 3RZgGdaH1... \
   --mock-validator \

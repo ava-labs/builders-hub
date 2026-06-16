@@ -179,10 +179,10 @@ Manual import step for two-step transfers.
 
 ## validator
 
-### validator add
+### validator add-permissionless
 
 ```bash
-platform validator add --node-id <id> --stake <avax>
+platform validator add-permissionless --node-id <id> --stake <avax>
 ```
 
 | Flag | Description | Default |
@@ -197,10 +197,10 @@ platform validator add --node-id <id> --stake <avax>
 | `--bls-pop` | BLS proof of possession hex (recommended) | |
 | `--node-endpoint` | Node endpoint to auto-fetch BLS | |
 
-### validator delegate
+### validator add-permissionless-delegator
 
 ```bash
-platform validator delegate --node-id <id> --stake <avax>
+platform validator add-permissionless-delegator --node-id <id> --stake <avax>
 ```
 
 | Flag | Description | Default |
@@ -232,10 +232,10 @@ platform subnet transfer-ownership --subnet-id <id> --new-owner <address>
 | `--subnet-id` | Subnet ID (required) |
 | `--new-owner` | New owner P-Chain address (required) |
 
-### subnet convert-l1
+### subnet convert-to-l1
 
 ```bash
-platform subnet convert-l1 --subnet-id <id> --chain-id <id>
+platform subnet convert-to-l1 --subnet-id <id> --chain-id <id>
 ```
 
 | Flag | Description | Default |
@@ -251,6 +251,22 @@ platform subnet convert-l1 --subnet-id <id> --chain-id <id>
 | `--validator-balance` | Balance per validator in AVAX | `1.0` |
 | `--mock-validator` | Use mock validator for testing | `false` |
 
+### subnet add-validator
+
+```bash
+platform subnet add-validator --subnet-id <id> --node-id <id> --weight <uint>
+```
+
+Adds a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must already be a primary network validator.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--subnet-id` | Subnet ID (required) | |
+| `--node-id` | Validator node ID, must already validate the primary network (required) | |
+| `--weight` | Validator sampling weight on the subnet (required, > 0) | |
+| `--start` | Start time (RFC3339 or `now`) | `now` |
+| `--duration` | Validation duration (must fall within the node's primary network validation period) | `336h` |
+
 ## l1
 
 ### l1 register-validator
@@ -265,20 +281,20 @@ platform l1 register-validator --balance <avax> --pop <hex> --message <hex>
 | `--pop` | BLS proof of possession hex (required) |
 | `--message` | Warp message hex (required) |
 
-### l1 set-weight
+### l1 set-validator-weight
 
 ```bash
-platform l1 set-weight --message <hex>
+platform l1 set-validator-weight --message <hex>
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--message` | Warp message authorizing weight change (required) |
 
-### l1 add-balance
+### l1 increase-validator-balance
 
 ```bash
-platform l1 add-balance --validation-id <id> --balance <avax>
+platform l1 increase-validator-balance --validation-id <id> --balance <avax>
 ```
 
 | Flag | Description |
