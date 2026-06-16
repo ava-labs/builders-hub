@@ -3,6 +3,8 @@ import { baseOptions } from '@/app/layout.config';
 import { academy, getAcademyTree } from '@/lib/source';
 import { LayoutWrapper } from '@/app/layout-wrapper.client';
 import { AcademyDocsLayoutWrapper } from './layout-wrapper.client';
+import { AutoLoginModalTrigger } from '@/components/login/AutoLoginModalTrigger';
+import { LoginModalWrapper } from '@/components/login/LoginModalWrapper';
 import './critical.css';
 import './styles.css';
 
@@ -21,6 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const avalancheTree = getAcademyTree('/academy/avalanche-l1');
   const blockchainTree = getAcademyTree('/academy/blockchain');
   const entrepreneurTree = getAcademyTree('/academy/entrepreneur');
+  const team1Tree = getAcademyTree('/academy/team1');
 
   return (
     <LayoutWrapper baseOptions={baseOptions}>
@@ -30,10 +33,13 @@ export default function Layout({ children }: { children: ReactNode }) {
           avalancheTree={avalancheTree}
           blockchainTree={blockchainTree}
           entrepreneurTree={entrepreneurTree}
+          team1Tree={team1Tree}
         >
           {children}
         </AcademyDocsLayoutWrapper>
       </div>
+      <AutoLoginModalTrigger />
+      <LoginModalWrapper />
     </LayoutWrapper>
   );
 }
