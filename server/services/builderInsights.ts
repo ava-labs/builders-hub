@@ -63,6 +63,21 @@ export interface TopTeamReferrerRow {
   totalReferrals: number;
 }
 
+export type SocialPlatform = "x" | "linkedin" | "github" | "telegram";
+
+export interface SocialCompletionStat {
+  platform: SocialPlatform;
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface SocialCompletionDepthRow {
+  linkCount: number;
+  users: number;
+  pct: number;
+}
+
 export interface BuilderInsightsData {
   totalAccounts: number;
   userGeneratedReferralImpact: number;
@@ -91,6 +106,8 @@ export interface BuilderInsightsData {
   topReferrers: TopReferrerRow[];
   topTeamReferrers: TopTeamReferrerRow[];
   referralTargets: ReferralTargetPreset[];
+  socialCompletion: SocialCompletionStat[];
+  socialCompletionDepth: SocialCompletionDepthRow[];
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -231,6 +248,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     totalHackathonSubmissions,
     topCountryRows,
     returningVisitorsRows,
+    socialCompletionRows,
+    socialDepthRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -439,6 +458,30 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
       query: RETURNING_VISITORS_HOGQL,
     }),
+    prisma.$queryRaw<
+      Array<{ x: bigint; linkedin: bigint; github: bigint; telegram: bigint }>
+    >`
+      SELECT
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("x_account"), '') IS NOT NULL)::bigint AS "x",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("linkedin_account"), '') IS NOT NULL)::bigint AS "linkedin",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("github_account"), '') IS NOT NULL)::bigint AS "github",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("telegram_account"), '') IS NOT NULL)::bigint AS "telegram"
+      FROM "User"
+    `,
+    prisma.$queryRaw<Array<{ linkCount: number; users: bigint }>>`
+      SELECT "linkCount", COUNT(*)::bigint AS "users"
+      FROM (
+        SELECT (
+          (CASE WHEN NULLIF(TRIM("x_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("linkedin_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("github_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("telegram_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+        ) AS "linkCount"
+        FROM "User"
+      ) depth
+      GROUP BY "linkCount"
+      ORDER BY "linkCount" ASC
+    `,
   ]);
 
   let cumulative = 0;
@@ -555,6 +598,29 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
+  const pctOfTotal = (n: number) => (totalAccounts > 0 ? (n / totalAccounts) * 100 : 0);
+
+  const socialCounts = socialCompletionRows[0];
+  const xCount = toNumber(socialCounts?.x);
+  const linkedinCount = toNumber(socialCounts?.linkedin);
+  const githubCount = toNumber(socialCounts?.github);
+  const telegramCount = toNumber(socialCounts?.telegram);
+  const socialCompletion: SocialCompletionStat[] = [
+    { platform: "x", label: "X", count: xCount, pct: pctOfTotal(xCount) },
+    { platform: "linkedin", label: "LinkedIn", count: linkedinCount, pct: pctOfTotal(linkedinCount) },
+    { platform: "github", label: "GitHub", count: githubCount, pct: pctOfTotal(githubCount) },
+    { platform: "telegram", label: "Telegram", count: telegramCount, pct: pctOfTotal(telegramCount) },
+  ];
+
+  const depthByCount = new Map<number, number>();
+  for (const row of socialDepthRows) {
+    depthByCount.set(Number(row.linkCount), toNumber(row.users));
+  }
+  const socialCompletionDepth: SocialCompletionDepthRow[] = [0, 1, 2, 3, 4].map((linkCount) => {
+    const users = depthByCount.get(linkCount) ?? 0;
+    return { linkCount, users, pct: pctOfTotal(users) };
+  });
+
   return {
     totalAccounts,
     userGeneratedReferralImpact,
@@ -610,6 +676,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ...activeEventTargets,
       ...ACTIVE_GRANT_TARGETS,
     ],
+    socialCompletion,
+    socialCompletionDepth,
   };
 }
 

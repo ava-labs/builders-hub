@@ -1,8 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { GlobeIcon, SparkleIcon, TrophyIcon } from "./icons";
-import type { BuilderInsightsData } from "@/server/services/builderInsights";
+import {
+  GitHubIcon,
+  GlobeIcon,
+  LinkedInIcon,
+  LinkIcon,
+  SparkleIcon,
+  TelegramIcon,
+  TrophyIcon,
+  XIcon,
+} from "./icons";
+import type {
+  BuilderInsightsData,
+  SocialPlatform,
+} from "@/server/services/builderInsights";
 import {
   countryNameToFlag,
   flagEmoji,
@@ -21,10 +33,55 @@ interface Props {
 type ChartKey = "signups" | "visits" | "console" | "all";
 type LeaderboardKey = "people" | "teams";
 type EventSortKey = "recent" | "top";
+type CompletionKey = "platform" | "depth";
 
 const ACCENT_SIGNUPS = "#E84142";
 const ACCENT_VISITS = "#7FA6FF";
 const ACCENT_CONSOLE = "#B88DFF";
+
+// Per-platform accents for the profile-completion bars — neon variants in
+// line with the shell's vivid tokens (--pr-avax-hover, --pr-success-main).
+const PLATFORM_ACCENT: Record<SocialPlatform, string> = {
+  x: "#ff5658",
+  linkedin: "#38bdf8",
+  github: "#c084fc",
+  telegram: "#9be055",
+};
+
+// Soft glow behind neon fills, matching the shell's glowing-dot treatment
+// (e.g. the devrel badge). Skipped for CSS-var colors (can't carry alpha).
+function neonGlow(accent: string, blur = 8): string | undefined {
+  return accent.startsWith("#") ? `0 0 ${blur}px ${accent}73` : undefined;
+}
+
+function PlatformIcon({
+  platform,
+  size = 15,
+}: {
+  platform: SocialPlatform;
+  size?: number;
+}) {
+  switch (platform) {
+    case "x":
+      return <XIcon size={size} />;
+    case "linkedin":
+      return <LinkedInIcon size={size} />;
+    case "github":
+      return <GitHubIcon size={size} />;
+    case "telegram":
+      return <TelegramIcon size={size} />;
+  }
+}
+
+// Completion-quality heat scale for the depth view: gray (no links) through
+// the shell's neon red / amber / limes (--pr-warning-main, --pr-success-main).
+const DEPTH_ACCENT: Record<number, string> = {
+  0: "var(--pr-g-650)",
+  1: "#ff5658",
+  2: "#fdc85d",
+  3: "#b9eb7c",
+  4: "#9be055",
+};
 
 export function InsightsCard({ data, loading, error }: Props) {
   return (
@@ -68,6 +125,7 @@ function InsightsBody({ data }: { data: BuilderInsightsData }) {
     <div className="pr-insights">
       <KPIStrip data={data} />
       <ChartSection data={data} />
+      <ProfileCompletionSection data={data} />
       <LeaderboardSection data={data} />
       <EventHistorySection data={data} />
     </div>
@@ -466,6 +524,139 @@ function Segmented<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Profile completion — current snapshot. "By platform" shows adoption per
+// social link; "By depth" shows how many of the four links users have.
+// ───────────────────────────────────────────────────────────────────────────
+
+function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
+  const [tab, setTab] = React.useState<CompletionKey>("platform");
+
+  const withAnyLink = data.socialCompletionDepth
+    .filter((d) => d.linkCount > 0)
+    .reduce((sum, d) => sum + d.users, 0);
+  const anyLinkPct =
+    data.totalAccounts > 0 ? (withAnyLink / data.totalAccounts) * 100 : 0;
+  const avgLinks =
+    data.totalAccounts > 0
+      ? data.socialCompletionDepth.reduce(
+          (sum, d) => sum + d.linkCount * d.users,
+          0,
+        ) / data.totalAccounts
+      : 0;
+
+  return (
+    <section className="pr-insights__section">
+      <header className="pr-insights__heading">
+        <span className="pr-insights__heading-icon">
+          <LinkIcon size={18} />
+        </span>
+        <h4 className="pr-insights__title">Profile completion</h4>
+        <span className="pr-insights__subtitle">
+          {anyLinkPct.toFixed(1)}% have at least one of these links ·{" "}
+          {formatNumber(data.totalAccounts)} accounts
+        </span>
+      </header>
+
+      {data.totalAccounts === 0 ? (
+        <p className="pr-leaderboard__empty">No accounts yet.</p>
+      ) : (
+        <>
+          <Segmented<CompletionKey>
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "platform", label: "By platform" },
+              { value: "depth", label: "By depth" },
+            ]}
+          />
+
+          {tab === "platform" ? (
+            <div className="pr-completion-bars">
+              {data.socialCompletion.map((s) => {
+                const accent = PLATFORM_ACCENT[s.platform];
+                return (
+                  <div key={s.platform} className="pr-completion-bar">
+                    <span className="pr-completion-bar__label">
+                      <span
+                        className="pr-completion-bar__icon"
+                        style={{ color: accent }}
+                      >
+                        <PlatformIcon platform={s.platform} />
+                      </span>
+                      {s.label}
+                    </span>
+                    <span className="pr-completion-bar__track">
+                      <span
+                        className="pr-completion-bar__fill"
+                        style={{
+                          width: `${Math.min(s.pct, 100)}%`,
+                          background: accent,
+                          boxShadow: neonGlow(accent),
+                        }}
+                      />
+                    </span>
+                    <span className="pr-completion-bar__value">
+                      <strong>{s.pct.toFixed(1)}%</strong>
+                      <span className="pr-completion-bar__count">
+                        {formatNumber(s.count)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <div className="pr-completion-bars">
+                {[...data.socialCompletionDepth]
+                  .sort((a, b) => b.linkCount - a.linkCount)
+                  .map((d) => {
+                    const accent =
+                      DEPTH_ACCENT[d.linkCount] ?? "var(--pr-g-650)";
+                    return (
+                      <div key={d.linkCount} className="pr-completion-bar">
+                        <span className="pr-completion-bar__label">
+                          <span
+                            className="pr-completion-bar__dot"
+                            style={{
+                              background: accent,
+                              boxShadow: neonGlow(accent, 6),
+                            }}
+                          />
+                          {d.linkCount} {d.linkCount === 1 ? "link" : "links"}
+                        </span>
+                        <span className="pr-completion-bar__track">
+                          <span
+                            className="pr-completion-bar__fill"
+                            style={{
+                              width: `${Math.min(d.pct, 100)}%`,
+                              background: accent,
+                              boxShadow: neonGlow(accent),
+                            }}
+                          />
+                        </span>
+                        <span className="pr-completion-bar__value">
+                          <strong>{d.pct.toFixed(1)}%</strong>
+                          <span className="pr-completion-bar__count">
+                            {formatNumber(d.users)}
+                          </span>
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+              <p className="pr-completion-foot">
+                {avgLinks.toFixed(1)} links per account on average
+              </p>
+            </>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
