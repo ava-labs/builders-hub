@@ -472,10 +472,10 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       SELECT "linkCount", COUNT(*)::bigint AS "users"
       FROM (
         SELECT (
-          (CASE WHEN "x_account" IS NOT NULL AND "x_account" <> '' THEN 1 ELSE 0 END)
-          + (CASE WHEN "linkedin_account" IS NOT NULL AND "linkedin_account" <> '' THEN 1 ELSE 0 END)
-          + (CASE WHEN "github_account" IS NOT NULL AND "github_account" <> '' THEN 1 ELSE 0 END)
-          + (CASE WHEN "telegram_account" IS NOT NULL AND "telegram_account" <> '' THEN 1 ELSE 0 END)
+          (CASE WHEN NULLIF(TRIM("x_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("linkedin_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("github_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("telegram_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
         ) AS "linkCount"
         FROM "User"
       ) depth
