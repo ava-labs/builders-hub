@@ -306,14 +306,40 @@ function isPvmImportTx(transactionHex: string): boolean {
 
 let rpcId = 1;
 async function proxyRpc(method: string, params: any): Promise<any> {
-  const res = await fetch(currentChain().rpcUrls[0], {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: rpcId++, method, params: params ?? [] }),
-  });
-  const body = await res.json();
-  if (body.error) throw new RpcError(body.error.code ?? -32000, body.error.message ?? 'RPC error');
-  return body.result;
+  const url = currentChain().rpcUrls[0];
+  const payload = JSON.stringify({ jsonrpc: '2.0', id: rpcId++, method, params: params ?? [] });
+
+  // The public Fuji RPC rate-limits under parallel test load. Throttle (429)
+  // and gateway (5xx) responses come back without CORS headers, so the browser
+  // surfaces them as a bare "Failed to fetch" TypeError. Retry transient
+  // failures with exponential backoff — exactly what a real wallet does — so a
+  // momentary throttle doesn't masquerade as a shim/flow regression. A real
+  // JSON-RPC error (RpcError) is a protocol-level result, not transient, so it
+  // propagates immediately.
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 250 * 2 ** (attempt - 1)));
+    }
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+      });
+      if (res.status === 429 || res.status >= 500) {
+        lastErr = new Error(`RPC HTTP ${res.status} from ${url}`);
+        continue;
+      }
+      const body = await res.json();
+      if (body.error) throw new RpcError(body.error.code ?? -32000, body.error.message ?? 'RPC error');
+      return body.result;
+    } catch (e) {
+      if (e instanceof RpcError) throw e;
+      lastErr = e; // network-layer "Failed to fetch" — retry
+    }
+  }
+  throw lastErr;
 }
 
 // ── Tx param mapping for eth_sendTransaction ─────────────────────

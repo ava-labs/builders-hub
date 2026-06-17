@@ -106,8 +106,15 @@ jobs:
       # --workers=4 its tx tests run one-at-a-time on a single worker (no
       # UTXO races) while render specs parallelize across the others. Without
       # QA_WALLET_KEY the flow tier skips and only render runs.
+      #
+      # continue-on-error: Playwright exits non-zero if ANY test fails, but we
+      # don't want a flaky live-testnet tx (RPC throttling, congestion) to red
+      # the check. The "Apply tier gate" step below reads results.json and
+      # fails the job only on smoke/render-tier failures; tx-tier failures are
+      # reported as notices. Render tier stays the deterministic gate.
       - name: Run suite (render + transactions)
         if: steps.gate.outputs.run == 'true'
+        continue-on-error: true
         env:
           QA_TARGET_URL: ${{ steps.target.outputs.url }}
           QA_WALLET_KEY: ${{ secrets.QA_WALLET_KEY }}
@@ -119,6 +126,12 @@ jobs:
       - name: Failure summary (deduped by root cause)
         if: always() && steps.gate.outputs.run == 'true'
         run: npx tsx e2e/summarize-failures.mts
+
+      # The real pass/fail decision: red only on smoke/render-tier failures.
+      # Live-testnet tx-tier (e2e/flows/) failures are reported, not gated.
+      - name: Apply tier gate
+        if: always() && steps.gate.outputs.run == 'true'
+        run: npx tsx e2e/ci-gate.mts
 
       - name: Upload artifacts
         if: always() && steps.gate.outputs.run == 'true'
