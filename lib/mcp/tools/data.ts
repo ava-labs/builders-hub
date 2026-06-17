@@ -56,7 +56,13 @@ async function metricsFetch(path: string, params: Record<string, string>): Promi
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), METRICS_TIMEOUT_MS);
   try {
-    const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+    // Send an explicit User-Agent — the Data/Metrics APIs are Cloudflare-fronted and can
+    // 403 a request with Node's near-empty default UA (works locally via curl, fails on
+    // the deployed server otherwise).
+    const res = await fetch(url.toString(), {
+      headers: { Accept: 'application/json', 'User-Agent': 'Avalanche-Builders-Hub-MCP' },
+      signal: controller.signal,
+    });
     if (!res.ok) throw new Error(`Metrics API error: ${res.status} ${res.statusText}`);
     const contentType = res.headers.get('content-type') || '';
     const text = await res.text();
