@@ -64,7 +64,14 @@ export interface QAFixtures {
 export const test = base.extend<QAFixtures>({
   walletKey: [
     async ({}, use) => {
-      await use((process.env.QA_WALLET_KEY as Hex) ?? generatePrivateKey());
+      // Treat empty string as unset. The workflow passes QA_WALLET_KEY='' on
+      // non-production deploys, and `??` only falls back on null/undefined — an
+      // empty string would otherwise reach the shim as a blank key and break
+      // injection entirely (every test fails with "privateKey is not set").
+      // Truthy check → ephemeral key (fine for render smoke; tx flows skip
+      // without a funded key).
+      const key = process.env.QA_WALLET_KEY;
+      await use(key ? (key as Hex) : generatePrivateKey());
     },
     { option: true },
   ],
