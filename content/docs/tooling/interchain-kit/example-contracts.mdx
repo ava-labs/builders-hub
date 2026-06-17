@@ -1,0 +1,51 @@
+---
+title: Example Contracts
+description: The Solidity contracts the harness tests and demo scripts use
+---
+
+The example contracts live under `contracts/src/examples/` — a Foundry project with `icm-contracts` v1.0.9 pinned, compiled with Solidity 0.8.25. They're the building blocks the [harness tests](/docs/tooling/interchain-kit/foundry-harness) and the [demo scripts](/docs/tooling/interchain-kit/icm-messaging) use, and a good starting point for your own contracts.
+
+## Layout
+
+| Directory | Contracts |
+|-----------|-----------|
+| `icm-basics/` | `SimpleSender` + `SimpleReceiver` — minimal ICM send/receive |
+| `ictt-erc20/` | ERC-20 round-trip + `DemoERC20` |
+| `ictt-native/` | Native token home/remote bridge |
+| `teleporter-patterns/` | `PingPong` + `CrossChainCounter` |
+
+Each example has matching harness tests under `contracts/test/examples/`.
+
+## Build Configuration
+
+The Foundry config (`contracts/foundry.toml`) pins the toolchain so builds are reproducible:
+
+| Setting | Value |
+|---------|-------|
+| `solc_version` | `0.8.25` |
+| `evm_version` | `shanghai` |
+| `optimizer_runs` | `200` |
+| `libs` | `lib`, `../packages/harness` |
+
+<Callout type="warning" title="Dependencies are not vendored">
+`contracts/lib/` is **not** committed to the repo and `pnpm install` does not populate it. Install the Foundry dependencies (`forge-std`, OpenZeppelin, `icm-contracts`) per [Installation](/docs/tooling/interchain-kit/installation) before building or testing.
+</Callout>
+
+## Building
+
+```bash
+forge build --root contracts
+```
+
+This writes artifacts to `contracts/out/<Name>.sol/<Name>.json`, which `loadArtifact()` reads at runtime.
+
+## Next Steps
+
+<Cards>
+  <Card title="Foundry Harness" href="/docs/tooling/interchain-kit/foundry-harness">
+    Test these contracts in milliseconds
+  </Card>
+  <Card title="ICM Contracts (Teleporter)" href="/docs/cross-chain/icm-contracts/overview">
+    The Teleporter contracts the examples build on
+  </Card>
+</Cards>
