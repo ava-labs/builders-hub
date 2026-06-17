@@ -25,6 +25,14 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures';
 
 const FUNDED = !!process.env.QA_WALLET_KEY;
+// The public Fuji RPC (api.avax-test.network) hard-blocks datacenter/cloud
+// egress IPs, so these tx-executing flows cannot reach it from ANY GitHub-
+// hosted runner (deployment_status or workflow_dispatch — same IP ranges).
+// Run them only where the RPC is reachable: a local or self-hosted machine.
+// In GitHub Actions they skip, so the auto-CI render gate stays clean instead
+// of logging a guaranteed-to-fail tx attempt on every deploy.
+const IN_GITHUB_CI = !!process.env.GITHUB_ACTIONS;
+const CAN_RUN_FLOWS = FUNDED && !IN_GITHUB_CI;
 const P_CHAIN_RPC = 'https://api.avax-test.network/ext/bc/P';
 const C_CHAIN_RPC = 'https://api.avax-test.network/ext/bc/C/rpc';
 
@@ -95,7 +103,12 @@ const CB58 = /^[1-9A-HJ-NP-Za-km-z]{40,60}$/;
 test.describe('testnet transaction flows (real Fuji txs)', () => {
   // Serial: shared wallet UTXO set — see file header. Safe at any --workers.
   test.describe.configure({ mode: 'serial' });
-  test.skip(!FUNDED, 'QA_WALLET_KEY not set — tx-executing flows need a funded Fuji key');
+  test.skip(
+    !CAN_RUN_FLOWS,
+    IN_GITHUB_CI
+      ? 'tx flows skipped in GitHub CI — public Fuji RPC blocks datacenter IPs (run locally)'
+      : 'QA_WALLET_KEY not set — tx-executing flows need a funded Fuji key',
+  );
 
   test('create L1 — CreateSubnet + CreateChain on the P-Chain', async ({ page }) => {
     test.setTimeout(300_000);
