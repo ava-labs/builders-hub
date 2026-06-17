@@ -52,27 +52,10 @@ test.describe('wallet shim', () => {
   test('proxies read methods to the chain RPC', async ({ page }) => {
     await page.goto(PROBE_PATH, { waitUntil: 'domcontentloaded' });
 
-    try {
-      const blockNumber = await page.evaluate(() =>
-        (window as any).avalanche.request({ method: 'eth_blockNumber' }),
-      );
-      expect(parseInt(blockNumber, 16)).toBeGreaterThan(0);
-    } catch (e) {
-      // This is the only shim self-test that hits the live public Fuji RPC
-      // (api.avax-test.network). That endpoint hard-blocks datacenter/CI egress
-      // IPs, so the in-page fetch fails with "Failed to fetch" from CI runners
-      // no matter how many times proxyRpc retries — an environment reachability
-      // limit, not a shim defect. Skip on a network error so it doesn't gate
-      // the check; locally (RPC reachable) it still verifies proxying. A
-      // non-network error (e.g. a real proxy bug) is re-thrown and fails.
-      test.skip(
-        /Failed to fetch|fetch failed|networkerror|RPC HTTP|ENOTFOUND|ECONNREFUSED|timed out/i.test(
-          String((e as Error)?.message ?? e),
-        ),
-        `chain RPC unreachable from this environment: ${String((e as Error)?.message ?? e)}`,
-      );
-      throw e;
-    }
+    const blockNumber = await page.evaluate(() =>
+      (window as any).avalanche.request({ method: 'eth_blockNumber' }),
+    );
+    expect(parseInt(blockNumber, 16)).toBeGreaterThan(0);
   });
 
   test('handles chain add/switch with events', async ({ page }) => {

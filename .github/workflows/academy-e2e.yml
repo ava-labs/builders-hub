@@ -17,15 +17,20 @@ name: Academy E2E
 #   - workflow_dispatch      → run against an arbitrary URL on demand.
 #
 # Secrets:
-#   - VERCEL_AUTOMATION_BYPASS_SECRET — unlock SSO-protected previews.
-#   - QA_WALLET_KEY — funded Fuji key for the transaction tier. If absent,
-#     the flow tier SKIPS itself and only the render smoke runs (the shim
-#     falls back to an ephemeral key), so the workflow still passes.
+#   - VERCEL_AUTOMATION_BYPASS_SECRET — unlock SSO-protected previews. Injected
+#     per-request and scoped to the deployment origin in e2e/fixtures.ts (a
+#     global header leaks onto the shim's RPC fetch and breaks its CORS
+#     preflight), NOT via config.use.extraHTTPHeaders.
+#   - QA_WALLET_KEY — funded Fuji key for the transaction tier. Passed ONLY on
+#     production deploys + manual dispatch (see the Run step). Absent → the
+#     flow tier skips and only the render+shim gate runs.
 #
-# NOTE: with QA_WALLET_KEY set, transactions run on EVERY deploy — each run
-# spends a little testnet AVAX and leaves a throwaway subnet/chain on Fuji.
-# To run transactions only on production deploys, gate the flow with an `if`
-# on github.event.deployment.environment (see e2e/README.md).
+# Tiers + gating: the suite runs with continue-on-error; e2e/ci-gate.mts then
+# fails the job ONLY on render/shim (smoke) failures. The live tx tier
+# (e2e/flows) is non-blocking — its failures are notices, never red. Combined
+# with the production-only key, that means: preview/PR deploys run the fast
+# deterministic render gate; production deploys additionally run real Fuji txs
+# (each spends a little testnet AVAX and leaves a throwaway subnet/chain).
 
 on:
   deployment_status:
@@ -123,7 +128,11 @@ jobs:
         continue-on-error: true
         env:
           QA_TARGET_URL: ${{ steps.target.outputs.url }}
-          QA_WALLET_KEY: ${{ secrets.QA_WALLET_KEY }}
+          # Only fund the tx tier on PRODUCTION deploys (and manual dispatch).
+          # Preview/PR runs get an empty key → the flow tier skips itself and
+          # only the deterministic render+shim gate runs (fast, no testnet
+          # spend). Real tx flows then run post-merge against production.
+          QA_WALLET_KEY: ${{ (github.event.deployment.environment == 'Production' || github.event_name == 'workflow_dispatch') && secrets.QA_WALLET_KEY || '' }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: yarn e2e --workers=4
 

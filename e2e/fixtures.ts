@@ -70,6 +70,38 @@ export const test = base.extend<QAFixtures>({
   ],
 
   context: async ({ context, walletKey }, use) => {
+    // Vercel preview deployments sit behind SSO protection; the bypass secret
+    // unlocks them. CRITICAL: scope the bypass header to the deployment origin.
+    // A global header (config.use.extraHTTPHeaders) is sent on EVERY request
+    // the browser makes — including the shim's cross-origin fetch to the public
+    // RPC. That turns the RPC call into a preflighted CORS request, which
+    // api.avax-test.network rejects (allow-headers is Content-Type only) →
+    // "Failed to fetch". So inject it per-request, only for the target origin.
+    const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+    if (bypass) {
+      const targetOrigin = new URL(process.env.QA_TARGET_URL ?? 'http://localhost:3000').origin;
+      await context.route('**/*', async (route) => {
+        const req = route.request();
+        let sameOrigin = false;
+        try {
+          sameOrigin = new URL(req.url()).origin === targetOrigin;
+        } catch {
+          /* non-http request (data:/blob:) — leave untouched */
+        }
+        if (sameOrigin) {
+          await route.continue({
+            headers: {
+              ...req.headers(),
+              'x-vercel-protection-bypass': bypass,
+              'x-vercel-set-bypass-cookie': 'true',
+            },
+          });
+        } else {
+          await route.continue();
+        }
+      });
+    }
+
     await context.addInitScript(
       `window.__QA_WALLET_CONFIG__ = ${JSON.stringify({ privateKey: walletKey })};`,
     );

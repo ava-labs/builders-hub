@@ -16,8 +16,6 @@
 
 import { defineConfig } from '@playwright/test';
 
-const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
-
 export default defineConfig({
   testDir: '.',
   outputDir: './artifacts/test-output',
@@ -36,14 +34,13 @@ export default defineConfig({
     baseURL: process.env.QA_TARGET_URL ?? 'http://localhost:3000',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
-    ...(bypassSecret
-      ? {
-          extraHTTPHeaders: {
-            'x-vercel-protection-bypass': bypassSecret,
-            'x-vercel-set-bypass-cookie': 'true',
-          },
-        }
-      : {}),
+    // NOTE: the Vercel protection-bypass header is NOT set here. A global
+    // extraHTTPHeaders applies to EVERY request the browser makes, including
+    // the wallet shim's cross-origin fetch to the public RPC — which then
+    // becomes a preflighted CORS request that api.avax-test.network rejects
+    // (its allow-headers is Content-Type only) → "Failed to fetch". Instead
+    // it's injected per-request and scoped to the deployment origin in
+    // e2e/fixtures.ts.
   },
   projects: [
     {
