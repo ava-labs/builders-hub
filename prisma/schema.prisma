@@ -359,20 +359,33 @@ model ReferralAttribution {
 }
 
 model FaucetClaim {
-  id                  String   @id @default(uuid())
+  id                  String        @id @default(uuid())
   user_id             String
   faucet_type         String
   chain_id            String?
   destination_address String
   amount              String
   tx_hash             String?
-  created_at          DateTime @default(now()) @db.Timestamptz(3)
-  user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  coupon_id           String?
+  created_at          DateTime      @default(now()) @db.Timestamptz(3)
+  user                User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  coupon              FaucetCoupon? @relation(fields: [coupon_id], references: [id], onDelete: SetNull)
 
   @@index([user_id])
   @@index([destination_address])
   @@index([created_at])
   @@index([faucet_type, chain_id])
+  @@index([coupon_id])
+}
+
+model FaucetCoupon {
+  id         String        @id @default(uuid())
+  code       String        @unique
+  active     Boolean       @default(true)
+  expires_at DateTime?     @db.Timestamptz(3)
+  note       String?
+  created_at DateTime      @default(now()) @db.Timestamptz(3)
+  claims     FaucetClaim[]
 }
 
 model ChatConversation {
