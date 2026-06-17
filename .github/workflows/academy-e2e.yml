@@ -148,8 +148,13 @@ jobs:
         if: always() && steps.gate.outputs.run == 'true'
         run: npx tsx e2e/ci-gate.mts
 
+      # Only upload a debug bundle when the job actually fails. Green runs need
+      # nothing, and Playwright keeps a trace per failed test — a bad run (e.g.
+      # 60 failures) totals ~1GB and burns storage. Excludes the per-page
+      # screenshots dir (that's the local agent-loop's artifact; the html-report
+      # already embeds failure screenshots + traces for debugging).
       - name: Upload artifacts
-        if: always() && steps.gate.outputs.run == 'true'
+        if: failure() && steps.gate.outputs.run == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: academy-e2e-artifacts
@@ -157,6 +162,5 @@ jobs:
             e2e/artifacts/results.json
             e2e/artifacts/html-report
             e2e/artifacts/test-output
-            e2e/artifacts/screenshots
-          retention-days: 14
+          retention-days: 7
           if-no-files-found: ignore
