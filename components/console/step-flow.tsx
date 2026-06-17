@@ -259,6 +259,7 @@ export default function StepFlow({
       variants={sectionContainer}
       initial="hidden"
       animate="visible"
+      data-console-flow
     >
       <motion.nav className={compact ? "mb-3" : "mb-6"} variants={sectionItem}>
         <div className="flex items-center gap-3">

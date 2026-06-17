@@ -125,3 +125,6 @@ jobs:
             echo "$violations"; exit 1
           fi
           echo "✓ All MDX imports use kebab-case paths"
+
+      - name: Academy/docs embed integrity
+        run: npx tsx ./scripts/check-academy-embeds.mts

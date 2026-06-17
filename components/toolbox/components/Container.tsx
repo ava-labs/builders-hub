@@ -22,7 +22,7 @@ interface ContainerProps {
  */
 export function Container({ title, children, description, githubUrl }: ContainerProps) {
   return (
-    <motion.div variants={sectionContainer} initial="hidden" animate="visible">
+    <motion.div variants={sectionContainer} initial="hidden" animate="visible" data-console-tool={title}>
       <motion.div variants={sectionItem}>
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pb-6 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex flex-col gap-1.5 min-w-0">
