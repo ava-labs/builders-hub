@@ -97,9 +97,15 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: yarn install --frozen-lockfile
 
+      # `--with-deps` runs an apt system-dependency install that intermittently
+      # hangs for 15+ min on hosted runners (mesa/font package configure). The
+      # ubuntu-latest image already ships the Chromium libs Playwright needs, so
+      # install just the browser binary. timeout-minutes fails fast if the
+      # download ever stalls instead of burning the whole job budget.
       - name: Install Playwright browsers
         if: steps.gate.outputs.run == 'true'
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 5
+        run: npx playwright install chromium
 
       # One invocation runs both tiers → one results.json, one deduped
       # report. The flow tier (e2e/flows/*) is a serial describe, so even at
