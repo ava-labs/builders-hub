@@ -7,21 +7,9 @@ The local-network flow boots a complete stack with a single command and validate
 
 ## Prerequisites
 
-- Completed [installation](/docs/tooling/interchain-kit/installation), including the contract dependencies (step 6)
-- `AVALANCHEGO_PATH` set to your built `avalanchego` binary
-- The workspace packages built (next step)
+- Completed [installation](/docs/tooling/interchain-kit/installation), including the contract dependencies.
 
-## Build the Workspace Packages
-
-`pnpm run up` runs the **compiled** `tmpnetjs` orchestrator (`packages/tmpnetjs/dist/`). `pnpm install` does not build the workspace packages, so build them once before your first `up`:
-
-```bash
-pnpm run build   # pnpm -r --filter './packages/**' build
-```
-
-<Callout type="warning" title="Skipping this breaks up">
-Without the build, `pnpm run up` fails immediately with `ERR_MODULE_NOT_FOUND … packages/tmpnetjs/dist/cli.js`. Re-run `pnpm run build` after pulling changes to the packages.
-</Callout>
+That's all — `pnpm run up` auto-installs a pinned AvalancheGo + `subnet-evm` release on first run (cached under `.interchain-kit/bin/`) and rebuilds the workspace packages itself, so there's no `AVALANCHEGO_PATH` to set and no separate build step.
 
 ## Boot the Network
 

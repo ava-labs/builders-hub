@@ -21,7 +21,7 @@ Run both scripts **from the repo root** — `tmpnetjs` walks up from your curren
 ## 1. Set Up the Validator Manager
 
 ```bash
-pnpm exec tsx examples/validator-manager-setup.ts
+pnpm --filter @interchain-kit/examples run validator-manager-setup
 ```
 
 This script:
@@ -34,7 +34,7 @@ This script:
 ## 2. Add a Validator
 
 ```bash
-AVALANCHEGO_PATH=… pnpm exec tsx examples/add-validator.ts
+AVALANCHEGO_PATH=$HOME/avalanchego/build/avalanchego pnpm --filter @interchain-kit/examples run add-validator
 ```
 
 This script:

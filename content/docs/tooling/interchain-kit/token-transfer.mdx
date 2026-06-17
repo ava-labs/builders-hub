@@ -19,15 +19,15 @@ forge build --root contracts # produces contracts/out/*.json
 Run **from the repo root**:
 
 ```bash
-pnpm exec tsx examples/transfer-token.ts
+pnpm --filter @interchain-kit/examples run transfer-token
 ```
 
 Override the amount and destination with flags or env vars (precedence: flag > env var > default):
 
 ```bash
-pnpm exec tsx examples/transfer-token.ts --amount 100 --destination myl1
+pnpm --filter @interchain-kit/examples run transfer-token --amount 100 --destination myl1
 # or
-DESTINATION=myl1 AMOUNT=42 pnpm exec tsx examples/transfer-token.ts
+DESTINATION=myl1 AMOUNT=42 pnpm --filter @interchain-kit/examples run transfer-token
 ```
 
 ## What It Does

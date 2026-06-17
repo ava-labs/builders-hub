@@ -19,7 +19,7 @@ forge build --root contracts # produces contracts/out/*.json
 Run **from the repo root** — `tmpnetjs` walks up from your current directory to find `.interchain-kit/` and `contracts/out/`:
 
 ```bash
-pnpm exec tsx examples/send-message.ts
+pnpm --filter @interchain-kit/examples run send-message
 ```
 
 Target a specific L1 with `--destination <l1-name>` (or the `DESTINATION` env var); it defaults to the first L1 in `network.json`.
