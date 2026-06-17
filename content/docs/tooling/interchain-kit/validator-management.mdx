@@ -1,0 +1,59 @@
+---
+title: Validator Management
+description: Initialize an L1's ValidatorManager and register new L1 validators
+---
+
+Two scripts exercise the L1's `ValidatorManager` contract — the on-chain component that tracks an L1's validator set. Run them **in order**: `add-validator.ts` assumes `validator-manager-setup.ts` has already initialized the manager.
+
+## Prerequisites
+
+Boot a [local network](/docs/tooling/interchain-kit/local-network) and build the contracts first:
+
+```bash
+pnpm run up                  # writes .interchain-kit/artifacts/network.json
+forge build --root contracts # produces contracts/out/*.json
+```
+
+`add-validator.ts` also spawns a fresh AvalancheGo node, so it needs `AVALANCHEGO_PATH` set.
+
+Run both scripts **from the repo root** — `tmpnetjs` walks up from your current directory to find `.interchain-kit/` and `contracts/out/`.
+
+## 1. Set Up the Validator Manager
+
+```bash
+pnpm --filter @interchain-kit/examples run validator-manager-setup
+```
+
+This script:
+
+- Deploys a real `ValidatorManager` implementation.
+- Upgrades the genesis proxy (pre-allocated at `0xfacade…`) to point at it and runs `initialize(settings)`.
+- Calls `initializeValidatorSet` so the bootstrap validator from `ConvertSubnetToL1Tx` is reflected on-chain.
+- Prints `isValidatorSetInitialized`, the total weight, and the validator list.
+
+## 2. Add a Validator
+
+```bash
+AVALANCHEGO_PATH=$HOME/avalanchego/build/avalanchego pnpm --filter @interchain-kit/examples run add-validator
+```
+
+This script:
+
+- Spawns a fresh AvalancheGo node (on port `10750`) tracking the L1's subnet, then reads its NodeID + BLS proof of possession.
+- Runs the SDK's `registerL1Validator` flow: EVM-initiate → signature aggregator → P-Chain `RegisterL1ValidatorTx` → signature aggregator ACK → EVM-complete.
+- Verifies the new validator on both the L1's `ValidatorManager` and the P-Chain validator set.
+
+<Callout type="info" title="The spawned node keeps running">
+`add-validator.ts` leaves the new validator node running so it can keep validating. Use `pnpm run down` (and `pnpm run clean`) to stop everything when you're done.
+</Callout>
+
+## Next Steps
+
+<Cards>
+  <Card title="tmpnetjs SDK" href="/docs/tooling/interchain-kit/tmpnetjs-sdk">
+    Script your own validator and ICM scenarios
+  </Card>
+  <Card title="Validator Manager Contracts" href="/docs/avalanche-l1s/validator-manager/contract">
+    The on-chain contracts behind L1 validator management
+  </Card>
+</Cards>
