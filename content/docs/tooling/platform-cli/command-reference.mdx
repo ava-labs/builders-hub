@@ -190,7 +190,7 @@ platform validator add-permissionless --node-id <id> --stake <avax>
 | `--node-id` | Node ID (required) | |
 | `--stake` | Stake in AVAX (required) | |
 | `--duration` | Validation duration | `336h` |
-| `--start` | Start time (RFC3339 or `now`) | `now` |
+| `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
 | `--delegation-fee` | Fee percentage (0.02 = 2%) | `0.02` |
 | `--reward-address` | Reward address | own address |
 | `--bls-public-key` | BLS public key hex (recommended) | |
@@ -208,7 +208,7 @@ platform validator add-permissionless-delegator --node-id <id> --stake <avax>
 | `--node-id` | Node ID to delegate to (required) | |
 | `--stake` | Stake in AVAX (required) | |
 | `--duration` | Delegation duration | `336h` |
-| `--start` | Start time (RFC3339 or `now`) | `now` |
+| `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
 | `--reward-address` | Reward address | own address |
 
 ## subnet
@@ -264,7 +264,7 @@ Adds a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node mus
 | `--subnet-id` | Subnet ID (required) | |
 | `--node-id` | Validator node ID, must already validate the primary network (required) | |
 | `--weight` | Validator sampling weight on the subnet (required, > 0) | |
-| `--start` | Start time (RFC3339 or `now`) | `now` |
+| `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
 | `--duration` | Validation duration (must fall within the node's primary network validation period) | `336h` |
 
 ## l1

@@ -90,6 +90,10 @@ Validators charge a fee as a percentage of delegator rewards:
 --start 2026-02-01T00:00:00Z   # RFC3339 format
 ```
 
+<Callout type="info">
+Post-Durango, the P-Chain ignores the transaction start time — validation begins when the transaction is accepted. `--start` is retained for compatibility but has no on-chain effect on current networks.
+</Callout>
+
 ### Duration
 
 Duration uses Go format (hours):
