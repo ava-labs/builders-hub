@@ -2,11 +2,14 @@
  * Builder Console awareness tool domain.
  *
  * The MCP can't operate the Console UI, but it should understand the flows it
- * steers users to. These tools describe each flow — what it does, the ordered
- * steps, the equivalent CLI, and a deep-link — from a static manifest.
+ * steers users to. Consolidated to a single `console_flow` tool: call it with no
+ * `flow` to LIST every flow (summaries + links), or with a `flow` to EXPLAIN one
+ * (ordered steps, equivalent CLI, signs-transactions flag, deep-link). The CLI
+ * strings come from the canonical command map so they never drift.
  */
 
 import type { ToolDomain, ToolResult } from '../types';
+import { CLI } from './lib/platform-cli-commands';
 
 const CONSOLE_BASE = 'https://build.avax.network/console';
 
@@ -33,7 +36,7 @@ const FLOWS: ConsoleFlow[] = [
       'Convert the subnet to an L1 (ConvertSubnetToL1Tx) and initialize the validator set',
       'Connect a node / managed testnet node and connect Core wallet',
     ],
-    equivalentCli: 'platform subnet create → platform subnet convert-l1 → platform l1 register-validator',
+    equivalentCli: `${CLI.subnetCreate} → ${CLI.subnetConvertL1} → ${CLI.l1RegisterValidator}`,
     signs: true,
   },
   {
@@ -46,7 +49,7 @@ const FLOWS: ConsoleFlow[] = [
       'Deploy or reference the validator manager contract (on the L1 or C-Chain)',
       'Issue ConvertSubnetToL1Tx with the manager address and initial validators',
     ],
-    equivalentCli: 'platform subnet convert-l1 --subnet-id <id> --chain-id <id> --manager <addr>',
+    equivalentCli: `${CLI.subnetConvertL1} --subnet-id <id> --chain-id <id> --manager <addr>`,
     signs: true,
   },
   {
@@ -59,7 +62,7 @@ const FLOWS: ConsoleFlow[] = [
       'Initialize ownership / staking parameters',
       'Initialize the validator set; thereafter add/remove validators via the contract',
     ],
-    equivalentCli: 'platform l1 register-validator / set-weight / disable-validator',
+    equivalentCli: `${CLI.l1RegisterValidator} / ${CLI.l1SetWeight} / ${CLI.l1DisableValidator}`,
     signs: true,
   },
   {
@@ -96,6 +99,41 @@ const FLOWS: ConsoleFlow[] = [
     ],
     signs: true,
   },
+  {
+    key: 'staking',
+    title: 'Stake / validate the Primary Network',
+    path: '/primary-network/stake',
+    summary: 'Become a Primary Network validator or delegate stake to one.',
+    steps: [
+      'Fund a P-Chain address and get your node\'s NodeID + BLS proof-of-possession',
+      'Add yourself as a permissionless validator (stake amount + duration)',
+      '(optional) Delegate additional stake to an existing validator',
+    ],
+    equivalentCli: `${CLI.validatorAdd} / ${CLI.validatorDelegate}`,
+    signs: true,
+  },
+  {
+    key: 'transfers',
+    title: 'Transfer AVAX (P ↔ C)',
+    path: '/primary-network/transfer',
+    summary: 'Move AVAX between addresses or cross-chain between the P-Chain and C-Chain.',
+    steps: ['Pick source/destination chain and address', 'Enter amount and sign (export + import for cross-chain)'],
+    equivalentCli: `${CLI.transferSend} / ${CLI.transferPtoC} / ${CLI.transferCtoP}`,
+    signs: true,
+  },
+  {
+    key: 'interchain-kit-local',
+    title: 'interchain-kit (local cross-chain dev)',
+    path: '/icm/ictt',
+    summary: 'Iterate on ICM/ICTT against a real local tmpnet (Teleporter + relayer + signature-aggregator) before deploying to Fuji.',
+    steps: [
+      'pnpm install, then `pnpm run up` (tmpnetjs) to boot the local network + relayer (:8080) + aggregator (:8090)',
+      'Run an example from examples/ (send-message, transfer-token, validator-manager-setup, add-validator)',
+      '`pnpm run down` to tear the network down',
+    ],
+    equivalentCli: 'pnpm run up → pnpm tsx examples/<name>.ts → pnpm run down',
+    signs: true,
+  },
 ];
 
 function flowLink(f: ConsoleFlow): string {
@@ -105,50 +143,44 @@ function flowLink(f: ConsoleFlow): string {
 export const consoleTools: ToolDomain = {
   tools: [
     {
-      name: 'console_list_flows',
+      name: 'console_flow',
       description:
-        'List the Builder Console flows the MCP knows about (create-l1, convert-to-l1, validator-manager, ictt, faucet, multisig) with summaries and deep-links.',
-      inputSchema: { type: 'object', properties: {}, required: [] },
-    },
-    {
-      name: 'console_explain_flow',
-      description:
-        'Explain a specific Builder Console flow — what it does, its ordered steps, the equivalent CLI, whether it signs transactions, and a deep-link.',
+        'Builder Console flow knowledge. Call with NO `flow` to list every flow (summaries + deep-links); call with a `flow` key to explain it (ordered steps, equivalent CLI, whether it signs transactions, deep-link). Flows: create-l1, convert-to-l1, validator-manager, ictt, faucet, multisig, staking, transfers, interchain-kit-local.',
       inputSchema: {
         type: 'object',
         properties: {
           flow: {
             type: 'string',
             enum: FLOWS.map((f) => f.key),
-            description: 'The console flow key to explain',
+            description: 'Flow key to explain. Omit to list all flows.',
           },
         },
-        required: ['flow'],
+        required: [],
       },
     },
   ],
 
   handlers: {
-    console_list_flows: async (): Promise<ToolResult> => {
-      const text = [
-        '# Builder Console flows',
-        '',
-        ...FLOWS.map((f) => `- **${f.key}** — ${f.title}: ${f.summary}\n  ${flowLink(f)}`),
-      ].join('\n');
-      return { content: [{ type: 'text', text }] };
-    },
-
-    console_explain_flow: async (args): Promise<ToolResult> => {
+    console_flow: async (args): Promise<ToolResult> => {
       const key = typeof args.flow === 'string' ? args.flow.trim() : '';
+
+      // No key → list every flow.
+      if (!key) {
+        const t = [
+          '# Builder Console flows',
+          '',
+          ...FLOWS.map((f) => `- **${f.key}** — ${f.title}: ${f.summary}\n  ${flowLink(f)}`),
+          '',
+          'Call console_flow with a `flow` key for the step-by-step explanation.',
+        ].join('\n');
+        return { content: [{ type: 'text', text: t }] };
+      }
+
+      // Key → explain one flow.
       const flow = FLOWS.find((f) => f.key === key);
       if (!flow) {
         return {
-          content: [
-            {
-              type: 'text',
-              text: `Unknown console flow "${key}". Available: ${FLOWS.map((f) => f.key).join(', ')}.`,
-            },
-          ],
+          content: [{ type: 'text', text: `Unknown console flow "${key}". Available: ${FLOWS.map((f) => f.key).join(', ')}.` }],
           isError: true,
         };
       }
