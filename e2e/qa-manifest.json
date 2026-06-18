@@ -1,0 +1,1958 @@
+{
+  "generatedAt": "2026-06-10T17:45:37.116Z",
+  "surfaces": [
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/02-genesis-activation/02-create-l1",
+      "file": "content/academy/avalanche-l1/access-restriction/02-genesis-activation/02-create-l1.mdx",
+      "title": "Create Your L1",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true
+        },
+        {
+          "name": "ConvertSubnetToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/02-genesis-activation/03-test-transaction-deployer-allowlist",
+      "file": "content/academy/avalanche-l1/access-restriction/02-genesis-activation/03-test-transaction-deployer-allowlist.mdx",
+      "title": "Test Transaction Allowlist",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "TransactionAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/02-genesis-activation/04-test-contract-deployer-allowlist",
+      "file": "content/academy/avalanche-l1/access-restriction/02-genesis-activation/04-test-contract-deployer-allowlist.mdx",
+      "title": "Test Contract Deployer Allowlist",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployerAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
+          "exists": true
+        },
+        {
+          "name": "DeployICMDemo",
+          "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
+          "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/05-network-upgrade-de-activation/02-setup-docker-validator",
+      "file": "content/academy/avalanche-l1/access-restriction/05-network-upgrade-de-activation/02-setup-docker-validator.mdx",
+      "title": "Set Up Docker Validator",
+      "walletMode": "testnet-mainnet",
+      "tools": [
+        {
+          "name": "AvalancheGoDocker",
+          "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
+          "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/05-network-upgrade-de-activation/07-testing-deactivation",
+      "file": "content/academy/avalanche-l1/access-restriction/05-network-upgrade-de-activation/07-testing-deactivation.mdx",
+      "title": "Testing in console precompiles no longer activated",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployerAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
+          "exists": true
+        },
+        {
+          "name": "TransactionAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/access-restriction/06-network-upgrade-activation/04-testing-precompile-activation",
+      "file": "content/academy/avalanche-l1/access-restriction/06-network-upgrade-activation/04-testing-precompile-activation.mdx",
+      "title": "Testing precompile activation",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployerAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/DeployerAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/DeployerAllowlist.tsx",
+          "exists": true
+        },
+        {
+          "name": "TransactionAllowlist",
+          "importPath": "@/components/toolbox/console/l1-access-restrictions/TransactionAllowlist",
+          "resolved": "components/toolbox/console/l1-access-restrictions/TransactionAllowlist.tsx",
+          "exists": true
+        },
+        {
+          "name": "DeployICMDemo",
+          "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
+          "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/06-run-a-node",
+      "file": "content/academy/avalanche-l1/avalanche-fundamentals/04-creating-an-l1/06-run-a-node.mdx",
+      "title": "Set up Validator Nodes",
+      "walletMode": "testnet-mainnet",
+      "tools": [
+        {
+          "name": "AvalancheGoDocker",
+          "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
+          "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/interchain-messaging/04-icm-setup/02-deploy-teleporter-messenger",
+      "file": "content/academy/avalanche-l1/interchain-messaging/04-icm-setup/02-deploy-teleporter-messenger.mdx",
+      "title": "Deploy Teleporter Messenger",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "TeleporterMessenger",
+          "importPath": "@/components/toolbox/console/icm/setup/TeleporterMessenger",
+          "resolved": "components/toolbox/console/icm/setup/TeleporterMessenger.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/interchain-messaging/04-icm-setup/03-deploy-teleporter-registry",
+      "file": "content/academy/avalanche-l1/interchain-messaging/04-icm-setup/03-deploy-teleporter-registry.mdx",
+      "title": "Deploy Teleporter Registry",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "TeleporterRegistry",
+          "importPath": "@/components/toolbox/console/icm/setup/TeleporterRegistry",
+          "resolved": "components/toolbox/console/icm/setup/TeleporterRegistry.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/interchain-messaging/04-icm-setup/04-relayer-setup",
+      "file": "content/academy/avalanche-l1/interchain-messaging/04-icm-setup/04-relayer-setup.mdx",
+      "title": "Relayer Setup",
+      "walletMode": "testnet-mainnet",
+      "tools": [
+        {
+          "name": "CreateManagedTestnetRelayer",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
+          "exists": true
+        },
+        {
+          "name": "ICMRelayer",
+          "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
+          "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/interchain-messaging/05-testing-icm/01-deploy-icm-demo",
+      "file": "content/academy/avalanche-l1/interchain-messaging/05-testing-icm/01-deploy-icm-demo.mdx",
+      "title": "Deploy ICM Demo Contracts",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DeployICMDemo",
+          "importPath": "@/components/toolbox/console/icm/test-connection/DeployICMDemo",
+          "resolved": "components/toolbox/console/icm/test-connection/DeployICMDemo.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/interchain-messaging/05-testing-icm/02-send-a-message",
+      "file": "content/academy/avalanche-l1/interchain-messaging/05-testing-icm/02-send-a-message.mdx",
+      "title": "Send Your First Cross-Chain Message",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "SendICMMessage",
+          "importPath": "@/components/toolbox/console/icm/test-connection/SendICMMessage",
+          "resolved": "components/toolbox/console/icm/test-connection/SendICMMessage.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/02-create-l1",
+      "file": "content/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/02-create-l1.mdx",
+      "title": "Get USDC & Create L1",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true
+        },
+        {
+          "name": "ConvertSubnetToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/03-relayer-setup",
+      "file": "content/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/03-relayer-setup.mdx",
+      "title": "ICM & Relayer Setup",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "CreateManagedTestnetRelayer",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
+          "exists": true
+        },
+        {
+          "name": "ICMRelayer",
+          "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
+          "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
+          "exists": true
+        },
+        {
+          "name": "TeleporterMessenger",
+          "importPath": "@/components/toolbox/console/icm/setup/TeleporterMessenger",
+          "resolved": "components/toolbox/console/icm/setup/TeleporterMessenger.tsx",
+          "exists": true
+        },
+        {
+          "name": "TeleporterRegistry",
+          "importPath": "@/components/toolbox/console/icm/setup/TeleporterRegistry",
+          "resolved": "components/toolbox/console/icm/setup/TeleporterRegistry.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/04-deploy-erc20-token-home",
+      "file": "content/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/04-deploy-erc20-token-home.mdx",
+      "title": "Deploy ERC20 Token Home",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployTokenHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
+          "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/05-deploy-native-token-remote",
+      "file": "content/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/05-deploy-native-token-remote.mdx",
+      "title": "Deploy Native Token Remote",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployNativeTokenRemote",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote",
+          "resolved": "components/toolbox/console/ictt/setup/DeployNativeTokenRemote.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/06-register-and-collateralize",
+      "file": "content/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/06-register-and-collateralize.mdx",
+      "title": "Register and Collateralize",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "RegisterWithHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
+          "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
+          "exists": true
+        },
+        {
+          "name": "AddCollateral",
+          "importPath": "@/components/toolbox/console/ictt/setup/AddCollateral",
+          "resolved": "components/toolbox/console/ictt/setup/AddCollateral.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/07-bridge-tokens",
+      "file": "content/academy/avalanche-l1/native-token-bridge/01-erc20-to-native/07-bridge-tokens.mdx",
+      "title": "Bridge Tokens",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "TestSend",
+          "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
+          "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/02-create-l1",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/02-create-l1.mdx",
+      "title": "Create L1 with Custom Token",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true
+        },
+        {
+          "name": "ConvertSubnetToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/03-deploy-wrapped-token",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/03-deploy-wrapped-token.mdx",
+      "title": "Deploy Wrapped Token",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployWrappedNative",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployWrappedNative",
+          "resolved": "components/toolbox/console/ictt/setup/DeployWrappedNative.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/04-relayer-setup",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/04-relayer-setup.mdx",
+      "title": "ICM & Relayer Setup",
+      "walletMode": "testnet-mainnet",
+      "tools": [
+        {
+          "name": "CreateManagedTestnetRelayer",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
+          "exists": true
+        },
+        {
+          "name": "ICMRelayer",
+          "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
+          "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/05-deploy-native-token-home",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/05-deploy-native-token-home.mdx",
+      "title": "Deploy Native Token Home",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployTokenHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
+          "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/06-deploy-erc20-token-remote",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/06-deploy-erc20-token-remote.mdx",
+      "title": "Deploy ERC20 Token Remote",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployERC20TokenRemote",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployERC20TokenRemote",
+          "resolved": "components/toolbox/console/ictt/setup/DeployERC20TokenRemote.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/07-register-remote",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/07-register-remote.mdx",
+      "title": "Register Remote",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "RegisterWithHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
+          "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/08-bridge-tokens",
+      "file": "content/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/08-bridge-tokens.mdx",
+      "title": "Bridge Tokens",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "TestSend",
+          "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
+          "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/03-native-to-native/02-create-l1-with-native-minter",
+      "file": "content/academy/avalanche-l1/native-token-bridge/03-native-to-native/02-create-l1-with-native-minter.mdx",
+      "title": "L1 + Native Minter",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true
+        },
+        {
+          "name": "ConvertSubnetToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/03-native-to-native/03-relayer-setup",
+      "file": "content/academy/avalanche-l1/native-token-bridge/03-native-to-native/03-relayer-setup.mdx",
+      "title": "ICM & Relayer Setup",
+      "walletMode": "testnet-mainnet",
+      "tools": [
+        {
+          "name": "CreateManagedTestnetRelayer",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-relayers/CreateManagedTestnetRelayer.tsx",
+          "exists": true
+        },
+        {
+          "name": "ICMRelayer",
+          "importPath": "@/components/toolbox/console/icm/setup/ICMRelayer",
+          "resolved": "components/toolbox/console/icm/setup/ICMRelayer.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/03-native-to-native/04-deploy-native-token-home",
+      "file": "content/academy/avalanche-l1/native-token-bridge/03-native-to-native/04-deploy-native-token-home.mdx",
+      "title": "Deploy Native Token Home",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployTokenHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployTokenHome",
+          "resolved": "components/toolbox/console/ictt/setup/DeployTokenHome.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/03-native-to-native/05-deploy-native-token-remote",
+      "file": "content/academy/avalanche-l1/native-token-bridge/03-native-to-native/05-deploy-native-token-remote.mdx",
+      "title": "Deploy Native Token Remote",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "DeployNativeTokenRemote",
+          "importPath": "@/components/toolbox/console/ictt/setup/DeployNativeTokenRemote",
+          "resolved": "components/toolbox/console/ictt/setup/DeployNativeTokenRemote.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/03-native-to-native/06-register-and-collateralize",
+      "file": "content/academy/avalanche-l1/native-token-bridge/03-native-to-native/06-register-and-collateralize.mdx",
+      "title": "Register and Collateralize",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "RegisterWithHome",
+          "importPath": "@/components/toolbox/console/ictt/setup/RegisterWithHome",
+          "resolved": "components/toolbox/console/ictt/setup/RegisterWithHome.tsx",
+          "exists": true
+        },
+        {
+          "name": "AddCollateral",
+          "importPath": "@/components/toolbox/console/ictt/setup/AddCollateral",
+          "resolved": "components/toolbox/console/ictt/setup/AddCollateral.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/native-token-bridge/03-native-to-native/07-bridge-native-tokens",
+      "file": "content/academy/avalanche-l1/native-token-bridge/03-native-to-native/07-bridge-native-tokens.mdx",
+      "title": "Bridge Tokens",
+      "walletMode": null,
+      "tools": [
+        {
+          "name": "TestSend",
+          "importPath": "@/components/toolbox/console/ictt/token-transfer/TestSend",
+          "resolved": "components/toolbox/console/ictt/token-transfer/TestSend.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/01-create-subnet",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/01-create-subnet.mdx",
+      "title": "Subnet Creation",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "AvalancheGoDocker",
+          "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
+          "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/05-query-l1-details",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/03-create-an-L1/05-query-l1-details.mdx",
+      "title": "Query L1 Details",
+      "walletMode": "C-chain",
+      "tools": [
+        {
+          "name": "QueryL1Details",
+          "importPath": "@/components/toolbox/academy/permissioned-l1s/QueryL1Details.tsx",
+          "resolved": "components/toolbox/academy/permissioned-l1s/QueryL1Details.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/02-deploy-validator-manager",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/02-deploy-validator-manager.mdx",
+      "title": "Deploy Validator Manager",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DeployValidatorManager",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/03-upgrade-proxy",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/03-upgrade-proxy.mdx",
+      "title": "Upgrade Proxy",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "UpgradeProxy",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/04-set-initial-configuration",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/04-set-initial-configuration.mdx",
+      "title": "Set Initial Configuration",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "Initialize",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/05-initialize-validator-set",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/05-initialize-validator-set.mdx",
+      "title": "Initialize Validator Set",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "InitValidatorSet",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/06-check-contract",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/06-check-contract.mdx",
+      "title": "Read Deployed VMC",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "ReadContract",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/ReadContract.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/05-validator-manager-operations/02-query-validator-set",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/05-validator-manager-operations/02-query-validator-set.mdx",
+      "title": "Query the Validator Set",
+      "walletMode": "C-chain",
+      "tools": [
+        {
+          "name": "QueryL1ValidatorSet",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/query-l1-validator-set/index.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/query-l1-validator-set/index.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/05-validator-manager-operations/06-change-weight-demo",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/05-validator-manager-operations/06-change-weight-demo.mdx",
+      "title": "Change Weight Demo",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "ChangeWeight",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/ChangeWeight.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/ChangeWeight.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/05-validator-manager-operations/09-expired-validator-registration",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/05-validator-manager-operations/09-expired-validator-registration.mdx",
+      "title": "Remove Expired Validator Registration",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "RemoveExpiredValidatorRegistration",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/remove-expired-registration/RemoveExpiredValidatorRegistration.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/remove-expired-registration/RemoveExpiredValidatorRegistration.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/02-create-l1-cchain-vmc",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/02-create-l1-cchain-vmc.mdx",
+      "title": "Create L1 with VMC on C-Chain",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        },
+        {
+          "name": "ConvertToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true
+        },
+        {
+          "name": "DeployValidatorManager",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
+          "exists": true
+        },
+        {
+          "name": "Initialize",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
+          "exists": true
+        },
+        {
+          "name": "InitValidatorSet",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/04-deploy-poa-manager",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/04-deploy-poa-manager.mdx",
+      "title": "Deploy PoA Manager",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "DeployPoAManager",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/multisig-setup/DeployPoAManager.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/05-transfer-vmc-ownership",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/05-transfer-vmc-ownership.mdx",
+      "title": "Transfer VMC Ownership to PoA Manager",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "TransferOwnership",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/multisig-setup/TransferOwnership.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/06-read-poa-manager",
+      "file": "content/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/06-read-poa-manager.mdx",
+      "title": "Read PoA Manager Contract",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "ReadPoAManager",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/multisig-setup/ReadPoAManager.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/multisig-setup/ReadPoAManager.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/04-speedrun-base-l1/01-create-l1-speedrun",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/04-speedrun-base-l1/01-create-l1-speedrun.mdx",
+      "title": "Create Your L1",
+      "walletMode": "c-chain",
+      "tools": [
+        {
+          "name": "ConvertSubnetToL1",
+          "importPath": "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "resolved": "components/toolbox/console/layer-1/create/ConvertSubnetToL1.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateChain",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
+          "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true
+        },
+        {
+          "name": "CreateManagedTestnetNode",
+          "importPath": "@/components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode",
+          "resolved": "components/toolbox/console/testnet-infra/managed-testnet-nodes/CreateManagedTestnetNode.tsx",
+          "exists": true
+        },
+        {
+          "name": "AvalancheGoDocker",
+          "importPath": "@/components/toolbox/console/layer-1/AvalancheGoDockerL1",
+          "resolved": "components/toolbox/console/layer-1/AvalancheGoDockerL1.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/04-speedrun-base-l1/02-permissioned-l1-speedrun",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/04-speedrun-base-l1/02-permissioned-l1-speedrun.mdx",
+      "title": "Setup Permissioned L1",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DeployValidatorManager",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/DeployValidatorManager.tsx",
+          "exists": true
+        },
+        {
+          "name": "UpgradeProxy",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/UpgradeProxy.tsx",
+          "exists": true
+        },
+        {
+          "name": "Initialize",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/Initialize.tsx",
+          "exists": true
+        },
+        {
+          "name": "InitValidatorSet",
+          "importPath": "@/components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
+          "resolved": "components/toolbox/console/permissioned-l1s/validator-manager-setup/InitValidatorSet.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/03-deploy-staking-manager",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/03-deploy-staking-manager.mdx",
+      "title": "NativeTokenStakingManager",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DeployStakingManager",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployStakingManager.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployStakingManager.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/04-deploy-reward-calculator",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/04-deploy-reward-calculator.mdx",
+      "title": "Example Reward Calculator",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DeployExampleRewardCalculator",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployExampleRewardCalculator.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/DeployExampleRewardCalculator.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/05-initialize-staking-manager",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/05-initialize-staking-manager.mdx",
+      "title": "Initialize Staking Manager",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "InitializeStakingManager",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/InitializeStakingManager.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/06-enable-native-minter",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/06-enable-native-minter.mdx",
+      "title": "StakingManager Minting Rights",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "EnableStakingManagerMinting",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/EnableStakingManagerMinting.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/EnableStakingManagerMinting.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/07-transfer-ownership",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/05-staking-manager-setup/07-transfer-ownership.mdx",
+      "title": "Transfer Ownership",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "TransferOwnershipToStakingManager",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/staking-manager-setup/TransferOwnershipToStakingManager.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/staking-manager-setup/TransferOwnershipToStakingManager.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/06-staking-manager-operations/02-query-pos-validator-set",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/06-staking-manager-operations/02-query-pos-validator-set.mdx",
+      "title": "Query PoS Validator Set",
+      "walletMode": "C-chain",
+      "tools": [
+        {
+          "name": "QueryPoSValidatorSet",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/QueryPoSValidatorSet.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/QueryPoSValidatorSet.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/06-staking-manager-operations/06-delegate-to-validator-demo",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/06-staking-manager-operations/06-delegate-to-validator-demo.mdx",
+      "title": "Delegate to Validator Demo",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "DelegateNative",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/delegate/DelegateNative.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/delegate/DelegateNative.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "academy-page",
+      "route": "/academy/avalanche-l1/permissionless-l1s/06-staking-manager-operations/10-remove-delegation-demo",
+      "file": "content/academy/avalanche-l1/permissionless-l1s/06-staking-manager-operations/10-remove-delegation-demo.mdx",
+      "title": "Remove Delegation Demo",
+      "walletMode": "l1",
+      "tools": [
+        {
+          "name": "RemoveDelegationNative",
+          "importPath": "@/components/toolbox/console/permissionless-l1s/withdraw/RemoveDelegationNative.tsx",
+          "resolved": "components/toolbox/console/permissionless-l1s/withdraw/RemoveDelegationNative.tsx",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator",
+      "file": "app/console/add-validator/page.tsx",
+      "title": "Add Validator"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator",
+      "file": "app/console/add-validator/page.tsx",
+      "title": "Stake (Native Token)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator",
+      "file": "app/console/add-validator/page.tsx",
+      "title": "Stake (ERC20 Token)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/complete-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Add Validator › Complete Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/complete-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (Native Token) › Complete Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/complete-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (ERC20 Token) › Complete Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/initiate-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Add Validator › Initiate Validator Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/initiate-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (Native Token) › Initiate Validator Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/initiate-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (ERC20 Token) › Initiate Validator Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/pchain-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Add Validator › P-Chain Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/pchain-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (Native Token) › P-Chain Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/pchain-registration",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (ERC20 Token) › P-Chain Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/select-subnet",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Add Validator › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/select-subnet",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (Native Token) › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/select-subnet",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (ERC20 Token) › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/verify-validator-set",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Add Validator › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/verify-validator-set",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (Native Token) › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/add-validator/verify-validator-set",
+      "file": "app/console/add-validator/[step]/page.tsx",
+      "title": "Stake (ERC20 Token) › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/create-l1",
+      "file": "app/console/create-l1/page.tsx",
+      "title": "Create L1"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/auditor",
+      "file": "app/console/encrypted-erc/auditor/page.tsx",
+      "title": "Auditor View"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/balance",
+      "file": "app/console/encrypted-erc/balance/page.tsx",
+      "title": "Balance & History"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy",
+      "file": "app/console/encrypted-erc/deploy/page.tsx",
+      "title": "Deploy Your Own"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/auditor",
+      "file": "app/console/encrypted-erc/deploy/auditor/page.tsx",
+      "title": "Set Auditor"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/configure",
+      "file": "app/console/encrypted-erc/deploy/[step]/page.tsx",
+      "title": "Deploy Your Own › Configure"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/deploy-eerc",
+      "file": "app/console/encrypted-erc/deploy/[step]/page.tsx",
+      "title": "Deploy Your Own › Deploy EncryptedERC"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/deploy-library",
+      "file": "app/console/encrypted-erc/deploy/[step]/page.tsx",
+      "title": "Deploy Your Own › Deploy BabyJubJub"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/deploy-registrar",
+      "file": "app/console/encrypted-erc/deploy/[step]/page.tsx",
+      "title": "Deploy Your Own › Deploy Registrar"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/deploy-verifiers",
+      "file": "app/console/encrypted-erc/deploy/[step]/page.tsx",
+      "title": "Deploy Your Own › Deploy Verifiers"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deploy/finalize",
+      "file": "app/console/encrypted-erc/deploy/[step]/page.tsx",
+      "title": "Deploy Your Own › Register + Set Auditor"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deposit",
+      "file": "app/console/encrypted-erc/deposit/page.tsx",
+      "title": "Deposit / Mint"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deposit/deposit",
+      "file": "app/console/encrypted-erc/deposit/[step]/page.tsx",
+      "title": "Deposit / Mint › Deposit"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/deposit/wrap-avax",
+      "file": "app/console/encrypted-erc/deposit/[step]/page.tsx",
+      "title": "Deposit / Mint › Wrap AVAX"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/overview",
+      "file": "app/console/encrypted-erc/overview/page.tsx",
+      "title": "Encrypted ERC Overview"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/register",
+      "file": "app/console/encrypted-erc/register/page.tsx",
+      "title": "Register Keys"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/transfer",
+      "file": "app/console/encrypted-erc/transfer/page.tsx",
+      "title": "Private Transfer"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/encrypted-erc/withdraw",
+      "file": "app/console/encrypted-erc/withdraw/page.tsx",
+      "title": "Withdraw / Burn"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/setup",
+      "file": "app/console/icm/setup/page.tsx",
+      "title": "ICM Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/setup/deploy-icm-demo",
+      "file": "app/console/icm/setup/[step]/page.tsx",
+      "title": "ICM Setup › Deploy ICM Demo"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/setup/icm-messenger",
+      "file": "app/console/icm/setup/[step]/page.tsx",
+      "title": "ICM Setup › Deploy Teleporter Messenger"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/setup/icm-registry",
+      "file": "app/console/icm/setup/[step]/page.tsx",
+      "title": "ICM Setup › Deploy Teleporter Registry"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/setup/self-hosted-relayer",
+      "file": "app/console/icm/setup/[step]/page.tsx",
+      "title": "ICM Setup › Setup ICM Relayer"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/setup/send-icm-demo-message",
+      "file": "app/console/icm/setup/[step]/page.tsx",
+      "title": "ICM Setup › Send ICM Message"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/test-connection",
+      "file": "app/console/icm/test-connection/page.tsx",
+      "title": "ICM Test Connection"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/test-connection/deploy-icm-demo",
+      "file": "app/console/icm/test-connection/[step]/page.tsx",
+      "title": "ICM Test Connection › Deploy ICM Demo"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/icm/test-connection/send-icm-demo-message",
+      "file": "app/console/icm/test-connection/[step]/page.tsx",
+      "title": "ICM Test Connection › Send ICM Message"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/setup",
+      "file": "app/console/ictt/setup/page.tsx",
+      "title": "ICTT Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/setup/add-collateral",
+      "file": "app/console/ictt/setup/[step]/page.tsx",
+      "title": "ICTT Setup › Add Collateral"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/setup/deploy-token-home",
+      "file": "app/console/ictt/setup/[step]/page.tsx",
+      "title": "ICTT Setup › Deploy Token Home"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/setup/register-with-home",
+      "file": "app/console/ictt/setup/[step]/page.tsx",
+      "title": "ICTT Setup › Register With Home"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/token-transfer",
+      "file": "app/console/ictt/token-transfer/page.tsx",
+      "title": "Token Transfer Test"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/token-transfer/add-collateral",
+      "file": "app/console/ictt/token-transfer/[step]/page.tsx",
+      "title": "Token Transfer Test › Add Collateral"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/ictt/token-transfer/test-send",
+      "file": "app/console/ictt/token-transfer/[step]/page.tsx",
+      "title": "Token Transfer Test › Test Send"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/l1-access-restrictions/deployer-allowlist",
+      "file": "app/console/l1-access-restrictions/deployer-allowlist/page.tsx",
+      "title": "Deployer Allowlist"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/l1-access-restrictions/transactor-allowlist",
+      "file": "app/console/l1-access-restrictions/transactor-allowlist/page.tsx",
+      "title": "Transactor Allowlist"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/l1-tokenomics/fee-manager",
+      "file": "app/console/l1-tokenomics/fee-manager/page.tsx",
+      "title": "Fee Parameters"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/l1-tokenomics/native-minter",
+      "file": "app/console/l1-tokenomics/native-minter/page.tsx",
+      "title": "Mint Native Coins"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/l1-tokenomics/reward-manager",
+      "file": "app/console/l1-tokenomics/reward-manager/page.tsx",
+      "title": "Fee Distributions"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/create/convert-to-l1",
+      "file": "app/console/layer-1/create/[step]/page.tsx",
+      "title": "Convert to L1"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/create/create-chain",
+      "file": "app/console/layer-1/create/[step]/page.tsx",
+      "title": "Create L1 › Create Chain"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/create/create-subnet",
+      "file": "app/console/layer-1/create/[step]/page.tsx",
+      "title": "Create L1 › Create Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/create/l1-node-setup",
+      "file": "app/console/layer-1/create/[step]/page.tsx",
+      "title": "Create L1 › L1 Node Setup with Docker"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/create/managed-testnet-l1-nodes",
+      "file": "app/console/layer-1/create/[step]/page.tsx",
+      "title": "Create L1 › Managed Testnet L1 Nodes"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/explorer-setup",
+      "file": "app/console/layer-1/explorer-setup/page.tsx",
+      "title": "Explorer Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/l1-node-setup",
+      "file": "app/console/layer-1/l1-node-setup/page.tsx",
+      "title": "L1 Node Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/l1-validator-balance",
+      "file": "app/console/layer-1/l1-validator-balance/page.tsx",
+      "title": "L1 Validator Balance"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/performance-monitor",
+      "file": "app/console/layer-1/performance-monitor/page.tsx",
+      "title": "Performance Monitor"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/validator-set",
+      "file": "app/console/layer-1/validator-set/page.tsx",
+      "title": "Query Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/my-l1",
+      "file": "app/console/my-l1/page.tsx",
+      "title": "My L1 Dashboard"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/change-validator-weight",
+      "file": "app/console/permissioned-l1s/change-validator-weight/page.tsx",
+      "title": "Change Validator Weight"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/change-validator-weight/complete-weight-change",
+      "file": "app/console/permissioned-l1s/change-validator-weight/[step]/page.tsx",
+      "title": "Change Validator Weight › Complete Weight Change"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/change-validator-weight/initiate-weight-change",
+      "file": "app/console/permissioned-l1s/change-validator-weight/[step]/page.tsx",
+      "title": "Change Validator Weight › Initiate Weight Change"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/change-validator-weight/pchain-weight-update",
+      "file": "app/console/permissioned-l1s/change-validator-weight/[step]/page.tsx",
+      "title": "Change Validator Weight › P-Chain Weight Update"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/change-validator-weight/select-subnet",
+      "file": "app/console/permissioned-l1s/change-validator-weight/[step]/page.tsx",
+      "title": "Change Validator Weight › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/change-validator-weight/verify-validator-set",
+      "file": "app/console/permissioned-l1s/change-validator-weight/[step]/page.tsx",
+      "title": "Change Validator Weight › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/disable-validator",
+      "file": "app/console/permissioned-l1s/disable-validator/page.tsx",
+      "title": "Disable Validator"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/multisig-setup",
+      "file": "app/console/permissioned-l1s/multisig-setup/page.tsx",
+      "title": "Multisig Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/multisig-setup/deploy-poa-manager",
+      "file": "app/console/permissioned-l1s/multisig-setup/[step]/page.tsx",
+      "title": "Multisig Setup › Deploy POA Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/multisig-setup/read-poa-manager",
+      "file": "app/console/permissioned-l1s/multisig-setup/[step]/page.tsx",
+      "title": "Multisig Setup › Read PoA Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/multisig-setup/read-validator-manager",
+      "file": "app/console/permissioned-l1s/multisig-setup/[step]/page.tsx",
+      "title": "Multisig Setup › Read Validator Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/multisig-setup/transfer-ownership",
+      "file": "app/console/permissioned-l1s/multisig-setup/[step]/page.tsx",
+      "title": "Multisig Setup › Transfer Ownership"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/remove-expired-validator-registration",
+      "file": "app/console/permissioned-l1s/remove-expired-validator-registration/page.tsx",
+      "title": "Remove Expired Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/validator-manager-setup",
+      "file": "app/console/permissioned-l1s/validator-manager-setup/page.tsx",
+      "title": "Validator Manager Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/validator-manager-setup/deploy-validator-manager",
+      "file": "app/console/permissioned-l1s/validator-manager-setup/[step]/page.tsx",
+      "title": "Validator Manager Setup › Deploy Validator Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/validator-manager-setup/init-validator-set",
+      "file": "app/console/permissioned-l1s/validator-manager-setup/[step]/page.tsx",
+      "title": "Validator Manager Setup › Initialize Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/validator-manager-setup/initialize-manager",
+      "file": "app/console/permissioned-l1s/validator-manager-setup/[step]/page.tsx",
+      "title": "Validator Manager Setup › Initialize Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/validator-manager-setup/proxy-setup",
+      "file": "app/console/permissioned-l1s/validator-manager-setup/[step]/page.tsx",
+      "title": "Validator Manager Setup › Proxy Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/validator-manager-setup/read-l1-details",
+      "file": "app/console/permissioned-l1s/validator-manager-setup/[step]/page.tsx",
+      "title": "Validator Manager Setup › Read L1 Details"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/erc20",
+      "file": "app/console/permissionless-l1s/delegate/erc20/page.tsx",
+      "title": "Delegate (ERC20 Token)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/erc20/complete-delegation",
+      "file": "app/console/permissionless-l1s/delegate/erc20/[step]/page.tsx",
+      "title": "Delegate (ERC20 Token) › Complete Delegation"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/erc20/initiate-delegation",
+      "file": "app/console/permissionless-l1s/delegate/erc20/[step]/page.tsx",
+      "title": "Delegate (ERC20 Token) › Initiate Delegation"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/erc20/pchain-weight-update",
+      "file": "app/console/permissionless-l1s/delegate/erc20/[step]/page.tsx",
+      "title": "Delegate (ERC20 Token) › P-Chain Weight Update"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/erc20/select-l1",
+      "file": "app/console/permissionless-l1s/delegate/erc20/[step]/page.tsx",
+      "title": "Delegate (ERC20 Token) › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/erc20/verify-validator-set",
+      "file": "app/console/permissionless-l1s/delegate/erc20/[step]/page.tsx",
+      "title": "Delegate (ERC20 Token) › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/native",
+      "file": "app/console/permissionless-l1s/delegate/native/page.tsx",
+      "title": "Delegate (Native Token)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/native/complete-delegation",
+      "file": "app/console/permissionless-l1s/delegate/native/[step]/page.tsx",
+      "title": "Delegate (Native Token) › Complete Delegation"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/native/initiate-delegation",
+      "file": "app/console/permissionless-l1s/delegate/native/[step]/page.tsx",
+      "title": "Delegate (Native Token) › Initiate Delegation"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/native/pchain-weight-update",
+      "file": "app/console/permissionless-l1s/delegate/native/[step]/page.tsx",
+      "title": "Delegate (Native Token) › P-Chain Weight Update"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/native/select-l1",
+      "file": "app/console/permissionless-l1s/delegate/native/[step]/page.tsx",
+      "title": "Delegate (Native Token) › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/delegate/native/verify-validator-set",
+      "file": "app/console/permissionless-l1s/delegate/native/[step]/page.tsx",
+      "title": "Delegate (Native Token) › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/page.tsx",
+      "title": "ERC20 Staking Manager Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/deploy",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Deploy ERC20 Staking Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/deploy-erc20-token",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Deploy ERC20 Token (Optional)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/deploy-reward-calculator",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Deploy Reward Calculator"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/enable-minting",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Enable Staking Manager Minting"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/initialize",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Initialize Staking Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/read-contract",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Read Contract"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/erc20-staking-manager-setup/transfer-ownership",
+      "file": "app/console/permissionless-l1s/erc20-staking-manager-setup/[step]/page.tsx",
+      "title": "ERC20 Staking Manager Setup › Transfer Ownership"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/page.tsx",
+      "title": "Native Staking Manager Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup/deploy",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/[step]/page.tsx",
+      "title": "Native Staking Manager Setup › Deploy Native Staking Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup/deploy-reward-calculator",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/[step]/page.tsx",
+      "title": "Native Staking Manager Setup › Deploy Reward Calculator"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup/enable-minting",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/[step]/page.tsx",
+      "title": "Native Staking Manager Setup › Enable Staking Manager Minting"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup/initialize",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/[step]/page.tsx",
+      "title": "Native Staking Manager Setup › Initialize Staking Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup/read-contract",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/[step]/page.tsx",
+      "title": "Native Staking Manager Setup › Read Contract"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/native-staking-manager-setup/transfer-ownership",
+      "file": "app/console/permissionless-l1s/native-staking-manager-setup/[step]/page.tsx",
+      "title": "Native Staking Manager Setup › Transfer Ownership"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/query-staking",
+      "file": "app/console/permissionless-l1s/query-staking/page.tsx",
+      "title": "Query Staking Validators"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/remove-delegation",
+      "file": "app/console/permissionless-l1s/remove-delegation/page.tsx",
+      "title": "Remove Delegation"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/remove-delegation/complete-removal",
+      "file": "app/console/permissionless-l1s/remove-delegation/[step]/page.tsx",
+      "title": "Remove Delegation › Complete Delegator Removal"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/remove-delegation/initiate-removal",
+      "file": "app/console/permissionless-l1s/remove-delegation/[step]/page.tsx",
+      "title": "Remove Delegation › Initiate Delegator Removal"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/remove-delegation/pchain-weight-update",
+      "file": "app/console/permissionless-l1s/remove-delegation/[step]/page.tsx",
+      "title": "Remove Delegation › P-Chain Weight Update"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/remove-delegation/select-l1",
+      "file": "app/console/permissionless-l1s/remove-delegation/[step]/page.tsx",
+      "title": "Remove Delegation › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/remove-delegation/verify-validator-set",
+      "file": "app/console/permissionless-l1s/remove-delegation/[step]/page.tsx",
+      "title": "Remove Delegation › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/submit-uptime-proof",
+      "file": "app/console/permissionless-l1s/submit-uptime-proof/page.tsx",
+      "title": "Submit Uptime Proof"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/submit-uptime-proof/dashboard",
+      "file": "app/console/permissionless-l1s/submit-uptime-proof/[step]/page.tsx",
+      "title": "Submit Uptime Proof › Validator Uptimes"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissionless-l1s/submit-uptime-proof/select-l1",
+      "file": "app/console/permissionless-l1s/submit-uptime-proof/[step]/page.tsx",
+      "title": "Submit Uptime Proof › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/c-p-bridge",
+      "file": "app/console/primary-network/c-p-bridge/page.tsx",
+      "title": "C/P-Chain Bridge"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/devnet-faucet",
+      "file": "app/console/primary-network/devnet-faucet/page.tsx",
+      "title": "Devnet Faucet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/faucet",
+      "file": "app/console/primary-network/faucet/page.tsx",
+      "title": "Testnet Faucet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/node-setup",
+      "file": "app/console/primary-network/node-setup/page.tsx",
+      "title": "Node Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/stake",
+      "file": "app/console/primary-network/stake/page.tsx",
+      "title": "Stake AVAX"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/unit-converter",
+      "file": "app/console/primary-network/unit-converter/page.tsx",
+      "title": "Unit Converter"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/validator-alerts",
+      "file": "app/console/primary-network/validator-alerts/page.tsx",
+      "title": "Validator Alerts"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/primary-network/validator-lookup",
+      "file": "app/console/primary-network/validator-lookup/page.tsx",
+      "title": "Validator Lookup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator",
+      "file": "app/console/remove-validator/page.tsx",
+      "title": "Remove Validator"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator",
+      "file": "app/console/remove-validator/page.tsx",
+      "title": "Remove Validator (PoS)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/claim-fees",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator › Claim Delegation Fees"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/claim-fees",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator (PoS) › Claim Delegation Fees"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/complete-removal",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator › Complete Removal"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/complete-removal",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator (PoS) › Complete Removal"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/initiate-removal",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator › Initiate Removal"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/initiate-removal",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator (PoS) › Initiate Removal"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/pchain-removal",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator › P-Chain Weight Update"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/pchain-removal",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator (PoS) › P-Chain Weight Update"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/select-subnet",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/select-subnet",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator (PoS) › Select L1 Subnet"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/verify-validator-set",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/remove-validator/verify-validator-set",
+      "file": "app/console/remove-validator/[step]/page.tsx",
+      "title": "Remove Validator (PoS) › Verify Validator Set"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/testnet-infra/icm-relayer",
+      "file": "app/console/testnet-infra/icm-relayer/page.tsx",
+      "title": "ICM Relayer"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/testnet-infra/nodes",
+      "file": "app/console/testnet-infra/nodes/page.tsx",
+      "title": "Testnet Nodes"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/data-api-keys",
+      "file": "app/console/utilities/data-api-keys/page.tsx",
+      "title": "Data API Keys"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/format-converter",
+      "file": "app/console/utilities/format-converter/page.tsx",
+      "title": "Format Converter"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/revert-poa-manager",
+      "file": "app/console/utilities/revert-poa-manager/page.tsx",
+      "title": "Revert PoA Manager"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/transfer-proxy-admin",
+      "file": "app/console/utilities/transfer-proxy-admin/page.tsx",
+      "title": "Transfer Proxy Admin"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/vmcMigrateFromV1",
+      "file": "app/console/utilities/vmcMigrateFromV1/page.tsx",
+      "title": "VMC Migration (V1 to V2)"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/vmcMigrateFromV1/deploy-validator-manager",
+      "file": "app/console/utilities/vmcMigrateFromV1/[step]/page.tsx",
+      "title": "VMC Migration (V1 to V2) › Deploy Validator Manager v2"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/vmcMigrateFromV1/migrate-validators",
+      "file": "app/console/utilities/vmcMigrateFromV1/[step]/page.tsx",
+      "title": "VMC Migration (V1 to V2) › Migrate Validators"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/vmcMigrateFromV1/query-validators",
+      "file": "app/console/utilities/vmcMigrateFromV1/[step]/page.tsx",
+      "title": "VMC Migration (V1 to V2) › Query L1 Validators"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/utilities/vmcMigrateFromV1/upgrade-proxy",
+      "file": "app/console/utilities/vmcMigrateFromV1/[step]/page.tsx",
+      "title": "VMC Migration (V1 to V2) › Upgrade Proxy"
+    }
+  ]
+}

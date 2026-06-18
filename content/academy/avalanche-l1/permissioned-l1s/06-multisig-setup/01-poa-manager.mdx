@@ -1,7 +1,7 @@
 ---
 title: PoA Manager Contract
 description: Understanding the PoA Manager contract and why it simplifies multi-sig governance
-updated: 2025-03-19
+updated: 2026-06-17
 authors: [nicolasarnedo]
 icon: BookOpen
 ---
@@ -94,6 +94,35 @@ contract PoAManager is Ownable {
 **Is PoA Manager Required?**
 
 No! You can absolutely transfer Validator Manager ownership directly to a multi-sig. The PoA Manager just makes the multi-sig experience smoother. For simple setups or if you're comfortable building complex transactions, direct ownership works fine.
+</Callout>
+
+## Proxy vs. Implementation: The Address That Trips Everyone Up
+
+<Callout type="info">
+**This section applies only if your Validator Manager is deployed behind a proxy** — which is the default path in this course. The genesis ships an OpenZeppelin `TransparentUpgradeableProxy` (commonly at `0xfacade...`, though some templates use a different address such as `0xFEEDC0DE...`) and [Upgrade Proxy](/academy/avalanche-l1/permissioned-l1s/04-validator-manager-deployment/03-upgrade-proxy) pointed it at your implementation. If you deployed the Validator Manager **directly, with no proxy**, it is a single address — skip the distinction below and use that one address everywhere.
+</Callout>
+
+When you deploy behind a proxy, "the Validator Manager" is really **three** contracts — and almost every PoA setup failure comes from confusing them:
+
+| Contract | Example address | What it holds | When you use it |
+|----------|-----------------|---------------|-----------------|
+| **Implementation** | the address you deployed | Logic only — **no state** | **Never directly.** It is just the code the proxy borrows. |
+| **Proxy** | `0xfacade...` (or `0xFEEDC0DE...`) | All state: `owner`, validator set, settings | **Everywhere.** Initialization, `transferOwnership`, reads, and the PoA Manager's constructor all target this. |
+| **ProxyAdmin** | `0xdad0...` | The proxy's upgrade admin | **Only** to upgrade the implementation. |
+
+<Callout type="warning">
+**The rule: when your manager is behind a proxy, whenever a step asks for "the Validator Manager address," use the proxy address (e.g. `0xfacade...`) — never the implementation.**
+
+The proxy `delegatecall`s into the implementation, so all state (including `owner`) lives at the **proxy** address. If you point the PoA Manager at the implementation, or call `transferOwnership` on the implementation, you are operating on a stateless contract: the transactions "succeed" but change nothing the proxy uses, and later validator operations revert.
+</Callout>
+
+Concretely, this governs the next two steps:
+
+- **Deploying the PoA Manager** — its constructor stores `validatorManager` and forwards every call there, so pass the **proxy**.
+- **Transferring ownership** — `transferOwnership` updates the **proxy's** `owner` storage, so call it on the **proxy**.
+
+<Callout type="info">
+The Console tools in this course resolve the proxy address for you automatically from your L1. You'll mainly hit this pitfall when scripting the setup by hand — for example a private L1 that can't use the Console — so there, double-check that every "Validator Manager" address is `0xfacade...`, not the implementation you just deployed.
 </Callout>
 
 ## Architecture Overview

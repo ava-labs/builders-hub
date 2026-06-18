@@ -1,7 +1,7 @@
 ---
 title: Deploy PoA Manager
 description: Deploy the PoA Manager contract with your multi-sig wallet as the owner
-updated: 2025-03-19
+updated: 2026-06-17
 authors: [nicolasarnedo]
 icon: Terminal
 ---
@@ -17,7 +17,7 @@ Now that you have your Safe/Ash wallet set up, it's time to deploy the PoA Manag
 The PoA Manager is initialized with two key addresses:
 
 1. **Owner**: Your Safe/Ash multi-sig wallet address
-2. **Validator Manager**: The VMC address on C-Chain (from the previous section)
+2. **Validator Manager**: if your Validator Manager is behind a proxy (the default here), its **proxy** address (e.g. `0xfacade...`) — **not** the implementation you deployed earlier. (Deployed without a proxy? Use the Validator Manager address directly.)
 
 ```solidity
 constructor(address _owner, address _validatorManager) {
@@ -25,6 +25,10 @@ constructor(address _owner, address _validatorManager) {
     validatorManager = IValidatorManager(_validatorManager);
 }
 ```
+
+<Callout type="warning">
+If your Validator Manager is behind a proxy, pass the **proxy** address (e.g. `0xfacade...`) as `_validatorManager`, never the implementation. The PoA Manager stores this address and forwards every validator call to it; pointed at the stateless implementation, those calls revert with `OwnableUnauthorizedAccount` once the multi-sig tries to use them (a Safe surfaces this as `GS013`). See [Proxy vs. Implementation](/academy/avalanche-l1/permissioned-l1s/06-multisig-setup/01-poa-manager). The Console tool below resolves the proxy automatically; this bites manual/scripted deployments.
+</Callout>
 
 ## Deployment Architecture
 
@@ -80,7 +84,7 @@ After deployment, verify:
 
 - ✅ **Contract Deployed**: You have a valid PoA Manager address
 - ✅ **Owner Set**: The `owner()` function returns your Safe address
-- ✅ **Validator Manager Linked**: The `validatorManager()` function returns the correct VMC address
+- ✅ **Validator Manager Linked**: The `validatorManager()` function returns the **proxy** address (`0xfacade...`), not the implementation
 
 ## Current Ownership State
 
