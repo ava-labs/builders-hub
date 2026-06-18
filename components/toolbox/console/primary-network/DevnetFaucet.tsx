@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { formatEther, defineChain, isAddress } from 'viem';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
-import { Copy, Check, AlertTriangle, Droplets, ExternalLink, RefreshCw, Wallet } from 'lucide-react';
+import { Copy, Check, Droplets, ExternalLink, RefreshCw, Wallet } from 'lucide-react';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
@@ -19,7 +19,7 @@ const DEVNET_CHAIN_ID = 43117;
 const DEVNET_CHAIN_ID_HEX = '0xa86d';
 const DEFAULT_DRIP_AMOUNT = '2';
 const MIN_DRIP_AMOUNT = 1;
-const MAX_DRIP_AMOUNT = 2000;
+const MAX_DRIP_AMOUNT = 2005;
 
 const devnetCChain = defineChain({
   id: DEVNET_CHAIN_ID,
@@ -37,7 +37,7 @@ const devnetPublicClient = makePublicClientForChain(DEVNET_RPC_URL, [], devnetCC
 
 const metadata: ConsoleToolMetadata = {
   title: 'Devnet Faucet',
-  description: 'Request free devnet AVAX on the C-Chain (Ava Labs internal)',
+  description: 'Request free devnet AVAX on the C-Chain (Ava Labs, or with a coupon code)',
   toolRequirements: [AccountRequirementsConfigKey.UserLoggedIn],
   githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
 };
@@ -88,6 +88,8 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   const [hasEditedRecipientAddress, setHasEditedRecipientAddress] = useState(false);
   const [dripAmount, setDripAmount] = useState(DEFAULT_DRIP_AMOUNT);
   const [amountError, setAmountError] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const [faucetBalance, setFaucetBalance] = useState<string | null>(null);
   const [faucetAddress, setFaucetAddress] = useState<string | null>(null);
@@ -137,10 +139,10 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
   }, [isAvaLabs, fetchBalance]);
 
   useEffect(() => {
-    if (isAvaLabs && walletEVMAddress) {
+    if (walletEVMAddress) {
       fetchUserBalance();
     }
-  }, [isAvaLabs, walletEVMAddress, fetchUserBalance]);
+  }, [walletEVMAddress, fetchUserBalance]);
 
   useEffect(() => {
     if (walletEVMAddress && !hasEditedRecipientAddress) {
@@ -199,14 +201,22 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
       return;
     }
 
+    const trimmedCoupon = couponCode.trim();
+    if (!isAvaLabs && !trimmedCoupon) {
+      setCouponError('Enter the coupon code you were given');
+      return;
+    }
+
     setIsDripping(true);
     setResult(null);
     setRecipientError(null);
     setAmountError(null);
+    setCouponError(null);
 
     try {
+      const couponParam = !isAvaLabs ? `&coupon=${encodeURIComponent(trimmedCoupon)}` : '';
       const response = await fetch(
-        `/api/devnet-faucet?address=${encodeURIComponent(destinationAddress)}&amount=${encodeURIComponent(requestedAmount)}`
+        `/api/devnet-faucet?address=${encodeURIComponent(destinationAddress)}&amount=${encodeURIComponent(requestedAmount)}${couponParam}`,
       );
       const data = await response.json();
 
@@ -234,30 +244,6 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
       setIsDripping(false);
     }
   };
-
-  // Gate: must be @avalabs.org
-  if (!isAvaLabs) {
-    return (
-      <div className="max-w-4xl mx-auto not-prose">
-        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-6 text-center">
-          <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-3" />
-          <h3 className="font-medium text-zinc-900 dark:text-white mb-2">Ava Labs Access Only</h3>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-1">
-            The Devnet Faucet is restricted to Ava Labs team members.
-          </p>
-          <p className="text-sm text-zinc-500">
-            Please log in with your <span className="font-mono font-medium">@avalabs.org</span> email to access this
-            tool.
-          </p>
-          {userEmail && (
-            <p className="text-xs text-zinc-400 mt-3">
-              Logged in as: <span className="font-mono">{userEmail}</span>
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-4xl mx-auto not-prose">
@@ -288,31 +274,33 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Network</span>
             <span className="text-sm font-medium text-zinc-900 dark:text-white">Avalanche Devnet C-Chain</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5" />
-              Faucet Balance
-            </span>
-            <div className="flex items-center gap-2">
-              {isLoadingBalance ? (
-                <span className="text-sm text-zinc-400 animate-pulse">Loading...</span>
-              ) : faucetBalance !== null ? (
-                <span className="text-sm font-mono font-semibold text-zinc-900 dark:text-white">
-                  {parseFloat(faucetBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} AVAX
-                </span>
-              ) : (
-                <span className="text-sm text-zinc-400">Unavailable</span>
-              )}
-              <button
-                onClick={fetchBalance}
-                disabled={isLoadingBalance}
-                className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-50"
-                title="Refresh balance"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? 'animate-spin' : ''}`} />
-              </button>
+          {isAvaLabs && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400 flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5" />
+                Faucet Balance
+              </span>
+              <div className="flex items-center gap-2">
+                {isLoadingBalance ? (
+                  <span className="text-sm text-zinc-400 animate-pulse">Loading...</span>
+                ) : faucetBalance !== null ? (
+                  <span className="text-sm font-mono font-semibold text-zinc-900 dark:text-white">
+                    {parseFloat(faucetBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} AVAX
+                  </span>
+                ) : (
+                  <span className="text-sm text-zinc-400">Unavailable</span>
+                )}
+                <button
+                  onClick={fetchBalance}
+                  disabled={isLoadingBalance}
+                  className="text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors disabled:opacity-50"
+                  title="Refresh balance"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           {faucetAddress && (
             <div className="flex items-center justify-between">
               <span className="text-sm text-zinc-600 dark:text-zinc-400">Faucet Address</span>
@@ -363,6 +351,27 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
           </div>
 
           <div className="space-y-3">
+            {!isAvaLabs && (
+              <div className="space-y-1.5">
+                <label htmlFor="devnet-faucet-coupon" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Faucet coupon code
+                </label>
+                <input
+                  id="devnet-faucet-coupon"
+                  type="text"
+                  value={couponCode}
+                  onChange={(event) => {
+                    setCouponCode(event.target.value);
+                    setCouponError(null);
+                    setResult(null);
+                  }}
+                  placeholder="Enter your coupon code"
+                  className="w-full px-3 py-2 text-sm font-mono bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+                {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+                <p className="text-xs text-zinc-500">Required to claim devnet AVAX without an Ava Labs account.</p>
+              </div>
+            )}
             {walletEVMAddress && (
               <div className="flex items-center justify-between bg-zinc-100 dark:bg-zinc-800 rounded px-3 py-2">
                 <div className="flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-400">
@@ -429,10 +438,7 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
               {recipientError && <p className="text-xs text-red-500">{recipientError}</p>}
             </div>
             <div className="space-y-1.5">
-              <label
-                htmlFor="devnet-faucet-amount"
-                className="text-sm font-medium text-zinc-700 dark:text-zinc-300"
-              >
+              <label htmlFor="devnet-faucet-amount" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Amount
               </label>
               <div className="relative">
@@ -494,7 +500,7 @@ function DevnetFaucet({ onSuccess: _onSuccess }: BaseConsoleToolProps) {
 
       {/* Footer */}
       <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 dark:text-zinc-600">
-        <span>Ava Labs internal</span>
+        <span>{isAvaLabs ? 'Ava Labs internal' : 'Coupon access'}</span>
         <span>&middot;</span>
         <span>Devnet tokens only</span>
         <span>&middot;</span>
