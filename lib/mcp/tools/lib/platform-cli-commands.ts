@@ -20,6 +20,7 @@ export const CLI = {
   keysGenerate: 'platform keys generate',
   nodeInfo: 'platform node info',
   subnetCreate: 'platform subnet create',
+  chainCreate: 'platform chain create',
   subnetConvertL1: pick('platform subnet convert-l1', 'platform subnet convert-to-l1'),
   subnetAddValidator: 'platform subnet add-validator', // v2 net-new (permissioned subnet validator)
   l1RegisterValidator: 'platform l1 register-validator',

@@ -17,6 +17,7 @@
  */
 
 import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
+import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 import {
@@ -80,11 +81,12 @@ function detectKind(value: string): string {
   if (/^0x[0-9a-fA-F]{40}$/.test(value)) return 'address';
   if (/^0x[0-9a-fA-F]{64}$/.test(value)) return 'transaction';
   if (/^NodeID-/i.test(value)) return 'validator';
+  if (/^[PX]-[a-z0-9]{2,}1[a-z0-9]{30,}$/i.test(value)) return 'pchain'; // P-/X-chain bech32 account
   if (/^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(value)) return 'subnet';
   return 'chain';
 }
 
-const KINDS = ['auto', 'address', 'contract', 'token', 'nft', 'transaction', 'subnet', 'validator', 'chain'] as const;
+const KINDS = ['auto', 'address', 'contract', 'token', 'nft', 'transaction', 'subnet', 'validator', 'chain', 'pchain'] as const;
 const SCOPES = ['address', 'chain', 'token', 'contract', 'primary'] as const;
 const FEEDS = ['transactions', 'transfers', 'erc20Transfers', 'nftTransfers'] as const;
 const TARGETS = ['chain', 'contract', 'network'] as const;
@@ -96,6 +98,28 @@ const BUCKET_FN: Record<string, string> = {
   week: 'toStartOfWeek',
   month: 'toStartOfMonth',
 };
+
+// Canonical primary-network blockchain IDs. P-Chain is the zero-ID (same on both networks).
+const P_CHAIN_ID = '11111111111111111111111111111111LpoYY';
+const X_CHAIN_ID: Record<Network, string> = {
+  mainnet: '2oYMBNV4eNHyqk2fjjV5nVQLDbtmNJzq5s3qs3Lo6ftnC6FByM',
+  fuji: '2JVSBoinj9C2J33VntvzYtVJNZdN2NKiwwKjcumHUWEb5DbBrm',
+};
+const PX_ADDRESS = /^[PX]-[a-z0-9]{2,}1[a-z0-9]{30,}$/i;
+function pxNetwork(addr: string, fallback: Network): Network {
+  const hrp = (addr.match(/^[PX]-([a-z0-9]+)1/i)?.[1] || '').toLowerCase();
+  return hrp === 'fuji' ? 'fuji' : hrp === 'avax' ? 'mainnet' : fallback;
+}
+function stripChainPrefix(addr: string): string {
+  return addr.replace(/^[PX]-/i, ''); // Glacier wants the bech32 part (avax1…/fuji1…)
+}
+/** Glacier returns an address-metadata body for EOAs too (ercType UNKNOWN); only a real signal means it is a contract. */
+function isRealContract(meta: unknown): boolean {
+  if (!meta || typeof meta !== 'object') return false;
+  const m = meta as Record<string, unknown>;
+  const erc = typeof m.ercType === 'string' ? m.ercType : '';
+  return (!!erc && erc !== 'UNKNOWN') || !!m.deploymentDetails || !!m.name || !!m.symbol;
+}
 
 // ---------------------------------------------------------------------------
 // onchain_lookup
@@ -114,12 +138,15 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
         const addr = safeAddr(value);
         const chainId = safeChainSeg(getChainId(args));
         const include = Array.isArray(args.include) ? (args.include as unknown[]).map(String) : ['balances'];
-        const [chains, native, erc20] = await Promise.all([
+        const [chains, native, erc20, recentTx, contractMeta] = await Promise.all([
           glacierFetch<unknown>(`/v1/address/${addr}/chains`).catch(() => null),
           glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/balances:getNative`).catch(() => null),
           fetchErc20Balances(chainId, addr).then((r) => r.erc20TokenBalances).catch(() => []),
+          glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/transactions`, { pageSize: '5' }).catch(() => null),
+          glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}`).catch(() => null), // contract metadata; null for an EOA
         ]);
-        const out: Record<string, unknown> = { kind: 'address', address: addr, chainId, network, chainsTouched: chains, nativeBalance: native, erc20Balances: erc20 };
+        const realContract = isRealContract(contractMeta);
+        const out: Record<string, unknown> = { kind: 'address', address: addr, chainId, network, isContract: realContract, contractInfo: realContract ? contractMeta : undefined, chainsTouched: chains, nativeBalance: native, erc20Balances: erc20, recentTransactions: recentTx };
         if (include.includes('nfts')) {
           out.collectibles = await glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/balances:listCollectibles`).catch(() => null);
         }
@@ -129,11 +156,12 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
       case 'token': {
         const addr = safeAddr(value);
         const chainId = safeChainSeg(getChainId(args));
-        const [meta, deployment] = await Promise.all([
+        const [meta, deployment, recentTransfers] = await Promise.all([
           glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}`).catch(() => null),
           glacierFetch<unknown>(`/v1/chains/${chainId}/contracts/${addr}/transactions:getDeployment`).catch(() => null),
+          glacierFetch<unknown>(`/v1/chains/${chainId}/tokens/${addr}/transfers`, { pageSize: '5' }).catch(() => null),
         ]);
-        return json({ kind, address: addr, chainId, metadata: meta, deployment });
+        return json({ kind, address: addr, chainId, metadata: meta, deployment, recentTransfers });
       }
       case 'nft': {
         const addr = safeAddr(value);
@@ -163,16 +191,52 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
         const result = await glacierFetch<unknown>(`/v1/networks/${network}/validators/${nodeId}`);
         return json({ kind: 'validator', nodeId, network, result });
       }
+      case 'pchain': {
+        // P-/X-chain bech32 account. Infer network from the HRP (avax=mainnet, fuji=fuji).
+        const hrp = (value.match(/^[PX]-([a-z0-9]+)1/i)?.[1] || '').toLowerCase();
+        const net: Network = hrp === 'fuji' ? 'fuji' : hrp === 'avax' ? 'mainnet' : network;
+        if (/^X-/i.test(value)) {
+          const balances = await glacierFetch<unknown>(
+            `/v1/networks/${net}/blockchains/${X_CHAIN_ID[net]}/balances`,
+            { addresses: stripChainPrefix(value) }
+          ).catch(() => null);
+          return json({
+            kind: 'xchain-address',
+            address: value,
+            network: net,
+            balances,
+            note: balances ? undefined : 'No X-Chain balance data returned for this address.',
+          });
+        }
+        const bal = (await avalancheRPC(net, 'pchain', 'platform.getBalance', { addresses: [value] })) as Record<string, unknown>;
+        const toAvax = (v: unknown) => (typeof v === 'string' ? nAvaxToAvax(v) : undefined);
+        return json({
+          kind: 'pchain-address',
+          address: value,
+          network: net,
+          balanceAvax: toAvax(bal.balance),
+          unlockedAvax: toAvax(bal.unlocked),
+          lockedStakeableAvax: toAvax(bal.lockedStakeable),
+          utxoCount: Array.isArray(bal.utxoIDs) ? (bal.utxoIDs as unknown[]).length : undefined,
+          raw: bal,
+          note: 'P-Chain account. For validator/subnet/UTXO detail use platform_get_current_validators / platform_get_subnets / platform_get_utxos.',
+        });
+      }
       case 'chain': {
-        // Resolve a chain by name or numeric id via the Glacier chain list.
+        // Resolve a chain by numeric id, blockchainId, or (fuzzy) name via the Glacier chain list.
         const list = await withCache(`mcp:chains:${network}`, CACHE_TTL.CHAINS, () =>
           glacierFetch<{ chains?: Array<Record<string, unknown>> }>(`/v1/chains`, { network })
         );
-        const needle = value.toLowerCase();
-        const match = (list.chains || []).find(
-          (c) => String(c.chainId) === value || String(c.chainName || '').toLowerCase() === needle
-        );
-        return json({ kind: 'chain', query: value, network, match: match ?? null });
+        const chains = list.chains || [];
+        const needle = value.toLowerCase().trim();
+        const nameOf = (c: Record<string, unknown>) => String(c.chainName || '').toLowerCase();
+        const match =
+          chains.find((c) => String(c.chainId) === value || String(c.blockchainId || '') === value) ||
+          chains.find((c) => nameOf(c) === needle) ||
+          chains.find((c) => nameOf(c).startsWith(needle)) ||
+          chains.find((c) => nameOf(c).includes(needle));
+        const candidates = match ? undefined : chains.filter((c) => nameOf(c).includes(needle)).slice(0, 5);
+        return json({ kind: 'chain', query: value, network, match: match ?? null, candidates });
       }
       default:
         return errorResult(`Unknown kind "${kind}". One of: ${KINDS.join(', ')}.`);
@@ -187,39 +251,88 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
 // ---------------------------------------------------------------------------
 
 async function onchainActivity(args: Record<string, unknown>): Promise<ToolResult> {
-  const scope = getString(args, 'scope');
+  let scope = getString(args, 'scope');
+  if (!scope) scope = getString(args, 'value') ? 'address' : 'chain'; // forgiving default
   if (!(SCOPES as readonly string[]).includes(scope)) {
-    return errorResult(`Error: scope is required (one of: ${SCOPES.join(', ')}).`);
+    return errorResult(`Error: scope must be one of: ${SCOPES.join(', ')}.`);
   }
   const feed = getString(args, 'feed', 'transactions');
   const network = getNetwork(args);
 
   try {
-    // ClickHouse — EVM raw transactions, time-windowed ("last N hours on chain X").
+    // P-/X-chain account activity — Glacier primary network (address filter + time window).
+    // Handles "what did P-avax1… do in the last N hours" (fractional hours OK).
+    const pxValue = getString(args, 'value');
+    if (PX_ADDRESS.test(pxValue)) {
+      const net = pxNetwork(pxValue, network);
+      const isX = /^X-/i.test(pxValue);
+      const bcId = isX ? X_CHAIN_ID[net] : P_CHAIN_ID;
+      const nowSec = Math.floor(Date.now() / 1000);
+      const params: Record<string, string> = {
+        pageSize: String(clampLimit(args.pageSize, 100, 25)),
+        addresses: stripChainPrefix(pxValue),
+      };
+      const h = Number(args.hours);
+      if (Number.isFinite(h) && h > 0) {
+        params.startTimestamp = String(nowSec - Math.floor(Math.min(h, 24 * 90) * 3600));
+        params.endTimestamp = String(nowSec);
+      } else {
+        if (args.fromTimestamp) params.startTimestamp = String(Number(args.fromTimestamp));
+        if (args.toTimestamp) params.endTimestamp = String(Number(args.toTimestamp));
+      }
+      const result = await glacierFetch<unknown>(`/v1/networks/${net}/blockchains/${bcId}/transactions`, params);
+      return json({
+        source: 'glacier',
+        scope: 'primary',
+        chain: isX ? 'X-Chain' : 'P-Chain',
+        network: net,
+        address: pxValue,
+        windowHours: Number.isFinite(h) && h > 0 ? h : undefined,
+        result,
+      });
+    }
+
+    // EVM time-windowed activity. Prefer ClickHouse (timestamped raw_txs) — return a
+    // COUNT over the window so "last N hours" is meaningful, plus a recent sample. If
+    // ClickHouse is unavailable (CLICKHOUSE_URL unset, or an outage), fall back to
+    // Glacier latest so the tool still answers (the time window is not applied there).
     if ((scope === 'chain' || scope === 'address') && feed === 'transactions') {
       const cid = assertChainId(getChainId(args));
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 2), 24 * 30);
       const limit = clampLimit(args.pageSize, 100, 25);
-      let where = `chain_id = ${cid} AND block_time >= now() - INTERVAL ${hours} HOUR`;
-      if (scope === 'address') {
-        const addr = toSafeHexAddr(getString(args, 'value'));
-        where += ` AND (\`from\` = unhex('${addr}') OR to = unhex('${addr}'))`;
+      const addrHex = scope === 'address' ? toSafeHexAddr(getString(args, 'value')) : '';
+      const addrClause = addrHex ? ` AND (\`from\` = unhex('${addrHex}') OR to = unhex('${addrHex}'))` : '';
+      try {
+        const where = `chain_id = ${cid} AND block_time >= now() - INTERVAL ${hours} HOUR${addrClause}`;
+        const [countRow] = await chSelect<{ n: number }>(`SELECT count() AS n FROM raw_txs WHERE ${where}`);
+        const sample = await chSelect(
+          `SELECT lower(concat('0x', hex(hash))) AS hash, toUnixTimestamp(block_time) AS timestamp, ` +
+            `lower(concat('0x', hex(\`from\`))) AS \`from\`, lower(concat('0x', hex(to))) AS \`to\`, ` +
+            `toString(gas_used) AS gasUsed, toString(gas_price) AS gasPrice ` +
+            `FROM raw_txs WHERE ${where} ORDER BY block_time DESC LIMIT ${limit}`
+        );
+        return json({
+          source: 'clickhouse',
+          scope,
+          chainId: cid,
+          windowHours: hours,
+          txCountInWindow: Number(countRow?.n ?? sample.length),
+          sampleSize: sample.length,
+          ...(isFrozenChain(cid) ? { note: 'chain_id 43113 (Fuji) ingestion is frozen — counts may be stale' } : {}),
+          sampleTransactions: sample,
+        });
+      } catch {
+        // ClickHouse unavailable → Glacier fallback (latest; time window NOT applied).
+        const chainSeg = safeChainSeg(String(cid));
+        const pageSize = String(limit);
+        if (scope === 'address') {
+          const addr = safeAddr(getString(args, 'value'));
+          const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/addresses/${addr}/transactions`, { pageSize });
+          return json({ source: 'glacier-fallback', scope, chainId: chainSeg, address: addr, note: 'ClickHouse unavailable — latest transactions from Glacier; the time window was NOT applied.', result });
+        }
+        const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/transactions`, { pageSize });
+        return json({ source: 'glacier-fallback', scope: 'chain', chainId: chainSeg, note: 'ClickHouse unavailable — latest chain transactions from Glacier; the time window was NOT applied.', result });
       }
-      const rows = await chSelect(
-        `SELECT lower(concat('0x', hex(hash))) AS hash, toUnixTimestamp(block_time) AS timestamp, ` +
-          `lower(concat('0x', hex(\`from\`))) AS \`from\`, lower(concat('0x', hex(to))) AS \`to\`, ` +
-          `toString(gas_used) AS gasUsed, toString(gas_price) AS gasPrice ` +
-          `FROM raw_txs WHERE ${where} ORDER BY block_time DESC LIMIT ${limit}`
-      );
-      return json({
-        source: 'clickhouse',
-        scope,
-        chainId: cid,
-        windowHours: hours,
-        count: rows.length,
-        ...(isFrozenChain(cid) ? { note: 'chain_id 43113 (Fuji) has a frozen ingestion watermark — counts may be stale' } : {}),
-        transactions: rows,
-      });
     }
 
     // Glacier — P/X-chain primary network feed (native timestamp filtering).
@@ -262,6 +375,7 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
     if (target === 'chain') {
       const cid = assertChainId(getChainId(args));
       const window = getString(args, 'window', 'recent');
+      try {
       if (window === 'series') {
         const days = assertSafeDays(typeof args.days === 'number' ? args.days : Number(args.days || 30), 365);
         const interval = getString(args, 'timeInterval', 'day');
@@ -297,6 +411,12 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
         ...(isFrozenChain(cid) ? { note: 'Fuji (43113) ingestion is frozen — counts may be stale' } : {}),
         metrics: rows[0] ?? {},
       });
+      } catch {
+        // ClickHouse unavailable → Glacier latest-block snapshot (no time-window aggregation).
+        const chainSeg = safeChainSeg(String(cid));
+        const latest = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/blocks`, { pageSize: '1' }).catch(() => null);
+        return json({ source: 'glacier-fallback', target: 'chain', chainId: chainSeg, note: 'ClickHouse unavailable — latest-block snapshot from Glacier (no time-window aggregation).', latestBlock: latest });
+      }
     }
 
     if (target === 'contract') {
@@ -333,7 +453,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_lookup',
       description:
-        'Resolve and describe any on-chain identifier in one call: paste an EVM address (balances + tokens, optional NFTs), a contract/token address (metadata + deployment), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, or a chain name/id. `kind` defaults to auto-detect. Indexed (Glacier) — fast, historical, no rate limiting.',
+        'Resolve and describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, and contract metadata + isContract if it is a contract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. `kind` defaults to auto-detect; network is inferred from P-/X-Chain address prefixes. Backed by Glacier + P-Chain RPC.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -350,7 +470,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_activity',
       description:
-        'Time-windowed on-chain activity feed — answers "what happened on chain X in the last N hours" and address/contract/token history. EVM transaction feeds come from the indexed raw-tx store (ClickHouse, timestamped); P/X-chain (scope=primary) and ERC-20/NFT transfer feeds come from Glacier. Paginated.',
+        'Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` plus a recent sample (indexed raw-tx store; auto-falls back to Glacier latest if that store is unavailable). For a token/contract address use scope=token to get its transfers; scope=primary covers P/X-chain (native timestamps). If you pass a value with no scope, it defaults to address.',
       inputSchema: {
         type: 'object',
         properties: {
