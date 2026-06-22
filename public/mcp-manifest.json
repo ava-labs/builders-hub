@@ -195,11 +195,11 @@
     },
     {
       "name": "onchain_lookup",
-      "description": "Resolve and describe any on-chain identifier in one call: paste an EVM address (balances + tokens, optional NFTs), a contract/token address (metadata + deployment), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, or a chain name/id. `kind` defaults to auto-detect. Indexed (Glacier) — fast, historical, no rate limiting."
+      "description": "Resolve and describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, and contract metadata + isContract if it is a contract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. `kind` defaults to auto-detect; network is inferred from P-/X-Chain address prefixes. Backed by Glacier + P-Chain RPC."
     },
     {
       "name": "onchain_activity",
-      "description": "Time-windowed on-chain activity feed — answers \"what happened on chain X in the last N hours\" and address/contract/token history. EVM transaction feeds come from the indexed raw-tx store (ClickHouse, timestamped); P/X-chain (scope=primary) and ERC-20/NFT transfer feeds come from Glacier. Paginated."
+      "description": "Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` plus a recent sample (indexed raw-tx store; auto-falls back to Glacier latest if that store is unavailable). For a token/contract address use scope=token to get its transfers; scope=primary covers P/X-chain (native timestamps). If you pass a value with no scope, it defaults to address."
     },
     {
       "name": "chain_stats",
@@ -207,7 +207,7 @@
     },
     {
       "name": "build_plan",
-      "description": "Generate a step-by-step, copy-pasteable runbook for an Avalanche operation — Builder Console (no-code) path plus the equivalent platform-cli / SDK / interchain-kit command sequence. Read-only: it never signs or broadcasts. Pick `operation`: create-l1, ictt, validator-manager, staking, transfer, interchain-kit."
+      "description": "Generate a step-by-step, copy-pasteable runbook for an Avalanche operation — Builder Console (no-code) path plus the equivalent platform-cli / SDK / interchain-kit commands. Read-only: never signs. operation: create-l1 (launch an L1); use ictt or interchain-kit for any CROSS-CHAIN / interoperability work — bridging tokens, sending cross-chain (ICM / Teleporter / Warp) messages, or connecting your L1 to C-Chain or other L1s (interchain-kit also lets you iterate locally first); validator-manager; staking; transfer."
     },
     {
       "name": "console_link",
