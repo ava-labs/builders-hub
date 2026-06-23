@@ -28,6 +28,8 @@ server.registerToolDomain(docsTools);
 server.registerToolDomain(blockchainTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
+// dataTools' indexed on-chain queries (onchain_activity / chain_stats / onchain_query) route
+// through the query gateway via MCP_GATEWAY_URL (HMAC-signed); see lib/mcp/tools/lib/gateway-client.ts.
 server.registerToolDomain(dataTools);
 server.registerToolDomain(actionTools);
 server.registerToolDomain(consoleTools);
