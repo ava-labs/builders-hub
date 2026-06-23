@@ -15,7 +15,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const MCP_URL = process.env.MCP_URL || 'http://localhost:3000/api/mcp';
-const VERSION = '2.3.0';
+const VERSION = '2.4.0';
 
 interface ListedTool {
   name: string;

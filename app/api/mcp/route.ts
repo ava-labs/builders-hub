@@ -19,7 +19,7 @@ import { docsResources } from '@/lib/mcp/resources';
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.3.0',
+  version: '2.4.0',
   protocolVersion: '2024-11-05',
   description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data (Glacier + ClickHouse), build-plan runbooks, and Builder Console guidance',
 });
