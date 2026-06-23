@@ -1,6 +1,6 @@
 {
   "name": "avalanche-mcp",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data (Glacier + ClickHouse), build-plan runbooks, and Builder Console guidance.",
   "endpoint": "https://build.avax.network/api/mcp",
   "protocol": "mcp/http",
@@ -204,6 +204,10 @@
     {
       "name": "chain_stats",
       "description": "On-chain statistics. target=chain: tx count, gas used, fees, active senders, avg gas price over a recent window or as a time-series (from ClickHouse raw_txs). target=contract: per-contract tx/sender/gas totals. target=network: current P-chain validator snapshot (Glacier). No external metrics API."
+    },
+    {
+      "name": "onchain_query",
+      "description": "Flexible indexed on-chain data via the query gateway (ClickHouse-backed). Pick an op and pass its params (chainId is an allowlisted EVM chain: 43114 C-Chain, 43113 Fuji, + L1s). Ops: chainStatsRecent {chainId, hours<=720}; chainStatsSeries {chainId, days<=365, bucket: hour|day|week|month}; addressActivity {chainId, address, hours<=720, limit<=100}; chainActivity {chainId, hours<=720, limit<=100}; contractStats {chainId, contract, days<=365}; protocolRanking {chainId, contracts[<=25], days<=365, orderBy, dir, limit<=100}; contractGasFlow {chainId, contract, days<=365, limit<=100}; topUnknownContracts {chainId, exclude[<=25], days<=365, limit<=100}; chainGasTotal {chainId, days<=365} or {chainId, fromDate, toDate}."
     },
     {
       "name": "build_plan",

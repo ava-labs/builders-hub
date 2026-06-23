@@ -10,10 +10,11 @@
  *  - chain_stats      — chain/contract metrics from ClickHouse (raw_txs aggregation),
  *                       P-chain validator snapshot from Glacier.
  *
- * Backend split: ClickHouse (raw_txs) has timestamped EVM flow events — ideal for
- * "last N hours" windows and chain throughput. Glacier has current state / enriched
- * metadata (balances, NFTs, contract ABIs, subnets, validators). ClickHouse access
- * goes through ./lib/clickhouse-safe (read-only, validated-params-only, no raw SQL).
+ * Backend split: indexed EVM flow data (tx counts, gas, fees, time-series) comes
+ * from the hardened query gateway (typed DSL → ClickHouse, read-only, credentials
+ * held only by the gateway). Glacier has current state / enriched metadata
+ * (balances, NFTs, contract ABIs, subnets, validators). `onchain_query` exposes the
+ * gateway's DSL directly; the MCP never touches ClickHouse or its creds.
  */
 
 import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
@@ -21,7 +22,6 @@ import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 import {
-  chSelect,
   assertChainId,
   toSafeHexAddr,
   assertSafeHours,
@@ -29,6 +29,7 @@ import {
   clampLimit,
   isFrozenChain,
 } from './lib/clickhouse-safe';
+import { gatewayQuery, gatewayConfigured } from './lib/gateway-client';
 
 const C_CHAIN_ID: Record<Network, string> = { mainnet: '43114', fuji: '43113' };
 
@@ -92,12 +93,17 @@ const FEEDS = ['transactions', 'transfers', 'erc20Transfers', 'nftTransfers'] as
 const TARGETS = ['chain', 'contract', 'network'] as const;
 const WINDOWS = ['series', 'recent'] as const;
 const TIME_INTERVALS = ['hour', 'day', 'week', 'month'] as const;
-const BUCKET_FN: Record<string, string> = {
-  hour: 'toStartOfHour',
-  day: 'toStartOfDay',
-  week: 'toStartOfWeek',
-  month: 'toStartOfMonth',
-};
+const DSL_OPS = [
+  'chainStatsRecent',
+  'chainStatsSeries',
+  'addressActivity',
+  'chainActivity',
+  'contractStats',
+  'protocolRanking',
+  'contractGasFlow',
+  'topUnknownContracts',
+  'chainGasTotal',
+] as const;
 
 // Canonical primary-network blockchain IDs. P-Chain is the zero-ID (same on both networks).
 const P_CHAIN_ID = '11111111111111111111111111111111LpoYY';
@@ -301,22 +307,19 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 2), 24 * 30);
       const limit = clampLimit(args.pageSize, 100, 25);
       const addrHex = scope === 'address' ? toSafeHexAddr(getString(args, 'value')) : '';
-      const addrClause = addrHex ? ` AND (\`from\` = unhex('${addrHex}') OR to = unhex('${addrHex}'))` : '';
       try {
-        const where = `chain_id = ${cid} AND block_time >= now() - INTERVAL ${hours} HOUR${addrClause}`;
-        const [countRow] = await chSelect<{ n: number }>(`SELECT count() AS n FROM raw_txs WHERE ${where}`);
-        const sample = await chSelect(
-          `SELECT lower(concat('0x', hex(hash))) AS hash, toUnixTimestamp(block_time) AS timestamp, ` +
-            `lower(concat('0x', hex(\`from\`))) AS \`from\`, lower(concat('0x', hex(to))) AS \`to\`, ` +
-            `toString(gas_used) AS gasUsed, toString(gas_price) AS gasPrice ` +
-            `FROM raw_txs WHERE ${where} ORDER BY block_time DESC LIMIT ${limit}`
-        );
+        const op = addrHex ? 'addressActivity' : 'chainActivity';
+        const params: Record<string, unknown> = { chainId: cid, hours, limit };
+        if (addrHex) params.address = addrHex;
+        const gw = await gatewayQuery(op, params);
+        const sample = (gw.results.sample ?? []) as Array<Record<string, unknown>>;
+        const countRow = (gw.results.count?.[0] ?? {}) as { n?: number };
         return json({
           source: 'clickhouse',
           scope,
           chainId: cid,
           windowHours: hours,
-          txCountInWindow: Number(countRow?.n ?? sample.length),
+          txCountInWindow: Number(countRow.n ?? sample.length),
           sampleSize: sample.length,
           ...(isFrozenChain(cid) ? { note: 'chain_id 43113 (Fuji) ingestion is frozen — counts may be stale' } : {}),
           sampleTransactions: sample,
@@ -378,14 +381,9 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
       try {
       if (window === 'series') {
         const days = assertSafeDays(typeof args.days === 'number' ? args.days : Number(args.days || 30), 365);
-        const interval = getString(args, 'timeInterval', 'day');
-        const bucket = BUCKET_FN[interval] || 'toStartOfDay';
-        const rows = await chSelect(
-          `SELECT toUnixTimestamp(${bucket}(block_time)) AS bucket, count() AS txCount, ` +
-            `toString(sum(gas_used)) AS gasUsed, sum(toFloat64(gas_used)*toFloat64(gas_price))/1e18 AS feesPaidAvax, ` +
-            `uniqExact(\`from\`) AS activeSenders FROM raw_txs WHERE chain_id = ${cid} ` +
-            `AND block_time >= now() - INTERVAL ${days} DAY GROUP BY bucket ORDER BY bucket`
-        );
+        const rawInterval = getString(args, 'timeInterval', 'day');
+        const interval = (TIME_INTERVALS as readonly string[]).includes(rawInterval) ? rawInterval : 'day';
+        const gw = await gatewayQuery('chainStatsSeries', { chainId: cid, days, bucket: interval });
         return json({
           source: 'clickhouse',
           target,
@@ -393,23 +391,18 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
           timeInterval: interval,
           days,
           ...(isFrozenChain(cid) ? { note: 'Fuji (43113) ingestion is frozen — series may be stale' } : {}),
-          series: rows,
+          series: gw.results.series ?? [],
         });
       }
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 24), 24 * 30);
-      const rows = await chSelect(
-        `SELECT count() AS txCount, toString(sum(gas_used)) AS gasUsed, ` +
-          `sum(toFloat64(gas_used)*toFloat64(gas_price))/1e18 AS feesPaidAvax, ` +
-          `uniqExact(\`from\`) AS activeSenders, round(avg(toFloat64(gas_price))) AS avgGasPrice ` +
-          `FROM raw_txs WHERE chain_id = ${cid} AND block_time >= now() - INTERVAL ${hours} HOUR`
-      );
+      const gw = await gatewayQuery('chainStatsRecent', { chainId: cid, hours });
       return json({
         source: 'clickhouse',
         target,
         chainId: cid,
         windowHours: hours,
         ...(isFrozenChain(cid) ? { note: 'Fuji (43113) ingestion is frozen — counts may be stale' } : {}),
-        metrics: rows[0] ?? {},
+        metrics: gw.results.metrics?.[0] ?? {},
       });
       } catch {
         // ClickHouse unavailable → Glacier latest-block snapshot (no time-window aggregation).
@@ -423,11 +416,8 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
       const cid = assertChainId(getChainId(args));
       const addr = toSafeHexAddr(getString(args, 'value') || getString(args, 'contract'));
       const days = assertSafeDays(typeof args.days === 'number' ? args.days : Number(args.days || 30), 365);
-      const rows = await chSelect(
-        `SELECT count() AS txCount, uniqExact(\`from\`) AS uniqueSenders, toString(sum(gas_used)) AS gasUsed ` +
-          `FROM raw_txs WHERE chain_id = ${cid} AND to = unhex('${addr}') AND block_time >= now() - INTERVAL ${days} DAY`
-      );
-      return json({ source: 'clickhouse', target, chainId: cid, contract: `0x${addr}`, days, stats: rows[0] ?? {} });
+      const gw = await gatewayQuery('contractStats', { chainId: cid, contract: addr, days });
+      return json({ source: 'clickhouse', target, chainId: cid, contract: `0x${addr}`, days, stats: gw.results.stats?.[0] ?? {} });
     }
 
     // target === 'network' → Glacier P-chain validator snapshot (ClickHouse holds EVM data only).
@@ -439,6 +429,27 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
       note: 'P-chain validator/delegator metrics are a current snapshot — ClickHouse holds EVM data only, so no historical P-chain time-series here.',
       result,
     });
+  } catch (err) {
+    return errorResult(asMessage(err));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// onchain_query — direct typed-DSL passthrough to the query gateway
+// ---------------------------------------------------------------------------
+
+async function onchainQuery(args: Record<string, unknown>): Promise<ToolResult> {
+  const op = getString(args, 'op');
+  if (!op || !(DSL_OPS as readonly string[]).includes(op)) {
+    return errorResult(`Error: op must be one of: ${DSL_OPS.join(', ')}.`);
+  }
+  if (!gatewayConfigured()) return errorResult('Error: on-chain query gateway is not configured.');
+  const params =
+    args.params && typeof args.params === 'object' && !Array.isArray(args.params)
+      ? (args.params as Record<string, unknown>)
+      : {};
+  try {
+    return json(await gatewayQuery(op, params));
   } catch (err) {
     return errorResult(asMessage(err));
   }
@@ -507,11 +518,34 @@ export const dataTools: ToolDomain = {
         required: [],
       },
     },
+    {
+      name: 'onchain_query',
+      description:
+        'Flexible indexed on-chain data via the query gateway (ClickHouse-backed). Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Ops: ' +
+        'chainStatsRecent {chainId, hours≤720} — tx count/gas/fees/active senders/avg gas price over the last N hours; ' +
+        'chainStatsSeries {chainId, days≤365, bucket: hour|day|week|month} — bucketed time-series of the same; ' +
+        'addressActivity {chainId, address, hours≤720, limit≤100} — tx count + recent sample for an address in a window; ' +
+        'chainActivity {chainId, hours≤720, limit≤100} — tx count + recent sample chain-wide in a window; ' +
+        'contractStats {chainId, contract, days≤365} — tx/unique-sender/gas totals for a contract; ' +
+        'protocolRanking {chainId, contracts[≤25], days≤365, orderBy: txCount|gasUsed|uniqueSenders|feesPaidAvax, dir: asc|desc, limit≤100} — rank a set of contracts; ' +
+        'contractGasFlow {chainId, contract, days≤365, limit≤100} — gas received/given per counterparty; ' +
+        'topUnknownContracts {chainId, exclude[≤25], days≤365, limit≤100} — top contracts by gas excluding a set; ' +
+        'chainGasTotal {chainId, days≤365} OR {chainId, fromDate, toDate} — total tx/gas/fees over N days or a YYYY-MM-DD range (≤365d).',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          op: { type: 'string', enum: [...DSL_OPS], description: 'The query operation' },
+          params: { type: 'object', description: 'Op-specific parameters (see description); validated server-side.' },
+        },
+        required: ['op', 'params'],
+      },
+    },
   ],
 
   handlers: {
     onchain_lookup: onchainLookup,
     onchain_activity: onchainActivity,
     chain_stats: chainStats,
+    onchain_query: onchainQuery,
   },
 };
