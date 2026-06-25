@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Team1Symbol, Team1Wordmark } from "@/components/grants/Team1Wordmark";
-import { StatusBadge } from "@/components/grants/MiniGrantApplications";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession, getSession } from "next-auth/react";
 import { useLoginModalTrigger, useLoginCompleteListener } from "@/hooks/useLoginModal";
@@ -34,7 +33,7 @@ import {
   MAX_GRANT_BUDGET_USD,
   type MiniGrantFormData,
 } from "@/types/miniGrantForm";
-import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
+import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_KEY } from "@/lib/grants/programs";
 import {
   clearStoredReferralAttribution,
   getStoredReferralAttribution,
@@ -159,8 +158,10 @@ const miniGrantResolver: Resolver<MiniGrantFormData> = async (values) => {
 export default function Team1MiniGrantsApplyPage() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { openLoginModal } = useLoginModalTrigger();
   const hasTriggeredModalRef = useRef(false);
+  const handledProjectParamRef = useRef(false);
   const [authGateState, setAuthGateState] = useState<"checking" | "ready" | "prompt">("checking");
 
   // Wizard state
@@ -192,6 +193,7 @@ export default function Team1MiniGrantsApplyPage() {
   const [applications, setApplications] = useState<
     { id: string; projectId: string; projectName: string; status: string }[]
   >([]);
+  const [applicationsLoaded, setApplicationsLoaded] = useState(false);
 
   // Step 4: members
   const [members, setMembers] = useState<ProjectMember[]>([]);
@@ -303,6 +305,8 @@ export default function Team1MiniGrantsApplyPage() {
       setApplications(data.applications ?? []);
     } catch {
       /* non-fatal: the apply flow still works without the prior-applications list */
+    } finally {
+      setApplicationsLoaded(true);
     }
   }, []);
 
@@ -312,6 +316,27 @@ export default function Team1MiniGrantsApplyPage() {
       loadApplications();
     }
   }, [authGateState, loadProjects, loadApplications]);
+
+  useEffect(() => {
+    if (handledProjectParamRef.current || projectsLoading || !applicationsLoaded) return;
+    const projectId = searchParams.get("project");
+    if (!projectId || projects.length === 0) return;
+
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) {
+      handledProjectParamRef.current = true;
+      return;
+    }
+
+    const isApplied = applications.some((a) => a.projectId === project.id);
+    if (!isApplied && (!project.hackaton_id || project.hackaton_id === MINI_GRANT_HACKATHON_ID)) {
+      handledProjectParamRef.current = true;
+      setConsentTeam1(true);
+      setSelectedProjectId(project.id);
+      setActiveStep(1);
+      startEditProject(project);
+    }
+  }, [applications, applicationsLoaded, projects, projectsLoading, searchParams]);
 
   // Prefill the contact fields from the signed-in user's profile, without
   // clobbering anything they've already typed. Best-effort: the form still
@@ -483,7 +508,12 @@ export default function Team1MiniGrantsApplyPage() {
         const res = await fetch("/api/project", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, website, socials }),
+          body: JSON.stringify({
+            ...payload,
+            origin: MINI_GRANT_KEY,
+            website,
+            socials,
+          }),
         });
         const result = (await res.json().catch(() => null)) as
           | { project?: { id?: string }; error?: unknown }
@@ -808,13 +838,20 @@ export default function Team1MiniGrantsApplyPage() {
                       You don&apos;t have any projects yet. Create one to continue.
                     </p>
                   )}
-                  {projects.map((project) => {
+                  {projects.toSorted((a, b) => {
+                    const aApplied = appliedProjectIds.has(a.id);
+                    const bApplied = appliedProjectIds.has(b.id);
+                    if (aApplied === bApplied) return 0;
+                    return aApplied ? 1 : -1;
+                  }).map((project) => {
                     const isSelected = selectedProjectId === project.id;
                     const appliedApp = applications.find((a) => a.projectId === project.id);
                     const isApplied = !!appliedApp;
                     // Editing is only for unsubmitted drafts (mirrors the server
                     // guard): not yet applied and attached to no hackathon.
-                    const isDraft = !isApplied && !project.hackaton_id;
+                    const isDraft =
+                      !isApplied &&
+                      (!project.hackaton_id || project.hackaton_id === MINI_GRANT_HACKATHON_ID);
                     return (
                       <div
                         key={project.id}
@@ -850,7 +887,9 @@ export default function Team1MiniGrantsApplyPage() {
                             )}
                           </div>
                           {isApplied ? (
-                            <StatusBadge status={appliedApp.status} />
+                            <span className="mt-1 shrink-0 text-xs font-medium text-muted-foreground">
+                              Applied
+                            </span>
                           ) : (
                             isSelected && <Check className="mt-1 h-5 w-5 shrink-0 text-primary" />
                           )}

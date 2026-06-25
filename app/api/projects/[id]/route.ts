@@ -6,6 +6,7 @@ import { isUserProjectMember } from "@/server/services/fileValidation";
 import { withAuth } from '@/lib/protectedRoute';
 import { GetProjectByIdWithMembers } from "@/server/services/memberProject";
 import { prisma } from "@/prisma/prisma";
+import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 
 // A confirmed member may edit a project only while it's an unsubmitted draft:
 // attached to no hackathon, with no evaluations and no grant applications. This
@@ -37,7 +38,15 @@ async function guardDraftMutation(id: string, session: any): Promise<NextRespons
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
-  if (project.hackaton_id || project._count.evaluations > 0 || project._count.grant_applications > 0) {
+  const isEditableMiniGrantDraft =
+    project.hackaton_id === MINI_GRANT_HACKATHON_ID &&
+    project._count.evaluations === 0 &&
+    project._count.grant_applications === 0;
+
+  if (
+    !isEditableMiniGrantDraft &&
+    (project.hackaton_id || project._count.evaluations > 0 || project._count.grant_applications > 0)
+  ) {
     return NextResponse.json(
       { error: "This project has already been submitted or reviewed and can no longer be modified." },
       { status: 409 },
