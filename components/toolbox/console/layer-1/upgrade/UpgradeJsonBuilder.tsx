@@ -1180,24 +1180,32 @@ function StateUpgradesSection({
                     : null
                 }
               />
-              <Input
-                label="Source RPC URL"
-                value={change.sourceRpcUrl}
-                onChange={(sourceRpcUrl) => updateCode(change.id, { sourceRpcUrl })}
-                placeholder="https://..."
-              />
-              <div className="md:pt-7">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="w-auto"
-                  loading={change.isFetching}
-                  icon={<RotateCw className="h-4 w-4" />}
-                  onClick={() => void fetchCode(change)}
-                >
-                  Fetch Code
-                </Button>
-              </div>
+              {/* Presets already carry bundled runtime bytecode, so fetching
+                  from a source chain is unnecessary — and 404s for predeploys
+                  the chain doesn't have at their canonical address. Only show
+                  the RPC fetch controls for the custom path. */}
+              {change.sourcePreset === 'custom' && (
+                <>
+                  <Input
+                    label="Source RPC URL"
+                    value={change.sourceRpcUrl}
+                    onChange={(sourceRpcUrl) => updateCode(change.id, { sourceRpcUrl })}
+                    placeholder="https://..."
+                  />
+                  <div className="md:pt-7">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-auto"
+                      loading={change.isFetching}
+                      icon={<RotateCw className="h-4 w-4" />}
+                      onClick={() => void fetchCode(change)}
+                    >
+                      Fetch Code
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Runtime Bytecode</label>
             <textarea

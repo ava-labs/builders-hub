@@ -306,8 +306,12 @@ export function deriveActivePrecompiles(
   for (const definition of PRECOMPILE_DEFINITIONS) {
     const genesisConfig = chainConfig[definition.key];
     if (!isPlainObject(genesisConfig)) continue;
-    const timestamp = parseTimestampValue(genesisConfig.blockTimestamp) ?? 0;
-    if (timestamp <= cutoff) active[definition.key] = genesisConfig;
+    const timestamp = parseTimestampValue(genesisConfig.blockTimestamp);
+    // Skip genesis configs with a missing/garbage blockTimestamp instead of
+    // defaulting to 0 (which would over-report them as active-from-genesis),
+    // matching the upgrades branch below.
+    if (timestamp === null || timestamp > cutoff) continue;
+    active[definition.key] = genesisConfig;
   }
 
   const upgrades = isPlainObject(chainConfig.upgrades) ? chainConfig.upgrades.precompileUpgrades : undefined;
@@ -401,7 +405,9 @@ export function getMaxConfiguredTimestamp(config: UpgradeJson | null | undefined
 
   if (Array.isArray(config.stateUpgrades)) {
     for (const entry of config.stateUpgrades) {
-      if (typeof entry?.blockTimestamp === 'number') timestamps.push(entry.blockTimestamp);
+      const ts = entry?.blockTimestamp;
+      if (typeof ts === 'number') timestamps.push(ts);
+      else if (typeof ts === 'string' && DECIMAL_POSITIVE_RE.test(ts)) timestamps.push(Number(ts));
     }
   }
 
