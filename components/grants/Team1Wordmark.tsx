@@ -1,37 +1,57 @@
 /**
+ * The Team1 brand red, used for the "1" accent. Taken verbatim from the supplied
+ * brand assets so it renders identically in light and dark mode.
+ */
+const TEAM1_RED = "#E6212F";
+
+/**
  * The "Team1" wordmark, used in place of the literal text "Team1" in headings.
  *
- * The supplied asset (`/team1/text-logo.svg`) is white + red — designed for dark
- * backgrounds. On the light-mode `bg-background` the white would be invisible, so
- * in light mode we apply `invert(1) hue-rotate(180deg)`: white → near-black (stays
- * readable) while the red accent rotates back to ~red. In dark mode we use it as-is.
+ * The brand asset is white + red — designed for dark backgrounds. Rather than
+ * recolor the whole image with a filter (which distorts the saturated red), we
+ * inline the SVG: the "Team" letters use `currentColor` so they follow the text
+ * color (near-black on light `bg-background`, near-white in dark mode via
+ * `text-foreground`), while the red "1" keeps its exact brand color in both modes.
  *
  * Height is sized in `em` so the logo scales with the surrounding text — pass an
- * `h-[..em]` class to tune it per heading. `alt="Team1"` keeps the heading reading
- * as "Team1 Mini Grants" for screen readers.
+ * `h-[..em]` class to tune it per heading. `aria-label="Team1"` keeps the heading
+ * reading as "Team1 Mini Grants" for screen readers.
  */
 export function Team1Wordmark({ className = "h-[0.8em]" }: { className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/team1/text-logo.svg"
-      alt="Team1"
-      className={`inline-block w-auto align-[-0.1em] [filter:invert(1)_hue-rotate(180deg)] dark:[filter:none] ${className}`}
-    />
+    <svg
+      viewBox="0 0 1027 289"
+      role="img"
+      aria-label="Team1"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`inline-block w-auto align-[-0.1em] text-foreground ${className}`}
+    >
+      <path d="M608.94 283.33V85.36C608.94 81.86 611.76 79.01 615.26 78.97L658.51 78.52C662.06 78.48 664.97 81.36 664.97 84.91V98.86C674.74 91.39 685.37 85.5 696.86 81.19C708.64 76.88 721.28 74.73 734.79 74.73C749.16 74.73 760.22 76.88 767.98 81.19C776.02 85.5 782.2 91.68 786.51 99.72C795.99 92.25 806.77 86.22 818.84 81.62C831.2 77.02 845.7 74.72 862.37 74.72C885.93 74.72 903.32 80.9 914.52 93.25C925.73 105.32 931.33 123.85 931.33 148.85V283.32H874.01V155.31C874.01 141.81 871.14 132.18 865.39 126.43C859.64 120.4 850.45 117.38 837.81 117.38C820.57 117.38 808.36 123.56 796.86 135.91C796.86 142.71 796.73 146.97 796.86 153.58V283.31H742.56V155.3C742.56 142.66 740.4 133.18 736.09 126.85C731.78 120.53 723.45 117.37 711.09 117.37C702.47 117.37 694.28 119.67 686.52 124.27C679.05 128.58 672.3 133.61 666.26 139.36V283.31H608.94V283.33Z" fill="currentColor"/>
+      <path d="M447.44 287.64C434.51 287.64 422.44 285.34 411.24 280.74C400.32 275.86 391.41 268.82 384.52 259.62C377.91 250.14 374.61 238.36 374.61 224.28C374.61 204.17 381.65 188.08 395.73 176.01C410.1 163.94 431.21 157.91 459.09 157.91H519.43V152.31C519.43 139.67 515.84 130.76 508.66 125.59C501.76 120.42 487.69 117.83 466.42 117.83C445.15 117.83 426.59 120.55 407.65 125.98C403.46 127.18 399.18 124.1 399.18 119.74V92.01C399.18 89.38 400.78 87.01 403.26 86.14C411.9 83.1 422.04 80.59 433.66 78.61C447.45 76.02 462.39 74.73 478.48 74.73C509.23 74.73 532.93 81.05 549.6 93.69C566.55 106.05 575.03 126.02 575.03 153.6V283.33L521.59 282.52V264.79C513.54 271.97 503.63 277.58 491.85 281.6C480.07 285.62 465.27 287.64 447.46 287.64H447.44ZM463.38 249.28C476.31 249.28 487.52 247.12 497 242.81C506.48 238.5 513.95 233.04 519.41 226.43V194.1H460.36C437.66 194.1 426.31 203.44 426.31 222.12C426.31 240.8 438.67 249.27 463.38 249.27V249.28Z" fill="currentColor"/>
+      <path d="M269.01 287.64C233.67 287.64 205.65 278.88 184.96 261.35C164.27 243.53 153.93 216.67 153.93 180.75C153.93 148.28 162.55 122.56 179.79 103.6C197.32 84.35 223.32 74.72 257.8 74.72C289.41 74.72 313.54 83.05 330.21 99.72C347.16 116.1 355.64 137.65 355.64 164.37V197.18C355.64 199.53 353.73 201.44 351.38 201.44H207.81C210.97 217.82 218.44 229.02 230.22 235.06C242.29 241.1 259.24 244.11 281.08 244.11C292 244.11 303.06 243.1 314.27 241.09C321.83 239.77 328.64 238.19 334.71 236.37C339.02 235.08 343.58 238.2 343.58 242.71V271.96C343.58 273.63 342.61 275.16 341.07 275.8C332.16 279.55 321.94 282.35 310.4 284.18C297.76 286.48 283.97 287.63 269.02 287.63L269.01 287.64ZM207.8 165.66H304.78V154.45C304.78 142.67 301.33 133.47 294.44 126.87C287.54 119.97 275.91 116.53 259.53 116.53C240.28 116.53 226.77 120.41 219.02 128.17C211.55 135.93 207.81 148.43 207.81 165.67L207.8 165.66Z" fill="currentColor"/>
+      <path d="M1020.91 181.07H974.13C970.88 181.07 968.25 178.44 968.25 175.19V63.4C968.25 60.15 965.62 57.52 962.37 57.52H936.8C933.55 57.52 930.92 54.89 930.92 51.64V5.88C930.92 2.63 933.55 0 936.8 0H1020.9C1024.15 0 1026.78 2.63 1026.78 5.88V175.19C1026.78 178.44 1024.15 181.07 1020.9 181.07H1020.91Z" fill={TEAM1_RED}/>
+      <path d="M98.27 288.98C74.71 288.98 57.18 282.8 45.69 270.45C34.48 258.09 28.88 241.29 28.88 220.02V129.46C28.88 127.11 26.97 125.2 24.62 125.2H6.39C2.86 125.2 0 122.34 0 118.81V86.77C0 83.24 2.86 80.38 6.39 80.38H22.49C26.02 80.38 28.88 77.52 28.88 73.99V25.56C28.88 22.03 31.74 19.17 35.27 19.17H80.67C84.2 19.17 87.06 22.03 87.06 25.56V73.98C87.06 77.51 89.92 80.37 93.45 80.37H131.88C135.6 80.37 138.54 83.54 138.25 87.25L135.79 119.29C135.53 122.62 132.76 125.19 129.42 125.19H93.46C89.93 125.19 87.07 128.05 87.07 131.58V216.13C87.07 227.34 89.66 235.1 94.83 239.41C100 243.43 108.05 245.44 118.97 245.44C124.33 245.44 129.82 244.8 135.43 243.53C139.68 242.56 143.96 245.64 143.96 250V278.36C143.96 280.09 142.92 281.66 141.29 282.26C135.71 284.32 129.7 285.84 123.27 286.83C115.8 288.27 107.47 288.99 98.27 288.99V288.98Z" fill="currentColor"/>
+    </svg>
   );
 }
 
 /**
- * The square Team1 symbol mark. Same white+red asset and the same light/dark
- * treatment as {@link Team1Wordmark}. Pass `h-/w-` classes to size it.
+ * The square Team1 symbol mark. Same white + red asset and the same
+ * `currentColor`/brand-red treatment as {@link Team1Wordmark}. Pass `h-/w-`
+ * classes to size it.
  */
 export function Team1Symbol({ className = "h-8 w-8" }: { className?: string }) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/team1/symbol-logo.svg"
-      alt="Team1"
-      className={`[filter:invert(1)_hue-rotate(180deg)] dark:[filter:none] ${className}`}
-    />
+    <svg
+      viewBox="-76.247 -19.782 303.324 303.324"
+      role="img"
+      aria-label="Team1"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`text-foreground ${className}`}
+    >
+      <path fill={TEAM1_RED} d="M150.78,5.84v119.22c0,2.6-2.1,4.7-4.7,4.7h-39.44c-2.59,0-4.69-2.11-4.69-4.7V53.59c0-2.59-2.1-4.7-4.7-4.7h-27.23c-2.59,0-4.69-2.11-4.69-4.7V4.7c0-2.6,2.1-4.7,4.69-4.7h74.92c3.22,0,5.83,2.61,5.83,5.84Z"/>
+      <path fill="currentColor" d="M150.83,219.57v39.49c0,2.6-2.1,4.7-4.7,4.7h-51.22c-32.39,0-58.64-26.29-58.64-58.72v-65.4c0-2.6-2.1-4.7-4.7-4.7H4.7c-2.59,0-4.7-2.11-4.7-4.7v-39.49c0-2.59,2.1-4.7,4.7-4.7h26.88c2.59,0,4.7-2.11,4.7-4.7v-10.34c0-2.6,2.1-4.7,4.69-4.7h39.44c2.59,0,4.7,2.11,4.7,4.7v132.52c0,6.26,5.07,11.34,11.32,11.34h49.71c2.59,0,4.7,2.11,4.7,4.7Z"/>
+    </svg>
   );
 }
