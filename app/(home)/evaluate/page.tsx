@@ -5,6 +5,29 @@ import { EvaluateDashboard } from "@/components/evaluate/EvaluateDashboard";
 import type { SubmissionRow, EvaluationData } from "@/components/evaluate/types";
 import { canAccessEvaluationTools } from "@/lib/auth/permissions";
 
+function normalizeStringMap(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof v === "string" && v.trim().length > 0) out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function normalizeDeployedAddresses(
+  value: unknown,
+): Array<{ address: string; tag?: string }> {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rec = item as Record<string, unknown>;
+    const address = typeof rec.address === "string" ? rec.address.trim() : "";
+    if (!address) return [];
+    const tag = typeof rec.tag === "string" && rec.tag.trim().length > 0 ? rec.tag.trim() : undefined;
+    return [tag ? { address, tag } : { address }];
+  });
+}
+
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
   const hasData = (keys: string[]) => keys.some((k) => data[k] && String(data[k]).trim());
@@ -169,6 +192,10 @@ export default async function EvaluatePage({
           demoVideoLink: fd.project.demo_video_link ?? "",
           tracks: fd.project.tracks,
           categories: fd.project.categories,
+          tags: fd.project.tags,
+          deployedAddresses: normalizeDeployedAddresses(fd.project.deployed_addresses),
+          website: normalizeStringMap(fd.project.website),
+          socials: normalizeStringMap(fd.project.socials),
           isPreexistingIdea: fd.project.is_preexisting_idea,
           createdAt: fd.project.created_at.toISOString(),
           members: fd.project.members.map((m) => ({
