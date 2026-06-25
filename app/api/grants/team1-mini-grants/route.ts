@@ -6,6 +6,7 @@ import { miniGrantFormSchema } from "@/types/miniGrantForm";
 import { MINI_GRANT_KEY, MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 import { ensureGrantHackathon } from "@/lib/grants/ensureHackathon";
 import { rateLimited } from "@/app/api/managed-testnet-nodes/utils";
+import { extractAndRecordReferral } from "@/server/services/referrals";
 
 async function rateLimitIdentifier(): Promise<string> {
   if (process.env.NODE_ENV === "development") return "dev-user";
@@ -85,7 +86,14 @@ async function handlePost(request: NextRequest) {
         select: { id: true },
       });
     });
-    return NextResponse.json({ success: true, id: result.id }, { status: 201 });
+    const referralAttributed = await extractAndRecordReferral(
+      request,
+      body,
+      { targetType: "grant_application", targetId: MINI_GRANT_KEY },
+      { userId, userEmail: email },
+    );
+
+    return NextResponse.json({ success: true, id: result.id, referralAttributed }, { status: 201 });
   } catch (error) {
     console.error("[Mini Grants] save failed:", error);
     return NextResponse.json({ success: false, message: "We couldn't save your application right now." }, { status: 500 });

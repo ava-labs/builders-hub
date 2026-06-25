@@ -35,6 +35,10 @@ import {
   type MiniGrantFormData,
 } from "@/types/miniGrantForm";
 import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
+import {
+  clearStoredReferralAttribution,
+  getStoredReferralAttribution,
+} from "@/lib/referrals/client";
 
 const CONSENT_TEXT =
   "I consent to the sharing of my data with Team1.";
@@ -565,14 +569,18 @@ export default function Team1MiniGrantsApplyPage() {
         body: JSON.stringify({
           projectId: selectedProjectId,
           consentTeam1: true,
+          referral_attribution: getStoredReferralAttribution(),
           ...values,
         }),
       });
       const result = (await response.json().catch(() => null)) as
-        | { success?: boolean; message?: string }
+        | { success?: boolean; message?: string; referralAttributed?: boolean }
         | null;
       if (!response.ok || !result?.success) {
         throw new Error(result?.message || "Failed to submit your application.");
+      }
+      if (result.referralAttributed) {
+        clearStoredReferralAttribution();
       }
       setSubmissionStatus("success");
     } catch (error) {
