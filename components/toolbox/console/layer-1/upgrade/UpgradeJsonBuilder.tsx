@@ -7,6 +7,7 @@ import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
+import { Select } from '@/components/toolbox/components/Select';
 import {
   BaseConsoleToolProps,
   ConsoleToolMetadata,
@@ -18,7 +19,7 @@ import AllowList from '@/components/toolbox/components/genesis/AllowList';
 import { JsonPreviewPanel } from '@/components/toolbox/components/genesis/JsonPreviewPanel';
 import { SectionWrapper } from '@/components/toolbox/components/genesis/SectionWrapper';
 import { PrecompileToggleList, type PrecompileItem } from '@/components/toolbox/components/genesis/PrecompileToggleList';
-import { PRECOMPILE_INFO } from '@/components/toolbox/components/genesis/precompileInfo';
+import { PRECOMPILE_INFO, PREDEPLOY_INFO } from '@/components/toolbox/components/genesis/precompileInfo';
 import {
   GenesisHighlightProvider,
   useGenesisHighlight,
@@ -33,6 +34,7 @@ import {
   BalanceChange,
   buildUpgradeJson,
   emptyUpgradeJson,
+  extractUpgradeJsonFromChainConfig,
   formatUpgradeJson,
   getMaxConfiguredTimestamp,
   parseUpgradeJson,
@@ -45,6 +47,12 @@ import {
   isValidRuntimeBytecode,
   validateUpgradePlan,
 } from '@/lib/console/upgrade-json';
+import TransparentUpgradeableProxy from '@/contracts/openzeppelin-4.9/compiled/TransparentUpgradeableProxy.json';
+import ProxyAdmin from '@/contracts/openzeppelin-4.9/compiled/ProxyAdmin.json';
+import TeleporterMessenger from '@/contracts/icm-contracts/compiled/TeleporterMessenger.json';
+import WrappedNativeToken from '@/contracts/icm-contracts/compiled/WrappedNativeToken.json';
+import Create2Deployer from '@/contracts/create2-contracts/compiled/Create2Deployer.json';
+import Multicall3 from '@/contracts/multicall3-contracts/compiled/Multicall3.json';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Upgrade JSON',
@@ -76,20 +84,15 @@ type RpcCheckResponse = {
   };
 };
 
-type SnapshotResponse = {
-  snapshot?: {
-    upgrade_json?: unknown;
-    updated_at?: string;
-    status?: string;
-  } | null;
-};
-
 type ManagedFetchResponse = {
   managed: boolean;
   exists: boolean;
   upgradeJson: unknown | null;
   nodes?: Array<{ id: string; nodeIndex: number | null; nodeId: string }>;
+  serviceError?: string | null;
 };
+
+type ManagedCheckState = 'loading' | 'ok' | 'error';
 
 type UiCodeChange = {
   id: string;
@@ -97,6 +100,8 @@ type UiCodeChange = {
   code: string;
   sourceRpcUrl: string;
   sourceAddress: string;
+  sourcePreset: string;
+  storage?: Record<string, string>;
   isFetching?: boolean;
 };
 
@@ -125,6 +130,70 @@ const PRECOMPILE_ACTIONS: Record<PrecompileConfigKey, string> = {
   feeManagerConfig: 'update fee parameters',
   rewardManagerConfig: 'configure fee rewards',
   warpConfig: 'configure Warp messaging',
+};
+
+// Common predeploys offered as bytecode sources — the same catalog (names and
+// canonical addresses) the genesis builder installs.
+const SOURCE_CONTRACT_PRESETS = Object.entries(PREDEPLOY_INFO).map(([key, info]) => ({
+  key,
+  name: info.name,
+  address: info.address,
+}));
+
+// Deployed bytecode + storage initialization per preset, mirroring what
+// genGenesis allocates at genesis. Bundling the artifacts means presets never
+// depend on the source chain actually having the contract deployed.
+const UNINITIALIZED_PROXY_ADDRESS = '0x1212121212121212121212121212121212121212';
+const PROXY_ADMIN_ADDRESS = '0xdad0000000000000000000000000000000000000';
+const EIP1967_IMPLEMENTATION_SLOT = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc';
+const EIP1967_ADMIN_SLOT = '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103';
+const STORAGE_SLOT_0 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+const STORAGE_SLOT_1 = '0x0000000000000000000000000000000000000000000000000000000000000001';
+const STORAGE_VALUE_1 = '0x0000000000000000000000000000000000000000000000000000000000000001';
+const SAFE_SINGLETON_FACTORY_CODE =
+  '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3';
+
+function hexTo32Bytes(hex: string): string {
+  const stripped = hex.startsWith('0x') ? hex.slice(2) : hex;
+  return `0x${stripped.toLowerCase().padStart(64, '0')}`;
+}
+
+type SourcePresetDetails = {
+  code: string;
+  storage?: (walletAddress?: string) => Record<string, string> | undefined;
+  note?: string;
+};
+
+const SOURCE_PRESET_DETAILS: Record<string, SourcePresetDetails> = {
+  proxy: {
+    code: TransparentUpgradeableProxy.deployedBytecode.object,
+    storage: () => ({
+      [EIP1967_IMPLEMENTATION_SLOT]: hexTo32Bytes(UNINITIALIZED_PROXY_ADDRESS),
+      [EIP1967_ADMIN_SLOT]: hexTo32Bytes(PROXY_ADMIN_ADDRESS),
+    }),
+    note: 'Initializes the EIP-1967 implementation and admin slots like the genesis predeploy. Upgrade the implementation via the Proxy Admin afterwards.',
+  },
+  proxyAdmin: {
+    code: ProxyAdmin.deployedBytecode.object,
+    storage: (walletAddress) =>
+      walletAddress && isValidAddress(walletAddress) ? { [STORAGE_SLOT_0]: hexTo32Bytes(walletAddress) } : undefined,
+    note: 'The owner storage slot is set to your connected wallet (connect one before picking this preset).',
+  },
+  icmMessenger: {
+    code: TeleporterMessenger.deployedBytecode.object,
+    storage: () => ({
+      [STORAGE_SLOT_0]: STORAGE_VALUE_1,
+      [STORAGE_SLOT_1]: STORAGE_VALUE_1,
+    }),
+    note: 'Initializes the reentrancy-guard slots the messenger needs before first use.',
+  },
+  wrappedNativeToken: {
+    code: (WrappedNativeToken.deployedBytecode as { object: string }).object,
+    note: 'Wrapping works immediately, but name()/symbol() storage is not initialized by code-only injection.',
+  },
+  safeSingletonFactory: { code: SAFE_SINGLETON_FACTORY_CODE },
+  multicall3: { code: Multicall3.deployedBytecode.object },
+  create2Deployer: { code: Create2Deployer.deployedBytecode as string },
 };
 
 function makeInitialPrecompiles(): PrecompileSelection[] {
@@ -202,6 +271,7 @@ function UpgradeJsonBuilderInner() {
   const [rpcCheck, setRpcCheck] = useState<RpcCheckResponse | null>(null);
   const [rpcError, setRpcError] = useState<string | null>(null);
   const [managedInfo, setManagedInfo] = useState<ManagedFetchResponse | null>(null);
+  const [managedCheckState, setManagedCheckState] = useState<ManagedCheckState>('loading');
   const [precompiles, setPrecompiles] = useState<PrecompileSelection[]>(makeInitialPrecompiles);
   const [activationTimestamp, setActivationTimestamp] = useState(
     () => Math.floor(Date.now() / 1000) + DEFAULT_TIMESTAMP_OFFSET_SECONDS,
@@ -209,10 +279,8 @@ function UpgradeJsonBuilderInner() {
   const timestampTouchedRef = useRef(false);
   const [balanceChanges, setBalanceChanges] = useState<BalanceChange[]>([]);
   const [codeChanges, setCodeChanges] = useState<UiCodeChange[]>([]);
-  const [isSavingSnapshot, setIsSavingSnapshot] = useState(false);
-  const [isWritingManaged, setIsWritingManaged] = useState(false);
-  const [isRestartingManaged, setIsRestartingManaged] = useState(false);
-  const [managedWritten, setManagedWritten] = useState(false);
+  const [isApplyingManaged, setIsApplyingManaged] = useState(false);
+  const [managedApplied, setManagedApplied] = useState(false);
 
   const parsedBase = useMemo(() => parseUpgradeJson(baseText), [baseText]);
   const baseConfig = parsedBase.config ?? emptyUpgradeJson();
@@ -225,7 +293,7 @@ function UpgradeJsonBuilderInner() {
       activationTimestamp,
       precompiles,
       balanceChanges,
-      codeChanges: codeChanges.map(({ id, address, code }) => ({ id, address, code })),
+      codeChanges: codeChanges.map(({ id, address, code, storage }) => ({ id, address, code, storage })),
     }),
     [activationTimestamp, balanceChanges, baseConfig, codeChanges, precompiles],
   );
@@ -250,17 +318,15 @@ function UpgradeJsonBuilderInner() {
     async function loadInitialState() {
       setIsLoadingSource(true);
       setRpcError(null);
-      setManagedWritten(false);
+      setManagedApplied(false);
+      setManagedCheckState('loading');
       try {
-        const [snapshotResult, managedResult, rpcResult] = await Promise.allSettled([
+        // The managed check always runs — node type comes from the backend's
+        // registration table, never from the hint carried in the store.
+        const [managedResult, rpcResult] = await Promise.allSettled([
           fetch(
-            `/api/console/l1-upgrade/snapshot?subnetId=${encodeURIComponent(selection.subnetId)}&blockchainId=${encodeURIComponent(selection.blockchainId)}`,
+            `/api/console/l1-upgrade/managed?subnetId=${encodeURIComponent(selection.subnetId)}&blockchainId=${encodeURIComponent(selection.blockchainId)}`,
           ),
-          selection.isManaged
-            ? fetch(
-                `/api/console/l1-upgrade/managed?subnetId=${encodeURIComponent(selection.subnetId)}&blockchainId=${encodeURIComponent(selection.blockchainId)}`,
-              )
-            : Promise.resolve(null),
           selection.rpcUrl
             ? fetch('/api/console/l1-upgrade/rpc', {
                 method: 'POST',
@@ -272,22 +338,21 @@ function UpgradeJsonBuilderInner() {
 
         if (cancelled) return;
 
-        let snapshot: SnapshotResponse | null = null;
-        if (snapshotResult.status === 'fulfilled' && snapshotResult.value?.ok) {
-          snapshot = (await snapshotResult.value.json()) as SnapshotResponse;
-        }
-
         let managed: ManagedFetchResponse | null = null;
         if (managedResult.status === 'fulfilled' && managedResult.value?.ok) {
           managed = (await managedResult.value.json()) as ManagedFetchResponse;
           setManagedInfo(managed);
+          setManagedCheckState('ok');
         } else {
           setManagedInfo(null);
+          setManagedCheckState('error');
         }
 
+        let rpcData: RpcCheckResponse | null = null;
         if (rpcResult.status === 'fulfilled' && rpcResult.value) {
           if (rpcResult.value.ok) {
-            setRpcCheck((await rpcResult.value.json()) as RpcCheckResponse);
+            rpcData = (await rpcResult.value.json()) as RpcCheckResponse;
+            setRpcCheck(rpcData);
           } else {
             const data = (await rpcResult.value.json().catch(() => null)) as { error?: string } | null;
             setRpcError(data?.error ?? 'RPC check failed.');
@@ -297,12 +362,15 @@ function UpgradeJsonBuilderInner() {
           setRpcCheck(null);
         }
 
+        // Existing file: the managed node's real upgrade.json wins; otherwise
+        // the chain's current upgrade config read over RPC; otherwise empty.
+        const onChainUpgrades = extractUpgradeJsonFromChainConfig(rpcData?.chainConfig);
         if (managed?.exists && managed.upgradeJson) {
           setBaseText(formatUpgradeJson(managed.upgradeJson as Record<string, unknown>));
           setBaseSource('managed node');
-        } else if (snapshot?.snapshot?.upgrade_json) {
-          setBaseText(formatUpgradeJson(snapshot.snapshot.upgrade_json as Record<string, unknown>));
-          setBaseSource(`Builder Hub snapshot${snapshot.snapshot.status ? ` (${snapshot.snapshot.status})` : ''}`);
+        } else if (onChainUpgrades) {
+          setBaseText(formatUpgradeJson(onChainUpgrades));
+          setBaseSource('on-chain config (RPC)');
         } else {
           setBaseText(formatUpgradeJson(emptyUpgradeJson()));
           setBaseSource('empty');
@@ -316,7 +384,7 @@ function UpgradeJsonBuilderInner() {
     return () => {
       cancelled = true;
     };
-  }, [reloadTick, selection.blockchainId, selection.isManaged, selection.rpcUrl, selection.subnetId]);
+  }, [reloadTick, selection.blockchainId, selection.rpcUrl, selection.subnetId]);
 
   // Default the activation timestamp to a sensible future value (chain tip +
   // offset, past any already-scheduled upgrade) until the user edits it.
@@ -346,9 +414,18 @@ function UpgradeJsonBuilderInner() {
     );
   }
 
-  const hasBlockingErrors = Boolean(parsedBase.error) || !validation.valid;
-  const canWriteManaged =
-    selection.isManaged && managedInfo?.managed !== false && validation.valid && !parsedBase.error;
+  // Node type is whatever the backend says. The store's hint only fills the
+  // gap while the check is in flight or failed (e.g. signed out).
+  const managedNodeCount = managedInfo?.nodes?.length ?? 0;
+  const isManagedVerified = managedInfo?.managed === true && managedNodeCount > 0;
+  const effectiveIsManaged = managedCheckState === 'ok' ? isManagedVerified : selection.isManaged;
+  const nodeTypeLabel =
+    managedCheckState === 'loading'
+      ? 'Checking…'
+      : effectiveIsManaged
+        ? `Managed (${managedCheckState === 'ok' ? managedNodeCount : selection.managedNodeCount} active)${managedCheckState === 'error' ? ' — unverified' : ''}`
+        : `Self-hosted/manual${managedCheckState === 'error' ? ' — unverified' : ''}`;
+  const canApplyManaged = managedCheckState === 'ok' && isManagedVerified && validation.valid && !parsedBase.error;
   const timestampError = validation.errors.find((error) => error.includes('Activation timestamp')) ?? null;
 
   const handleImportFile = async (file: File | null) => {
@@ -360,91 +437,53 @@ function UpgradeJsonBuilderInner() {
     setBaseSource(file.name);
   };
 
-  const saveSnapshot = async (status = 'draft') => {
-    setIsSavingSnapshot(true);
-    const promise = (async () => {
-      const response = await fetch('/api/console/l1-upgrade/snapshot', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subnetId: selection.subnetId,
-          blockchainId: selection.blockchainId,
-          chainName: selection.chainName,
-          rpcUrl: selection.rpcUrl,
-          upgradeJson: generatedConfig,
-          source: 'builder',
-          status,
-        }),
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(data?.message ?? 'Failed to save snapshot.');
-      }
-    })();
-    notify({ name: 'Upgrade Snapshot Save', type: 'local' }, promise);
+  // One-click apply: write upgrade.json to every managed node, then restart
+  // them so AvalancheGo loads the file. Mirrors what the self-hosted
+  // instructions tell users to do by hand.
+  const applyManaged = async () => {
+    setIsApplyingManaged(true);
     try {
-      await promise;
-    } catch {
-      // Failure is surfaced via the console notification.
-    } finally {
-      setIsSavingSnapshot(false);
-    }
-  };
+      const writePromise = (async () => {
+        const response = await fetch('/api/console/l1-upgrade/managed', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subnetId: selection.subnetId,
+            blockchainId: selection.blockchainId,
+            chainName: selection.chainName,
+            rpcUrl: selection.rpcUrl,
+            upgradeJson: generatedConfig,
+          }),
+        });
+        if (!response.ok) {
+          const data = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(data?.message ?? 'Failed to write managed upgrade.json.');
+        }
+      })();
+      notify({ name: 'Managed upgrade.json Write', type: 'local' }, writePromise);
+      await writePromise;
 
-  const writeManaged = async () => {
-    setIsWritingManaged(true);
-    const promise = (async () => {
-      const response = await fetch('/api/console/l1-upgrade/managed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subnetId: selection.subnetId,
-          blockchainId: selection.blockchainId,
-          chainName: selection.chainName,
-          rpcUrl: selection.rpcUrl,
-          upgradeJson: generatedConfig,
-        }),
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(data?.message ?? 'Failed to write managed upgrade.json.');
-      }
-    })();
-    notify({ name: 'Managed upgrade.json Write', type: 'local' }, promise);
-    try {
-      await promise;
-      setManagedWritten(true);
+      const restartPromise = (async () => {
+        const response = await fetch('/api/console/l1-upgrade/managed/restart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subnetId: selection.subnetId,
+            blockchainId: selection.blockchainId,
+          }),
+        });
+        if (!response.ok) {
+          const data = (await response.json().catch(() => null)) as { message?: string } | null;
+          throw new Error(data?.message ?? 'Failed to restart managed nodes.');
+        }
+      })();
+      notify({ name: 'Managed Node Restart', type: 'local' }, restartPromise);
+      await restartPromise;
+      setManagedApplied(true);
     } catch {
-      // Failure is surfaced via the console notification.
+      // Failures are surfaced via the console notifications.
     } finally {
-      setIsWritingManaged(false);
-    }
-  };
-
-  const restartManaged = async () => {
-    setIsRestartingManaged(true);
-    const promise = (async () => {
-      const response = await fetch('/api/console/l1-upgrade/managed/restart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subnetId: selection.subnetId,
-          blockchainId: selection.blockchainId,
-        }),
-      });
-      if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(data?.message ?? 'Failed to restart managed nodes.');
-      }
-    })();
-    notify({ name: 'Managed Node Restart', type: 'local' }, promise);
-    try {
-      await promise;
-      await saveSnapshot('restart-requested');
-    } catch {
-      // Failure is surfaced via the console notification.
-    } finally {
-      setIsRestartingManaged(false);
+      setIsApplyingManaged(false);
     }
   };
 
@@ -455,11 +494,11 @@ function UpgradeJsonBuilderInner() {
         subnetId={selection.subnetId}
         blockchainId={selection.blockchainId}
         rpcUrl={selection.rpcUrl}
-        isManaged={selection.isManaged}
-        managedNodeCount={managedInfo?.nodes?.length ?? selection.managedNodeCount}
+        nodeTypeLabel={nodeTypeLabel}
         rpcError={rpcError}
         chainConfigError={rpcCheck?.errors?.chainConfig ?? null}
         activeRulesError={rpcCheck?.errors?.activeRules ?? null}
+        managedServiceError={managedInfo?.serviceError ?? null}
         isRefreshing={isLoadingSource}
         onRefresh={() => setReloadTick((n) => n + 1)}
       />
@@ -568,6 +607,7 @@ function UpgradeJsonBuilderInner() {
 
                   <StateUpgradesSection
                     rpcUrl={selection.rpcUrl}
+                    walletAddress={walletAddress}
                     balanceChanges={balanceChanges}
                     codeChanges={codeChanges}
                     validationErrors={validation.errors}
@@ -608,62 +648,58 @@ function UpgradeJsonBuilderInner() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            {managedCheckState === 'loading' && (
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+                <p className="text-xs text-muted-foreground">Checking whether this L1 uses managed nodes…</p>
+              </div>
+            )}
+
+            {/* Managed L1s get the one-click apply; everything else gets the
+                docker commands. Never both. */}
+            {managedCheckState === 'ok' && isManagedVerified && (
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
                 <div>
-                  <h3 className="text-sm font-semibold">
-                    {selection.isManaged ? 'Managed nodes' : 'Save to Builder Hub'}
-                  </h3>
+                  <h3 className="text-sm font-semibold">Apply to managed nodes</h3>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {selection.isManaged
-                      ? 'Builder Hub writes the file to your managed nodes, then restarts them to load it.'
-                      : 'Snapshots keep your work so the builder restores it next time you open this L1.'}
+                    Builder Hub writes upgrade.json to {managedNodeCount > 0 ? `all ${managedNodeCount}` : 'your'}{' '}
+                    managed node{managedNodeCount === 1 ? '' : 's'}, then restarts them to load it.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="mt-4 space-y-2">
                   <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-auto"
-                    loading={isSavingSnapshot}
-                    disabled={hasBlockingErrors}
-                    onClick={() => void saveSnapshot()}
+                    variant="primary"
+                    loading={isApplyingManaged}
+                    loadingText="Applying upgrade…"
+                    disabled={!canApplyManaged}
+                    onClick={() => void applyManaged()}
                   >
-                    Save Snapshot
+                    Apply Upgrade to {managedNodeCount} Managed Node{managedNodeCount === 1 ? '' : 's'}
                   </Button>
-                  {selection.isManaged && (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="w-auto"
-                        loading={isWritingManaged}
-                        disabled={!canWriteManaged}
-                        onClick={() => void writeManaged()}
-                      >
-                        Write Managed File
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        className="w-auto"
-                        loading={isRestartingManaged}
-                        disabled={!managedWritten}
-                        onClick={() => void restartManaged()}
-                      >
-                        Restart Managed Nodes
-                      </Button>
-                    </>
+                  {managedApplied && (
+                    <p className="text-xs text-green-700 dark:text-green-400">
+                      upgrade.json written to all managed nodes and restart requested. The upgrade activates at the
+                      scheduled timestamp.
+                    </p>
                   )}
                 </div>
               </div>
-            </div>
+            )}
 
-            <SelfHostedInstructions
-              blockchainId={selection.blockchainId}
-              rpcUrl={selection.rpcUrl}
-              upgradeJson={generatedJson}
-            />
+            {managedCheckState !== 'loading' && !(managedCheckState === 'ok' && isManagedVerified) && (
+              <>
+                {managedCheckState === 'error' && (
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400">
+                    Couldn&apos;t verify managed node status — showing self-hosted commands. Sign in to Builder Hub if
+                    this L1 uses managed nodes.
+                  </p>
+                )}
+                <SelfHostedInstructions
+                  blockchainId={selection.blockchainId}
+                  rpcUrl={selection.rpcUrl}
+                  upgradeJson={generatedJson}
+                />
+              </>
+            )}
           </div>
         </Step>
       </Steps>
@@ -676,11 +712,11 @@ function HeaderPanel({
   subnetId,
   blockchainId,
   rpcUrl,
-  isManaged,
-  managedNodeCount,
+  nodeTypeLabel,
   rpcError,
   chainConfigError,
   activeRulesError,
+  managedServiceError,
   isRefreshing,
   onRefresh,
 }: {
@@ -688,14 +724,15 @@ function HeaderPanel({
   subnetId: string;
   blockchainId: string;
   rpcUrl: string;
-  isManaged: boolean;
-  managedNodeCount: number;
+  nodeTypeLabel: string;
   rpcError: string | null;
   chainConfigError: string | null;
   activeRulesError: string | null;
+  managedServiceError: string | null;
   isRefreshing: boolean;
   onRefresh: () => void;
 }) {
+  const warning = rpcError || chainConfigError || activeRulesError || managedServiceError;
   return (
     <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
       <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
@@ -707,10 +744,7 @@ function HeaderPanel({
             <InfoLine label="Subnet" value={subnetId} />
             <InfoLine label="Blockchain" value={blockchainId} />
             <InfoLine label="RPC" value={rpcUrl || 'Not set'} />
-            <InfoLine
-              label="Node type"
-              value={isManaged ? `Managed (${managedNodeCount} active)` : 'Self-hosted/manual'}
-            />
+            <InfoLine label="Node type" value={nodeTypeLabel} />
           </div>
         </div>
         <Button
@@ -724,9 +758,9 @@ function HeaderPanel({
           Refresh
         </Button>
       </div>
-      {(rpcError || chainConfigError || activeRulesError) && (
+      {warning && (
         <div className="mt-3 rounded-lg border border-yellow-200 dark:border-yellow-900 bg-yellow-50 dark:bg-yellow-950/30 p-3 text-xs text-yellow-800 dark:text-yellow-200">
-          {rpcError || chainConfigError || activeRulesError}
+          {warning}
         </div>
       )}
     </section>
@@ -798,18 +832,50 @@ function PrecompileUpgradesSection({
     onToggleHighlight(key, nextMode === 'enable');
   };
 
+  // Entry point for changing an already-active allowlist precompile: schedules
+  // the disable + re-enable pair subnet-evm requires for config changes.
+  const startAllowlistUpdate = (key: PrecompileConfigKey) => {
+    const value = precompiles.find((item) => item.key === key);
+    const patch: Partial<PrecompileSelection> = { mode: 'update' };
+    if (walletAddress && isValidAddress(walletAddress) && (value?.adminAddresses ?? []).length === 0) {
+      patch.adminAddresses = [walletAddress];
+    }
+    update(key, patch);
+    onToggleHighlight(key, true);
+  };
+
   const items: PrecompileItem[] = PRECOMPILE_DEFINITIONS.map((definition) => {
     const value = precompiles.find((item) => item.key === definition.key)!;
     const isActive = activePrecompileKeys.includes(definition.key);
     const existingSchedule = existingSchedules[definition.key];
     const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
-    const targetEnabled = value.mode === 'enable' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
+    const targetEnabled =
+      value.mode === 'enable' || value.mode === 'update'
+        ? true
+        : value.mode === 'disable'
+          ? false
+          : baseTargetEnabled;
     const rowErrors = validationErrors.filter((error) => error.includes(definition.key));
 
     let expandedContent: ReactNode;
-    if (value.mode === 'enable' && definition.supportsAllowList) {
+    if ((value.mode === 'enable' || value.mode === 'update') && definition.supportsAllowList) {
       expandedContent = (
         <div className="space-y-2">
+          {value.mode === 'update' && (
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                Schedules a disable entry followed by a re-enable with this allowlist — the sequence required to
+                change an active precompile&apos;s configuration.
+              </p>
+              <button
+                type="button"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                onClick={() => update(definition.key, { mode: 'none' })}
+              >
+                Cancel update
+              </button>
+            </div>
+          )}
           {rowErrors.map((error) => (
             <p key={error} className="text-xs text-red-600 dark:text-red-400">
               {error}
@@ -820,6 +886,22 @@ function PrecompileUpgradesSection({
             precompileAction={PRECOMPILE_ACTIONS[definition.key]}
             onUpdateAllowlist={(addresses) => update(definition.key, addressRolesToSelectionPatch(addresses))}
           />
+        </div>
+      );
+    } else if (value.mode === 'none' && baseTargetEnabled && definition.supportsAllowList) {
+      expandedContent = (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/40 px-3 py-2">
+          <p className="text-xs text-muted-foreground">
+            Already enabled. Schedule an allowlist update to change who can {PRECOMPILE_ACTIONS[definition.key]}.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-auto shrink-0"
+            onClick={() => startAllowlistUpdate(definition.key)}
+          >
+            Update Allowlist
+          </Button>
         </div>
       );
     } else if (value.mode === 'enable' && definition.supportsWarpConfig) {
@@ -866,11 +948,11 @@ function PrecompileUpgradesSection({
   // Errors for rows whose expanded editor is hidden (e.g. a disable entry)
   // would otherwise be invisible — surface them under the list.
   const hiddenErrors = validationErrors.filter((error) =>
-    PRECOMPILE_DEFINITIONS.some(
-      (definition) =>
-        error.includes(definition.key) &&
-        precompiles.find((item) => item.key === definition.key)?.mode !== 'enable',
-    ),
+    PRECOMPILE_DEFINITIONS.some((definition) => {
+      if (!error.includes(definition.key)) return false;
+      const mode = precompiles.find((item) => item.key === definition.key)?.mode;
+      return mode !== 'enable' && mode !== 'update';
+    }),
   );
 
   return (
@@ -897,6 +979,7 @@ function PrecompileUpgradesSection({
 
 function StateUpgradesSection({
   rpcUrl,
+  walletAddress,
   balanceChanges,
   codeChanges,
   validationErrors,
@@ -906,6 +989,7 @@ function StateUpgradesSection({
   onAddHighlight,
 }: {
   rpcUrl: string;
+  walletAddress?: string;
   balanceChanges: BalanceChange[];
   codeChanges: UiCodeChange[];
   validationErrors: string[];
@@ -921,9 +1005,30 @@ function StateUpgradesSection({
   const addCode = () => {
     setCodeChanges((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), address: '', code: '', sourceRpcUrl: rpcUrl, sourceAddress: '' },
+      { id: crypto.randomUUID(), address: '', code: '', sourceRpcUrl: rpcUrl, sourceAddress: '', sourcePreset: 'custom' },
     ]);
     onAddHighlight();
+  };
+
+  const applySourcePreset = (change: UiCodeChange, presetKey: string) => {
+    if (presetKey === 'custom') {
+      updateCode(change.id, { sourcePreset: 'custom', storage: undefined });
+      return;
+    }
+    const preset = SOURCE_CONTRACT_PRESETS.find((item) => item.key === presetKey);
+    const details = SOURCE_PRESET_DETAILS[presetKey];
+    if (!preset || !details) return;
+    updateCode(change.id, {
+      sourcePreset: preset.key,
+      sourceAddress: preset.address,
+      // Bundled artifact bytecode — no dependency on the source chain having
+      // the contract deployed.
+      code: details.code,
+      storage: details.storage?.(walletAddress),
+      // Predeploys live at the same canonical address on every chain, so
+      // default the injection target to it when the user hasn't set one.
+      ...(change.address ? {} : { address: preset.address }),
+    });
   };
 
   const updateBalance = (id: string, patch: Partial<BalanceChange>) =>
@@ -946,7 +1051,9 @@ function StateUpgradesSection({
     notify({ name: 'Runtime Bytecode Fetch', type: 'local' }, promise);
     try {
       const code = await promise;
-      updateCode(change.id, { code, isFetching: false });
+      // Fetched on-chain code replaces any preset artifact, so preset storage
+      // no longer applies.
+      updateCode(change.id, { code, storage: undefined, isFetching: false });
     } catch {
       updateCode(change.id, { isFetching: false });
     }
@@ -1045,41 +1152,65 @@ function StateUpgradesSection({
                     : null
                 }
               />
+              <div className="mb-4">
+                <Select
+                  label="Source Contract"
+                  value={change.sourcePreset ?? 'custom'}
+                  onChange={(value) => applySourcePreset(change, String(value))}
+                  options={[
+                    { value: 'custom', label: 'Custom address…' },
+                    ...SOURCE_CONTRACT_PRESETS.map((preset) => ({ value: preset.key, label: preset.name })),
+                  ]}
+                  notesUnderInput="Presets fill the canonical address and bundled bytecode — no fetch needed."
+                />
+              </div>
               <Input
                 label="Source Contract Address"
                 value={change.sourceAddress}
-                onChange={(sourceAddress) => updateCode(change.id, { sourceAddress })}
+                onChange={(sourceAddress) => updateCode(change.id, { sourceAddress, sourcePreset: 'custom' })}
                 placeholder="0x..."
-                helperText="Optional: fetch runtime bytecode from an already deployed contract."
+                helperText={
+                  change.sourcePreset && change.sourcePreset !== 'custom'
+                    ? `${SOURCE_CONTRACT_PRESETS.find((preset) => preset.key === change.sourcePreset)?.name} canonical address.`
+                    : 'Optional: fetch runtime bytecode from an already deployed contract.'
+                }
                 error={
                   change.sourceAddress && !isValidAddress(change.sourceAddress)
                     ? `Invalid source contract address: ${change.sourceAddress}`
                     : null
                 }
               />
-              <Input
-                label="Source RPC URL"
-                value={change.sourceRpcUrl}
-                onChange={(sourceRpcUrl) => updateCode(change.id, { sourceRpcUrl })}
-                placeholder="https://..."
-              />
-              <div className="md:pt-7">
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="w-auto"
-                  loading={change.isFetching}
-                  icon={<RotateCw className="h-4 w-4" />}
-                  onClick={() => void fetchCode(change)}
-                >
-                  Fetch Code
-                </Button>
-              </div>
+              {/* Presets already carry bundled runtime bytecode, so fetching
+                  from a source chain is unnecessary — and 404s for predeploys
+                  the chain doesn't have at their canonical address. Only show
+                  the RPC fetch controls for the custom path. */}
+              {change.sourcePreset === 'custom' && (
+                <>
+                  <Input
+                    label="Source RPC URL"
+                    value={change.sourceRpcUrl}
+                    onChange={(sourceRpcUrl) => updateCode(change.id, { sourceRpcUrl })}
+                    placeholder="https://..."
+                  />
+                  <div className="md:pt-7">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-auto"
+                      loading={change.isFetching}
+                      icon={<RotateCw className="h-4 w-4" />}
+                      onClick={() => void fetchCode(change)}
+                    >
+                      Fetch Code
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
             <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">Runtime Bytecode</label>
             <textarea
               value={change.code}
-              onChange={(event) => updateCode(change.id, { code: event.target.value })}
+              onChange={(event) => updateCode(change.id, { code: event.target.value, storage: undefined })}
               className="w-full min-h-28 px-4 py-3 bg-zinc-900 dark:bg-zinc-950 text-zinc-100 rounded-lg border border-zinc-700 dark:border-zinc-800 font-mono text-xs resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               spellCheck={false}
               placeholder="0x..."
@@ -1087,6 +1218,15 @@ function StateUpgradesSection({
             {change.code && !isValidRuntimeBytecode(change.code) && (
               <p className="text-xs text-red-600 dark:text-red-400 mt-2">
                 Runtime bytecode for {change.address || 'an address'} must be non-empty 0x-prefixed hex bytecode.
+              </p>
+            )}
+            {change.sourcePreset !== 'custom' && SOURCE_PRESET_DETAILS[change.sourcePreset]?.note && (
+              <p className="text-xs text-muted-foreground mt-2">{SOURCE_PRESET_DETAILS[change.sourcePreset].note}</p>
+            )}
+            {change.storage && Object.keys(change.storage).length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Includes {Object.keys(change.storage).length} storage slot initialization
+                {Object.keys(change.storage).length === 1 ? '' : 's'} (visible in the JSON preview).
               </p>
             )}
           </div>
