@@ -340,7 +340,8 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
 
     // Glacier — P/X-chain primary network feed (native timestamp filtering).
     if (scope === 'primary') {
-      const blockchainId = safeId(getString(args, 'blockchainId'));
+      // Default to P-Chain when no blockchainId is given, so "last N P-chain transactions" just works.
+      const blockchainId = safeId(getString(args, 'blockchainId') || P_CHAIN_ID);
       const params: Record<string, string> = { pageSize: String(clampLimit(args.pageSize, 100, 25)) };
       if (args.fromTimestamp) params.startTimestamp = String(Number(args.fromTimestamp));
       if (args.toTimestamp) params.endTimestamp = String(Number(args.toTimestamp));
@@ -449,7 +450,11 @@ async function onchainQuery(args: Record<string, unknown>): Promise<ToolResult> 
       ? (args.params as Record<string, unknown>)
       : {};
   try {
-    return json(await gatewayQuery(op, params));
+    const result: Record<string, unknown> = { ...(await gatewayQuery(op, params)) };
+    if (Number((params as { chainId?: unknown }).chainId) === 43113) {
+      result.note = 'Fuji (43113) ingestion is frozen — results may be empty/stale. Query C-Chain (43114) for live data.';
+    }
+    return json(result);
   } catch (err) {
     return errorResult(asMessage(err));
   }
@@ -464,7 +469,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_lookup',
       description:
-        'Resolve and describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, and contract metadata + isContract if it is a contract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. `kind` defaults to auto-detect; network is inferred from P-/X-Chain address prefixes. Backed by Glacier + P-Chain RPC.',
+        'PRIMARY lookup tool — use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, contract metadata + isContract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by Glacier + P-Chain RPC.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -481,7 +486,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_activity',
       description:
-        'Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` plus a recent sample (indexed raw-tx store; auto-falls back to Glacier latest if that store is unavailable). For a token/contract address use scope=token to get its transfers; scope=primary covers P/X-chain (native timestamps). If you pass a value with no scope, it defaults to address.',
+        'Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` (max 720h = 30 days; for longer windows use chain_stats series or onchain_query day-based ops) plus a recent sample. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so "last N P-chain transactions" just works). A value with no scope defaults to address.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -490,7 +495,7 @@ export const dataTools: ToolDomain = {
           feed: { type: 'string', enum: [...FEEDS], description: 'transactions (default) | transfers | erc20Transfers | nftTransfers' },
           network: { type: 'string', enum: ['mainnet', 'fuji'], description: 'Network (default: mainnet)' },
           chainId: { type: 'string', description: 'EVM chain ID (default: C-Chain for the network)' },
-          blockchainId: { type: 'string', description: 'Blockchain ID (required for scope=primary)' },
+          blockchainId: { type: 'string', description: 'Blockchain ID for scope=primary (default: P-Chain)' },
           hours: { type: 'number', description: 'Look-back window in hours for EVM transaction feeds (default: 2 for chain, max 720)' },
           fromTimestamp: { type: 'number', description: 'Unix start time (scope=primary)' },
           toTimestamp: { type: 'number', description: 'Unix end time (scope=primary)' },
@@ -502,7 +507,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'chain_stats',
       description:
-        'On-chain statistics. target=chain: tx count, gas used, fees, active senders, avg gas price over a recent window or as a time-series (from ClickHouse raw_txs). target=contract: per-contract tx/sender/gas totals. target=network: current P-chain validator snapshot (Glacier). No external metrics API.',
+        'On-chain statistics (ClickHouse-backed). target=chain: tx count/gas/fees/active senders/avg gas price over a recent window (window=recent, `hours`, max 720h = 30 days) OR a time-series (window=series, `days`, max 365). target=contract: per-contract tx/sender/gas totals (`days`, max 365 — use this for contract activity beyond 30 days). target=network: current P-chain validator snapshot. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is ~stable even as tx count varies — expected, not an error.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -521,7 +526,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_query',
       description:
-        'Flexible indexed on-chain data via the query gateway (ClickHouse-backed). Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Ops: ' +
+        'PRIMARY tool for indexed on-chain stats/activity/totals (query gateway, ClickHouse-backed + cached) — prefer this over raw RPC for chain data. Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Lookback: hour-based ops (chainStatsRecent/chainActivity/addressActivity) max 720h (30 days); day-based ops (chainStatsSeries/contractStats/chainGasTotal/protocolRanking/contractGasFlow/topUnknownContracts) max 365 days — use a day-based op for windows over 30 days. Ops: ' +
         'chainStatsRecent {chainId, hours≤720} — tx count/gas/fees/active senders/avg gas price over the last N hours; ' +
         'chainStatsSeries {chainId, days≤365, bucket: hour|day|week|month} — bucketed time-series of the same; ' +
         'addressActivity {chainId, address, hours≤720, limit≤100} — tx count + recent sample for an address in a window; ' +
@@ -530,7 +535,7 @@ export const dataTools: ToolDomain = {
         'protocolRanking {chainId, contracts[≤25], days≤365, orderBy: txCount|gasUsed|uniqueSenders|feesPaidAvax, dir: asc|desc, limit≤100} — rank a set of contracts; ' +
         'contractGasFlow {chainId, contract, days≤365, limit≤100} — gas received/given per counterparty; ' +
         'topUnknownContracts {chainId, exclude[≤25], days≤365, limit≤100} — top contracts by gas excluding a set; ' +
-        'chainGasTotal {chainId, days≤365} OR {chainId, fromDate, toDate} — total tx/gas/fees over N days or a YYYY-MM-DD range (≤365d).',
+        'chainGasTotal {chainId, days≤365} OR {chainId, fromDate, toDate} — total tx/gas/fees over N days or a YYYY-MM-DD range (≤365d). Note: C-Chain gasUsed is gas-target-regulated → ~stable day-to-day even as txCount varies (expected, not a bug).',
       inputSchema: {
         type: 'object',
         properties: {
