@@ -70,20 +70,8 @@
       "description": "Compatibility alias for docs_list_sections. Prefer docs_list_sections for new clients."
     },
     {
-      "name": "blockchain_get_native_balance",
-      "description": "Get the native AVAX balance of an address on C-Chain"
-    },
-    {
-      "name": "blockchain_get_contract_info",
-      "description": "Check if an address is a contract and get its ERC20 name/symbol if applicable"
-    },
-    {
       "name": "blockchain_lookup_transaction",
       "description": "Look up a transaction by hash on Avalanche (C-Chain, P-Chain, or X-Chain). Supports 0x format (C-Chain) and CB58 format (P/X-Chain)."
-    },
-    {
-      "name": "blockchain_lookup_address",
-      "description": "Look up an address — balance, contract info. Use when users paste an 0x address."
     },
     {
       "name": "blockchain_lookup_subnet",
@@ -195,19 +183,19 @@
     },
     {
       "name": "onchain_lookup",
-      "description": "Resolve and describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, and contract metadata + isContract if it is a contract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. `kind` defaults to auto-detect; network is inferred from P-/X-Chain address prefixes. Backed by Glacier + P-Chain RPC."
+      "description": "PRIMARY lookup tool — use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, contract metadata + isContract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by Glacier + P-Chain RPC."
     },
     {
       "name": "onchain_activity",
-      "description": "Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` plus a recent sample (indexed raw-tx store; auto-falls back to Glacier latest if that store is unavailable). For a token/contract address use scope=token to get its transfers; scope=primary covers P/X-chain (native timestamps). If you pass a value with no scope, it defaults to address."
+      "description": "Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` (max 720h = 30 days; for longer windows use chain_stats series or onchain_query day-based ops) plus a recent sample. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so \"last N P-chain transactions\" just works). A value with no scope defaults to address."
     },
     {
       "name": "chain_stats",
-      "description": "On-chain statistics. target=chain: tx count, gas used, fees, active senders, avg gas price over a recent window or as a time-series (from ClickHouse raw_txs). target=contract: per-contract tx/sender/gas totals. target=network: current P-chain validator snapshot (Glacier). No external metrics API."
+      "description": "On-chain statistics (ClickHouse-backed). target=chain: tx count/gas/fees/active senders/avg gas price over a recent window (window=recent, `hours`, max 720h = 30 days) OR a time-series (window=series, `days`, max 365). target=contract: per-contract tx/sender/gas totals (`days`, max 365 — use this for contract activity beyond 30 days). target=network: current P-chain validator snapshot. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is ~stable even as tx count varies — expected, not an error."
     },
     {
       "name": "onchain_query",
-      "description": "Flexible indexed on-chain data via the query gateway (ClickHouse-backed). Pick an op and pass its params (chainId is an allowlisted EVM chain: 43114 C-Chain, 43113 Fuji, + L1s). Ops: chainStatsRecent {chainId, hours<=720}; chainStatsSeries {chainId, days<=365, bucket: hour|day|week|month}; addressActivity {chainId, address, hours<=720, limit<=100}; chainActivity {chainId, hours<=720, limit<=100}; contractStats {chainId, contract, days<=365}; protocolRanking {chainId, contracts[<=25], days<=365, orderBy, dir, limit<=100}; contractGasFlow {chainId, contract, days<=365, limit<=100}; topUnknownContracts {chainId, exclude[<=25], days<=365, limit<=100}; chainGasTotal {chainId, days<=365} or {chainId, fromDate, toDate}."
+      "description": "PRIMARY tool for indexed on-chain stats/activity/totals (query gateway, ClickHouse-backed + cached) — prefer this over raw RPC for chain data. Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Lookback: hour-based ops (chainStatsRecent/chainActivity/addressActivity) max 720h (30 days); day-based ops (chainStatsSeries/contractStats/chainGasTotal/protocolRanking/contractGasFlow/topUnknownContracts) max 365 days — use a day-based op for windows over 30 days. Ops: chainStatsRecent {chainId, hours≤720} — tx count/gas/fees/active senders/avg gas price over the last N hours; chainStatsSeries {chainId, days≤365, bucket: hour|day|week|month} — bucketed time-series of the same; addressActivity {chainId, address, hours≤720, limit≤100} — tx count + recent sample for an address in a window; chainActivity {chainId, hours≤720, limit≤100} — tx count + recent sample chain-wide in a window; contractStats {chainId, contract, days≤365} — tx/unique-sender/gas totals for a contract; protocolRanking {chainId, contracts[≤25], days≤365, orderBy: txCount|gasUsed|uniqueSenders|feesPaidAvax, dir: asc|desc, limit≤100} — rank a set of contracts; contractGasFlow {chainId, contract, days≤365, limit≤100} — gas received/given per counterparty; topUnknownContracts {chainId, exclude[≤25], days≤365, limit≤100} — top contracts by gas excluding a set; chainGasTotal {chainId, days≤365} OR {chainId, fromDate, toDate} — total tx/gas/fees over N days or a YYYY-MM-DD range (≤365d). Note: C-Chain gasUsed is gas-target-regulated → ~stable day-to-day even as txCount varies (expected, not a bug)."
     },
     {
       "name": "build_plan",
