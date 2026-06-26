@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Team1Symbol, Team1Wordmark } from "@/components/grants/Team1Wordmark";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSession, getSession } from "next-auth/react";
 import { useLoginModalTrigger, useLoginCompleteListener } from "@/hooks/useLoginModal";
 import { useForm, type Resolver, type FieldErrors } from "react-hook-form";
@@ -155,7 +155,7 @@ const miniGrantResolver: Resolver<MiniGrantFormData> = async (values) => {
   return { values: {}, errors };
 };
 
-export default function Team1MiniGrantsApplyPage() {
+function Team1MiniGrantsApplyContent() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1480,5 +1480,19 @@ export default function Team1MiniGrantsApplyPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function Team1MiniGrantsApplyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <Team1MiniGrantsApplyContent />
+    </Suspense>
   );
 }
