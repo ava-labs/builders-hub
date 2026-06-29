@@ -21,7 +21,7 @@ Available on all commands:
 ## version
 
 ```bash
-platform version
+platform-cli version
 ```
 
 Prints the CLI version.
@@ -33,7 +33,7 @@ Manage persistent keys stored in `~/.platform/keys/`.
 ### keys generate
 
 ```bash
-platform keys generate --name <name> [--encrypt=false]
+platform-cli keys generate --name <name> [--encrypt=false]
 ```
 
 | Flag | Description | Default |
@@ -44,7 +44,7 @@ platform keys generate --name <name> [--encrypt=false]
 ### keys import
 
 ```bash
-platform keys import --name <name> [--private-key <key>] [--encrypt=false]
+platform-cli keys import --name <name> [--private-key <key>] [--encrypt=false]
 ```
 
 | Flag | Description | Default |
@@ -56,7 +56,7 @@ platform keys import --name <name> [--private-key <key>] [--encrypt=false]
 ### keys list
 
 ```bash
-platform keys list [--show-addresses]
+platform-cli keys list [--show-addresses]
 ```
 
 | Flag | Description |
@@ -66,8 +66,8 @@ platform keys list [--show-addresses]
 ### keys export
 
 ```bash
-platform keys export --name <name> --output-file <path>
-platform keys export --name <name> --unsafe-stdout
+platform-cli keys export --name <name> --output-file <path>
+platform-cli keys export --name <name> --unsafe-stdout
 ```
 
 | Flag | Description | Default |
@@ -80,7 +80,7 @@ platform keys export --name <name> --unsafe-stdout
 ### keys delete
 
 ```bash
-platform keys delete --name <name> [--force]
+platform-cli keys delete --name <name> [--force]
 ```
 
 | Flag | Description |
@@ -91,7 +91,7 @@ platform keys delete --name <name> [--force]
 ### keys default
 
 ```bash
-platform keys default [--name <name>]
+platform-cli keys default [--name <name>]
 ```
 
 Shows current default if `--name` is omitted. Sets default if `--name` is provided.
@@ -101,7 +101,7 @@ Shows current default if `--name` is omitted. Sets default if `--name` is provid
 ### wallet balance
 
 ```bash
-platform wallet balance
+platform-cli wallet balance
 ```
 
 Displays P-Chain address and AVAX balance.
@@ -109,7 +109,7 @@ Displays P-Chain address and AVAX balance.
 ### wallet address
 
 ```bash
-platform wallet address
+platform-cli wallet address
 ```
 
 Displays P-Chain and EVM addresses derived from the key.
@@ -119,7 +119,7 @@ Displays P-Chain and EVM addresses derived from the key.
 ### transfer send
 
 ```bash
-platform transfer send --to <address> --amount <avax>
+platform-cli transfer send --to <address> --amount <avax>
 ```
 
 | Flag | Description |
@@ -131,7 +131,7 @@ platform transfer send --to <address> --amount <avax>
 ### transfer p-to-c
 
 ```bash
-platform transfer p-to-c --amount <avax>
+platform-cli transfer p-to-c --amount <avax>
 ```
 
 One-step P-Chain to C-Chain transfer (export + import).
@@ -144,7 +144,7 @@ One-step P-Chain to C-Chain transfer (export + import).
 ### transfer c-to-p
 
 ```bash
-platform transfer c-to-p --amount <avax>
+platform-cli transfer c-to-p --amount <avax>
 ```
 
 One-step C-Chain to P-Chain transfer (export + import).
@@ -152,7 +152,7 @@ One-step C-Chain to P-Chain transfer (export + import).
 ### transfer export
 
 ```bash
-platform transfer export --from <chain> --to <chain> --amount <avax>
+platform-cli transfer export --from <chain> --to <chain> --amount <avax>
 ```
 
 Manual export step for two-step transfers.
@@ -167,7 +167,7 @@ Manual export step for two-step transfers.
 ### transfer import
 
 ```bash
-platform transfer import --from <chain> --to <chain>
+platform-cli transfer import --from <chain> --to <chain>
 ```
 
 Manual import step for two-step transfers.
@@ -182,7 +182,7 @@ Manual import step for two-step transfers.
 ### validator add-permissionless
 
 ```bash
-platform validator add-permissionless --node-id <id> --stake <avax>
+platform-cli validator add-permissionless --node-id <id> --stake <avax>
 ```
 
 | Flag | Description | Default |
@@ -200,7 +200,7 @@ platform validator add-permissionless --node-id <id> --stake <avax>
 ### validator add-permissionless-delegator
 
 ```bash
-platform validator add-permissionless-delegator --node-id <id> --stake <avax>
+platform-cli validator add-permissionless-delegator --node-id <id> --stake <avax>
 ```
 
 | Flag | Description | Default |
@@ -214,7 +214,7 @@ platform validator add-permissionless-delegator --node-id <id> --stake <avax>
 ### validator add-auto-renewed
 
 ```bash
-platform validator add-auto-renewed --node-id <id> --stake <avax>
+platform-cli validator add-auto-renewed --node-id <id> --stake <avax>
 ```
 
 Adds an auto-renewed validator (`AddAutoRenewedValidatorTx`, ACP-236) that restakes each cycle.
@@ -235,7 +235,7 @@ Adds an auto-renewed validator (`AddAutoRenewedValidatorTx`, ACP-236) that resta
 ### validator set-auto-renewed-config
 
 ```bash
-platform validator set-auto-renewed-config --tx-id <id> --period <dur> --auto-compound <frac>
+platform-cli validator set-auto-renewed-config --tx-id <id> --period <dur> --auto-compound <frac>
 ```
 
 Updates the next-cycle config of an auto-renewed validator (`SetAutoRenewedValidatorConfigTx`). Must be signed by the owner address set at add time.
@@ -252,7 +252,7 @@ Updates the next-cycle config of an auto-renewed validator (`SetAutoRenewedValid
 ### subnet create
 
 ```bash
-platform subnet create
+platform-cli subnet create
 ```
 
 Creates a new subnet owned by the wallet address. No additional flags required.
@@ -260,7 +260,7 @@ Creates a new subnet owned by the wallet address. No additional flags required.
 ### subnet transfer-ownership
 
 ```bash
-platform subnet transfer-ownership --subnet-id <id> --new-owner <address>
+platform-cli subnet transfer-ownership --subnet-id <id> --new-owner <address>
 ```
 
 | Flag | Description |
@@ -271,7 +271,7 @@ platform subnet transfer-ownership --subnet-id <id> --new-owner <address>
 ### subnet convert-to-l1
 
 ```bash
-platform subnet convert-to-l1 --subnet-id <id> --chain-id <id>
+platform-cli subnet convert-to-l1 --subnet-id <id> --chain-id <id>
 ```
 
 | Flag | Description | Default |
@@ -290,7 +290,7 @@ platform subnet convert-to-l1 --subnet-id <id> --chain-id <id>
 ### subnet add-validator
 
 ```bash
-platform subnet add-validator --subnet-id <id> --node-id <id> --weight <uint>
+platform-cli subnet add-validator --subnet-id <id> --node-id <id> --weight <uint>
 ```
 
 Adds a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must already be a primary network validator.
@@ -308,7 +308,7 @@ Adds a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node mus
 ### l1 register-validator
 
 ```bash
-platform l1 register-validator --balance <avax> --pop <hex> --message <hex>
+platform-cli l1 register-validator --balance <avax> --pop <hex> --message <hex>
 ```
 
 | Flag | Description |
@@ -320,7 +320,7 @@ platform l1 register-validator --balance <avax> --pop <hex> --message <hex>
 ### l1 set-validator-weight
 
 ```bash
-platform l1 set-validator-weight --message <hex>
+platform-cli l1 set-validator-weight --message <hex>
 ```
 
 | Flag | Description |
@@ -330,7 +330,7 @@ platform l1 set-validator-weight --message <hex>
 ### l1 increase-validator-balance
 
 ```bash
-platform l1 increase-validator-balance --validation-id <id> --balance <avax>
+platform-cli l1 increase-validator-balance --validation-id <id> --balance <avax>
 ```
 
 | Flag | Description |
@@ -341,7 +341,7 @@ platform l1 increase-validator-balance --validation-id <id> --balance <avax>
 ### l1 disable-validator
 
 ```bash
-platform l1 disable-validator --validation-id <id>
+platform-cli l1 disable-validator --validation-id <id>
 ```
 
 | Flag | Description |
@@ -353,7 +353,7 @@ platform l1 disable-validator --validation-id <id>
 ### chain create
 
 ```bash
-platform chain create --subnet-id <id> --genesis <file>
+platform-cli chain create --subnet-id <id> --genesis <file>
 ```
 
 | Flag | Description | Default |
@@ -368,7 +368,7 @@ platform chain create --subnet-id <id> --genesis <file>
 ### node info
 
 ```bash
-platform node info --ip <address>
+platform-cli node info --ip <address>
 ```
 
 | Flag | Description |
