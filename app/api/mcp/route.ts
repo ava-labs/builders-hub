@@ -13,6 +13,11 @@ import {
 } from '@/lib/mcp/tools';
 import { docsResources } from '@/lib/mcp/resources';
 
+// Fail fast rather than riding Vercel's default 60s into a gateway 504 if an upstream
+// RPC ever hangs (the rpc.ts backoff cap is the primary guard; this is the safety net).
+// 30s comfortably covers every real tool call.
+export const maxDuration = 30;
+
 // ---------------------------------------------------------------------------
 // Singleton MCP server — registered once at module load
 // ---------------------------------------------------------------------------
