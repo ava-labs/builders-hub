@@ -211,6 +211,42 @@ platform validator add-permissionless-delegator --node-id <id> --stake <avax>
 | `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
 | `--reward-address` | Reward address | own address |
 
+### validator add-auto-renewed
+
+```bash
+platform validator add-auto-renewed --node-id <id> --stake <avax>
+```
+
+Adds an auto-renewed validator (`AddAutoRenewedValidatorTx`, ACP-236) that restakes each cycle.
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--node-id` | Node ID to validate (required) | |
+| `--stake` | Stake in AVAX (network minimum applies) | |
+| `--period` | Auto-renewal cycle duration | `336h` |
+| `--auto-compound` | Fraction of rewards to auto-compound (0.3 = 30%, 1 = 100%) | `1` |
+| `--delegation-fee` | Fee percentage (0.02 = 2%) | `0.02` |
+| `--owner-address` | Address authorized to update the auto-renew config | own address |
+| `--reward-address` | Reward address | own address |
+| `--bls-public-key` | BLS public key hex (recommended) | |
+| `--bls-pop` | BLS proof of possession hex (recommended) | |
+| `--node-endpoint` | Node endpoint to auto-fetch BLS | |
+
+### validator set-auto-renewed-config
+
+```bash
+platform validator set-auto-renewed-config --tx-id <id> --period <dur> --auto-compound <frac>
+```
+
+Updates the next-cycle config of an auto-renewed validator (`SetAutoRenewedValidatorConfigTx`). Must be signed by the owner address set at add time.
+
+| Flag | Description |
+|------|-------------|
+| `--tx-id` | Original `AddAutoRenewedValidatorTx` ID (required) |
+| `--period` | Next cycle duration, or `0` to exit after the current cycle (required) |
+| `--auto-compound` | Fraction of rewards to auto-compound (required) |
+| `--node-id` | Validator node ID to narrow the authority lookup (optional, recommended) |
+
 ## subnet
 
 ### subnet create
