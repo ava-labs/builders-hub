@@ -193,7 +193,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     if (!signedWarpMessage) return '';
     const network = isTestnet ? 'fuji' : 'mainnet';
     return [
-      `platform l1 register-validator \\`,
+      `platform-cli l1 register-validator \\`,
       `  --message "${signedWarpMessage}" \\`,
       `  --pop "${blsProofOfPossession || '<BLS_PROOF>'}" \\`,
       `  --balance ${validatorBalance || '<BALANCE_AVAX>'} \\`,
