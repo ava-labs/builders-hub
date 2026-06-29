@@ -4,6 +4,7 @@ import { getUserByEmail } from "./getUser";
 import { Prisma } from "@prisma/client";
 import { baseUrl } from "@/utils/metadata";
 import { type EventsLang } from "@/lib/events/i18n";
+import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_SLUG } from "@/lib/grants/programs";
 
 interface InvitationResult {
   Success: boolean;
@@ -175,7 +176,9 @@ async function sendInvitationEmail(
   const inviteLink =
     hackathonId === BUILD_GAMES_HACKATHON_ID
       ? `${baseUrl.origin}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
-      : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
+      : hackathonId === MINI_GRANT_HACKATHON_ID
+        ? `${baseUrl.origin}/grants/${MINI_GRANT_SLUG}/apply?project=${project.id}`
+        : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
