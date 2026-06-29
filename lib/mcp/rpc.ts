@@ -28,6 +28,10 @@ export type Endpoint = keyof typeof ENDPOINTS;
 const TIMEOUT_MS = 15_000;
 const MAX_RETRIES = 3;
 const BASE_BACKOFF_MS = 250;
+// Never sleep longer than this between retries. The public nodes are Cloudflare-fronted
+// and a rate-limit (1015) 429 carries Retry-After in the THOUSANDS of seconds; honoring
+// it verbatim would block the handler until Vercel kills it (504). Cap hard.
+const MAX_BACKOFF_MS = 2_000;
 // The public api.avax.network nodes throttle aggressively (429) and serve HTML gateway
 // pages (502/503/504) under load — both are transient, so we back off and retry.
 const RETRYABLE_STATUS = new Set([429, 502, 503, 504]);
@@ -80,10 +84,16 @@ export async function jsonRpcPost(
 
       if (RETRYABLE_STATUS.has(response.status) && attempt < MAX_RETRIES) {
         const retryAfter = Number(response.headers.get('retry-after'));
+        // A large Retry-After means the upstream WAF has banned us for minutes
+        // (Cloudflare 1015). Retrying in-request is pointless and would hang the
+        // function to a 504 — bail fast with a clean error instead.
+        if (Number.isFinite(retryAfter) && retryAfter * 1000 > MAX_BACKOFF_MS) {
+          throw new RpcError('upstream rate limited — try again shortly', 429);
+        }
         const backoff =
           Number.isFinite(retryAfter) && retryAfter > 0
-            ? retryAfter * 1000
-            : BASE_BACKOFF_MS * 2 ** attempt;
+            ? Math.min(retryAfter * 1000, MAX_BACKOFF_MS)
+            : Math.min(BASE_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
         await sleep(backoff);
         continue;
       }
@@ -116,7 +126,7 @@ export async function jsonRpcPost(
       const isAbort = err instanceof Error && err.name === 'AbortError';
       if (err instanceof RpcError || isAbort || attempt >= MAX_RETRIES) throw err;
       // Transient network blips (e.g. fetch TypeError) get a short backoff retry.
-      await sleep(BASE_BACKOFF_MS * 2 ** attempt);
+      await sleep(Math.min(BASE_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS));
     } finally {
       clearTimeout(timer);
     }
