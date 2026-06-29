@@ -29,7 +29,7 @@ const programs = [
     image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg",
   },
   {
-    title: "Team1 Mini Grants",
+    title: "Team1 Builder Grants",
     description: "Fast, focused funding for builders on Avalanche. A Team1 program.",
     href: "/grants/team1-mini-grants",
     external: false,
