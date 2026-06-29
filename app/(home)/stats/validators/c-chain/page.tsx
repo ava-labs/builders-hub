@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
-import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell, ReferenceLine, Label } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell, ReferenceLine, ReferenceArea, ReferenceDot, Label } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -84,8 +84,18 @@ export default function CChainValidatorMetrics() {
   const [sortColumn, setSortColumn] = useState<string>("totalStake");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [stakingAPYData, setStakingAPYData] = useState<{
-    data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+    data: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number; minConsumptionRate?: number; projected?: boolean }[];
     current: { supply: number; totalBurned: number; maxAPY: number; minAPY: number };
+    helicon?: {
+      enabled: boolean;
+      activationDate: string;
+      activationTimestamp: number;
+      rampEndDate: string;
+      rampEndTimestamp: number;
+      rampDurationDays: number;
+      startMinConsumptionRate: number;
+      targetMinConsumptionRate: number;
+    };
   } | null>(null);
   const [stakingAPYLoading, setStakingAPYLoading] = useState(true);
   const [totalValidatorSeats, setTotalValidatorSeats] = useState<TimeSeriesMetric | null>(null);
@@ -1346,6 +1356,7 @@ export default function CChainValidatorMetrics() {
             data={stakingAPYData?.data}
             currentMaxAPY={stakingAPYData?.current.maxAPY}
             currentMinAPY={stakingAPYData?.current.minAPY}
+            helicon={stakingAPYData?.helicon}
             period={globalPeriod}
             onPeriodChange={handlePeriodChange}
             isLoading={stakingAPYLoading}
@@ -2707,13 +2718,24 @@ function StakingAPYChartCard({
   data,
   currentMaxAPY,
   currentMinAPY,
+  helicon,
   period,
   onPeriodChange,
   isLoading = false,
 }: {
-  data?: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number }[];
+  data?: { date: string; timestamp: number; supply: number; maxAPY: number; minAPY: number; minConsumptionRate?: number; projected?: boolean }[];
   currentMaxAPY?: number;
   currentMinAPY?: number;
+  helicon?: {
+    enabled: boolean;
+    activationDate: string;
+    activationTimestamp: number;
+    rampEndDate: string;
+    rampEndTimestamp: number;
+    rampDurationDays: number;
+    startMinConsumptionRate: number;
+    targetMinConsumptionRate: number;
+  };
   period: "D" | "W" | "M" | "Q" | "Y";
   onPeriodChange: (period: "D" | "W" | "M" | "Q" | "Y") => void;
   isLoading?: boolean;
@@ -2745,13 +2767,16 @@ function StakingAPYChartCard({
     }
   };
 
-  // Transform data to chart format
+  // Transform data to chart format. `projected` / `minConsumptionRate` carry the
+  // Helicon transition through so the line can switch to a dashed style mid-stream.
   const chartData = useMemo(() => {
     if (!data) return [];
     return data.map((point) => ({
       day: point.date,
       maxAPY: point.maxAPY,
       minAPY: point.minAPY,
+      projected: point.projected ?? false,
+      minConsumptionRate: point.minConsumptionRate,
     }));
   }, [data]);
 
@@ -2759,7 +2784,7 @@ function StakingAPYChartCard({
   const aggregatedData = useMemo(() => {
     if (period === "D") return chartData;
 
-    const grouped = new Map<string, { avgMaxAPY: number; avgMinAPY: number; count: number; date: string }>();
+    const grouped = new Map<string, { avgMaxAPY: number; avgMinAPY: number; sumMinRate: number; rateCount: number; projectedCount: number; count: number; date: string }>();
 
     chartData.forEach((point) => {
       const date = new Date(point.day);
@@ -2779,12 +2804,17 @@ function StakingAPYChartCard({
       }
 
       if (!grouped.has(key)) {
-        grouped.set(key, { avgMaxAPY: 0, avgMinAPY: 0, count: 0, date: key });
+        grouped.set(key, { avgMaxAPY: 0, avgMinAPY: 0, sumMinRate: 0, rateCount: 0, projectedCount: 0, count: 0, date: key });
       }
 
       const group = grouped.get(key)!;
       group.avgMaxAPY += point.maxAPY;
       group.avgMinAPY += point.minAPY;
+      if (typeof point.minConsumptionRate === "number") {
+        group.sumMinRate += point.minConsumptionRate;
+        group.rateCount++;
+      }
+      if (point.projected) group.projectedCount++;
       group.count++;
     });
 
@@ -2793,14 +2823,50 @@ function StakingAPYChartCard({
         day: group.date,
         maxAPY: group.avgMaxAPY / group.count,
         minAPY: group.avgMinAPY / group.count,
+        // A bucket is "projected" once the majority of its days are projections.
+        projected: group.projectedCount > group.count / 2,
+        minConsumptionRate: group.rateCount > 0 ? group.sumMinRate / group.rateCount : undefined,
       }))
       .sort((a, b) => a.day.localeCompare(b.day));
   }, [chartData, period]);
 
-  // Initialize brush - show all data since genesis
+  // When Helicon is active, compute a tight window around the transition so the
+  // 30-day ramp isn't lost on a multi-year axis. The y-axis rescales to this window,
+  // turning the floor reduction into a clearly visible drop instead of a tiny kink.
+  const heliconFocus = useMemo(() => {
+    if (!helicon?.enabled || aggregatedData.length === 0) return null;
+    const start = helicon.startMinConsumptionRate;
+    const target = helicon.targetMinConsumptionRate;
+    const EPS = 1e-6;
+
+    const firstBelow = aggregatedData.findIndex(
+      (p) => typeof p.minConsumptionRate === "number" && p.minConsumptionRate < start - EPS
+    );
+    if (firstBelow === -1) return null;
+
+    const settledRel = aggregatedData
+      .slice(firstBelow)
+      .findIndex((p) => typeof p.minConsumptionRate === "number" && p.minConsumptionRate <= target + EPS);
+    const settled = settledRel === -1 ? aggregatedData.length - 1 : firstBelow + settledRel;
+
+    // Pad each side by roughly the ramp's own span so the "before" and "after"
+    // plateaus are both visible as context.
+    const span = Math.max(1, settled - firstBelow);
+    return {
+      startIndex: Math.max(0, firstBelow - 1 - span),
+      endIndex: Math.min(aggregatedData.length - 1, settled + span),
+    };
+  }, [aggregatedData, helicon]);
+
+  // Initialize brush - focus the Helicon window when present, else show all history
   useEffect(() => {
     if (!aggregatedData || aggregatedData.length === 0) {
       setBrushIndexes(null);
+      return;
+    }
+
+    if (heliconFocus) {
+      setBrushIndexes(heliconFocus);
       return;
     }
 
@@ -2809,7 +2875,7 @@ function StakingAPYChartCard({
       startIndex: 0,
       endIndex: aggregatedData.length - 1,
     });
-  }, [period, aggregatedData]);
+  }, [period, aggregatedData, heliconFocus]);
 
   const displayData = useMemo(() => {
     if (!brushIndexes || !aggregatedData || aggregatedData.length === 0) return [];
@@ -2819,12 +2885,110 @@ function StakingAPYChartCard({
     return aggregatedData.slice(start, end + 1);
   }, [brushIndexes, aggregatedData]);
 
+  const heliconActive = Boolean(helicon?.enabled);
+
+  // The MIN-APY line is split at the Helicon activation boundary into a "pre" segment
+  // (solid blue) and a "post" segment (gradient blue->amber, dashed when projected).
+  // This gives the regime change its own colour. The MAX line keeps a simple
+  // historical/projected split since Helicon doesn't change it. Boundary points carry
+  // both keys so the segments connect with no gap.
+  const startRate = helicon?.startMinConsumptionRate ?? Number.POSITIVE_INFINITY;
+  const renderData = useMemo(() => {
+    const EPS = 1e-6;
+    return displayData.map((p, i) => {
+      const isProjected = !!p.projected;
+      const next = displayData[i + 1];
+      const isMaxBoundary = !isProjected && next?.projected;
+
+      // "post" = floor has begun dropping (during ramp or settled below the start rate)
+      const isPost =
+        heliconActive && typeof p.minConsumptionRate === "number" && p.minConsumptionRate < startRate - EPS;
+      const nextIsPost =
+        heliconActive && next && typeof next.minConsumptionRate === "number" && next.minConsumptionRate < startRate - EPS;
+      const isMinBoundary = !isPost && nextIsPost; // last pre-activation point
+
+      return {
+        ...p,
+        maxAPYSolid: !isProjected ? p.maxAPY : null,
+        maxAPYProjected: isProjected || isMaxBoundary ? p.maxAPY : null,
+        // Min line: pre (solid) up to & including the boundary, post (gradient) from boundary on.
+        minAPYPre: !isPost ? p.minAPY : null,
+        minAPYPost: isPost || isMinBoundary ? p.minAPY : null,
+      };
+    });
+  }, [displayData, heliconActive, startRate]);
+
+  // Locate the ramp window within the visible range using the per-point floor rate
+  // (robust across all aggregation periods — no date-string parsing needed). The band
+  // spans from the first day the floor drops below the start rate to the first day it
+  // reaches the target floor.
+  const heliconBand = useMemo(() => {
+    if (!heliconActive || !helicon || displayData.length === 0) return null;
+    const start = helicon.startMinConsumptionRate;
+    const target = helicon.targetMinConsumptionRate;
+    const EPS = 1e-6;
+
+    const firstBelowIdx = displayData.findIndex(
+      (p) => typeof p.minConsumptionRate === "number" && p.minConsumptionRate < start - EPS
+    );
+    if (firstBelowIdx === -1) return null; // ramp not in the visible window yet
+
+    // Anchor the band at activation: the point right before the floor first dips
+    // sits exactly at the start rate (= activation), so prefer it when available.
+    const rampStart = displayData[Math.max(0, firstBelowIdx - 1)];
+
+    // Ramp end = first point at/after activation that has reached the target floor.
+    // (No `projected` requirement — once activation is in the past the whole ramp
+    // lives in historical data, so the close-off point is a real, non-projected day.)
+    const rampEndPoint =
+      displayData
+        .slice(firstBelowIdx)
+        .find((p) => typeof p.minConsumptionRate === "number" && p.minConsumptionRate <= target + EPS) ??
+      displayData[displayData.length - 1];
+
+    return {
+      x1: rampStart.day,
+      x2: rampEndPoint.day,
+      y1: rampStart.minAPY, // min-APY at activation (anchor for the "before" dot)
+      y2: rampEndPoint.minAPY, // min-APY once the floor settles (the "after" dot)
+      startFloorPct: start * 100,
+      endFloorPct: target * 100,
+    };
+  }, [displayData, heliconActive, helicon]);
+
+  // Build the gradient stops for the post-activation min segment, expressed as
+  // fractions of THAT segment's own bounding box (a stroke gradient maps over the
+  // path's bbox, not the chart axis). The colour holds blue through activation, morphs
+  // to amber across the 30-day ramp, then holds amber — literally drawing the ramp.
+  const heliconGradient = useMemo(() => {
+    if (!heliconBand || displayData.length < 2) return null;
+    const i1 = displayData.findIndex((p) => p.day === heliconBand.x1); // activation (segment start)
+    const i2 = displayData.findIndex((p) => p.day === heliconBand.x2); // ramp end
+    const iLast = displayData.length - 1;
+    if (i1 < 0 || i2 < 0 || iLast <= i1) return null;
+    const denom = iLast - i1;
+    return {
+      start: 0, // activation = left edge of the post segment
+      end: Math.max(0, Math.min(1, (i2 - i1) / denom)),
+    };
+  }, [displayData, heliconBand]);
+
+  const postDashed = useMemo(() => displayData.some((p) => p.projected), [displayData]);
+
   // CSV download function
   const downloadCSV = () => {
     if (!displayData || displayData.length === 0) return;
 
-    const headers = ["Date", "Max APY (1 Year %)", "Min APY (2 Weeks %)"];
-    const rows = displayData.map((point) => [point.day, point.maxAPY.toFixed(4), point.minAPY.toFixed(4)].join(","));
+    const headers = ["Date", "Max APY (1 Year %)", "Min APY (2 Weeks %)", "Min Floor Rate (%)", "Projected"];
+    const rows = displayData.map((point) =>
+      [
+        point.day,
+        point.maxAPY.toFixed(4),
+        point.minAPY.toFixed(4),
+        typeof point.minConsumptionRate === "number" ? (point.minConsumptionRate * 100).toFixed(4) : "",
+        point.projected ? "yes" : "no",
+      ].join(",")
+    );
 
     const csvContent = [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -2874,6 +3038,8 @@ function StakingAPYChartCard({
 
   const maxAPYColor = "#10B981"; // Emerald for max APY (1 year)
   const minAPYColor = "#3B82F6"; // Blue for min APY (2 weeks)
+  const heliconColor = "#F59E0B"; // Amber for the Helicon (ACP-285) transition
+  const minPostStroke = heliconGradient ? "url(#minHeliconGradient)" : heliconColor;
 
   return (
     <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
@@ -2950,7 +3116,36 @@ function StakingAPYChartCard({
                 <span className="text-md font-mono">{(currentMinAPY ?? 0).toFixed(2)}%</span>
               )}
             </div>
+            {heliconActive && (
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block w-6 border-t-2"
+                  style={{ borderColor: heliconColor }}
+                />
+                <span className="text-sm text-muted-foreground">Post-Helicon Min APY</span>
+              </div>
+            )}
           </div>
+
+          {/* Helicon (ACP-285) transition note */}
+          {heliconActive && !isLoading && helicon && (
+            <div
+              className="mb-4 ml-2 sm:ml-4 mr-2 rounded-md border px-3 py-2 text-xs leading-relaxed"
+              style={{ borderColor: `${heliconColor}55`, backgroundColor: `${heliconColor}0D` }}
+            >
+              <span className="font-medium" style={{ color: heliconColor }}>
+                Helicon upgrade (ACP-285):
+              </span>{" "}
+              the minimum consumption rate floor steps down linearly from{" "}
+              {(helicon.startMinConsumptionRate * 100).toFixed(1)}% to{" "}
+              {(helicon.targetMinConsumptionRate * 100).toFixed(1)}% over {helicon.rampDurationDays} days
+              starting {new Date(helicon.activationDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.
+              Each stake locks in the floor active on its start date, so the{" "}
+              <span style={{ color: minAPYColor }}>2-week Min APY</span> drifts down across the shaded
+              window. Dashed segments are projections (supply held constant).{" "}
+              <span className="text-muted-foreground">Chart is zoomed to the transition — drag the slider below to view full history.</span>
+            </div>
+          )}
 
           {/* Chart */}
           <ChartWatermark className="mb-6">
@@ -2984,7 +3179,7 @@ function StakingAPYChartCard({
               </div>
             ) : displayData.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <LineChart data={renderData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
                   <XAxis
                     dataKey="day"
@@ -3003,13 +3198,82 @@ function StakingAPYChartCard({
                     width={50}
                     domain={['auto', 'auto']}
                   />
+                  {/* ACP-285 Helicon transition: gradient stroke for the min line */}
+                  {heliconBand && heliconGradient && (
+                    <defs>
+                      <linearGradient id="minHeliconGradient" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset={heliconGradient.start} stopColor={minAPYColor} />
+                        <stop offset={heliconGradient.end} stopColor={heliconColor} />
+                        <stop offset={1} stopColor={heliconColor} />
+                      </linearGradient>
+                    </defs>
+                  )}
+                  {/* Phase zones: Pre-Helicon | Transition | Post-Helicon */}
+                  {heliconBand && (
+                    <ReferenceArea x1={displayData[0].day} x2={heliconBand.x1} fill={minAPYColor} fillOpacity={0.05} strokeOpacity={0}>
+                      <Label value="Pre-Helicon · 10% floor" position="insideTopLeft" fontSize={10} fontWeight={600} fill={minAPYColor} />
+                    </ReferenceArea>
+                  )}
+                  {heliconBand && (
+                    <ReferenceArea x1={heliconBand.x1} x2={heliconBand.x2} fill={heliconColor} fillOpacity={0.14} stroke={heliconColor} strokeOpacity={0.35}>
+                      <Label
+                        content={(props: any) => {
+                          const vb = props?.viewBox;
+                          if (!vb || vb.width == null || !heliconBand) return null;
+                          const w = 156, hgt = 32;
+                          const cx = vb.x + vb.width / 2;
+                          const x = cx - w / 2;
+                          const y = vb.y + vb.height - hgt - 6;
+                          const dFloor = (heliconBand.startFloorPct - heliconBand.endFloorPct).toFixed(1);
+                          const dAPY = (heliconBand.y1 - heliconBand.y2).toFixed(2);
+                          return (
+                            <g>
+                              <rect x={x} y={y} width={w} height={hgt} rx={6} fill={heliconColor} fillOpacity={0.15} stroke={heliconColor} strokeOpacity={0.6} />
+                              <text x={cx} y={y + 13} textAnchor="middle" fontSize={11} fontWeight={700} fill={heliconColor}>Helicon transition</text>
+                              <text x={cx} y={y + 25} textAnchor="middle" fontSize={10} fill={heliconColor}>{`floor −${dFloor}pp · Min APY −${dAPY}%`}</text>
+                            </g>
+                          );
+                        }}
+                      />
+                    </ReferenceArea>
+                  )}
+                  {heliconBand && (
+                    <ReferenceArea x1={heliconBand.x2} x2={displayData[displayData.length - 1].day} fill={maxAPYColor} fillOpacity={0.05} strokeOpacity={0}>
+                      <Label value="Post-Helicon · 7.5% floor" position="insideTopRight" fontSize={10} fontWeight={600} fill={heliconColor} />
+                    </ReferenceArea>
+                  )}
+                  {/* Vertical activation marker */}
+                  {heliconBand && (
+                    <ReferenceLine x={heliconBand.x1} stroke={heliconColor} strokeWidth={2} strokeDasharray="4 4">
+                      <Label value="Helicon activated" position="insideTop" fontSize={10} fontWeight={700} fill={heliconColor} />
+                    </ReferenceLine>
+                  )}
+                  {/* Before / after dots on the min-APY line */}
+                  {heliconBand && (
+                    <ReferenceDot x={heliconBand.x1} y={heliconBand.y1} r={4} fill={minAPYColor} stroke="#fff" strokeWidth={1.5} isFront />
+                  )}
+                  {heliconBand && (
+                    <ReferenceDot x={heliconBand.x2} y={heliconBand.y2} r={4} fill={heliconColor} stroke="#fff" strokeWidth={1.5} isFront />
+                  )}
                   <Tooltip
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const data = payload[0].payload;
+                      const floorPct =
+                        typeof data.minConsumptionRate === "number" ? (data.minConsumptionRate * 100) : null;
                       return (
                         <div className="rounded-lg border bg-background p-3 shadow-lg">
-                          <p className="font-medium text-sm mb-2">{formatTooltipDate(data.day)}</p>
+                          <div className="flex items-center justify-between gap-3 mb-2">
+                            <p className="font-medium text-sm">{formatTooltipDate(data.day)}</p>
+                            {data.projected && (
+                              <span
+                                className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+                                style={{ backgroundColor: `${heliconColor}20`, color: heliconColor }}
+                              >
+                                Projected
+                              </span>
+                            )}
+                          </div>
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
                               <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: maxAPYColor }} />
@@ -3021,26 +3285,59 @@ function StakingAPYChartCard({
                               <span className="text-xs text-muted-foreground">Min APY (2 Weeks):</span>
                               <span className="text-xs font-mono font-medium">{data.minAPY.toFixed(2)}%</span>
                             </div>
+                            {heliconActive && floorPct !== null && (
+                              <div className="flex items-center gap-2 pt-1 mt-1 border-t border-border/60">
+                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: heliconColor }} />
+                                <span className="text-xs text-muted-foreground">Min Consumption Floor:</span>
+                                <span className="text-xs font-mono font-medium">{floorPct.toFixed(2)}%</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
                     }}
                   />
+                  {/* Max APY (1 Year) — unaffected by Helicon (solid; dashed if projected) */}
                   <Line
                     type="monotone"
-                    dataKey="maxAPY"
+                    dataKey="maxAPYSolid"
                     stroke={maxAPYColor}
                     strokeWidth={2}
                     dot={false}
+                    connectNulls={false}
                     name="Max APY (1 Year)"
                   />
                   <Line
                     type="monotone"
-                    dataKey="minAPY"
+                    dataKey="maxAPYProjected"
+                    stroke={maxAPYColor}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    connectNulls={false}
+                    name="Max APY (projected)"
+                    legendType="none"
+                  />
+                  {/* Min APY (2 Weeks) — blue pre-activation, gradient blue→amber post */}
+                  <Line
+                    type="monotone"
+                    dataKey="minAPYPre"
                     stroke={minAPYColor}
                     strokeWidth={2}
                     dot={false}
+                    connectNulls={false}
                     name="Min APY (2 Weeks)"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="minAPYPost"
+                    stroke={minPostStroke}
+                    strokeWidth={2.5}
+                    strokeDasharray={postDashed ? "5 5" : undefined}
+                    dot={false}
+                    connectNulls={false}
+                    name="Min APY (post-Helicon)"
+                    legendType="none"
                   />
                 </LineChart>
               </ResponsiveContainer>
