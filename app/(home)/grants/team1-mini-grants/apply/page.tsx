@@ -331,9 +331,7 @@ function Team1MiniGrantsApplyContent() {
     const isApplied = applications.some((a) => a.projectId === project.id);
     if (!isApplied && (!project.hackaton_id || project.hackaton_id === MINI_GRANT_HACKATHON_ID)) {
       handledProjectParamRef.current = true;
-      setConsentTeam1(true);
       setSelectedProjectId(project.id);
-      setActiveStep(1);
       startEditProject(project);
     }
   }, [applications, applicationsLoaded, projects, projectsLoading, searchParams]);
@@ -598,7 +596,7 @@ function Team1MiniGrantsApplyContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           projectId: selectedProjectId,
-          consentTeam1: true,
+          consentTeam1,
           referral_attribution: getStoredReferralAttribution(),
           ...values,
         }),
