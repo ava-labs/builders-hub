@@ -20,7 +20,7 @@ All validators require a BLS proof of possession. You can provide this manually 
 ### Manual BLS Mode (Recommended)
 
 ```bash
-platform validator add \
+platform validator add-permissionless \
   --node-id NodeID-BFa1paAAAA... \
   --stake 2000 \
   --duration 336h \
@@ -34,7 +34,7 @@ platform validator add \
 ### Auto-Fetch BLS from Node
 
 ```bash
-platform validator add \
+platform validator add-permissionless \
   --node-id NodeID-BFa1paAAAA... \
   --stake 2000 \
   --duration 336h \
@@ -63,7 +63,7 @@ BLS PoP:        0xfedcba0987654321...
 Delegate AVAX to an existing validator:
 
 ```bash
-platform validator delegate \
+platform validator add-permissionless-delegator \
   --node-id NodeID-BFa1paAAAA... \
   --stake 100 \
   --duration 336h \
@@ -89,6 +89,10 @@ Validators charge a fee as a percentage of delegator rewards:
 --start now          # Default: 30 seconds from submission (5 minutes with --ledger)
 --start 2026-02-01T00:00:00Z   # RFC3339 format
 ```
+
+<Callout type="info">
+Post-Durango, the P-Chain ignores the transaction start time — validation begins when the transaction is accepted. `--start` is retained for compatibility but has no on-chain effect on current networks.
+</Callout>
 
 ### Duration
 

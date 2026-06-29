@@ -141,14 +141,14 @@ Or import an existing private key:
 platform keys import --name mykey --private-key <PRIVATE_KEY>
 ```
 
-You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--ledger` in place of `--key-name` when running `platform validator add`.
+You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--ledger` in place of `--key-name` when running `platform validator add-permissionless`.
 
 ### Add Validator
 
 **Fuji Testnet — manual BLS:**
 
 ```bash
-platform validator add \
+platform validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 1 \
   --duration 336h \
@@ -162,7 +162,7 @@ platform validator add \
 **Fuji Testnet — auto-fetch BLS from running node:**
 
 ```bash
-platform validator add \
+platform validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 1 \
   --duration 336h \
@@ -175,7 +175,7 @@ platform validator add \
 **Mainnet:**
 
 ```bash
-platform validator add \
+platform validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 2000 \
   --duration 336h \
@@ -188,7 +188,7 @@ platform validator add \
 **Mainnet with Ledger:**
 
 ```bash
-platform validator add \
+platform validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 2000 \
   --duration 336h \
