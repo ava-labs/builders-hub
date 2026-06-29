@@ -122,7 +122,7 @@ For full installation details, see the [platform-cli documentation](/docs/toolin
 You can use the same `info.getNodeID` API call shown in the Core extension section above. Alternatively, platform-cli can fetch BLS credentials directly from a running node:
 
 ```bash
-platform node info --ip <YOUR_NODE_IP>:9650
+platform-cli node info --ip <YOUR_NODE_IP>:9650
 ```
 
 See the [platform-cli command reference](/docs/tooling/platform-cli/command-reference) for all available node commands. You can also look up the full response format in the [Info RPC docs](/docs/rpcs/other/info-rpc#infogetnodeid).
@@ -132,23 +132,23 @@ See the [platform-cli command reference](/docs/tooling/platform-cli/command-refe
 Generate a new key:
 
 ```bash
-platform keys generate --name mykey
+platform-cli keys generate --name mykey
 ```
 
 Or import an existing private key:
 
 ```bash
-platform keys import --name mykey --private-key <PRIVATE_KEY>
+platform-cli keys import --name mykey --private-key <PRIVATE_KEY>
 ```
 
-You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--ledger` in place of `--key-name` when running `platform validator add-permissionless`.
+You can also use a **Ledger hardware wallet** instead of a stored key. Pass `--ledger` in place of `--key-name` when running `platform-cli validator add-permissionless`.
 
 ### Add Validator
 
 **Fuji Testnet — manual BLS:**
 
 ```bash
-platform validator add-permissionless \
+platform-cli validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 1 \
   --duration 336h \
@@ -162,7 +162,7 @@ platform validator add-permissionless \
 **Fuji Testnet — auto-fetch BLS from running node:**
 
 ```bash
-platform validator add-permissionless \
+platform-cli validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 1 \
   --duration 336h \
@@ -175,7 +175,7 @@ platform validator add-permissionless \
 **Mainnet:**
 
 ```bash
-platform validator add-permissionless \
+platform-cli validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 2000 \
   --duration 336h \
@@ -188,7 +188,7 @@ platform validator add-permissionless \
 **Mainnet with Ledger:**
 
 ```bash
-platform validator add-permissionless \
+platform-cli validator add-permissionless \
   --node-id <YOUR_NODE_ID> \
   --stake 2000 \
   --duration 336h \

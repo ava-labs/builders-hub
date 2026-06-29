@@ -8,7 +8,7 @@ Platform CLI supports creating subnets, transferring ownership, and converting t
 ## Create a Subnet
 
 ```bash
-platform subnet create --key-name mykey --network fuji
+platform-cli subnet create --key-name mykey --network fuji
 ```
 
 ```
@@ -26,7 +26,7 @@ The subnet owner is the wallet address used to create it. You need P-Chain AVAX 
 Transfer ownership to a new P-Chain address:
 
 ```bash
-platform subnet transfer-ownership \
+platform-cli subnet transfer-ownership \
   --subnet-id 2QYfFcfZ9... \
   --new-owner P-fuji1xyz789... \
   --key-name mykey
@@ -37,7 +37,7 @@ platform subnet transfer-ownership \
 Add a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must **already be a primary network validator**, and the subnet owner key authorizes the transaction.
 
 ```bash
-platform subnet add-validator \
+platform-cli subnet add-validator \
   --subnet-id 2QYfFcfZ9... \
   --node-id NodeID-BFa1paAAAA... \
   --weight 100 \
@@ -56,7 +56,7 @@ Convert a permissioned subnet to an L1 blockchain. This operation is **irreversi
 Provide validator node addresses and let the CLI fetch NodeID and BLS credentials:
 
 ```bash
-platform subnet convert-to-l1 \
+platform-cli subnet convert-to-l1 \
   --subnet-id 2QYfFcfZ9... \
   --chain-id 3RZgGdaH1... \
   --manager 0x1234567890abcdef1234567890abcdef12345678 \
@@ -70,7 +70,7 @@ platform subnet convert-to-l1 \
 Provide validator data explicitly (all lists must be comma-separated and aligned by index):
 
 ```bash
-platform subnet convert-to-l1 \
+platform-cli subnet convert-to-l1 \
   --subnet-id 2QYfFcfZ9... \
   --chain-id 3RZgGdaH1... \
   --manager 0x1234... \
@@ -86,7 +86,7 @@ platform subnet convert-to-l1 \
 For local testing, generate a mock validator with random BLS credentials:
 
 ```bash
-platform subnet convert-to-l1 \
+platform-cli subnet convert-to-l1 \
   --subnet-id 2QYfFcfZ9... \
   --chain-id 3RZgGdaH1... \
   --mock-validator \

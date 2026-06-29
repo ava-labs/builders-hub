@@ -20,7 +20,7 @@ All validators require a BLS proof of possession. You can provide this manually 
 ### Manual BLS Mode (Recommended)
 
 ```bash
-platform validator add-permissionless \
+platform-cli validator add-permissionless \
   --node-id NodeID-BFa1paAAAA... \
   --stake 2000 \
   --duration 336h \
@@ -34,7 +34,7 @@ platform validator add-permissionless \
 ### Auto-Fetch BLS from Node
 
 ```bash
-platform validator add-permissionless \
+platform-cli validator add-permissionless \
   --node-id NodeID-BFa1paAAAA... \
   --stake 2000 \
   --duration 336h \
@@ -49,7 +49,7 @@ platform validator add-permissionless \
 Use `node info` to retrieve BLS credentials from a running node:
 
 ```bash
-platform node info --ip validator.example.com:9650
+platform-cli node info --ip validator.example.com:9650
 ```
 
 ```
@@ -63,7 +63,7 @@ BLS PoP:        0xfedcba0987654321...
 Delegate AVAX to an existing validator:
 
 ```bash
-platform validator add-permissionless-delegator \
+platform-cli validator add-permissionless-delegator \
   --node-id NodeID-BFa1paAAAA... \
   --stake 100 \
   --duration 336h \
@@ -112,6 +112,58 @@ By default, rewards go to your P-Chain address. Specify a different address with
 ```bash
 --reward-address P-avax1xyz789...
 ```
+
+## Auto-Renewed Staking (ACP-236)
+
+An auto-renewed validator automatically restakes at the end of each cycle instead of expiring, optionally compounding its rewards. The configuration for the *next* cycle can be updated at any time by the owner address set when the validator was added.
+
+### Add an Auto-Renewed Validator
+
+```bash
+platform-cli validator add-auto-renewed \
+  --node-id NodeID-BFa1paAAAA... \
+  --stake 2000 \
+  --period 336h \
+  --delegation-fee 0.02 \
+  --auto-compound 1 \
+  --bls-public-key 0x1234... \
+  --bls-pop 0x5678... \
+  --owner-address P-avax1xyz789... \
+  --key-name mykey \
+  --network mainnet
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--node-id` | Node ID to validate (required) | |
+| `--stake` | Stake amount in AVAX (network minimum applies) | |
+| `--period` | Auto-renewal cycle duration (e.g. `336h` for 14 days) | `336h` |
+| `--auto-compound` | Fraction of rewards to auto-compound (`0.3` = 30%, `1` = 100%) | `1` |
+| `--delegation-fee` | Delegation fee (`0.02` = 2%) | `0.02` |
+| `--owner-address` | Address authorized to update the auto-renew config | own address |
+| `--reward-address` | Reward address | own address |
+| `--bls-public-key` / `--bls-pop` | BLS credentials (recommended/manual mode) | |
+| `--node-endpoint` | Node endpoint to auto-fetch BLS (fallback mode) | |
+
+### Update the Next-Cycle Config
+
+Change the next cycle's period and auto-compound rate, or stop auto-renewal. Must be signed by the `--owner-address` set at add time, and references the original `add-auto-renewed` transaction ID.
+
+```bash
+platform-cli validator set-auto-renewed-config \
+  --tx-id 2QYfFcfZ9... \
+  --node-id NodeID-BFa1paAAAA... \
+  --period 720h \
+  --auto-compound 0.5 \
+  --key-name mykey
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tx-id` | Original `AddAutoRenewedValidatorTx` ID (required) |
+| `--period` | Next cycle duration, or `0` to exit after the current cycle (required) |
+| `--auto-compound` | Fraction of rewards to auto-compound (required) |
+| `--node-id` | Validator node ID to narrow the authority lookup (optional, recommended) |
 
 ## Next Steps
 
