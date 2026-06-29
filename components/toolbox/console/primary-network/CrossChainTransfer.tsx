@@ -561,8 +561,8 @@ console.log("Import tx:", txnResponse.txHash);`,
 
   const cliCommand =
     sourceChain === 'c-chain'
-      ? `platform transfer c-to-p --amount ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`
-      : `platform transfer p-to-c --amount ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`;
+      ? `platform-cli transfer c-to-p --amount ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`
+      : `platform-cli transfer p-to-c --amount ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`;
 
   const sourceChainName = sourceChain === 'c-chain' ? 'C-Chain' : 'P-Chain';
   const destChainName = destinationChain === 'c-chain' ? 'C-Chain' : 'P-Chain';
