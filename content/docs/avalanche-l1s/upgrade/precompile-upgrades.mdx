@@ -36,6 +36,15 @@ The content of the `upgrade.json` should be formatted according to the following
 An invalid `blockTimestamp` in an upgrade file results the update failing. The `blockTimestamp` value should be set to a valid Unix timestamp value which is in the _future_ relative to the _head of the chain_. If the node encounters a `blockTimestamp` which is in the past, it will fail on startup.
 </Callout>
 
+<Callout type="warn" title="Halted L1 Recovery">
+If an L1 is already halted because all registered validators ran out of balance,
+new future `blockTimestamp` values cannot activate until another block is
+accepted. For recovery procedures that depend on Warp already being active,
+confirm the effective `warpConfig.blockTimestamp` is less than or equal to the
+last accepted L1 block timestamp. See
+[Recovering a Halted L1 After Validator Inactivity](/docs/avalanche-l1s/maintain/halted-block-production).
+</Callout>
+
 ## Disabling Precompiles
 
 To disable a precompile, use the following format:

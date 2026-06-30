@@ -10,6 +10,7 @@ export interface FileConfig {
   description: string;
   contentUrl: string;
   content?: string; // Optional: directly provide content instead of fetching from sourceUrl
+  postProcess?: (content: string) => string;
 }
 
 export type SectionParser = (content: string, meta: {
@@ -190,20 +191,24 @@ export async function processFile(fileConfig: FileConfig, parser?: SectionParser
     } else if (parser && fileConfig.contentUrl) {
       const contentBaseUrl = new URL('.', fileConfig.contentUrl).href;
       const editUrl = fileConfig.sourceUrl ? deriveEditUrlFromSourceUrl(fileConfig.sourceUrl) : undefined;
-      transformedContent = parser(content, { 
-        title: fileConfig.title, 
-        description: fileConfig.description, 
-        sourceBaseUrl: contentBaseUrl, 
-        editUrl 
+      transformedContent = parser(content, {
+        title: fileConfig.title,
+        description: fileConfig.description,
+        sourceBaseUrl: contentBaseUrl,
+        editUrl
       });
     } else {
       transformedContent = content;
     }
-    
+
+    if (fileConfig.postProcess) {
+      transformedContent = fileConfig.postProcess(transformedContent);
+    }
+
     const outputDir = path.dirname(fileConfig.outputPath);
     fs.mkdirSync(outputDir, { recursive: true });
 
     fs.writeFileSync(fileConfig.outputPath, transformedContent);
     console.log(`Processed and saved: ${fileConfig.outputPath}`);
   }
-} 
+}
