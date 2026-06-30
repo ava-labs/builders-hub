@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { prisma } from "../../prisma/prisma";
+import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 
 export function hasAnyAttribute(
   attributes: string[] | undefined | null,
@@ -42,6 +43,18 @@ export async function canEvaluateHackathon(
   if (!session?.user) return false;
   if (hasAnyAttribute(session.user.custom_attributes, ["devrel"])) return true;
   return isHackathonJudge(session.user.id, hackathonId);
+}
+
+/**
+ * True when the user may review Team1 Mini Grant (grant_minigrant) applications:
+ * devrel OR a judge assigned to the mini-grant backing hackathon. The global
+ * "judge" custom_attribute is intentionally NOT sufficient — mini-grant review
+ * is scoped to devrel and explicitly assigned mini-grant judges.
+ */
+export function canReviewMiniGrants(
+  session: { user?: { id?: string; custom_attributes?: string[] } } | null | undefined,
+): Promise<boolean> {
+  return canEvaluateHackathon(session, MINI_GRANT_HACKATHON_ID);
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { ReferralTargetType } from "@/lib/referrals/constants";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 
 export interface ReferralTargetPreset {
   key: string;
@@ -21,6 +22,15 @@ export const BUILDER_HUB_SIGNUP_TARGET: ReferralTargetPreset = {
 };
 
 export const ACTIVE_GRANT_TARGETS: ReferralTargetPreset[] = [
+  {
+    key: "grant-team1-mini-grants",
+    group: "grant",
+    label: "Team1 Mini Grants",
+    detail: "Active grant application",
+    targetType: "grant_application",
+    targetId: MINI_GRANT_KEY,
+    destinationUrl: "/grants/team1-mini-grants",
+  },
   {
     key: "grant-avalanche-research-proposals",
     group: "grant",

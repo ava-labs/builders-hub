@@ -110,6 +110,7 @@ model User {
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
   posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
+  grant_applications         GrantApplication[]        @relation("GrantApplicationUser")
 }
 
 model VerificationToken {
@@ -192,6 +193,7 @@ model Project {
   ProjectRepository   ProjectRepository[]
   evaluations         Evaluation[]
   jobListings         JobListing[]
+  grant_applications  GrantApplication[]  @relation("GrantApplicationProject")
 }
 
 model Member {
@@ -702,4 +704,18 @@ model JobListing {
   @@unique([source, external_id])
   @@index([source, is_active, posted_at])
   @@index([project_id])
+}
+
+model GrantApplication {
+  id          String   @id @default(uuid())
+  program_key String
+  user_id     String
+  project_id  String
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime @updatedAt @db.Timestamptz(3)
+  user        User     @relation("GrantApplicationUser", fields: [user_id], references: [id], onDelete: Cascade)
+  project     Project  @relation("GrantApplicationProject", fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([program_key, project_id])
+  @@index([user_id])
 }
