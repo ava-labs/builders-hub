@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { canAccessEvaluationTools } from "@/lib/auth/permissions";
+import { canAccessEvaluationTools, canReviewMiniGrants } from "@/lib/auth/permissions";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
@@ -17,7 +18,10 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
 
-    if (!session?.user?.id || !canAccessEvaluationTools(session.user.custom_attributes)) {
+    const canEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
+    const canReviewMini = await canReviewMiniGrants(session);
+
+    if (!session?.user?.id || (!canEvaluate && !canReviewMini)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
     }
 
@@ -27,6 +31,12 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {};
     if (hackathonId) {
       where.project = { hackaton_id: hackathonId };
+    }
+    // Scope mini-grant rows to devrel + assigned mini-grant judges only.
+    if (!canReviewMini) {
+      where.origin = { not: MINI_GRANT_KEY };
+    } else if (!canEvaluate) {
+      where.origin = MINI_GRANT_KEY;
     }
 
     const formDataRecords = await prisma.formData.findMany({

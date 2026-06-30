@@ -11,6 +11,7 @@ import { prisma } from "@/prisma/prisma";
 import { Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { sendSubmissionConfirmationMail } from "./registerForms";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 
 /** Returns true when all required submission fields are filled in. */
 export function isProjectComplete(p: Partial<Project>): boolean {
@@ -249,7 +250,13 @@ export async function createProject(
           ? { consent_sharing: projectData.consent_sharing }
           : {}),
         explanation: projectData.explanation ?? "",
-        origin: "Project submission",
+        // Only the mini-grant draft flow may set a non-default origin; every
+        // other caller keeps the historical "Project submission" value so a
+        // client can't write arbitrary origins to this shared endpoint.
+        origin:
+          (projectData as { origin?: string }).origin === MINI_GRANT_KEY
+            ? MINI_GRANT_KEY
+            : "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
         // Member created together with project
         members: {

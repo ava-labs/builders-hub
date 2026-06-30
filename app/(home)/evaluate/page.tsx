@@ -3,7 +3,31 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { EvaluateDashboard } from "@/components/evaluate/EvaluateDashboard";
 import type { SubmissionRow, EvaluationData } from "@/components/evaluate/types";
-import { canAccessEvaluationTools } from "@/lib/auth/permissions";
+import { canAccessEvaluationTools, canReviewMiniGrants } from "@/lib/auth/permissions";
+import { MINI_GRANT_KEY, MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
+
+function normalizeStringMap(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof v === "string" && v.trim().length > 0) out[k] = v;
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
+function normalizeDeployedAddresses(
+  value: unknown,
+): Array<{ address: string; tag?: string }> {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const rec = item as Record<string, unknown>;
+    const address = typeof rec.address === "string" ? rec.address.trim() : "";
+    if (!address) return [];
+    const tag = typeof rec.tag === "string" && rec.tag.trim().length > 0 ? rec.tag.trim() : undefined;
+    return [tag ? { address, tag } : { address }];
+  });
+}
 
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
@@ -26,9 +50,12 @@ export default async function EvaluatePage({
     redirect("/");
   }
 
-  const canAccess = canAccessEvaluationTools(session.user?.custom_attributes);
+  // Mini-grant (grant_minigrant) review is scoped to devrel + assigned
+  // mini-grant judges, separately from the global judge/devrel evaluation gate.
+  const canEvaluate = canAccessEvaluationTools(session.user?.custom_attributes);
+  const canReviewMini = await canReviewMiniGrants(session);
 
-  if (!canAccess) {
+  if (!canEvaluate && !canReviewMini) {
     redirect("/");
   }
 
@@ -40,16 +67,26 @@ export default async function EvaluatePage({
     if (selectedHackathonId) {
       formDataWhere.project = { hackaton_id: selectedHackathonId };
     }
+    // Scope mini-grant rows: hide them from users who can't review mini-grants,
+    // and show ONLY them to mini-grant-only judges (no global evaluation access).
+    if (!canReviewMini) {
+      formDataWhere.origin = { not: MINI_GRANT_KEY };
+    } else if (!canEvaluate) {
+      formDataWhere.origin = MINI_GRANT_KEY;
+    }
+
+    const hackathonWhere: Record<string, unknown> = {
+      projects: { some: { formData: { some: {} } } },
+    };
+    if (!canReviewMini) {
+      hackathonWhere.id = { not: MINI_GRANT_HACKATHON_ID };
+    } else if (!canEvaluate) {
+      hackathonWhere.id = MINI_GRANT_HACKATHON_ID;
+    }
 
     const [hackathons, formDataRecords] = await Promise.all([
       prisma.hackathon.findMany({
-        where: {
-          projects: {
-            some: {
-              formData: { some: {} },
-            },
-          },
-        },
+        where: hackathonWhere,
         select: { id: true, title: true },
         orderBy: { start_date: "desc" },
       }),
@@ -169,6 +206,10 @@ export default async function EvaluatePage({
           demoVideoLink: fd.project.demo_video_link ?? "",
           tracks: fd.project.tracks,
           categories: fd.project.categories,
+          tags: fd.project.tags,
+          deployedAddresses: normalizeDeployedAddresses(fd.project.deployed_addresses),
+          website: normalizeStringMap(fd.project.website),
+          socials: normalizeStringMap(fd.project.socials),
           isPreexistingIdea: fd.project.is_preexisting_idea,
           createdAt: fd.project.created_at.toISOString(),
           members: fd.project.members.map((m) => ({
