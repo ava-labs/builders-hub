@@ -1,6 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ExternalLink } from "lucide-react";
-import { Team1Wordmark } from "@/components/grants/Team1Wordmark";
 import { MiniGrantApplications } from "@/components/grants/MiniGrantApplications";
 
 export default function Team1MiniGrantsPage() {
@@ -8,12 +8,18 @@ export default function Team1MiniGrantsPage() {
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       <main className="relative container mx-auto px-4 py-12 space-y-12">
         <section className="text-center space-y-8 pt-8 pb-12">
+          {/* SEO: keep the program name in an accessible heading behind the banner image */}
+          <h1 className="sr-only">Team1 Mini Grants</h1>
           <div className="space-y-6">
-            <div className="flex flex-col items-center gap-5">
-              <Team1Wordmark className="h-14 md:h-20" />
-              <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-white bg-clip-text text-transparent">
-                Mini Grants
-              </h1>
+            <div className="relative mx-auto w-full max-w-4xl overflow-hidden rounded-2xl shadow-2xl shadow-slate-900/20">
+              <Image
+                src="/grants/team1-mini-grants-banner.webp"
+                alt="Team1 Mini Grants"
+                width={2560}
+                height={1093}
+                priority
+                className="w-full h-auto"
+              />
             </div>
             <p className="text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Fast, focused funding for builders on Avalanche. A Team1 program designed to support innovative projects and accelerate growth in the ecosystem.
