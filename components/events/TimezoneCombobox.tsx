@@ -50,6 +50,7 @@ const CURATED_TIMEZONES: TimezoneOption[] = [
   { value: "America/Sao_Paulo", label: "São Paulo, Brazil (BRT) - GMT-3", offset: -3 },
   { value: "America/Santiago", label: "Santiago, Chile (CLT) - GMT-3", offset: -3 },
   { value: "America/Buenos_Aires", label: "Buenos Aires, Argentina (ART) - GMT-3", offset: -3 },
+  { value: "UTC", label: "UTC (Coordinated Universal Time) - GMT+0", offset: 0 },
   { value: "Europe/London", label: "London (GMT/BST) - GMT+0/+1", offset: 0 },
   { value: "Europe/Paris", label: "Paris (CET/CEST) - GMT+1/+2", offset: 1 },
   { value: "Europe/Berlin", label: "Berlin (CET/CEST) - GMT+1/+2", offset: 1 },
