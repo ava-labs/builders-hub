@@ -142,7 +142,7 @@ export const initialData: {
   latest: {
     start_date: "",
     end_date: "",
-    timezone: "",
+    timezone: "UTC",
     banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
     icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
     small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",

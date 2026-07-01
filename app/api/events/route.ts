@@ -177,8 +177,15 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
     // the service layer.  This prevents mass-assignment / schema injection.
     const parseResult = createHackathonSchema.safeParse(rawBody);
     if (!parseResult.success) {
+      // Emit details as an array of { field, message } so the client's error
+      // renderer (see app/events/edit/page.tsx) can surface the specific
+      // validation message instead of falling back to the generic error string.
+      const details = parseResult.error.issues.map((issue) => ({
+        field: issue.path.join('.') || '(body)',
+        message: issue.message,
+      }));
       return NextResponse.json(
-        { error: 'Invalid request body', details: parseResult.error.flatten() },
+        { error: 'Invalid request body', details },
         { status: 400 }
       );
     }
