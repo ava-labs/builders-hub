@@ -67,6 +67,24 @@ export default function ModernEventLayout({
     validStartDate.getMonth() === validEndDate.getMonth() &&
     validStartDate.getDate() === validEndDate.getDate();
 
+  // Short timezone offset label (e.g. "UTC+2"); full zone name shown on hover.
+  const timeZone = hackathon.timezone || "UTC";
+  const shortTimeZone = (() => {
+    try {
+      const offset = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        timeZoneName: "shortOffset",
+      })
+        .formatToParts(validStartDate)
+        .find((part) => part.type === "timeZoneName")?.value;
+      if (!offset) return timeZone;
+      const label = offset.replace("GMT", "UTC");
+      return label === "UTC+0" || label === "UTC-0" ? "UTC" : label;
+    } catch {
+      return timeZone;
+    }
+  })();
+
   const formattedDate =
     isSameDay
       ? `${format(validStartDate, "MMMM d, h:mm a")} - ${format(
@@ -217,6 +235,12 @@ export default function ModernEventLayout({
                 <Calendar className="w-5 h-5 text-zinc-600 dark:text-zinc-400 flex-shrink-0" />
                 <span className="text-base sm:text-lg font-medium text-zinc-900 dark:text-zinc-100">
                   {formattedDate}
+                  {isSameDay && (
+                    <>
+                      {" "}
+                      <span title={timeZone}>{shortTimeZone}</span>
+                    </>
+                  )}
                 </span>
               </div>
 
