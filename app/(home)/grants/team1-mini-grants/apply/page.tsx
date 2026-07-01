@@ -704,11 +704,17 @@ function Team1MiniGrantsApplyContent() {
           <div className="mx-auto my-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15">
             <CheckCircle2 className="h-9 w-9 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Application submitted</h1>
-          <p className="mx-auto mt-3 max-w-sm text-muted-foreground">
-            Thanks for applying to Team1 Mini Grants. We&apos;ll review it and follow up at the email
-            on your account. You can track its status on the Mini Grants page.
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">
+            Thank you for submitting your application to the Team1 Mini Grants
+          </h1>
+          <ul className="mx-auto mt-4 max-w-sm list-disc space-y-2 pl-5 text-left text-muted-foreground">
+            <li>Applications are reviewed on a rolling basis.</li>
+            <li>
+              Volume of applications is high so after review, we will reach out if you have been
+              accepted.
+            </li>
+            <li>Participation does not guarantee funding.</li>
+          </ul>
           <Button
             className="mt-7 min-w-48"
             onClick={() => router.push("/grants/team1-mini-grants")}
@@ -1437,6 +1443,14 @@ function Team1MiniGrantsApplyContent() {
                       </FormItem>
                     )}
                   />
+                </div>
+
+                <div className="space-y-1 rounded-lg border border-border bg-secondary/40 p-4">
+                  <h3 className="text-sm font-semibold text-foreground">Please note</h3>
+                  <p className="text-sm text-muted-foreground">
+                    All funding decisions are made at the sole discretion of the team and the
+                    committee. Participation does not guarantee funding.
+                  </p>
                 </div>
 
                 <div className="flex items-center justify-between">
