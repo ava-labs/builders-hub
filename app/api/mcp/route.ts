@@ -2,8 +2,21 @@ import { NextResponse, NextRequest } from 'next/server';
 import { MCPServer } from '@/lib/mcp/server';
 import { validateOrigin, getCORSHeaders } from '@/lib/mcp/cors';
 import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
-import { docsTools, blockchainTools, githubTools, platformTools, infoTools } from '@/lib/mcp/tools';
+import {
+  docsTools,
+  blockchainTools,
+  platformTools,
+  infoTools,
+  dataTools,
+  actionTools,
+  consoleTools,
+} from '@/lib/mcp/tools';
 import { docsResources } from '@/lib/mcp/resources';
+
+// Fail fast rather than riding Vercel's default 60s into a gateway 504 if an upstream
+// RPC ever hangs (the rpc.ts backoff cap is the primary guard; this is the safety net).
+// 30s comfortably covers every real tool call.
+export const maxDuration = 30;
 
 // ---------------------------------------------------------------------------
 // Singleton MCP server — registered once at module load
@@ -11,16 +24,20 @@ import { docsResources } from '@/lib/mcp/resources';
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.1.0',
+  version: '2.4.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain lookups, P-Chain, and Info API',
+  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data (Glacier + ClickHouse), build-plan runbooks, and Builder Console guidance',
 });
 
 server.registerToolDomain(docsTools);
 server.registerToolDomain(blockchainTools);
-server.registerToolDomain(githubTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
+// dataTools' indexed on-chain queries (onchain_activity / chain_stats / onchain_query) route
+// through the query gateway via MCP_GATEWAY_URL (HMAC-signed); see lib/mcp/tools/lib/gateway-client.ts.
+server.registerToolDomain(dataTools);
+server.registerToolDomain(actionTools);
+server.registerToolDomain(consoleTools);
 server.registerResourceDomain(docsResources);
 
 // ---------------------------------------------------------------------------

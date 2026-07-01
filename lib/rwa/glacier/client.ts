@@ -12,8 +12,10 @@ export async function glacierFetch<T>(
     }
   }
 
+  // Explicit User-Agent: the Glacier API is Cloudflare-fronted and can 403 a request with
+  // Node's near-empty default UA (works locally via curl, fails on the deployed server).
   const response = await fetch(url.toString(), {
-    headers: { accept: 'application/json' },
+    headers: { accept: 'application/json', 'user-agent': 'Avalanche-Builders-Hub-MCP' },
   })
 
   if (!response.ok) {

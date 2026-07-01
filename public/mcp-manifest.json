@@ -1,260 +1,213 @@
 {
   "name": "avalanche-mcp",
-  "version": "2.1.0",
-  "description": "Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, code search, public blockchain lookups, P-Chain RPCs, and Info API calls.",
+  "version": "2.4.0",
+  "description": "Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data (Glacier + ClickHouse), build-plan runbooks, and Builder Console guidance.",
   "endpoint": "https://build.avax.network/api/mcp",
   "protocol": "mcp/http",
   "readOnly": true,
-  "categories": ["documentation", "blockchain", "developer-tools", "code-search"],
+  "categories": [
+    "documentation",
+    "blockchain",
+    "developer-tools",
+    "on-chain-data"
+  ],
   "capabilities": {
     "tools": true,
     "resources": true,
     "streamableHttp": true
   },
   "canonicalTooling": {
-    "preferredDocsTools": ["docs_search", "docs_fetch", "docs_list_sections"],
+    "preferredDocsTools": [
+      "docs_search",
+      "docs_fetch",
+      "docs_list_sections"
+    ],
     "compatibilityAliases": [
       "avalanche_docs_search",
       "avalanche_docs_fetch",
       "avalanche_docs_list_sections"
     ]
   },
-  "repositoryCoverage": [
-    "ava-labs/avalanchego",
-    "ava-labs/subnet-evm",
-    "ava-labs/coreth",
-    "ava-labs/avalanche-cli",
-    "ava-labs/platform-cli",
-    "ava-labs/icm-services",
-    "ava-labs/avalanche-network-runner",
-    "ava-labs/icm-contracts",
-    "ava-labs/hypersdk",
-    "ava-labs/libevm",
-    "ava-labs/builders-hub"
-  ],
   "tools": [
     {
       "name": "docs_search",
-      "description": "Search body-level chunks across Avalanche docs, academy, integrations, and blog posts with citations and matching excerpts."
+      "description": "Search body-level chunks across Avalanche documentation, academy courses, integrations, and blog posts. Returns source citations and matching excerpts."
     },
     {
       "name": "docs_fetch",
-      "description": "Fetch a specific documentation page as markdown by internal URL path."
+      "description": "Fetch a specific documentation page as markdown"
     },
     {
       "name": "docs_list_sections",
-      "description": "List available documentation sections and page counts."
+      "description": "List available documentation sections and their page counts"
     },
     {
       "name": "cli_lookup_command",
-      "description": "Search Avalanche CLI, Platform CLI, and tmpnet docs for commands, flags, and task guidance."
+      "description": "Look up Avalanche CLI, Platform CLI, and tmpnet command guidance in the docs. Returns cited command references and task docs."
     },
     {
       "name": "rpc_lookup_method",
-      "description": "Search Avalanche RPC method docs across C-Chain, P-Chain, X-Chain, Subnet-EVM, and node APIs."
+      "description": "Look up Avalanche RPC methods and API guides across C-Chain, P-Chain, X-Chain, Subnet-EVM, and node RPC docs."
     },
     {
       "name": "acp_lookup",
-      "description": "Search Avalanche Community Proposals by number, title, or topic."
+      "description": "Look up Avalanche Community Proposals (ACPs) by number, title, or topic. When a number is provided the structured ACP record is returned (title, status, track, authors, cross-references)."
     },
     {
       "name": "acp_list",
-      "description": "List Avalanche Community Proposals with structured fields and optional status or track filters."
+      "description": "List Avalanche Community Proposals with structured fields, optionally filtered by status (Activated, Implementable, Proposed, Stale, Withdrawn) or track (Standards, Best Practices, Meta, Subnet)."
     },
     {
       "name": "avalanche_docs_search",
-      "description": "Compatibility alias for docs_search."
+      "description": "Compatibility alias for docs_search. Prefer docs_search for new clients."
     },
     {
       "name": "avalanche_docs_fetch",
-      "description": "Compatibility alias for docs_fetch."
+      "description": "Compatibility alias for docs_fetch. Prefer docs_fetch for new clients."
     },
     {
       "name": "avalanche_docs_list_sections",
-      "description": "Compatibility alias for docs_list_sections."
-    },
-    {
-      "name": "github_search_code",
-      "description": "Search code across core Avalanche repositories."
-    },
-    {
-      "name": "github_get_file",
-      "description": "Fetch a file from an allowed Avalanche GitHub repository."
-    },
-    {
-      "name": "github_list_repositories",
-      "description": "List GitHub repositories covered by the MCP GitHub tools."
-    },
-    {
-      "name": "blockchain_get_native_balance",
-      "description": "Get native AVAX balance for an EVM address."
-    },
-    {
-      "name": "blockchain_get_contract_info",
-      "description": "Inspect whether an EVM address is a contract and identify common token metadata."
+      "description": "Compatibility alias for docs_list_sections. Prefer docs_list_sections for new clients."
     },
     {
       "name": "blockchain_lookup_transaction",
-      "description": "Look up Avalanche transactions and parse common P-Chain/X-Chain transaction types."
-    },
-    {
-      "name": "blockchain_lookup_address",
-      "description": "Look up EVM or P-Chain address details."
+      "description": "Look up a transaction by hash on Avalanche (C-Chain, P-Chain, or X-Chain). Supports 0x format (C-Chain) and CB58 format (P/X-Chain)."
     },
     {
       "name": "blockchain_lookup_subnet",
-      "description": "Look up subnet details."
+      "description": "Look up a Subnet / L1 by its ID — validators, chains, and configuration."
     },
     {
       "name": "blockchain_lookup_chain",
-      "description": "Look up blockchain details."
+      "description": "Look up a blockchain by its ID — name, VM type, and subnet."
     },
     {
       "name": "blockchain_lookup_validator",
-      "description": "Look up validator details."
+      "description": "Look up a validator by node ID — stake, uptime, delegation info."
     },
     {
       "name": "platform_get_height",
-      "description": "Get the current P-Chain block height."
+      "description": "Get the current P-Chain block height"
     },
     {
       "name": "platform_get_block",
-      "description": "Get a P-Chain block by block ID."
+      "description": "Get a P-Chain block by its block ID"
     },
     {
       "name": "platform_get_block_by_height",
-      "description": "Get a P-Chain block by height."
+      "description": "Get a P-Chain block by its height"
     },
     {
       "name": "platform_get_blockchains",
-      "description": "Get blockchains registered on the P-Chain."
+      "description": "Get all blockchains that exist on the P-Chain (paginated; use limit/offset)"
     },
     {
       "name": "platform_get_subnets",
-      "description": "Get subnet information."
+      "description": "Get information about subnets on the P-Chain"
     },
     {
       "name": "platform_get_current_validators",
-      "description": "Get current validators for the Primary Network or a subnet."
+      "description": "Get the current validators of a subnet (paginated; use limit/offset)"
     },
     {
       "name": "platform_get_pending_validators",
-      "description": "Get pending validators for the Primary Network or a subnet."
+      "description": "Get the pending validators of a subnet (paginated; use limit/offset)"
     },
     {
       "name": "platform_get_staking_asset_id",
-      "description": "Get the staking asset ID for a subnet."
+      "description": "Get the asset ID of the token used for staking on a subnet"
     },
     {
       "name": "platform_get_min_stake",
-      "description": "Get minimum validator and delegator stake amounts."
+      "description": "Get the minimum staking amounts for validators and delegators on a subnet"
     },
     {
       "name": "platform_get_total_stake",
-      "description": "Get total stake on a subnet."
+      "description": "Get the total amount staked on a subnet"
     },
     {
       "name": "platform_get_balance",
-      "description": "Get P-Chain address balances."
+      "description": "Get the AVAX balance of one or more P-Chain addresses"
     },
     {
       "name": "platform_get_utxos",
-      "description": "Get P-Chain UTXOs."
+      "description": "Get UTXOs that reference a given set of P-Chain addresses"
     },
     {
       "name": "platform_get_tx",
-      "description": "Get a P-Chain transaction."
+      "description": "Get a P-Chain transaction by its transaction ID"
     },
     {
       "name": "platform_get_tx_status",
-      "description": "Get P-Chain transaction status."
+      "description": "Get the status of a P-Chain transaction"
     },
     {
       "name": "platform_get_current_supply",
-      "description": "Get current AVAX supply from the P-Chain."
+      "description": "Get the current total supply of AVAX on a subnet"
     },
     {
       "name": "platform_get_validators_at",
-      "description": "Get validators at a historical P-Chain height."
+      "description": "Get the validators and their weights of a subnet at a given P-Chain height"
     },
     {
       "name": "info_get_node_version",
-      "description": "Get Avalanche node version and compatibility information."
+      "description": "Get the version of the node, including the database version, git commit, and API compatibility info."
     },
     {
       "name": "info_get_network_id",
-      "description": "Get the numeric Avalanche network ID."
+      "description": "Get the numeric ID of the Avalanche network this node is participating in."
     },
     {
       "name": "info_get_network_name",
-      "description": "Get the Avalanche network name."
+      "description": "Get the human-readable name of the Avalanche network this node is participating in."
     },
     {
       "name": "info_get_blockchain_id",
-      "description": "Resolve a blockchain alias to a blockchain ID."
+      "description": "Get the CB58-encoded blockchain ID for a given blockchain alias (e.g., \"X\", \"P\", \"C\")."
     },
     {
       "name": "info_is_bootstrapped",
-      "description": "Check whether a chain is bootstrapped."
+      "description": "Check whether a given chain has finished bootstrapping on the node."
     },
     {
       "name": "info_get_tx_fee",
-      "description": "Get current Avalanche transaction fees."
+      "description": "Get the current transaction fees for the network, returned in both nAVAX and AVAX."
     },
     {
       "name": "info_peers",
-      "description": "List node peers."
+      "description": "Get a list of peers this node is connected to. Optionally filter by specific NodeIDs."
     },
     {
       "name": "info_acps",
-      "description": "Get live ACP voting/status information from the Info API."
+      "description": "Get information about Avalanche Community Proposals (ACPs), including their status and vote counts."
+    },
+    {
+      "name": "onchain_lookup",
+      "description": "PRIMARY lookup tool — use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, contract metadata + isContract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by Glacier + P-Chain RPC."
+    },
+    {
+      "name": "onchain_activity",
+      "description": "Time-windowed on-chain activity. scope=chain/address returns the transaction COUNT over the last `hours` (max 720h = 30 days; for longer windows use chain_stats series or onchain_query day-based ops) plus a recent sample. For a token/contract use scope=token (transfers). scope=primary covers P/X-chain and DEFAULTS to P-Chain when no blockchainId is given (so \"last N P-chain transactions\" just works). A value with no scope defaults to address."
+    },
+    {
+      "name": "chain_stats",
+      "description": "On-chain statistics (ClickHouse-backed). target=chain: tx count/gas/fees/active senders/avg gas price over a recent window (window=recent, `hours`, max 720h = 30 days) OR a time-series (window=series, `days`, max 365). target=contract: per-contract tx/sender/gas totals (`days`, max 365 — use this for contract activity beyond 30 days). target=network: current P-chain validator snapshot. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is ~stable even as tx count varies — expected, not an error."
+    },
+    {
+      "name": "onchain_query",
+      "description": "PRIMARY tool for indexed on-chain stats/activity/totals (query gateway, ClickHouse-backed + cached) — prefer this over raw RPC for chain data. Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Lookback: hour-based ops (chainStatsRecent/chainActivity/addressActivity) max 720h (30 days); day-based ops (chainStatsSeries/contractStats/chainGasTotal/protocolRanking/contractGasFlow/topUnknownContracts) max 365 days — use a day-based op for windows over 30 days. Ops: chainStatsRecent {chainId, hours≤720} — tx count/gas/fees/active senders/avg gas price over the last N hours; chainStatsSeries {chainId, days≤365, bucket: hour|day|week|month} — bucketed time-series of the same; addressActivity {chainId, address, hours≤720, limit≤100} — tx count + recent sample for an address in a window; chainActivity {chainId, hours≤720, limit≤100} — tx count + recent sample chain-wide in a window; contractStats {chainId, contract, days≤365} — tx/unique-sender/gas totals for a contract; protocolRanking {chainId, contracts[≤25], days≤365, orderBy: txCount|gasUsed|uniqueSenders|feesPaidAvax, dir: asc|desc, limit≤100} — rank a set of contracts; contractGasFlow {chainId, contract, days≤365, limit≤100} — gas received/given per counterparty; topUnknownContracts {chainId, exclude[≤25], days≤365, limit≤100} — top contracts by gas excluding a set; chainGasTotal {chainId, days≤365} OR {chainId, fromDate, toDate} — total tx/gas/fees over N days or a YYYY-MM-DD range (≤365d). Note: C-Chain gasUsed is gas-target-regulated → ~stable day-to-day even as txCount varies (expected, not a bug)."
+    },
+    {
+      "name": "build_plan",
+      "description": "Generate a step-by-step, copy-pasteable runbook for an Avalanche operation — Builder Console (no-code) path plus the equivalent platform-cli / SDK / interchain-kit commands. Read-only: never signs. operation: create-l1 (launch an L1); use ictt or interchain-kit for any CROSS-CHAIN / interoperability work — bridging tokens, sending cross-chain (ICM / Teleporter / Warp) messages, or connecting your L1 to C-Chain or other L1s (interchain-kit also lets you iterate locally first); validator-manager; staking; transfer."
+    },
+    {
+      "name": "console_link",
+      "description": "Return a deep-link into a specific Builder Console flow (create-l1, convert-to-l1, validator-manager, ictt, faucet, multisig, staking, transfers, interchain-kit-local). For faucet on mainnet, returns a note that there is no mainnet faucet."
+    },
+    {
+      "name": "console_flow",
+      "description": "Builder Console flow knowledge. Call with NO `flow` to list every flow (summaries + deep-links); call with a `flow` key to explain it (ordered steps, equivalent CLI, whether it signs transactions, deep-link). Flows: create-l1, convert-to-l1, validator-manager, ictt, faucet, multisig, staking, transfers, interchain-kit-local."
     }
-  ],
-  "resources": [
-    {
-      "uri": "docs://index",
-      "name": "Documentation Index",
-      "description": "Index of all Avalanche documentation pages",
-      "mimeType": "text/markdown"
-    },
-    {
-      "uri": "academy://index",
-      "name": "Academy Index",
-      "description": "Index of all Avalanche Academy courses",
-      "mimeType": "text/markdown"
-    },
-    {
-      "uri": "integrations://index",
-      "name": "Integrations Index",
-      "description": "Index of all Avalanche integrations",
-      "mimeType": "text/markdown"
-    },
-    {
-      "uri": "blog://index",
-      "name": "Blog Index",
-      "description": "Index of all Avalanche Builders Hub blog posts",
-      "mimeType": "text/markdown"
-    },
-    {
-      "uri": "rpcs://index",
-      "name": "RPC Documentation Index",
-      "description": "Index of Avalanche RPC method and API documentation",
-      "mimeType": "text/markdown"
-    },
-    {
-      "uri": "cli://index",
-      "name": "CLI Documentation Index",
-      "description": "Index of Avalanche CLI, Platform CLI, and tmpnet documentation",
-      "mimeType": "text/markdown"
-    },
-    {
-      "uri": "acps://index",
-      "name": "ACP Index",
-      "description": "Index of Avalanche Community Proposal documentation",
-      "mimeType": "text/markdown"
-    }
-  ],
-  "homepage": "https://build.avax.network/docs/tooling/ai-llm/mcp-server",
-  "repository": "https://github.com/ava-labs/builders-hub",
-  "roadmapIssue": "https://github.com/ava-labs/builders-hub/issues/4070"
+  ]
 }

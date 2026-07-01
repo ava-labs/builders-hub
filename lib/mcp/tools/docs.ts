@@ -10,7 +10,7 @@ import { captureMCPEvent, truncateForTracking } from '../analytics';
 import type { MCPTool, ToolDomain, ToolResult } from '../types';
 
 const SOURCE_VALUES = ['docs', 'academy', 'integrations', 'blog'] as const;
-const CLI_VALUES = ['avalanche-cli', 'platform-cli', 'tmpnet', 'all'] as const;
+const CLI_VALUES = ['platform-cli', 'tmpnet', 'all'] as const;
 const RPC_CHAIN_VALUES = ['p-chain', 'c-chain', 'x-chain', 'subnet-evm', 'other', 'all'] as const;
 const ACP_TRACKS = ['Standards', 'Best Practices', 'Meta', 'Subnet'] as const;
 
@@ -19,11 +19,37 @@ const ACP_TRACKS = ['Standards', 'Best Practices', 'Meta', 'Subnet'] as const;
 const MAX_FETCH_CONTENT_CHARS = 50_000;
 
 const CLI_PATH_PREFIXES: Record<(typeof CLI_VALUES)[number], string[]> = {
-  'avalanche-cli': ['/docs/tooling/avalanche-cli'],
   'platform-cli': ['/docs/tooling/platform-cli'],
   tmpnet: ['/docs/tooling/tmpnet'],
-  all: ['/docs/tooling/avalanche-cli', '/docs/tooling/platform-cli', '/docs/tooling/tmpnet'],
+  // avalanche-cli is deprecated and fully removed from the MCP — never searched or surfaced.
+  all: ['/docs/tooling/platform-cli', '/docs/tooling/tmpnet'],
 };
+
+const QUICK_BUILD_URL = 'https://build.avax.network/console';
+const PLATFORM_CLI_DOCS = 'https://build.avax.network/docs/tooling/platform-cli';
+
+// avalanche-cli is fully purged from the MCP — no deprecation-notice constant needed.
+
+// Matches "make/create/deploy/build/launch/spin up ... an L1 / subnet / blockchain / chain".
+const L1_CREATION_INTENT =
+  /\b(make|create|deploy|build|launch|spin\s?up|start)\b.{0,40}\b(l1|subnet|blockchain|chain|network)\b/i;
+
+// Steers L1-creation requests to the supported paths instead of the deprecated avalanche-cli.
+function buildL1CreationGuidance(): string {
+  return [
+    'Recommended ways to create an Avalanche L1 (avalanche-cli is deprecated and not shown):',
+    '',
+    `1. **Quick Build (no-code, recommended):** create and deploy an L1 from the Builder Console — ${QUICK_BUILD_URL}`,
+    '2. **platform-cli (scriptable):** run, in order:',
+    '   - `platform subnet create --key-name <key> --network <fuji|mainnet>`',
+    '   - `platform chain create --subnet-id <id> --name <name> --genesis genesis.json`',
+    '   - `platform subnet convert-l1 --subnet-id <id> --manager <validator-manager-addr>`',
+    '   - `platform l1 register-validator --balance <AVAX> --pop <hex> --message <hex>`',
+    `   Full command reference: ${PLATFORM_CLI_DOCS}`,
+    '',
+    'Tip: call `build_plan` (operation: create-l1) for the complete sequence + a genesis.json.',
+  ].join('\n');
+}
 
 const RPC_PATH_PREFIXES: Record<(typeof RPC_CHAIN_VALUES)[number], string[]> = {
   'p-chain': ['/docs/rpcs/p-chain'],
@@ -478,8 +504,17 @@ export const docsTools: ToolDomain = {
         pathPrefixes: CLI_PATH_PREFIXES[cli],
       });
 
+      const sections: string[] = [];
+
+      // Steer "make an L1" style requests to Quick Build + platform-cli.
+      if (L1_CREATION_INTENT.test(query)) {
+        sections.push(buildL1CreationGuidance());
+      }
+
+      sections.push(formatSearchResults(query, results, 'CLI results'));
+
       return {
-        content: [{ type: 'text', text: formatSearchResults(query, results, 'CLI results') }],
+        content: [{ type: 'text', text: sections.join('\n\n') }],
       };
     },
 

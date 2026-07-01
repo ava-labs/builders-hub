@@ -5,7 +5,7 @@
  * calling a non-existent /api/mcp/blockchain route.
  */
 
-import { avalancheRPC } from '../rpc';
+import { avalancheRPC, jsonRpcPost } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
 
@@ -204,148 +204,23 @@ const BASE_URLS: Record<Network, string> = {
 };
 
 async function evmRPC(network: Network, method: string, params: unknown[]): Promise<unknown> {
+  // Delegates to the shared helper so C-Chain EVM calls get the same retry/backoff
+  // and the HTML-response guard (a rate-limit page previously crashed JSON.parse here).
   const url = `${BASE_URLS[network]}/ext/bc/C/rpc`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-      signal: controller.signal,
-    });
-    const json = await res.json() as { result?: unknown; error?: { message: string } };
-    if (json.error) throw new Error(json.error.message);
-    return json.result;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// blockchain_get_native_balance
-// ---------------------------------------------------------------------------
-
-async function getNativeBalance(address: string, chainId: string): Promise<{
-  address: string;
-  chainId: string;
-  balance: string;
-  balanceFormatted: string;
-  symbol: string;
-}> {
-  const network: Network = chainId === '43113' ? 'fuji' : 'mainnet';
-  const result = await evmRPC(network, 'eth_getBalance', [address, 'latest']) as string;
-  const balanceWei = BigInt(result || '0x0');
-  const balanceEth = Number(balanceWei) / 1e18;
-  return {
-    address,
-    chainId,
-    balance: result,
-    balanceFormatted: balanceEth.toFixed(6),
-    symbol: 'AVAX',
-  };
-}
-
-// ---------------------------------------------------------------------------
-// blockchain_get_contract_info
-// ---------------------------------------------------------------------------
-
-async function getContractInfo(address: string, chainId: string): Promise<{
-  address: string;
-  chainId: string;
-  isContract: boolean;
-  name?: string;
-  symbol?: string;
-  ercType?: string;
-}> {
-  const network: Network = chainId === '43113' ? 'fuji' : 'mainnet';
-
-  // Check if it's a contract
-  const code = await evmRPC(network, 'eth_getCode', [address, 'latest']) as string;
-  const isContract = code !== '0x' && code !== '0x0' && code.length > 2;
-
-  if (!isContract) return { address, chainId, isContract: false };
-
-  // Try to get ERC20 name/symbol
-  try {
-    // name() selector: 0x06fdde03
-    const nameResult = await evmRPC(network, 'eth_call', [
-      { to: address, data: '0x06fdde03' },
-      'latest',
-    ]) as string;
-
-    // symbol() selector: 0x95d89b41
-    const symbolResult = await evmRPC(network, 'eth_call', [
-      { to: address, data: '0x95d89b41' },
-      'latest',
-    ]) as string;
-
-    if (nameResult && nameResult !== '0x') {
-      // Decode ABI-encoded string
-      const decodeString = (hex: string): string => {
-        try {
-          const data = hex.slice(2);
-          const offset = parseInt(data.slice(0, 64), 16) * 2;
-          const length = parseInt(data.slice(offset, offset + 64), 16) * 2;
-          const strHex = data.slice(offset + 64, offset + 64 + length);
-          return Buffer.from(strHex, 'hex').toString('utf8').replace(/\x00/g, '');
-        } catch {
-          return '';
-        }
-      };
-
-      const name = decodeString(nameResult);
-      const symbol = decodeString(symbolResult);
-
-      if (name) {
-        return { address, chainId, isContract: true, name, symbol, ercType: 'ERC20' };
-      }
-    }
-  } catch {
-    // Not an ERC20 or call failed
-  }
-
-  return { address, chainId, isContract: true };
+  return jsonRpcPost(url, method, params);
 }
 
 // ---------------------------------------------------------------------------
 // Tool domain
+//
+// NOTE: blockchain_get_native_balance / blockchain_get_contract_info /
+// blockchain_lookup_address were retired — they hit live public RPC (rate-
+// limited) and overlap onchain_lookup (Glacier-indexed). Use onchain_lookup for
+// balances, contract info, and address details.
 // ---------------------------------------------------------------------------
 
 export const blockchainTools: ToolDomain = {
   tools: [
-    {
-      name: 'blockchain_get_native_balance',
-      description: 'Get the native AVAX balance of an address on C-Chain',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'EVM address (0x...)' },
-          chainId: {
-            type: 'string',
-            description: 'Chain ID — "43114" for C-Chain mainnet, "43113" for Fuji testnet',
-            default: '43114',
-          },
-        },
-        required: ['address'],
-      },
-    },
-    {
-      name: 'blockchain_get_contract_info',
-      description: 'Check if an address is a contract and get its ERC20 name/symbol if applicable',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'EVM address (0x...)' },
-          chainId: {
-            type: 'string',
-            description: 'Chain ID — "43114" for C-Chain mainnet, "43113" for Fuji testnet',
-            default: '43114',
-          },
-        },
-        required: ['address'],
-      },
-    },
     {
       name: 'blockchain_lookup_transaction',
       description:
@@ -365,23 +240,6 @@ export const blockchainTools: ToolDomain = {
           },
         },
         required: ['txHash'],
-      },
-    },
-    {
-      name: 'blockchain_lookup_address',
-      description:
-        'Look up an address — balance, contract info. Use when users paste an 0x address.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'The address to look up (0x format)' },
-          chainId: {
-            type: 'string',
-            default: '43114',
-            description: 'Chain ID — "43114" for C-Chain mainnet, "43113" for Fuji testnet',
-          },
-        },
-        required: ['address'],
       },
     },
     {
@@ -441,40 +299,6 @@ export const blockchainTools: ToolDomain = {
   ],
 
   handlers: {
-    // -------------------------------------------------------------------------
-    // blockchain_get_native_balance
-    // -------------------------------------------------------------------------
-    blockchain_get_native_balance: async (args): Promise<ToolResult> => {
-      const address = args.address as string;
-      const chainId = (args.chainId as string) || '43114';
-      try {
-        const result = await getNativeBalance(address, chainId);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error fetching balance' }],
-          isError: true,
-        };
-      }
-    },
-
-    // -------------------------------------------------------------------------
-    // blockchain_get_contract_info
-    // -------------------------------------------------------------------------
-    blockchain_get_contract_info: async (args): Promise<ToolResult> => {
-      const address = args.address as string;
-      const chainId = (args.chainId as string) || '43114';
-      try {
-        const result = await getContractInfo(address, chainId);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error fetching contract info' }],
-          isError: true,
-        };
-      }
-    },
-
     // -------------------------------------------------------------------------
     // blockchain_lookup_transaction
     // -------------------------------------------------------------------------
@@ -600,47 +424,6 @@ export const blockchainTools: ToolDomain = {
       } catch (err) {
         return {
           content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up transaction' }],
-          isError: true,
-        };
-      }
-    },
-
-    // -------------------------------------------------------------------------
-    // blockchain_lookup_address — fixed: no longer calls missing blockchain route
-    // -------------------------------------------------------------------------
-    blockchain_lookup_address: async (args): Promise<ToolResult> => {
-      const address = args.address as string;
-      const chainId = (args.chainId as string) || '43114';
-      try {
-        const [balance, contractInfo] = await Promise.allSettled([
-          getNativeBalance(address, chainId),
-          getContractInfo(address, chainId),
-        ]);
-
-        const b = balance.status === 'fulfilled' ? balance.value : null;
-        const c = contractInfo.status === 'fulfilled' ? contractInfo.value : null;
-
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              address,
-              chainId,
-              network: chainId === '43113' ? 'Fuji Testnet' : 'C-Chain Mainnet',
-              balance: b ? `${b.balanceFormatted} ${b.symbol}` : 'unknown',
-              isContract: c?.isContract || false,
-              contractInfo: c?.isContract
-                ? { name: c.name, symbol: c.symbol, ercType: c.ercType }
-                : null,
-              explorerUrl: chainId === '43113'
-                ? `https://testnet.snowtrace.io/address/${address}`
-                : `https://snowtrace.io/address/${address}`,
-            }),
-          }],
-        };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up address' }],
           isError: true,
         };
       }
