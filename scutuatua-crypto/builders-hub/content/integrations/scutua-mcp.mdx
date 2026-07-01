@@ -1,0 +1,208 @@
+---
+title: Scutua MCP
+category: Developer Tools
+available:
+  - C-Chain
+  - Solana
+  - Arbitrum
+  - Optimism
+  - BNB Chain
+  - Base
+  - TON
+  - Polkadot
+  - Cosmos
+  - Reef
+description: >
+  Scutua MCP is a multi-chain AI agent toolkit exposing 157 on-chain tools
+  via the Model Context Protocol (MCP), enabling AI assistants and autonomous
+  agents to query balances, execute swaps, monitor whales, manage DeFi
+  positions, and interact with Avalanche C-Chain — all through a single
+  MCP-compatible endpoint.
+logo: /images/scutua-mcp.png
+developer: Scutuatua Crypto (WhaleTrucker)
+website: https://scutuatua-crypto.github.io/
+documentation: https://scutua-mcp.onrender.com/mcp
+---
+
+## Overview
+
+Scutua MCP is an open-source [Model Context Protocol](https://modelcontextprotocol.io/) server that
+gives AI agents and LLM-based tools direct access to **157 on-chain tools** across 10+ chains,
+including Avalanche C-Chain. It is the backbone of the WhaleTrucker ecosystem — a suite of DeFi
+dashboards and whale-tracking platforms built by independent developer Scutuatua Crypto.
+
+By connecting an MCP-compatible AI client (such as Claude, Cursor, or any MCP host) to the
+Scutua MCP server, developers gain instant access to:
+
+- **Wallet & balance queries** across Avalanche, Solana, Arbitrum, Optimism, BNB Chain, Base, TON,
+  Polkadot, Cosmos, and Reef
+- **DeFi yield scanning** via DeFiLlama, Aave V3, Compound V3, Pendle, Curve, and GMX
+- **Whale monitoring** — real-time large-transaction alerts powered by Bitquery and Dune Analytics
+- **DEX swap execution** — Jupiter (Solana) with quote previews and slippage controls
+- **On-chain analytics** — RSI signals, MACD, Fear & Greed Index, smart money flows
+- **Portfolio management** — DCA plans, limit orders, stop-loss automation, and rebalancing
+
+---
+
+## Connecting to Avalanche C-Chain
+
+Scutua MCP exposes dedicated Avalanche tools out of the box. No additional configuration is needed
+beyond pointing your MCP client at the server URL.
+
+### MCP Server Endpoint
+
+```
+https://scutua-mcp.onrender.com/mcp
+```
+
+### Add to Claude.ai (claude.ai/settings → Integrations)
+
+```json
+{
+  "mcpServers": {
+    "scutua-mcp": {
+      "type": "url",
+      "url": "https://scutua-mcp.onrender.com/mcp"
+    }
+  }
+}
+```
+
+### Add to Cursor / VS Code (`.cursor/mcp.json` or `mcp.json`)
+
+```json
+{
+  "mcpServers": {
+    "scutua-mcp": {
+      "command": "npx",
+      "args": ["-y", "@scutua/mcp-client"],
+      "env": {}
+    }
+  }
+}
+```
+
+---
+
+## Avalanche-Specific Tools
+
+Once connected, the following tools are available for Avalanche C-Chain interaction:
+
+| Tool | Description |
+|------|-------------|
+| `get_eth_gas` | Fetch current Avalanche C-Chain gas prices (base fee, priority fee) |
+| `get_aave_pool_data` | Fetch supply/borrow APY for any asset on Aave V3 (Avalanche) |
+| `get_aave_user_position` | Retrieve health factor and position details for a C-Chain wallet |
+| `get_coingecko_price` | Live AVAX price and market cap from CoinGecko |
+| `get_defi_tvl` | Total Value Locked for Avalanche protocols via DeFiLlama |
+| `get_top_defi_protocols` | Top DeFi protocols by TVL deployed on Avalanche |
+| `get_lending_rates` | Cross-protocol lending/borrowing rates including Aave V3 on Avalanche |
+| `get_yields` | Best yield farming opportunities on Avalanche (DeFiLlama aggregated) |
+| `get_whale_alert` | Recent large AVAX/USDC transactions from Bitquery |
+| `get_arbitrage_opportunities` | Cross-DEX price differences for AVAX pairs |
+| `execute_swap` | Execute token swaps (Solana via Jupiter; EVM support roadmap) |
+| `get_fear_greed_index` | Market sentiment index relevant to AVAX positioning |
+
+---
+
+## Example: Query Aave V3 on Avalanche
+
+After connecting Scutua MCP to your AI client, you can ask natural language questions directly:
+
+```
+"What is the current USDC supply APY on Aave V3 Avalanche?"
+```
+
+The agent will invoke `get_aave_pool_data` and return structured data:
+
+```json
+{
+  "asset": "USDC",
+  "protocol": "Aave V3",
+  "chain": "Avalanche",
+  "supplyAPY": "5.12%",
+  "borrowAPY": "6.84%",
+  "totalSupply": "$284M",
+  "utilizationRate": "74.8%"
+}
+```
+
+---
+
+## Example: Monitor Whale Activity on Avalanche
+
+```
+"Alert me when a wallet moves more than 500,000 USDC on Avalanche"
+```
+
+Scutua MCP will invoke `get_whale_alert` with Avalanche chain filter and return recent qualifying
+transactions with wallet labels from Dune Analytics.
+
+---
+
+## Use Cases
+
+### DeFi Yield Optimization on Avalanche
+
+Developers building yield aggregators or AI-powered portfolio managers can use Scutua MCP to
+scan all Avalanche lending protocols in a single tool call, compare rates, and automatically
+rebalance positions across Aave V3, Compound, and Curve pools.
+
+### Avalanche Whale Tracking Dashboards
+
+The WhaleTrucker platform — live at
+[whaletrucker-reef.github.io](https://scutuatua-crypto.github.io/whaletrucker-reef/) — is
+built on top of Scutua MCP. Developers can fork this pattern to build their own Avalanche
+on-chain monitoring tools.
+
+### AI Agents with Avalanche Access
+
+Any AI agent framework that supports MCP (LangChain, AutoGen, CrewAI, Claude, Cursor) can
+connect to Scutua MCP and gain native Avalanche C-Chain capabilities without writing a single
+line of RPC code.
+
+---
+
+## Getting Started
+
+### 1. Connect the MCP Server
+
+Point your MCP-compatible client at:
+
+```
+https://scutua-mcp.onrender.com/mcp
+```
+
+### 2. Verify Connection
+
+Ask your AI client:
+
+```
+"List all available Scutua MCP tools"
+```
+
+You should see 157 tools listed, organized across categories: wallets, DeFi, whale monitoring,
+trading signals, analytics, and portfolio management.
+
+### 3. Start Building
+
+Explore the full tool catalog and usage examples in the
+[Scutua MCP GitHub repository](https://github.com/scutuatua-crypto/scutua-mcp).
+
+---
+
+## Resources
+
+- **GitHub:** [scutuatua-crypto/scutua-mcp](https://github.com/scutuatua-crypto/scutua-mcp)
+- **Live MCP Endpoint:** [scutua-mcp.onrender.com/mcp](https://scutua-mcp.onrender.com/mcp)
+- **WhaleTrucker Dashboard:** [scutuatua-crypto.github.io/whaletrucker-reef](https://scutuatua-crypto.github.io/whaletrucker-reef/)
+- **AssetFlow App:** [assetflow-app-iota.vercel.app](https://assetflow-app-iota.vercel.app)
+- **Telegram:** [@scutua01](https://t.me/scutua01)
+
+---
+
+## About the Developer
+
+Scutua MCP is built and maintained by **Scutuatua Crypto**, an independent developer focused on
+multi-chain DeFi tooling, AI agent infrastructure, and open-source whale tracking platforms.
+The WhaleTrucker ecosystem has been deployed across Solana, Avalanche, TON, Reef, and Polkadot.
