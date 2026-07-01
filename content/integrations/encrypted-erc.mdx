@@ -1,0 +1,34 @@
+---
+title: Encrypted ERC (eERC)
+category: Privacy
+available: ["C-Chain", "All Avalanche L1s"]
+description: Encrypted ERC is Avalanche's confidential token standard — it keeps token balances and transfer amounts encrypted on-chain using zk-SNARKs and partially homomorphic encryption, while senders, receivers, and timestamps stay public.
+logo: /images/avacloud.png
+developer: AvaCloud
+website: https://www.avax.network/
+documentation: https://github.com/ava-labs/EncryptedERC
+---
+
+## Overview
+
+Encrypted ERC (eERC) is a confidential token standard that encrypts token balances and transfer amounts on-chain, while senders, receivers, and timestamps remain public. Because it is a Solidity standard like ERC-20 — not a separate chain or an off-chain intermediary — it runs on the execution layer of any EVM chain with BN254 elliptic-curve precompiles and a block gas limit above ~1M (a confidential transfer costs ~947,000 gas, roughly 15× a standard ERC-20 transfer).
+
+It is designed for issuers who want to use shared blockchain infrastructure without exposing sensitive balances or amounts — a tokenized fund, stablecoin, deposit token, or settlement asset can move on-chain without publicly revealing every holder's balance or transaction size. Correctness is enforced by zk-SNARKs (Groth16) together with partially homomorphic (ElGamal) encryption.
+
+## Features
+
+- **Amount and balance privacy** — account balances and mint / transfer / burn amounts are encrypted on-chain; an optional memo can ride along with a transfer, end-to-end encrypted and readable only by sender and receiver.
+- **Two deployment modes** — *Standalone* for fresh private-native tokens, or *Converter* to wrap an existing ERC-20 (deposit to encrypt, withdraw to decrypt).
+- **Built-in compliance path** — a single, rotatable auditor key can decrypt all amounts and balances.
+- **Deploy anywhere** — no protocol or node-level changes; supported across Ethereum, Arbitrum, Base, Optimism, and Avalanche C-Chain and L1s.
+
+## Use Cases
+
+- Tokenized funds, stablecoins, and deposit or settlement tokens that need confidential balances.
+- Supply-chain assets where end users need traceability but distributors must not see each other's volumes.
+- Any regulated issuer that needs amount and balance confidentiality with a designated auditor.
+
+## Documentation
+
+- [EncryptedERC on GitHub](https://github.com/ava-labs/EncryptedERC)
+- SDK: `@avalabs/eerc-sdk` — exposes the `useEERC` hook for registration, key handling, and proof generation, plus a `useEncryptedBalance` handle per token.
