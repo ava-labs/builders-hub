@@ -62,7 +62,13 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       return new NextResponse(content, { status: 200, headers: markdownHeaders });
     }
 
-    const page = entry.source.getPage(restPath);
+    // Index pages live at the folder URL (e.g. /docs/tooling/postman), so a
+    // request for `/docs/tooling/postman/index.md` arrives with a trailing
+    // "index" segment that getPage() can't match. Retry without it.
+    let page = entry.source.getPage(restPath);
+    if (!page && restPath[restPath.length - 1] === 'index') {
+      page = entry.source.getPage(restPath.slice(0, -1));
+    }
 
     if (!page) {
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });

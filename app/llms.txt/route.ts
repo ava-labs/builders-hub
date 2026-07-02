@@ -1,223 +1,71 @@
-import { documentation, academy, integration, blog } from '@/lib/source';
+import { documentation, academy, blog } from '@/lib/source';
 
-// Helper to group pages by top-level section
-function groupPagesBySection(pages: Array<{ url: string; data: { title: string; description?: string } }>) {
-  const sections: Record<string, Array<{ url: string; title: string; description?: string }>> = {};
+// Revalidate hourly so new pages appear in the index without a redeploy.
+export const revalidate = 3600;
 
-  for (const page of pages) {
-    // Extract top-level section from URL (e.g., /docs/primary-network/... -> primary-network)
-    const parts = page.url.split('/').filter(Boolean);
-    if (parts.length < 2) continue;
+type Source = typeof documentation | typeof academy | typeof blog;
 
-    const section = parts[1]; // First part after /docs/, /academy/, etc.
-
-    if (!sections[section]) {
-      sections[section] = [];
-    }
-
-    sections[section].push({
-      url: page.url,
-      title: page.data.title || 'Untitled',
-      description: page.data.description,
-    });
-  }
-
-  return sections;
+// Curated agent-discovery scope. We deliberately DO NOT index everything:
+//   - Docs + Blog: all of it.
+//   - Academy: the Avalanche L1 and Entrepreneur academies in full, plus only
+//     the x402 course from the Blockchain academy. The rest of the Blockchain
+//     academy (fundamentals, solidity, etc.) and ALL integrations (third-party
+//     partner listings) are intentionally excluded — they aren't the content we
+//     want agents surfacing as "Avalanche documentation".
+// Relative `.md` links + no per-page descriptions keep the file small.
+function academyIncluded(url: string): boolean {
+  return (
+    url.startsWith('/academy/avalanche-l1/') ||
+    url.startsWith('/academy/entrepreneur/') ||
+    url.startsWith('/academy/blockchain/x402-payment-infrastructure/')
+  );
 }
 
-// Format section name for display (e.g., "primary-network" -> "Primary Network")
-function formatSectionName(section: string): string {
-  return section
+function sectionOf(url: string): string {
+  const parts = url.split('/').filter(Boolean);
+  return parts.length >= 2 ? parts[1] : 'general';
+}
+
+function titleCase(slug: string): string {
+  return slug
     .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
 }
 
+// "## Heading" + relative `.md` links, grouped by URL section.
+function block(heading: string, source: Source, filter?: (url: string) => boolean): string {
+  const groups: Record<string, Array<{ url: string; title: string }>> = {};
+  for (const page of source.getPages()) {
+    if (filter && !filter(page.url)) continue;
+    const section = sectionOf(page.url);
+    (groups[section] ??= []).push({ url: page.url, title: page.data.title || 'Untitled' });
+  }
+
+  let out = `\n## ${heading}\n`;
+  for (const [section, pages] of Object.entries(groups)) {
+    out += `\n### ${titleCase(section)}\n`;
+    for (const p of pages) out += `- [${p.title}](${p.url}.md)\n`;
+  }
+  return out;
+}
+
 export async function GET() {
-  const baseUrl = 'https://build.avax.network';
-
-  // Get all pages from each source
-  const docPages = documentation.getPages();
-  const academyPages = academy.getPages();
-  const integrationPages = integration.getPages();
-  const blogPages = blog.getPages();
-
-  // Build the llms.txt content following the standard format
-  let content = `# Avalanche Builder Hub
+  const content =
+    `# Avalanche Builder Hub
 
 > Build your fast and interoperable Layer 1 blockchain with Avalanche. The Builder Hub provides comprehensive documentation, interactive tutorials, and developer tools.
 
-Avalanche is a high-performance blockchain platform for decentralized applications, new financial primitives, and interoperable blockchains. The Builder Hub helps developers create custom Layer 1 blockchains (Avalanche L1s), build cross-chain applications using Interchain Messaging (ICM), and leverage the Avalanche ecosystem.
-
-## Raw Markdown Access
-
-All documentation links below end with \`.md\` and return raw markdown content for easy AI consumption. You can append \`.md\` to any documentation, academy, blog, or integration URL on this site to get the raw markdown source.
-
-## Full Documentation
-
-- [Full Documentation (llms-full.txt)](${baseUrl}/llms-full.txt): Complete documentation content for AI context loading
-
-## Documentation
-
-Core technical documentation for building on Avalanche:
-
-`;
-
-  // Group documentation pages by section
-  const docSections = groupPagesBySection(docPages);
-
-  // Define priority sections for docs (order matters)
-  const docPrioritySections = [
-    'primary-network',
-    'avalanche-l1s',
-    'cross-chain',
-    'nodes',
-    'virtual-machines',
-    'dapps',
-  ];
-
-  // Add priority documentation sections first
-  for (const section of docPrioritySections) {
-    if (docSections[section]) {
-      content += `### ${formatSectionName(section)}\n`;
-      // Show top 5 pages per section to keep index manageable
-      const topPages = docSections[section].slice(0, 5);
-      for (const page of topPages) {
-        const desc = page.description ? `: ${page.description}` : '';
-        content += `- [${page.title}](${baseUrl}${page.url}.md)${desc}\n`;
-      }
-      content += '\n';
-      delete docSections[section];
-    }
-  }
-
-  content += `## Academy
-
-Structured learning paths and interactive tutorials:
-
-`;
-
-  // Group academy pages by course
-  const academySections = groupPagesBySection(academyPages);
-
-  // Define priority academy courses
-  const academyPrioritySections = [
-    'blockchain-fundamentals',
-    'avalanche-l1',
-    'interchain-messaging',
-    'erc20-bridge',
-    'customizing-evm',
-  ];
-
-  for (const section of academyPrioritySections) {
-    if (academySections[section]) {
-      content += `### ${formatSectionName(section)}\n`;
-      const topPages = academySections[section].slice(0, 3);
-      for (const page of topPages) {
-        const desc = page.description ? `: ${page.description}` : '';
-        content += `- [${page.title}](${baseUrl}${page.url}.md)${desc}\n`;
-      }
-      content += '\n';
-      delete academySections[section];
-    }
-  }
-
-  content += `## Integrations
-
-Third-party tools and services for the Avalanche ecosystem:
-
-- [All Integrations](${baseUrl}/integrations): Browse all integration partners and tools
-`;
-
-  // Add top integrations by category
-  const topIntegrations = integrationPages.slice(0, 10);
-  for (const page of topIntegrations) {
-    const desc = page.data.description ? `: ${page.data.description}` : '';
-    content += `- [${page.data.title}](${baseUrl}${page.url}.md)${desc}\n`;
-  }
-
-  content += `
-## Blog
-
-Latest announcements, tutorials, and ecosystem updates:
-
-`;
-
-  // Add recent blog posts
-  const recentBlogs = blogPages.slice(0, 5);
-  for (const page of recentBlogs) {
-    const desc = page.data.description ? `: ${page.data.description}` : '';
-    content += `- [${page.data.title}](${baseUrl}${page.url}.md)${desc}\n`;
-  }
-
-  content += `
-## Console Tools
-
-Interactive developer tools for building and managing Avalanche L1s:
-
-- [Create L1](${baseUrl}/console/layer-1/create): Launch custom Layer 1 blockchains
-- [Faucet](${baseUrl}/console/primary-network/faucet): Get testnet AVAX for development
-- [ICM Setup](${baseUrl}/console/icm/setup): Configure Interchain Messaging
-- [ICTT Setup](${baseUrl}/console/ictt/setup): Configure token bridges
-- [Validator Management](${baseUrl}/console/layer-1/validator-set): Manage L1 validators
-
-## Optional
-
-Additional resources and reference documentation:
-
-### API Reference
-`;
-
-  // Add API reference sections
-  if (docSections['api-reference']) {
-    const apiPages = docSections['api-reference'].slice(0, 5);
-    for (const page of apiPages) {
-      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
-    }
-    delete docSections['api-reference'];
-  }
-
-  content += `
-### RPC Methods
-`;
-
-  if (docSections['rpcs']) {
-    const rpcPages = docSections['rpcs'].slice(0, 5);
-    for (const page of rpcPages) {
-      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
-    }
-    delete docSections['rpcs'];
-  }
-
-  content += `
-### Tooling & SDKs
-`;
-
-  if (docSections['tooling']) {
-    const toolingPages = docSections['tooling'].slice(0, 5);
-    for (const page of toolingPages) {
-      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
-    }
-    delete docSections['tooling'];
-  }
-
-  content += `
-### Avalanche Community Proposals (ACPs)
-`;
-
-  if (docSections['acps']) {
-    const acpPages = docSections['acps'].slice(0, 5);
-    for (const page of acpPages) {
-      content += `- [${page.title}](${baseUrl}${page.url}.md)\n`;
-    }
-  }
-
-  content += `
+Avalanche is a high-performance blockchain platform for decentralized applications and interoperable blockchains. Append \`.md\` to any URL below for its raw markdown, or load [/llms-full.txt](/llms-full.txt) for the complete content in one file.
+` +
+    block('Documentation', documentation) +
+    block('Academy', academy, academyIncluded) +
+    block('Blog', blog) +
+    `
 ## External Resources
 
 - [GitHub](https://github.com/ava-labs): Official Avalanche Labs repositories
 - [Discord](https://discord.gg/avalanche): Developer community
-- [Forum](https://forum.avax.network): Technical discussions
 - [Explorer](https://subnets.avax.network): Avalanche network explorer
 `;
 

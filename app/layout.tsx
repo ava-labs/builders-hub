@@ -50,6 +50,15 @@ export default function Layout({ children }: { children: ReactNode }) {
     >
       <PHProvider>
         <body className="flex min-h-screen flex-col" suppressHydrationWarning>
+          {/* AI-agent discovery directive: a screen-reader-only link to the
+              machine-readable index, rendered server-side at the very top of
+              the body so agents find it without parsing <head>. Satisfies the
+              Agent Score "llms-txt-directive-html" check, which does not credit
+              the <head> <link rel="alternate"> tag. */}
+          <a href="/llms.txt" className="sr-only">
+            Machine-readable documentation index (llms.txt). Append .md to any
+            page URL for its raw markdown.
+          </a>
           {/* Detect embed mode and add class to document for CSS targeting */}
           <Suspense fallback={null}>
             <EmbedModeDetector />
