@@ -100,46 +100,57 @@ export default function MultiSelectStagesSubmitFormField({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Options</Label>
-
+      {field.id === 'tracks' || field.id === 'tech_stack_tags' ? (
         <div className="space-y-2">
-          {field.options.map(
-            (option: string, optionIndex: number): React.JSX.Element => (
-              <div key={optionIndex} className="flex gap-2">
-                <Input
-                  value={option}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    updateOption(optionIndex, event.target.value)
-                  }
-                  placeholder={`Option ${optionIndex + 1}`}
-                />
-
-                <button
-                  type="button"
-                  className="rounded-md border px-3 text-sm"
-                  onClick={() => removeOption(optionIndex)}
-                >
-                  Remove
-                </button>
-              </div>
-            )
-          )}
+          <Label>Options</Label>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {field.id === 'tracks'
+              ? "Options come from this hackathon's Tracks — participants choose from those at submission. You don't need to add them here."
+              : "Options come from the platform tech-stack list — participants choose from those and can add their own tags at submission. You don't need to add them here."}
+          </p>
         </div>
+      ) : (
+        <div className="space-y-2">
+          <Label>Options</Label>
 
-        <button
-          type="button"
-          className="rounded-md border px-3 py-2 text-sm"
-          onClick={() =>
-            onChange({
-              ...field,
-              options: [...field.options, ''],
-            })
-          }
-        >
-          Add option
-        </button>
-      </div>
+          <div className="space-y-2">
+            {field.options.map(
+              (option: string, optionIndex: number): React.JSX.Element => (
+                <div key={optionIndex} className="flex gap-2">
+                  <Input
+                    value={option}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                      updateOption(optionIndex, event.target.value)
+                    }
+                    placeholder={`Option ${optionIndex + 1}`}
+                  />
+
+                  <button
+                    type="button"
+                    className="rounded-md border px-3 text-sm"
+                    onClick={() => removeOption(optionIndex)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="rounded-md border px-3 py-2 text-sm"
+            onClick={() =>
+              onChange({
+                ...field,
+                options: [...field.options, ''],
+              })
+            }
+          >
+            Add option
+          </button>
+        </div>
+      )}
 
       <label className="flex items-center gap-2">
         <input

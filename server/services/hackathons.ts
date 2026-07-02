@@ -116,6 +116,39 @@ function pruneContentPlaceholders(content: any): any {
   return next;
 }
 
+/**
+ * Ensures every stage that collects a submission offers the project
+ * `consent_sharing` field — the same Team1 outreach consent asked at
+ * registration and in the non-staged submission flow (it maps to the HubSpot
+ * `team1_outreach_consent` property). Injected server-side if missing, but kept
+ * **optional** (forced `required: false`) — sharing consent must be opt-in, so
+ * participants can always leave it unchecked. Re-applied on every save, then
+ * validated by the stage Zod schema like any other field. The participant form
+ * renders it with the shared, translated copy (submission.step1.consentSharing).
+ */
+function ensureConsentField(stages: any): any {
+  if (!Array.isArray(stages)) return stages;
+  const consentField = {
+    id: 'consent_sharing',
+    type: 'boolean',
+    label: "I consent to share this project's information with Avalanche Team1 so they can reach out to offer local support.",
+    description: 'Team1 may contact your team about local programs, partnerships, or mentorship opportunities.',
+    predefinedField: true,
+    required: false,
+  };
+  return stages.map((stage: any) => {
+    if (!stage?.submitForm) return stage;
+    const fields = Array.isArray(stage.submitForm.fields) ? stage.submitForm.fields : [];
+    const hasConsent = fields.some((f: any) => f?.id === 'consent_sharing');
+    const nextFields = hasConsent
+      ? fields.map((f: any) =>
+          f?.id === 'consent_sharing' ? { ...f, required: false } : f
+        )
+      : [...fields, consentField];
+    return { ...stage, submitForm: { ...stage.submitForm, fields: nextFields } };
+  });
+}
+
 export async function getHackathonLite(
   hackathon: any
 ): Promise<HackathonHeader> {
@@ -379,6 +412,7 @@ export async function createHackathon(
    * (which the API layer maps to 400) so callers get actionable feedback.
    */
   if (hackathonData.content?.stages !== undefined) {
+    hackathonData.content.stages = ensureConsentField(hackathonData.content.stages);
     const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
     if (!stagesResult.success) {
       throw new ValidationError(
@@ -463,6 +497,7 @@ export async function updateHackathon(
      * affect rendering or downstream processing.
      */
     if (hackathonData.content?.stages !== undefined) {
+      hackathonData.content.stages = ensureConsentField(hackathonData.content.stages);
       const stagesResult = hackathonStagesArraySchema.safeParse(hackathonData.content.stages);
       if (!stagesResult.success) {
         throw new ValidationError(

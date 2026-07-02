@@ -8,9 +8,12 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MultiSelect } from '@/components/ui/multi-select'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
+  BooleanStagesSubmitFormField,
   ChipsStagesSubmitFormField,
   HackathonStage,
+  ImageStagesSubmitFormField,
   LinkStagesSubmitFormField,
   MultiSelectStagesSubmitFormField,
   SubmitFormField,
@@ -18,7 +21,9 @@ import {
   TextStagesSubmitFormField,
 } from '@/types/hackathon-stage'
 import { HackathonHeader } from '@/types/hackathons'
-import { X } from 'lucide-react'
+import { getTechStackOptions } from '@/lib/hackathons/techStackDefaults'
+import { normalizeEventsLang, t } from '@/lib/events/i18n'
+import { ImageIcon, Loader2, X } from 'lucide-react'
 import TeamMembersWrapper from './team-members-wrapper'
 import { useProjectByHackaUser } from '@/hooks/use-get-project-hacka-user'
 import { useProjectFormData } from '../../hooks/useGetFormDataFromProject'
@@ -30,12 +35,12 @@ import {
 } from '@/utils/input-validator'
 import { toast } from 'sonner'
 
-type StageSubmitValues = Record<string, string | string[]>
+type StageSubmitValues = Record<string, string | string[] | boolean>
 
 
 type StageSubmitPageContentProps = {
   hackathon: HackathonHeader
-  hackathonCreator?: any // Replace 'any' with the correct type for the hackathon creator
+  hackathonCreator?: any
   stage: HackathonStage
   stageIndex: number
   projectId?: string
@@ -54,10 +59,36 @@ function buildProjectFallback(
   const fallback: StageSubmitValues = {}
 
   for (const field of stageFields) {
-    // 'explanation' in stage form corresponds to 'tech_stack' in the full project submission
-    const projectKey = field.id === 'explanation' ? 'tech_stack' : field.id
+    const projectKey = field.id
     const value = project[projectKey] ?? project[field.id]
     if (value === undefined || value === null) continue
+
+    if (field.type === SubmitFormFieldType.Boolean) {
+      if (typeof value === 'boolean') {
+        fallback[field.id] = value
+      } else if (typeof value === 'string') {
+        fallback[field.id] = value === 'true'
+      }
+      continue
+    }
+
+    if (field.type === SubmitFormFieldType.Image) {
+      const allowsMultiple = (field.maxImages ?? 1) > 1
+      if (allowsMultiple) {
+        if (Array.isArray(value)) {
+          const urls = value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+          if (urls.length > 0) fallback[field.id] = urls
+        } else if (typeof value === 'string' && value.trim()) {
+          fallback[field.id] = [value]
+        }
+      } else if (typeof value === 'string' && value.trim()) {
+        fallback[field.id] = value
+      } else if (Array.isArray(value)) {
+        const first = value.find((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        if (first) fallback[field.id] = first
+      }
+      continue
+    }
 
     const isArrayField =
       field.type === SubmitFormFieldType.Link ||
@@ -75,8 +106,20 @@ function buildProjectFallback(
               ? Array.from(new Map(stringValues.map((v) => [v.toLowerCase(), v])).values())
               : stringValues
           fallback[field.id] = deduped
+        } else if (
+          value.every(
+            (v) => v && typeof v === 'object' && typeof (v as { value?: unknown }).value === 'string'
+          )
+        ) {
+          // {key, value} link lists (website/socials) — the URL-only Link field
+          // can't show the key/label, so prefill it with just the URLs (value).
+          const urls = value
+            .map((v) => ((v as { value: string }).value ?? '').trim())
+            .filter(Boolean)
+          if (urls.length > 0) fallback[field.id] = urls
         } else {
-          // array of objects — serialize each as JSON (e.g. deployed_addresses: {address, tag}[])
+          // other arrays of objects — serialize each as JSON so the field's
+          // specialized parser can read it (e.g. deployed_addresses: {address, tag}[]).
           const serialized = value
             .map((v) => {
               if (typeof v === 'string') return v
@@ -112,6 +155,16 @@ function buildDefaultValues(stage: HackathonStage): StageSubmitValues {
         return acc
       }
 
+      if (field.type === SubmitFormFieldType.Boolean) {
+        acc[field.id] = false
+        return acc
+      }
+
+      if (field.type === SubmitFormFieldType.Image) {
+        acc[field.id] = (field.maxImages ?? 1) > 1 ? [] : ''
+        return acc
+      }
+
       acc[field.id] = ''
       return acc
     },
@@ -123,8 +176,14 @@ function getRequiredMessage(label: string): string {
   return `${label || 'This field'} is required`
 }
 
+function toTextValue(
+  value: string | string[] | boolean | undefined
+): string | string[] | undefined {
+  return typeof value === 'boolean' ? undefined : value
+}
+
 function validateRequiredString(
-  value: string | string[] | undefined,
+  value: string | string[] | boolean | undefined,
   field: SubmitFormField
 ): true | string {
   if (!field.required) {
@@ -137,7 +196,7 @@ function validateRequiredString(
 }
 
 function validateRequiredArray(
-  value: string | string[] | undefined,
+  value: string | string[] | boolean | undefined,
   field: SubmitFormField
 ): true | string {
   if (!field.required) {
@@ -150,9 +209,20 @@ function validateRequiredArray(
     : getRequiredMessage(field.label)
 }
 
+function validateRequiredBoolean(
+  value: string | string[] | boolean | undefined,
+  field: SubmitFormField
+): true | string {
+  if (!field.required) {
+    return true
+  }
+
+  return value === true ? true : getRequiredMessage(field.label)
+}
+
 function isRequiredFieldEmpty(
   field: SubmitFormField,
-  value: string | string[] | undefined
+  value: string | string[] | boolean | undefined
 ): boolean {
   if (!field.required) {
     return false
@@ -164,6 +234,17 @@ function isRequiredFieldEmpty(
   ) {
     return !Array.isArray(value) ||
       !value.some((item: string): boolean => item.trim().length > 0)
+  }
+
+  if (field.type === SubmitFormFieldType.Boolean) {
+    return value !== true
+  }
+
+  if (field.type === SubmitFormFieldType.Image) {
+    if (Array.isArray(value)) {
+      return !value.some((item: string): boolean => item.trim().length > 0)
+    }
+    return typeof value !== 'string' || value.trim().length === 0
   }
 
   return typeof value !== 'string' || value.trim().length === 0
@@ -180,6 +261,7 @@ export default function StageSubmitPageContent({
   const [isSubmitting, setIsSubmitting] = React.useState<boolean>(false)
   const [linkDrafts, setLinkDrafts] = React.useState<Record<string, string>>({})
   const [linkDraftErrors, setLinkDraftErrors] = React.useState<Record<string, string>>({})
+  const [imageUploading, setImageUploading] = React.useState<Record<string, boolean>>({})
   const [activeTab, setActiveTab] = React.useState<string>('form')
   const { projectId, teamName, loading, project, refetch: refetchProject } = useProjectByHackaUser({
     hackathonId: hackathon.id,
@@ -199,7 +281,11 @@ export default function StageSubmitPageContent({
       isRequiredFieldEmpty(field, watchedValues[field.id])
   )
   const hasValidationErrors: boolean = Object.keys(form.formState.errors).length > 0
-  const isSaveDisabled: boolean = isSubmitting || hasMissingRequiredFields || hasValidationErrors
+  // Mirrors the server-side check in /api/project/form-data — the API rejects
+  // writes to locked stages, this just keeps the UI honest about it.
+  const isFormLocked: boolean = stage.formLocked === true
+  const isSaveDisabled: boolean =
+    isFormLocked || isSubmitting || hasMissingRequiredFields || hasValidationErrors
   const fieldLabelClassName: string = 'font-medium text-zinc-800 dark:text-white'
   const fieldDescriptionClassName: string = 'text-sm text-zinc-600 dark:text-zinc-400'
   const inputClassName: string =
@@ -269,6 +355,30 @@ export default function StageSubmitPageContent({
     }
   }
 
+  const uploadStageImage = async (file: File): Promise<string> => {
+    const body = new FormData()
+    body.append('file', file)
+    if (hackathon.id) {
+      body.append('hackaton_id', hackathon.id)
+    }
+    body.append('user_id', user?.id ?? '')
+
+    const response: Response = await fetch('/api/file', {
+      method: 'POST',
+      credentials: 'include',
+      body,
+    })
+
+    const data: { url?: string; error?: string } = await response.json()
+    if (!response.ok || !data.url) {
+      throw new Error(data.error ?? 'Failed to upload image')
+    }
+
+    return data.url
+  }
+
+  const lang = normalizeEventsLang(hackathon.content?.language)
+
   const renderField = (field: SubmitFormField): React.JSX.Element | null => {
     switch (field.type) {
       case SubmitFormFieldType.Text: {
@@ -281,14 +391,12 @@ export default function StageSubmitPageContent({
             control={form.control}
             name={textField.id}
             rules={{
-              validate: (value: string | string[] | undefined): true | string => {
-                // First check if required
+              validate: (value: string | string[] | boolean | undefined): true | string => {
                 const requiredCheck = validateRequiredString(value, textField)
                 if (requiredCheck !== true) {
                   return requiredCheck
                 }
-                // Then check for dangerous content
-                return validateTextInput(value, textField.label)
+                return validateTextInput(toTextValue(value), textField.label)
               },
             }}
             render={({ field: rhfField }) => (
@@ -328,7 +436,7 @@ export default function StageSubmitPageContent({
               control={form.control}
               name={linkField.id}
               rules={{
-                validate: (value: string | string[] | undefined): true | string => {
+                validate: (value: string | string[] | boolean | undefined): true | string => {
                   if (!linkField.required) return true
                   return validateRequiredArray(value, linkField)
                 },
@@ -465,10 +573,10 @@ export default function StageSubmitPageContent({
             control={form.control}
             name={linkField.id}
             rules={{
-              validate: (value: string | string[] | undefined): true | string => {
+              validate: (value: string | string[] | boolean | undefined): true | string => {
                 const requiredCheck = validateRequiredArray(value, linkField)
                 if (requiredCheck !== true) return requiredCheck
-                const dangerCheck = validateUrlInput(value)
+                const dangerCheck = validateUrlInput(toTextValue(value))
                 if (dangerCheck !== true) return dangerCheck
                 const urls = Array.isArray(value) ? value : typeof value === 'string' ? [value] : []
                 for (const url of urls) {
@@ -654,14 +762,12 @@ export default function StageSubmitPageContent({
             control={form.control}
             name={chipsField.id}
             rules={{
-              validate: (value: string | string[] | undefined): true | string => {
-                // First check if required
+              validate: (value: string | string[] | boolean | undefined): true | string => {
                 const requiredCheck = validateRequiredString(value, chipsField)
                 if (requiredCheck !== true) {
                   return requiredCheck
                 }
-                // Then check for dangerous content
-                return validateTextInput(value, chipsField.label)
+                return validateTextInput(toTextValue(value), chipsField.label)
               },
             }}
             render={({ field: rhfField }) => {
@@ -723,14 +829,12 @@ export default function StageSubmitPageContent({
             control={form.control}
             name={multiSelectField.id}
             rules={{
-              validate: (value: string | string[] | undefined): true | string => {
-                // First check if required
+              validate: (value: string | string[] | boolean | undefined): true | string => {
                 const requiredCheck = validateRequiredArray(value, multiSelectField)
                 if (requiredCheck !== true) {
                   return requiredCheck
                 }
-                // Then check for dangerous content
-                return validateStringArray(value, multiSelectField.label)
+                return validateStringArray(toTextValue(value), multiSelectField.label)
               },
             }}
             render={({ field: rhfField }) => {
@@ -744,7 +848,14 @@ export default function StageSubmitPageContent({
                   ? multiSelectField.maxSelections
                   : null
 
-              const options = (multiSelectField.options ?? [])
+              const rawOptions: string[] =
+                multiSelectField.id === 'tracks'
+                  ? hackathon.content.tracks.map((track) => track.name)
+                  : multiSelectField.id === 'tech_stack_tags'
+                    ? getTechStackOptions(hackathon.content).map((option) => option.name)
+                    : (multiSelectField.options ?? [])
+
+              const options = rawOptions
                 .filter((option: string): boolean => option.trim().length > 0)
                 .map((option: string) => ({
                   label: option,
@@ -780,8 +891,256 @@ export default function StageSubmitPageContent({
                       onChange={handleChange}
                       placeholder={multiSelectField.placeholder || 'Select options'}
                       searchPlaceholder="Search options"
+                      allowCreate={multiSelectField.id === 'tech_stack_tags'}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
+          />
+        )
+      }
+
+      case SubmitFormFieldType.Boolean: {
+        const booleanField: BooleanStagesSubmitFormField =
+          field as BooleanStagesSubmitFormField
+
+        return (
+          <FormField
+            key={booleanField.id}
+            control={form.control}
+            name={booleanField.id}
+            rules={{
+              validate: (
+                value: string | string[] | boolean | undefined
+              ): true | string => validateRequiredBoolean(value, booleanField),
+            }}
+            render={({ field: rhfField }) => {
+              const checked: boolean = rhfField.value === true
+
+              // The Team1 sharing consent is a system-wide concept (also asked
+              // at registration and in the non-staged submission). Render it
+              // with the shared, translated copy instead of the stored label so
+              // the wording (and ES/EN) stays consistent across every flow.
+              const isConsentField: boolean = booleanField.id === 'consent_sharing'
+              const displayLabel: string = isConsentField
+                ? t(lang, 'submission.step1.consentSharing.label')
+                : booleanField.label
+              const displayDescription: string = isConsentField
+                ? t(lang, 'submission.step1.consentSharing.hint')
+                : booleanField.description
+
+              return (
+                <FormItem>
+                  <div className="flex items-start gap-3">
+                    <FormControl>
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(next): void => {
+                          form.setValue(booleanField.id, next === true, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
+                        className="mt-0.5 border-zinc-300 data-[state=checked]:bg-[#d66666] data-[state=checked]:border-[#d66666] dark:border-zinc-600"
+                      />
+                    </FormControl>
+                    <div className="space-y-1">
+                      <FormLabel className={`${fieldLabelClassName} cursor-pointer`}>
+                        {displayLabel}
+                        {booleanField.required ? (
+                          <span className="ml-1 text-[#d66666]">*</span>
+                        ) : null}
+                      </FormLabel>
+                      {displayDescription ? (
+                        <FormDescription className={fieldDescriptionClassName}>
+                          {displayDescription}
+                        </FormDescription>
+                      ) : null}
+                    </div>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
+          />
+        )
+      }
+
+      case SubmitFormFieldType.Image: {
+        const imageField: ImageStagesSubmitFormField =
+          field as ImageStagesSubmitFormField
+
+        const maxImages: number =
+          typeof imageField.maxImages === 'number' && imageField.maxImages > 0
+            ? imageField.maxImages
+            : 1
+        // 2 MB is the platform-wide upload ceiling; it is not organizer-configurable.
+        const maxSizeMb: number = 2
+        const isSingleImage: boolean = maxImages === 1
+
+        return (
+          <FormField
+            key={imageField.id}
+            control={form.control}
+            name={imageField.id}
+            rules={{
+              validate: (
+                value: string | string[] | boolean | undefined
+              ): true | string => {
+                if (!imageField.required) return true
+                const hasImage = Array.isArray(value)
+                  ? value.some((url: string): boolean => url.trim().length > 0)
+                  : typeof value === 'string' && value.trim().length > 0
+                return hasImage ? true : getRequiredMessage(imageField.label)
+              },
+            }}
+            render={({ field: rhfField }) => {
+              const urls: string[] = Array.isArray(rhfField.value)
+                ? (rhfField.value as string[])
+                : typeof rhfField.value === 'string' && rhfField.value.trim()
+                  ? [rhfField.value as string]
+                  : []
+
+              const isUploading: boolean = imageUploading[imageField.id] ?? false
+              const canAddMore: boolean = urls.length < maxImages
+              const fieldError: string =
+                (form.formState.errors[imageField.id]?.message as string) ?? ''
+
+              const storeUrls = (next: string[]): void => {
+                form.setValue(
+                  imageField.id,
+                  isSingleImage ? (next[0] ?? '') : next,
+                  { shouldDirty: true, shouldValidate: true }
+                )
+              }
+
+              const handleRemove = (urlToRemove: string): void => {
+                storeUrls(urls.filter((url: string): boolean => url !== urlToRemove))
+              }
+
+              const handleFiles = async (
+                event: React.ChangeEvent<HTMLInputElement>
+              ): Promise<void> => {
+                const fileList = event.target.files
+                if (!fileList || fileList.length === 0) return
+
+                const selected: File[] = Array.from(fileList).slice(
+                  0,
+                  Math.max(0, maxImages - urls.length)
+                )
+                event.target.value = ''
+                if (selected.length === 0) return
+
+                const maxBytes: number = maxSizeMb * 1024 * 1024
+                const oversized = selected.find((file) => file.size > maxBytes)
+                if (oversized) {
+                  form.setError(imageField.id, {
+                    type: 'manual',
+                    message: `Each image must be ${maxSizeMb}MB or smaller`,
+                  })
+                  return
+                }
+
+                form.clearErrors(imageField.id)
+                setImageUploading((prev) => ({ ...prev, [imageField.id]: true }))
+                try {
+                  const uploaded: string[] = []
+                  for (const file of selected) {
+                    uploaded.push(await uploadStageImage(file))
+                  }
+                  storeUrls([...urls, ...uploaded].slice(0, maxImages))
+                } catch (error: unknown) {
+                  const message: string =
+                    error instanceof Error ? error.message : 'Failed to upload image'
+                  form.setError(imageField.id, { type: 'manual', message })
+                  toast.error(message)
+                } finally {
+                  setImageUploading((prev) => ({ ...prev, [imageField.id]: false }))
+                }
+              }
+
+              return (
+                <FormItem>
+                  <FormLabel className={fieldLabelClassName}>
+                    {imageField.label}
+                    {imageField.required ? (
+                      <span className="ml-1 text-[#d66666]">*</span>
+                    ) : null}
+                  </FormLabel>
+                  <FormDescription className={fieldDescriptionClassName}>
+                    {imageField.description}
+                  </FormDescription>
+
+                  {urls.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {urls.map((url: string, index: number): React.JSX.Element => (
+                        <div
+                          key={`${url}-${index}`}
+                          className="relative h-24 w-24 overflow-hidden rounded-md border border-[#d66666]/20 bg-zinc-100 dark:bg-[rgba(255,255,255,0.03)]"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={url}
+                            alt={`${imageField.label} ${index + 1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={(): void => handleRemove(url)}
+                            className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white transition-colors hover:bg-[#d66666]"
+                            aria-label="Remove image"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <FormControl>
+                      <label
+                        className={[
+                          'inline-flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-[#d66666]/40 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-[#d66666] hover:text-[#d66666] dark:text-zinc-300',
+                          !canAddMore || isUploading
+                            ? 'pointer-events-none opacity-50'
+                            : '',
+                        ].join(' ')}
+                      >
+                        {isUploading ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <ImageIcon size={16} />
+                        )}
+                        {isUploading
+                          ? 'Uploading...'
+                          : isSingleImage
+                            ? urls.length > 0
+                              ? 'Replace image'
+                              : 'Upload image'
+                            : 'Add image'}
+                        <input
+                          type="file"
+                          accept="image/png, image/jpeg, image/svg+xml"
+                          multiple={!isSingleImage}
+                          className="hidden"
+                          disabled={!canAddMore || isUploading}
+                          onChange={handleFiles}
+                        />
+                      </label>
+                    </FormControl>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {isSingleImage
+                        ? `PNG, JPG or SVG · up to ${maxSizeMb}MB`
+                        : `Up to ${maxImages} images · ${maxSizeMb}MB each`}
+                    </span>
+                  </div>
+
+                  {fieldError ? (
+                    <p className="text-sm text-[#d66666]">{fieldError}</p>
+                  ) : null}
                   <FormMessage />
                 </FormItem>
               )
@@ -912,16 +1271,6 @@ export default function StageSubmitPageContent({
             className="space-y-5"
           >
             {stage.submitForm.fields.map(renderField)}
-
-            {/* <div className="flex justify-center pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
-              >
-                {isSubmitting ? 'Saving...' : 'Save'}
-              </Button>
-            </div> */}
           </form>
         </Form>
       </div>
@@ -1012,6 +1361,12 @@ export default function StageSubmitPageContent({
                   onSubmit={form.handleSubmit(handleSubmit)}
                   className="space-y-5"
                 >
+                  {isFormLocked && (
+                    <div className="rounded-md border border-zinc-500/40 bg-zinc-500/10 p-4 text-sm text-zinc-600 dark:text-zinc-300">
+                      Submissions for this stage are locked. Your last saved
+                      answers are final.
+                    </div>
+                  )}
                   {stage.submitForm.fields.map(renderField)}
 
                   <div className="flex justify-center pt-4">
@@ -1020,7 +1375,7 @@ export default function StageSubmitPageContent({
                       disabled={isSaveDisabled}
                       className=" bg-[#d66666] py-4 text-base font-semibold text-zinc-900 hover:bg-[#e57f7f]"
                     >
-                      {isSubmitting ? 'Saving...' : 'Save'}
+                      {isFormLocked ? 'Locked' : isSubmitting ? 'Saving...' : 'Save'}
                     </Button>
                   </div>
                 </form>
@@ -1029,7 +1384,6 @@ export default function StageSubmitPageContent({
           </TabsContent>
 
           <TabsContent value="team" className="mt-0">
-            {/* TEAM & COLLABORATION */}
             <section className='space-y-4'>
               <h3 className='font-medium  text-lg md:text-xl' id='team'>
                 Team &amp; Collaboration

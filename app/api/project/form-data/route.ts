@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { withAuth } from '@/lib/protectedRoute';
 import { prisma } from '@/prisma/prisma';
 import {
@@ -9,8 +10,18 @@ import {
 
 type StageSubmitValues = Record<
   string,
-  string | string[] | Array<{ address: string }> | null
+  string | string[] | boolean | Array<{ address: string }> | null
 >;
+
+type StageAnswer = {
+  question_id: string;
+  question_label: string;
+  question_type: string;
+  stage_index: number;
+  answer: unknown;
+};
+
+type StageAnswerEnvelope = { answers: Record<string, StageAnswer> };
 
 /** Allows alphanumeric, hyphens and underscores — covers UUID, CUID and nanoid formats. */
 const SAFE_ID_RE = /^[a-zA-Z0-9_\-]{1,128}$/;
@@ -35,6 +46,12 @@ function sanitizeStageValues(values: StageSubmitValues): SanitizeResult {
       }
       if (detectMarkdownInjection(value)) {
         return { ok: false, error: `Field "${key}" contains dangerous Markdown link content.` };
+      }
+      // Same protocol policy as array items: single-string fields can end up
+      // in Project URL columns (logo_url, demo_video_link, …), so data:/
+      // javascript: values must be rejected here too.
+      if (detectDangerousUrl(value)) {
+        return { ok: false, error: `Field "${key}" contains a dangerous URL protocol.` };
       }
       continue;
     }
@@ -99,6 +116,30 @@ export const POST = withAuth(async (request: Request, _context, session) => {
     const sanitizeResult = sanitizeStageValues(values);
     if (!sanitizeResult.ok) {
       return NextResponse.json({ error: sanitizeResult.error }, { status: 400 });
+    }
+
+    /**
+     * SECURITY: Validate the target stage server-side. Hiding the Submit
+     * button on the public page is not enforcement — without these checks a
+     * project member could keep writing answers to a locked stage (e.g. while
+     * judging is underway) or to a stage index that doesn't exist.
+     */
+    const hackathon = await prisma.hackathon.findUnique({
+      where: { id: hackathonId },
+      select: { content: true },
+    });
+    if (!hackathon) {
+      return NextResponse.json({ error: 'Hackathon not found' }, { status: 404 });
+    }
+    const stages: any[] = (hackathon.content as any)?.stages ?? [];
+    if (body.stageIndex >= stages.length) {
+      return NextResponse.json({ error: 'Invalid stageIndex' }, { status: 400 });
+    }
+    if (stages[body.stageIndex]?.formLocked === true) {
+      return NextResponse.json(
+        { error: 'Submissions for this stage are locked' },
+        { status: 403 }
+      );
     }
 
     const sessionUserId: string = session.user.id;
@@ -176,9 +217,57 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         },
       });
 
-      const mergedFormData: StageSubmitValues = {
-        ...((existingFormData?.form_data as StageSubmitValues | null) ?? {}),
-        ...values,
+      const stageFields: Array<{ id?: string; label?: string; type?: string }> =
+        stages[body.stageIndex]?.submitForm?.fields ?? [];
+      const fieldMeta = new Map<string, { label?: string; type?: string }>(
+        stageFields
+          .filter((f): f is { id: string; label?: string; type?: string } => typeof f?.id === 'string')
+          .map((f) => [f.id, { label: f.label, type: f.type }]),
+      );
+
+      const newAnswers: Record<string, StageAnswer> = {};
+      for (const [fieldId, answer] of Object.entries(values)) {
+        const meta = fieldMeta.get(fieldId);
+        newAnswers[fieldId] = {
+          question_id: fieldId,
+          question_label: meta?.label ?? fieldId,
+          question_type: meta?.type ?? 'unknown',
+          stage_index: body.stageIndex,
+          answer,
+        };
+      }
+
+      const existingFormDataValue = existingFormData?.form_data as
+        | StageAnswerEnvelope
+        | Record<string, unknown>
+        | null;
+      let existingAnswers: Record<string, StageAnswer>;
+      if (
+        existingFormDataValue &&
+        typeof existingFormDataValue === 'object' &&
+        'answers' in existingFormDataValue
+      ) {
+        existingAnswers = (existingFormDataValue as StageAnswerEnvelope).answers ?? {};
+      } else if (existingFormDataValue && typeof existingFormDataValue === 'object') {
+        existingAnswers = Object.fromEntries(
+          Object.entries(existingFormDataValue as Record<string, unknown>).map(
+            ([key, value]) => [
+              key,
+              {
+                question_id: key,
+                question_label: key,
+                question_type: 'unknown',
+                stage_index: body.stageIndex,
+                answer: value,
+              },
+            ],
+          ),
+        );
+      } else {
+        existingAnswers = {};
+      }
+      const envelope: StageAnswerEnvelope = {
+        answers: { ...existingAnswers, ...newAnswers },
       };
 
       const savedFormData = existingFormData
@@ -187,7 +276,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
               id: existingFormData.id,
             },
             data: {
-              form_data: mergedFormData,
+              form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -199,7 +288,7 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         : await tx.formData.create({
             data: {
               project_id: resolvedProject.id,
-              form_data: values,
+              form_data: envelope as unknown as Prisma.InputJsonValue,
               timestamp: new Date(),
               origin: 'stage-submit',
             },
@@ -212,6 +301,17 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         for (const key of keys) {
           const value = values[key];
           if (typeof value === 'string' && value.trim()) {
+            return value;
+          }
+        }
+
+        return undefined;
+      };
+
+      const getBooleanValue = (...keys: string[]): boolean | undefined => {
+        for (const key of keys) {
+          const value = values[key];
+          if (typeof value === 'boolean') {
             return value;
           }
         }
@@ -282,6 +382,19 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         });
       };
 
+      // website/socials are stored as Json arrays of { key, value } (label + URL)
+      // by the non-staged submitProject flow. The staged predefined fields are
+      // plain Link inputs (URLs only), so map each URL to { key: '', value: url }.
+      const getKeyValueLinksValue = (
+        ...keys: string[]
+      ): Array<{ key: string; value: string }> | undefined => {
+        const urls = getStringArrayValue(...keys);
+        if (!urls) {
+          return undefined;
+        }
+        return urls.map((url) => ({ key: '', value: url }));
+      };
+
       let projectColumnsToUpdate: { [key: string]: unknown } = {};
       const projectColumnValues: Record<string, unknown> = {
         project_name: getStringValue('project_name', 'projectName'),
@@ -291,8 +404,24 @@ export const POST = withAuth(async (request: Request, _context, session) => {
         categories: getStringArrayValue('categories'),
         github_repository: getLinkValue('github_repository', 'githubRepository'),
         demo_link: getLinkValue('demo_link', 'demoOtherLinks'),
-        tech_stack: getStringValue('explanation', 'tech_stack', 'howItsMade'),
-        explanation: getStringValue('howItsMade'),
+        // Free-text tech stack description -> Project.tech_stack; the tag list is
+        // a separate field below.
+        tech_stack: getStringValue('tech_stack', 'howItsMade'),
+        tech_stack_tags: getStringArrayValue('tech_stack_tags'),
+        explanation: getStringValue('explanation'),
+        tracks: getStringArrayValue('tracks'),
+        is_preexisting_idea: getBooleanValue('is_preexisting_idea'),
+        logo_url: getStringValue('logo_url'),
+        cover_url: getStringValue('cover_url'),
+        screenshots: getStringArrayValue('screenshots'),
+        demo_video_link: getLinkValue('demo_video_link'),
+        website: getKeyValueLinksValue('website'),
+        socials: getKeyValueLinksValue('socials'),
+        // Team1 sharing consent: persist to the real Project.consent_sharing
+        // column (same as the non-staged submitProject flow) so staged
+        // submissions record the consent identically, instead of leaving it
+        // only inside the stage answer envelope.
+        consent_sharing: getBooleanValue('consent_sharing'),
       };
 
       Object.entries(projectColumnValues).forEach(([column, value]) => {
@@ -386,10 +515,25 @@ export const GET = withAuth(async (request: Request, _context, session) => {
       },
     });
 
+    const rawFormData = formData?.form_data as
+      | StageAnswerEnvelope
+      | Record<string, unknown>
+      | null;
+    const flatFormData =
+      rawFormData && typeof rawFormData === 'object' && 'answers' in rawFormData
+        ? Object.fromEntries(
+            Object.entries((rawFormData as StageAnswerEnvelope).answers).map(
+              ([fieldId, entry]) => [fieldId, entry.answer],
+            ),
+          )
+        : rawFormData;
+
     return NextResponse.json(
       {
         success: true,
-        formData: formData ?? null,
+        formData: formData
+          ? { ...formData, form_data: flatFormData }
+          : null,
       },
       { status: 200 },
     );

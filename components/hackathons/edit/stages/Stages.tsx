@@ -24,6 +24,8 @@ import {
   createLinkStagesSubmitFormField,
   createMultiSelectStagesSubmitFormField,
   createTextStagesSubmitFormField,
+  createBooleanStagesSubmitFormField,
+  createImageStagesSubmitFormField,
 } from '@/lib/hackathons/stage-submit-form-fields'
 import {
   HackathonStage,
@@ -127,6 +129,10 @@ const createDefaultSubmitFormField = (
       return createChipsStagesSubmitFormField()
     case SubmitFormFieldType.MultiSelect:
       return createMultiSelectStagesSubmitFormField()
+    case SubmitFormFieldType.Boolean:
+      return createBooleanStagesSubmitFormField()
+    case SubmitFormFieldType.Image:
+      return createImageStagesSubmitFormField()
     case SubmitFormFieldType.Predefined:
       return createTextStagesSubmitFormField()
   }
@@ -493,9 +499,20 @@ export default function HackathonsEditStages({
       let newFields: SubmitFormField[]
 
       if (!hasProjectName && !hasShortDescription) {
+        // Brand-new forms (no fields yet) also start with the tech stack
+        // questions so staged hackathons collect the same tech data as the
+        // legacy flow; unlike project_name/short_description, organizers
+        // can remove them afterwards.
+        const isNewForm = existingFields.length === 0
         newFields = [
           BASE_SUBMIT_FORM_FIELDS.project_name.field,
           BASE_SUBMIT_FORM_FIELDS.short_description.field,
+          ...(isNewForm
+            ? [
+                BASE_SUBMIT_FORM_FIELDS.tech_stack.field,
+                BASE_SUBMIT_FORM_FIELDS.tech_stack_tags.field,
+              ]
+            : []),
           ...existingFields,
         ]
       } else if (!hasProjectName) {
