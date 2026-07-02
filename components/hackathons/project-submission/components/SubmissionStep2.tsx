@@ -93,6 +93,7 @@ export default function SubmitStep2({ lang = "en", availableTechStack }: SubmitS
                   onChange={field.onChange}
                   placeholder={t(lang, "submission.step2.techStackTags.placeholder")}
                   searchPlaceholder={t(lang, "submission.step2.techStackTags.placeholder")}
+                  allowCreate
                 />
               </FormControl>
               <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
