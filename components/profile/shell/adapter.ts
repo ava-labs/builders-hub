@@ -1,4 +1,15 @@
+import {
+  ensureUrl,
+  extractGithubUsername,
+  extractXUsername,
+  extractLinkedInSlug,
+} from "@/lib/profile/socialAccountFormat";
 import type { ProfileLink, ProfileRole, ProfileWallet } from "./types";
+
+// Re-exported from the shared social-format helper so existing
+// `from "./adapter"` imports keep working while the parsing logic lives in
+// one place (`lib/profile/socialAccountFormat.ts`).
+export { ensureUrl, extractGithubUsername, extractXUsername, extractLinkedInSlug };
 
 interface RawProfileValues {
   name?: string;
@@ -19,37 +30,6 @@ interface RawProfileValues {
   wallet?: string[];
   additional_social_accounts?: string[];
   skills?: string[];
-}
-
-const URL_PROTOCOL_RE = /^https?:\/\//i;
-
-export function ensureUrl(value: string): string {
-  if (!value) return value;
-  return URL_PROTOCOL_RE.test(value) ? value : `https://${value}`;
-}
-
-export function extractGithubUsername(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const match = trimmed.match(/github\.com\/([^/?#\s]+)/i);
-  if (match) return match[1];
-  return trimmed.replace(/^@/, "");
-}
-
-export function extractXUsername(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const match = trimmed.match(/(?:x|twitter)\.com\/([^/?#\s]+)/i);
-  if (match) return match[1];
-  return trimmed.replace(/^@/, "");
-}
-
-export function extractLinkedInSlug(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  const match = trimmed.match(/linkedin\.com\/(?:in|pub)\/([^/?#\s]+)/i);
-  if (match) return match[1];
-  return trimmed;
 }
 
 export function rolesFromValues(v: RawProfileValues): ProfileRole[] {

@@ -3,6 +3,10 @@ import {
   LINKEDIN_ACCOUNT_PATTERN,
   TELEGRAM_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
+import {
+  normalizeLinkedInUrl,
+  normalizeTelegram,
+} from "@/lib/profile/socialAccountFormat";
 
 /**
  * Shared Zod schemas for the extended user profile.
@@ -12,11 +16,26 @@ import {
  * route and the frontend forms.
  */
 
-const nullableProfileAccount = (pattern: RegExp, message: string) =>
+/**
+ * Normalizes a social account on the way in (auto-completing loose handles
+ * into the canonical stored form) and then validates the result against its
+ * platform pattern. Normalizing *before* validating means fixable input (e.g.
+ * a bare `username`) is accepted instead of rejected, and every persisted value
+ * is canonical regardless of which client sent it (manual save, auto-save, API).
+ */
+const normalizedProfileAccount = (
+  normalize: (value: string) => string,
+  pattern: RegExp,
+  message: string,
+) =>
   z
-    .union([z.string().trim().regex(pattern, message), z.literal("")])
+    .string()
     .nullable()
-    .optional();
+    .optional()
+    .transform((value) => (typeof value === "string" ? normalize(value) : value))
+    .refine((value) => value == null || value === "" || pattern.test(value), {
+      message,
+    });
 
 /** User type data stored as JSON in the database (nested form). */
 export const UserTypeSchema = z.object({
@@ -60,7 +79,8 @@ export const UpdateExtendedProfileSchema = z
       .optional(),
     image: z.string().nullable().optional(),
     country: z.string().nullable().optional(),
-    linkedin_account: nullableProfileAccount(
+    linkedin_account: normalizedProfileAccount(
+      (value) => normalizeLinkedInUrl(value, "in"),
       LINKEDIN_ACCOUNT_PATTERN,
       "Invalid LinkedIn URL.",
     ),
@@ -70,7 +90,8 @@ export const UpdateExtendedProfileSchema = z
     notifications: z.boolean().nullable().optional(),
     consent_sharing: z.boolean().nullable().optional(),
     profile_privacy: z.string().nullable().optional(),
-    telegram_account: nullableProfileAccount(
+    telegram_account: normalizedProfileAccount(
+      normalizeTelegram,
       TELEGRAM_ACCOUNT_PATTERN,
       "Invalid Telegram username.",
     ),

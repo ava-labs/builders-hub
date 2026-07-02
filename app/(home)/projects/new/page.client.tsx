@@ -9,6 +9,14 @@ import {
   LINKEDIN_ACCOUNT_PATTERN,
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
+import {
+  extractGithubUsername,
+  extractLinkedInSlug,
+  extractXUsername,
+  normalizeGithubUrl,
+  normalizeLinkedInUrl,
+  normalizeXUrl,
+} from '@/lib/profile/socialAccountFormat';
 import { LogoUploader } from '@/components/common/LogoUploader';
 import {
   UserSearchPicker,
@@ -41,23 +49,10 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
     setValues((prev) => ({ ...prev, [k]: v }));
 
   // Mono-prefix social inputs: store the full URL but show only the handle/slug.
-  function stripPrefix(value: string, prefix: RegExp): string {
-    return value.replace(prefix, '').replace(/\/+$/, '');
-  }
-  const xHandle = stripPrefix(values.x_account, /^https?:\/\/(?:www\.)?x\.com\//i);
-  const linkedinSlug = stripPrefix(
-    values.linkedin_account,
-    /^https?:\/\/(?:www\.)?linkedin\.com\/company\//i,
-  );
-  const githubHandle = stripPrefix(
-    values.github_account,
-    /^https?:\/\/(?:www\.)?github\.com\//i,
-  );
-
-  const setUrlField = (key: 'x_account' | 'linkedin_account' | 'github_account', base: string, slug: string) => {
-    const cleaned = slug.trim().replace(/^\/+|\/+$/g, '');
-    update(key, cleaned ? `${base}${cleaned}` : '');
-  };
+  // Parsing/building is delegated to the shared social-format helper.
+  const xHandle = extractXUsername(values.x_account);
+  const linkedinSlug = extractLinkedInSlug(values.linkedin_account);
+  const githubHandle = extractGithubUsername(values.github_account);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -269,7 +264,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
                   id="np-x"
                   type="text"
                   value={xHandle}
-                  onChange={(e) => setUrlField('x_account', 'https://x.com/', e.target.value)}
+                  onChange={(e) => update('x_account', normalizeXUrl(e.target.value))}
                   placeholder="yourcompany"
                 />
               </div>
@@ -285,7 +280,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
                   type="text"
                   value={linkedinSlug}
                   onChange={(e) =>
-                    setUrlField('linkedin_account', 'https://linkedin.com/company/', e.target.value)
+                    update('linkedin_account', normalizeLinkedInUrl(e.target.value, 'company'))
                   }
                   placeholder="yourcompany"
                 />
@@ -303,7 +298,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
                 id="np-gh"
                 type="text"
                 value={githubHandle}
-                onChange={(e) => setUrlField('github_account', 'https://github.com/', e.target.value)}
+                onChange={(e) => update('github_account', normalizeGithubUrl(e.target.value))}
                 placeholder="yourorg"
               />
             </div>
