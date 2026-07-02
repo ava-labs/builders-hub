@@ -57,24 +57,25 @@ export function AddConnectedWalletButton({
   variant = 'secondary',
   size = 'sm',
 }: AddConnectedWalletButtonProps) {
-  const { walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress, coreEthAddress } = useWalletStore();
+  const connectedAddress = walletEVMAddress || coreEthAddress;
 
   const handleClick = () => {
-    if (walletEVMAddress) {
-      onAddAddress(walletEVMAddress);
+    if (connectedAddress) {
+      onAddAddress(connectedAddress);
     }
   };
 
   // Use provided checkDuplicate or auto-check using addressSource
-  const isDuplicate = walletEVMAddress
+  const isDuplicate = connectedAddress
     ? checkDuplicate
-      ? checkDuplicate(walletEVMAddress)
+      ? checkDuplicate(connectedAddress)
       : addressSource
-        ? checkAddressInSource(walletEVMAddress, addressSource)
+        ? checkAddressInSource(connectedAddress, addressSource)
         : false
     : false;
 
-  const isDisabled = !walletEVMAddress || isDuplicate;
+  const isDisabled = !connectedAddress || isDuplicate;
 
   return (
     <Button
@@ -105,32 +106,34 @@ export function AddConnectedWalletButtonSimple({
   buttonText = 'Add Wallet',
   className = '',
 }: Omit<AddConnectedWalletButtonProps, 'variant' | 'size'>) {
-  const { walletEVMAddress } = useWalletStore();
+  const { walletEVMAddress, coreEthAddress } = useWalletStore();
+  const connectedAddress = walletEVMAddress || coreEthAddress;
 
   const handleClick = () => {
-    if (walletEVMAddress) {
-      onAddAddress(walletEVMAddress);
+    if (connectedAddress) {
+      onAddAddress(connectedAddress);
     }
   };
 
   // Use provided checkDuplicate or auto-check using addressSource
-  const isDuplicate = walletEVMAddress
+  const isDuplicate = connectedAddress
     ? checkDuplicate
-      ? checkDuplicate(walletEVMAddress)
+      ? checkDuplicate(connectedAddress)
       : addressSource
-        ? checkAddressInSource(walletEVMAddress, addressSource)
+        ? checkAddressInSource(connectedAddress, addressSource)
         : false
     : false;
 
-  const isDisabled = !walletEVMAddress || isDuplicate;
+  const isDisabled = !connectedAddress || isDuplicate;
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       disabled={isDisabled}
       className={`px-3 py-1.5 bg-zinc-600 hover:bg-zinc-700 text-white text-sm rounded-md disabled:opacity-50 transition-colors font-medium flex items-center gap-1.5 ${className}`}
       title={
-        isDisabled && walletEVMAddress && checkDuplicate ? 'Address already added' : 'Add connected wallet address'
+        isDisabled && connectedAddress && checkDuplicate ? 'Address already added' : 'Add connected wallet address'
       }
     >
       <Wallet className="h-3.5 w-3.5" />

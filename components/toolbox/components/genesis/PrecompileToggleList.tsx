@@ -19,6 +19,8 @@ export interface PrecompileItem {
   onCheckedChange: (checked: boolean) => void;
   info: PrecompileInfo;
   expandedContent?: ReactNode;
+  /** Optional status badge rendered next to the info tooltip (e.g. "Active"). */
+  badge?: ReactNode;
 }
 
 interface PrecompileToggleListProps {
@@ -70,6 +72,7 @@ export function PrecompileToggleList({ items, showEnabledCount = true }: Precomp
                     </div>
                   </TooltipContent>
                 </Tooltip>
+                {item.badge}
               </div>
               <Switch checked={item.checked} onCheckedChange={item.onCheckedChange} />
             </div>
