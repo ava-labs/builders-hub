@@ -63,7 +63,7 @@ function resolveDismissTarget(callbackUrl: string): string {
 }
 
 export function LoginModal() {
-  const { isOpen, callbackUrl = "/", closeLoginModal } = useLoginModalState();
+  const { isOpen, callbackUrl = "/", authError, closeLoginModal } = useLoginModalState();
   const [isVerifying, setIsVerifying] = useState(false);
   const [email, setEmail] = useState("");
   const router = useRouter();
@@ -150,6 +150,12 @@ export function LoginModal() {
 
                 {/* Embedded Browser Warning */}
                 <EmbeddedBrowserWarning />
+
+                {authError && (
+                  <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-xs text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+                    {authError}
+                  </p>
+                )}
 
                 {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">

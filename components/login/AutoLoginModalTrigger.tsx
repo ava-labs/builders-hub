@@ -36,6 +36,19 @@ export function AutoLoginModalTrigger() {
     // Only trigger on client side
     if (typeof window === "undefined") return;
 
+    const currentUrl = new URL(window.location.href);
+    const authError = currentUrl.searchParams.get("authError");
+    if (authError && status !== "authenticated" && !hasTriggeredRef.current) {
+      hasTriggeredRef.current = true;
+      currentUrl.searchParams.delete("authError");
+      window.history.replaceState(null, "", currentUrl.toString());
+      openLoginModal(
+        currentUrl.toString(),
+        "We couldn't complete social sign-in. Please try again."
+      );
+      return;
+    }
+
     // Reset trigger when pathname changes
     if (hasTriggeredRef.current) {
       hasTriggeredRef.current = false;
@@ -66,7 +79,7 @@ export function AutoLoginModalTrigger() {
         return () => clearTimeout(timer);
       }
     }
-  }, [status, session, pathname, triggerLoginModal]);
+  }, [status, session, pathname, triggerLoginModal, openLoginModal]);
 
   return null;
 }
