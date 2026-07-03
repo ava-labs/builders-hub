@@ -19,6 +19,7 @@ interface AcademyDocsLayoutWrapperProps {
     avalancheTree: Tree;
     blockchainTree: Tree;
     entrepreneurTree: Tree;
+    team1Tree: Tree;
 }
 
 export function AcademyDocsLayoutWrapper({
@@ -27,6 +28,7 @@ export function AcademyDocsLayoutWrapper({
     avalancheTree,
     blockchainTree,
     entrepreneurTree,
+    team1Tree,
 }: AcademyDocsLayoutWrapperProps) {
     const pathname = usePathname();
 
@@ -37,11 +39,14 @@ export function AcademyDocsLayoutWrapper({
         if (pathname.startsWith('/academy/blockchain')) {
             return blockchainTree ?? defaultTree;
         }
+        if (pathname.startsWith('/academy/team1')) {
+            return team1Tree ?? defaultTree;
+        }
         if (pathname === '/academy' || pathname.startsWith('/academy/avalanche-l1')) {
             return avalancheTree ?? defaultTree;
         }
         return defaultTree;
-    }, [pathname, defaultTree, avalancheTree, blockchainTree, entrepreneurTree]);
+    }, [pathname, defaultTree, avalancheTree, blockchainTree, entrepreneurTree, team1Tree]);
 
     const academyOptions: DocsLayoutProps = useMemo(
         () => ({

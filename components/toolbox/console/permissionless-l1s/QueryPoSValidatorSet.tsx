@@ -15,7 +15,7 @@ import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
 import { Tooltip } from '@/components/toolbox/components/Tooltip';
 import { formatAvaxBalance } from '@/components/toolbox/coreViem/utils/format';
 import { useL1ListStore, L1ListItem } from '@/components/toolbox/stores/l1ListStore';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import ValidatorManagerAbi from '@/contracts/icm-contracts/compiled/ValidatorManager.json';
@@ -301,7 +301,7 @@ export default function QueryPoSValidatorSet() {
 
         try {
           // Get validation ID in hex format
-          const validationIdHex = '0x' + cb58ToHex(validator.validationId);
+          const validationIdHex = CB58ToHex(validator.validationId);
 
           // Get PoS-specific info
           const posInfo = (await l1PublicClient.readContract({
@@ -449,7 +449,7 @@ export default function QueryPoSValidatorSet() {
 
           // Find the validator to get nodeId and minStakeDuration
           const validator = enrichedValidators.find((v) => {
-            const validationIdHex = '0x' + cb58ToHex(v.validationId);
+            const validationIdHex = CB58ToHex(v.validationId);
             return validationIdHex.toLowerCase() === validationID.toLowerCase();
           });
 

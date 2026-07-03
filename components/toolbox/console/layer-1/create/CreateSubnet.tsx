@@ -81,7 +81,7 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         loadingText="Creating..."
         variant="primary"
         className="w-full"
-        cliCommand={`platform subnet create --network ${isTestnet ? 'fuji' : 'mainnet'}`}
+        cliCommand={`platform-cli subnet create --network ${isTestnet ? 'fuji' : 'mainnet'}`}
       >
         Create Subnet
       </CoreWalletTransactionButton>

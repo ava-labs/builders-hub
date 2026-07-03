@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
+import { getPChainRpcUrl } from '@/components/toolbox/utils/avalancheEndpoints';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
@@ -9,9 +10,11 @@ import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/Native
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
 import { hexToBytes, bytesToHex, encodeFunctionData, Abi } from 'viem';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
+import { extractL1ValidatorWeightMessageFromPChainTx } from '@avalanche-sdk/interchain/validator-manager';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
-import { packL1ValidatorWeightMessage } from '@/components/toolbox/coreViem/utils/convertWarp';
+import { newL1ValidatorWeightMessage, newWarpMessage } from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { useAvalancheSDKChainkit } from '@/components/toolbox/stores/useAvalancheSDKChainkit';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
@@ -40,7 +43,7 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
   onSuccess,
   onError,
 }) => {
-  const { avalancheNetworkID } = useWalletStore();
+  const { avalancheNetworkID, isTestnet } = useWalletStore();
   const chainPublicClient = useChainPublicClient();
   const walletClient = useResolvedWalletClient();
   const { aggregateSignature } = useAvalancheSDKChainkit();
@@ -139,31 +142,30 @@ const CompleteDelegatorRemoval: React.FC<CompleteDelegatorRemovalProps> = ({
       }
 
       // Step 1: Extract L1ValidatorWeightMessage from P-Chain transaction
-      const coreWalletClient = useWalletStore.getState().coreWalletClient;
-      if (!coreWalletClient) {
-        throw new Error('This operation requires Core Wallet');
-      }
-      const weightMessageData = await coreWalletClient.extractL1ValidatorWeightMessage({
+      const weightMessageData = await extractL1ValidatorWeightMessageFromPChainTx({
         txId: pChainTxId,
+        pChainRpcUrl: getPChainRpcUrl(isTestnet),
       });
 
       setExtractedData({
-        validationID: weightMessageData.validationID,
+        validationID: weightMessageData.validationIdHex,
         nonce: weightMessageData.nonce,
         weight: weightMessageData.weight,
       });
 
       // Step 2: Create L1ValidatorWeightMessage for completion
-      const validationIDBytes = hexToBytes(weightMessageData.validationID as `0x${string}`);
-      const l1ValidatorWeightMessage = packL1ValidatorWeightMessage(
-        {
-          validationID: validationIDBytes,
-          nonce: weightMessageData.nonce,
-          weight: weightMessageData.weight,
-        },
+      const innerWeightMsg = newL1ValidatorWeightMessage(
+        hexToCB58(weightMessageData.validationIdHex),
+        weightMessageData.nonce,
+        weightMessageData.weight,
+      );
+      const unsignedWeightMsg = newWarpMessage(
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY',
+        '',
+        innerWeightMsg.toHex(),
       );
+      const l1ValidatorWeightMessage = hexToBytes(unsignedWeightMsg.toHex() as `0x${string}`);
 
       // Step 3: Aggregate P-Chain signature
       const aggregateSignaturePromise = aggregateSignature({

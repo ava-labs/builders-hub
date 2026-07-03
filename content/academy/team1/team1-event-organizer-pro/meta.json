@@ -1,0 +1,15 @@
+{
+  "title": "Event Organizer Pro",
+  "icon": "Workflow",
+  "root": true,
+  "pages": [
+    "index",
+    "...01-program-mindset-beyond-one-offs",
+    "...02-running-an-event-series",
+    "...03-volunteers-and-distributed-teams",
+    "...04-partnerships-and-co-hosting",
+    "...05-content-flywheel-repurposing",
+    "...06-metrics-cohorts-and-roi",
+    "summary"
+  ]
+}

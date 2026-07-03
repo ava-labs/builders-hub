@@ -4,17 +4,14 @@ import {
   listReferralLinksForUser,
   getActiveReferralTargets,
   buildReferralUrl,
+  resolveReferralDestination,
 } from "@/server/services/referrals";
+import { getAllBadges } from "@/server/services/badge";
+import { getRewardBoard } from "@/server/services/rewardBoard";
+import type { Badge, UserBadge, Requirement } from "@/types/badge";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import type { Prisma } from "@prisma/client";
-
-/**
- * Profile summary helpers — read-only aggregations the redesigned profile
- * page surfaces in its sidebar widgets and tab counters.
- *
- * All reads are scoped to a single `userId` (the session-derived id from the
- * API route). Nothing here should be called with an unverified id.
- */
 
 export interface ProfileProjectSummary {
   id: string;
@@ -24,6 +21,8 @@ export interface ProfileProjectSummary {
   isWinner: boolean;
   hackathonId: string | null;
   hackathonTitle: string | null;
+  origin: string;
+  hasMiniGrantApplication: boolean;
   logoUrl: string | null;
   demoLink: string | null;
   githubRepository: string | null;
@@ -32,16 +31,14 @@ export interface ProfileProjectSummary {
 
 const projectMembershipInclude = {
   hackathon: { select: { id: true, title: true } },
+  grant_applications: {
+    select: { program_key: true },
+  },
   members: {
     select: { user_id: true, role: true, status: true },
   },
 } satisfies Prisma.ProjectInclude;
 
-/**
- * Returns the projects the user is a confirmed member of, sorted by most
- * recent first. Pulls the role from the matching Member row so the UI can
- * show "Founder", "Lead", etc.
- */
 export async function getUserProjects(
   userId: string,
 ): Promise<ProfileProjectSummary[]> {
@@ -75,6 +72,10 @@ export async function getUserProjects(
       isWinner: project.is_winner ?? false,
       hackathonId: project.hackathon?.id ?? null,
       hackathonTitle: project.hackathon?.title ?? null,
+      origin: project.origin,
+      hasMiniGrantApplication: project.grant_applications.some(
+        (application) => application.program_key === MINI_GRANT_KEY,
+      ),
       logoUrl: project.logo_url || null,
       demoLink: project.demo_link || null,
       githubRepository: project.github_repository || null,
@@ -90,32 +91,115 @@ export interface ProfileBadgeSummary {
   description: string;
   imagePath: string;
   category: string;
-  awardedAt: string;
+  group: "console" | "developer" | "blockchain" | "avalanche-l1" | "entrepreneur" | "hackathon" | "unknown";
+  tier: string | null;
+  isUnlocked: boolean;
+  isSecret: boolean;
+  awardedAt: string | null;
+  requirements: Requirement[];
 }
 
-/**
- * Returns the user's awarded badges (status=1, "approved"). One row per
- * UserBadge, with the joined Badge metadata flattened so the UI doesn't
- * have to deal with the relation shape.
- */
 export async function getUserBadgesForProfile(
   userId: string,
 ): Promise<ProfileBadgeSummary[]> {
   if (!userId) return [];
-  const rows = await prisma.userBadge.findMany({
-    where: { user_id: userId, status: 1 },
-    include: { badge: true },
-    orderBy: { awarded_at: "desc" },
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    badgeId: r.badge_id,
-    name: r.badge.name,
-    description: r.badge.description,
-    imagePath: r.badge.image_path,
-    category: r.badge.category,
-    awardedAt: r.awarded_at.toISOString(),
-  }));
+  const [badges, userBadges] = await Promise.all([
+    getAllBadges(),
+    getRewardBoard(userId),
+  ]);
+
+  // Return every badge that exists in the DB. The board groups them by
+  // whatever signal we can extract (id prefix or category), and anything we
+  // can't recognize ends up in the "Other Badges" section instead of being
+  // hidden — so a misnamed seed never disappears from the UI again.
+  return badges
+    .map((badge) => resolveProfileBadge(badge, userBadges))
+    .sort((a, b) => {
+      const groupDelta = groupOrder(a.group) - groupOrder(b.group);
+      if (groupDelta !== 0) return groupDelta;
+      const tierDelta = Number(a.tier ?? 0) - Number(b.tier ?? 0);
+      if (tierDelta !== 0) return tierDelta;
+      return badgeCourseOrder(a.badgeId) - badgeCourseOrder(b.badgeId);
+    });
+}
+
+function resolveProfileBadge(
+  badge: Badge,
+  userBadges: UserBadge[],
+): ProfileBadgeSummary {
+  const userBadge = userBadges.find((ub) => ub.badge_id === badge.id);
+  const requirements = userBadge?.requirements ?? badge.requirements ?? [];
+  const allRequirementsCompleted =
+    requirements.length > 0 &&
+    requirements.every((requirement) => requirement.unlocked === true);
+  const hasNoRequirements = requirements.length === 0;
+
+  return {
+    id: badge.id,
+    badgeId: badge.id,
+    name: badge.name,
+    description: badge.description,
+    imagePath: badge.image_path,
+    category: badge.category,
+    group: getBadgeGroup(badge),
+    tier: getConsoleTier(badge),
+    isUnlocked: userBadge ? hasNoRequirements || allRequirementsCompleted : false,
+    isSecret: getConsoleTier(badge) === "4",
+    awardedAt: userBadge?.awarded_at?.toISOString() ?? null,
+    requirements,
+  };
+}
+
+function getBadgeGroup(badge: Badge): ProfileBadgeSummary["group"] {
+  const id = badge.id.toLowerCase();
+  const category = badge.category?.toLowerCase() ?? "";
+  // Console badges may be seeded with auto-generated UUIDs (no "console" in
+  // the id), so check the category column too.
+  if (id.includes("console") || category === "console") return "console";
+  if (id.includes("hackathon")) return "hackathon";
+  // The unified Avalanche Developer Academy uses ids like `1devAcademy-*`.
+  if (id.includes("devacademy")) return "developer";
+  if (id.includes("blockchainacademy")) return "blockchain";
+  if (id.includes("avalanchel1academy")) return "avalanche-l1";
+  // Entrepreneur Academy ids: prod has `entrepreneurAcademy`, the preview DB
+  // has the bare `entrepreneur-*` prefix — match both.
+  if (id.includes("entrepreneur")) return "entrepreneur";
+  return "unknown";
+}
+
+function getConsoleTier(badge: Badge): string | null {
+  if (getBadgeGroup(badge) !== "console") return null;
+  const idMatch = badge.id.toLowerCase().match(/(\d+)tier/);
+  if (idMatch) return idMatch[1];
+  // UUID-id console badges encode the tier in the image filename, e.g.
+  // ".../Tier1_FirstKill.png". Pull it from there so the tier sections render.
+  const pathMatch = badge.image_path?.match(/Tier(\d+)/i);
+  if (pathMatch) return pathMatch[1];
+  return "0";
+}
+
+function badgeCourseOrder(id: string): number {
+  const match = id.match(/-(\d+)/);
+  return match ? Number(match[1]) : 999;
+}
+
+function groupOrder(group: ProfileBadgeSummary["group"]): number {
+  switch (group) {
+    case "console":
+      return 0;
+    case "developer":
+      return 1;
+    case "blockchain":
+      return 2;
+    case "avalanche-l1":
+      return 3;
+    case "entrepreneur":
+      return 4;
+    case "hackathon":
+      return 5;
+    case "unknown":
+      return 6;
+  }
 }
 
 export interface ProfileEngagementFlags {
@@ -124,10 +208,6 @@ export interface ProfileEngagementFlags {
   hasUsedConsole: boolean;
 }
 
-/**
- * Quick presence checks for the profile-completion bar. Three indexed
- * counts; safe to run on every page load.
- */
 export async function getProfileEngagement(
   userId: string,
 ): Promise<ProfileEngagementFlags> {
@@ -167,12 +247,6 @@ export async function getProfileEngagement(
   };
 }
 
-/**
- * Number of attributions where the user was the referrer. Matches the
- * Builder Insights definition (`SELECT COUNT(*) FROM ReferralAttribution
- * WHERE user_id_referrer = ?`) — so the count surfaced in the profile is
- * consistent with what BI shows internally.
- */
 export async function getUserReferralCount(userId: string): Promise<number> {
   if (!userId) return 0;
   const count = await prisma.referralAttribution.count({
@@ -181,12 +255,6 @@ export async function getUserReferralCount(userId: string): Promise<number> {
   return count;
 }
 
-/**
- * Returns the user's `bh_signup` referral code, creating one on the fly if
- * they don't have one yet. Idempotent — `createReferralLink` re-uses an
- * existing matching link rather than minting a new code, so this is safe to
- * call on every profile load.
- */
 export async function getOrCreateBhSignupReferralCode(
   userId: string,
 ): Promise<string> {
@@ -197,20 +265,6 @@ export async function getOrCreateBhSignupReferralCode(
   return link.code;
 }
 
-/**
- * Ensures the user has a referral link for every currently-active target
- * (BH signup + every active event + every active grant). Idempotent: re-
- * uses any existing matching link rather than minting a new code.
- *
- * Short-circuits when the user already has every active target — that's
- * the steady-state case after first load, so the typical hot path is one
- * cheap query against the indexed `owner_user_id` column.
- *
- * Mints sequentially when needed (not in parallel) to avoid saturating
- * the Prisma connection pool — `createReferralLink` itself can issue
- * up to ~16 DB round-trips per call, and the summary endpoint already
- * runs many queries in parallel.
- */
 export async function ensureActiveReferralLinks(userId: string): Promise<void> {
   if (!userId) return;
   const groups = await getActiveReferralTargets();
@@ -248,10 +302,6 @@ export async function ensureActiveReferralLinks(userId: string): Promise<void> {
   }
 }
 
-/**
- * Total count of users on the platform — used by the notifications form
- * to show an honest reach number for the "All builders" audience.
- */
 export async function getTotalBuilderCount(): Promise<number> {
   return prisma.user.count();
 }
@@ -267,11 +317,6 @@ export interface ProfileReferralLink {
   createdAt: string;
 }
 
-/**
- * Returns the user's existing referral links with per-link attribution counts.
- * Stats query is one grouped count keyed by `referral_link_id` so it scales
- * with the number of links (typically <10 per user).
- */
 export async function getUserReferralLinks(
   userId: string,
   origin: string,
@@ -291,16 +336,23 @@ export async function getUserReferralLinks(
     if (row.referral_link_id) byId.set(row.referral_link_id, row._count._all);
   }
 
-  return links.map((l) => ({
-    id: l.id,
-    code: l.code,
-    targetType: l.target_type,
-    targetId: l.target_id,
-    destinationUrl: l.destination_url,
-    shareUrl: buildReferralUrl(origin, l.destination_url, l.code),
-    signups: byId.get(l.id) ?? 0,
-    createdAt: l.created_at.toISOString(),
-  }));
+  return links.map((l) => {
+    const destination = resolveReferralDestination(
+      l.target_type,
+      l.target_id,
+      l.destination_url,
+    );
+    return {
+      id: l.id,
+      code: l.code,
+      targetType: l.target_type,
+      targetId: l.target_id,
+      destinationUrl: destination,
+      shareUrl: buildReferralUrl(origin, destination, l.code),
+      signups: byId.get(l.id) ?? 0,
+      createdAt: l.created_at.toISOString(),
+    };
+  });
 }
 
 export interface ProfileReferralTarget {
@@ -311,7 +363,6 @@ export interface ProfileReferralTarget {
   targetType: string;
   targetId: string | null;
   destinationUrl: string;
-  /** Lucide-style icon key our UI can render. */
   icon: "rocket" | "trophy" | "code" | "gift";
 }
 
@@ -324,10 +375,6 @@ const TARGET_ICON_BY_GROUP: Record<
   grant: "gift",
 };
 
-/**
- * Flattens the existing target catalog (signup + event + grant groups) into
- * a single ordered list with a UI-friendly icon picked from the group.
- */
 export async function getReferralTargetCatalog(): Promise<ProfileReferralTarget[]> {
   const groups = await getActiveReferralTargets();
   const all: ReferralTargetPreset[] = [

@@ -16,7 +16,9 @@ import {
   getMAConfig,
   timeSeriesMetricToChartData,
 } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor } from "lucide-react";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor, ChevronRight } from "lucide-react";
+
+const REQUEST_INDEXING_FORM_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -1339,6 +1341,26 @@ export default function ChainMetricsPage({
     );
   }
 
+  // Detect chains that aren't indexed (yet) by the metrics API.
+  // Mirrors the chain-list page probe: cumulativeTxCount being N/A or 0 means there's no
+  // recorded activity for this chain. We only flag this for single-chain views — the
+  // aggregate "all chains" view always has data. A manual override via
+  // l1-chains.json `isIndexed: false` always wins (used during reindexing).
+  const cumTxRaw = metrics?.cumulativeTxCount?.current_value;
+  const cumTxNumeric =
+    typeof cumTxRaw === "number"
+      ? cumTxRaw
+      : typeof cumTxRaw === "string"
+      ? parseFloat(cumTxRaw)
+      : NaN;
+  const isManuallyNotIndexed = chainData?.isIndexed === false;
+  const isNotIndexed =
+    !isAllChainsView &&
+    (isManuallyNotIndexed
+      || (!loading
+        && metrics !== null
+        && (!isFinite(cumTxNumeric) || cumTxNumeric === 0)));
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       {/* Hero - Clean typographic approach with gradient accent */}
@@ -1544,6 +1566,31 @@ export default function ChainMetricsPage({
         </div>
       </div>
 
+      {isNotIndexed ? (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+          <div className="rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900/40 px-6 sm:px-10 py-10 sm:py-14 flex flex-col items-center text-center gap-3">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <Clock className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 dark:text-white">
+              Not indexed yet
+            </h2>
+            <p className="max-w-md text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              We don&apos;t have activity data for {chainName} yet. Stats and charts will appear here once this chain is indexed.
+            </p>
+            <a
+              href={REQUEST_INDEXING_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors shadow-sm"
+            >
+              Request indexing
+              <ChevronRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Sticky Navigation Bar - full width, positioned below main navbar */}
       <StickyNavBar
         categories={chartCategories}
@@ -2211,6 +2258,8 @@ export default function ChainMetricsPage({
           </>
         )}
       </div>
+        </>
+      )}
 
       {/* Bubble Navigation */}
       {chainSlug && !isAllChainsView ? (

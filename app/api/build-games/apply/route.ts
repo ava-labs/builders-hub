@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -51,7 +52,10 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
 
 export async function POST(request: Request) {
   try {
-    if (!HUBSPOT_API_KEY) {
+    const hubspotEnabled = isHubSpotEnabled();
+    if (!hubspotEnabled) {
+      skipHubSpot('POST /api/build-games/apply');
+    } else if (!HUBSPOT_API_KEY) {
       console.error('Missing environment variable: HUBSPOT_API_KEY');
       return NextResponse.json(
         { success: false, message: 'Server configuration error' },
@@ -163,53 +167,60 @@ export async function POST(request: Request) {
 
     // Run HubSpot submission and DB save in parallel
     console.log('[Build Games Apply] Starting submission...');
-    console.log('[Build Games Apply] HubSpot payload fields:', JSON.stringify(fields, null, 2));
-    console.log('[Build Games Apply] HubSpot legal consent:', JSON.stringify(hubspotPayload.legalConsentOptions, null, 2));
 
     const hubspotUrl = `https://api.hsforms.com/submissions/v3/integration/submit/${HUBSPOT_PORTAL_ID}/${BUILD_GAMES_FORM_GUID}`;
     console.log('[Build Games Apply] HubSpot URL:', hubspotUrl);
 
-    const hubspotPromise = fetchWithTimeout(hubspotUrl,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
-        },
-        body: JSON.stringify(hubspotPayload),
-      },
-      60000 // 60 second timeout
-    );
+    type HubspotResult = {
+      success: boolean;
+      status: number;
+      data: unknown;
+      error?: string;
+    };
+    const hubspotPromise: Promise<HubspotResult> = hubspotEnabled
+      ? fetchWithTimeout(hubspotUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${HUBSPOT_API_KEY}`,
+            },
+            body: JSON.stringify(hubspotPayload),
+          },
+          60000 // 60 second timeout
+        )
+          .then(async (response) => {
+            const status = response.status;
+            console.log('[Build Games Apply] HubSpot response status:', status);
+            let data;
+            try {
+              const responseText = await response.text();
+              console.log('[Build Games Apply] HubSpot response body:', responseText);
+              try {
+                data = JSON.parse(responseText);
+              } catch {
+                data = { message: responseText || 'Could not parse response' };
+              }
+            } catch (e) {
+              console.error('[Build Games Apply] Error reading HubSpot response:', e);
+              data = { message: 'Could not read response' };
+            }
+            return { success: response.ok, status, data };
+          })
+          .catch((err) => {
+            console.error('[Build Games Apply] HubSpot request failed:', err);
+            return { success: false, status: 0, data: null, error: err.message };
+          })
+      : Promise.resolve({
+          success: true,
+          status: 0,
+          data: { skipped: true, reason: 'HubSpot disabled in this environment' },
+        });
 
-    // Save to database (runs in parallel with HubSpot)
+    // Save to database (runs in parallel with HubSpot when enabled)
     const dbPromise = saveToDatabase(formData);
 
-    const [hubspotResult, dbResult] = await Promise.all([
-      hubspotPromise
-        .then(async (response) => {
-          const status = response.status;
-          console.log('[Build Games Apply] HubSpot response status:', status);
-          let data;
-          try {
-            const responseText = await response.text();
-            console.log('[Build Games Apply] HubSpot response body:', responseText);
-            try {
-              data = JSON.parse(responseText);
-            } catch {
-              data = { message: responseText || 'Could not parse response' };
-            }
-          } catch (e) {
-            console.error('[Build Games Apply] Error reading HubSpot response:', e);
-            data = { message: 'Could not read response' };
-          }
-          return { success: response.ok, status, data };
-        })
-        .catch((err) => {
-          console.error('[Build Games Apply] HubSpot request failed:', err);
-          return { success: false, status: 0, data: null, error: err.message };
-        }),
-      dbPromise,
-    ]);
+    const [hubspotResult, dbResult] = await Promise.all([hubspotPromise, dbPromise]);
 
     const hubspotSuccess = hubspotResult.success;
     const dbSuccess = dbResult.success;
@@ -266,7 +277,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
   console.log('[Build Games Apply DB] Starting database save...');
 
   const email = formData.email as string;
-  console.log('[Build Games Apply DB] Email:', email);
   if (!email) return { success: false, error: 'Email is required' };
 
   try {
@@ -293,8 +303,6 @@ async function saveToDatabase(formData: Record<string, unknown>): Promise<{ succ
       privacy_policy_read: formData.privacyPolicyRead === true,
       marketing_consent: formData.marketingConsent === true,
     };
-
-    console.log('[Build Games Apply DB] Upserting application with data:', JSON.stringify(applicationData, null, 2));
 
     const result = await prisma.buildGamesApplication.upsert({
       where: { email: email },

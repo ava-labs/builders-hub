@@ -92,6 +92,12 @@ export const blog = defineCollections({
 export default defineConfig({
   lastModifiedTime: 'git',
   mdxOptions: {
+    // When the build host can't reach a remote image (DNS / VPN / offline),
+    // skip dimension probing instead of failing the whole MDX compile. Next.js
+    // <Image> may warn about missing dimensions in dev but won't break the page.
+    remarkImageOptions: {
+      onError: 'ignore',
+    },
     rehypeCodeOptions: {
       lazy: true,
       langs: ['ts', 'js', 'html', 'tsx', 'mdx'],

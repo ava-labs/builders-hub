@@ -6,6 +6,7 @@ import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { usePathname } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useNotificationPanelStore } from '@/components/console/notification-panel';
+import { parsePChainError } from '@/components/toolbox/hooks/contracts/parsePChainError';
 
 const getPChainTxExplorerURL = (txID: string, isTestnet: boolean) => {
   return `https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/p-chain/tx/${txID}`;
@@ -202,7 +203,9 @@ const usePChainNotifications = () => {
             chain_type: 'p-chain',
           });
         } catch (error) {
-          const errorMessage = config.errorMessagePrefix + (error as Error).message;
+          // Show a parsed, human-readable reason to the user; keep the raw
+          // message for tx history + PostHog so the true cause stays diagnosable.
+          const errorMessage = config.errorMessagePrefix + parsePChainError(error);
           store.updateNotification(notifId, {
             status: 'error',
             message: errorMessage,
@@ -228,7 +231,9 @@ const usePChainNotifications = () => {
         }
       })
       .catch((error) => {
-        const errorMessage = config.errorMessagePrefix + error.message;
+        // Parsed message for the user; raw `error.message` still flows to the
+        // log + PostHog capture below for diagnosis.
+        const errorMessage = config.errorMessagePrefix + parsePChainError(error);
         store.updateNotification(notifId, {
           status: 'error',
           message: errorMessage,

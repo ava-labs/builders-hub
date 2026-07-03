@@ -94,6 +94,8 @@ export default function BasicSetupForm() {
   const { deploy, submitting, error } = useStartDeployment();
 
   const [chainName, setChainName] = useState('');
+  const [tokenSymbol, setTokenSymbol] = useState('');
+  const [symbolTouched, setSymbolTouched] = useState(false);
   const [ownerAddress, setOwnerAddress] = useState<string>('');
   const [ownerTouched, setOwnerTouched] = useState(false);
   // Validator management — `poa` by default. PoS in Quick L1 is
@@ -169,6 +171,17 @@ export default function BasicSetupForm() {
   // the user sees the issue immediately instead of failing mid-deploy
   // with a confusing P-Chain error. Returns null when the value is
   // acceptable, otherwise a one-line message for the field.
+  // Auto-derive the symbol from the chain name while the user hasn't
+  // manually edited it. Once they touch the symbol field, stop overriding.
+  useEffect(() => {
+    if (symbolTouched) return;
+    const derived = chainName
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase()
+      .slice(0, 5);
+    setTokenSymbol(derived.length >= 2 ? derived : '');
+  }, [chainName, symbolTouched]);
+
   const chainNameTrimmed = chainName.trim();
   const chainNameError: string | null = (() => {
     if (chainNameTrimmed.length === 0) return null; // don't shout on empty
@@ -180,28 +193,33 @@ export default function BasicSetupForm() {
     return null;
   })();
 
+  const tokenSymbolTrimmed = tokenSymbol.trim();
+  const tokenSymbolError: string | null = (() => {
+    if (tokenSymbolTrimmed.length === 0) return null;
+    if (tokenSymbolTrimmed.length < 2) return 'At least 2 characters';
+    if (tokenSymbolTrimmed.length > 5) return 'At most 5 characters';
+    if (!/^[A-Za-z]+$/.test(tokenSymbolTrimmed)) return 'Letters only';
+    return null;
+  })();
+
+  const resolvedSymbol = tokenSymbolTrimmed.length >= 2 ? tokenSymbolTrimmed.toUpperCase() : 'COIN';
+
   // Submit gate: valid chain name + valid owner address. PoS no longer
   // needs an extra address validation here because the staking token is
   // deployed by the orchestrator (not chosen by the user).
-  const canSubmit = chainNameTrimmed.length >= 2 && chainNameError === null && /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
+  const canSubmit =
+    chainNameTrimmed.length >= 2 &&
+    chainNameError === null &&
+    tokenSymbolError === null &&
+    /^0x[a-fA-F0-9]{40}$/.test(ownerAddress);
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     if (!canSubmit || submitting) return;
-    // Token symbol is cosmetic — it only shows up in wallet network
-    // metadata and explorer labels. Derive a sensible default from the
-    // chain name (first 5 uppercase letters, stripped of non-alpha)
-    // so users don't have to think about it. Falls back to "COIN" if
-    // the name has no alpha characters.
-    const derived = chainName
-      .replace(/[^A-Za-z]/g, '')
-      .toUpperCase()
-      .slice(0, 5);
-    const tokenSymbol = derived.length >= 2 ? derived : 'COIN';
 
     const jobId = await deploy({
       chainName: chainName.trim(),
-      tokenSymbol,
+      tokenSymbol: resolvedSymbol,
       ownerEvmAddress: ownerAddress as `0x${string}`,
       network: 'fuji',
       validatorMode,
@@ -275,6 +293,12 @@ export default function BasicSetupForm() {
               chainName={chainName}
               setChainName={setChainName}
               chainNameError={chainNameError}
+              tokenSymbol={tokenSymbol}
+              setTokenSymbol={(v) => {
+                setSymbolTouched(true);
+                setTokenSymbol(v);
+              }}
+              tokenSymbolError={tokenSymbolError}
               ownerAddress={ownerAddress}
               onOwnerChange={(v) => {
                 setOwnerTouched(true);
@@ -370,6 +394,9 @@ function ChainDetailsCard({
   chainName,
   setChainName,
   chainNameError,
+  tokenSymbol,
+  setTokenSymbol,
+  tokenSymbolError,
   ownerAddress,
   onOwnerChange,
   validatorMode,
@@ -379,6 +406,9 @@ function ChainDetailsCard({
   chainName: string;
   setChainName: (v: string) => void;
   chainNameError: string | null;
+  tokenSymbol: string;
+  setTokenSymbol: (v: string) => void;
+  tokenSymbolError: string | null;
   ownerAddress: string;
   onOwnerChange: (v: string) => void;
   validatorMode: ValidatorMode;
@@ -419,6 +449,15 @@ function ChainDetailsCard({
           placeholder="My Awesome L1"
           maxLength={32}
           error={chainNameError}
+        />
+        <BigField
+          label="Coin symbol"
+          hint="Ticker for the native gas token. 2–5 letters. Auto-derived from chain name."
+          value={tokenSymbol}
+          onChange={setTokenSymbol}
+          placeholder="COIN"
+          maxLength={5}
+          error={tokenSymbolError}
         />
         <ValidatorTypeToggle value={validatorMode} onChange={onValidatorModeChange} />
         {/* Inline wallet preview, surfaced right below the PoS toggle so

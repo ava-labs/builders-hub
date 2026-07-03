@@ -1,0 +1,51 @@
+---
+title: tmpnetjs SDK
+description: The consumer SDK for scripting scenarios against a running Interchain Kit network
+---
+
+`tmpnetjs` is the JavaScript analog of AvalancheGo's `tmpnet`. The **producer** side boots the network (driven by `pnpm run up`); the **consumer** side is the SDK you import in your scripts. It reads the artifacts written to `.interchain-kit/` and hands you ready-to-use [viem](https://viem.sh) clients.
+
+The demo scripts ([ICM Messaging](/docs/tooling/interchain-kit/icm-messaging), [Token Transfer](/docs/tooling/interchain-kit/token-transfer), [Validator Management](/docs/tooling/interchain-kit/validator-management)) are all thin consumers of this SDK.
+
+## Consumer API
+
+| Export | Purpose |
+|--------|---------|
+| `loadNetwork()` | Load the running network's topology from `network.json` (chains, blockchain IDs, Teleporter/registry addresses, funded key). Walks up from the current directory to find `.interchain-kit/artifacts/network.json`. |
+| `pickL1(network, name?)` | Select an L1 from the network by name (defaults to the first L1). |
+| `makeClients(chain, privateKey)` | Build a viem `publicClient` + `walletClient` (plus `account` and `chain`) for a given chain. |
+| `loadArtifact(name)` | Load a compiled contract's `abi` and `bytecode` by name (e.g. `"SimpleSender"`) from `contracts/out/`. |
+| `blockchainIdToBytes32(id)` | Convert a blockchain ID into the bytes32 form Teleporter uses to address destinations. |
+| `pollUntil(fn, predicate, opts)` | Poll an async read until `predicate` is satisfied or `timeoutMs` elapses — used to wait for cross-chain delivery. |
+
+<Callout type="info" title="Run from inside the repo">
+`loadNetwork()` and `loadArtifact()` walk **up** the directory tree from `process.cwd()` to locate `.interchain-kit/` and `contracts/out/`. Running scripts from the repo root is the reliable choice; running from a directory outside the repo throws `network.json not found`.
+</Callout>
+
+## Use tmpnetjs in Your Own Script
+
+Point a script at the running network in a few lines:
+
+```typescript
+import { loadNetwork, makeClients, pickL1, pollUntil } from "tmpnetjs";
+
+const net = loadNetwork();
+const dst = pickL1(net, "myl1");
+const { publicClient, walletClient } = makeClients(net.cChain, net.funded.privateKey);
+// … your ICM/ICTT/whatever scenario
+```
+
+## Producer API
+
+The producer side — `up`, `down`, `Network.start`, `captureSnapshot`, and friends — is also exported for programmatic orchestration. Most workflows drive it through `pnpm run up` / `pnpm run down` instead; see [`packages/tmpnetjs/README.md`](https://github.com/ava-labs/interchain-kit/blob/main/packages/tmpnetjs/README.md) in the repo for the full surface.
+
+## Next Steps
+
+<Cards>
+  <Card title="Example Contracts" href="/docs/tooling/interchain-kit/example-contracts">
+    The Solidity building blocks the scripts deploy
+  </Card>
+  <Card title="GitHub Repository" icon="github" href="https://github.com/ava-labs/interchain-kit">
+    Browse the full source
+  </Card>
+</Cards>

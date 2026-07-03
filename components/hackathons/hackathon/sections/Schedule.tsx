@@ -3,13 +3,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Divider } from '@/components/ui/divider';
 import { SearchEventInput } from '@/components/ui/search-event-input';
-import { TimeZoneSelect, resolveTimezone } from '@/components/ui/timezone-select';
+import { resolveTimezone } from '@/components/ui/timezone-select';
 import { HackathonHeader, ScheduleActivity } from '@/types/hackathons';
 import {
   Link as LinkIcon,
   MapPin,
   CircleArrowRight,
   CircleArrowLeft,
+  ExternalLink,
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -19,6 +20,8 @@ import DeadLine from '../DeadLine';
 import { Button } from '@/components/ui/button';
 import { useSchedule, ScheduleSource, GoogleCalendarConfig } from '@/hooks/useSchedule';
 import { normalizeEventsLang, t } from '@/lib/events/i18n';
+import CalendarPlusButton from '@/components/hackathons/hackathon/CalendarPlusButton';
+import { TimezoneSelectorModal } from './TimezoneSelectorModal';
 
 export type ScheduleProps = {
   hackathon: HackathonHeader;
@@ -33,10 +36,11 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
   const locale = lang === 'es' ? 'es-ES' : 'en-US';
   const [search, setSearch] = useState<string>('');
   const [timeZone, setTimeZone] = useState<string>('');
+  const [timezoneModalOpen, setTimezoneModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>('');
 
   // Use the schedule strategy hook - source is determined programmatically via scheduleSource prop
-  const { schedule: scheduleData, calendarTimeZone } = useSchedule({
+  const { schedule: scheduleData, calendarTimeZone, isLoading, error } = useSchedule({
     source: scheduleSource,
     hackathonId: hackathon.id,
     existingSchedule: hackathon.content.schedule,
@@ -50,11 +54,16 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
     if (rawTimeZone) {
       setTimeZone(resolveTimezone(rawTimeZone));
     }
-    // Set initial selected day to the first day in schedule
+  }, [hackathon, calendarTimeZone]);
+
+  useEffect(() => {
+    // Keep the selected day aligned with the current timezone-derived groups.
     const groupedActivities = groupActivitiesByDay(scheduleData);
-    const firstDay = Object.keys(groupedActivities)[0];
-    setSelectedDay(firstDay);
-  }, [hackathon, scheduleData, calendarTimeZone]);
+    const days = Object.keys(groupedActivities);
+    setSelectedDay((currentDay) =>
+      currentDay && days.includes(currentDay) ? currentDay : days[0] || ''
+    );
+  }, [scheduleData, timeZone]);
 
   const defineTimeZone = (formatDateParams: any) => {
     if (timeZone) return { ...formatDateParams, timeZone: timeZone };
@@ -75,14 +84,32 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
     }
   }
 
-  function getFormattedDay(date: Date) {
-    const day = date.getDate();
-    const weekday = date.toLocaleString(
+  function getConvertedDateParts(date: Date) {
+    const formatter = new Intl.DateTimeFormat(
       locale,
       defineTimeZone({
         weekday: 'long',
+        month: 'long',
+        day: 'numeric',
       })
     );
+    const parts = formatter.formatToParts(date);
+    const getPart = (type: string) =>
+      parts.find((part) => part.type === type)?.value || '';
+
+    return {
+      day: Number(getPart('day')),
+      month: getPart('month'),
+      weekday: getPart('weekday'),
+    };
+  }
+
+  function getFormattedDay(date: Date) {
+    if (isNaN(date.getTime())) return '';
+
+    const { day, weekday } = getConvertedDateParts(date);
+    if (!day || !weekday) return '';
+
     if (lang === 'es') {
       return `${day} ${weekday}`.toLocaleUpperCase();
     }
@@ -94,9 +121,11 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
     activities: ScheduleActivity[]
   ): GroupedActivities {
     return activities.reduce((groups: GroupedActivities, activity) => {
-      // Format the date to YYYY-MM-DD to use as key
       const date = new Date(activity.date);
+      if (isNaN(date.getTime())) return groups;
+
       const dateKey = getFormattedDay(date);
+      if (!dateKey) return groups;
 
       // If this date doesn't exist in groups, create an empty array
       if (!groups[dateKey]) {
@@ -157,21 +186,71 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
   }
   return (
     <section className='flex flex-col gap-6'>
-      <h2
-        className='text-4xl font-bold mb-2 md:text-4xl sm:text-3xl'
-        id='schedule'
-      >
-        {t(lang, 'section.schedule.title')}
-      </h2>
+      <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-2'>
+        <h2
+          className='text-4xl font-bold md:text-4xl sm:text-3xl'
+          id='schedule'
+        >
+          {t(lang, 'section.schedule.title')}
+        </h2>
+        <CalendarPlusButton
+          googleCalendarId={hackathon.google_calendar_id}
+          lang={lang}
+          variant='schedule'
+        />
+      </div>
       <Separator className='my-2 sm:my-8 bg-zinc-300 dark:bg-zinc-800' />
-      
+
+      {isLoading && (
+        <div className='flex items-center gap-3 py-6 text-zinc-500 dark:text-zinc-400'>
+          <svg className='animate-spin h-5 w-5 shrink-0' viewBox='0 0 24 24' fill='none'>
+            <circle className='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' strokeWidth='4' />
+            <path className='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z' />
+          </svg>
+          <span className='text-sm'>{t(lang, 'schedule.loadingCalendar')}</span>
+        </div>
+      )}
+
+      {!isLoading && error && (
+        <div className='rounded-md border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-400'>
+          {t(lang, 'schedule.calendarError')}
+        </div>
+      )}
+
       <span className='dark:text-zinc-50 text-zinc-900 text-lg font-medium sm:text-base'>
         {getDateRange(scheduleData)}
       </span>
       <div className='flex flex-col lg:flex-row justify-between gap-4 md:gap-10 mt-4 min-w-full'>
         <div className='flex flex-col md:flex-row items-start md:items-center justify-start lg:justify-center gap-4 md:gap-10 w-full md:w-auto'>
           <SearchEventInput setSearch={setSearch} />
-          <TimeZoneSelect timeZone={timeZone} setTimeZone={setTimeZone} />
+          <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
+            <span className='text-sm font-medium text-foreground'>
+              {t(lang, 'schedule.timezoneSelector.label')}
+            </span>
+            <Badge
+              variant='outline'
+              className='max-w-[240px] justify-start truncate px-3 py-1'
+            >
+              <span className='truncate'>
+                {timeZone || t(lang, 'schedule.timezoneSelector.none')}
+              </span>
+            </Badge>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              onClick={() => setTimezoneModalOpen(true)}
+            >
+              {t(lang, 'schedule.timezoneSelector.button')}
+            </Button>
+          </div>
+          <TimezoneSelectorModal
+            open={timezoneModalOpen}
+            onOpenChangeAction={setTimezoneModalOpen}
+            timeZone={timeZone}
+            setTimeZoneAction={setTimeZone}
+            lang={lang}
+          />
         </div>
         <DeadLine deadline={hackathon.content.submission_deadline} />
       </div>
@@ -200,10 +279,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                 if (isNaN(date.getTime())) {
                   return null;
                 }
-                const month = date
-                  .toLocaleString(locale, { month: 'long' })
-                  .toUpperCase();
-                const day = date.getDate();
+                const { month, day } = getConvertedDateParts(date);
                 return (
                   <div
                     key={index}
@@ -215,7 +291,7 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                     onClick={() => setSelectedDay(formattedDate)}
                   >
                     <div className='flex items-center justify-center gap-1 py-1.5 px-2 sm:px-3'>
-                      {month && <span className='text-xs sm:text-sm font-medium'>{month}</span>}
+                      {month && <span className='text-xs sm:text-sm font-medium'>{month.toUpperCase()}</span>}
                       {day && <span className='text-xs sm:text-sm font-medium'>{day}</span>}
                     </div>
                   </div>
@@ -281,6 +357,12 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                       !activity.host_icon &&
                       !activity.host_name &&
                       !activity.host_media;
+                    const joinUrl = (
+                      activity.video_call_url ||
+                      activity.url ||
+                      ''
+                    ).trim();
+                    const moreInfoUrl = (activity.infoUrl || '').trim();
                     return (
                       <div
                         key={index}
@@ -306,13 +388,22 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                   {t(lang, 'schedule.liveNow')}
                                 </div>
                               )}
-                              {!activityIsOcurring && dateIsCurrentDate && (
+                              {!activityIsOcurring &&
+                                dateIsCurrentDate &&
+                                activity.isVirtual &&
+                                joinUrl && (
                                 <div className='border dark:bg-zinc-800 bg-zinc-300 flex items-center justify-center gap-1 rounded-full text-xs font-medium text-center w-1/3 sm:w-auto sm:px-3 py-1 border-none'>
-                                  <LinkIcon
-                                    size={16}
-                                    className='!text-zinc-900 dark:!text-zinc-50'
-                                  />
-                                  {t(lang, 'schedule.zoom')}
+                                  <a
+                                    href={joinUrl}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                  >
+                                    <LinkIcon
+                                      size={16}
+                                      className='!text-zinc-900 dark:!text-zinc-50'
+                                    />
+                                  </a>
+                                  {t(lang, 'schedule.join')}
                                 </div>
                               )}
                             </div>
@@ -411,24 +502,33 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                   : 'justify-between'
                               }`}
                             >
-                              <div className='flex flex-col gap-1'>
-                                {/* Video call link */}
-                                {activity.video_call_url && (
+                              <div className='flex flex-row flex-wrap gap-x-4 gap-y-1'>
+                                {activity.isVirtual && joinUrl && (
                                   <div className='flex flex-row items-center gap-2'>
-                                    <LinkIcon color='#8F8F99' className='w-5 h-5' />
-                                    <Link
-                                      href={activity.video_call_url}
+                                    <a
+                                      href={joinUrl}
                                       target='_blank'
+                                      rel='noopener noreferrer'
+                                    >
+                                      <LinkIcon color='#8F8F99' className='w-5 h-5' />
+                                    </a>
+                                    <Link
+                                      href={joinUrl}
+                                      target='_blank'
+                                      rel='noopener noreferrer'
                                       className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
                                     >
                                       {t(lang, 'schedule.joinVideoCall')}
                                     </Link>
                                   </div>
                                 )}
-                                {/* Physical location */}
                                 <div className='flex flex-row items-center gap-2'>
                                   <MapPin color='#8F8F99' className='w-5 h-5' />
-                                  {activity.location && activity.location !== 'TBD' ? (
+                                  {activity.isVirtual ? (
+                                    <span className='dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal'>
+                                      {t(lang, 'event.online')}
+                                    </span>
+                                  ) : activity.location && activity.location !== 'TBD' ? (
                                     activity.location.toLowerCase() === 'online' && activity.url ? (
                                       <Link
                                         href={activity.url}
@@ -456,6 +556,17 @@ function Schedule({ hackathon, scheduleSource = 'database', googleCalendarConfig
                                     </span>
                                   )}
                                 </div>
+                                {moreInfoUrl && (
+                                  <a
+                                    href={moreInfoUrl}
+                                    target='_blank'
+                                    rel='noopener noreferrer'
+                                    className='flex flex-row items-center gap-2 dark:text-zinc-50 text-zinc-900 sm:text-sm font-normal hover:text-red-500 dark:hover:text-red-400 transition-colors'
+                                  >
+                                    <ExternalLink color='#8F8F99' className='w-5 h-5' />
+                                    {t(lang, 'event.moreInfo')}
+                                  </a>
+                                )}
                               </div>
                               {/* <Button
                                   variant="secondary"

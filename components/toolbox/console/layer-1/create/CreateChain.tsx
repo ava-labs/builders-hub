@@ -292,7 +292,7 @@ function CreateChain({ onSuccess: _onSuccess, embedded = false, preinstallDefaul
               loadingText="Creating Chain..."
               disabled={!canCreateChain}
               className="w-full"
-              cliCommand={`platform chain create --subnet-id ${subnetId || '<subnet-id>'} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ''} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
+              cliCommand={`platform-cli chain create --subnet-id ${subnetId || '<subnet-id>'} --genesis ./genesis.json --name "${localChainName}"${vmId !== SUBNET_EVM_VM_ID ? ` --vm-id ${vmId}` : ''} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
               downloadFile={genesisData ? { data: genesisData, filename: 'genesis.json' } : undefined}
             >
               Create Chain

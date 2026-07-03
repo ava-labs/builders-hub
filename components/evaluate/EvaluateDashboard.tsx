@@ -25,6 +25,7 @@ import { VerdictBadge } from "./EvaluationPanel";
 import { JudgeLeaderboard } from "./JudgeLeaderboard";
 import { BulkAdvanceButton } from "./BulkAdvanceModal";
 import { ExportModal } from "./ExportModal";
+import { getEventConfig } from "./event-configs";
 import { STAGE_BADGE_COLORS, STAGE_LABELS } from "./colors";
 import type {
   SubmissionRow,
@@ -52,7 +53,7 @@ const SCORE_TO_VERDICT: Record<number, Verdict> = {
 function computeConsensusVerdict(evaluations: EvaluationData[]): Verdict | null {
   if (evaluations.length === 0) return null;
   const avg =
-    evaluations.reduce((sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0), 0) /
+    evaluations.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) /
     evaluations.length;
   return SCORE_TO_VERDICT[Math.round(avg)] ?? "maybe";
 }
@@ -590,6 +591,7 @@ export function EvaluateDashboard({
             evaluations={mergedEvals}
             currentUserId={currentUserId}
             isDevrel={isDevrel}
+            showStages={Boolean(getEventConfig(selectedRow.origin)?.stageFields)}
             onClose={() => setExpandedId(null)}
             onEvaluationSaved={handleEvaluationSaved}
             onStageAdvanced={handleStageAdvanced}

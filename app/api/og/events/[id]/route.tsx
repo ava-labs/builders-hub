@@ -144,18 +144,18 @@ export async function GET(
         return ogImage;
       }
 
-      // Fallback 2: Try small_banner if available
+      // Fallback 2: Try original banner (horizontal — correct OG aspect ratio)
+      const bannerImage = await tryLoadImage(hackathon.banner, hackathon.title, fonts);
+      if (bannerImage) {
+        return bannerImage;
+      }
+
+      // Fallback 3: Try small_banner as last resort (vertical — may be cropped by platforms)
       if (hackathon.small_banner && hackathon.small_banner.trim() !== '') {
         const smallBannerImage = await tryLoadImage(hackathon.small_banner, hackathon.title, fonts);
         if (smallBannerImage) {
           return smallBannerImage;
         }
-      }
-
-      // Fallback 3: Try original banner
-      const bannerImage = await tryLoadImage(hackathon.banner, hackathon.title, fonts);
-      if (bannerImage) {
-        return bannerImage;
       }
     } else if (hackathon.small_banner && hackathon.small_banner.trim() !== '') {
       // If no banner but has small_banner, try it

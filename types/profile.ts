@@ -7,6 +7,7 @@ export type Profile = {
     image: string,
     additional_social_accounts: string[],
     notifications: boolean | null,
+    consent_sharing: boolean | null,
     profile_privacy: string,
     telegram_account: string | undefined,
     team_id: string | null,

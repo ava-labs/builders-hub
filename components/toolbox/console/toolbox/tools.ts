@@ -638,7 +638,7 @@ const FLOW_SUBSTEPS: Record<string, Array<{ name: string; path: string }>> = {
   '/console/icm/setup': [
     { name: 'Deploy Teleporter Messenger', path: '/console/icm/setup/icm-messenger' },
     { name: 'Deploy Teleporter Registry', path: '/console/icm/setup/icm-registry' },
-    { name: 'Setup ICM Relayer', path: '/console/icm/setup/icm-relayer-type' },
+    { name: 'Setup ICM Relayer', path: '/console/icm/setup/self-hosted-relayer' },
     { name: 'Deploy ICM Demo', path: '/console/icm/setup/deploy-icm-demo' },
     { name: 'Send ICM Message', path: '/console/icm/setup/send-icm-demo-message' },
   ],

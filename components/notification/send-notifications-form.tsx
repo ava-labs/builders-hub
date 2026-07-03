@@ -1,17 +1,3 @@
-/**
- * SendNotificationsForm — redesigned notifications composer.
- *
- * Sits inside the redesigned profile page (DevRel-only tab). Two-column
- * layout: compose on the left, live preview on the right. Theme-aware via
- * tailwind `dark:` variants so it tracks the Builder Hub light/dark toggle.
- *
- * No outer card chrome — meant to render flush inside its parent container.
- *
- * Total builder count for the "All" audience comes in as the `totalBuilders`
- * prop (fetched server-side via /api/profile/summary). Falls back to a
- * conservative floor when not provided.
- */
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -37,10 +23,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useGetHackathons } from "@/hooks/use-get-hackathons";
 import { sendNotifications } from "@/utils/send-notification";
 import type { Notification } from "@/types/notifications";
-
-// ──────────────────────────────────────────────────────────────────────────
-// Constants
-// ──────────────────────────────────────────────────────────────────────────
 
 type NotificationTypeValue = "message" | "courseCompleted";
 type ContentTypeValue = "text/plain" | "text/markdown" | "text/html";
@@ -74,8 +56,6 @@ const CONTENT_TYPES: { value: ContentTypeValue; label: string }[] = [
 
 const TOTAL_USERS_FALLBACK = 16000;
 
-// Common class fragments — keeps light/dark variants close together so
-// future tweaks don't require chasing classes across the file.
 const SURFACE_BG = "bg-white dark:bg-zinc-950";
 const ELEV_BG = "bg-zinc-50 dark:bg-zinc-900";
 const SUNK_BG = "bg-zinc-100 dark:bg-zinc-900";
@@ -84,9 +64,6 @@ const FG = "text-zinc-900 dark:text-zinc-100";
 const FG_MUTED = "text-zinc-500 dark:text-zinc-500";
 const FG_DIM = "text-zinc-600 dark:text-zinc-400";
 
-// ──────────────────────────────────────────────────────────────────────────
-// Tiny inline markdown renderer (no extra deps).
-// ──────────────────────────────────────────────────────────────────────────
 function renderMarkdown(src: string): string {
   let html = (src || "")
     .replace(/&/g, "&amp;")
@@ -132,12 +109,7 @@ const INITIAL_DRAFT: Draft = {
 };
 
 interface SendNotificationsFormProps {
-  /** Total builder count for the "All" audience copy. Falls back to a
-      conservative floor if not provided. */
   totalBuilders?: number;
-  /** When the form is embedded inside a host that already renders a
-      header (e.g. the profile redesign uses its own .pr-head chrome),
-      pass `hideHeader` to suppress the form's built-in title row. */
   hideHeader?: boolean;
 }
 
@@ -256,7 +228,7 @@ export default function SendNotificationsForm({
             display: "flex",
             alignItems: "flex-start",
             gap: 12,
-            paddingRight: 110, // reserve room for the absolutely-positioned DevRel pill
+            paddingRight: 110,
           }}
         >
           <span
@@ -341,7 +313,6 @@ export default function SendNotificationsForm({
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-          {/* ─── COMPOSE ─── */}
           <section className={`py-6 pr-6 flex flex-col gap-5 lg:border-r ${LINE} min-w-0`}>
             <SectionLabel>Message</SectionLabel>
 
@@ -610,11 +581,9 @@ export default function SendNotificationsForm({
             </div>
           </section>
 
-          {/* ─── PREVIEW ─── */}
           <NotificationPreview draft={draft} audienceLabel={audienceLabel} />
         </div>
 
-        {/* Footer */}
         <footer className={`flex flex-wrap items-center gap-4 py-4 mt-2 border-t ${LINE}`}>
           <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-2.5">
             <span className="text-[26px] font-medium text-[#E84142] tabular-nums leading-none tracking-tight">
@@ -660,10 +629,6 @@ export default function SendNotificationsForm({
     </>
   );
 }
-
-// ──────────────────────────────────────────────────────────────────────────
-// Subcomponents
-// ──────────────────────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (

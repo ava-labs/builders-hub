@@ -24,6 +24,7 @@ declare module 'next-auth' {
       user_name?: string;
       is_new_user: boolean;
       authentication_mode?: string;
+      team_id?: string | null;
     } & DefaultSession['user'];
   }
 }
@@ -36,6 +37,7 @@ declare module 'next-auth/jwt' {
     authentication_mode?: string;
     is_new_user?: boolean;
     user_name?: string;
+    team_id?: string | null;
   }
 }
 
@@ -85,6 +87,7 @@ const authUserSelect = {
   authentication_mode: true,
   notifications: true,
   user_name: true,
+  team_id: true,
 } as const;
 
 export const AuthOptions: NextAuthOptions = {
@@ -135,7 +138,6 @@ export const AuthOptions: NextAuthOptions = {
             additional_social_accounts: [], telegram_account: '', github_account: null, x_account: null, linkedin_account: null,
             user_name: '', created_at: new Date(),
             country: null, user_type: null, wallet: [], skills: [], team_id: null, noun_avatar_seed: null, noun_avatar_enabled: false,
-            notification_means: null,
             github_access_token: null,
           } as unknown as PrismaUser;
         }
@@ -165,6 +167,7 @@ export const AuthOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: { last_login: new Date() },
+              select: { id: true },
             });
           }
           // If user doesn't exist, don't create them yet
@@ -209,6 +212,7 @@ export const AuthOptions: NextAuthOptions = {
         token.user_name = dbUser.user_name ?? '';
         token.is_new_user = dbUser.notifications == null ? true : false;
         token.authentication_mode = dbUser.authentication_mode ?? '';
+        token.team_id = dbUser.team_id ?? null;
       } else if (user?.email || token?.email) {
         // New user who hasn't accepted terms yet - no DB record exists
         // Mark as pending_user so the frontend knows to show terms modal
@@ -234,6 +238,7 @@ export const AuthOptions: NextAuthOptions = {
       session.user.email = token.email ?? '';
       session.user.is_new_user = !!token.is_new_user;
       session.user.authentication_mode = token.authentication_mode ?? '';
+      session.user.team_id = (token.team_id as string | null) ?? null;
       return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
     },
     async redirect({ url, baseUrl }) {

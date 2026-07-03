@@ -10,7 +10,7 @@ Running a Primary Network validator requires careful consideration of your stake
 ### Storage Requirements
 
 <Callout type="error" title="SSD Required - No Cloud Block Storage">
-You **must** use a local NVMe SSD attached directly to your hardware with **minimum 3000 IOPS**. Cloud block storage (AWS EBS, GCP Persistent Disk, Azure Managed Disks) introduces latency that causes poor performance, missed blocks, and potential benching. If running in the cloud, use instance types with local NVMe storage (e.g., AWS i3/i4i instances, GCP N2 with local SSD).
+You **must** use a local NVMe SSD attached directly to your hardware with **minimum 3000 IOPS**. Cloud block storage (AWS EBS, GCP Persistent Disk, Azure Managed Disks) introduces latency that causes poor performance, missed blocks, and potential benching. If running in the cloud, use instance types with local NVMe storage (e.g., AWS i7i/i7ie instances, GCP N2 with local SSD).
 </Callout>
 
 <Callout title="State Sync Recommended">
@@ -97,7 +97,7 @@ A fully connected Avalanche node maintains thousands of live TCP connections. Un
 
 ## Monitoring Thresholds
 
-Set up monitoring and alerts to catch resource issues before they impact your validator:
+Set up monitoring and alerts to catch resource issues before they impact your validator. The table below covers host-level resources; for chain-health metrics (query success, consensus, finalization) and their thresholds, see [Key Metrics & Alerts](/docs/nodes/maintain/recommended-metrics).
 
 | Resource | Warning Threshold | Critical Threshold | Action Required |
 |----------|------------------|-------------------|-----------------|
@@ -117,3 +117,4 @@ Set up monitoring and alerts to catch resource issues before they impact your va
 
 - Learn about [Active State vs Archive State](/docs/nodes/maintain/chain-state-management) to understand storage requirements
 - Set up [node monitoring](/docs/nodes/maintain/monitoring) to track resource usage and configure alerts
+- Review the [Key Metrics & Alerts](/docs/nodes/maintain/recommended-metrics) to learn which AvalancheGo metrics signal L1 health and at what thresholds to page

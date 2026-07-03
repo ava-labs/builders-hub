@@ -73,7 +73,7 @@ export function ExportModal({ rows, hackathonTitle, getEvaluations, getCurrentSt
           if (stageEvals.length === 0) {
             cols.push("", "");
           } else {
-            const avg = stageEvals.reduce((sum, e) => sum + (VERDICT_SCORES[e.verdict] ?? 0), 0) / stageEvals.length;
+            const avg = stageEvals.reduce((sum, e) => sum + (e.verdict ? VERDICT_SCORES[e.verdict] ?? 0 : 0), 0) / stageEvals.length;
             const consensus = SCORE_TO_VERDICT[Math.round(avg)] ?? "";
             const withScores = stageEvals.filter((e) => e.scoreOverall !== null);
             const avgScore = withScores.length > 0

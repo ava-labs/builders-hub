@@ -73,6 +73,20 @@ const config = {
   },
   async redirects() {
     return [
+      // ── Renamed/moved pages ──
+      {
+        // ACP-236 was renamed upstream (avalanche-foundation/ACPs):
+        // "Continuous Staking" (236-continuous-staking) → "Auto-Renewed Staking" (236-auto-renewed-staking)
+        source: '/docs/acps/236-continuous-staking',
+        destination: '/docs/acps/236-auto-renewed-staking',
+        permanent: true,
+      },
+      {
+        // "Build a Custom VM" landing now lives in the Custom Virtual Machines section
+        source: '/docs/avalanche-l1s/build-custom-vm',
+        destination: '/docs/avalanche-l1s/virtual-machines-index',
+        permanent: true,
+      },
       // ── Folder-index 500 fixes (no index.mdx → redirect to first child) ──
       {
         source: '/docs/api-reference/webhook-api/tutorials',
@@ -2078,6 +2092,18 @@ const config = {
           },
         ],
         destination: "/academy/entrepreneur",
+        permanent: true,
+      },
+      {
+        source: "/academy",
+        has: [
+          {
+            type: 'query',
+            key: 'path',
+            value: 'team1',
+          },
+        ],
+        destination: "/academy/team1",
         permanent: true,
       },
       // Hackathons → Events migration

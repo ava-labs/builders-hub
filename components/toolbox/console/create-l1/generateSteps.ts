@@ -58,13 +58,18 @@ function createChainWithAnswers(answers: QuestionnaireAnswers): React.ComponentT
 }
 
 /**
- * Wraps AvalancheGoDockerL1 with Create L1 flow defaults: force validator
- * node type (the user just created a validator set) and hide the node-type
- * selector so RPC/archival options don't clutter the flow.
+ * Wraps AvalancheGoDockerL1 with Create L1 flow defaults. Previously this
+ * pinned `forceNodeType: 'validator'`, which hid the node-type selector
+ * AND the reverse-proxy step (gated on isRPC). For Fuji L1s especially,
+ * users want the combined validator+RPC setup ("Both") so they get both
+ * consensus and an HTTPS RPC endpoint out of the same node.
+ *
+ * Leaving forceNodeType unset lets the component pick its default:
+ *   - testnet → 'archival' = Validator + RPC (proxy step visible)
+ *   - mainnet → 'validator' (proxy hidden; user can flip via the selector)
  */
 function dockerForL1Flow(): React.ComponentType {
   const props: AvalancheGoDockerL1Props = {
-    forceNodeType: 'validator',
     showPrerequisites: true,
   };
   const Target = AvalancheGoDockerL1 as React.ComponentType<AvalancheGoDockerL1Props>;

@@ -8,10 +8,6 @@ import { getCorethAddress } from './methods/getCorethAddress';
 import { createSubnet, CreateSubnetParams } from './methods/createSubnet';
 import { createChain, CreateChainParams } from './methods/createChain';
 import { convertToL1, ConvertToL1Params } from './methods/convertToL1';
-import {
-  extractWarpMessageFromPChainTx,
-  ExtractWarpMessageFromTxParams,
-} from './methods/extractWarpMessageFromPChainTx';
 import { getEthereumChain, GetEthereumChainResponse } from './methods/getEthereumChain';
 import { extractChainInfo, ExtractChainInfoParams } from './methods/extractChainInfo';
 import { getPChainBalance } from './methods/getPChainBalance';
@@ -21,17 +17,6 @@ import { setL1ValidatorWeight } from './methods/setL1ValidatorWeight';
 import { SetL1ValidatorWeightParams } from './methods/setL1ValidatorWeight';
 import { increaseL1ValidatorBalance, IncreaseL1ValidatorBalanceParams } from './methods/increaseL1ValidatorBalance';
 import { disableL1Validator, DisableL1ValidatorParams } from './methods/disableL1Validator';
-import {
-  extractL1ValidatorWeightMessage,
-  ExtractL1ValidatorWeightMessageParams,
-  ExtractL1ValidatorWeightMessageResponse,
-} from './methods/extractL1ValidatorWeightMessage';
-import {
-  extractRegisterL1ValidatorMessage,
-  ExtractRegisterL1ValidatorMessageParams,
-  ExtractRegisterL1ValidatorMessageResponse,
-} from './methods/extractRegisterL1ValidatorMessage';
-import { ExtractWarpMessageFromTxResponse } from './methods/extractWarpMessageFromPChainTx';
 import { ExtractChainInfoResponse } from './methods/extractChainInfo';
 
 // Re-export custom Avalanche EVM RPC methods that should be called on publicClient
@@ -53,13 +38,6 @@ export type CoreWalletClientType = Omit<AvalancheWalletClient, 'addChain'> & {
   setL1ValidatorWeight: (args: SetL1ValidatorWeightParams) => Promise<string>;
   increaseL1ValidatorBalance: (args: IncreaseL1ValidatorBalanceParams) => Promise<string>;
   disableL1Validator: (args: DisableL1ValidatorParams) => Promise<string>;
-  extractWarpMessageFromPChainTx: (args: ExtractWarpMessageFromTxParams) => Promise<ExtractWarpMessageFromTxResponse>;
-  extractL1ValidatorWeightMessage: (
-    args: ExtractL1ValidatorWeightMessageParams,
-  ) => Promise<ExtractL1ValidatorWeightMessageResponse>;
-  extractRegisterL1ValidatorMessage: (
-    args: ExtractRegisterL1ValidatorMessageParams,
-  ) => Promise<ExtractRegisterL1ValidatorMessageResponse>;
   getEthereumChain: () => Promise<GetEthereumChainResponse>;
   extractChainInfo: (args: ExtractChainInfoParams) => Promise<ExtractChainInfoResponse>;
   getPChainBalance: () => Promise<bigint>;
@@ -134,12 +112,6 @@ export async function createCoreWalletClient(
     increaseL1ValidatorBalance: (args: IncreaseL1ValidatorBalanceParams) =>
       increaseL1ValidatorBalance(baseClient, args),
     disableL1Validator: (args: DisableL1ValidatorParams) => disableL1Validator(baseClient, args),
-    extractWarpMessageFromPChainTx: (args: ExtractWarpMessageFromTxParams) =>
-      extractWarpMessageFromPChainTx(baseClient, args),
-    extractL1ValidatorWeightMessage: (args: ExtractL1ValidatorWeightMessageParams) =>
-      extractL1ValidatorWeightMessage(baseClient, args),
-    extractRegisterL1ValidatorMessage: (args: ExtractRegisterL1ValidatorMessageParams) =>
-      extractRegisterL1ValidatorMessage(baseClient, args),
     getEthereumChain: () => getEthereumChain(baseClient),
     extractChainInfo: (args: ExtractChainInfoParams) => extractChainInfo(baseClient, args),
     getPChainBalance: () => getPChainBalance(baseClient),

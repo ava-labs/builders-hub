@@ -86,6 +86,13 @@ export function useSchedule({
       }
     };
 
+    // Debounce Google Calendar fetches so that rapid calendarId changes
+    // (e.g. every keystroke in the edit form) don't spam the API.
+    if (source === 'google-calendar') {
+      const timer = setTimeout(doFetch, 600);
+      return () => clearTimeout(timer);
+    }
+
     doFetch();
   }, [source, googleCalendarConfig?.calendarId, hackathonId, fetchOnMount]);
 

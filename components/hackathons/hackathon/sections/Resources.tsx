@@ -14,7 +14,7 @@ function Resources({ hackathon }: { hackathon: HackathonHeader }) {
   }
 
   return (
-    <section className='text-black dark:text-white dark:bg-black py-12'>
+    <section className='text-black dark:text-white py-12'>
       <h2 className='text-4xl font-bold mb-6' id='resources'>
         {t(lang, 'section.resources.title')}
       </h2>

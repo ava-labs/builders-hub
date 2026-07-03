@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -6,6 +7,14 @@ const VALIDATOR_FORM_GUID = process.env.VALIDATOR_FORM_GUID;
 
 export async function POST(request: Request) {
   try {
+    if (!isHubSpotEnabled()) {
+      skipHubSpot('POST /api/validator-notification');
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: 'HubSpot disabled in this environment; notification not pushed.',
+      });
+    }
     if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID) {
       console.error('Missing environment variables: HUBSPOT_API_KEY or HUBSPOT_PORTAL_ID');
       return NextResponse.json(

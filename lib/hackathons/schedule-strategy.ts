@@ -147,6 +147,9 @@ export interface GoogleCalendarEvent {
       label?: string;
     }>;
     conferenceSolution?: {
+      key?: {
+        type?: string;
+      };
       name?: string;
       iconUri?: string;
     };
@@ -154,6 +157,30 @@ export interface GoogleCalendarEvent {
   extendedProperties?: {
     shared?: Record<string, string>;
   };
+}
+
+/**
+ * Resolves a Google Meet join URL from a Calendar API event.
+ * Priority: hangoutLink, then the uri of the first video entry point.
+ */
+export function resolveGoogleMeetJoinUrl(
+  event: GoogleCalendarEvent
+): string | undefined {
+  const hangoutLink = event.hangoutLink?.trim();
+  if (hangoutLink) {
+    return hangoutLink;
+  }
+
+  const entryPoints = event.conferenceData?.entryPoints ?? [];
+  const videoEntryPoint = entryPoints.find(
+    (entryPoint) => entryPoint.entryPointType?.trim().toLowerCase() === 'video'
+  );
+  const videoUri = videoEntryPoint?.uri?.trim();
+  if (videoUri) {
+    return videoUri;
+  }
+
+  return undefined;
 }
 
 /**
@@ -173,15 +200,15 @@ export function transformGoogleEventsToSchedule(events: GoogleCalendarEvent[]): 
     const rawTitle = event.summary || 'Untitled Event';
     const { category: titleCategory, cleanTitle } = extractTitlePrefix(rawTitle);
     
-    // Check for Google Meet or other video conferencing
-    const meetLink = event.hangoutLink || 
-      event.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri;
+    const joinUrl = resolveGoogleMeetJoinUrl(event);
+    const isVirtual = Boolean(joinUrl);
     
     // Keep physical location separate from video call
     const location = event.location || metadata.location || 'TBD';
     
-    // Use calendar event link as URL
-    const url = event.htmlLink || '';
+    // Use url for joining and infoUrl for the calendar event details page.
+    const url = joinUrl ?? '';
+    const infoUrl = event.htmlLink || '';
 
     return {
       stage: metadata.stage || 'main',
@@ -195,7 +222,9 @@ export function transformGoogleEventsToSchedule(events: GoogleCalendarEvent[]): 
       location,
       category: metadata.category || titleCategory || inferCategory(rawTitle),
       url,
-      video_call_url: meetLink || undefined,
+      isVirtual,
+      infoUrl,
+      video_call_url: joinUrl,
     };
   });
 }

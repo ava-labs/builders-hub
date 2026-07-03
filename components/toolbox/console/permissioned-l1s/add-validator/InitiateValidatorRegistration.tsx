@@ -9,7 +9,7 @@ import { getValidationIdHex } from '@/components/toolbox/coreViem/hooks/getValid
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useValidatorManager } from '@/components/toolbox/hooks/contracts';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
-import { WARP_PRECOMPILE_ADDRESS } from '@/components/toolbox/utils/warp';
+import { WARP_PRECOMPILE_ADDRESS } from '@avalanche-sdk/interchain/warp';
 
 interface InitiateValidatorRegistrationProps {
   subnetId: string;

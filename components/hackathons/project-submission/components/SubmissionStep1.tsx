@@ -6,6 +6,7 @@ import { useFormContext } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import {
   FormControl,
@@ -106,6 +107,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label={t(lang, "submission.step1.projectName.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Input
@@ -128,6 +131,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label={t(lang, "submission.step1.shortDesc.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Textarea
@@ -155,6 +160,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
               <FormLabelWithCheck
                 label={t(lang, "submission.step1.fullDesc.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Textarea
@@ -177,6 +184,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.tracks.label")}
                   checked={!!field.value && field.value.length > 0}
+                  required
+                  lang={lang}
                 />
                 <FormControl>
                   <MultiSelect
@@ -202,6 +211,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.categories.label")}
                   checked={!!field.value && field.value.length > 0}
+                  required
+                  lang={lang}
                 />
                 <FormControl>
                   <MultiSelect
@@ -232,6 +243,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.otherCategory.label")}
                   checked={!!field.value}
+                  required
+                  lang={lang}
                 />
                 <FormControl>
                   <Input
@@ -252,8 +265,10 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Website'
+                label={t(lang, "submission.step1.website.label")}
                 checked={!!field.value && field.value.length > 0}
+                required={false}
+                lang={lang}
               />
               <div className='space-y-3'>
                 {(field.value && field.value.length > 0) ? (
@@ -262,7 +277,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                       <div key={index} className='flex gap-3 items-start'>
                         <div className='w-32'>
                           <Input
-                            placeholder='Tag'
+                            placeholder={t(lang, "submission.step1.website.tagPlaceholder")}
                             value={item.key || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -278,7 +293,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                         </div>
                         <div className='flex-1'>
                           <Input
-                            placeholder='https://example.com'
+                            placeholder={t(lang, "submission.step1.website.urlPlaceholder")}
                             value={item.value || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -321,7 +336,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   }}
                   className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
                 >
-                  + new website
+                  {t(lang, "submission.step1.website.addButton")}
                 </Button>
               </div>
               <FormMessage />
@@ -335,8 +350,10 @@ const SubmitStep1: FC<projectProps> = (project) => {
           render={({ field }) => (
             <FormItem>
               <FormLabelWithCheck
-                label='Socials'
+                label={t(lang, "submission.step1.socials.label")}
                 checked={!!field.value && field.value.length > 0}
+                required={false}
+                lang={lang}
               />
               <div className='space-y-3'>
                 {(field.value && field.value.length > 0) ? (
@@ -345,7 +362,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                       <div key={index} className='flex gap-3 items-start'>
                         <div className='w-32'>
                           <Input
-                            placeholder='Tag'
+                            placeholder={t(lang, "submission.step1.socials.tagPlaceholder")}
                             value={item.key || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -361,7 +378,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                         </div>
                         <div className='flex-1'>
                           <Input
-                            placeholder='https://example.com'
+                            placeholder={t(lang, "submission.step1.socials.urlPlaceholder")}
                             value={item.value || ''}
                             onChange={(e) => {
                               const newItems = [...(field.value || [])];
@@ -404,7 +421,7 @@ const SubmitStep1: FC<projectProps> = (project) => {
                   }}
                   className="bg-white text-black border border-gray-300 hover:text-black hover:bg-gray-100 cursor-pointer"
                 >
-                  + new social
+                  {t(lang, "submission.step1.socials.addButton")}
                 </Button>
               </div>
               <FormMessage />
@@ -422,6 +439,8 @@ const SubmitStep1: FC<projectProps> = (project) => {
                 <FormLabelWithCheck
                   label={t(lang, "submission.step1.deployedAddresses.label")}
                   checked={!!field.value && field.value.length > 0}
+                  required={false}
+                  lang={lang}
                 />
                 <div className='space-y-3'>
                   {(field.value && field.value.length > 0) ? (
@@ -502,6 +521,32 @@ const SubmitStep1: FC<projectProps> = (project) => {
           {t(lang, "submission.step1.team.title")}
         </h3>
         <MembersComponent {...project} />
+      </section>
+
+      {/* Project-level Team1 sharing consent */}
+      <section className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='consent_sharing'
+          render={({ field }) => (
+            <FormItem className='flex flex-row items-start space-x-3 space-y-0'>
+              <FormControl>
+                <Checkbox
+                  checked={!!field.value}
+                  onCheckedChange={(value) => field.onChange(value === true)}
+                />
+              </FormControl>
+              <div className='space-y-1 leading-none'>
+                <FormLabel className='text-sm cursor-pointer'>
+                  {t(lang, "submission.step1.consentSharing.label")}
+                </FormLabel>
+                <p className='text-xs text-zinc-500 dark:text-zinc-400'>
+                  {t(lang, "submission.step1.consentSharing.hint")}
+                </p>
+              </div>
+            </FormItem>
+          )}
+        />
       </section>
     </div>
   );

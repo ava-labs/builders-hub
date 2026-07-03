@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimited, getUserId, validateSubnetId, jsonOk, jsonError } from './utils';
-import { builderHubAddNode, selectNewestNode, createDbNode, getUserNodes } from './service';
+import {
+  builderHubAddNode,
+  builderHubDeleteNode,
+  createDbNode,
+  getUserNodes,
+  ManagedTestnetNodeServiceRequestError,
+  selectNewestNode,
+} from './service';
 import { getBlockchainInfo } from '../../../components/toolbox/coreViem/utils/glacier';
 import { CreateNodeRequest, SubnetStatusResponse } from './types';
 import { prisma } from '@/prisma/prisma';
@@ -84,7 +91,14 @@ async function handleCreateNode(request: NextRequest): Promise<NextResponse> {
     if (data.nodes && data.nodes.length > 0) {
       const newestNode = selectNewestNode(data.nodes);
       const createdNode = await createDbNode({ userId: userId!, subnetId, blockchainId, newestNode, chainName });
-      if (!createdNode) return jsonError(409, 'Node already exists for this user (active)');
+      if (!createdNode) {
+        try {
+          await builderHubDeleteNode(subnetId, newestNode.nodeIndex);
+        } catch (rollbackError) {
+          console.error('Failed to roll back managed node assignment:', rollbackError);
+        }
+        return jsonError(409, 'Node already exists for this user (active)');
+      }
 
       let awardedBadges: AwardedConsoleBadge[] = [];
       try { awardedBadges = await checkAndAwardConsoleBadges(userId!, 'node_registration'); }
@@ -118,8 +132,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 /**
  * DELETE /api/managed-testnet-nodes?id=NODE_DB_ID
- * Account-only removal: marks a node as terminated by its DB id when node_index is unknown.
- * Used to clean up nodes that were created before we had the node_index field.
+ * Removes a node by its DB id. When the row has node_index, delete the
+ * external managed-node assignment first so the service frees that subnet
+ * slot. Legacy rows without node_index can only be removed from the account.
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const { userId, error } = await getUserId();
@@ -134,8 +149,30 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const record = await prisma.nodeRegistration.findFirst({ where: { id, user_id: userId } });
     if (!record) return jsonError(404, 'Node not found');
 
+    if (record.node_index !== null && record.node_index !== undefined) {
+      try {
+        const { deletedExternally } = await builderHubDeleteNode(record.subnet_id, record.node_index);
+        await prisma.nodeRegistration.update({ where: { id }, data: { status: 'terminated' } });
+        return jsonOk({
+          success: true,
+          deletedExternally,
+          message: deletedExternally
+            ? 'Node deleted in Builder Hub and removed from your account.'
+            : 'Node was already deleted / expired in Builder Hub. It is now removed from your account.',
+        });
+      } catch (hubError) {
+        const status = hubError instanceof ManagedTestnetNodeServiceRequestError ? hubError.status : 500;
+        const message = hubError instanceof Error ? hubError.message : 'Failed to delete node from Builder Hub.';
+        return jsonError(status, message, hubError);
+      }
+    }
+
     await prisma.nodeRegistration.update({ where: { id }, data: { status: 'terminated' } });
-    return jsonOk({ success: true, message: 'Node removed from your account.' });
+    return jsonOk({
+      success: true,
+      deletedExternally: false,
+      message: 'Node removed from your account. This legacy record had no node index to delete externally.',
+    });
   } catch (e) {
     return jsonError(500, e instanceof Error ? e.message : 'Failed to remove node');
   }

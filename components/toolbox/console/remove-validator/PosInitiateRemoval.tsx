@@ -13,7 +13,7 @@ import { ValidatorPreflightChecklist } from '@/components/toolbox/components/Val
 import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPreflight';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useUptimeProof, probeValidatorUptime } from '@/components/toolbox/hooks/useUptimeProof';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';

@@ -189,6 +189,9 @@ export default function MembersComponent({
             : m
         )
       );
+      if (onProjectCreated) {
+        onProjectCreated();
+      }
     }
   };
 
@@ -460,17 +463,17 @@ export default function MembersComponent({
       <div className="overflow-x-auto">
         <Table className="border border-zinc-200 dark:border-zinc-800 w-full min-w-[500px]">
           <TableHeader>
-            <TableRow className=" border-b-zinc-200 dark:border-b-zinc-800">
-              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.name")}</TableHead>
-              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.email")}</TableHead>
-              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.role")}</TableHead>
-              <TableHead className="px-4 py-4">{t(lang, "submission.members.table.status")}</TableHead>
-              <TableHead className="px-4 py-4"></TableHead>
+            <TableRow className="border-b border-b-zinc-200 dark:border-b-zinc-800 dark:bg-zinc-900">
+              <TableHead className="px-4 py-4 dark:text-zinc-400">{t(lang, "submission.members.table.name")}</TableHead>
+              <TableHead className="px-4 py-4 dark:text-zinc-400">{t(lang, "submission.members.table.email")}</TableHead>
+              <TableHead className="px-4 py-4 dark:text-zinc-400">{t(lang, "submission.members.table.role")}</TableHead>
+              <TableHead className="px-4 py-4 dark:text-zinc-400">{t(lang, "submission.members.table.status")}</TableHead>
+              <TableHead className="px-4 py-4 dark:text-zinc-400"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {members.map((member, index) => (
-              <TableRow key={index} className="dark:hover:bg-[#2c2c2c]">
+              <TableRow key={index} className="dark:bg-zinc-950 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:border-zinc-800">
                 <TableCell className="px-4 py-4">{member.name}</TableCell>
                 <TableCell>{member.email}</TableCell>
                 <TableCell>

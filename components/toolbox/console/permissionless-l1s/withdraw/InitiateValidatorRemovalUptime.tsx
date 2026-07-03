@@ -16,7 +16,7 @@ import { useValidatorPreflight } from '@/components/toolbox/hooks/useValidatorPr
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 
 type TokenType = 'native' | 'erc20';

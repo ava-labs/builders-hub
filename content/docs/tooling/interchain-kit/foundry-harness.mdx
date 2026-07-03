@@ -1,0 +1,46 @@
+---
+title: Foundry Harness
+description: Run real Teleporter and ICTT contracts inside a single EVM for fast test-driven development
+---
+
+The Foundry harness runs the real Teleporter and ICTT contracts inside a single EVM using a mock Warp precompile — no network, no relayer. It boots in roughly 100 ms, which makes it ideal for test-driven development on your cross-chain Solidity.
+
+## Prerequisites
+
+- Foundry (`forge`) installed
+- The **contract dependencies** installed into `contracts/lib/` — see [Installation](/docs/tooling/interchain-kit/installation). Without them, `forge` fails with `No such file or directory` for `contracts/lib/...`.
+
+## Run the Harness
+
+From the repo root:
+
+```bash
+pnpm test:harness   # forge test --root contracts -vv
+```
+
+This compiles the contracts under `contracts/src/examples/` and runs the harness tests in `contracts/test/examples/`. A green run is **18 tests passing** across the `icm-basics`, `ictt-erc20`, and `ictt-native` suites plus the harness internals.
+
+## Format Solidity
+
+```bash
+pnpm fmt           # forge fmt --root contracts
+```
+
+## Why the Harness Matters
+
+Contract addresses are consistent between the harness and the live network. A scenario you prove here behaves the same when you run it end-to-end on a [local network](/docs/tooling/interchain-kit/local-network) — so you can iterate in milliseconds, then validate against real consensus only when you're ready.
+
+<Callout type="info" title="How it works">
+The harness pairs a `FoundryWarpHarness` with a `MockWarpPrecompile` (in `packages/harness/`) to simulate cross-chain message delivery within one EVM. The contracts themselves are the real, unmodified `icm-contracts` — only the Warp transport is mocked.
+</Callout>
+
+## Next Steps
+
+<Cards>
+  <Card title="Local Network" href="/docs/tooling/interchain-kit/local-network">
+    Validate end-to-end against a real local Avalanche network
+  </Card>
+  <Card title="ICM Messaging" href="/docs/tooling/interchain-kit/icm-messaging">
+    Send your first interchain message
+  </Card>
+</Cards>

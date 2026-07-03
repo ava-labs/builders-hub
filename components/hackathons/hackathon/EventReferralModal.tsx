@@ -47,7 +47,7 @@ export default function EventReferralModal({
       const result = await createReferralLink({
         targetType: "hackathon_registration",
         targetId: hackathonId,
-        destinationUrl: `/events/registration-form?event=${hackathonId}`,
+        destinationUrl: `/events/${hackathonId}`,
       });
 
       setReferralLink(result.shareUrl);

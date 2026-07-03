@@ -7,6 +7,7 @@ import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
 import { menuSections, singleItems } from './nav-config';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
+import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -19,9 +20,16 @@ export function NavbarDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
   const isAuthenticated = status === 'authenticated';
+  const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
+  const visibleMenuSections = menuSections.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => item.href !== '/academy/team1' || canSeeTeam1,
+    ),
+  }));
 
   // Close on navigation
   useEffect(() => {
@@ -112,7 +120,7 @@ export function NavbarDropdown() {
                 )}
               </div>
               {/* Menu sections */}
-              {menuSections.map((section) => (
+              {visibleMenuSections.map((section) => (
                 <div key={section.title} className="flex flex-col">
                   <Link 
                     href={section.href}

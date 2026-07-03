@@ -5,7 +5,7 @@ export interface EvaluationData {
   formDataId: string;
   evaluatorId: string;
   evaluatorName: string;
-  verdict: Verdict;
+  verdict: Verdict | null;
   comment: string | null;
   scoreOverall: number | null;
   scores: Record<string, number> | null;
@@ -24,6 +24,10 @@ export interface ProjectData {
   demoVideoLink: string;
   tracks: string[];
   categories: string[];
+  tags?: string[];
+  deployedAddresses?: Array<{ address: string; tag?: string }>;
+  website?: Record<string, string> | null;
+  socials?: Record<string, string> | null;
   isPreexistingIdea: boolean;
   createdAt: string;
   members: ProjectMember[];
@@ -31,6 +35,7 @@ export interface ProjectData {
 
 export interface ProjectMember {
   id: string;
+  name?: string | null;
   email: string;
   role: string;
   status: string;

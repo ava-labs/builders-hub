@@ -13,7 +13,7 @@ import { EVMAddressInput } from '@/components/toolbox/components/EVMAddressInput
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import { Note } from '@/components/toolbox/components/Note';
 import ERC20TokenHomeABI from '@/contracts/icm-contracts/compiled/ERC20TokenHome.json';
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import ExampleERC20 from '@/contracts/icm-contracts/compiled/ExampleERC20.json';
 import SelectBlockchainId from '@/components/toolbox/components/SelectBlockchainId';
 import { CheckPrecompile } from '@/components/toolbox/components/CheckPrecompile';
@@ -77,7 +77,7 @@ function DeployNativeTokenRemote() {
   const tokenHomeBlockchainIDHex = useMemo(() => {
     if (!sourceL1?.id) return undefined;
     try {
-      return cb58ToHex(sourceL1.id);
+      return CB58ToHex(sourceL1.id);
     } catch (e) {
       console.error('Error decoding source chain ID:', e);
       return undefined;

@@ -5,8 +5,18 @@ import StepFlow from '@/components/console/step-flow';
 import { steps } from '@/app/console/permissioned-l1s/change-validator-weight/steps';
 import { useChangeWeightStore } from '@/components/toolbox/stores/changeWeightStore';
 import ValidatorManagerLayout from '@/components/toolbox/contexts/ValidatorManagerLayout';
+import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+import { ConsoleToolMetadata, withConsoleToolMetadata } from '@/components/toolbox/components/WithConsoleToolMetadata';
+import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 
-export default function ChangeWeight() {
+const metadata: ConsoleToolMetadata = {
+  title: 'Change Validator Weight',
+  description: "Change a validator's consensus weight on your L1 via the Validator Manager",
+  toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
+  githubUrl: generateConsoleToolGitHubUrl(import.meta.url),
+};
+
+function ChangeWeight() {
   const { subnetIdL1, globalError } = useChangeWeightStore();
   const firstKey = steps[0].type === 'single' ? steps[0].key : steps[0].options[0].key;
   const [currentStepKey, setCurrentStepKey] = useState(firstKey);
@@ -28,3 +38,5 @@ export default function ChangeWeight() {
     </ValidatorManagerLayout>
   );
 }
+
+export default withConsoleToolMetadata(ChangeWeight, metadata);

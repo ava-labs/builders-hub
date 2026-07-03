@@ -3,6 +3,10 @@
     {
       "path": "/api/validator-alerts/check",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/ecosystem-careers/weekly-review",
+      "schedule": "0 14 * * 1"
     }
   ]
 }

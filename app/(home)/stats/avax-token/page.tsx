@@ -9,6 +9,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
 import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { DatEtfSection } from "./_components/DatEtfSection";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { LiveBlockBurns } from "@/components/stats/LiveBlockBurns";
@@ -847,6 +848,11 @@ export default function AvaxTokenPage() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* DATs & ETFs */}
+          <div className="mt-8 sm:mt-12">
+            <DatEtfSection />
           </div>
         </div>
       </div>

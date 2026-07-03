@@ -14,7 +14,6 @@ type Props = {
   hackathon: HackathonHeader;
   isTopMost: boolean;
   isRegistered: boolean;
-  utm?: string;
   isPreview?: boolean;
   hideTextOverlay?: boolean;
   customRedirectUrl?: string;
@@ -28,7 +27,7 @@ function labelForEventType(eventType: string) {
   return eventType.charAt(0).toUpperCase() + eventType.slice(1);
 }
 
-export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered, utm = "", isPreview = false, hideTextOverlay = false, customRedirectUrl }: Props) {
+export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered, isPreview = false, hideTextOverlay = false, customRedirectUrl }: Props) {
   const lang = normalizeEventsLang(hackathon.content?.language);
   const now = new Date();
   const defaultStartDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
@@ -95,7 +94,6 @@ export default function OverviewBanner({ hackathon, id, isTopMost, isRegistered,
               className="w-full bg-red-500 border-none text-zinc-100 rounded-md"
               variant="secondary"
               allowNavigationWhenRegistered={true}
-              utm={utm}
               lang={lang}
             />
           )}

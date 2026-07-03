@@ -1,6 +1,6 @@
 'use client';
 
-import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useSelectedL1, useSetTeleporterRegistryAddress } from '@/components/toolbox/stores/l1ListStore';
 import { useToolboxStore, useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useState } from 'react';
@@ -47,6 +47,7 @@ const metadata: ConsoleToolMetadata = {
 function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
   const [criticalError, setCriticalError] = useState<Error | null>(null);
   const { setTeleporterRegistryAddress, teleporterRegistryAddress } = useToolboxStore();
+  const setTeleporterRegistryOnL1 = useSetTeleporterRegistryAddress();
   const { publicClient, walletEVMAddress } = useWalletStore();
   const { walletClient } = useConnectedWallet();
   const [isDeploying, setIsDeploying] = useState(false);
@@ -89,6 +90,11 @@ function TeleporterRegistry({ onSuccess }: BaseConsoleToolProps) {
       }
 
       setTeleporterRegistryAddress(receipt.contractAddress);
+      // Propagate the registry into the L1ListStore so downstream surfaces
+      // (ICTT bridge inspectors, My L1 dashboard's setup-progress bar) see
+      // ICM as configured for this L1 without having to know about
+      // `toolboxStore`. Single source of truth: `wellKnownTeleporterRegistryAddress`.
+      setTeleporterRegistryOnL1(receipt.contractAddress);
       onSuccess?.();
     } catch (error) {
       setCriticalError(error instanceof Error ? error : new Error(String(error)));

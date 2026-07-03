@@ -4,6 +4,7 @@ import { getUserByEmail } from "./getUser";
 import { Prisma } from "@prisma/client";
 import { baseUrl } from "@/utils/metadata";
 import { type EventsLang } from "@/lib/events/i18n";
+import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_SLUG } from "@/lib/grants/programs";
 
 interface InvitationResult {
   Success: boolean;
@@ -175,10 +176,26 @@ async function sendInvitationEmail(
   const inviteLink =
     hackathonId === BUILD_GAMES_HACKATHON_ID
       ? `${baseUrl.origin}/build-games/submit?stage=${stage ?? 1}&invitation=${member.id}`
-      : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
+      : hackathonId === MINI_GRANT_HACKATHON_ID
+        ? `${baseUrl.origin}/grants/${MINI_GRANT_SLUG}/apply?project=${project.id}`
+        : `${baseUrl.origin}/events/project-submission?event=${hackathonId}&invitation=${member.id}#team`;
   let result = { success: true, inviteLink: inviteLink };
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { title: true, banner: true },
+  });
+  const hackathonContext = hackathon?.title
+    ? { title: hackathon.title, banner: hackathon.banner || undefined }
+    : undefined;
   try {
-    await sendInvitation(email, project.project_name, inviterName, inviteLink, lang);
+    await sendInvitation(
+      email,
+      project.project_name,
+      inviterName,
+      inviteLink,
+      lang,
+      hackathonContext,
+    );
   } catch (error) {
     result.success = false;
   }
@@ -189,6 +206,8 @@ async function createProject(hackathonId: string, userId: string) {
   // Atomic transaction to prevent race conditions during invitations
   return await prisma.$transaction(
     async (tx: Prisma.TransactionClient) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${hackathonId}:${userId}`}, 0))`;
+
       // Find existing project WITHIN transaction
       const existingProject = await tx.project.findFirst({
         where: {

@@ -80,8 +80,8 @@ helm upgrade --install l1-rpc ./helm/avalanche-rpc \
 
 ```bash
 # Import or create a deployer key
-platform keys import --name l1-deployer
-platform keys default --name l1-deployer
+platform-cli keys import --name l1-deployer
+platform-cli keys default --name l1-deployer
 
 ./scripts/create-l1.sh \
   --release=l1-validators \

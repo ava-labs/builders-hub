@@ -3,11 +3,11 @@
 /**
  * ReferralPanel — compact, list-first referrals card.
  *
- * Reusable across the redesigned profile page and Builder Insights. Self
+ * Reusable across the profile shell and Builder Insights. Self
  * contained: renders its own card chrome (header + body), uses scoped CSS via
  * the `referral-panel` class so it picks up the same dark/light tokens as the
- * profile redesign. Falls back to the avax dark theme when used outside the
- * `.profile-redesign` scope.
+ * profile shell. Falls back to the avax dark theme when used outside the
+ * `.profile` scope.
  *
  * QR code is a per-link add-on: each row has a QR button that toggles an
  * inline panel showing the QR + a copy-to-clipboard.
@@ -127,15 +127,25 @@ export function ReferralPanel({
   const [qrLinkId, setQrLinkId] = React.useState<string | null>(null);
 
   // Only surface link types we currently market — drops legacy types like
-  // build_games_application from the user-facing list. Then sort so
+  // build_games_application from the user-facing list. Also hide links whose
+  // specific target is no longer in the active catalog (e.g., a referral
+  // link for a hackathon that has ended). `bh_signup` has `targetId: null`
+  // and is always in the catalog, so it survives this check. Sorted so
   // Builder Hub Sign Up always appears first.
+  const catalogSignatures = React.useMemo(
+    () => new Set(targets.map((t) => `${t.targetType}|${t.targetId ?? ""}`)),
+    [targets],
+  );
   const visibleLinks = React.useMemo(
     () =>
       links
-        .filter((l) => l.targetType in TARGET_TYPE_RANK)
+        .filter((l) => {
+          if (!(l.targetType in TARGET_TYPE_RANK)) return false;
+          return catalogSignatures.has(`${l.targetType}|${l.targetId ?? ""}`);
+        })
         .slice()
         .sort((a, b) => rankForTargetType(a.targetType) - rankForTargetType(b.targetType)),
-    [links],
+    [links, catalogSignatures],
   );
 
   const usedTargetSignatures = new Set(
@@ -189,8 +199,8 @@ export function ReferralPanel({
         </span>
         <h3 className="rp-head-title">Referrals</h3>
         <div className="rp-head-stat" aria-label="Total signups">
-          <b>{loading ? "—" : computedTotal.toLocaleString()}</b>
           <span>signups</span>
+          <b>{loading ? "—" : computedTotal.toLocaleString()}</b>
         </div>
       </header>
 
@@ -230,8 +240,8 @@ export function ReferralPanel({
                       <span className="rp-row-title">{l.targetLabel}</span>
                     </div>
                     <div className="rp-row-stat" aria-label="Signups">
-                      <b>{l.signups.toLocaleString()}</b>
                       <span>signups</span>
+                      <b>{l.signups.toLocaleString()}</b>
                     </div>
                     <div className="rp-row-actions">
                       <button

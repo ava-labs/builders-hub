@@ -7,6 +7,10 @@ import {
 } from "@/lib/referrals/targets";
 import { runHogQL } from "@/lib/posthog-query";
 import { REFERRAL_TEAM_LABELS } from "@/lib/referrals/team-labels";
+import {
+  getTopHackathonTrafficSourcesBatch,
+  type HackathonTrafficSource,
+} from "./hackathonTrafficSources";
 
 export interface MonthlySignupPoint {
   month: string;
@@ -30,12 +34,10 @@ export interface EventParticipantPoint {
   event: string;
   participants: number;
   projects: number;
-  /** Number of RegisterForm rows for the hackathon — used as the
-   *  "Participants" stat for upcoming hackathons (where Project/Member
-   *  counts are still 0). */
   registrations: number;
   startDate: string | null;
   endDate: string | null;
+  topTrafficSources: HackathonTrafficSource[];
 }
 
 export interface TopReferrerRow {
@@ -59,6 +61,21 @@ export interface TopTeamReferrerRow {
   hackathonRegistrations: number;
   grantApplications: number;
   totalReferrals: number;
+}
+
+export type SocialPlatform = "x" | "linkedin" | "github" | "telegram";
+
+export interface SocialCompletionStat {
+  platform: SocialPlatform;
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface SocialCompletionDepthRow {
+  linkCount: number;
+  users: number;
+  pct: number;
 }
 
 export interface BuilderInsightsData {
@@ -89,6 +106,8 @@ export interface BuilderInsightsData {
   topReferrers: TopReferrerRow[];
   topTeamReferrers: TopTeamReferrerRow[];
   referralTargets: ReferralTargetPreset[];
+  socialCompletion: SocialCompletionStat[];
+  socialCompletionDepth: SocialCompletionDepthRow[];
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -190,39 +209,25 @@ const TOP_COUNTRY_30D_HOGQL = `
 
 const RETURNING_VISITORS_HOGQL = `
   SELECT
-    countDistinctIf(distinct_id, timestamp >= now() - INTERVAL 30 DAY) AS total_current,
-    countDistinctIf(
+    countIf(seen_current) AS total_current,
+    countIf(seen_previous) AS total_previous,
+    countIf(seen_current AND first_seen < now() - INTERVAL 30 DAY) AS returning_current,
+    countIf(seen_previous AND first_seen < now() - INTERVAL 60 DAY) AS returning_previous
+  FROM (
+    SELECT
       distinct_id,
-      timestamp >= now() - INTERVAL 60 DAY
-        AND timestamp < now() - INTERVAL 30 DAY
-    ) AS total_previous,
-    countDistinctIf(
-      distinct_id,
-      timestamp >= now() - INTERVAL 30 DAY
-        AND distinct_id IN (
-          SELECT DISTINCT distinct_id
-          FROM events
-          WHERE event = '$pageview'
-            AND ${HOGQL_HOST_FILTER}
-            AND timestamp < now() - INTERVAL 30 DAY
-        )
-    ) AS returning_current,
-    countDistinctIf(
-      distinct_id,
-      timestamp >= now() - INTERVAL 60 DAY
-        AND timestamp < now() - INTERVAL 30 DAY
-        AND distinct_id IN (
-          SELECT DISTINCT distinct_id
-          FROM events
-          WHERE event = '$pageview'
-            AND ${HOGQL_HOST_FILTER}
-            AND timestamp < now() - INTERVAL 60 DAY
-        )
-    ) AS returning_previous
-  FROM events
-  WHERE event = '$pageview'
-    AND ${HOGQL_HOST_FILTER}
-    AND timestamp >= now() - INTERVAL 60 DAY
+      min(timestamp) AS first_seen,
+      countIf(timestamp >= now() - INTERVAL 30 DAY) > 0 AS seen_current,
+      countIf(
+        timestamp >= now() - INTERVAL 60 DAY
+          AND timestamp < now() - INTERVAL 30 DAY
+      ) > 0 AS seen_previous
+    FROM events
+    WHERE event = '$pageview'
+      AND ${HOGQL_HOST_FILTER}
+      AND timestamp < now()
+    GROUP BY distinct_id
+  )
 `.trim();
 
 export async function getBuilderInsightsData(currentUserId: string): Promise<BuilderInsightsData> {
@@ -243,6 +248,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     totalHackathonSubmissions,
     topCountryRows,
     returningVisitorsRows,
+    socialCompletionRows,
+    socialDepthRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -289,22 +296,36 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
                h."title" AS "event",
                h."start_date" AS "startDate",
                h."end_date" AS "endDate",
-               COUNT(DISTINCT u."id")::bigint AS "participants",
+               -- Participants = total team members across the hackathon's teams
+               -- (number of teams, then people per team). Counts member rows
+               -- directly so email-only invitees without an account still count.
+               COUNT(DISTINCT m."id")::bigint AS "participants",
                COUNT(DISTINCT p."id")::bigint AS "projects"
         FROM "Hackathon" h
         LEFT JOIN "Project" p ON p."hackaton_id" = h."id"
         LEFT JOIN "Member" m ON m."project_id" = p."id"
-        LEFT JOIN "User" u ON u."id" = m."user_id"
-          OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
         WHERE COALESCE(h."event", 'hackathon') = 'hackathon'
           AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
         GROUP BY h."id", h."title", h."start_date", h."end_date"
       ),
+      -- RegisterForm covers most hackathons, but Build Games applications
+      -- live in their own table (BuildGamesApplication) with no
+      -- hackathon_id link. UNION them in so Build Games shows the full
+      -- applicant count instead of the handful of users who happened to
+      -- submit a generic RegisterForm.
       event_registrations AS (
-        SELECT "hackathon_id" AS "eventId",
-               COUNT(*)::bigint AS "registrations"
-        FROM "RegisterForm"
-        GROUP BY "hackathon_id"
+        SELECT "eventId", SUM("registrations")::bigint AS "registrations"
+        FROM (
+          SELECT "hackathon_id" AS "eventId",
+                 COUNT(*)::bigint AS "registrations"
+          FROM "RegisterForm"
+          GROUP BY "hackathon_id"
+          UNION ALL
+          SELECT '249d2911-7931-4aa0-a696-37d8370b79f9' AS "eventId",
+                 COUNT(*)::bigint AS "registrations"
+          FROM "BuildGamesApplication"
+        ) combined
+        GROUP BY "eventId"
       )
       SELECT ep."eventId",
              ep."event",
@@ -437,6 +458,30 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
       query: RETURNING_VISITORS_HOGQL,
     }),
+    prisma.$queryRaw<
+      Array<{ x: bigint; linkedin: bigint; github: bigint; telegram: bigint }>
+    >`
+      SELECT
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("x_account"), '') IS NOT NULL)::bigint AS "x",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("linkedin_account"), '') IS NOT NULL)::bigint AS "linkedin",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("github_account"), '') IS NOT NULL)::bigint AS "github",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("telegram_account"), '') IS NOT NULL)::bigint AS "telegram"
+      FROM "User"
+    `,
+    prisma.$queryRaw<Array<{ linkCount: number; users: bigint }>>`
+      SELECT "linkCount", COUNT(*)::bigint AS "users"
+      FROM (
+        SELECT (
+          (CASE WHEN NULLIF(TRIM("x_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("linkedin_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("github_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("telegram_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+        ) AS "linkCount"
+        FROM "User"
+      ) depth
+      GROUP BY "linkCount"
+      ORDER BY "linkCount" ASC
+    `,
   ]);
 
   let cumulative = 0;
@@ -450,6 +495,10 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
+  const trafficSourcesByEvent = await getTopHackathonTrafficSourcesBatch(
+    eventParticipantRows.map((row) => row.eventId),
+  );
+
   const eventParticipants: EventParticipantPoint[] = eventParticipantRows.map((row) => ({
     eventId: row.eventId,
     event: row.event,
@@ -458,6 +507,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     registrations: toNumber(row.registrations),
     startDate: row.startDate ? row.startDate.toISOString() : null,
     endDate: row.endDate ? row.endDate.toISOString() : null,
+    topTrafficSources: trafficSourcesByEvent.get(row.eventId) ?? [],
   }));
 
   const totalHackathonsHosted = eventParticipants.length;
@@ -544,8 +594,31 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       detail: `${getEventStatus(event.start_date, event.end_date)} event`,
       targetType: "hackathon_registration",
       targetId: event.id,
-      destinationUrl: `/events/registration-form?event=${event.id}`,
+      destinationUrl: `/events/${event.id}`,
     };
+  });
+
+  const pctOfTotal = (n: number) => (totalAccounts > 0 ? (n / totalAccounts) * 100 : 0);
+
+  const socialCounts = socialCompletionRows[0];
+  const xCount = toNumber(socialCounts?.x);
+  const linkedinCount = toNumber(socialCounts?.linkedin);
+  const githubCount = toNumber(socialCounts?.github);
+  const telegramCount = toNumber(socialCounts?.telegram);
+  const socialCompletion: SocialCompletionStat[] = [
+    { platform: "x", label: "X", count: xCount, pct: pctOfTotal(xCount) },
+    { platform: "linkedin", label: "LinkedIn", count: linkedinCount, pct: pctOfTotal(linkedinCount) },
+    { platform: "github", label: "GitHub", count: githubCount, pct: pctOfTotal(githubCount) },
+    { platform: "telegram", label: "Telegram", count: telegramCount, pct: pctOfTotal(telegramCount) },
+  ];
+
+  const depthByCount = new Map<number, number>();
+  for (const row of socialDepthRows) {
+    depthByCount.set(Number(row.linkCount), toNumber(row.users));
+  }
+  const socialCompletionDepth: SocialCompletionDepthRow[] = [0, 1, 2, 3, 4].map((linkCount) => {
+    const users = depthByCount.get(linkCount) ?? 0;
+    return { linkCount, users, pct: pctOfTotal(users) };
   });
 
   return {
@@ -603,6 +676,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ...activeEventTargets,
       ...ACTIVE_GRANT_TARGETS,
     ],
+    socialCompletion,
+    socialCompletionDepth,
   };
 }
 

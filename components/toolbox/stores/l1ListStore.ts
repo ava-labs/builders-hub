@@ -293,13 +293,21 @@ export const useSetNativeCurrencyInfo = () => {
 };
 
 export const useNativeCurrencyInfo = (chainId?: number) => {
-  const { walletChainId } = useWalletStore();
-  const l1ListStore = useL1ListStore();
+  const walletChainId = useWalletStore((s) => s.walletChainId);
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const effectiveChainId = chainId || walletChainId;
-
+  // Subscribe to l1List (nativeCurrency is stored on the L1 item), mirroring
+  // useSelectedL1, so writes via setNativeCurrencyInfo are reflected. The old
+  // version read store.getState() inside a useMemo whose deps never changed on
+  // write, so it returned a STALE value forever — which made consumers that
+  // "cache it once" (DeployWrappedNative) re-fire their write every render and
+  // spin into a setState loop ("Maximum update depth exceeded").
+  const testnetL1List = getL1ListStore(true)((state: { l1List: L1ListItem[] }) => state.l1List);
+  const mainnetL1List = getL1ListStore(false)((state: { l1List: L1ListItem[] }) => state.l1List);
   return useMemo(() => {
-    return l1ListStore.getState().getNativeCurrencyInfo(effectiveChainId);
-  }, [l1ListStore, effectiveChainId]);
+    const activeFirstLists = isTestnet ? [testnetL1List, mainnetL1List] : [mainnetL1List, testnetL1List];
+    return activeFirstLists.flat().find((l1: L1ListItem) => l1.evmChainId === effectiveChainId)?.nativeCurrency;
+  }, [effectiveChainId, isTestnet, testnetL1List, mainnetL1List]);
 };
 
 // Wrapped native token hooks
@@ -316,6 +324,32 @@ export const useSetWrappedNativeToken = () => {
     const currentL1List = l1ListStore.getState().l1List;
     const updatedL1List = currentL1List.map((l1: L1ListItem) =>
       l1.evmChainId === walletChainId ? { ...l1, wrappedTokenAddress: address } : l1,
+    );
+    l1ListStore.setState({ l1List: updatedL1List });
+  };
+};
+
+/**
+ * Setter for the L1's TeleporterRegistry address.
+ *
+ * Called from the ICM setup flow (`TeleporterRegistry.tsx`) right after a
+ * successful registry deploy so the address propagates from `toolboxStore`
+ * (per-chain, mostly internal) into `l1ListStore.l1List[...].wellKnownTeleporterRegistryAddress`,
+ * which is the single source of truth read by the bridge inspectors AND
+ * the My L1 dashboard's setup-progress bar.
+ *
+ * Matches the {@link useSetWrappedNativeToken} pattern — keyed by
+ * `walletChainId` so the deploy lands on the L1 the wallet is currently on.
+ */
+export const useSetTeleporterRegistryAddress = () => {
+  const { walletChainId } = useWalletStore();
+  const l1ListStore = useL1ListStore();
+
+  return (address: string) => {
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) return;
+    const currentL1List = l1ListStore.getState().l1List;
+    const updatedL1List = currentL1List.map((l1: L1ListItem) =>
+      l1.evmChainId === walletChainId ? { ...l1, wellKnownTeleporterRegistryAddress: address } : l1,
     );
     l1ListStore.setState({ l1List: updatedL1List });
   };

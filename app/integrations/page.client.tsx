@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
+import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
 
 interface IntegrationsClientProps {
     list: any[];
@@ -109,6 +110,9 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
             <main className="py-12 relative z-10 integrations-page">
                 <div className="mx-auto max-w-[1920px] px-6 lg:px-8">
                     <div className="space-y-8">
+                        <div className="max-w-5xl mx-auto">
+                            <HiringCta variant="inline" />
+                        </div>
                         {/* Search Bar and Add Integration Button */}
                         <div className="max-w-5xl mx-auto">
                             <div className="flex flex-col lg:flex-row gap-4 items-start">

@@ -11,10 +11,10 @@ Create a new random secp256k1 key:
 
 ```bash
 # Generate an encrypted key (default, prompts for password)
-platform keys generate --name mykey
+platform-cli keys generate --name mykey
 
 # Generate an unencrypted key (unsafe, not recommended)
-platform keys generate --name mykey --encrypt=false
+platform-cli keys generate --name mykey --encrypt=false
 ```
 
 Output:
@@ -27,7 +27,7 @@ Key generated successfully!
   Encrypted:     true
   Default:       yes
 
-WARNING: Back up your key! Use 'platform keys export' to view the private key.
+WARNING: Back up your key! Use 'platform-cli keys export' to view the private key.
 ```
 
 ## Importing Keys
@@ -36,13 +36,13 @@ Import an existing private key:
 
 ```bash
 # Import and encrypt (default)
-platform keys import --name mykey --private-key "PrivateKey-..."
+platform-cli keys import --name mykey --private-key "PrivateKey-..."
 
 # Import with hidden input prompt (encrypted by default)
-platform keys import --name mykey
+platform-cli keys import --name mykey
 
 # Import without encryption (unsafe)
-platform keys import --name mykey --encrypt=false
+platform-cli keys import --name mykey --encrypt=false
 ```
 
 Accepted key formats:
@@ -53,10 +53,10 @@ Accepted key formats:
 
 ```bash
 # Basic listing
-platform keys list
+platform-cli keys list
 
 # Include addresses
-platform keys list --show-addresses
+platform-cli keys list --show-addresses
 ```
 
 Output:
@@ -75,13 +75,13 @@ Export a private key to a file (recommended) or stdout:
 
 ```bash
 # Export to file with secure permissions (0600)
-platform keys export --name mykey --output-file ./mykey.txt
+platform-cli keys export --name mykey --output-file ./mykey.txt
 
 # Export in hex format to file
-platform keys export --name mykey --format hex --output-file ./mykey.hex
+platform-cli keys export --name mykey --format hex --output-file ./mykey.hex
 
 # Export to stdout (requires explicit opt-in)
-platform keys export --name mykey --unsafe-stdout
+platform-cli keys export --name mykey --unsafe-stdout
 ```
 
 If the key is encrypted, you'll be prompted for the password. Set `PLATFORM_CLI_KEY_PASSWORD` to skip the prompt in scripts.
@@ -90,10 +90,10 @@ If the key is encrypted, you'll be prompted for the password. Set `PLATFORM_CLI_
 
 ```bash
 # Delete with confirmation prompt
-platform keys delete --name mykey
+platform-cli keys delete --name mykey
 
 # Delete without confirmation
-platform keys delete --name mykey --force
+platform-cli keys delete --name mykey --force
 ```
 
 Deletion is irreversible. Ensure you have a backup first.
@@ -104,10 +104,10 @@ Set a default key to avoid specifying `--key-name` on every command:
 
 ```bash
 # Set default
-platform keys default --name mykey
+platform-cli keys default --name mykey
 
 # Show current default
-platform keys default
+platform-cli keys default
 ```
 
 ## Built-in Test Key: ewoq
@@ -115,7 +115,7 @@ platform keys default
 Platform CLI includes the well-known `ewoq` test key for local development:
 
 ```bash
-platform wallet address --key-name ewoq
+platform-cli wallet address --key-name ewoq
 ```
 
 The ewoq key is pre-funded on local networks. Platform CLI blocks its use on mainnet for safety.
@@ -128,11 +128,11 @@ Build with Ledger support and use the `--ledger` flag:
 go build -tags ledger -o platform .
 
 # Use Ledger for any command
-platform wallet address --ledger
-platform transfer send --to P-fuji1... --amount 10 --ledger
+platform-cli wallet address --ledger
+platform-cli transfer send --to P-fuji1... --amount 10 --ledger
 
 # Use a different address index
-platform wallet balance --ledger --ledger-index 1
+platform-cli wallet balance --ledger --ledger-index 1
 ```
 
 ## Security Best Practices

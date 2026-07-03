@@ -11,6 +11,10 @@ if (!METRICS_API_URL) {
   console.warn('METRICS_API_URL is not set — chain-stats endpoint will fail');
 }
 
+// KiteAI mainnet L1 is not indexed by the shared Metrics API
+const KITEAI_MAINNET_CHAIN_ID = '3USaEfTcoUhHxpKXvpAG916UKCUEyjrtkg2hBArBG3JyDP7my';
+const KITEAI_METRICS_SOURCE = { baseUrl: 'http://44.221.18.159', evmChainId: '2366' };
+
 interface ChainMetrics {
   activeAddresses: {
     daily: TimeSeriesMetric;
@@ -77,12 +81,16 @@ async function fetchMetricsApi(
   pageSize: number,
   fetchAllPages: boolean
 ): Promise<{ value: number; timestamp: number }[]> {
-  const resolvedChainId = chainId === 'all' ? 'mainnet' : chainId;
+  const isKiteAi = chainId === KITEAI_MAINNET_CHAIN_ID;
+  const baseUrl = isKiteAi ? KITEAI_METRICS_SOURCE.baseUrl : METRICS_API_URL;
+  const resolvedChainId = isKiteAi
+    ? KITEAI_METRICS_SOURCE.evmChainId
+    : chainId === 'all' ? 'mainnet' : chainId;
   const allResults: { value: number; timestamp: number }[] = [];
   let pageToken: string | undefined;
 
   do {
-    const url = new URL(`${METRICS_API_URL}/v2/chains/${resolvedChainId}/metrics/${metric}`);
+    const url = new URL(`${baseUrl}/v2/chains/${resolvedChainId}/metrics/${metric}`);
     url.searchParams.set('timeInterval', timeInterval);
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));

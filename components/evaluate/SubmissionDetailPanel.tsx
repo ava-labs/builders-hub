@@ -29,6 +29,9 @@ const ALL_TABS = [
   { id: "evaluation" as const, label: "Evaluation" },
 ];
 
+const FIELD_ROW_CLASS = "grid grid-cols-[9rem_minmax(0,1fr)] gap-3 items-baseline";
+const FIELD_LABEL_CLASS = "text-xs text-zinc-500";
+
 type TabId = (typeof ALL_TABS)[number]["id"];
 
 export function SubmissionDetailPanel({
@@ -43,7 +46,40 @@ export function SubmissionDetailPanel({
   onStageAdvanced,
 }: Props) {
   const { project, formData, origin } = row;
-  const tabs = showStages ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "submission");
+
+  const eventConfig = getEventConfig(origin);
+  const formDataKey = eventConfig?.formDataKey;
+  const displayData = formDataKey
+    ? (formData[formDataKey] as Record<string, unknown>) ?? formData
+    : formData;
+
+  // Programs without per-stage submissions (e.g. grants) carry their application in
+  // the top-level form data. Render those fields as labeled sections in a dedicated
+  // "Application Details" tab instead of the generic, raw-keyed "Stage Submissions" dump.
+  const topLevelAppSections =
+    eventConfig?.applicationDetailSections && !eventConfig.stageFields
+      ? eventConfig.applicationDetailSections
+      : null;
+  // Populated top-level fields not covered by a configured section, so nothing is lost
+  // when the labeled sections replace the generic dump.
+  const coveredKeys = new Set(
+    topLevelAppSections?.flatMap((s) => s.fields.map((f) => f.key)),
+  );
+  const extraAppData = topLevelAppSections
+    ? Object.fromEntries(
+        Object.entries(displayData).filter(
+          ([k, v]) => !coveredKeys.has(k) && v != null && String(v).trim() !== "",
+        ),
+      )
+    : {};
+
+  // The submission tab carries stage data for staged programs or, for grant-style
+  // programs that have no stages, the application detail fields. It must not be gated on
+  // showStages alone: grants pass showStages=false (no stageFields) yet still need this tab.
+  const showSubmissionTab = showStages || topLevelAppSections != null;
+  const tabs = (showSubmissionTab ? ALL_TABS : ALL_TABS.filter((t) => t.id !== "submission")).map(
+    (t) => (t.id === "submission" && topLevelAppSections ? { ...t, label: "Application Details" } : t),
+  );
   const [activeTab, setActiveTab] = useState<TabId>("project");
   const evaluations = evalsProp ?? row.evaluations;
 
@@ -53,12 +89,6 @@ export function SubmissionDetailPanel({
     },
     [onParentEvalSaved]
   );
-
-  const eventConfig = getEventConfig(origin);
-  const formDataKey = eventConfig?.formDataKey;
-  const displayData = formDataKey
-    ? (formData[formDataKey] as Record<string, unknown>) ?? formData
-    : formData;
 
   const headerTitle = project?.projectName || row.applicantName;
 
@@ -136,6 +166,18 @@ export function SubmissionDetailPanel({
                       label="Categories"
                       value={project.categories.join(", ")}
                     />
+                    {project.tags && project.tags.length > 0 && (
+                      <div className={FIELD_ROW_CLASS}>
+                        <span className={FIELD_LABEL_CLASS}>Tags:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {project.tags.map((t) => (
+                            <Badge key={t} variant="secondary" className="text-xs">
+                              {t}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <Field
                       label="Pre-existing Idea"
                       value={project.isPreexistingIdea ? "Yes" : "No"}
@@ -149,7 +191,45 @@ export function SubmissionDetailPanel({
                     />
                     <LinkField label="Demo" url={project.demoLink} />
                     <LinkField label="Video" url={project.demoVideoLink} />
+                    {project.website &&
+                      Object.entries(project.website).map(([key, url]) => (
+                        <LinkField
+                          key={`website-${key}`}
+                          label={key || "Website"}
+                          url={url}
+                        />
+                      ))}
+                    {project.socials &&
+                      Object.entries(project.socials).map(([key, url]) => (
+                        <LinkField
+                          key={`social-${key}`}
+                          label={key || "Social"}
+                          url={url}
+                        />
+                      ))}
                   </FieldGroup>
+
+                  {project.deployedAddresses && project.deployedAddresses.length > 0 && (
+                    <FieldGroup title="Deployed Addresses">
+                      <div className="space-y-1.5">
+                        {project.deployedAddresses.map((d, idx) => (
+                          <div
+                            key={`${d.address}-${idx}`}
+                            className="flex flex-wrap items-baseline gap-2 text-sm"
+                          >
+                            {d.tag && (
+                              <Badge variant="outline" className="text-xs">
+                                {d.tag}
+                              </Badge>
+                            )}
+                            <code className="font-mono text-xs text-zinc-700 dark:text-zinc-200 break-all">
+                              {d.address}
+                            </code>
+                          </div>
+                        ))}
+                      </div>
+                    </FieldGroup>
+                  )}
 
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300 border-b border-zinc-200 dark:border-zinc-800 pb-1">
@@ -170,7 +250,9 @@ export function SubmissionDetailPanel({
                             key={m.id}
                             className="flex items-center gap-2 text-sm"
                           >
-                            <span className="text-zinc-600 dark:text-zinc-300">{m.email}</span>
+                            <span className="text-zinc-600 dark:text-zinc-300">
+                              {m.name?.trim() || "Unnamed member"}
+                            </span>
                             <Badge variant="outline" className="text-xs">
                               {m.role}
                             </Badge>
@@ -190,7 +272,7 @@ export function SubmissionDetailPanel({
             </div>
           )}
 
-          {showStages && activeTab === "submission" && (
+          {showSubmissionTab && activeTab === "submission" && (
             <div className="space-y-4">
               {eventConfig?.stageFields ? (
                 Object.entries(eventConfig.stageFields).map(
@@ -211,6 +293,26 @@ export function SubmissionDetailPanel({
                     );
                   }
                 )
+              ) : topLevelAppSections ? (
+                <>
+                  {topLevelAppSections.map((section) => (
+                    <FieldGroup key={section.title} title={section.title}>
+                      {section.fields.map((f) => (
+                        <Field
+                          key={f.key}
+                          label={f.label}
+                          value={displayData[f.key] != null ? String(displayData[f.key]) : null}
+                          long={f.long}
+                        />
+                      ))}
+                    </FieldGroup>
+                  ))}
+                  {Object.keys(extraAppData).length > 0 && (
+                    <FieldGroup title="Other Details">
+                      <GenericFormDataView data={extraAppData} />
+                    </FieldGroup>
+                  )}
+                </>
               ) : (
                 <GenericFormDataView data={displayData} />
               )}
@@ -345,8 +447,8 @@ function GenericFormDataView({
   return (
     <div className="space-y-2">
       {entries.map(([key, val]) => (
-        <div key={key} className="space-y-0.5">
-          <span className="text-xs text-zinc-500">
+        <div key={key} className={FIELD_ROW_CLASS}>
+          <span className={FIELD_LABEL_CLASS}>
             {key.replace(/_/g, " ")}:
           </span>
           <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap">
@@ -386,11 +488,11 @@ function Field({
 }) {
   if (!value || !value.trim()) return null;
   return (
-    <div className={long ? "space-y-0.5" : "flex gap-2 items-baseline"}>
-      <span className="text-xs text-zinc-500 shrink-0">{label}:</span>
+    <div className={FIELD_ROW_CLASS}>
+      <span className={FIELD_LABEL_CLASS}>{label}:</span>
       <span
         className={`text-sm text-zinc-700 dark:text-zinc-200 break-words ${
-          long ? "block whitespace-pre-wrap" : ""
+          long ? "whitespace-pre-wrap" : ""
         }`}
       >
         {value}
@@ -412,8 +514,8 @@ function LinkField({ label, url }: { label: string; url: string }) {
   })();
 
   return (
-    <div className="flex gap-2 items-baseline">
-      <span className="text-xs text-zinc-500 shrink-0">{label}:</span>
+    <div className={FIELD_ROW_CLASS}>
+      <span className={FIELD_LABEL_CLASS}>{label}:</span>
       {isSafeUrl ? (
         <a
           href={url}
@@ -473,8 +575,8 @@ function StageSection({
             const val = data[f.key];
             if (!val || !String(val).trim()) return null;
             return (
-              <div key={f.key} className="space-y-0.5">
-                <span className="text-xs text-zinc-500">{f.label}:</span>
+              <div key={f.key} className={FIELD_ROW_CLASS}>
+                <span className={FIELD_LABEL_CLASS}>{f.label}:</span>
                 <p className="text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap">
                   {String(val)}
                 </p>

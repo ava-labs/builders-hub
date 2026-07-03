@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { makePublicClientForChain } from '../../usePublicClientForChain';
 import { useWalletStore } from '../../../stores/walletStore';
 import { useViemChainStore } from '../../../stores/toolboxStore';
@@ -28,60 +28,70 @@ export interface ContractDeployerHook {
  * Provides a simplified interface for contract deployment with automatic notifications
  */
 export function useContractDeployer(): ContractDeployerHook {
-  const { walletEVMAddress } = useWalletStore();
+  // Granular selector so this hook only re-renders when the address field
+  // changes. The previous `const { walletEVMAddress } = useWalletStore()`
+  // destructure subscribed to the whole wallet store and re-ran every time
+  // any unrelated field changed (e.g. mid-`switchChainOrAdd` writes to
+  // `walletChainId`/`isTestnet`/`avalancheNetworkID`), which churned the
+  // `deploy` callback identity and contributed to mid-switch transient
+  // render inconsistencies in deploy inspectors.
+  const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
   const { walletClient } = useConnectedWallet();
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
   const [isDeploying, setIsDeploying] = useState(false);
 
-  const deploy = async (params: DeployParams): Promise<DeployResult> => {
-    if (!walletClient || !walletEVMAddress || !viemChain) {
-      throw new Error('Wallet not connected or chain not configured');
-    }
-
-    setIsDeploying(true);
-    try {
-      const deployPromise = walletClient.deployContract({
-        abi: params.abi,
-        bytecode: params.bytecode as `0x${string}`,
-        args: params.args,
-        account: walletEVMAddress as `0x${string}`,
-        chain: viemChain,
-      });
-
-      notify(
-        {
-          type: 'deploy',
-          name: params.name,
-        },
-        deployPromise,
-        viemChain,
-      );
-
-      const hash = await deployPromise;
-
-      // Chain-specific public client for receipt polling. The global
-      // publicClient from walletStore may point to the wrong RPC (e.g.
-      // hardcoded to Fuji for non-Core wallets).
-      const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
-      if (!chainClient) {
-        throw new Error('Could not create chain-specific public client');
-      }
-      const receipt = await chainClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
-
-      if (!receipt.contractAddress) {
-        throw new Error('No contract address in receipt');
+  const deploy = useCallback(
+    async (params: DeployParams): Promise<DeployResult> => {
+      if (!walletClient || !walletEVMAddress || !viemChain) {
+        throw new Error('Wallet not connected or chain not configured');
       }
 
-      return {
-        hash,
-        contractAddress: receipt.contractAddress,
-        receipt,
-      };
-    } finally {
-      setIsDeploying(false);
-    }
-  };
+      setIsDeploying(true);
+      try {
+        const deployPromise = walletClient.deployContract({
+          abi: params.abi,
+          bytecode: params.bytecode as `0x${string}`,
+          args: params.args,
+          account: walletEVMAddress as `0x${string}`,
+          chain: viemChain,
+        });
+
+        notify(
+          {
+            type: 'deploy',
+            name: params.name,
+          },
+          deployPromise,
+          viemChain,
+        );
+
+        const hash = await deployPromise;
+
+        // Chain-specific public client for receipt polling. The global
+        // publicClient from walletStore may point to the wrong RPC (e.g.
+        // hardcoded to Fuji for non-Core wallets).
+        const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
+        if (!chainClient) {
+          throw new Error('Could not create chain-specific public client');
+        }
+        const receipt = await chainClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+
+        if (!receipt.contractAddress) {
+          throw new Error('No contract address in receipt');
+        }
+
+        return {
+          hash,
+          contractAddress: receipt.contractAddress,
+          receipt,
+        };
+      } finally {
+        setIsDeploying(false);
+      }
+    },
+    [walletClient, walletEVMAddress, viemChain, notify],
+  );
 
   return {
     deploy,

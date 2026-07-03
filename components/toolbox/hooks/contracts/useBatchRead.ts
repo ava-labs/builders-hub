@@ -18,15 +18,18 @@ export interface BatchReadContract {
 export type BatchReadResult = { status: 'success'; result: unknown } | { status: 'failure'; error: Error };
 
 /**
- * Returns a `batchRead` function that executes multiple contract reads
- * in a single RPC call using viem's deployless multicall.
+ * Returns a `batchRead` function that executes multiple contract reads.
  *
- * Deployless multicall injects Multicall3 bytecode via `eth_call` state
- * override, so it works on any EVM chain without requiring Multicall3
- * to be deployed on-chain. Zero gas cost.
+ * Primary path: viem's deployless multicall (one `eth_call`, zero gas) —
+ * Multicall3 bytecode is injected so no on-chain deployment is required.
+ * `deployless: true` is passed explicitly because the client no longer
+ * enables `batch.multicall` (see useChainPublicClient for why).
  *
- * The public client is configured with `batch.multicall.deployless: true`
- * in `useChainPublicClient`, so all multicall calls auto-use deployless mode.
+ * Fallback path: L1s that enable the Subnet-EVM Contract Deployer Allowlist
+ * precompile reject the deployless multicall's contract-creation `eth_call`
+ * ("tx.origin … is not authorized to deploy a contract"). When that happens
+ * we transparently fall back to sequential plain `eth_call` reads, which the
+ * precompile permits.
  *
  * @param publicClient - The viem public client (from useChainPublicClient)
  */
@@ -37,17 +40,34 @@ export function useBatchRead(publicClient: PublicClient | null) {
         throw new Error('Public client not available');
       }
 
-      const results = await publicClient.multicall({
-        contracts: contracts.map((c) => ({
-          address: c.address,
-          abi: c.abi as Abi,
-          functionName: c.functionName,
-          args: c.args ?? [],
-        })),
-        allowFailure: true,
-      });
+      const mapped = contracts.map((c) => ({
+        address: c.address,
+        abi: c.abi as Abi,
+        functionName: c.functionName,
+        args: c.args ?? [],
+      }));
 
-      return results as BatchReadResult[];
+      try {
+        const results = await publicClient.multicall({
+          contracts: mapped,
+          allowFailure: true,
+          deployless: true,
+        });
+        return results as BatchReadResult[];
+      } catch {
+        // Deployless multicall is blocked by the Contract Deployer Allowlist
+        // precompile on permissioned L1s — fall back to sequential reads.
+        return Promise.all(
+          mapped.map(async (c): Promise<BatchReadResult> => {
+            try {
+              const result = await publicClient.readContract(c);
+              return { status: 'success', result };
+            } catch (error) {
+              return { status: 'failure', error: error as Error };
+            }
+          }),
+        );
+      }
     };
   }, [publicClient]);
 }

@@ -1,5 +1,5 @@
-import SendNotificationsForm from "@/components/notification/send-notifications-form";
+import { redirect } from "next/navigation";
 
-export default async function Page() {
-  return <SendNotificationsForm />;
+export default function SendNotificationsPage() {
+  redirect("/profile?tab=notifications");
 }

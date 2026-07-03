@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
 import { NavigationMenu } from "@/components/hackathons/NavigationMenu";
@@ -15,13 +17,19 @@ import JoinBannerLink from "@/components/hackathons/hackathon/JoinBannerLink";
 import { EventReferralButton } from "@/components/hackathons/hackathon/EventReferralModal";
 import type { HackathonHeader } from "@/types/hackathons";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import type { SubmissionStatus } from "@/lib/hackathons/submission-progress";
+import StagesSection from "@/components/hackathons/hackathon/sections/StagesSection";
 
 interface LegacyEventLayoutProps {
   hackathon: HackathonHeader;
   id: string;
   isRegistered: boolean;
   isAuthenticated: boolean;
-  utm: string;
+  submissionStatus?: SubmissionStatus;
+  submissionProgress?: number;
+  submissionProjectId?: string | null;
+  /** Editor preview: banner overlay + stages use preview-safe behavior. */
+  isPreview?: boolean;
 }
 
 export default function LegacyEventLayout({
@@ -29,7 +37,10 @@ export default function LegacyEventLayout({
   id,
   isRegistered,
   isAuthenticated,
-  utm,
+  submissionStatus = "none",
+  submissionProgress = 0,
+  submissionProjectId = null,
+  isPreview = false,
 }: LegacyEventLayoutProps) {
   const lang = normalizeEventsLang(hackathon.content?.language);
 
@@ -52,6 +63,13 @@ export default function LegacyEventLayout({
     hackathon.content.partners.length > 0;
 
   const isHackathon = (hackathon.event || "hackathon") === "hackathon";
+
+  const scheduleSource = hackathon.google_calendar_id
+    ? "google-calendar"
+    : "database";
+  const googleCalendarConfig = hackathon.google_calendar_id
+    ? { calendarId: hackathon.google_calendar_id }
+    : undefined;
 
   const menuItems = [
     ...(hasAbout ? [{ name: t(lang, "menu.about"), ref: "about" }] : []),
@@ -80,7 +98,7 @@ export default function LegacyEventLayout({
       <div className="pl-4 flex flex-wrap gap-4 items-center">
         <Image
           src={
-            hackathon.icon.trim().length > 0
+            /^(https?:\/\/|\/)/.test((hackathon.icon ?? '').trim())
               ? hackathon.icon
               : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/project-logo-ILfO9EujWnQj1xMZpIIWTZ8mc87I7f.png"
           }
@@ -106,7 +124,6 @@ export default function LegacyEventLayout({
           className="w-2/5 md:w-1/3 lg:w-1/4 cursor-pointer"
           variant="red"
           showChatWhenRegistered={true}
-          utm={utm}
           lang={lang}
         />
       </div>
@@ -121,42 +138,53 @@ export default function LegacyEventLayout({
               id={id}
               isTopMost={false}
               isRegistered={isRegistered}
-              utm={utm}
+              isPreview={isPreview}
             />
             <JoinBannerLink
               isRegistered={isRegistered}
               hackathonId={id}
               customLink={hackathon.content.join_custom_link}
               bannerSrc={
-                hackathon.banner?.trim().length > 0
-                  ? hackathon.banner
+                /^(https?:\/\/|\/|data:)/.test((hackathon.banner ?? '').trim())
+                  ? hackathon.banner!
                   : "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/hackathon-images/main_banner_img-crBsoLT7R07pdstPKvRQkH65yAbpFX.png"
               }
               altText="Hackathon background"
-              utm={utm}
             />
           </div>
           <div className="py-8 sm:p-8 flex flex-col gap-20">
+            {hackathon.content.stages && hackathon.content.stages.length > 0 && (
+              <StagesSection
+                stages={hackathon.content.stages}
+                hackathon={hackathon}
+                renderInPreview={isPreview}
+              />
+            )}
             {hasAbout && <About hackathon={hackathon} />}
             {isHackathon && hasTracks && <Tracks hackathon={hackathon} />}
             {hasResources && <Resources hackathon={hackathon} />}
             {hasSchedule && (
               <Schedule
                 hackathon={hackathon}
-                scheduleSource={
-                  hackathon.google_calendar_id ? "google-calendar" : "database"
-                }
-                googleCalendarConfig={
-                  hackathon.google_calendar_id
-                    ? { calendarId: hackathon.google_calendar_id }
-                    : undefined
-                }
+                scheduleSource={scheduleSource}
+                googleCalendarConfig={googleCalendarConfig}
               />
             )}
-            {isHackathon && <Submission hackathon={hackathon} isRegistered={isRegistered} isAuthenticated={isAuthenticated} utm={utm} />}
+            {isHackathon && (
+              <Submission
+                hackathon={hackathon}
+                isRegistered={isRegistered}
+                isAuthenticated={isAuthenticated}
+                submissionStatus={submissionStatus}
+                submissionProgress={submissionProgress}
+                submissionProjectId={submissionProjectId}
+              />
+            )}
             {hasSpeakers && <MentorsJudges hackathon={hackathon} />}
             <Community hackathon={hackathon} />
-            {hasPartners && <Sponsors hackathon={hackathon} />}
+            {hasPartners && (
+              <Sponsors hackathon={hackathon} isPreview={isPreview} />
+            )}
           </div>
         </div>
       </div>

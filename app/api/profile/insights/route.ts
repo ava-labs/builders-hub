@@ -5,9 +5,6 @@ import { withAuth } from "@/lib/protectedRoute";
 import { canAccessBuilderInsights } from "@/lib/auth/permissions";
 import { getBuilderInsightsData } from "@/server/services/builderInsights";
 
-// PostHog HogQL queries inside getBuilderInsightsData fluctuate by definition
-// (they're rolling windows). Opt out of route caching so DevRel always sees
-// fresh data each time the Insights tab is opened.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 

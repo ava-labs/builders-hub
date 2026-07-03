@@ -9,12 +9,12 @@ import { Input } from '@/components/toolbox/components/Input';
 import { Alert } from '@/components/toolbox/components/Alert';
 import { useNativeTokenStakingManager, useERC20TokenStakingManager } from '@/components/toolbox/hooks/contracts';
 import { useUptimeProof } from '@/components/toolbox/hooks/useUptimeProof';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import { packWarpIntoAccessList } from '@avalanche-sdk/interchain/warp';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import { CAST_COMMANDS } from '@/components/toolbox/console/shared/pchainCommands';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { type StakingType } from '@/components/toolbox/contexts/ValidatorManagerContext';
-import { cb58ToHex } from '@/components/toolbox/console/utilities/format-converter/FormatConverter';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import { Check, AlertCircle, ArrowUpCircle, Server, Shield, ShieldOff } from 'lucide-react';
 import Link from 'next/link';
@@ -136,7 +136,7 @@ export default function ValidatorUptimeDashboard({
         let hexId = v.validationID || '';
         if (hexId && !hexId.startsWith('0x')) {
           try {
-            hexId = '0x' + cb58ToHex(hexId);
+            hexId = CB58ToHex(hexId);
           } catch {
             /* keep original */
           }

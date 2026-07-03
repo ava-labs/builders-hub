@@ -1,66 +1,85 @@
+import { HackathonEvaluationPhase } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { badgeAssignmentService } from "./badgeAssignmentService";
 import { AssignBadgeResult, BadgeCategory } from "./badge";
 
+export class WinnerOperationError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "WinnerOperationError";
+  }
+}
+
 export async function SetWinner(
   project_id: string,
   isWinner: boolean,
-  awardedBy: string
+  awardedBy: string,
 ) {
-  // Check if project exists and get current winner status
   const existingProject = await prisma.project.findUnique({
     where: { id: project_id },
-    select: { is_winner: true },
+    select: { is_winner: true, hackaton_id: true },
   });
 
   if (!existingProject) {
     throw new Error("Project not found");
   }
 
-  // Check if project is already a winner
-  if (existingProject.is_winner === true && isWinner === true) {
-    return {
-      success: false,
-      message: "Project is already set as winner",
-      alreadyWinner: true,
-      badge_id: "",
-      user_id: "",
-      badges: [],
-    };
+  if (!existingProject.hackaton_id) {
+    throw new WinnerOperationError(
+      "Project is not attached to a hackathon",
+      400,
+    );
   }
+
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: existingProject.hackaton_id },
+    select: { id: true, evaluation_phase: true },
+  });
+  if (!hackathon) {
+    throw new WinnerOperationError("Hackathon not found", 404);
+  }
+  if (hackathon.evaluation_phase !== HackathonEvaluationPhase.PICKING) {
+    throw new WinnerOperationError(
+      "Winners can only be set once the hackathon is in the picking phase",
+      409,
+    );
+  }
+
+  const wasWinner = existingProject.is_winner === true;
 
   const project = await prisma.project.update({
     where: { id: project_id },
     data: { is_winner: isWinner },
   });
-  const body = {
-    projectId: project_id,
-    userId: "",
-    hackathonId: project.hackaton_id,
-    awardedBy: awardedBy,
-    category: BadgeCategory.project,
-  };
+
   let result: AssignBadgeResult & { alreadyWinner?: boolean } = {
     success: true,
-    message: "Project winner status updated successfully",
+    message: isWinner
+      ? "Project winner status updated successfully"
+      : "Project winner status cleared",
     badge_id: "",
     user_id: "",
     badges: [],
   };
 
-  if (isWinner === true) {
-    // HackathonId must be string or undefined, not null
-    const sanitizedBody = {
-      ...body,
-      hackathonId: project.hackaton_id ?? undefined,
-    };
-
-    const badge = await badgeAssignmentService.assignBadge(sanitizedBody, awardedBy);
-    result = {
-      ...badge,
-      success: true,
-    };
+  if (isWinner && !wasWinner) {
+    const badge = await badgeAssignmentService.assignBadge(
+      {
+        projectId: project_id,
+        userId: "",
+        hackathonId: project.hackaton_id ?? undefined,
+        category: BadgeCategory.project,
+      },
+      awardedBy,
+    );
+    result = { ...badge, success: true };
   }
 
-  return result;
+  return {
+    ...result,
+    isWinner: project.is_winner ?? false,
+  };
 }

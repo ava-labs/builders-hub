@@ -1,0 +1,265 @@
+{
+  "title": "Team1 Soft Skills",
+  "quizzes": {
+    "4110": {
+      "question": "What is the 'curse of knowledge' and why is it a problem for Team1 members explaining Avalanche?",
+      "options": [
+        "It's the risk of sharing confidential protocol information with the wrong audience",
+        "It's the cognitive bias where someone who deeply understands a subject can no longer easily simulate what it was like to not know it, causing them to explain things in ways that skip the steps newcomers actually need",
+        "It refers to having too many competing frameworks in mind when answering a technical question",
+        "It's the tendency to overclaim knowledge you don't actually have in public settings"
+      ],
+      "correctAnswers": [1],
+      "hint": "Think about what happens to your mental model of a concept once you've fully internalized it. Can you still access the state of not knowing it?",
+      "explanation": "The curse of knowledge is a well-documented cognitive bias: once you know something deeply, your brain can no longer easily simulate not knowing it. For Team1 members, this means experienced contributors often explain Avalanche by skipping the steps that made it make sense to them, because those steps no longer feel like steps. Recognizing the bias is the first move toward correcting for it.",
+      "chapter": "Module 1: Communication & Storytelling"
+    },
+    "4111": {
+      "question": "A non-technical journalist asks you to explain what Avalanche does in 30 seconds. Which approach is most effective?",
+      "options": [
+        "Walk them through the technical architecture: P-Chain, C-Chain, subnet-evm, and Snowman consensus",
+        "Start with a real-world analogy that maps Avalanche onto something familiar, then layer in technical detail only if they ask for it",
+        "Tell them to read the official Avalanche documentation and follow up with questions",
+        "Ask them to complete the Avalanche Fundamentals course before the interview so the context is right"
+      ],
+      "correctAnswers": [1],
+      "hint": "Journalists work with stories and familiar reference points, not whitepapers. What creates the hook that makes them want to understand more?",
+      "explanation": "Non-technical audiences need a mental hook before technical details can land. A well-chosen analogy creates the structure that makes the technical specifics meaningful rather than overwhelming, for example: 'Think of Avalanche like a shoe factory. The C-Chain is one type of shoe the factory produces. The factory provides all the underlying infrastructure, and other products can be built on top of it.' Starting with the technical stack before any context almost always loses a non-technical audience in the first sentence.",
+      "chapter": "Module 1: Communication & Storytelling"
+    },
+    "4112": {
+      "question": "When explaining the same blockchain concept to a developer and a first-time crypto user, what should stay the same and what should change?",
+      "options": [
+        "Everything should change; they need completely different information, not just different packaging",
+        "Nothing should change; consistency across audiences is important for brand alignment",
+        "The core message should stay the same, while the language, analogies, and technical depth adapt to match each audience's existing knowledge",
+        "The topic order should reverse for developers since they prefer to start from first principles and work upward"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what the speaker is trying to communicate versus how they're communicating it.",
+      "explanation": "The core message (what Avalanche does and why it matters) stays constant. What adapts is everything else: vocabulary, analogies, depth of technical detail, assumed context. A developer can handle precise terminology and architecture diagrams. A newcomer needs analogies, simpler vocabulary, and a reason to care before the technical pieces are introduced. Adapting is not dumbing down: it's calibrating.",
+      "chapter": "Module 1: Communication & Storytelling"
+    },
+    "4113": {
+      "question": "Which storytelling structure is most effective for explaining a complex blockchain concept to a new audience?",
+      "options": [
+        "Lead with the full technical specification, then give a simplified summary at the end",
+        "Start with the project's token price and market trajectory to establish credibility, then connect it to the technology",
+        "Name a problem the audience already recognizes, show why existing approaches fall short, then introduce the blockchain solution as the resolution",
+        "Open with your personal background to establish authority before explaining the concept"
+      ],
+      "correctAnswers": [2],
+      "hint": "Stories create investment before revealing the payoff. What does the audience need to feel before they're ready to receive the solution?",
+      "explanation": "The problem-solution narrative works because it creates stakes before the answer arrives. When the audience understands and relates to the problem, they're motivated to understand the solution. Opening with the technical specification or with token price gives the audience no emotional or intellectual hook; they have no reason yet to care about the answer. The problem-solution frame does the same work as any good story structure: it earns the reveal.",
+      "chapter": "Module 1: Communication & Storytelling"
+    },
+    "4114": {
+      "question": "What is the most common structural reason presentations fail to connect with their audience?",
+      "options": [
+        "The speaker uses too many slides",
+        "The audience is not genuinely interested in the topic",
+        "The presentation covers too many topics without a clear central thread, so the audience can't identify what they're supposed to take away",
+        "The event is scheduled at an inconvenient time"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what it's like to watch a presentation where every section feels disconnected from the others.",
+      "explanation": "The most common failure is not lack of content but too much content without a spine. When a speaker tries to cover everything they know, the audience loses the thread and retains little. A single clear core message, with supporting points that all connect back to it, gives the audience something to hold onto. This is sometimes called the 'rule of one': one talk, one central idea, everything else in service of it.",
+      "chapter": "Module 2: Public Speaking & Presentations"
+    },
+    "4115": {
+      "question": "You feel nervous before presenting at a Team1 meetup. What is the most useful way to work with that feeling?",
+      "options": [
+        "Try to suppress the nervousness through breathing exercises until it disappears completely",
+        "Reframe the feeling as excitement; the physiological state is nearly identical, and telling yourself 'I'm excited' has been shown to improve performance compared to trying to calm down",
+        "Delay the presentation until you feel ready, since presenting while nervous leads to poor outcomes",
+        "Reduce the scope of your talk so there's less to be nervous about"
+      ],
+      "correctAnswers": [1],
+      "hint": "The body's arousal response is similar whether you call it nervousness or excitement. What changes when you relabel it?",
+      "explanation": "Research by psychologist Alison Wood Brooks showed that people who told themselves 'I'm excited' before a high-pressure task outperformed those who tried to calm down. The physiological state (elevated heart rate, heightened awareness) is nearly identical in nervousness and excitement. Reframing works with that state rather than against it. Trying to suppress the feeling often makes it more prominent. The preparation that lets you trust your material is the deeper antidote.",
+      "chapter": "Module 2: Public Speaking & Presentations"
+    },
+    "4116": {
+      "question": "What is the key difference between facilitating a workshop and delivering a keynote talk?",
+      "options": [
+        "A keynote uses slides; a workshop never does",
+        "Workshops are only suitable for technical content; keynotes work for both technical and community topics",
+        "In a keynote, the speaker carries the experience; in a workshop, the facilitator designs and guides participant activity, and participants do most of the thinking and talking",
+        "The two formats are essentially the same; the difference is just audience size"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about who does the majority of the intellectual work: the speaker or the participants.",
+      "explanation": "A keynote is a one-to-many format where the speaker carries the experience. A workshop is participatory: the facilitator's job is to design and guide activities, not to lecture continuously. In a well-run workshop, the facilitator speaks less than 40% of the time. When Team1 members show up to a 'workshop' with 45 dense slides and spend 90 minutes presenting them, that's a talk, and likely not what participants came expecting.",
+      "chapter": "Module 2: Public Speaking & Presentations"
+    },
+    "4117": {
+      "question": "During Q&A after your presentation, someone asks a question you genuinely don't know the answer to. What should you do?",
+      "options": [
+        "Construct a plausible-sounding answer to maintain authority in the room, then correct it quietly later if needed",
+        "Skip to the next question without acknowledging theirs",
+        "Deflect to someone else in the audience without admitting uncertainty",
+        "Acknowledge clearly that you don't know, thank them for the question, and commit to finding the answer and following up. Then actually do it."
+      ],
+      "correctAnswers": [3],
+      "hint": "Which approach builds more long-term credibility: admitting uncertainty or risking a fabricated answer being caught later?",
+      "explanation": "Saying 'I don't know, but I'll find out' is one of the most credibility-building moves a speaker can make. Audiences respect authenticity and can usually tell when an answer is constructed on the spot. A fabricated answer risks being wrong publicly, which damages trust far more than honest uncertainty. Following up after the event also creates a natural relationship touchpoint with the person who asked, turning a gap in knowledge into a connection.",
+      "chapter": "Module 2: Public Speaking & Presentations"
+    },
+    "4118": {
+      "question": "A Team1 member attends a conference and focuses on collecting as many contacts as possible in the time available. What is the main risk of this approach?",
+      "options": [
+        "They may run out of storage on their phone from too many new contacts",
+        "Event organizers may see the behavior as disruptive",
+        "Optimizing for quantity of contacts typically produces shallow interactions that don't develop into meaningful or lasting relationships",
+        "They risk missing important talks by spending too much time in the hallway"
+      ],
+      "correctAnswers": [2],
+      "hint": "What does a relationship actually require to form? Does a 90-second contact exchange provide it?",
+      "explanation": "Research on relationship formation consistently shows that depth matters more than breadth. A few genuine conversations (where both parties understand each other's work, interests, or challenges) produce relationships that last and create real value. Speed-networking approaches where you exchange dozens of contacts produce people who can't remember each other a week later. The conference playbook that produces lasting connections is fewer, longer, more real conversations.",
+      "chapter": "Module 3: Networking & Relationship Building"
+    },
+    "4119": {
+      "question": "What makes a follow-up message after a networking conversation actually effective?",
+      "options": [
+        "Sending it as quickly as possible, even within minutes of meeting, to demonstrate enthusiasm",
+        "Waiting at least two weeks so you don't appear too eager",
+        "Following up within 24-48 hours, referencing something specific from the conversation, and offering something useful or suggesting a concrete next step",
+        "Keeping it brief and generic ('great to meet you') to avoid coming across as pushy"
+      ],
+      "correctAnswers": [2],
+      "hint": "What distinguishes a follow-up that feels genuine from one that feels like a form letter?",
+      "explanation": "Effective follow-ups combine timing, specificity, and value. Within 24-48 hours keeps you fresh in the other person's memory. Referencing something specific from the conversation, for example 'you mentioned you were working on X', proves the exchange was real, not transactional. Offering something useful or suggesting a next step converts the conversation from a one-time event into the beginning of an actual relationship. Generic messages signal that the conversation wasn't particularly memorable to you.",
+      "chapter": "Module 3: Networking & Relationship Building"
+    },
+    "4120": {
+      "question": "Which of the following best describes a 'value-first' approach to networking in Web3 communities?",
+      "options": [
+        "Connecting only with people whose reputation or following is higher than yours",
+        "Asking for introductions, opportunities, or help immediately after introducing yourself to be direct and efficient",
+        "Contributing useful content, helping others with their questions, or making introductions before you ever ask for something in return",
+        "Attending only exclusive events where access signals credibility"
+      ],
+      "correctAnswers": [2],
+      "hint": "Think about what happens to a community member's reputation over time if they only ever ask and never give.",
+      "explanation": "Value-first networking means building a reputation as someone who contributes before they ask. In Web3 communities this looks like answering questions in Discord, sharing relevant resources, making introductions between people who should know each other, or highlighting someone else's work when it deserves more attention. Over time this builds social capital that makes your eventual asks feel natural rather than transactional. The most effective version of it is genuinely being helpful without keeping score.",
+      "chapter": "Module 3: Networking & Relationship Building"
+    },
+    "4121": {
+      "question": "You want to start a conversation at a blockchain conference with someone whose work you've followed online. What opening is most likely to lead to a genuine conversation?",
+      "options": [
+        "'Can I get your contact info?' (direct and efficient)",
+        "Reference something specific about their work, share a genuine reaction, and ask an open question they can't answer with yes or no",
+        "Start with a 60-second pitch covering everything you've built and accomplished",
+        "Wait for them to approach you first; initiating conversation signals neediness"
+      ],
+      "correctAnswers": [1],
+      "hint": "The other person wants to feel genuinely seen, not evaluated or sold to. What makes someone want to keep talking?",
+      "explanation": "Referencing specific work shows you actually paid attention. A genuine reaction creates common ground. An open question gives them space to share perspective rather than give a mechanical reply. Asking for contact info immediately signals the interaction is transactional. A 60-second self-pitch puts the focus on you when the other person hasn't yet been given a reason to care. People enjoy conversations most when they feel seen and understood, so start from there.",
+      "chapter": "Module 3: Networking & Relationship Building"
+    },
+    "4122": {
+      "question": "What distinguishes active listening from simply hearing what someone says?",
+      "options": [
+        "Active listening means making eye contact and nodding regularly; these are the key markers",
+        "Active listening means forming your response while the other person is still talking so you're ready to reply immediately",
+        "Active listening means fully focusing on the speaker's words and intent, then reflecting understanding back through paraphrase, questions, or acknowledgment, rather than just waiting for your turn to speak",
+        "Active listening is a formal technique only relevant in structured settings like counseling or negotiations"
+      ],
+      "correctAnswers": [2],
+      "hint": "What does the speaker need from you beyond just the absence of interruption?",
+      "explanation": "Active listening is a deliberate practice: you focus entirely on the speaker, track both content and emotion, and demonstrate understanding before responding. Techniques like paraphrasing ('So what you're saying is...'), asking clarifying questions, and acknowledging feelings before offering information are all part of it. Most people spend the time someone else is talking preparing their own response; active listening means resisting that impulse and staying present until you actually understand.",
+      "chapter": "Module 4: Active Listening & Empathy"
+    },
+    "4123": {
+      "question": "A new community member posts in Team1 Discord expressing frustration that their event proposal was rejected without clear feedback. What is the most effective first response from a Team1 moderator?",
+      "options": [
+        "Explain the rejection criteria immediately so the member has the information they need",
+        "Tell them rejections are common and they should try again with a stronger proposal",
+        "Acknowledge the frustration first, validate that wanting feedback is reasonable, and ask what kind of support would be most helpful, before giving information",
+        "Ask the member to DM you directly to keep the main channel clean"
+      ],
+      "correctAnswers": [2],
+      "hint": "When someone is frustrated, what do they need to receive before information can actually land?",
+      "explanation": "When a community member is emotionally activated, information-first responses often feel dismissive even when the information is accurate. Acknowledging the emotion first makes the person feel heard: 'That's a frustrating experience, especially when you've put work into something.' Once they feel understood, they're genuinely open to the explanation. Skipping the acknowledgment almost always causes the response to land poorly regardless of how correct the information is.",
+      "chapter": "Module 4: Active Listening & Empathy"
+    },
+    "4124": {
+      "question": "What is the primary risk of relying exclusively on text-based communication for community management in a global team?",
+      "options": [
+        "Text is not searchable or archivable, making it hard to reference past decisions",
+        "Text communication loses tone, facial expression, and vocal cadence, making it easy to misread neutral messages as hostile or dismissive, especially across cultural contexts",
+        "Text communication is too slow for a fast-moving ecosystem like Web3",
+        "Text channels fill up quickly and become hard to navigate"
+      ],
+      "correctAnswers": [1],
+      "hint": "What information do you rely on in face-to-face conversation that completely disappears when communication moves to text?",
+      "explanation": "Most of what gets communicated in person goes beyond the words themselves: tone of voice, facial expression, body language, pace. In text, you only have the words. A neutral statement can easily be read as cold; a brief reply reads as dismissive; a correction reads as hostile. This happens most often across cultural contexts, where norms around directness vary. Good community managers compensate by being explicit about tone, using formatting to signal effort, and recognizing when a conversation needs to move to voice.",
+      "chapter": "Module 4: Active Listening & Empathy"
+    },
+    "4125": {
+      "question": "In the context of community management, what does practicing empathy actually require of you?",
+      "options": [
+        "Agreeing with everything community members say in order to keep the peace",
+        "Feeling the same emotions as the people you're managing",
+        "Taking time to genuinely understand someone's perspective and situation before responding, which doesn't require agreement but does require treating their experience as real and valid",
+        "Avoiding any situation that might produce conflict"
+      ],
+      "correctAnswers": [2],
+      "hint": "Empathy is often confused with agreement. Think about what it actually requires of the person practicing it.",
+      "explanation": "Empathy in community management means recognizing that the other person's experience is real to them, even if you see the situation differently. It doesn't require agreement or abandoning your position. It requires creating the conditions for productive conversation by demonstrating that you've genuinely tried to understand their perspective first. This is what makes difficult conversations navigable: not softness, but the willingness to understand before you respond.",
+      "chapter": "Module 4: Active Listening & Empathy"
+    },
+    "4126": {
+      "question": "What is 'leadership without authority' and why is it especially relevant in Team1?",
+      "options": [
+        "It refers to making decisions without consulting the team, which is seen as efficient in decentralized contexts where consensus is slow",
+        "It's the ability to influence and coordinate others through trust, expertise, and relationship rather than through a formal title or power over others, which is the primary mode available in a volunteer-driven community like Team1",
+        "It's the authority granted to regional leads in the Team1 program structure",
+        "It means stepping back from leadership roles and focusing on peer collaboration instead"
+      ],
+      "correctAnswers": [1],
+      "hint": "In a volunteer community, what actual leverage does a 'leader' have over other members?",
+      "explanation": "In Team1, nobody can be told what to do. Members participate voluntarily, so the only sustainable influence is built through trust, genuine expertise, and the relationships developed over time. Leadership without authority means getting people to move in a direction because they want to, not because they have to. This mode of leadership is harder than authority-based leadership in some ways, but it produces more durable results and is the only kind that actually works in decentralized volunteer contexts.",
+      "chapter": "Module 5: Leadership in Decentralized Communities"
+    },
+    "4127": {
+      "question": "How can a Team1 regional lead make decisions effectively across a globally distributed, asynchronous team?",
+      "options": [
+        "Schedule daily synchronous meetings so everyone is aligned before any decision is made",
+        "Make all decisions unilaterally and announce them afterward to avoid coordination delays",
+        "Establish clear async processes: document decisions with reasoning, define bounded input windows for feedback, and bias toward action once the window closes",
+        "Escalate all decisions to the Avalanche Foundation so no one regional lead bears the responsibility"
+      ],
+      "correctAnswers": [2],
+      "hint": "Daily synchronous meetings across many time zones are expensive and often impossible. What works instead?",
+      "explanation": "In asynchronous environments, effective leaders document decisions with their reasoning (so people who weren't in the conversation can understand and evaluate them), create bounded windows for input (so discussions don't drag indefinitely), and then act when the window closes. This respects everyone's time zones and schedules while still allowing participation. Unilateral decisions lose buy-in; endless consensus-seeking stalls progress. The async model is neither: it's structured decisiveness with visibility.",
+      "chapter": "Module 5: Leadership in Decentralized Communities"
+    },
+    "4128": {
+      "question": "A longtime Team1 member has been organizing events and supporting builders for months and is starting to feel burned out. What is the most constructive response?",
+      "options": [
+        "Push through and keep contributing at the same level; consistency is what Team1 values",
+        "Leave the program entirely rather than contribute at a reduced level",
+        "Recognize the signs early, communicate proactively with regional leads about reduced capacity, and deliberately scope down to a sustainable level rather than disappearing suddenly",
+        "Wait for the feeling to pass before telling anyone; most burnout resolves on its own"
+      ],
+      "correctAnswers": [2],
+      "hint": "What's more valuable to a community over six months: a member contributing at 20% sustainably, or at 100% for one month then silent?",
+      "explanation": "Burnout is common in volunteer communities, especially among the most active members. The healthiest response is to recognize the signs early (a drop in motivation, tasks feeling heavier, reduced enjoyment of previously rewarding work), communicate proactively about reduced capacity, and adjust scope before it becomes a crisis. Suddenly going quiet leaves gaps and wastes the knowledge and relationships the member built. The community can adapt far better to a heads-up than to an unexplained disappearance.",
+      "chapter": "Module 5: Leadership in Decentralized Communities"
+    },
+    "4129": {
+      "question": "What does effective mentoring of a new Team1 member look like over time?",
+      "options": [
+        "Answering every question as quickly as possible for as long as they need, so they always have support available",
+        "Assigning them a structured task list from day one so they stay productive",
+        "Sharing context, answering questions, and connecting them with resources early, while deliberately stepping back as they build their own judgment and relationships, since the goal is independence, not dependency",
+        "Mentoring is not a Team1 responsibility; new members should find their way independently"
+      ],
+      "correctAnswers": [2],
+      "hint": "A good mentor helps people need them less, not more. What does that trajectory look like?",
+      "explanation": "Effective mentoring in Team1 is front-loaded: share how things actually work (not just what the docs say), who to ask when stuck, and what the informal norms are. As the new member builds confidence and connections, your involvement should taper deliberately. The goal is to accelerate their independence, not to become indispensable. A mentor who stays deeply involved after the member has found their footing is limiting the mentee's growth and their own time. The mark of good mentoring is a member who doesn't need you anymore.",
+      "chapter": "Module 5: Leadership in Decentralized Communities"
+    }
+  }
+}

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Copy, Check, ChevronDown } from "lucide-react";
-import { hexToCB58, cb58ToHex } from "@/components/toolbox/console/utilities/format-converter/FormatConverter";
+import { hexToCB58, CB58ToHex } from "@avalanche-sdk/client/utils";
 
 type IdFormat = "cb58" | "hex";
 
@@ -112,13 +112,10 @@ export function FormatToggleIdChip({
 
     try {
       if (originalFormat === "cb58" && selectedFormat === "hex") {
-        // Convert CB58 to hex
-        const hex = cb58ToHex(value);
-        return "0x" + hex;
+        return CB58ToHex(value);
       } else if (originalFormat === "hex" && selectedFormat === "cb58") {
-        // Convert hex to CB58 - strip 0x prefix if present
-        const cleanHex = value.startsWith("0x") ? value.slice(2) : value;
-        return hexToCB58(cleanHex);
+        const hex = (value.startsWith("0x") ? value : `0x${value}`) as `0x${string}`;
+        return hexToCB58(hex);
       }
     } catch (error) {
       // If conversion fails, return original value

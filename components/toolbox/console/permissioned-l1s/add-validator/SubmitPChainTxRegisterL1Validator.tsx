@@ -9,7 +9,8 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Check } from 'lucide-react';
-import { extractWarpMessageFromReceipt, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
+import { extractWarpMessageFromReceipt } from '@avalanche-sdk/interchain/warp';
+import { validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
@@ -192,7 +193,7 @@ const SubmitPChainTxRegisterL1Validator: React.FC<SubmitPChainTxRegisterL1Valida
     if (!signedWarpMessage) return '';
     const network = isTestnet ? 'fuji' : 'mainnet';
     return [
-      `platform l1 register-validator \\`,
+      `platform-cli l1 register-validator \\`,
       `  --message "${signedWarpMessage}" \\`,
       `  --pop "${blsProofOfPossession || '<BLS_PROOF>'}" \\`,
       `  --balance ${validatorBalance || '<BALANCE_AVAX>'} \\`,

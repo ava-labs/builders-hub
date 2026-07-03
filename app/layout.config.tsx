@@ -28,6 +28,7 @@ import {
   DraftingCompass,
   Gamepad2,
   Flame,
+  Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
@@ -207,6 +208,12 @@ export const chatMenu: MainItemType = {
   type: "main",
   text: "Chat",
   url: "/chat"
+};
+
+export const careersMenu: MainItemType = {
+  type: "main",
+  text: "Ecosystem Careers",
+  url: "/ecosystem-careers"
 };
 
 export const docsMenu: LinkItemType = {
@@ -607,6 +614,7 @@ export const baseOptions: BaseLayoutProps = {
     chatMenu,
     consoleMenu,
     docsMenu,
+    careersMenu,
     eventsMenu,
     explorerMenu,
     grantsMenu,

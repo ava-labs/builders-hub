@@ -92,7 +92,7 @@ const normalizeLinkArray = (val: unknown): string[] => {
 };
 
 /** Builds a schema for an array of URL strings with duplicate and validity checks. */
-const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage: string }) =>
+const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage: string; requiredMessage?: string }) =>
   z
     .array(z.string())
     .optional()
@@ -101,6 +101,10 @@ const buildUrlArraySchema = (options: { duplicateMessage: string; invalidMessage
       message: options.duplicateMessage,
     })
     .superRefine((links, ctx) => {
+      if (options.requiredMessage && links.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: options.requiredMessage, path: [] });
+        return;
+      }
       const hasInvalid = links.some((link) => !isValidHttpUrl(link));
       if (hasInvalid) {
         ctx.addIssue({
@@ -123,17 +127,19 @@ const BaseFormSchema = z.object({
     .max(280, { message: 'Max 280 characters allowed' }),
   full_description: z
     .string()
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Full description is required' }),
   tech_stack: z
     .string()
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Tech stack is required' }),
+  tech_stack_tags: z
+    .array(z.string())
+    .min(1, { message: 'Select at least one tech stack type' }),
   github_repository: z.preprocess(
     normalizeLinkArray,
     buildUrlArraySchema({
       duplicateMessage: 'Duplicate repository links are not allowed',
       invalidMessage: 'Please enter valid repository links (e.g. https://github.com/user/repo)',
+      requiredMessage: 'At least one repository link is required',
     })
   ),
   explanation: z.string().optional(),
@@ -142,6 +148,7 @@ const BaseFormSchema = z.object({
     buildUrlArraySchema({
       duplicateMessage: 'Duplicate demo links are not allowed',
       invalidMessage: 'Please enter a valid URL (e.g. https://example.com)',
+      requiredMessage: 'At least one demo link is required',
     })
   ),
   is_preexisting_idea: z.boolean(),
@@ -201,6 +208,8 @@ const BaseFormSchema = z.object({
   user_id: z.string().optional(),
   is_winner: z.boolean().optional(),
   isDraft: z.boolean().optional(),
+  // Opt-in: share project info with Team1 for local support.
+  consent_sharing: z.boolean().optional(),
 });
 
 // Step schemas created from base schema (before refinements)
@@ -239,6 +248,7 @@ export const Step1Schema = BaseFormSchema.pick({
 
 export const Step2Schema = BaseFormSchema.pick({
   tech_stack: true,
+  tech_stack_tags: true,
   github_repository: true,
   explanation: true,
   demo_link: true,
@@ -316,6 +326,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       short_description: '',
       full_description: '',
       tech_stack: '',
+      tech_stack_tags: [],
       tracks: [],
       categories: [],
       other_category: '',
@@ -327,10 +338,10 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       demo_link: [],
       explanation: '',
       demo_video_link: '',
+      consent_sharing: false,
     },
   });
 
-  // Allow submission even without hackathon - projects can be standalone
   const canSubmit = state.isEditing;
 
   useEffect(() => {
@@ -345,6 +356,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
 
     const step2Fields: (keyof SubmissionForm)[] = [
       "tech_stack",
+      "tech_stack_tags",
       "github_repository",
       "explanation",
       "demo_link",
@@ -484,7 +496,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     }
   }, [state.hackathonId, session?.user?.id, toast]);
 
-  const saveProject = useCallback(async (data: SubmissionForm): Promise<{ success: boolean; projectId?: string }> => {
+  const saveProject = useCallback(async (data: SubmissionForm): Promise<{ success: boolean; projectId?: string; project?: import('@/types/project').SubmitProjectResult }> => {
     try {
 
       if (!canSubmit) {
@@ -704,6 +716,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
       tech_stack: project.tech_stack ?? '',
+      tech_stack_tags: Array.isArray(project.tech_stack_tags) ? project.tech_stack_tags : [],
       github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],
@@ -756,6 +769,7 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       logoFile: project.logo_url ?? undefined,
       coverFile: project.cover_url ?? undefined,
       screenshots: project.screenshots ?? [],
+      consent_sharing: !!project.consent_sharing,
     });
   }, [form, state.isEditing]);
 

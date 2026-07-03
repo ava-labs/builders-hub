@@ -44,7 +44,17 @@ export function withConsoleToolMetadata<P extends BaseConsoleToolProps = BaseCon
   metadata: ConsoleToolMetadata,
 ): React.ComponentType<P> & { metadata: ConsoleToolMetadata } {
   const WrappedComponent = (props: P) => {
-    const ContainerContent = () => (
+    // Render Container + BaseComponent as plain JSX so the JSX tree reuses
+    // the same element types across re-renders. The previous version declared
+    // `const ContainerContent = () => (...)` inside the render body and then
+    // returned `<ContainerContent />`. That produced a NEW component function
+    // reference every render, which React reconciliation treats as a fresh
+    // component type — unmounting and remounting the entire `<Container>` /
+    // `<BaseComponent>` subtree on every parent re-render. Tools with local
+    // `useState` (e.g. `CreateManagedTestnetRelayer` mid-flow) lost all their
+    // state whenever an ancestor re-rendered for any reason (chain switch,
+    // store update, sibling phase advance, etc.).
+    const containerElement = (
       <Container title={metadata.title} description={metadata.description} githubUrl={metadata.githubUrl}>
         <BaseComponent {...props} />
       </Container>
@@ -52,15 +62,11 @@ export function withConsoleToolMetadata<P extends BaseConsoleToolProps = BaseCon
 
     // If no tool requirements, render container directly
     if (!metadata.toolRequirements || metadata.toolRequirements.length === 0) {
-      return <ContainerContent />;
+      return containerElement;
     }
 
     // Wrap with tool requirements
-    return (
-      <CheckRequirements toolRequirements={metadata.toolRequirements}>
-        <ContainerContent />
-      </CheckRequirements>
-    );
+    return <CheckRequirements toolRequirements={metadata.toolRequirements}>{containerElement}</CheckRequirements>;
   };
 
   return Object.assign(WrappedComponent, { metadata });

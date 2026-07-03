@@ -6,16 +6,24 @@ import { useCountdown } from './Count-down';
 
 
 
+export type SubmissionWindowStatus = "open" | "closed";
+
 export const useHackathonProject = (hackathonId: string,invitationid:string) => {
   const { data: session } = useSession();
   const [hackathon, setHackathon] = useState<HackathonHeader | null>(null);
   const [project, setProject] = useState<any>(null);
-  
+
   const [deadline, setDeadline] = useState<number>(
     new Date().getTime() + 12 * 60 * 60 * 1000
   );
   const [loadData, setLoadData] = useState<boolean>(true);
   const timeLeft = useCountdown(deadline);
+
+  const submissionStatus: SubmissionWindowStatus = (() => {
+    const now = Date.now();
+    if (deadline && now > deadline) return "closed";
+    return "open";
+  })();
 
   const getHackathon = async () => {
     if (!hackathonId) return;
@@ -61,8 +69,9 @@ export const useHackathonProject = (hackathonId: string,invitationid:string) => 
     hackathon,
     project,
     timeLeft,
+    submissionStatus,
     loadData,
     setLoadData,
     getProject,
   };
-}; 
+};

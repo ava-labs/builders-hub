@@ -14,7 +14,6 @@ interface JoinBannerLinkProps {
   customLink?: string;
   bannerSrc: string;
   altText?: string;
-  utm?: string; // UTM parameter to track campaign source
 }
 
 export default function JoinBannerLink({
@@ -23,7 +22,6 @@ export default function JoinBannerLink({
   customLink,
   bannerSrc,
   altText = "Hackathon background",
-  utm = ""
 }: JoinBannerLinkProps) {
   const currentReferralCode = useCurrentReferralCode();
 
@@ -33,7 +31,7 @@ export default function JoinBannerLink({
       return customLink;
     }
     const baseUrl = `/events/registration-form?event=${hackathonId}`;
-    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode, utm });
+    return appendReferralTrackingParams(baseUrl, { referralCode: currentReferralCode });
   };
 
   const getTarget = () => {
@@ -45,13 +43,13 @@ export default function JoinBannerLink({
       href={getHref()}
       target={getTarget()}
     >
-      <Image
+      <img
         src={bannerSrc}
         alt={altText}
-        width={1270}
-        height={760}
-        className="w-full h-full"
-        priority
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
       />
     </Link>
   );

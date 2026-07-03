@@ -53,7 +53,12 @@ const getMessages = (type: EVMTransactionType, name: string) => {
 };
 
 const useEVMNotifications = () => {
-  const isTestnet = typeof window !== 'undefined' ? useWalletStore((s) => s.isTestnet) : false;
+  // Hooks must be called unconditionally — the previous `typeof window !== 'undefined' ? ... : false`
+  // guard skipped the hook on SSR which shifted React's internal hook list between renders and
+  // surfaced as transient `Cannot read properties of undefined` errors caught by `StepErrorBoundary`
+  // on first mount of phases like ICTT Remote and ICM Demo. Zustand returns the initial state in
+  // SSR contexts, so calling the selector unconditionally is safe.
+  const isTestnet = useWalletStore((s) => s.isTestnet);
   const { addLog } = useConsoleLog(false);
   const pathname = usePathname();
 

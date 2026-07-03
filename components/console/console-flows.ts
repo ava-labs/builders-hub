@@ -205,7 +205,7 @@ export const consoleFlows: Record<string, FlowMetadata> = {
     completionSummary: "You've successfully set up Interchain Messaging for your L1!",
     nextSteps: [
       {
-        path: "/console/icm/test-connection",
+        path: "/console/icm/demo",
         title: "Test ICM Connection",
         description: "Verify your cross-chain messaging setup works correctly",
         priority: "recommended",

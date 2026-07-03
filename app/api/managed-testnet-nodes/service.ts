@@ -1,7 +1,17 @@
 import { prisma } from '@/prisma/prisma';
 import { ManagedTestnetNodesServiceURLs } from './constants';
 import { SubnetStatusResponse, NodeInfo, SubnetStatusResponseSchema, ServiceErrorSchema } from './types';
-import { toDateFromEpoch, NODE_TTL_MS } from './utils';
+import { toDateFromEpoch, NODE_TTL_MS, extractServiceErrorMessage } from './utils';
+
+export class ManagedTestnetNodeServiceRequestError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ManagedTestnetNodeServiceRequestError';
+    this.status = status;
+  }
+}
 
 export async function builderHubAddNode(
   subnetId: string,
@@ -45,7 +55,34 @@ export async function builderHubAddNode(
 }
 
 export function selectNewestNode(nodes: NodeInfo[]): NodeInfo {
-  return nodes.reduce((latest, current) => current.nodeIndex > latest.nodeIndex ? current : latest);
+  return nodes.reduce((latest, current) => current.dateCreated > latest.dateCreated ? current : latest);
+}
+
+export async function builderHubDeleteNode(
+  subnetId: string,
+  nodeIndex: number,
+): Promise<{ deletedExternally: boolean }> {
+  const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
+  if (!password) {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub service is not configured');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password), {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' },
+    });
+  } catch {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub was unreachable.');
+  }
+
+  if (response.ok || response.status === 404) {
+    return { deletedExternally: response.status !== 404 };
+  }
+
+  const message = await extractServiceErrorMessage(response) || 'Failed to delete node from Builder Hub.';
+  throw new ManagedTestnetNodeServiceRequestError(502, message);
 }
 
 export async function createDbNode(params: {
@@ -117,5 +154,3 @@ export async function getUserNodes(userId: string) {
   });
   return nodes;
 }
-
-

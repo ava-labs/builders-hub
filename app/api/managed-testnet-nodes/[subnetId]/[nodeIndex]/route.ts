@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserId, validateSubnetId, jsonOk, jsonError } from '../../utils';
 import { prisma } from '@/prisma/prisma';
-import { ManagedTestnetNodesServiceURLs } from '../../constants';
-import { extractServiceErrorMessage } from '../../utils';
+import { builderHubDeleteNode, ManagedTestnetNodeServiceRequestError } from '../../service';
 
 /**
  * GET /api/managed-testnet-nodes/[subnetId]/[nodeIndex]
@@ -65,53 +64,37 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
       }
     });
 
-    // Attempt to delete from Builder Hub (even if no local record) then, if local exists, mark terminated
-    const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
-    if (!password) {
-      return jsonError(503, 'Builder Hub service is not configured');
-    }
-    
     try {
-      const response = await fetch(ManagedTestnetNodesServiceURLs.deleteNode(subnetId, nodeIndex, password), {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      if (response.ok || response.status === 404) {
-        if (nodeRegistration) {
-          await prisma.nodeRegistration.updateMany({
-            where: {
-              user_id: userId,
-              subnet_id: subnetId,
-              node_index: nodeIndex
-            },
-            data: { status: 'terminated' }
-          });
-        }
-
-        // Return success even if no local record existed
-        return jsonOk({
-          success: true,
-          deletedExternally: response.status !== 404,
-          message: response.status === 404
-            ? 'Node was already deleted / expired in Builder Hub. It is now removed from your account.'
-            : 'Node deleted in Builder Hub and removed from your account.',
-          node: nodeRegistration ? {
+      const { deletedExternally } = await builderHubDeleteNode(subnetId, nodeIndex);
+      if (nodeRegistration) {
+        await prisma.nodeRegistration.updateMany({
+          where: {
+            user_id: userId,
             subnet_id: subnetId,
-            node_index: nodeIndex,
-            status: 'terminated'
-          } : undefined
+            node_index: nodeIndex
+          },
+          data: { status: 'terminated' }
         });
       }
 
-      const message = await extractServiceErrorMessage(response) || 'Failed to delete node from Builder Hub.';
-      return jsonError(502, message);
+      // Return success even if no local record existed
+      return jsonOk({
+        success: true,
+        deletedExternally,
+        message: deletedExternally
+          ? 'Node deleted in Builder Hub and removed from your account.'
+          : 'Node was already deleted / expired in Builder Hub. It is now removed from your account.',
+        node: nodeRegistration ? {
+          subnet_id: subnetId,
+          node_index: nodeIndex,
+          status: 'terminated'
+        } : undefined
+      });
 
     } catch (hubError) {
-      console.error('Builder Hub request failed:', hubError);
-      return jsonError(503, 'Builder Hub was unreachable.', hubError);
+      const status = hubError instanceof ManagedTestnetNodeServiceRequestError ? hubError.status : 500;
+      const message = hubError instanceof Error ? hubError.message : 'Failed to delete node from Builder Hub.';
+      return jsonError(status, message, hubError);
     }
 
   } catch (error) {

@@ -79,14 +79,14 @@ Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 {
   "mcpServers": {
     "avalanche-mcp": {
-      "transport": {
-        "type": "http",
-        "url": "https://build.avax.network/api/mcp"
-      }
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://build.avax.network/api/mcp"]
     }
   }
 }
 ```
+
+Claude Desktop uses stdio transport and does not support HTTP MCP servers natively. [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) acts as a bridge from stdio to the HTTP endpoint. Node.js must be installed for `npx` to work.
 
 ## JSON-RPC Examples
 

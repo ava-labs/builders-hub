@@ -1,0 +1,166 @@
+name: Academy E2E
+
+# Runs the full Playwright suite (e2e/) against every Vercel deployment, so
+# every change gets browser-level QA on the actual built artifact — BOTH
+# tiers in one run:
+#
+#   - Render smoke   — loads every embed page, asserts the tools mount.
+#   - Transaction    — drives the console to submit REAL Fuji P-Chain txs
+#                      (Create Subnet → Create Chain) and verifies them
+#                      on-chain.
+#
+# Triggers:
+#   - Preview deployments    → every push to every branch/PR. Requires the
+#     VERCEL_AUTOMATION_BYPASS_SECRET Actions secret (previews sit behind
+#     SSO deployment protection).
+#   - Production deployment  → post-merge run against the live site.
+#   - workflow_dispatch      → run against an arbitrary URL on demand.
+#
+# Secrets:
+#   - VERCEL_AUTOMATION_BYPASS_SECRET — unlock SSO-protected previews. Injected
+#     per-request and scoped to the deployment origin in e2e/fixtures.ts (a
+#     global header leaks onto the shim's RPC fetch and breaks its CORS
+#     preflight), NOT via config.use.extraHTTPHeaders.
+#   - QA_WALLET_KEY — funded Fuji key for the transaction tier. Passed ONLY on
+#     production deploys + manual dispatch (see the Run step). Absent → the
+#     flow tier skips and only the render+shim gate runs.
+#
+# Tiers + gating: the suite runs with continue-on-error; e2e/ci-gate.mts then
+# fails the job ONLY on render/shim (smoke) failures. The live tx tier
+# (e2e/flows) is non-blocking — its failures are notices, never red. Combined
+# with the production-only key, that means: preview/PR deploys run the fast
+# deterministic render gate; production deploys additionally run real Fuji txs
+# (each spends a little testnet AVAX and leaves a throwaway subnet/chain).
+
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Base URL to test (transactions always hit Fuji testnet)'
+        required: false
+        default: 'https://build.avax.network'
+
+concurrency:
+  group: academy-e2e-${{ github.event.deployment.environment || 'manual' }}-${{ github.event.deployment.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Playwright smoke (${{ github.event.deployment.environment || 'manual' }})
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      # Decide whether to run, and SKIP (not fail) when we legitimately can't:
+      #  - the e2e/ harness isn't on the deployed commit (branch predates it), or
+      #  - it's an SSO-protected Preview deploy and the bypass secret isn't
+      #    configured, so the suite can't reach the preview URL.
+      # Skipping keeps the check green with a notice instead of red-flagging
+      # every PR until a Vercel admin adds the secret.
+      - name: Decide whether to run
+        id: gate
+        env:
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          if [ ! -f e2e/playwright.config.ts ]; then
+            echo "::notice::e2e/ harness not present at this commit — skipping smoke"
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if [ "${{ github.event.deployment.environment }}" = "Preview" ] && [ -z "$BYPASS" ]; then
+            echo "::notice::VERCEL_AUTOMATION_BYPASS_SECRET not set — preview deployments are SSO-protected, so the smoke suite can't reach them. Skipping. To enable preview smoke, turn on 'Protection Bypass for Automation' on the Vercel builder-hub project and add the secret to this repo's Actions secrets."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve target URL
+        if: steps.gate.outputs.run == 'true'
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            url="${{ github.event.inputs.target_url }}"
+          else
+            url="${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}"
+          fi
+          if [ -z "$url" ]; then
+            echo "::error::No target URL on the deployment event"; exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Smoke target: $url"
+
+      - name: Setup Node.js
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        if: steps.gate.outputs.run == 'true'
+        run: yarn install --frozen-lockfile
+
+      # `--with-deps` runs an apt system-dependency install that intermittently
+      # hangs for 15+ min on hosted runners (mesa/font package configure). The
+      # ubuntu-latest image already ships the Chromium libs Playwright needs, so
+      # install just the browser binary. timeout-minutes fails fast if the
+      # download ever stalls instead of burning the whole job budget.
+      - name: Install Playwright browsers
+        if: steps.gate.outputs.run == 'true'
+        timeout-minutes: 5
+        run: npx playwright install chromium
+
+      # One invocation runs both tiers → one results.json, one deduped
+      # report. The flow tier (e2e/flows/*) is a serial describe, so even at
+      # --workers=4 its tx tests run one-at-a-time on a single worker (no
+      # UTXO races) while render specs parallelize across the others. Without
+      # QA_WALLET_KEY the flow tier skips and only render runs.
+      #
+      # continue-on-error: Playwright exits non-zero if ANY test fails, but we
+      # don't want a flaky live-testnet tx (RPC throttling, congestion) to red
+      # the check. The "Apply tier gate" step below reads results.json and
+      # fails the job only on smoke/render-tier failures; tx-tier failures are
+      # reported as notices. Render tier stays the deterministic gate.
+      - name: Run suite (render + transactions)
+        if: steps.gate.outputs.run == 'true'
+        continue-on-error: true
+        env:
+          QA_TARGET_URL: ${{ steps.target.outputs.url }}
+          # Only fund the tx tier on PRODUCTION deploys (and manual dispatch).
+          # Preview/PR runs get an empty key → the flow tier skips itself and
+          # only the deterministic render+shim gate runs (fast, no testnet
+          # spend). Real tx flows then run post-merge against production.
+          QA_WALLET_KEY: ${{ (github.event.deployment.environment == 'Production' || github.event_name == 'workflow_dispatch') && secrets.QA_WALLET_KEY || '' }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: yarn e2e --workers=4
+
+      # One bug can break many pages; report each root cause once (grouped
+      # by the tool that failed to mount), not once per page.
+      - name: Failure summary (deduped by root cause)
+        if: always() && steps.gate.outputs.run == 'true'
+        run: npx tsx e2e/summarize-failures.mts
+
+      # The real pass/fail decision: red only on smoke/render-tier failures.
+      # Live-testnet tx-tier (e2e/flows/) failures are reported, not gated.
+      - name: Apply tier gate
+        if: always() && steps.gate.outputs.run == 'true'
+        run: npx tsx e2e/ci-gate.mts
+
+      # Only upload a debug bundle when the job actually fails. Green runs need
+      # nothing, and Playwright keeps a trace per failed test — a bad run (e.g.
+      # 60 failures) totals ~1GB and burns storage. Excludes the per-page
+      # screenshots dir (that's the local agent-loop's artifact; the html-report
+      # already embeds failure screenshots + traces for debugging).
+      - name: Upload artifacts
+        if: failure() && steps.gate.outputs.run == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: academy-e2e-artifacts
+          path: |
+            e2e/artifacts/results.json
+            e2e/artifacts/html-report
+            e2e/artifacts/test-output
+          retention-days: 7
+          if-no-files-found: ignore

@@ -16,9 +16,13 @@ import { Alert } from '@/components/toolbox/components/Alert';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { CliAlternative } from '@/components/console/cli-alternative';
-import { packL1ValidatorRegistration } from '@/components/toolbox/coreViem/utils/convertWarp';
-import { GetRegistrationJustification } from '@/components/toolbox/console/permissioned-l1s/validator-manager/justification';
-import { packWarpIntoAccessList } from '@/components/toolbox/console/permissioned-l1s/validator-manager/packWarp';
+import {
+  getRegistrationJustification,
+  newL1ValidatorRegistrationMessage,
+  newWarpMessage,
+  packWarpIntoAccessList,
+} from '@avalanche-sdk/interchain/warp';
+import { hexToCB58 } from '@avalanche-sdk/client/utils';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import NativeTokenStakingManager from '@/contracts/icm-contracts/compiled/NativeTokenStakingManager.json';
 import ERC20TokenStakingManager from '@/contracts/icm-contracts/compiled/ERC20TokenStakingManager.json';
@@ -126,20 +130,22 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       // This is the preimage that proves the validationID corresponds to a
       // validator that was previously registered — required by P-Chain's
       // verifyL1ValidatorRegistration for the registered=false case.
-      const justification = await GetRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
+      const justification = await getRegistrationJustification(validationID, subnetIdL1, chainPublicClient);
       if (!justification) {
         throw new Error(
           'No registration justification found for this validation ID. The validator may not have been registered through the standard flow, or its registration logs may be on a chain we cannot reach.',
         );
       }
 
-      const validationIDBytes = hexToBytes(validationID as `0x${string}`);
-      const removeValidatorMessage = packL1ValidatorRegistration(
-        validationIDBytes,
-        false, // registered = false → "this validator no longer exists on P-Chain"
+      // registered = false → "this validator no longer exists on P-Chain"
+      const innerRemovalMsg = newL1ValidatorRegistrationMessage(hexToCB58(validationID as `0x${string}`), false);
+      const unsignedRemovalMsg = newWarpMessage(
         avalancheNetworkID,
         '11111111111111111111111111111111LpoYY', // sourceChainID = P-Chain (zero ID)
+        '',
+        innerRemovalMsg.toHex(),
       );
+      const removeValidatorMessage = hexToBytes(unsignedRemovalMsg.toHex() as `0x${string}`);
 
       const aggregateSignaturePromise = aggregateSignature({
         message: bytesToHex(removeValidatorMessage),

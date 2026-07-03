@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   FormField,
@@ -12,18 +12,32 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { FormLabelWithCheck } from "./FormLabelWithCheck";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { SubmissionForm } from "../hooks/useSubmissionFormSecure";
 import { MultiLinkInput } from './MultiLinkInput';
 import { useProjectSubmission } from "../context/ProjectSubmissionContext";
 import { EventsLang, t } from "@/lib/events/i18n";
+import { cleanTechStackOptions, type TechStackOption } from "@/lib/hackathons/techStackDefaults";
 
 
+interface SubmitStep2Props {
+  lang?: EventsLang;
+  availableTechStack?: TechStackOption[];
+}
 
-export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
+export default function SubmitStep2({ lang = "en", availableTechStack }: SubmitStep2Props) {
   const form = useFormContext<SubmissionForm>();
   const { state } = useProjectSubmission();
   const hasHackathon = !!state.hackathonId;
   const isPreexistingIdea = form.watch("is_preexisting_idea");
+  const techStackOptions = useMemo(
+    () =>
+      cleanTechStackOptions(availableTechStack).map((opt) => ({
+        value: opt.name,
+        label: opt.name,
+      })),
+    [availableTechStack],
+  );
   return (
     <div className="space-y-8">
       {/* Sección: Technical Details */}
@@ -35,7 +49,6 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
           {t(lang, "submission.step2.technical.subtitle")}
         </p>
 
-        {/* Campo: How It's Made */}
         <FormField
           control={form.control}
           name="tech_stack"
@@ -44,6 +57,8 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
               <FormLabelWithCheck
                 label={t(lang, "submission.step2.techStack.label")}
                 checked={!!field.value}
+                required
+                lang={lang}
               />
               <FormControl>
                 <Textarea
@@ -60,12 +75,42 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="tech_stack_tags"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabelWithCheck
+                label={t(lang, "submission.step2.techStackTags.label")}
+                checked={Array.isArray(field.value) && field.value.length > 0}
+                required
+                lang={lang}
+              />
+              <FormControl>
+                <MultiSelect
+                  options={techStackOptions}
+                  selected={Array.isArray(field.value) ? field.value : []}
+                  onChange={field.onChange}
+                  placeholder={t(lang, "submission.step2.techStackTags.placeholder")}
+                  searchPlaceholder={t(lang, "submission.step2.techStackTags.placeholder")}
+                />
+              </FormControl>
+              <p className="text-zinc-400 text-[14px] leading-[100%] tracking-[0%] font-aeonik">
+                {t(lang, "submission.step2.techStackTags.hint")}
+              </p>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {/* Campo: Repo Link */}
         <MultiLinkInput
           name="github_repository"
           label={t(lang, "submission.step2.github.label")}
           placeholder={t(lang, "submission.step2.github.placeholder")}
           validationMessage={t(lang, "submission.step2.github.validation")}
+          required
+          lang={lang}
         />
 
         {/* Campo: Demo Link */}
@@ -74,6 +119,8 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
           label={t(lang, "submission.step2.demo.label")}
           placeholder={t(lang, "submission.step2.demo.placeholder")}
           validationMessage={t(lang, "submission.step2.demo.validation")}
+          required
+          lang={lang}
         />
       </section>
 
@@ -120,7 +167,12 @@ export default function SubmitStep2({ lang = "en" }: { lang?: EventsLang }) {
             name="explanation"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t(lang, "submission.step2.explanation.label")}</FormLabel>
+                <FormLabelWithCheck
+                  label={t(lang, "submission.step2.explanation.label")}
+                  checked={!!form.getValues("explanation")}
+                  required={isPreexistingIdea === true}
+                  lang={lang}
+                />
                 <FormControl>
                   <Textarea
                     placeholder={t(lang, "submission.step2.explanation.placeholder")}

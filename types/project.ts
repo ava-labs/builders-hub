@@ -14,6 +14,7 @@ export interface Project {
   short_description: string;
   full_description?: string;
   tech_stack?: string,
+  tech_stack_tags?: string[],
   github_repository?: string,
   explanation?: string,
   demo_link?: string,
@@ -34,7 +35,20 @@ export interface Project {
   members?:Member[]
   user_id?:string
   isDraft?:boolean
+  consent_sharing?: boolean | null;
+  submission_email_sent?: boolean;
+  submittedBy?: string;
 }
+
+export type SubmittedMember = {
+  id: string;
+  role: string;
+  status: string;
+  name: string | null;
+  email: string | null;
+};
+
+export type SubmitProjectResult = Omit<Project, "members"> & { members: SubmittedMember[] };
 
 export type ProjectFilters = {
   event?: string

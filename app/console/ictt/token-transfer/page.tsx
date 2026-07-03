@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
+import { redirect } from 'next/navigation';
 
 export default function Page() {
-  redirect("/console/ictt/token-transfer/add-collateral");
+  redirect('/console/ictt/live');
 }
-
-

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
 
 const HUBSPOT_API_KEY = process.env.HUBSPOT_API_KEY;
 const HUBSPOT_PORTAL_ID = process.env.HUBSPOT_PORTAL_ID;
@@ -6,6 +7,14 @@ const HUBSPOT_NEWSLETTER_FORM_GUID = process.env.HUBSPOT_NEWSLETTER_FORM_GUID;
 
 export async function POST(request: Request) {
   try {
+    if (!isHubSpotEnabled()) {
+      skipHubSpot('POST /api/newsletter');
+      return NextResponse.json({
+        success: true,
+        skipped: true,
+        message: 'HubSpot disabled in this environment; newsletter signup not pushed.',
+      });
+    }
     if (!HUBSPOT_API_KEY || !HUBSPOT_PORTAL_ID || !HUBSPOT_NEWSLETTER_FORM_GUID) {
       console.error('Missing environment variables: HUBSPOT_API_KEY, HUBSPOT_PORTAL_ID, or HUBSPOT_NEWSLETTER_FORM_GUID');
       return NextResponse.json(

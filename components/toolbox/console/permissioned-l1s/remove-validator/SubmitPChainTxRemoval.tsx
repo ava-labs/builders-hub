@@ -9,7 +9,8 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
 import { Check } from 'lucide-react';
-import { WARP_PRECOMPILE_ADDRESS, WARP_MESSAGE_TOPIC, validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
+import { WARP_PRECOMPILE_ADDRESS, WARP_MESSAGE_TOPIC } from '@avalanche-sdk/interchain/warp';
+import { validateAndCleanTxHash } from '@/components/toolbox/utils/warp';
 import { PChainManualSubmit } from '@/components/toolbox/components/PChainManualSubmit';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
@@ -333,7 +334,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     if (!signedWarpMessage) return '';
     const network = isTestnet ? 'fuji' : 'mainnet';
     return [
-      `platform l1 set-weight \\`,
+      `platform-cli l1 set-validator-weight \\`,
       `  --message "${signedWarpMessage}" \\`,
       `  --network ${network} \\`,
       `  --key-name <your-key-name>`,

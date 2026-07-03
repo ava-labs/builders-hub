@@ -16,8 +16,16 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
   }
 
   if (scope === "admin") {
-    const isDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
-    if (!isDevrel) {
+    // Admin scope can match on (and return) email. It is reserved for the
+    // event-management roles, which need it to assign judges (devrel) and add
+    // co-hosts by email (any event organizer). Plain authenticated users cannot
+    // use it, so it is not a general email-enumeration surface.
+    const attrs = session.user?.custom_attributes ?? [];
+    const canUseAdmin =
+      attrs.includes("devrel") ||
+      attrs.includes("team1-admin") ||
+      attrs.includes("hackathonCreator");
+    if (!canUseAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
@@ -41,6 +49,9 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         };
 
   if (scope === "admin") {
+    // Other users' roles are only disclosed to devrel (the judges UI renders
+    // them); event organizers adding cohosts only need contact details.
+    const callerIsDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
     const users = await prisma.user.findMany({
       where,
       select: {
@@ -49,7 +60,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         email: true,
         image: true,
         user_name: true,
-        custom_attributes: true,
+        custom_attributes: callerIsDevrel,
       },
       orderBy: { name: "asc" },
       take: MAX_RESULTS,

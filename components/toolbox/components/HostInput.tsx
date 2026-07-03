@@ -27,7 +27,12 @@ const validateDomainOrIP = (value: string): string | null => {
 
 export const nipify = (domain: string): string => {
   if (isValidIPv4(domain)) {
-    return `${domain}.sslip.io`;
+    // nip.io instead of sslip.io: as of 2026-05-21 sslip.io's shared
+    // Let's Encrypt zone is rate-limited (HTTP 429 "too many certificates"
+    // — 250k cert cap per registered domain over 168h), so Caddy retries
+    // forever on the docker-generated reverse proxy. nip.io resolves the
+    // same `<ip>.<domain>` → ip but lives under a non-rate-limited zone.
+    return `${domain}.nip.io`;
   }
   return domain;
 };

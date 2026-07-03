@@ -462,7 +462,7 @@ export default function BlockScout() {
                 <h3 className="text-xl font-bold mb-4">Domain</h3>
                 <p>
                   Enter your domain name or server's public IP address. For a free domain, use your server's public IP,
-                  we will automatically add .sslip.io for the generated files.
+                  we will automatically add .nip.io for the generated files.
                 </p>
 
                 <p>You can use the following command to check your IP:</p>

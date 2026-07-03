@@ -150,6 +150,13 @@ export const toolingOptions: NavOption[] = [
     url: '/docs/tooling/tmpnet',
   },
   {
+    title: 'Interchain Kit',
+    description: 'Local toolkit for testing ICM & ICTT',
+    badge: 'New',
+    icon: <Cable className="w-5 h-5" />,
+    url: '/docs/tooling/interchain-kit',
+  },
+  {
     title: "Postman Collection",
     description: 'Postman collection for Avalanche APIs',
     icon: <Milestone className="w-5 h-5" />,
@@ -173,10 +180,10 @@ export const acpsOptions: NavOption[] = [
     url: '/docs/acps/194-streaming-asynchronous-execution',
   },
   {
-    title: 'Continuous Staking',
+    title: 'Auto-Renewed Staking',
     description: 'ACP-236',
     icon: <Book className="w-5 h-5" />,
-    url: '/docs/acps/236-continuous-staking',
+    url: '/docs/acps/236-auto-renewed-staking',
   },
   {
     title: 'ValidatorManager Contract',

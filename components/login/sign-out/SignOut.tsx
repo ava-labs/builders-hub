@@ -1,9 +1,17 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { LoadingButton } from "@/components/ui/loading-button";
-import Modal from "@/components/ui/Modal";
-import { BadgeAlert } from "lucide-react";
-import React, { useState } from "react";
+"use client";
+
+import * as React from "react";
+import { LogOut } from "lucide-react";
+import { useState } from "react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import "@/components/profile/shell/styles.css";
 
 interface SignOutComponentProps {
   isOpen: boolean;
@@ -16,65 +24,110 @@ export default function SignOutComponent({
   onOpenChange,
   onConfirm,
 }: SignOutComponentProps) {
-  const [isConfirm, setIsConfirm] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+
   const handleConfirm = async () => {
-    setIsConfirm(true);
+    setIsConfirming(true);
     try {
       await Promise.all([
         onConfirm(),
-        new Promise((resolve) => setTimeout(resolve, 300)), 
+        new Promise((resolve) => setTimeout(resolve, 300)),
       ]);
-      onOpenChange(false); 
+      onOpenChange(false);
     } finally {
-      setIsConfirm(false);
+      setIsConfirming(false);
     }
   };
-  const content = (
-    <Card
-      className="
-              my-4 w-[95%] sm:w-[85%] md:w-full max-h-[190px]
-              rounded-md p-4 sm:p-6 gap-4 mx-auto
-              text-black dark:bg-zinc-800 dark:text-white
-              border border-red-500
-            "
-    >
-      <CardContent className="flex flex-col items-center gap-4 pb-4">
-        <BadgeAlert color="rgb(239 68 68)" size="34" />
-        <p className="text-red-600 dark:text-red-500 text-center text-base sm:text-lg">
-          Are you sure you want to sign out?
-        </p>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2 w-full sm:flex-row sm:gap-4 sm:justify-center">
-        <LoadingButton
-        isLoading={isConfirm}
-        onClick={handleConfirm}
-        loadingText="Signing Out..."
-         className="w-full sm:w-auto px-4 py-2 cursor-pointer"
-        >
-          Yes, Sign Out
-        </LoadingButton>
-
-        <Button
-          variant="ghost"
-          className="
-          w-full sm:w-auto px-4 py-2 underline
-           cursor-pointer
-        "
-          onClick={() => onOpenChange(false)}
-        >
-          Cancel
-        </Button>
-      </CardFooter>
-    </Card>
-  );
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onOpenChange={onOpenChange}
-      title="Sign Out"
-      content={content}
-      className="border border-red-500"
-    />
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="profile sm:max-w-[440px] rounded-2xl"
+        style={{
+          background: "var(--pr-g-100)",
+          borderColor: "var(--pr-hairline)",
+          padding: 24,
+          gap: 18,
+        }}
+      >
+        <DialogHeader className="space-y-0">
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <span
+              className="pr-ico"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: "var(--pr-avax-tint)",
+                color: "var(--pr-avax)",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+              }}
+              aria-hidden
+            >
+              <LogOut size={18} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <DialogTitle asChild>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    letterSpacing: "-0.005em",
+                    color: "var(--pr-g-1000)",
+                    textAlign: "left",
+                  }}
+                >
+                  Sign out of Builder Hub?
+                </h3>
+              </DialogTitle>
+              <DialogDescription asChild>
+                <div
+                  style={{
+                    marginTop: 4,
+                    fontSize: 13,
+                    color: "var(--pr-g-650)",
+                    textAlign: "left",
+                    lineHeight: 1.45,
+                  }}
+                >
+                  You&apos;ll be returned to the home page and will need to
+                  sign in again to come back to your profile.
+                </div>
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            justifyContent: "flex-end",
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="pr-btn pr-btn--outline pr-btn--sm"
+            disabled={isConfirming}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            className="pr-btn pr-btn--primary pr-btn--sm"
+            disabled={isConfirming}
+            aria-busy={isConfirming}
+          >
+            {isConfirming ? "Signing out…" : "Yes, sign out"}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

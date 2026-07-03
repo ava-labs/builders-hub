@@ -8,7 +8,7 @@
     "index",
     "---Standards Track ACPs---",
     "247-delegation-multiplier-increase-maximum-validator-weight-reduction",
-    "236-continuous-staking",
+    "236-auto-renewed-staking",
     "226-dynamic-minimum-block-times",
     "224-dynamic-gas-limit-in-subnet-evm",
     "209-eip7702-style-account-abstraction",

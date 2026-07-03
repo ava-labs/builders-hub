@@ -1,7 +1,7 @@
 ---
 title: Transfer VMC Ownership to PoA Manager
 description: Transfer the Validator Manager Contract ownership to your PoA Manager
-updated: 2025-03-19
+updated: 2026-06-17
 authors: [nicolasarnedo]
 icon: Terminal
 ---
@@ -69,6 +69,10 @@ Before transferring ownership, verify:
 
 Use the tool below to transfer Validator Manager ownership to your PoA Manager:
 
+<Callout type="warning">
+If your Validator Manager is behind a proxy, call `transferOwnership` on the **proxy** (e.g. `0xfacade...`), not the implementation. Ownership lives in the proxy's storage; transferring it on the implementation leaves the proxy still owned by your EOA, and the PoA Manager's calls will later revert with `OwnableUnauthorizedAccount` / `GS013`. The Console tool below targets the proxy automatically; if you script this, use your proxy address.
+</Callout>
+
 <ToolboxMdxWrapper walletMode="c-chain">
     <TransferOwnership />
 </ToolboxMdxWrapper>
@@ -98,10 +102,28 @@ function _transferOwnership(address newOwner) internal {
 
 ## Verification
 
-After the transfer completes:
+After the transfer completes, calling `owner()` on the **proxy** (e.g. `0xfacade...`) should return the PoA Manager address:
 
-1. **Check VMC Owner**: The Validator Manager's `owner()` should return the PoA Manager address
-2. **Test Access**: Your EOA should no longer be able to call owner-restricted functions
+```bash
+cast call <PROXY> "owner()(address)" --rpc-url <YOUR_L1_RPC>   # → your PoA Manager
+```
+
+Also confirm your EOA can no longer call owner-restricted functions directly.
+
+## Troubleshooting: `GS013` / `OwnableUnauthorizedAccount`
+
+If a validator operation from the multi-sig fails — the Safe shows `GS013` / "cannot estimate gas" / "this transaction will most likely fail," or a direct call reverts with selector `0x118cdaa7` (`OwnableUnauthorizedAccount`) — the ownership chain is wired to the wrong address. Check it end to end:
+
+1. **PoA Manager → proxy?** `cast call <PoAManager> "validatorManager()(address)"` must return the proxy (`0xfacade...`), not the implementation. If it points at the implementation, redeploy the PoA Manager with the proxy address.
+2. **Proxy → PoA Manager?** `cast call <PROXY> "owner()(address)"` (your proxy, e.g. `0xfacade...`) must return the PoA Manager. If it still returns your EOA, the transfer was run against the implementation — re-run it on the proxy. (No proxy? This is just the Validator Manager address.)
+3. **Multi-sig → PoA Manager?** `cast call <PoAManager> "owner()(address)"` must return your Safe.
+
+A preflight that mirrors exactly what the Safe will execute (it reverts `0x118cdaa7` if mis-wired and succeeds once correct), so you can confirm before collecting signatures:
+
+```bash
+cast call <PoAManager> "initiateValidatorWeightUpdate(bytes32,uint64)" <VALIDATION_ID> <NEW_WEIGHT> \
+  --from <SAFE_ADDRESS> --rpc-url <YOUR_L1_RPC>
+```
 
 ## Complete Ownership Chain
 

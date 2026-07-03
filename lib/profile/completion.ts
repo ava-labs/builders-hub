@@ -1,15 +1,12 @@
-// Pure profile completion helper used by the redesigned profile UI.
-// Drives: avatar ring, sidebar checklist, "Next: ..." copy, tab counter.
-//
-// Each step contributes equally to the percentage (no points concept) — the
-// percentage is round((completed / total) * 100).
-
 export type CompletionStepKey =
   | "name"
   | "bio"
   | "country"
   | "roles"
   | "github"
+  | "x"
+  | "telegram"
+  | "linkedin"
   | "wallet"
   | "skills"
   | "hackathon"
@@ -22,11 +19,11 @@ export interface CompletionInput {
   country?: string | null;
   roles?: ReadonlyArray<string> | null;
   github?: string | null;
+  xAccount?: string | null;
+  telegram?: string | null;
+  linkedin?: string | null;
   wallets?: ReadonlyArray<unknown> | null;
   skills?: ReadonlyArray<unknown> | null;
-  // Engagement signals — currently stubbed (always false) until the
-  // upstream data sources are wired up. Search for `TODO(profile-completion)`
-  // to find each one.
   hasHackathonParticipation?: boolean;
   hasProject?: boolean;
   hasUsedConsole?: boolean;
@@ -74,6 +71,24 @@ export const COMPLETION_STEPS: ReadonlyArray<CompletionStep> = [
     test: (p) => has(p.github),
   },
   {
+    key: "x",
+    label: "Connect X",
+    description: "Link your X profile",
+    test: (p) => has(p.xAccount),
+  },
+  {
+    key: "telegram",
+    label: "Connect Telegram",
+    description: "Reach you for grant follow-ups",
+    test: (p) => has(p.telegram),
+  },
+  {
+    key: "linkedin",
+    label: "Connect LinkedIn",
+    description: "Showcase your background",
+    test: (p) => has(p.linkedin),
+  },
+  {
     key: "wallet",
     label: "Connect EVM wallet",
     description: "Required for rewards",
@@ -89,21 +104,18 @@ export const COMPLETION_STEPS: ReadonlyArray<CompletionStep> = [
     key: "hackathon",
     label: "Participate in a hackathon",
     description: "Join an Avalanche event",
-    // TODO(profile-completion): wire to hackathon participation data.
     test: (p) => p.hasHackathonParticipation === true,
   },
   {
     key: "project",
     label: "Create a project",
     description: "Submit one to the showcase",
-    // TODO(profile-completion): wire to project count from showcase API.
     test: (p) => p.hasProject === true,
   },
   {
     key: "console",
     label: "Use the console",
     description: "Try a Builder Hub tool",
-    // TODO(profile-completion): wire to console-usage telemetry.
     test: (p) => p.hasUsedConsole === true,
   },
 ];

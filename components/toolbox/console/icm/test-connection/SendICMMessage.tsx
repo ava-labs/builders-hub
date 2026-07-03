@@ -4,7 +4,7 @@ import { useToolboxStore, useViemChainStore, getToolboxStore } from '@/component
 import { useState, useMemo } from 'react';
 import { makePublicClientForChain } from '@/components/toolbox/hooks/usePublicClientForChain';
 import ICMDemoABI from '@/contracts/example-contracts/compiled/ICMDemo.json';
-import { cb58ToHex } from '@/components/tools/common/utils/cb58';
+import { CB58ToHex } from '@avalanche-sdk/client/utils';
 import SelectBlockchainId from '@/components/toolbox/components/SelectBlockchainId';
 import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { useEffect } from 'react';
@@ -212,7 +212,7 @@ function SendICMMessage({ onSuccess }: BaseConsoleToolProps) {
   const destinationBlockchainIDHex = useMemo(() => {
     if (!targetL1?.id) return undefined;
     try {
-      return cb58ToHex(targetL1.id);
+      return CB58ToHex(targetL1.id);
     } catch (e) {
       console.error('Error decoding destination chain ID:', e);
       return undefined;

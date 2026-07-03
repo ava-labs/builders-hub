@@ -10,32 +10,32 @@ type Props = {
 export default function TrackCard(props: Props) {
   return (
     <Card
-      className={`min-h-48 h-full bg-zinc-900 dark:bg-zinc-900 cursor-pointer rounded-lg border-2 border-red-500 hover:shadow-lg transition-shadow duration-200`}
+      className="min-h-48 h-full cursor-pointer rounded-lg border-2 border-red-400 bg-white hover:shadow-lg transition-shadow duration-200 dark:border-red-500 dark:bg-zinc-900"
     >
       <CardHeader className="pb-3">
         <CardTitle>
-          <div className="flex justify-between items-center gap-2">
-            <h2 className="text-red-500 text-lg font-bold">
+          <div className="flex justify-between items-start gap-2">
+            <h2 className="text-red-500 text-lg font-bold flex-1 min-w-0 break-words">
               {props.track.name}
             </h2>
             {props.track.icon && props.track.icon.trim() !== "" ? (
               <DynamicIcon
                 name={props.track.icon as any}
                 size={20}
-                className="!text-red-500"
+                className="!text-red-500 shrink-0 mt-1"
               />
             ) : (
               <DynamicIcon
                 name="wrench"
                 size={20}
-                className="!text-red-500"
+                className="!text-red-500 shrink-0 mt-1"
               />
             )}
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <p className="text-sm text-white text-left leading-relaxed">
+        <p className="text-sm text-zinc-700 text-left leading-relaxed dark:text-zinc-100 break-words">
           {props.track.short_description || 'No description available'}
         </p>
       </CardContent>

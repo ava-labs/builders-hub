@@ -56,7 +56,8 @@ export default function SubmitStep3({ lang = "en" }: { lang?: EventsLang }) {
         name='screenshots'
         label={t(lang, "submission.step3.screenshots.label")}
         maxItems={5}
-        maxSizeMB={1}
+        maxSizeMB={2}
+        accept='image/jpeg,image/png,image/webp'
         width='max-w-[128px]'
         height='max-h-[128px]'
         recommendedSize='No specific size required, but ensure clarity and readability'
@@ -75,6 +76,8 @@ export default function SubmitStep3({ lang = "en" }: { lang?: EventsLang }) {
               <FormLabelWithCheck
                 label={t(lang, "submission.step3.demoVideo.label")}
                 checked={!!field.value}
+                required={false}
+                lang={lang}
               />
               <FormControl>
                 <Input

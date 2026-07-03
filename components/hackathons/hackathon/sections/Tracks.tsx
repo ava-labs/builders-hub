@@ -41,7 +41,7 @@ function Tracks({ hackathon }: { hackathon: HackathonHeader }) {
           </CardContent>
         </Card>
         <div>
-          <h4 className="text-4xl font-bold mb-8 text-black">
+          <h4 className="text-4xl font-bold mb-8">
             {t(lang, "section.tracks.whatToBuild")}
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

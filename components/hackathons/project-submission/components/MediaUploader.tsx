@@ -77,6 +77,16 @@ export default function MediaUploader({
     if (e.target.files && selectedIndex !== null) {
       const newFile = e.target.files[0];
       if (!newFile) return;
+      const maxBytes = maxSizeMB * 1024 * 1024;
+      if (newFile.size > maxBytes) {
+        form.setError(name as any, {
+          type: 'manual',
+          message: t(lang, 'submission.media.fileTooLarge', { size: maxSizeMB }),
+        });
+        e.target.value = '';
+        return;
+      }
+      form.clearErrors(name as any);
       const currentValue = form.getValues(name);
       if (maxItems === 1) {
         form.setValue(name, newFile);
@@ -123,8 +133,11 @@ export default function MediaUploader({
 
         return (
           <FormItem className='space-y-2'>
-            <FormLabel className='text-sm text-foreground font-semibold'>
+            <FormLabel className='text-sm text-foreground font-semibold flex items-center gap-2'>
               {label}
+              <span className='rounded px-1.5 py-0.5 text-[10px] font-medium bg-zinc-200 text-zinc-500 dark:bg-zinc-700 dark:text-zinc-400'>
+                {t(lang ?? 'en', 'field.optional')}
+              </span>
             </FormLabel>
 
             <div
@@ -215,6 +228,19 @@ export default function MediaUploader({
                   if (!e.target.files) return;
 
                   const files = Array.from(e.target.files);
+                  const maxBytes = maxSizeMB * 1024 * 1024;
+                  const oversized = files.filter(f => f.size > maxBytes);
+
+                  if (oversized.length > 0) {
+                    form.setError(name as any, {
+                      type: 'manual',
+                      message: t(lang, 'submission.media.fileTooLarge', { size: maxSizeMB }),
+                    });
+                    e.target.value = '';
+                    return;
+                  }
+
+                  form.clearErrors(name as any);
 
                   if (maxItems === 1) {
                     field.onChange(files[0]);

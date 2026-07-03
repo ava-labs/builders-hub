@@ -4,7 +4,9 @@ import { prisma } from "@/prisma/prisma";
 import {
   canAccessEvaluationTools,
   canEvaluateHackathon,
+  canReviewMiniGrants,
 } from "@/lib/auth/permissions";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 
 const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
 
@@ -88,8 +90,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (formDataId) {
-      // Legacy Build Games / FormData-attached path.
-      if (!canAccessEvaluationTools(session.user.custom_attributes)) {
+      // Legacy Build Games / FormData-attached path. Mini-grant submissions
+      // share this path but are scoped to devrel + assigned mini-grant judges.
+      const formData = await prisma.formData.findUnique({
+        where: { id: formDataId },
+        select: { origin: true },
+      });
+      if (!formData) {
+        return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+      }
+
+      const allowed =
+        formData.origin === MINI_GRANT_KEY
+          ? await canReviewMiniGrants(session)
+          : canAccessEvaluationTools(session.user.custom_attributes);
+      if (!allowed) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -145,6 +160,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // form_data_id is required by the schema; find or create a placeholder FormData
+    let resolvedFormDataId: string;
+    const existingFormData = await prisma.formData.findFirst({
+      where: { project_id: projectId! },
+      select: { id: true },
+      orderBy: { timestamp: "desc" },
+    });
+    if (existingFormData) {
+      resolvedFormDataId = existingFormData.id;
+    } else {
+      const placeholderFd = await prisma.formData.create({
+        data: {
+          form_data: {},
+          timestamp: new Date(),
+          origin: "hackathon_judge",
+          project_id: projectId!,
+        },
+      });
+      resolvedFormDataId = placeholderFd.id;
+    }
+
     const evaluation = await prisma.evaluation.upsert({
       where: {
         project_id_evaluator_id: {
@@ -159,6 +195,7 @@ export async function POST(request: NextRequest) {
         scores: scores ?? undefined,
       },
       create: {
+        form_data_id: resolvedFormDataId,
         project_id: projectId!,
         hackathon_id: project.hackaton_id,
         evaluator_id: session.user.id,

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { useWalletType } from "@/components/toolbox/stores/walletStore";
 import { toast } from "@/lib/toast";
 
 interface AddToWalletOptions {
@@ -26,6 +27,7 @@ interface UseAddToWalletReturn {
 export function useAddToWallet(): UseAddToWalletReturn {
   const [isAdding, setIsAdding] = useState(false);
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  const walletType = useWalletType();
   const isWalletConnected = !!coreWalletClient;
 
   const addToWallet = useCallback(async (options: AddToWalletOptions): Promise<boolean> => {
@@ -40,6 +42,19 @@ export function useAddToWallet(): UseAddToWalletReturn {
     setIsAdding(true);
 
     try {
+      // Request account access first — required before any wallet_ method.
+      // Some wallets (MetaMask) return 4100 "not authorized" if this is
+      // skipped and the site hasn't been connected in this session yet.
+      try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+      } catch (authError: any) {
+        if (authError.code === 4001) {
+          toast.error("Request rejected", "Please connect your wallet first");
+          return false;
+        }
+        // Non-4001 errors (e.g. already connected) are safe to ignore.
+      }
+
       let chainIdHex: string;
 
       if (chainId) {
@@ -78,7 +93,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
       } catch (switchError: any) {
         // Error 4902 means chain not found - we need to add it
         // Error -32603 is also used by some wallets for chain not found
-        if (switchError.code === 4902 || switchError.code === -32603) {
+        if (switchError.code === 4902 || switchError.code === -32603 || switchError.code === 4100) {
           // Chain not added yet, proceed to add it
           await window.ethereum.request({
             method: "wallet_addEthereumChain",
@@ -92,7 +107,7 @@ export function useAddToWallet(): UseAddToWalletReturn {
                 decimals: 18,
               },
               blockExplorerUrls: blockExplorerUrl ? [blockExplorerUrl] : undefined,
-              ...(isTestnet !== undefined && { isTestnet }),
+              ...(walletType === 'core' && isTestnet !== undefined ? { isTestnet } : {}),
             }],
           });
           toast.success("Chain added", `${chainName || "Chain"} has been added to your wallet`);
