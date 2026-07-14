@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
-import { PrivateNetworkAnim, NeedToKnowAnim, EncryptedSettlementAnim } from './model-animations';
+import { WalledGardenAnim, ConsortiumTraceAnim, PublicAttestationAnim } from './model-animations';
 import { UseCaseAnim } from './use-case-animations';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -13,110 +13,134 @@ const BORDER  = 'rgba(255,255,255,0.07)';
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const CLIENTS = [
-  { name: 'BlackRock',          detail: 'Tokenized institutional fund infrastructure',         href: '/integrations/blackrock' },
-  { name: 'Franklin Templeton', detail: 'Tokenized money market fund (BENJI)',                 href: '/integrations/franklin-templeton' },
-  { name: 'Apollo',             detail: 'Tokenized alternative investments (ACRED)',           href: '/integrations/apollo' },
-  { name: 'KKR',                detail: 'Tokenized private equity fund',                      href: '/integrations/kkr' },
-  { name: 'Wellington',         detail: 'Tokenized institutional fund — Libeara',             href: '/integrations/libeara-wellington' },
-  { name: 'Citi',               detail: 'Private markets tokenization — Evergreen Spruce',    href: 'https://www.avax.network/about/blog/citi-tests-benefits-of-private-markets-tokenization-with-avalanche-evergreen-subnet-spruce' },
-  { name: 'T. Rowe Price',      detail: 'On-chain finance pilot — Evergreen Spruce',          href: 'https://www.avax.network/about/blog/financial-institutions-join-avalanche-evergreen-subnet-spruce-to-drive-on-chain-finance-innovation' },
-  { name: 'Progmat',            detail: '$2B+ tokenized securities — dedicated L1',           href: 'https://www.avax.network/about/blog/progmat-migrates-2b-tokenized-securities-to-avalanche' },
-  { name: 'Intain + FIS',       detail: 'Digital Liquidity Gateway · U.S. community banks',  href: 'https://www.avax.network/about/blog/fis-intain-avalanche-digital-liquidity-gateway' },
+  { name: 'Blockticity',           detail: 'Blockchain-powered product authentication',  href: 'https://blockticity.com' },
+  { name: 'Leading manufacturer',  detail: 'Anti-counterfeit verification at scale',     href: null },
 ];
 
 const USE_CASES = [
   {
-    icon: '⇌', title: 'DVP Settlement', problem: 'Two banks exchange securities and cash. Neither wants the other to see their full position or book.', solution: 'Each leg visible only to its counterparties. Validators confirm settlement without reading amounts.', model: 'Partitioned Ledger', modelColor: RED, animId: 'dvp',
+    icon: '💊', title: 'Pharma Authentication',
+    problem: 'Counterfeit drugs enter the supply chain at distribution points. A pharmacist cannot tell a genuine lot from a falsified one.',
+    solution: 'Each lot is registered on a permissioned L1. QR scan at dispensation verifies the chain of custody from manufacturer to patient in under 2 seconds.',
+    model: 'Walled-Garden L1', modelColor: RED, animId: 'pharma',
   },
   {
-    icon: '↗', title: 'FX Netting', problem: 'Multiple institutions net bilateral exposures. Showing your full book to competitors is commercially unacceptable.', solution: 'Each bilateral relationship runs on a separate ledger. Net positions calculated without exposing gross flows to others.', model: 'Partitioned Ledger', modelColor: RED, animId: 'fx',
+    icon: '👜', title: 'Luxury Goods',
+    problem: 'High-value items are replicated and sold through parallel channels. Authentication relies on certificates that can themselves be forged.',
+    solution: 'NFC/QR linked to an immutable on-chain record. Chain of custody from factory floor to boutique, verifiable by the end buyer without trusting a third party.',
+    model: 'Walled-Garden L1', modelColor: RED, animId: 'luxury',
   },
   {
-    icon: '◎', title: 'RWA Tokenization', problem: 'Holdings on a shared public chain are visible to anyone — competitors, counterparties, and the market.', solution: 'Balances encrypted on-chain. Regulators receive a dedicated auditor key. Settlement verifiable without revealing amounts.', model: 'Encrypted Settlement', modelColor: '#22c55e', animId: 'rwa',
+    icon: '🌾', title: 'Food Safety & Origin',
+    problem: 'A contamination event requires tracing implicated product across multiple tiers of suppliers, a process that currently takes days.',
+    solution: 'Every batch is attested at farm, processor, and retail. An outbreak can be traced to origin in minutes. Consumers verify provenance via QR at point of sale.',
+    model: 'Consortium Trace Network', modelColor: '#6366f1', animId: 'food',
   },
   {
-    icon: '⬡', title: 'Trade Finance', problem: 'LC issuance, cargo data, and pricing terms are commercially sensitive — yet multiple banks must participate.', solution: 'Permissioned network with role-based visibility. Cargo visible to logistics parties. Pricing stays between originator and buyer.', model: 'Walled Garden', modelColor: '#6366f1', animId: 'trade',
+    icon: '✈️', title: 'Aerospace & Auto Parts',
+    problem: 'Safety-critical components sourced from unauthorized suppliers have caused failures. Standard paper certificates are easily forged.',
+    solution: 'Each part carries an on-chain certification record. Installation crews verify authenticity before fitting. Unauthorized parts are flagged at the scan point.',
+    model: 'Walled-Garden L1', modelColor: RED, animId: 'aerospace',
   },
   {
-    icon: '⟳', title: 'Repo / Securities Lending', problem: 'Intraday repo positions signal trading strategy. Broadcasting these to a shared ledger is competitively damaging.', solution: 'Bilateral repo ledgers per counterparty pair. Each relationship has an isolated, private view.', model: 'Partitioned Ledger', modelColor: RED, animId: 'repo',
+    icon: '🔌', title: 'Electronics & Chips',
+    problem: 'Counterfeit components enter global supply chains at border and distribution points, creating both safety and tariff compliance risks.',
+    solution: 'Origin-of-manufacture attested at fab. Each checkpoint, assembly, border, retail, adds a verified event. Flagged components are blocked automatically.',
+    model: 'Public Attestation Layer', modelColor: '#22c55e', animId: 'electronics',
   },
   {
-    icon: '⊛', title: 'Digital Bond Issuance', problem: 'KYC-verified investors need to transact, but investor identity and allocation sizes must remain confidential.', solution: 'Investor eligibility verified without exposing identity. Allocations encrypted on-chain. Auditor key for regulatory reporting.', model: 'Encrypted Settlement', modelColor: '#22c55e', animId: 'bonds',
+    icon: '🎨', title: 'Art & Collectibles',
+    problem: 'Provenance for physical and digital art relies on paper trails that can be lost, altered, or fabricated after the fact.',
+    solution: 'ZK-attested certificate of authenticity anchored on-chain at creation. Each ownership transfer adds a cryptographically signed event. Publicly verifiable, commercially private.',
+    model: 'Public Attestation Layer', modelColor: '#22c55e', animId: 'art',
   },
 ];
 
 const MODELS = [
   {
-    id: 'walled-garden', label: 'Model 01', name: 'Walled Garden', tagline: 'Full control over who enters the perimeter', color: '#6366f1',
-    analogy: 'Your own private SWIFT network — you decide who gets in. Everything inside is confidential; nothing leaks out.',
-    description: 'You control who participates. The network sits behind a permissioned perimeter, no outsider can query it, read its transactions, or join without your approval. Inside, everything is visible to participants. Outside, the network is invisible.',
-    bestFor: 'Closed consortia, single-institution tokenization, regulated market infrastructure, proxy voting systems',
-    how: ['Your institution decides who can validate and who can transact, no outside party joins without approval', 'Transactions are hidden from the public by default, only credentialed participants can see activity', 'Institutional-grade throughput with no performance penalty for privacy, a new dedicated chain can be live in under a minute'],
-    compliance: 'Add regulators as permissioned read-only participants, they see what they need, nothing more.',
+    id: 'walled-garden', label: 'Tier 01', name: 'Walled-Garden L1', tagline: 'Only authorized actors touch the chain', color: RED,
+    analogy: 'A private factory floor with a biometric turnstile, outsiders cannot enter, insiders are logged.',
+    description: 'A fully permissioned Avalanche L1 where every participant, manufacturer, distributor, retailer, regulator, must be approved. No public RPC, no block explorer. Data is only readable by role-appropriate actors.',
+    bestFor: 'Pharma, luxury goods, defense, high-value regulated supply chains',
+    how: [
+      'Role-gated validator set, only approved institutions operate nodes',
+      'API-gated RPC, no public endpoint, no public explorer',
+      'Deployer allowlists, only authorized contracts can be deployed',
+      'QR/NFC at each handoff point triggers an on-chain event',
+    ],
+    compliance: 'Regulators added as permissioned read-only participants, they see what they need, nothing more.',
   },
   {
-    id: 'partitioned-ledger', label: 'Model 02', name: 'Partitioned Ledger', tagline: 'Each party holds only their own ledger', color: RED,
-    analogy: 'Like correspondent banking — each bilateral relationship is a separate account. Non-parties can\'t see that a transaction even occurred.',
-    description: 'Each counterparty pair operates its own isolated ledger. They exchange settlement proofs directly, not on a shared global ledger. Non-parties have zero visibility: no amounts, no identities, no timing.',
-    bestFor: 'DVP settlement, inter-bank clearing, FX netting, bilateral repo, tokenized bank deposit networks',
-    how: ['Each counterparty relationship runs on its own isolated infrastructure, your trades with Bank A and Bank B never appear on the same ledger', 'Settlement proofs exchange directly between parties, confirms in under a second, no central operator sees the full picture', 'Strong structural privacy: data only exists on the ledgers of the parties directly involved in a transaction'],
-    compliance: 'Auditor joins as a separate participant on specific channels, sees only the relationships they need to review.',
+    id: 'consortium-trace', label: 'Tier 02', name: 'Consortium Trace Network', tagline: 'Shared verification, isolated brand data', color: '#6366f1',
+    analogy: 'Like a shared port authority — multiple shipping companies use the same infrastructure, but only see their own cargo.',
+    description: "Multiple brands or manufacturers share a verification infrastructure, each with isolated data visibility. A consortium member can verify any product in the network, but cannot read another brand's supply chain data.",
+    bestFor: 'Food safety consortia, automotive multi-tier supply chains, cross-border trade networks',
+    how: [
+      'Each brand gets isolated ledger channels with its own validator subset',
+      'Cross-brand verification via shared attestation protocol',
+      'Regulators access specific channels without full network visibility',
+      'Interchain Messaging (ICM) for multi-region coordination',
+    ],
+    compliance: "Audit access structured per brand channel, regulators see one brand's data without cross-contamination.",
   },
   {
-    id: 'encrypted-settlement', label: 'Model 03', name: 'Encrypted Settlement', tagline: 'Amounts encrypted on shared infrastructure', color: '#22c55e',
-    analogy: 'A sealed envelope delivered by a trusted courier — the courier confirms delivery without reading the contents.',
-    description: 'Transactions happen on shared infrastructure so all participants benefit from liquidity and interoperability. But amounts, counterparties, and logic are encrypted. Settlement is verified without anyone seeing the underlying values.',
-    bestFor: 'Tokenized assets, cross-institution liquidity pools, digital bonds, public chains with private amounts',
-    how: ['Institutional holdings encrypted on-chain, no outside observer can read balances or transaction amounts', 'Validity is guaranteed without revealing amounts, counterparties, or transaction details', 'Rotatable auditor key, regulators access exactly what they need, when they need it'],
-    compliance: 'Purpose-built compliance path: auditor keys, selective disclosure, and verifiable attestation for regulators, on demand.',
+    id: 'public-attestation', label: 'Tier 03', name: 'Public Attestation Layer', tagline: 'Cryptographic proof, no trusted intermediary', color: '#22c55e',
+    analogy: 'Like a publicly verifiable stamp of authenticity, anyone can check it, but only the issuer could have created it.',
+    description: 'Cryptographic attestations anchored on-chain. The verification is public, any consumer with a QR scanner can confirm authenticity. The underlying commercial data (pricing, supply volumes, supplier identities) stays off-chain.',
+    bestFor: 'Consumer goods, art and collectibles, sustainability claims, carbon credits',
+    how: [
+      'On-chain ZK proof of authenticity, verifiable by anyone',
+      'Commercial data kept off-chain, only the proof is public',
+      'Rotatable issuer keys, certificate can be revoked without modifying chain',
+      'Gasless consumer verification via meta-transaction relayer',
+    ],
+    compliance: 'No KYC required for consumers. Issuer identity cryptographically anchored, regulators verify issuer, not end-user.',
   },
 ];
 
 const WHY_ITEMS = [
-  { num: '01', icon: '◎', title: 'Optionality — not a single bet', body: 'No one knows exactly where institutional privacy will land. Walled Garden, Partitioned Ledger, and Encrypted Settlement each suit different use cases. Avalanche gives you all three on one platform, start with one, add others as requirements evolve.' },
-  { num: '02', icon: '⊛', title: 'Proven with your peers', body: 'BlackRock, Franklin Templeton, Apollo, KKR, and Wellington are among the institutions that have deployed on Avalanche. Japan\'s Progmat migrated $2B+ in tokenized securities to a dedicated Avalanche L1. This is not a prototype, it is a validated path.' },
-  { num: '03', icon: '⬡', title: 'Multi-chain architecture as the enabler', body: 'Each privacy model runs on its own dedicated chain, isolated from public networks and from other institutions\' infrastructure. Cross-chain settlement happens in under a second, without routing through third parties. Your chain, your block space, your rules.' },
-  { num: '04', icon: '⚡', title: 'Performance without trade-offs', body: 'Privacy on Avalanche does not mean slow. A Walled Garden delivers institutional-grade throughput with sub-second finality and no shared congestion. Even privacy-preserving cryptographic settlement achieves high throughput on dedicated infrastructure.' },
-  { num: '05', icon: '⇌', title: 'Fast path to production', body: 'Most institutions can go from architecture decision to production pilot in 4 to 12 weeks. The technology stack is mature and widely adopted, deployment does not require exotic expertise or long vendor procurement cycles.' },
-  { num: '06', icon: '🔒', title: 'Compliance is built in, not bolted on', body: 'Auditor keys, permissioned validators, selective disclosure, native protocol capabilities. Regulators can be added as read-only participants on specific channels. Compliance is the architecture, not a workaround.' },
+  { num: '01', icon: '⊛', title: 'Proven in production', body: "Blockticity runs product authentication on Avalanche infrastructure today. A leading pharmaceutical supply chain project is in advanced validation, the infrastructure works at regulated-industry scale." },
+  { num: '02', icon: '⚡', title: 'QR verification in under 2 seconds', body: 'Avalanche L1 finality is sub-second. A scan at a pharmacy counter, a retail point of sale, or a border checkpoint returns a verified result before the transaction completes, without congestion from unrelated traffic.' },
+  { num: '03', icon: '🔒', title: 'No public explorer by default', body: 'A walled-garden L1 has no public RPC endpoint and no block explorer. Competitors cannot monitor your supply volumes, distributor relationships, or pricing patterns from on-chain data.' },
+  { num: '04', icon: '⬡', title: 'Role-gated from the protocol layer', body: 'Manufacturer, distributor, retailer, regulator, each role is enforced at the validator and deployer allowlist level, not by application logic alone. Permissions cannot be bypassed by a smart contract exploit.' },
+  { num: '05', icon: '◎', title: 'Your existing team can build it', body: 'Full EVM compatibility. Every Solidity developer, every Web3 toolchain, every existing audit process transfers unchanged. No new language, no new runtime.' },
+  { num: '06', icon: '⇌', title: 'Multi-region supply chains, one network', body: 'Avalanche Warp Messaging connects regional L1s without routing through a public bridge. A product tracked across manufacturing in Asia, distribution in Europe, and retail in the Americas stays on a single verifiable record.' },
 ];
 
-// Configurator
-type Step1 = 'settle' | 'tokenize' | 'bonds' | 'payments' | 'data' | null;
-type Step2 = Set<'counterparties' | 'validators' | 'public'>;
-type Step3 = 'audit' | 'full' | 'gdpr' | 'none' | null;
+// ─── Configurator ─────────────────────────────────────────────────────────────
+type Step1 = 'pharma' | 'luxury' | 'food' | 'industrial' | 'electronics' | 'art' | null;
+type Step2 = Set<'consumer' | 'regulator' | 'b2b' | 'internal'>;
+type Step3 = 'private' | 'selective' | 'public' | null;
 
 function getRecommendation(s1: Step1, s2: Step2, s3: Step3) {
-  const needsEncrypted = s1 === 'tokenize' || s1 === 'bonds' || s2.has('public');
-  const needsLedger    = s1 === 'settle' || s1 === 'payments';
-  const needsPrivate   = s2.has('validators') && !needsEncrypted;
+  const isPublic    = s3 === 'public' || s1 === 'art' || s1 === 'electronics';
+  const isConsortium = s2.has('b2b') || s1 === 'food';
 
-  const model = needsEncrypted
-    ? 'Encrypted Settlement'
-    : needsLedger
-    ? 'Partitioned Ledger'
-    : 'Walled Garden';
+  const model = isPublic
+    ? 'Public Attestation Layer'
+    : isConsortium
+    ? 'Consortium Trace Network'
+    : 'Walled-Garden L1';
 
-  const timeline = needsEncrypted ? '8–12 weeks' : needsLedger ? '6–8 weeks' : '4–6 weeks';
+  const timeline = isPublic ? '4-6 weeks' : isConsortium ? '6-8 weeks' : '8-12 weeks';
 
   const compliance =
-    s3 === 'full'
-      ? 'Full regulatory reporting with auditor key + selective disclosure'
-      : s3 === 'audit'
-      ? 'On-demand audit access via dedicated auditor participant key'
-      : s3 === 'gdpr'
-      ? 'Data minimization by design — only necessary data on-chain'
-      : 'No regulatory constraints — full privacy defaults';
+    s3 === 'public'
+      ? 'Public attestation — anyone can verify, issuer identity cryptographically anchored'
+      : s3 === 'selective'
+      ? 'Regulator and partner access via permissioned read-only participant keys'
+      : 'Fully private — only approved actors can read or submit transactions';
 
-  const why: Record<NonNullable<Step1>, string> = {
-    settle:   'Your use case requires counterparties to see only their own trades — not each other\'s full book. A Partitioned Ledger gives each relationship an isolated chain with structural privacy by design.',
-    tokenize: 'Tokenized assets on shared infrastructure require encrypted balances so holdings aren\'t exposed publicly. Encrypted Settlement keeps amounts private while preserving composability.',
-    bonds:    'Digital bond issuance requires private investor allocations with on-demand regulatory audit capability. Encrypted Settlement with auditor keys is the direct fit.',
-    payments: 'Institutional payments need bilateral privacy between counterparties. A Partitioned Ledger keeps each relationship isolated — non-parties can\'t see that a transaction even occurred.',
-    data:     'Data sharing between institutions benefits from a Walled Garden: you control who enters the perimeter, with role-based visibility and full programmability inside.',
+  const whyMap: Record<NonNullable<Step1>, string> = {
+    pharma:      'Pharmaceutical supply chains require role-gated access and sub-2-second dispensation verification — a walled-garden L1 delivers both.',
+    luxury:      'Luxury goods need immutable chain-of-custody from factory to consumer, hidden from competitor monitoring.',
+    food:        'Food safety traceability across multiple brands benefits from shared consortium infrastructure with isolated data channels per brand.',
+    industrial:  'Industrial and aerospace parts require strict certification pipelines — a permissioned network enforces this at the protocol level.',
+    electronics: 'Electronics origin attestation is best served by a public layer consumers and border authorities can verify without accounts.',
+    art:         'Art provenance is publicly verifiable by design — ZK proofs anchor authenticity without exposing commercial transaction details.',
   };
 
-  return { model, timeline, compliance, why: why[s1 ?? 'settle'] ?? '' };
+  return { model, timeline, compliance, why: whyMap[s1 ?? 'pharma'] ?? '' };
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -157,16 +181,18 @@ function HeroSection() {
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="flex items-center gap-2 mb-8">
           <div className="w-1.5 h-1.5 rounded-full" style={{ background: RED }} />
-          <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-white/35">{'Avalanche · Institutional Privacy'}</span>
+          <span className="text-[11px] font-mono uppercase tracking-[0.18em] text-white/35">{'Avalanche · Supply-Chain Provenance'}</span>
         </motion.div>
 
         <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.08 }}
           className="text-5xl md:text-7xl font-bold text-white leading-[1.05] tracking-tight mb-6">
-          {'Every privacy model,'}<br />{'one platform.'}<br /><span style={{ color: RED }}>{'Full optionality.'}</span>
+          {'Anti-counterfeit'}<br />{'provenance'}<br /><span style={{ color: RED }}>{'infrastructure.'}</span>
         </motion.h1>
 
         <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.18 }}
-          className="text-xl text-white/45 max-w-2xl leading-relaxed mb-10">{'Walled Garden, Partitioned Ledger, or Encrypted Settlement — all three run on Avalanche\'s multi-chain architecture. Whichever model fits your use case, or whichever direction the industry lands, you\'re uniquely well-suited to implement it on Avalanche.'}</motion.p>
+          className="text-xl text-white/45 max-w-2xl leading-relaxed mb-10">
+          {'Every product leaves a trace. Make yours tamper-proof, with a permissioned Avalanche L1 that role-gates every actor, hides data from unauthorized eyes, and lets any QR scan return a verified result in under 2 seconds.'}
+        </motion.p>
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.28 }}
           className="flex flex-wrap gap-3 mb-16">
@@ -176,7 +202,7 @@ function HeroSection() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.4 }}>
-          <p className="text-[10px] font-mono uppercase tracking-widest text-white/20 mb-4">{'Validated by institutional leaders'}</p>
+          <p className="text-[10px] font-mono uppercase tracking-widest text-white/20 mb-4">{'Validated in production'}</p>
           <div className="flex flex-wrap gap-3">
             {CLIENTS.map((c, i) => {
               const inner = (
@@ -215,7 +241,6 @@ function HeroSection() {
   );
 }
 
-
 function UseCasesSection() {
   const [expanded, setExpanded] = useState<number | null>(null);
   return (
@@ -225,45 +250,39 @@ function UseCasesSection() {
           <div className="mb-12">
             <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">§ 01</span>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 mt-4 leading-tight">{'Your use case, solved.'}</h2>
-            <p className="text-white/40 text-lg max-w-xl leading-relaxed">{'Select a scenario to see how privacy works end-to-end for that workflow.'}</p>
+            <p className="text-white/40 text-lg max-w-xl leading-relaxed">{'Select a scenario to see how provenance verification works end-to-end for that industry.'}</p>
           </div>
         </FadeIn>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {USE_CASES.map((uc, i) => {
-            const title    = uc.title;
-            const problem  = uc.problem;
-            const solution = uc.solution;
-            const model    = uc.model;
-            return (
-              <FadeIn key={uc.title} delay={i * 0.05}>
-                <button onClick={() => setExpanded(expanded === i ? null : i)}
-                  className="w-full text-left rounded-2xl p-5 transition-all duration-200 hover:border-white/15 group"
-                  style={{ background: expanded === i ? `${uc.modelColor}08` : SURFACE, border: `1px solid ${expanded === i ? `${uc.modelColor}30` : BORDER}` }}>
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-2xl">{uc.icon}</span>
-                    <Tag color={uc.modelColor}>{model}</Tag>
-                  </div>
-                  <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-                  <p className="text-sm text-white/40 leading-relaxed">{problem}</p>
-                  <AnimatePresence>
-                    {expanded === i && (
-                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                        <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${uc.modelColor}18` }}>
-                          <UseCaseAnim id={uc.animId} />
-                          <p className="text-[10px] font-mono uppercase tracking-widest mt-3 mb-2" style={{ color: `${uc.modelColor}60` }}>{'Avalanche solution'}</p>
-                          <p className="text-sm leading-relaxed" style={{ color: `${uc.modelColor}cc` }}>{solution}</p>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <div className="mt-3 text-[10px] font-mono text-white/20 group-hover:text-white/35 transition-colors">
-                    {expanded === i ? '↑ less' : '↓ see how'}
-                  </div>
-                </button>
-              </FadeIn>
-            );
-          })}
+          {USE_CASES.map((uc, i) => (
+            <FadeIn key={uc.title} delay={i * 0.05}>
+              <button onClick={() => setExpanded(expanded === i ? null : i)}
+                className="w-full text-left rounded-2xl p-5 transition-all duration-200 hover:border-white/15 group"
+                style={{ background: expanded === i ? `${uc.modelColor}08` : SURFACE, border: `1px solid ${expanded === i ? `${uc.modelColor}30` : BORDER}` }}>
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-2xl">{uc.icon}</span>
+                  <Tag color={uc.modelColor}>{uc.model}</Tag>
+                </div>
+                <h3 className="text-base font-semibold text-white mb-2">{uc.title}</h3>
+                <p className="text-sm text-white/40 leading-relaxed">{uc.problem}</p>
+                <AnimatePresence>
+                  {expanded === i && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+                      <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${uc.modelColor}18` }}>
+                        <UseCaseAnim id={uc.animId} />
+                        <p className="text-[10px] font-mono uppercase tracking-widest mt-3 mb-2" style={{ color: `${uc.modelColor}60` }}>{'Avalanche solution'}</p>
+                        <p className="text-sm leading-relaxed" style={{ color: `${uc.modelColor}cc` }}>{uc.solution}</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div className="mt-3 text-[10px] font-mono text-white/20 group-hover:text-white/35 transition-colors">
+                  {expanded === i ? '↑ less' : '↓ see how'}
+                </div>
+              </button>
+            </FadeIn>
+          ))}
         </div>
       </div>
     </section>
@@ -274,7 +293,7 @@ function ModelsSection() {
   const [active, setActive] = useState(0);
   const model = MODELS[active];
 
-  const ANIMS = [<PrivateNetworkAnim key="pn" />, <NeedToKnowAnim key="ntk" />, <EncryptedSettlementAnim key="es" />];
+  const ANIMS = [<WalledGardenAnim key="wg" />, <ConsortiumTraceAnim key="ct" />, <PublicAttestationAnim key="pa" />];
 
   return (
     <section id="models" className="relative py-28 bg-[#020202] overflow-hidden">
@@ -285,32 +304,29 @@ function ModelsSection() {
           <div className="mb-12">
             <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">§ 02</span>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 mt-4 leading-tight">
-              {'Three models.'}<br />{'All on Avalanche.'}
+              {'Three tiers.'}<br />{'One platform.'}
             </h2>
-            <p className="text-white/40 text-lg max-w-xl leading-relaxed">{'Walled Garden, Partitioned Ledger, Encrypted Settlement — each suits a different workflow. All three benefit from Avalanche\'s multi-chain architecture and high performance. Pick one, or combine them as requirements grow.'}</p>
+            <p className="text-white/40 text-lg max-w-xl leading-relaxed">{'Provenance on Avalanche is not one product — it is three composable architectures. Pick the one that fits your supply chain, or combine them.'}</p>
           </div>
         </FadeIn>
 
         <FadeIn delay={0.1}>
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex lg:flex-col gap-2 lg:w-56 flex-shrink-0">
-              {MODELS.map((m, i) => {
-                const ml = m;
-                return (
-                  <button key={m.id} onClick={() => setActive(i)}
-                    className="flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-200"
-                    style={{ background: active === i ? `${m.color}0d` : 'rgba(255,255,255,0.02)', border: `1px solid ${active === i ? `${m.color}35` : BORDER}` }}>
-                    <div className="w-1 h-8 rounded-full flex-shrink-0 transition-colors duration-200"
-                      style={{ background: active === i ? m.color : 'rgba(255,255,255,0.07)' }} />
-                    <div className="min-w-0">
-                      <div className="text-[9px] font-mono uppercase tracking-widest mb-0.5 transition-colors"
-                        style={{ color: active === i ? m.color : 'rgba(255,255,255,0.2)' }}>{ml.label}</div>
-                      <div className="text-sm font-semibold leading-tight transition-colors"
-                        style={{ color: active === i ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)' }}>{ml.name}</div>
-                    </div>
-                  </button>
-                );
-              })}
+              {MODELS.map((m, i) => (
+                <button key={m.id} onClick={() => setActive(i)}
+                  className="flex-1 lg:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition-all duration-200"
+                  style={{ background: active === i ? `${m.color}0d` : 'rgba(255,255,255,0.02)', border: `1px solid ${active === i ? `${m.color}35` : BORDER}` }}>
+                  <div className="w-1 h-8 rounded-full flex-shrink-0 transition-colors duration-200"
+                    style={{ background: active === i ? m.color : 'rgba(255,255,255,0.07)' }} />
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-mono uppercase tracking-widest mb-0.5 transition-colors"
+                      style={{ color: active === i ? m.color : 'rgba(255,255,255,0.2)' }}>{m.label}</div>
+                    <div className="text-sm font-semibold leading-tight transition-colors"
+                      style={{ color: active === i ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)' }}>{m.name}</div>
+                  </div>
+                </button>
+              ))}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -318,7 +334,6 @@ function ModelsSection() {
                 <motion.div key={active} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.25 }}
                   className="grid md:grid-cols-2 gap-6">
-                  {/* Left: text */}
                   {(() => {
                     const ml = model;
                     return (
@@ -354,7 +369,6 @@ function ModelsSection() {
                     );
                   })()}
 
-                  {/* Right: animation */}
                   <div className="flex flex-col justify-center">
                     {ANIMS[active]}
                   </div>
@@ -376,26 +390,23 @@ function WhySection() {
           <div className="mb-12">
             <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">§ 03</span>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 mt-4 leading-tight">{'Why Avalanche?'}</h2>
-            <p className="text-white/40 text-lg max-w-xl leading-relaxed">{'Privacy is the missing link for widespread institutional adoption. Avalanche gives you the best optionality, the best design space, the most flexibility, the most adaptability to implement it.'}</p>
+            <p className="text-white/40 text-lg max-w-xl leading-relaxed">{'Provenance infrastructure exists on many platforms. Avalanche is the only one where all three tiers coexist, compose, and deploy at regulated-industry scale — today.'}</p>
           </div>
         </FadeIn>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {WHY_ITEMS.map((item, i) => {
-            const il = item;
-            return (
+          {WHY_ITEMS.map((item, i) => (
             <FadeIn key={item.num} delay={i * 0.06}>
               <div className="rounded-2xl p-5 h-full" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
                 <div className="flex items-start justify-between mb-3">
                   <span className="text-2xl">{item.icon}</span>
                   <span className="font-mono text-xs text-white/15">{item.num}</span>
                 </div>
-                <h3 className="text-base font-semibold text-white mb-2 leading-snug">{il.title}</h3>
-                <p className="text-sm text-white/40 leading-relaxed">{il.body}</p>
+                <h3 className="text-base font-semibold text-white mb-2 leading-snug">{item.title}</h3>
+                <p className="text-sm text-white/40 leading-relaxed">{item.body}</p>
               </div>
             </FadeIn>
-            );
-          })}
+          ))}
         </div>
       </div>
     </section>
@@ -409,7 +420,7 @@ function ConfiguratorSection() {
   const [s3, setS3] = useState<Step3>(null);
   const [result, setResult] = useState<ReturnType<typeof getRecommendation> | null>(null);
 
-  const toggleS2 = (v: 'counterparties' | 'validators' | 'public') => {
+  const toggleS2 = (v: 'consumer' | 'regulator' | 'b2b' | 'internal') => {
     setS2(prev => {
       const next = new Set(prev);
       next.has(v) ? next.delete(v) : next.add(v);
@@ -417,23 +428,32 @@ function ConfiguratorSection() {
     });
   };
 
-  const S1_ICONS = ['⇌','◎','⊛','↗','⟨⟩'] as const;
-  const S1_IDS: Step1[] = ['settle','tokenize','bonds','payments','data'];
-  const S1_LABELS = ['Settle trades between counterparties', 'Tokenize real-world assets', 'Issue digital bonds or securities', 'Institutional payments / FX', 'Share data between institutions'];
+  const S1_ICONS = ['💊', '👜', '🌾', '✈️', '🔌', '🎨'] as const;
+  const S1_IDS: Step1[] = ['pharma', 'luxury', 'food', 'industrial', 'electronics', 'art'];
+  const S1_LABELS = ['Pharma / Medicamentos', 'Luxury Goods', 'Food Safety', 'Industrial / Aerospace', 'Electronics', 'Art & Collectibles'];
   const S1_OPTS = S1_IDS.map((id, i) => ({ id, icon: S1_ICONS[i], label: S1_LABELS[i] }));
 
-  const S2_IDS = ['counterparties','validators','public'] as const;
-  const S2_OPTS_DATA = [{ label: 'Counterparties', detail: "Don't show other banks my positions" }, { label: 'Infrastructure operators', detail: "Don't show validators my data" }, { label: 'The public / competitors', detail: "Don't show amounts on a block explorer" }];
+  const S2_IDS = ['consumer', 'regulator', 'b2b', 'internal'] as const;
+  const S2_OPTS_DATA = [
+    { label: 'Consumer / end buyer',           detail: 'Any person scanning a QR at point of sale' },
+    { label: 'Regulatory authority',            detail: 'Customs, health authority, or auditor' },
+    { label: 'B2B partners / distributors',     detail: 'Other businesses in the supply chain' },
+    { label: 'Internal teams only',             detail: 'Only your own employees verify' },
+  ];
   const S2_OPTS = S2_IDS.map((id, i) => ({ id, ...S2_OPTS_DATA[i] }));
 
-  const S3_IDS: Step3[] = ['audit','full','gdpr','none'];
-  const S3_OPTS_DATA = [{ label: 'On-demand audit access', detail: 'Regulator can see when required' }, { label: 'Full regulatory reporting', detail: 'Securities, banking, or similar' }, { label: 'Data privacy laws', detail: 'GDPR, CCPA, or similar' }, { label: 'No regulatory requirements', detail: 'Internal or permissionless use case' }];
+  const S3_IDS: Step3[] = ['private', 'selective', 'public'];
+  const S3_OPTS_DATA = [
+    { label: 'Fully private',   detail: 'No public verification — authorized parties only' },
+    { label: 'Selective',       detail: 'Regulators and partners only' },
+    { label: 'Public',          detail: 'Any consumer can verify via QR' },
+  ];
   const S3_OPTS = S3_IDS.map((id, i) => ({ id, ...S3_OPTS_DATA[i] }));
 
   const MODEL_COLORS: Record<string, string> = {
-    'Walled Garden':         '#6366f1',
-    'Partitioned Ledger':    RED,
-    'Encrypted Settlement':  '#22c55e',
+    'Walled-Garden L1':        RED,
+    'Consortium Trace Network': '#6366f1',
+    'Public Attestation Layer': '#22c55e',
   };
 
   return (
@@ -445,11 +465,10 @@ function ConfiguratorSection() {
               <span className="text-[10px] font-mono text-white/25 uppercase tracking-widest">§ 04</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">{'Find your architecture'}</h2>
-            <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed">{'Three questions. One tailored recommendation for your institution.'}</p>
+            <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed">{'Three questions. One tailored recommendation for your supply chain.'}</p>
           </div>
         </FadeIn>
 
-        {/* Progress */}
         {!result && (
           <div className="flex items-center gap-2 mb-8">
             {[0, 1, 2].map(i => (
@@ -469,13 +488,12 @@ function ConfiguratorSection() {
         )}
 
         <AnimatePresence mode="wait">
-          {/* Step 0 */}
           {!result && step === 0 && (
             <motion.div key="s0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-                <h3 className="text-xl font-bold text-white mb-1">{'What are you building?'}</h3>
-                <p className="text-sm text-white/35 mb-6">{'Select the type of application or workflow.'}</p>
+                <h3 className="text-xl font-bold text-white mb-1">{'What industry are you in?'}</h3>
+                <p className="text-sm text-white/35 mb-6">{'Select the type of supply chain.'}</p>
                 <div className="flex flex-col gap-2">
                   {S1_OPTS.map(opt => (
                     <button key={opt.id} onClick={() => setS1(opt.id)}
@@ -506,12 +524,11 @@ function ConfiguratorSection() {
             </motion.div>
           )}
 
-          {/* Step 1 */}
           {!result && step === 1 && (
             <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-                <h3 className="text-xl font-bold text-white mb-1">{"Who needs to be kept private from whom?"}</h3>
+                <h3 className="text-xl font-bold text-white mb-1">{'Who needs to verify authenticity?'}</h3>
                 <p className="text-sm text-white/35 mb-6">{'Select all that apply.'}</p>
                 <div className="flex flex-col gap-2">
                   {S2_OPTS.map(opt => {
@@ -551,13 +568,12 @@ function ConfiguratorSection() {
             </motion.div>
           )}
 
-          {/* Step 2 */}
           {!result && step === 2 && (
             <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
               <div className="rounded-2xl p-6" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-                <h3 className="text-xl font-bold text-white mb-1">{'What compliance level do you need?'}</h3>
-                <p className="text-sm text-white/35 mb-6">{'Define the regulatory requirements.'}</p>
+                <h3 className="text-xl font-bold text-white mb-1">{'How visible should verification be?'}</h3>
+                <p className="text-sm text-white/35 mb-6">{'Define the visibility model.'}</p>
                 <div className="flex flex-col gap-2">
                   {S3_OPTS.map(opt => (
                     <button key={opt.id} onClick={() => setS3(opt.id)}
@@ -595,12 +611,10 @@ function ConfiguratorSection() {
             </motion.div>
           )}
 
-          {/* Result */}
           {result && (
             <motion.div key="result" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}>
               <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${MODEL_COLORS[result.model] ?? RED}30` }}>
-                {/* Header */}
                 <div className="px-6 py-4"
                   style={{ background: `${MODEL_COLORS[result.model] ?? RED}0d`, borderBottom: `1px solid ${MODEL_COLORS[result.model] ?? RED}15` }}>
                   <p className="text-[10px] font-mono uppercase tracking-widest mb-1"
@@ -611,13 +625,11 @@ function ConfiguratorSection() {
                 </div>
 
                 <div className="px-6 py-6 flex flex-col gap-5" style={{ background: SURFACE }}>
-                  {/* Why */}
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-white/20 font-mono mb-2">{'Why this fits your case'}</p>
                     <p className="text-sm text-white/60 leading-relaxed">{result.why}</p>
                   </div>
 
-                  {/* Details */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}` }}>
                       <p className="text-[9px] font-mono uppercase tracking-widest text-white/20 mb-1.5">{'Deployment timeline'}</p>
@@ -631,7 +643,6 @@ function ConfiguratorSection() {
                     </div>
                   </div>
 
-                  {/* Compliance */}
                   <div className="rounded-xl px-4 py-3"
                     style={{ background: `${MODEL_COLORS[result.model] ?? RED}08`, border: `1px solid ${MODEL_COLORS[result.model] ?? RED}18` }}>
                     <p className="text-[9px] font-mono uppercase tracking-widest mb-1.5"
@@ -641,7 +652,6 @@ function ConfiguratorSection() {
                     </p>
                   </div>
 
-                  {/* Next steps */}
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-white/20 font-mono mb-3">{'Ready to move forward?'}</p>
                     <div className="flex flex-col gap-2">
@@ -677,14 +687,14 @@ function CTASection() {
             {'Build on Avalanche'}
           </p>
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">
-            {'Your private chain.'}
+            {'Your supply chain.'}
             <br />
             {'Your rules.'}
             <br />
-            <span style={{ color: RED }}>{'Your timeline.'}</span>
+            <span style={{ color: RED }}>{'Tamper-proof.'}</span>
           </h2>
           <p className="text-white/40 text-lg max-w-xl mx-auto leading-relaxed mb-10">
-            {"Launch your own L1 on Avalanche with full validator control and institutional privacy built in. Reach out to our team — or connect with your BD contact — and we'll map out the next steps together."}
+            {"Launch your own provenance L1 on Avalanche — or reach out to our team and your BD contact to define the right architecture for your industry."}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a href="https://www.avax.network/contact"
@@ -695,7 +705,7 @@ function CTASection() {
             <a href="/integrations"
               className="px-7 py-3.5 rounded-xl text-sm font-semibold text-white/60 transition-all duration-200 hover:text-white"
               style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
-              {'Explore the ecosystem'}
+              {'Explore integrations'}
             </a>
           </div>
         </FadeIn>
@@ -706,7 +716,7 @@ function CTASection() {
 
 // ─── Export ───────────────────────────────────────────────────────────────────
 
-export default function PrivacyBDPage() {
+export default function ProvenancePage() {
   return (
     <div className="bg-[#020202] text-white overflow-x-hidden">
       <HeroSection />
