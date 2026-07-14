@@ -1293,6 +1293,16 @@ curl --location --request POST '${rpcUrl || '<RPC_URL>'}' \\
         </p>
       </div>
       <DynamicCodeBlock lang="bash" code={command} />
+      <div className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-2.5">
+        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500 mt-0.5" />
+        <p className="text-xs text-amber-800 dark:text-amber-300">
+          Running more than one validator? Run these on <strong>each</strong> node. Every validator must load the{' '}
+          <strong>same</strong> <code>upgrade.json</code> before the activation timestamp; a node left on a different
+          or missing file will fork off and stop finalizing. If you run multiple nodes on one machine, each has its own
+          data directory (for example <code>~/.avalanchego-node2</code>) and container (<code>docker restart avago-node2</code>),
+          so repeat the write and restart for every node.
+        </p>
+      </div>
     </div>
   );
 }
