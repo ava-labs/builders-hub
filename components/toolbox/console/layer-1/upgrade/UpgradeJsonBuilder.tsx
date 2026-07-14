@@ -5,6 +5,7 @@ import { AlertTriangle, FileJson, Plus, RotateCw, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
+import { formatEther } from 'viem';
 import { Button } from '@/components/toolbox/components/Button';
 import { Input } from '@/components/toolbox/components/Input';
 import { Select } from '@/components/toolbox/components/Select';
@@ -139,6 +140,10 @@ const SOURCE_CONTRACT_PRESETS = Object.entries(PREDEPLOY_INFO).map(([key, info])
   name: info.name,
   address: info.address,
 }));
+
+// The custom fetch path copies already-deployed contracts, which live on a
+// public chain rather than the near-empty L1 being upgraded.
+const DEFAULT_SOURCE_RPC_URL = 'https://api.avax.network/ext/bc/C/rpc';
 
 // Deployed bytecode + storage initialization per preset, mirroring what
 // genGenesis allocates at genesis. Bundling the artifacts means presets never
@@ -606,7 +611,6 @@ function UpgradeJsonBuilderInner() {
                   />
 
                   <StateUpgradesSection
-                    rpcUrl={selection.rpcUrl}
                     walletAddress={walletAddress}
                     balanceChanges={balanceChanges}
                     codeChanges={codeChanges}
@@ -977,8 +981,16 @@ function PrecompileUpgradesSection({
   );
 }
 
+function formatWeiHint(amount: string): string {
+  if (!isPositiveAmount(amount)) return '';
+  try {
+    return ` (≈ ${formatEther(BigInt(amount))} native)`;
+  } catch {
+    return '';
+  }
+}
+
 function StateUpgradesSection({
-  rpcUrl,
   walletAddress,
   balanceChanges,
   codeChanges,
@@ -988,7 +1000,6 @@ function StateUpgradesSection({
   notify,
   onAddHighlight,
 }: {
-  rpcUrl: string;
   walletAddress?: string;
   balanceChanges: BalanceChange[];
   codeChanges: UiCodeChange[];
@@ -1005,7 +1016,7 @@ function StateUpgradesSection({
   const addCode = () => {
     setCodeChanges((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), address: '', code: '', sourceRpcUrl: rpcUrl, sourceAddress: '', sourcePreset: 'custom' },
+      { id: crypto.randomUUID(), address: '', code: '', sourceRpcUrl: DEFAULT_SOURCE_RPC_URL, sourceAddress: '', sourcePreset: 'custom' },
     ]);
     onAddHighlight();
   };
@@ -1037,6 +1048,7 @@ function StateUpgradesSection({
     setCodeChanges((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
 
   const fetchCode = async (change: UiCodeChange) => {
+    if (!isValidAddress(change.sourceAddress)) return;
     updateCode(change.id, { isFetching: true });
     const promise = (async () => {
       const response = await fetch('/api/console/l1-upgrade/code', {
@@ -1115,7 +1127,7 @@ function StateUpgradesSection({
                 label="Amount to Add"
                 value={change.amount}
                 onChange={(amount) => updateBalance(change.id, { amount })}
-                helperText="Wei amount as decimal or hex. Adds to the balance; it does not set an absolute balance."
+                helperText={`Wei amount as decimal or hex. Adds to the balance; it does not set an absolute balance.${formatWeiHint(change.amount)}`}
                 error={
                   change.amount && !isPositiveAmount(change.amount)
                     ? `Balance change for ${change.address || 'an address'} must be positive.`
@@ -1191,6 +1203,7 @@ function StateUpgradesSection({
                     value={change.sourceRpcUrl}
                     onChange={(sourceRpcUrl) => updateCode(change.id, { sourceRpcUrl })}
                     placeholder="https://..."
+                    helperText="Chain where the source contract is deployed (defaults to Avalanche C-Chain). Change it to copy from another chain."
                   />
                   <div className="md:pt-7">
                     <Button
@@ -1198,6 +1211,7 @@ function StateUpgradesSection({
                       variant="secondary"
                       className="w-auto"
                       loading={change.isFetching}
+                      disabled={!isValidAddress(change.sourceAddress) || change.isFetching}
                       icon={<RotateCw className="h-4 w-4" />}
                       onClick={() => void fetchCode(change)}
                     >
