@@ -693,3 +693,19 @@ aside[aria-label*="On this page" i] > div:first-child,
 div [role="tablist"] button:first-child {
   padding-left: 0.5rem !important;
 }
+
+/* ── Institutions pages (Privacy, Provenance) ─────────────────────────────── */
+/* Hide right-side TOC — not applicable for marketing pages                    */
+body[data-docs-section="institutions"] aside:not(#nd-sidebar):not([data-sidebar]),
+body[data-docs-section="institutions"] .nd-toc {
+  display: none !important;
+}
+
+/* Content fills the full width of the content column (no TOC offset)         */
+body[data-docs-section="institutions"] .nd-layout-notebook article,
+body[data-docs-section="institutions"] #nd-page article {
+  max-width: 100% !important;
+  padding-top: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
