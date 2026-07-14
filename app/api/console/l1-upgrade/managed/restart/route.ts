@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/prisma/prisma';
 import { getUserId, jsonError, jsonOk } from '@/app/api/managed-testnet-nodes/utils';
 import { builderHubRestartManagedNode } from '@/app/api/managed-testnet-nodes/service';
 import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
@@ -53,11 +52,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (failed.length > 0) {
     return jsonError(502, `Failed to restart ${failed.length} managed node(s).`, failed);
   }
-
-  await prisma.l1UpgradeSnapshot.updateMany({
-    where: { user_id: userId!, subnet_id: subnetId, blockchain_id: blockchainId },
-    data: { status: 'restart-requested', source: 'managed-restart' },
-  });
 
   return jsonOk({ success: true, results });
 }

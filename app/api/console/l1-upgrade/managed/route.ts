@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { Prisma } from '@prisma/client';
-import { prisma } from '@/prisma/prisma';
 import { getUserId, jsonError, jsonOk } from '@/app/api/managed-testnet-nodes/utils';
-import {
-  builderHubGetUpgradeJson,
-  builderHubWriteUpgradeJson,
-  ManagedTestnetNodeServiceRequestError,
-} from '@/app/api/managed-testnet-nodes/service';
+import { builderHubGetUpgradeJson, builderHubWriteUpgradeJson } from '@/app/api/managed-testnet-nodes/service';
 import { isValidAvalancheId } from '@/lib/console/l1-upgrade-selection';
 import { parseUpgradeJson } from '@/lib/console/upgrade-json';
 import { getActiveManagedUpgradeNodes } from './utils';
@@ -38,21 +32,37 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return jsonOk({ managed: false, nodes: [], upgradeJson: null, exists: false });
   }
 
-  const firstNode = nodes[0];
+  const nodeSummaries = nodes.map((node) => ({ id: node.id, nodeIndex: node.node_index, nodeId: node.node_id }));
+
+  // mode=detect answers "is this L1 managed?" from the registration table
+  // alone, skipping the node-service round-trip the select step doesn't need.
+  if (new URL(request.url).searchParams.get('mode') === 'detect') {
+    return jsonOk({ managed: true, nodes: nodeSummaries, upgradeJson: null, exists: false });
+  }
+
   try {
     const result = await builderHubGetUpgradeJson({
       subnetId,
       blockchainId,
-      nodeIndex: firstNode.node_index!,
+      nodeIndex: nodes[0].node_index!,
     });
     return jsonOk({
       managed: true,
-      nodes: nodes.map((node) => ({ id: node.id, nodeIndex: node.node_index, nodeId: node.node_id })),
+      nodes: nodeSummaries,
       ...result,
     });
   } catch (error) {
-    const status = error instanceof ManagedTestnetNodeServiceRequestError ? error.status : 502;
-    return jsonError(status, error instanceof Error ? error.message : 'Failed to fetch managed upgrade.json', error);
+    // The L1 is still managed even when reading the current upgrade.json
+    // fails — report the service error instead of collapsing detection
+    // into a 5xx that the UI would misread as "not managed".
+    const message = error instanceof Error ? error.message : 'Failed to fetch managed upgrade.json';
+    return jsonOk({
+      managed: true,
+      nodes: nodeSummaries,
+      upgradeJson: null,
+      exists: false,
+      serviceError: message,
+    });
   }
 }
 
@@ -112,32 +122,5 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return jsonError(502, `Failed to write upgrade.json to ${failed.length} managed node(s).`, failed);
   }
 
-  const snapshot = await prisma.l1UpgradeSnapshot.upsert({
-    where: {
-      user_id_subnet_id_blockchain_id: {
-        user_id: userId!,
-        subnet_id: subnetId,
-        blockchain_id: blockchainId,
-      },
-    },
-    create: {
-      user_id: userId!,
-      subnet_id: subnetId,
-      blockchain_id: blockchainId,
-      chain_name: body.chainName ?? null,
-      rpc_url: body.rpcUrl ?? null,
-      upgrade_json: parsed.config as Prisma.InputJsonObject,
-      source: 'managed-write',
-      status: 'written',
-    },
-    update: {
-      chain_name: body.chainName ?? null,
-      rpc_url: body.rpcUrl ?? null,
-      upgrade_json: parsed.config as Prisma.InputJsonObject,
-      source: 'managed-write',
-      status: 'written',
-    },
-  });
-
-  return jsonOk({ success: true, results, snapshot });
+  return jsonOk({ success: true, results });
 }

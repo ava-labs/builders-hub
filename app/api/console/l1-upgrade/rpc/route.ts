@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { deriveActivePrecompiles } from '@/lib/console/upgrade-json';
 import { callJsonRpc, validatePublicRpcUrl } from '../rpc-utils';
 
 type RpcCheckBody = {
@@ -48,13 +49,25 @@ export async function POST(request: NextRequest) {
     safeRpcCall<LatestBlockResponse>(rpcUrl, 'eth_getBlockByNumber', ['latest', false]),
   ]);
 
+  const latestBlockTimestamp = latestBlock.ok ? parseBlockTimestamp(latestBlock.value) : null;
+
+  // Hosted public RPCs often don't expose eth_getActiveRulesAt — derive the
+  // active set from eth_getChainConfig instead and only report an error when
+  // both sources are unavailable.
+  let activeRulesValue = activeRules.ok ? activeRules.value : null;
+  let activeRulesError = activeRules.ok ? null : activeRules.error;
+  if (!activeRules.ok && chainConfig.ok) {
+    activeRulesValue = { precompiles: deriveActivePrecompiles(chainConfig.value, latestBlockTimestamp) };
+    activeRulesError = null;
+  }
+
   return NextResponse.json({
     chainConfig: chainConfig.ok ? chainConfig.value : null,
-    activeRules: activeRules.ok ? activeRules.value : null,
-    latestBlockTimestamp: latestBlock.ok ? parseBlockTimestamp(latestBlock.value) : null,
+    activeRules: activeRulesValue,
+    latestBlockTimestamp,
     errors: {
       chainConfig: chainConfig.ok ? null : chainConfig.error,
-      activeRules: activeRules.ok ? null : activeRules.error,
+      activeRules: activeRulesError,
       latestBlock: latestBlock.ok ? null : latestBlock.error,
     },
   });

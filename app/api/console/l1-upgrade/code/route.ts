@@ -29,7 +29,12 @@ export async function POST(request: NextRequest) {
   try {
     const code = await callJsonRpc<string>(rpcUrl, 'eth_getCode', [address, 'latest']);
     if (!code || code === '0x') {
-      return NextResponse.json({ error: 'No runtime bytecode found at that address.' }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: `No contract code found at ${address} on ${new URL(rpcUrl).host}. Point "Source RPC URL" at a chain where this contract is deployed (e.g. Avalanche C-Chain).`,
+        },
+        { status: 404 },
+      );
     }
     return NextResponse.json({ code });
   } catch (error) {
