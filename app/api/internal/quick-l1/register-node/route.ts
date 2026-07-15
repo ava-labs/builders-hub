@@ -36,7 +36,7 @@ import { prisma } from '@/prisma/prisma';
  *     keeps each route's auth + limits coherent.
  */
 
-const ADDRESS_HEX_RE = /^[0-9a-fA-F]+$/;
+const ADDRESS_HEX_RE = /^(0x)?[0-9a-fA-F]+$/;
 
 // Defensive cap so that a leaked `QUICK_L1_INTERNAL_SECRET` can't be used
 // to mass-create node registrations for arbitrary users. Legitimate flow
@@ -90,7 +90,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (typeof body.nodeIndex !== 'number' || body.nodeIndex < 0) return jsonError(400, 'Invalid nodeIndex');
   if (typeof body.dateCreated !== 'number' || body.dateCreated <= 0) return jsonError(400, 'Invalid dateCreated');
   if (!body.nodeId || !body.nodeId.startsWith('NodeID-')) return jsonError(400, 'Invalid nodeId');
-  // BLS pubkey + PoP are hex strings (no 0x prefix per the upstream service contract).
+  // BLS pubkey + PoP are hex strings. The managed-nodes service returns
+  // them 0x-prefixed (same shape the manual POST /api/managed-testnet-nodes
+  // path stores), so accept an optional 0x prefix.
   if (!body.publicKey || !ADDRESS_HEX_RE.test(body.publicKey)) return jsonError(400, 'Invalid publicKey');
   if (!body.proofOfPossession || !ADDRESS_HEX_RE.test(body.proofOfPossession)) {
     return jsonError(400, 'Invalid proofOfPossession');
