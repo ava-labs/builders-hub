@@ -317,6 +317,204 @@ const delegatorTx =
 
 ---
 
+## prepareAddAutoRenewedValidatorTxn
+
+Prepare a transaction to add an auto-renewed validator (ACP-236) to the Primary Network. The validator automatically starts a new validation cycle of length `period` at each cycle boundary and can compound a configurable share of its rewards.
+
+**Function Signature:**
+
+```typescript
+function prepareAddAutoRenewedValidatorTxn(
+  params: PrepareAddAutoRenewedValidatorTxnParameters
+): Promise<PrepareAddAutoRenewedValidatorTxnReturnType>;
+
+interface PrepareAddAutoRenewedValidatorTxnParameters {
+  nodeId: string;
+  stakeInNanoAvax: bigint;
+  period: bigint;
+  publicKey: string;
+  signature: string;
+  rewardAddresses: string[];
+  delegatorRewardAddresses: string[];
+  ownerAddresses: string[];
+  delegatorRewardPercentage: number;
+  autoCompoundRewardPercentage: number;
+  threshold?: number;
+  locktime?: bigint;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareAddAutoRenewedValidatorTxnReturnType {
+  tx: UnsignedTx;
+  addAutoRenewedValidatorTx: AddAutoRenewedValidatorTx;
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name                           | Type       | Required | Description                                                                                         |
+| ------------------------------ | ---------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `nodeId`                       | `string`   | Yes      | Node ID of the validator being added                                                                |
+| `stakeInNanoAvax`              | `bigint`   | Yes      | Amount of AVAX to stake (in nano AVAX); represents the validator's weight                           |
+| `period`                       | `bigint`   | Yes      | Auto-renewal cycle duration in seconds                                                              |
+| `publicKey`                    | `string`   | Yes      | BLS public key (in hex format)                                                                      |
+| `signature`                    | `string`   | Yes      | BLS proof of possession signature (in hex format)                                                   |
+| `rewardAddresses`              | `string[]` | Yes      | Addresses which will receive validator rewards                                                      |
+| `delegatorRewardAddresses`     | `string[]` | Yes      | Addresses which will receive delegator fee rewards                                                  |
+| `ownerAddresses`               | `string[]` | Yes      | Addresses authorized to update the auto-renewed validator config                                    |
+| `delegatorRewardPercentage`    | `number`   | Yes      | Percentage of delegator rewards taken as a delegation fee (up to 3 decimal places)                  |
+| `autoCompoundRewardPercentage` | `number`   | Yes      | Percentage of rewards to restake at each cycle boundary (0 withdraws all rewards, 100 restakes all) |
+| `threshold`                    | `number`   | No       | Number of signatures required to spend reward UTXO (default: 1)                                     |
+| `locktime`                     | `bigint`   | No       | Unix timestamp after which reward UTXO can be spent (default: 0)                                    |
+| `fromAddresses`                | `string[]` | No       | Addresses to send funds from                                                                        |
+| `changeAddresses`              | `string[]` | No       | Addresses to receive change                                                                         |
+| `utxos`                        | `Utxo[]`   | No       | UTXOs to use as inputs                                                                              |
+| `memo`                         | `string`   | No       | Transaction memo                                                                                    |
+| `minIssuanceTime`              | `bigint`   | No       | Earliest time this transaction can be issued                                                        |
+| `context`                      | `Context`  | No       | Transaction context (auto-fetched if omitted)                                                       |
+
+**Returns:**
+
+| Type                                          | Description                                   |
+| --------------------------------------------- | --------------------------------------------- |
+| `PrepareAddAutoRenewedValidatorTxnReturnType` | Add auto-renewed validator transaction object |
+
+**Return Object:**
+
+| Property                    | Type                        | Description                                         |
+| --------------------------- | --------------------------- | --------------------------------------------------- |
+| `tx`                        | `UnsignedTx`                | The unsigned transaction                            |
+| `addAutoRenewedValidatorTx` | `AddAutoRenewedValidatorTx` | The add auto-renewed validator transaction instance |
+| `chainAlias`                | `"P"`                       | The chain alias                                     |
+
+**Example:**
+
+```typescript
+import { avaxToNanoAvax } from "@avalanche-sdk/client/utils";
+
+const autoRenewedValidatorTx =
+  await walletClient.pChain.prepareAddAutoRenewedValidatorTxn({
+    nodeId: "NodeID-7Xhw2mDxuDS44j42TCB6U5579esbSt3Lg",
+    stakeInNanoAvax: avaxToNanoAvax(2000),
+    period: 14n * 24n * 60n * 60n,
+    publicKey:
+      "0x85025bca6a302dc61338ff49c8baa572ded3e86f3759304c7f618a2a2593c187e080a3cfdec95040309ad1f158953067",
+    signature:
+      "0x8b1d6133d17e3483220ad960b6fde11e4e1214a8ce21ef616227e5d5eef070d7500e6f7d4452c5a760620cc06795cbe218e072eba76d94788d9d01176ce4ecadfb96b47f942281894ddfadd1c1743f7f549f1d07d59d55655927f72bc6bf7c12",
+    rewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    delegatorRewardAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    ownerAddresses: ["P-fuji19fc97zn3mzmwr827j4d3n45refkksgms4y2yzz"],
+    delegatorRewardPercentage: 2,
+    autoCompoundRewardPercentage: 100,
+  });
+
+// Sign and send
+const signedTx = await walletClient.signXPTransaction({
+  tx: autoRenewedValidatorTx.tx,
+  chainAlias: "P",
+});
+
+const { txHash } = await walletClient.sendXPTransaction({
+  txOrTxHex: signedTx.signedTxHex,
+  chainAlias: "P",
+});
+```
+
+**Related:**
+
+- [prepareSetAutoRenewedValidatorConfigTxn](#preparesetautorenewedvalidatorconfigtxn) - Update auto-renewal config
+- [prepareAddPermissionlessValidatorTxn](#prepareaddpermissionlessvalidatortxn) - Add a standard validator
+
+---
+
+## prepareSetAutoRenewedValidatorConfigTxn
+
+Prepare a transaction to update the next-cycle configuration of an existing auto-renewed validator, or to stop auto-renewal after the current cycle. Must be authorized by the owner set established when the validator was added.
+
+**Function Signature:**
+
+```typescript
+function prepareSetAutoRenewedValidatorConfigTxn(
+  params: PrepareSetAutoRenewedValidatorConfigTxnParameters
+): Promise<PrepareSetAutoRenewedValidatorConfigTxnReturnType>;
+
+interface PrepareSetAutoRenewedValidatorConfigTxnParameters {
+  validatorTxId: string;
+  auth: number[];
+  period: bigint;
+  autoCompoundRewardPercentage: number;
+  fromAddresses?: string[];
+  changeAddresses?: string[];
+  utxos?: Utxo[];
+  memo?: string;
+  minIssuanceTime?: bigint;
+  context?: Context;
+}
+
+interface PrepareSetAutoRenewedValidatorConfigTxnReturnType {
+  tx: UnsignedTx;
+  setAutoRenewedValidatorConfigTx: SetAutoRenewedValidatorConfigTx;
+  autoRenewedValidatorOwners: PChainOwner;
+  autoRenewedValidatorAuth: number[];
+  chainAlias: "P";
+}
+```
+
+**Parameters:**
+
+| Name                           | Type       | Required | Description                                                                                            |
+| ------------------------------ | ---------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `validatorTxId`                | `string`   | Yes      | ID of the transaction that created the auto-renewed validator                                          |
+| `auth`                         | `number[]` | Yes      | Indices from the auto-renewed validator owner set that authorize this config update                    |
+| `period`                       | `bigint`   | Yes      | Duration of the next validation cycle in seconds (set to 0 to stop validating after the current cycle) |
+| `autoCompoundRewardPercentage` | `number`   | Yes      | Percentage of rewards to restake in the next cycle (0 withdraws all rewards, 100 restakes all)         |
+| `fromAddresses`                | `string[]` | No       | Addresses to send funds from                                                                           |
+| `changeAddresses`              | `string[]` | No       | Addresses to receive change                                                                            |
+| `utxos`                        | `Utxo[]`   | No       | UTXOs to use as inputs                                                                                 |
+| `memo`                         | `string`   | No       | Transaction memo                                                                                       |
+| `minIssuanceTime`              | `bigint`   | No       | Earliest time this transaction can be issued                                                           |
+| `context`                      | `Context`  | No       | Transaction context (auto-fetched if omitted)                                                          |
+
+**Returns:**
+
+| Type                                                | Description                                          |
+| --------------------------------------------------- | ---------------------------------------------------- |
+| `PrepareSetAutoRenewedValidatorConfigTxnReturnType` | Set auto-renewed validator config transaction object |
+
+**Return Object:**
+
+| Property                          | Type                              | Description                                                          |
+| --------------------------------- | --------------------------------- | -------------------------------------------------------------------- |
+| `tx`                              | `UnsignedTx`                      | The unsigned transaction                                             |
+| `setAutoRenewedValidatorConfigTx` | `SetAutoRenewedValidatorConfigTx` | The set auto-renewed validator config transaction instance           |
+| `autoRenewedValidatorOwners`      | `PChainOwner`                     | The owner set authorized to update the auto-renewed validator config |
+| `autoRenewedValidatorAuth`        | `number[]`                        | The owner indices authorizing the config update                      |
+| `chainAlias`                      | `"P"`                             | The chain alias                                                      |
+
+**Example:**
+
+```typescript
+const setAutoRenewedValidatorConfigTx =
+  await walletClient.pChain.prepareSetAutoRenewedValidatorConfigTxn({
+    validatorTxId: "2CDLCyFr7x4LcxaJ82rE38gnSk4gcVTeFdJeFbwZRd5fgM1gDH",
+    auth: [0],
+    period: 14n * 24n * 60n * 60n,
+    autoCompoundRewardPercentage: 30,
+  });
+```
+
+**Related:**
+
+- [prepareAddAutoRenewedValidatorTxn](#prepareaddautorenewedvalidatortxn) - Add an auto-renewed validator
+
+---
+
 ## prepareExportTxn
 
 Prepare a transaction to export AVAX from P-Chain to another chain.

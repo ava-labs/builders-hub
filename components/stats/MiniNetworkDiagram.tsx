@@ -779,26 +779,37 @@ export default function MiniNetworkDiagram({
       className={`relative overflow-hidden ${className}`}
       style={{ width: containerSize, height: containerSize + BOTTOM_CONTROLS_HEIGHT }}
     >
-      {/* Background nebula gradient - contained within component */}
+      {/* Background nebula gradient - contained within component.
+          Two layers toggled via the `dark` class so SSR output is theme-independent
+          (reading resolvedTheme during render causes a hydration mismatch). */}
       <div
-        className="absolute pointer-events-none overflow-hidden"
+        className="absolute pointer-events-none overflow-hidden dark:hidden"
         style={{
           width: '200%',
           height: '200%',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: isDarkMode
-            ? `
-              radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(139, 92, 246, 0.06) 30%, transparent 50%),
-              radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.04) 30%, transparent 50%),
-              radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.03) 30%, transparent 50%)
-            `
-            : `
-              radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 30%, transparent 50%),
-              radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.10) 0%, rgba(6, 182, 212, 0.03) 30%, transparent 50%),
-              radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.08) 0%, rgba(236, 72, 153, 0.02) 30%, transparent 50%)
-            `,
+          background: [
+            "radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 30%, transparent 50%)",
+            "radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.10) 0%, rgba(6, 182, 212, 0.03) 30%, transparent 50%)",
+            "radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.08) 0%, rgba(236, 72, 153, 0.02) 30%, transparent 50%)",
+          ].join(", "),
+        }}
+      />
+      <div
+        className="absolute pointer-events-none overflow-hidden hidden dark:block"
+        style={{
+          width: '200%',
+          height: '200%',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: [
+            "radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(139, 92, 246, 0.06) 30%, transparent 50%)",
+            "radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.04) 30%, transparent 50%)",
+            "radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.03) 30%, transparent 50%)",
+          ].join(", "),
         }}
       />
       <canvas

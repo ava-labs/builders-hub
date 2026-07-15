@@ -277,13 +277,6 @@ export async function updateProject(
       screenshots: projectData.screenshots ?? [],
       tech_stack: projectData.tech_stack ?? "",
       tracks: projectData.tracks ?? [],
-      members: {
-        create: projectData.members?.map((member) => ({
-          user_id: member.user_id,
-          role: member.role,
-          status: member.status,
-        })),
-      },
       updated_at: new Date(),
     },
   });

@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       <p style="color:#A1A1AA;font-size:16px;line-height:1.6;margin-bottom:24px;">
         Stop receiving email alerts for validator <strong style="color:white;">${alert.node_id}</strong>?
       </p>
-      <form method="POST" action="/api/validator-alerts/unsubscribe?id=${alertId}&token=${token}">
+      <form method="POST" action="/api/validator-alerts/unsubscribe?id=${alertId}&token=${encodeURIComponent(token)}">
         <button type="submit" style="background:#EF4444;color:white;border:none;padding:12px 32px;border-radius:6px;font-size:16px;font-weight:bold;cursor:pointer;">
           Confirm Unsubscribe
         </button>

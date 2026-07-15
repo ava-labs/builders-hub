@@ -25,7 +25,6 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
   const [balanceAlert, setBalanceAlert] = useState(alert.balance_alert);
   const [balanceThresholdDays, setBalanceThresholdDays] = useState(alert.balance_threshold_days ?? 30);
   const [securityAlert, setSecurityAlert] = useState(alert.security_alert ?? false);
-  const [email, setEmail] = useState(alert.email);
   const [saving, setSaving] = useState(false);
 
   const hasChanges =
@@ -36,8 +35,7 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
     expiryDays !== alert.expiry_days ||
     balanceAlert !== alert.balance_alert ||
     balanceThresholdDays !== (alert.balance_threshold_days ?? 30) ||
-    securityAlert !== (alert.security_alert ?? false) ||
-    email !== alert.email;
+    securityAlert !== (alert.security_alert ?? false);
 
   async function handleSave() {
     setSaving(true);
@@ -55,7 +53,6 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
           balance_alert: balanceAlert,
           balance_threshold_days: Math.max(1, Math.min(365, Math.round(balanceThresholdDays))),
         } : {}),
-        email,
       });
     } finally {
       setSaving(false);
@@ -190,16 +187,19 @@ export function AlertPreferences({ alert, onSave }: AlertPreferencesProps) {
         </div>
       )}
 
-      {/* Email */}
+      {/* Email — bound to the account email, not editable */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Notification Email</Label>
         <Input
           type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
+          value={alert.email}
+          readOnly
+          disabled
           className="h-9 text-sm"
         />
+        <p className="text-xs text-muted-foreground">
+          Alerts are sent to your account email.
+        </p>
       </div>
 
       {hasChanges && (

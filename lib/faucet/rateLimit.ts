@@ -12,10 +12,11 @@ interface RateLimitResult {
 
 export async function checkAndReserveFaucetClaim(
   userId: string,
-  faucetType: 'pchain' | 'evm',
+  faucetType: 'pchain' | 'evm' | 'devnet',
   destinationAddress: string,
   amount: string,
-  chainId?: string
+  chainId?: string,
+  couponId?: string
 ): Promise<RateLimitResult & { claimId?: string }> {
   const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
   const normalizedAddress = destinationAddress.toLowerCase();
@@ -106,7 +107,8 @@ export async function checkAndReserveFaucetClaim(
         chain_id: normalizedChainId,
         destination_address: normalizedAddress,
         amount,
-        tx_hash: null
+        tx_hash: null,
+        coupon_id: couponId ?? null
       }
     });
 
@@ -116,7 +118,7 @@ export async function checkAndReserveFaucetClaim(
 
 export async function checkFaucetRateLimit(
   userId: string,
-  faucetType: 'pchain' | 'evm',
+  faucetType: 'pchain' | 'evm' | 'devnet',
   destinationAddress: string,
   chainId?: string
 ): Promise<RateLimitResult> {

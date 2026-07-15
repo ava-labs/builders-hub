@@ -4,14 +4,7 @@ import { getRewardBoard } from "@/server/services/rewardBoard";
 import { NextResponse } from "next/server";
 
 export const GET = withAuth(async (request, _context: unknown, session: Session) => {
-  const { searchParams } = new URL(request.url);
-  const user_id = searchParams.get("user_id");
-  if (!user_id) {
-    return NextResponse.json(
-      { error: "user_id parameter is required" },
-      { status: 400 }
-    );
-  }
+  const user_id = session.user.id;
 
   try {
     const badges = await getRewardBoard(user_id);

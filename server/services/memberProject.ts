@@ -58,7 +58,7 @@ export async function UpdateStatusMember(
     });
   }
 
-  checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
+  await checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
 
   return updatedMember;
 }
@@ -170,9 +170,9 @@ export async function GetMembersByProjectId(project_id: string) {
   }));
 }
 
-export async function UpdateRoleMember(member_id: string, role: string) {
+export async function UpdateRoleMember(member_id: string, role: string, project_id: string) {
   const updatedMember = await prisma.member.update({
-    where: { id: member_id },
+    where: { id: member_id, project_id },
     data: { role },
   });
   return updatedMember;

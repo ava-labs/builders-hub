@@ -109,7 +109,6 @@ export interface CreateAlertRequest {
   balance_threshold?: number;
   balance_threshold_days?: number;
   security_alert?: boolean;
-  email?: string;
 }
 
 export interface UpdateAlertRequest {
@@ -123,6 +122,5 @@ export interface UpdateAlertRequest {
   balance_threshold?: number;
   balance_threshold_days?: number;
   security_alert?: boolean;
-  email?: string;
   active?: boolean;
 }

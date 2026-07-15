@@ -3,8 +3,9 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import {
   canEvaluateHackathon,
   canManageHackathonJudges,
+  canViewEventRegistrations,
 } from "@/lib/auth/permissions";
-import { Gavel, ClipboardCheck } from "lucide-react";
+import { Gavel, ClipboardCheck, Users } from "lucide-react";
 
 type Props = {
   hackathonId: string;
@@ -17,15 +18,25 @@ export async function HostNavButtons({ hackathonId }: Props) {
   const session = await getAuthSession();
   if (!session?.user) return null;
 
-  const [canManage, canEvaluate] = await Promise.all([
+  const [canManage, canEvaluate, canViewRegistrations] = await Promise.all([
     Promise.resolve(canManageHackathonJudges(session)),
     canEvaluateHackathon(session, hackathonId),
+    canViewEventRegistrations(session, hackathonId),
   ]);
 
-  if (!canManage && !canEvaluate) return null;
+  if (!canManage && !canEvaluate && !canViewRegistrations) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {canViewRegistrations && (
+        <Link
+          href={`/events/${hackathonId}/registrations`}
+          className={BUTTON_CLASS}
+        >
+          <Users size={16} />
+          Registrations
+        </Link>
+      )}
       {canManage && (
         <Link
           href={`/events/${hackathonId}/admin-panel/judges`}

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from '@/constants/l1-chains.json';
+import { isValidRpcUrl } from '@/lib/rpcUrlValidator';
 
 interface RpcTransaction {
   hash: string;
@@ -64,9 +65,16 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const customRpcUrl = searchParams.get('rpcUrl');
 
+  if (customRpcUrl && !isValidRpcUrl(customRpcUrl)) {
+    return NextResponse.json(
+      { error: 'Invalid rpcUrl: must use https and must not target private or loopback addresses.' },
+      { status: 400 }
+    );
+  }
+
   const chain = l1ChainsData.find(c => c.chainId === chainId);
   const rpcUrl = chain?.rpcUrl || customRpcUrl;
-  
+
   if (!rpcUrl) {
     return NextResponse.json({ error: 'Chain not found or RPC URL missing. Provide rpcUrl query parameter for custom chains.' }, { status: 404 });
   }

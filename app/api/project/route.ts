@@ -4,6 +4,7 @@ import { prisma } from '@/prisma/prisma';
 import { GetProjectByHackathonAndUser } from '@/server/services/projects';
 import { createProject, ProjectCreateResult } from '@/server/services/submitProject';
 import { NextResponse } from 'next/server';
+import { MINI_GRANT_HACKATHON_ID } from '@/lib/grants/programs';
 
 interface RegistrationData {
   terms_event_conditions: boolean;
@@ -84,7 +85,7 @@ export const POST = withAuth(async (request, _context: unknown, session: Session
 
     // Auto-register the submitter if they haven't registered for the hackathon yet.
     // registrationData carries the terms acceptance and any fields collected in the modal.
-    if (body.hackaton_id) {
+    if (body.hackaton_id && body.hackaton_id !== MINI_GRANT_HACKATHON_ID) {
       await autoRegisterIfNeeded(session, body.hackaton_id, body.registrationData);
     }
 

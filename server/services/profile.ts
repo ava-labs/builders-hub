@@ -61,7 +61,6 @@ export async function updateProfile(id: string, profileData: Partial<Profile>) {
         where: { id: id },
         data: {
             bio: data.bio,
-            email: data.email,
             image: data.image,
             name: data.name,
             notification_email: data.notification_email,

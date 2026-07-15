@@ -16,11 +16,10 @@ import { toast } from '@/lib/toast';
 import type { CreateAlertRequest } from '@/types/validator-alerts';
 
 interface BulkImportDialogProps {
-  userEmail: string;
   onAdd: (data: CreateAlertRequest) => Promise<{ error?: string }>;
 }
 
-export function BulkImportDialog({ userEmail, onAdd }: BulkImportDialogProps) {
+export function BulkImportDialog({ onAdd }: BulkImportDialogProps) {
   const [open, setOpen] = useState(false);
   const [raw, setRaw] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,7 +44,6 @@ export function BulkImportDialog({ userEmail, onAdd }: BulkImportDialogProps) {
     for (const nodeId of nodeIds) {
       const result = await onAdd({
         node_id: nodeId,
-        email: userEmail,
       });
       importResults.push({
         nodeId,

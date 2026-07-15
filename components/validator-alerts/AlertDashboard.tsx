@@ -234,7 +234,7 @@ export function AlertDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <BulkImportDialog userEmail={userEmail} onAdd={handleAdd} />
+          <BulkImportDialog onAdd={handleAdd} />
           <AddValidatorDialog userEmail={userEmail} onAdd={handleAdd} />
         </div>
       </motion.div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import SafeApiKit from '@safe-global/api-kit';
 import { getAddress, isAddress } from 'viem';
+import { withAuth } from '@/lib/protectedRoute';
 
 interface ChainConfig {
   chainId: string;
@@ -47,7 +48,7 @@ const getSupportedChain = async (chainId: string): Promise<{ txServiceUrl: strin
   }
 };
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request: NextRequest) => {
   try {
     const body = await request.json();
     const { action, chainId, safeAddress, ...params } = body;
@@ -202,4 +203,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+});

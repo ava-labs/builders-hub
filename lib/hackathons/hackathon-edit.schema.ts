@@ -131,7 +131,12 @@ export const hackathonEditSchema = z.object({
     description: z.string().trim().min(10).max(540),
     location: z.string().trim().min(2).max(100),
     total_prizes: z.number().min(0).max(100_000_000),
-    tags: z.array(z.string().max(30)).min(1).max(10),
+    tags: z
+      .array(z.string().max(30))
+      .max(10)
+      .refine((arr) => arr.some((t) => t.trim().length > 0), {
+        message: 'Please add at least one category or tag.',
+      }),
     participants: z.number().min(0).max(1_000_000).optional(),
     organizers: z.string().max(200).optional(),
     is_public: z.boolean().optional(),

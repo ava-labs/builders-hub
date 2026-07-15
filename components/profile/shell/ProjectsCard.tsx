@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Briefcase, ExternalLink, Trophy } from "lucide-react";
 import { PuzzleIcon, GitHubIcon } from "./icons";
+import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_KEY } from "@/lib/grants/programs";
 
 const BUILD_GAMES_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
 
@@ -16,6 +17,8 @@ export interface ProjectsCardProject {
   isWinner: boolean;
   hackathonId: string | null;
   hackathonTitle: string | null;
+  origin: string;
+  hasMiniGrantApplication: boolean;
   logoUrl: string | null;
   demoLink: string | null;
   githubRepository: string | null;
@@ -23,6 +26,14 @@ export interface ProjectsCardProject {
 }
 
 function projectEditHref(project: ProjectsCardProject): string {
+  if (project.origin === MINI_GRANT_KEY && !project.hackathonId) {
+    return `/grants/team1-mini-grants/apply?project=${encodeURIComponent(project.id)}`;
+  }
+  if (project.hackathonId === MINI_GRANT_HACKATHON_ID) {
+    return project.hasMiniGrantApplication
+      ? "/grants/team1-mini-grants"
+      : `/grants/team1-mini-grants/apply?project=${encodeURIComponent(project.id)}`;
+  }
   if (project.hackathonId === BUILD_GAMES_HACKATHON_ID) {
     return "/build-games/submit?stage=1";
   }

@@ -1,7 +1,7 @@
 
 export let MANAGED_TESTNET_NODES_SERVICE_URL = process.env.MANAGED_NODES_OVERRIDE ||
   (process.env.VERCEL_ENV === "production"
-    ? 'https://nodes-prod.18.182.4.86.sslip.io'
+    ? 'https://nodes-prod.43.207.73.245.sslip.io'
     : 'https://nodes-staging.35.74.237.34.sslip.io');
 
 if (MANAGED_TESTNET_NODES_SERVICE_URL.endsWith('/')) {
@@ -24,6 +24,14 @@ export const ManagedTestnetNodesServiceURLs = {
 
   deleteNode: (subnetId: string, nodeIndex: number, password: string) =>
     `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/delete/${subnetId}/${nodeIndex}?password=${password}`,
+
+  upgradeJson: (subnetId: string, nodeIndex: number, blockchainId: string, password: string) => {
+    const params = new URLSearchParams({ password, blockchainId });
+    return `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${subnetId}/${nodeIndex}/upgrade-json?${params.toString()}`;
+  },
+
+  restartNode: (subnetId: string, nodeIndex: number, password: string) =>
+    `${MANAGED_TESTNET_NODES_SERVICE_URL}/node_admin/subnets/${subnetId}/${nodeIndex}/restart?password=${password}`,
 
   rpcEndpoint: (blockchainId: string) =>
     `${MANAGED_TESTNET_NODES_SERVICE_URL}/ext/bc/${blockchainId}/rpc`

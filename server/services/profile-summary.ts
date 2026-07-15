@@ -10,6 +10,7 @@ import { getAllBadges } from "@/server/services/badge";
 import { getRewardBoard } from "@/server/services/rewardBoard";
 import type { Badge, UserBadge, Requirement } from "@/types/badge";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import type { Prisma } from "@prisma/client";
 
 export interface ProfileProjectSummary {
@@ -20,6 +21,8 @@ export interface ProfileProjectSummary {
   isWinner: boolean;
   hackathonId: string | null;
   hackathonTitle: string | null;
+  origin: string;
+  hasMiniGrantApplication: boolean;
   logoUrl: string | null;
   demoLink: string | null;
   githubRepository: string | null;
@@ -28,6 +31,9 @@ export interface ProfileProjectSummary {
 
 const projectMembershipInclude = {
   hackathon: { select: { id: true, title: true } },
+  grant_applications: {
+    select: { program_key: true },
+  },
   members: {
     select: { user_id: true, role: true, status: true },
   },
@@ -66,6 +72,10 @@ export async function getUserProjects(
       isWinner: project.is_winner ?? false,
       hackathonId: project.hackathon?.id ?? null,
       hackathonTitle: project.hackathon?.title ?? null,
+      origin: project.origin,
+      hasMiniGrantApplication: project.grant_applications.some(
+        (application) => application.program_key === MINI_GRANT_KEY,
+      ),
       logoUrl: project.logo_url || null,
       demoLink: project.demo_link || null,
       githubRepository: project.github_repository || null,

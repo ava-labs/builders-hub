@@ -117,18 +117,12 @@ export const POST = withAuth(async (
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error POST /api/register-form:', error.message);
+    console.error('Error POST /api/register-form:', error.message, error.stack);
     const wrappedError = error as Error;
+    const isValidation = wrappedError.cause == 'ValidationError';
     return NextResponse.json(
-      {
-        error: {
-          message: wrappedError.message,
-          stack: wrappedError.stack,
-          cause: wrappedError.cause,
-          name: wrappedError.name
-        }
-      },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { error: { message: isValidation ? wrappedError.message : 'Internal server error' } },
+      { status: isValidation ? 400 : 500 }
     );
   }
 });

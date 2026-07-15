@@ -2,6 +2,7 @@
 import { withAuth } from '@/lib/protectedRoute';
 import { del, put } from '@vercel/blob';
 import { NextResponse, NextRequest } from 'next/server';
+import { randomUUID } from 'crypto';
 import {
   canUserDeleteFile,
   canUserUploadFile,
@@ -69,8 +70,13 @@ export const POST = withAuth(async (request: Request, context: any, session: any
       );
     }
 
+    // Generate a server-controlled blob key to prevent filename-based collisions
+    // and namespace pollution from user-supplied filenames.
+    const ext = typedFile.name.includes('.') ? typedFile.name.slice(typedFile.name.lastIndexOf('.')) : '';
+    const blobKey = `${userId}/${randomUUID()}${ext}`;
+
     // Upload the file
-    const blob = await put(typedFile.name, typedFile, {
+    const blob = await put(blobKey, typedFile, {
       access: 'public',
       token: process.env.BLOB_READ_WRITE_TOKEN!,
     });

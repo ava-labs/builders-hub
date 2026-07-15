@@ -251,7 +251,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     }
   };
 
-  const cliCommand = `platform validator add --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
+  const cliCommand = `platform-cli validator add-permissionless --node-id ${validator?.nodeID || '<node-id>'} --stake ${stakeInAvax || '<amount>'} --duration ${getDurationHours()}h --delegation-fee ${Number(delegationFee) / 100} --network ${onFuji ? 'fuji' : 'mainnet'}`;
 
   return (
     <SDKCodeViewer sources={SDK_SOURCES} height="auto">

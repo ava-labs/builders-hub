@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { WalletProvider } from "@/components/toolbox/providers/WalletProvider";
 
 interface ExplorerRootLayoutProps {
   children: ReactNode;
@@ -6,9 +7,10 @@ interface ExplorerRootLayoutProps {
 
 export default function ExplorerRootLayout({ children }: ExplorerRootLayoutProps) {
   return (
-    <div className="min-h-screen bg-white">
-      {children}
-    </div>
+    <WalletProvider>
+      <div className="min-h-screen bg-white">
+        {children}
+      </div>
+    </WalletProvider>
   );
 }
-

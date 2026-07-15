@@ -97,7 +97,7 @@ const dict: Record<EventsLang, Dict> = {
     // Buttons / misc
     "join.registered": "You're In",
     "join.chat": "Join the Hackathon Chat",
-    "join.default": "Join now",
+    "join.default": "Register / Join",
     "join.editRegistration": "Edit registration",
     "overview.learnMore": "LEARN MORE",
     "overview.hackathonTitleFallback": "Hackathon Title",
@@ -623,7 +623,7 @@ const dict: Record<EventsLang, Dict> = {
     // Buttons / misc
     "join.registered": "Ya estás dentro",
     "join.chat": "Únete al chat del hackathon",
-    "join.default": "Unirse ahora",
+    "join.default": "Registrarse / Unirse",
     "join.editRegistration": "Editar registro",
     "overview.learnMore": "SABER MÁS",
     "overview.hackathonTitleFallback": "Título del hackathon",

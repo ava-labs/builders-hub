@@ -342,7 +342,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
                   loadingText="Increasing Balance..."
                   disabled={isDisabled}
                   className="w-full"
-                  cliCommand={`platform l1 add-balance --validation-id ${validatorSelection.validationId || '<validation-id>'} --balance ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'} --key-name <your-key-name>`}
+                  cliCommand={`platform-cli l1 increase-validator-balance --validation-id ${validatorSelection.validationId || '<validation-id>'} --balance ${amount || '<amount>'} --network ${isTestnet ? 'fuji' : 'mainnet'} --key-name <your-key-name>`}
                 >
                   Increase Balance
                 </CoreWalletTransactionButton>

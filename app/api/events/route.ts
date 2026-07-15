@@ -49,7 +49,12 @@ const createHackathonSchema = z.object({
   location: z.string().min(1),
   total_prizes: z.number().nonnegative().optional(),
   participants: z.number().nonnegative().optional(),
-  tags: z.array(z.string()).min(1),
+  tags: z
+    .array(z.string())
+    .transform((arr) => arr.map((t) => t.trim()).filter((t) => t.length > 0))
+    .refine((arr) => arr.length >= 1, {
+      message: 'Please add at least one category or tag.',
+    }),
   timezone: z.string().optional(),
   cohosts: z.array(z.string().email()).optional(),
   organizers: z.string().max(200).optional(),
@@ -172,8 +177,15 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
     // the service layer.  This prevents mass-assignment / schema injection.
     const parseResult = createHackathonSchema.safeParse(rawBody);
     if (!parseResult.success) {
+      // Emit details as an array of { field, message } so the client's error
+      // renderer (see app/events/edit/page.tsx) can surface the specific
+      // validation message instead of falling back to the generic error string.
+      const details = parseResult.error.issues.map((issue) => ({
+        field: issue.path.join('.') || '(body)',
+        message: issue.message,
+      }));
       return NextResponse.json(
-        { error: 'Invalid request body', details: parseResult.error.flatten() },
+        { error: 'Invalid request body', details },
         { status: 400 }
       );
     }
@@ -211,8 +223,16 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error POST /api/events:', error.message);
     const wrappedError = error as Error;
+    if (wrappedError.cause === 'ValidationError') {
+      const details = (wrappedError as any).details as Array<{ field: string; message: string }> | undefined;
+      console.error(
+        'Error POST /api/events: Validation failed',
+        details?.map((d) => `${d.field}: ${d.message}`)
+      );
+    } else {
+      console.error('Error POST /api/events:', error.message);
+    }
     return NextResponse.json(
       { error: wrappedError },
       { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }

@@ -101,6 +101,57 @@ function toIso8601(datetimeLocal: string) {
   return date.toISOString();
 }
 
+function isSupportedTimeZone(timeZone: string) {
+  if (!timeZone) return false;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Render a stored absolute instant (`isoString`, UTC) as the `datetime-local`
+ * wall clock in the event's own `timeZone` — NOT the browser's timezone. This
+ * is the inverse of how the server persists the value (a naive wall clock in
+ * `timeZone`, see server/services/date-parser.ts), so what the organiser typed
+ * is what they see again on reload, regardless of where they open the editor.
+ */
+function toEventDatetimeString(isoString: string, timeZone: string) {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '';
+  const tz = isSupportedTimeZone(timeZone) ? timeZone : 'UTC';
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const map: Record<string, string> = Object.fromEntries(
+    fmt.formatToParts(date).map((p) => [p.type, p.value])
+  );
+  const hour = map.hour === '24' ? '00' : map.hour;
+  return `${map.year}-${map.month}-${map.day}T${hour}:${map.minute}`;
+}
+
+/**
+ * Strip any timezone suffix from a `datetime-local` value WITHOUT shifting the
+ * clock, yielding the naive wall clock ("YYYY-MM-DDTHH:MM") the user sees. The
+ * server interprets this in the event's selected timezone. We deliberately do
+ * not convert via `new Date().toISOString()` here (that would re-introduce the
+ * browser-timezone shift bug).
+ */
+function toNaiveDatetime(value: string) {
+  if (!value) return '';
+  const m = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+  return m ? m[1] : value;
+}
+
 type ChangedField = { key: string; oldValue: unknown; newValue: unknown };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -1457,8 +1508,8 @@ const HackathonsEdit = () => {
     });
     setRawTrackDescriptions(trackDescriptions);
     setFormDataLatest({
-      start_date: toLocalDatetimeString(hackathon.start_date ?? ''),
-      end_date: toLocalDatetimeString(hackathon.end_date ?? ''),
+      start_date: toEventDatetimeString(hackathon.start_date ?? '', hackathon.timezone ?? ''),
+      end_date: toEventDatetimeString(hackathon.end_date ?? '', hackathon.timezone ?? ''),
       timezone: hackathon.timezone ?? '',
       banner: hackathon.banner ?? '',
       icon: hackathon.icon ?? '',
@@ -1882,8 +1933,9 @@ const HackathonsEdit = () => {
     content.registration_deadline = toIso8601(content.registration_deadline);
     content.schedule = content.schedule.map(ev => ({ ...ev, date: toIso8601(ev.date) }));
     const latest = { ...formDataLatest };
-    latest.start_date = toIso8601(latest.start_date);
-    latest.end_date = toIso8601(latest.end_date);
+    // Send the naive wall clock; the server interprets it in `latest.timezone`.
+    latest.start_date = toNaiveDatetime(latest.start_date);
+    latest.end_date = toNaiveDatetime(latest.end_date);
     latest.google_calendar_id = formDataLatest.google_calendar_id?.trim() || null;
     const { icon, ...latestWithoutIcon } = latest;
     return {

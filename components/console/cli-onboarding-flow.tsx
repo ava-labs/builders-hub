@@ -11,8 +11,8 @@ interface CliOnboardingFlowProps {
 }
 
 const INSTALL_CMD = "curl -sSfL https://build.avax.network/install/platform-cli | sh";
-const GENERATE_KEY_CMD = "platform keys generate --name mykey";
-const GET_ADDRESS_CMD = "platform wallet address --key-name mykey";
+const GENERATE_KEY_CMD = "platform-cli keys generate --name mykey";
+const GET_ADDRESS_CMD = "platform-cli wallet address --key-name mykey";
 
 function CopyableCommand({ command, label }: { command: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -80,7 +80,7 @@ export function CliOnboardingFlow({
         </div>
         <CopyableCommand command={GENERATE_KEY_CMD} />
         <p className="text-xs text-muted-foreground ml-7">
-          Or import an existing key: <code className="text-xs bg-muted px-1 py-0.5 rounded">platform keys import --name mykey --private-key &quot;PrivateKey-...&quot;</code>
+          Or import an existing key: <code className="text-xs bg-muted px-1 py-0.5 rounded">platform-cli keys import --name mykey --private-key &quot;PrivateKey-...&quot;</code>
         </p>
       </div>
 

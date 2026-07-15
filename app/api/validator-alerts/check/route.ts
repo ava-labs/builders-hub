@@ -9,6 +9,29 @@ import {
 } from '@/server/services/validator-alert-check';
 import type { L1ValidatorData } from '@/types/validator-alerts';
 
+export const maxDuration = 60;
+
+// Log a `check_failed` marker for the given alerts, gated by a global 1-hour cooldown
+async function logCheckFailed(
+  alerts: { id: string }[],
+  message: string
+): Promise<number> {
+  if (alerts.length === 0) return 0;
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const recentFailLog = await prisma.validatorAlertLog.findFirst({
+    where: { alert_type: 'check_failed', sent_at: { gte: oneHourAgo } },
+  });
+  if (recentFailLog) return 0;
+  await Promise.all(
+    alerts.map((a) =>
+      prisma.validatorAlertLog.create({
+        data: { validator_alert_id: a.id, alert_type: 'check_failed', message },
+      })
+    )
+  );
+  return alerts.length;
+}
+
 export async function POST(req: NextRequest) {
   // Authenticate: accept Vercel CRON_SECRET or custom API key
   const authHeader = req.headers.get('authorization');
@@ -43,22 +66,8 @@ export async function POST(req: NextRequest) {
 
     // If both sources failed, log to all active alerts (with 1-hour cooldown) and bail
     if (validators.length === 0 && !latestRelease) {
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const recentFailLog = await prisma.validatorAlertLog.findFirst({
-        where: { alert_type: 'check_failed', sent_at: { gte: oneHourAgo } },
-      });
-
-      if (!recentFailLog) {
-        const activeAlerts = await prisma.validatorAlert.findMany({ where: { active: true } });
-        const errorMsg = `Alert check skipped: ${dataErrors.join('; ')}`;
-        await Promise.all(
-          activeAlerts.map((a) =>
-            prisma.validatorAlertLog.create({
-              data: { validator_alert_id: a.id, alert_type: 'check_failed', message: errorMsg },
-            })
-          )
-        );
-      }
+      const activeAlerts = await prisma.validatorAlert.findMany({ where: { active: true } });
+      await logCheckFailed(activeAlerts, `Alert check skipped: ${dataErrors.join('; ')}`);
       return NextResponse.json({ success: false, errors: dataErrors });
     }
 
@@ -84,17 +93,23 @@ export async function POST(req: NextRequest) {
     let skipped = 0;
     const errors: string[] = [];
 
-    // --- Process Primary Network alerts ---
-    for (const alert of primaryAlerts) {
-      checked++;
-      const validator = validatorMap.get(alert.node_id);
-      if (!validator) {
-        skipped++;
-        continue;
+    const primaryUpstreamFailed = validators.length === 0 && primaryAlerts.length > 0;
+    if (primaryUpstreamFailed) {
+      const p2pError = dataErrors.find((e) => e.startsWith('P2P API error')) ?? 'P2P validator source unavailable';
+      await logCheckFailed(primaryAlerts, `Primary validator check skipped: ${p2pError}`);
+    } else {
+      // --- Process Primary Network alerts ---
+      for (const alert of primaryAlerts) {
+        checked++;
+        const validator = validatorMap.get(alert.node_id);
+        if (!validator) {
+          skipped++;
+          continue;
+        }
+        const result = await checkSingleAlert(alert, validator, latestRelease);
+        sent += result.sent;
+        errors.push(...result.errors);
       }
-      const result = await checkSingleAlert(alert, validator, latestRelease);
-      sent += result.sent;
-      errors.push(...result.errors);
     }
 
     // --- Process L1 alerts (grouped by subnet) ---
@@ -124,10 +139,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      success: true,
+      success: !primaryUpstreamFailed,
       checked,
       sent,
       skipped,
+      primaryCheckSkipped: primaryUpstreamFailed,
       release: latestRelease ? {
         tag: latestRelease.tag,
         type: latestRelease.type,

@@ -1,5 +1,11 @@
 import sgMail from '@sendgrid/mail';
-sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
+import { Client } from '@sendgrid/client';
+const sgClient = new Client();
+sgClient.setApiKey(process.env.SENDGRID_API_KEY as string);
+if (process.env.SENDGRID_BASE_URL) {
+    sgClient.setDefaultRequest('baseUrl', process.env.SENDGRID_BASE_URL);
+}
+sgMail.setClient(sgClient);
 
 
 export async function sendMail(email: string, htmlTemplate: string,subject: string,text:string) {
@@ -20,6 +26,7 @@ export async function sendMail(email: string, htmlTemplate: string,subject: stri
       try {
         await sgMail.send(msg);
       } catch (error) {
-        throw new Error('Error sending email');
+        console.error('Error sending email:', error);
+        throw new Error(`Error sending email: ${error}`);
       }
 }

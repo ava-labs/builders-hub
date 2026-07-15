@@ -334,7 +334,7 @@ const SubmitPChainTxRemoval: React.FC<SubmitPChainTxRemovalProps> = ({
     if (!signedWarpMessage) return '';
     const network = isTestnet ? 'fuji' : 'mainnet';
     return [
-      `platform l1 set-weight \\`,
+      `platform-cli l1 set-validator-weight \\`,
       `  --message "${signedWarpMessage}" \\`,
       `  --network ${network} \\`,
       `  --key-name <your-key-name>`,

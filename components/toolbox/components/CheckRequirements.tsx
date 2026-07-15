@@ -117,7 +117,7 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
 
   if (!state.isActive) {
     return (
-      <div className="flex items-center justify-center p-4 h-[100vh] not-prose">
+      <div className="flex items-center justify-center p-4 h-[100vh] not-prose" data-console-tool-gate>
         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-gray-200 dark:border-zinc-800 p-8 max-w-md w-full">
           {/* Header */}
           <div className="text-center mb-6">

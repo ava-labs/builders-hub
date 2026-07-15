@@ -30,6 +30,10 @@ export async function GET() {
   }
 }
 
+// Server-side validation constraints for stored messages
+const ALLOWED_ROLES = new Set(['user', 'assistant']);
+const MAX_CONTENT_LENGTH = 100_000; // Max characters per message
+
 // POST /api/chat-history - Create or update a conversation
 export async function POST(req: NextRequest) {
   try {
@@ -47,6 +51,25 @@ export async function POST(req: NextRequest) {
         { error: 'Title and messages are required' },
         { status: 400 }
       );
+    }
+
+    // Validate each message: role must be allowlisted and content must be a
+    // string within the size cap. This prevents fabricating messages with an
+    // arbitrary role (e.g. impersonating the assistant on shared pages) and
+    // bounds stored content size.
+    for (const msg of messages) {
+      if (
+        !msg ||
+        typeof msg.role !== 'string' ||
+        !ALLOWED_ROLES.has(msg.role) ||
+        typeof msg.content !== 'string' ||
+        msg.content.length > MAX_CONTENT_LENGTH
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid message: role must be "user" or "assistant" and content must be a string within the size limit' },
+          { status: 400 }
+        );
+      }
     }
 
     // If ID provided, update existing conversation

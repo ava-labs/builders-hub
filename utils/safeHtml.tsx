@@ -4,7 +4,10 @@ import React from 'react';
  * Safely parses text that may contain HTML links and returns React elements
  * This avoids using dangerouslySetInnerHTML while still supporting links
  */
-export function parseTextWithLinks(text: string, className?: string): React.ReactElement {
+export function parseTextWithLinks(text: string | undefined | null, className?: string): React.ReactElement {
+  // Handle undefined/null input safely
+  const safeText = text ?? '';
+
   // Regular expression to match anchor tags
   const linkRegex = /<a\s+href="([^"]+)"[^>]*>([^<]+)<\/a>/g;
   
@@ -13,12 +16,11 @@ export function parseTextWithLinks(text: string, className?: string): React.Reac
   let lastIndex = 0;
   let match;
   
-  while ((match = linkRegex.exec(text)) !== null) {
+  while ((match = linkRegex.exec(safeText)) !== null) {
     // Add text before the link
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+      parts.push(safeText.slice(lastIndex, match.index));
     }
-    
     // Add the link
     const [fullMatch, href, linkText] = match;
     parts.push(
@@ -37,13 +39,13 @@ export function parseTextWithLinks(text: string, className?: string): React.Reac
   }
   
   // Add any remaining text
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+  if (lastIndex < safeText.length) {
+    parts.push(safeText.slice(lastIndex));
   }
   
   // If no links were found, just return the plain text
   if (parts.length === 0) {
-    return <span className={className}>{text}</span>;
+    return <span className={className}>{safeText}</span>;
   }
   
   return <span className={className}>{parts}</span>;

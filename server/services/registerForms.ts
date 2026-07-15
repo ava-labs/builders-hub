@@ -410,6 +410,51 @@ export async function createRegisterForm(
     failedInvites: string[];
   };
 }
+export async function getRegistrationsByHackathon(hackathon_id: string) {
+  const [registrations, attributions] = await Promise.all([
+    prisma.registerForm.findMany({
+      where: { hackathon_id },
+      orderBy: { created_at: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        city: true,
+        company_name: true,
+        role: true,
+        telegram_account: true,
+        created_at: true,
+      },
+    }),
+    prisma.referralAttribution.findMany({
+      where: { target_type: "hackathon_registration", target_id: hackathon_id },
+      select: {
+        team_id_referrer: true,
+        team_id_referrer_other: true,
+        user: { select: { email: true } },
+        referrer: { select: { name: true, email: true } },
+      },
+    }),
+  ]);
+
+  const attributionByEmail = new Map(
+    attributions
+      .filter((a) => a.user?.email)
+      .map((a) => [a.user!.email, a]),
+  );
+
+  return registrations.map((registration) => {
+    const attribution = attributionByEmail.get(registration.email);
+    return {
+      ...registration,
+      referrer_name:
+        attribution?.referrer?.name ?? attribution?.referrer?.email ?? null,
+      referrer_team: attribution?.team_id_referrer ?? null,
+      referrer_team_other: attribution?.team_id_referrer_other ?? null,
+    };
+  });
+}
+
 export async function getRegisterForm(email: string, hackathon_id: string) {
   const [registeredData, attribution] = await Promise.all([
     prisma.registerForm.findFirst({

@@ -11,6 +11,8 @@ import { z } from 'zod';
 import { rehypeCodeDefaultOptions } from 'fumadocs-core/mdx-plugins';
 import { transformerTwoslash } from 'fumadocs-twoslash';
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
 export const { docs, meta } = defineDocs({
   docs: {
     async: true,
@@ -19,7 +21,7 @@ export const { docs, meta } = defineDocs({
       edit_url: z.string().optional(),
     }),
     postprocess: {
-      includeProcessedMarkdown: true,
+      includeProcessedMarkdown: !isDevelopment,
     },
   },
   meta: {
@@ -33,7 +35,7 @@ export const course = defineCollections({
   type: 'doc',
   dir: 'content/academy',
   postprocess: {
-    includeProcessedMarkdown: true,
+    includeProcessedMarkdown: !isDevelopment,
   },
   schema: frontmatterSchema.extend({
     preview: z.string().optional(),
@@ -79,7 +81,7 @@ export const blog = defineCollections({
   type: 'doc',
   dir: 'content/blog',
   postprocess: {
-    includeProcessedMarkdown: true,
+    includeProcessedMarkdown: !isDevelopment,
   },
   schema: frontmatterSchema.extend({
     authors: z.array(z.string()).optional(),
@@ -90,7 +92,7 @@ export const blog = defineCollections({
 });
 
 export default defineConfig({
-  lastModifiedTime: 'git',
+  lastModifiedTime: isDevelopment ? undefined : 'git',
   mdxOptions: {
     // When the build host can't reach a remote image (DNS / VPN / offline),
     // skip dimension probing instead of failing the whole MDX compile. Next.js
@@ -108,7 +110,7 @@ export default defineConfig({
       },
       transformers: [
         ...(rehypeCodeDefaultOptions.transformers ?? []),
-        transformerTwoslash(),
+        ...(!isDevelopment ? [transformerTwoslash()] : []),
         {
           name: 'transformers:remove-notation-escape',
           code(hast) {

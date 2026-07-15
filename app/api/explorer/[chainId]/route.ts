@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
+import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
+import { isValidRpcUrl } from "@/lib/rpcUrlValidator";
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
@@ -793,14 +795,17 @@ async function checkGlacierSupport(chainId: string): Promise<boolean> {
 
 // Probe metrics API for any non-zero activity over the last ~30 days.
 // Returns false if metrics API is unconfigured, errors out, or every value is zero —
-// which is our signal that the chain is not indexed yet.
+// which is our signal that the chain is not indexed yet. Chains served by the dedicated
+// metrics source are probed there (with their remapped id) instead of the shared API.
 async function checkChainIndexed(chainId: string): Promise<boolean> {
-  const metricsApiUrl = process.env.METRICS_API_URL;
-  if (!metricsApiUrl) return false;
+  const dedicatedEvmChainId = resolveDedicatedMetricsChain(chainId);
+  const baseUrl = dedicatedEvmChainId ? DEDICATED_STATS_BASE_URL : process.env.METRICS_API_URL;
+  const resolvedChainId = dedicatedEvmChainId ?? chainId;
+  if (!baseUrl) return false;
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - 30 * 24 * 60 * 60;
-    const url = new URL(`${metricsApiUrl}/v2/chains/${chainId}/metrics/cumulativeTxCount`);
+    const url = new URL(`${baseUrl}/v2/chains/${resolvedChainId}/metrics/cumulativeTxCount`);
     url.searchParams.set('timeInterval', 'day');
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
@@ -855,6 +860,14 @@ export async function GET(
       return NextResponse.json({ error: "Chain not found. Provide rpcUrl query parameter for custom chains." }, { status: 404 });
     }
 
+    // Validate custom RPC URL: must be https and must not point to private/loopback addresses.
+    if (customRpcUrl && !isValidRpcUrl(customRpcUrl)) {
+      return NextResponse.json(
+        { error: "Invalid rpcUrl: must use https and must not target private or loopback addresses." },
+        { status: 400 }
+      );
+    }
+
     // If priceOnly, just fetch price and glacier support (for ExplorerContext)
     if (priceOnly) {
       const priceOnlyStart = Date.now();
@@ -866,11 +879,14 @@ export async function GET(
       requestTiming.priceOnly = Date.now() - priceOnlyStart;
       requestTiming.total = Date.now() - requestStart;
 
+      // Chains on the dedicated metrics source aren't in Glacier, so don't gate their
+      // indexed status on Glacier support — their metrics activity alone is authoritative.
+      const isDedicatedChain = resolveDedicatedMetricsChain(chainId) !== undefined;
       return NextResponse.json({
         price,
         tokenSymbol,
         glacierSupported,
-        isIndexed: glacierSupported && hasMetricsActivity,
+        isIndexed: hasMetricsActivity && (glacierSupported || isDedicatedChain),
       });
     }
 

@@ -28,6 +28,13 @@ const programs = [
     external: true,
     image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/Avalanche-Event-TnQovuFzkt8CGHyF0wfiSYTrGVtuPU.jpg",
   },
+  {
+    title: "Team1 Builder Grants",
+    description: "Fast, focused funding for builders on Avalanche. A Team1 program.",
+    href: "/grants/team1-mini-grants",
+    external: false,
+    image: "/grants/team1-mini-grants.jpg",
+  }
 ];
 
 const partnerPrograms = [
@@ -75,6 +82,7 @@ function ProgramCard({ title, description, href, external, image }: ProgramCardP
           src={image}
           alt={title}
           fill
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className={`object-cover transition-transform duration-500 group-hover:scale-105 ${isSvg ? 'invert dark:invert-0' : ''}`}
         />
 

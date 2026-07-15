@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/prisma/prisma';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
 import { isHubSpotEnabled, skipHubSpot } from '@/server/services/hubspot';
+import { withAuth } from '@/lib/protectedRoute';
+import type { Session } from 'next-auth';
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeout: number): Promise<Response> {
   const controller = new AbortController();
@@ -50,7 +52,7 @@ const HUBSPOT_FIELD_MAPPING: Record<string, string> = {
   marketingConsent: 'marketing_consent',
 };
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request: Request, _context: unknown, session: Session) => {
   try {
     const hubspotEnabled = isHubSpotEnabled();
     if (!hubspotEnabled) {
@@ -217,8 +219,8 @@ export async function POST(request: Request) {
           data: { skipped: true, reason: 'HubSpot disabled in this environment' },
         });
 
-    // Save to database (runs in parallel with HubSpot when enabled)
-    const dbPromise = saveToDatabase(formData);
+    // Save to database (runs in parallel with HubSpot when enabled).
+    const dbPromise = saveToDatabase(formData, session.user.email!);
 
     const [hubspotResult, dbResult] = await Promise.all([hubspotPromise, dbPromise]);
 
@@ -270,14 +272,14 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});
 
-// Save application to BuildGamesApplication table
-async function saveToDatabase(formData: Record<string, unknown>): Promise<{ success: boolean; id?: string; error?: string }> {
+// Save application to BuildGamesApplication table.
+async function saveToDatabase(formData: Record<string, unknown>, sessionEmail: string): Promise<{ success: boolean; id?: string; error?: string }> {
   console.log('[Build Games Apply DB] Starting database save...');
 
-  const email = formData.email as string;
-  if (!email) return { success: false, error: 'Email is required' };
+  if (!sessionEmail) return { success: false, error: 'Authenticated email is required' };
+  const email = sessionEmail;
 
   try {
     const applicationData = {

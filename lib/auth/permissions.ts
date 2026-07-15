@@ -1,5 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { prisma } from "../../prisma/prisma";
+import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
+import { isTeam1Event } from "@/lib/events/team1";
 
 export function hasAnyAttribute(
   attributes: string[] | undefined | null,
@@ -45,6 +47,18 @@ export async function canEvaluateHackathon(
 }
 
 /**
+ * True when the user may review Team1 Mini Grant (grant_minigrant) applications:
+ * devrel OR a judge assigned to the mini-grant backing hackathon. The global
+ * "judge" custom_attribute is intentionally NOT sufficient — mini-grant review
+ * is scoped to devrel and explicitly assigned mini-grant judges.
+ */
+export function canReviewMiniGrants(
+  session: { user?: { id?: string; custom_attributes?: string[] } } | null | undefined,
+): Promise<boolean> {
+  return canEvaluateHackathon(session, MINI_GRANT_HACKATHON_ID);
+}
+
+/**
  * True when the user may assign/remove judges for any hackathon. Today
  * this is devrel-only; we may scope it per-hackathon later.
  */
@@ -60,6 +74,40 @@ export function canManageEvaluationPhase(
 ): boolean {
   if (!session?.user) return false;
   return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
+}
+
+/**
+ * True when the user may view an event's registrations (registrant PII):
+ * - devrel: all events (global event admins).
+ * - team1-admin: all Team1 events (full access to everything Team1).
+ * - team1-event-admin: only events they created or where they are a
+ *   listed cohost (creators are NOT auto-added to cohosts).
+ * Cohosts without one of these roles are intentionally excluded —
+ * registrants only consent to sharing their contact data with Avalanche
+ * Team1, not with arbitrary external co-organizers.
+ */
+export async function canViewEventRegistrations(
+  session:
+    | { user?: { id?: string; email?: string; custom_attributes?: string[] } }
+    | null
+    | undefined,
+  hackathonId: string,
+): Promise<boolean> {
+  if (!session?.user) return false;
+  const attributes = session.user.custom_attributes;
+  if (hasAnyAttribute(attributes, ["devrel"])) return true;
+  const isTeam1Admin = hasAnyAttribute(attributes, ["team1-admin"]);
+  const isTeam1EventAdmin = hasAnyAttribute(attributes, ["team1-event-admin"]);
+  if (!isTeam1Admin && !isTeam1EventAdmin) return false;
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { organizers: true, cohosts: true, created_by: true },
+  });
+  if (!hackathon) return false;
+  if (isTeam1Admin && isTeam1Event(hackathon)) return true;
+  if (!isTeam1EventAdmin) return false;
+  if (session.user.id && hackathon.created_by === session.user.id) return true;
+  return !!session.user.email && hackathon.cohosts.includes(session.user.email);
 }
 
 /**

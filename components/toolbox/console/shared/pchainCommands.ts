@@ -19,23 +19,23 @@ export const PCHAIN_COMMANDS = {
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform l1 register-validator --message ${opts.signedWarpMessage} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli l1 register-validator --message ${opts.signedWarpMessage} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueSetL1ValidatorWeightTx — update validator weight (used for removal, delegation, weight change) */
   setL1ValidatorWeight: (opts: { signedWarpMessage: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
-    `platform l1 set-weight --message ${opts.signedWarpMessage} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli l1 set-validator-weight --message ${opts.signedWarpMessage} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueIncreaseL1ValidatorBalanceTx — top up validator balance */
   addBalance: (opts: { validationId: string; balance: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
-    `platform l1 add-balance --validation-id ${opts.validationId} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli l1 increase-validator-balance --validation-id ${opts.validationId} --balance ${opts.balance} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueDisableL1ValidatorTx — disable a validator */
   disableValidator: (opts: { validationId: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
-    `platform l1 disable-validator --validation-id ${opts.validationId} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli l1 disable-validator --validation-id ${opts.validationId} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueCreateSubnetTx */
   createSubnet: (opts: { network: 'fuji' | 'mainnet'; keyName?: string }) =>
-    `platform subnet create --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli subnet create --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueCreateChainTx */
   createChain: (opts: {
@@ -45,7 +45,7 @@ export const PCHAIN_COMMANDS = {
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform chain create --subnet-id ${opts.subnetId} --genesis ${opts.genesisFile} --name "${opts.name}" --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli chain create --subnet-id ${opts.subnetId} --genesis ${opts.genesisFile} --name "${opts.name}" --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueConvertSubnetToL1Tx */
   convertToL1: (opts: {
@@ -55,7 +55,7 @@ export const PCHAIN_COMMANDS = {
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform subnet convert-l1 --subnet-id ${opts.subnetId} --chain-id ${opts.chainId} --contract-address ${opts.contractAddress} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli subnet convert-to-l1 --subnet-id ${opts.subnetId} --chain-id ${opts.chainId} --contract-address ${opts.contractAddress} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueAddPermissionlessValidatorTx (Primary Network) */
   addValidator: (opts: {
@@ -66,7 +66,7 @@ export const PCHAIN_COMMANDS = {
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform validator add --node-id ${opts.nodeId} --stake ${opts.stake} --duration ${opts.duration} --delegation-fee ${opts.delegationFee} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli validator add-permissionless --node-id ${opts.nodeId} --stake ${opts.stake} --duration ${opts.duration} --delegation-fee ${opts.delegationFee} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueAddPermissionlessDelegatorTx (Primary Network) */
   addDelegator: (opts: {
@@ -76,7 +76,7 @@ export const PCHAIN_COMMANDS = {
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform validator delegate --node-id ${opts.nodeId} --stake ${opts.stake} --duration ${opts.duration} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli validator add-permissionless-delegator --node-id ${opts.nodeId} --stake ${opts.stake} --duration ${opts.duration} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 } as const;
 
 // ---------------------------------------------------------------------------

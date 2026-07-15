@@ -15,6 +15,7 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import Link from 'next/link';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
+import { Success } from '@/components/toolbox/components/Success';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Create Subnet',
@@ -81,10 +82,14 @@ function CreateSubnet(_props: BaseConsoleToolProps) {
         loadingText="Creating..."
         variant="primary"
         className="w-full"
-        cliCommand={`platform subnet create --network ${isTestnet ? 'fuji' : 'mainnet'}`}
+        cliCommand={`platform-cli subnet create --network ${isTestnet ? 'fuji' : 'mainnet'}`}
       >
         Create Subnet
       </CoreWalletTransactionButton>
+
+      {subnetId && (
+        <Success label="Subnet ID (CreateSubnetTx)" value={subnetId} isTestnet={Boolean(isTestnet)} confirmed={true} />
+      )}
 
       {/* "or" divider */}
       <div className="relative">
