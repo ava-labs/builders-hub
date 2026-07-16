@@ -93,7 +93,7 @@ export const solutionsMenu: LinkItemType = {
         'Real-world institutional builds that compose the guarantees into one architecture.',
       url: '/solutions/design-patterns',
       menu: {
-        className: 'md:row-span-2 lg:col-start-4 lg:row-span-2',
+        className: 'md:row-span-2 lg:col-start-4 lg:row-span-2 dp-solutions-anchor',
       },
     },
   ],

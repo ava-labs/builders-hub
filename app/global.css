@@ -1909,3 +1909,12 @@ html.embed-mode #nd-toc {
   gap: 2px !important;
   padding: 10px !important;
 }
+
+/* Solutions mega-menu → 4 columns so Design Patterns sits as a right bookend
+   (fumadocs hardcodes lg:grid-cols-3; scoped to the menu holding the DP card) */
+@media (min-width: 1024px) {
+  #nd-nav [class*="lg:grid-cols-3"]:has(> .dp-solutions-anchor) {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    width: min(64rem, 92vw) !important;
+  }
+}
