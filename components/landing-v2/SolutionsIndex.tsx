@@ -56,8 +56,28 @@ export default function SolutionsIndex() {
             </p>
           </motion.div>
 
-          <motion.div className="pb-24 lg:pb-32" {...rise(0.16)}>
+          <motion.div className="pb-16 lg:pb-24" {...rise(0.16)}>
             <PillarRows reducedMotion={!!reducedMotion} />
+          </motion.div>
+
+          <motion.div className="pb-24 lg:pb-32" {...rise(0.24)}>
+            <div className="mb-8 flex items-baseline gap-4">
+              <p className="shrink-0 font-mono text-[11px] tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+                DESIGN PATTERNS
+              </p>
+              <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+            </div>
+            <p className="mb-8 max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Real-world institutional builds that compose these guarantees into one architecture —
+              interbank clearing, supply-chain provenance, and more.
+            </p>
+            <Link
+              href="/solutions/design-patterns"
+              className="group inline-flex items-center gap-3 font-mono text-[11px] tracking-[0.18em] text-zinc-900 transition-colors hover:text-[#E84142] dark:text-zinc-100"
+            >
+              BROWSE DESIGN PATTERNS
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </motion.div>
         </div>
 
