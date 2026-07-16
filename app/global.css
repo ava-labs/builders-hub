@@ -1915,6 +1915,5 @@ html.embed-mode #nd-toc {
 @media (min-width: 1024px) {
   #nd-nav [class*="lg:grid-cols-3"]:has(> .dp-solutions-anchor) {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-    width: min(64rem, 92vw) !important;
   }
 }
