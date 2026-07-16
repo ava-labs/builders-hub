@@ -26,7 +26,7 @@ const server = new MCPServer({
   name: 'avalanche-mcp',
   version: '2.4.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data (Glacier + ClickHouse), build-plan runbooks, and Builder Console guidance',
+  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data via the query gateway (per-field source routing) + Glacier, build-plan runbooks, and Builder Console guidance',
 });
 
 server.registerToolDomain(docsTools);

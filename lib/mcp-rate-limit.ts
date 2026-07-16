@@ -49,7 +49,12 @@ async function getRedisClient() {
 }
 
 const WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_REQUESTS = 60; // 60 requests per minute
+// Per-client anti-abuse guard (origin/hashed-IP). Backend protection is NOT this
+// limit's job anymore — the query gateway rate-limits and admission-controls each
+// data source itself, so this is no longer sized to protect ClickHouse.
+// TODO(load-test): raised to 1000 for the 2000-question blast on Preview.
+//   Revert to a reasonable production value (~120–300/min) once testing is done.
+const MAX_REQUESTS = 1000; // per client per minute
 
 /**
  * Hash an IP address for privacy-preserving rate limiting

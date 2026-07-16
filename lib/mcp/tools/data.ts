@@ -5,16 +5,20 @@
  *  - onchain_lookup   — resolve any identifier (address / contract / token / NFT /
  *                       tx / subnet / validator / chain) via the indexed Glacier API.
  *  - onchain_activity — time-windowed feeds ("what happened in the last N hours");
- *                       EVM activity from ClickHouse (raw_txs), P-chain + asset
+ *                       EVM activity via the query gateway, P-chain + asset
  *                       transfers from Glacier.
- *  - chain_stats      — chain/contract metrics from ClickHouse (raw_txs aggregation),
+ *  - chain_stats      — chain/contract metrics via the query gateway,
  *                       P-chain validator snapshot from Glacier.
  *
- * Backend split: indexed EVM flow data (tx counts, gas, fees, time-series) comes
- * from the hardened query gateway (typed DSL → ClickHouse, read-only, credentials
- * held only by the gateway). Glacier has current state / enriched metadata
- * (balances, NFTs, contract ABIs, subnets, validators). `onchain_query` exposes the
- * gateway's DSL directly; the MCP never touches ClickHouse or its creds.
+ * Backend split: indexed EVM flow data (tx counts, gas, fees, time-series) goes
+ * through the hardened query gateway, whose CATEGORY ROUTER picks the most
+ * accurate live source PER FIELD (ClickHouse for exact counts/senders, settled
+ * stats-api buckets for window gas/fees, Glacier for exact per-tx detail rows)
+ * and stamps every field + flags every caveat in the envelope (sources/warnings)
+ * — the wrappers pass those through verbatim (gatewayMeta). Direct identifier
+ * lookups (tx validation, balances, metadata) stay MCP-side on Glacier: exact,
+ * real-time, no extra hop. The MCP never touches ClickHouse or its creds;
+ * `onchain_query` exposes the gateway's typed intents directly.
  */
 
 import { glacierFetch, fetchErc20Balances } from '@/lib/rwa/glacier/client';
@@ -27,9 +31,33 @@ import {
   assertSafeHours,
   assertSafeDays,
   clampLimit,
-  isFrozenChain,
 } from './lib/clickhouse-safe';
 import { gatewayQuery, gatewayConfigured } from './lib/gateway-client';
+import type { GatewayResult } from './lib/gateway-client';
+
+/**
+ * Pass the gateway's routing metadata through to the model VERBATIM: per-field
+ * source stamps, mandatory caveat flags (warnings), settle coverage, degrade
+ * reasons, and staleness stamps. The model is instructed (tool descriptions) to
+ * relay any warning to the user — a flagged number must never be presented as
+ * exact. Dropping these here would silently undo the gateway's routing honesty.
+ */
+function gatewayMeta(gw: GatewayResult): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (gw.sources) out.sources = gw.sources;
+  if (gw.warnings?.length) out.warnings = gw.warnings;
+  if (gw.settledFromSec) out.settledFromSec = gw.settledFromSec;
+  if (gw.settledThroughSec) out.settledThroughSec = gw.settledThroughSec;
+  if (gw.degraded) {
+    out.degraded = gw.degraded;
+    out.note = gw.message;
+  }
+  if (gw.servedStale) {
+    out.servedStale = true;
+    out.asOf = gw.asOf;
+  }
+  return out;
+}
 
 const C_CHAIN_ID: Record<Network, string> = { mainnet: '43114', fuji: '43113' };
 
@@ -57,7 +85,12 @@ function errorResult(message: string): ToolResult {
 }
 
 function asMessage(err: unknown): string {
-  return err instanceof Error ? err.message : 'On-chain request failed';
+  if (!(err instanceof Error)) return 'On-chain request failed';
+  // Strip internal API paths/URLs so surfaced errors never leak the upstream
+  // surface (e.g. "Glacier API error: 404 Not Found for /v1/networks/...").
+  return err.message
+    .replace(/\s+for\s+\/\S*/i, '')
+    .replace(/https?:\/\/\S+/gi, 'the data API');
 }
 
 // --- Glacier path-segment validators (no path-traversal / SSRF) -------------
@@ -195,7 +228,34 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
       case 'validator': {
         const nodeId = safeId(value);
         const result = await glacierFetch<unknown>(`/v1/networks/${network}/validators/${nodeId}`);
-        return json({ kind: 'validator', nodeId, network, result });
+        // Glacier returns stake/reward/capacity in nAVAX (1 AVAX = 1e9 nAVAX). Pre-convert
+        // to AVAX so the model can't mis-scale into impossible "billions of AVAX" figures.
+        const toAvax = (s: unknown) => (typeof s === 'string' && /^[0-9]+$/.test(s) ? Number(BigInt(s)) / 1e9 : undefined);
+        const r = result as { validators?: Array<Record<string, unknown>> } | null;
+        const withAvax =
+          r && Array.isArray(r.validators)
+            ? {
+                ...r,
+                validators: r.validators.map((v) => {
+                  const pr = (v.potentialRewards ?? {}) as Record<string, unknown>;
+                  return {
+                    ...v,
+                    amountStakedAvax: toAvax(v.amountStaked),
+                    amountDelegatedAvax: toAvax(v.amountDelegated),
+                    delegationCapacityAvax: toAvax(v.delegationCapacity),
+                    validationRewardAvax: toAvax(pr.validationRewardAmount),
+                    delegationRewardAvax: toAvax(pr.delegationRewardAmount),
+                  };
+                }),
+              }
+            : result;
+        return json({
+          kind: 'validator',
+          nodeId,
+          network,
+          result: withAvax,
+          unitsNote: 'Stake/reward/capacity are nAVAX (÷1e9 for AVAX); the *Avax fields are pre-converted. Total AVAX supply is ~472M — any value above that is a unit error.',
+        });
       }
       case 'pchain': {
         // P-/X-chain bech32 account. Infer network from the HRP (avax=mainnet, fuji=fuji).
@@ -298,10 +358,10 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
       });
     }
 
-    // EVM time-windowed activity. Prefer ClickHouse (timestamped raw_txs) — return a
-    // COUNT over the window so "last N hours" is meaningful, plus a recent sample. If
-    // ClickHouse is unavailable (CLICKHOUSE_URL unset, or an outage), fall back to
-    // Glacier latest so the tool still answers (the time window is not applied there).
+    // EVM time-windowed activity — via the query gateway, which routes per field
+    // (exact window count + detail rows from the best live source, each stamped).
+    // Only if the GATEWAY ITSELF is unreachable, fall back to Glacier latest so
+    // the tool still answers (the time window is not applied there).
     if ((scope === 'chain' || scope === 'address') && feed === 'transactions') {
       const cid = assertChainId(getChainId(args));
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 2), 24 * 30);
@@ -315,26 +375,26 @@ async function onchainActivity(args: Record<string, unknown>): Promise<ToolResul
         const sample = (gw.results.sample ?? []) as Array<Record<string, unknown>>;
         const countRow = (gw.results.count?.[0] ?? {}) as { n?: number };
         return json({
-          source: 'clickhouse',
+          source: gw.source,
           scope,
           chainId: cid,
           windowHours: hours,
           txCountInWindow: Number(countRow.n ?? sample.length),
           sampleSize: sample.length,
-          ...(isFrozenChain(cid) ? { note: 'chain_id 43113 (Fuji) ingestion is frozen — counts may be stale' } : {}),
+          ...gatewayMeta(gw),
           sampleTransactions: sample,
         });
       } catch {
-        // ClickHouse unavailable → Glacier fallback (latest; time window NOT applied).
+        // Data gateway unreachable → Glacier fallback (latest; time window NOT applied).
         const chainSeg = safeChainSeg(String(cid));
         const pageSize = String(limit);
         if (scope === 'address') {
           const addr = safeAddr(getString(args, 'value'));
           const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/addresses/${addr}/transactions`, { pageSize });
-          return json({ source: 'glacier-fallback', scope, chainId: chainSeg, address: addr, note: 'ClickHouse unavailable — latest transactions from Glacier; the time window was NOT applied.', result });
+          return json({ source: 'glacier-fallback', scope, chainId: chainSeg, address: addr, note: 'Data gateway unreachable — latest transactions from Glacier; the time window was NOT applied.', result });
         }
         const result = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/transactions`, { pageSize });
-        return json({ source: 'glacier-fallback', scope: 'chain', chainId: chainSeg, note: 'ClickHouse unavailable — latest chain transactions from Glacier; the time window was NOT applied.', result });
+        return json({ source: 'glacier-fallback', scope: 'chain', chainId: chainSeg, note: 'Data gateway unreachable — latest chain transactions from Glacier; the time window was NOT applied.', result });
       }
     }
 
@@ -386,30 +446,30 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
         const interval = (TIME_INTERVALS as readonly string[]).includes(rawInterval) ? rawInterval : 'day';
         const gw = await gatewayQuery('chainStatsSeries', { chainId: cid, days, bucket: interval });
         return json({
-          source: 'clickhouse',
+          source: gw.source,
           target,
           chainId: cid,
           timeInterval: interval,
           days,
-          ...(isFrozenChain(cid) ? { note: 'Fuji (43113) ingestion is frozen — series may be stale' } : {}),
+          ...gatewayMeta(gw),
           series: gw.results.series ?? [],
         });
       }
       const hours = assertSafeHours(typeof args.hours === 'number' ? args.hours : Number(args.hours || 24), 24 * 30);
       const gw = await gatewayQuery('chainStatsRecent', { chainId: cid, hours });
       return json({
-        source: 'clickhouse',
+        source: gw.source,
         target,
         chainId: cid,
         windowHours: hours,
-        ...(isFrozenChain(cid) ? { note: 'Fuji (43113) ingestion is frozen — counts may be stale' } : {}),
+        ...gatewayMeta(gw),
         metrics: gw.results.metrics?.[0] ?? {},
       });
       } catch {
-        // ClickHouse unavailable → Glacier latest-block snapshot (no time-window aggregation).
+        // Data gateway unreachable → Glacier latest-block snapshot (no time-window aggregation).
         const chainSeg = safeChainSeg(String(cid));
         const latest = await glacierFetch<unknown>(`/v1/chains/${chainSeg}/blocks`, { pageSize: '1' }).catch(() => null);
-        return json({ source: 'glacier-fallback', target: 'chain', chainId: chainSeg, note: 'ClickHouse unavailable — latest-block snapshot from Glacier (no time-window aggregation).', latestBlock: latest });
+        return json({ source: 'glacier-fallback', target: 'chain', chainId: chainSeg, note: 'Data gateway unreachable — latest-block snapshot from Glacier (no time-window aggregation).', latestBlock: latest });
       }
     }
 
@@ -418,16 +478,24 @@ async function chainStats(args: Record<string, unknown>): Promise<ToolResult> {
       const addr = toSafeHexAddr(getString(args, 'value') || getString(args, 'contract'));
       const days = assertSafeDays(typeof args.days === 'number' ? args.days : Number(args.days || 30), 365);
       const gw = await gatewayQuery('contractStats', { chainId: cid, contract: addr, days });
-      return json({ source: 'clickhouse', target, chainId: cid, contract: `0x${addr}`, days, stats: gw.results.stats?.[0] ?? {} });
+      return json({
+        source: gw.source,
+        target,
+        chainId: cid,
+        contract: `0x${addr}`,
+        days,
+        ...gatewayMeta(gw),
+        stats: gw.results.stats?.[0] ?? {},
+      });
     }
 
-    // target === 'network' → Glacier P-chain validator snapshot (ClickHouse holds EVM data only).
+    // target === 'network' → Glacier P-chain validator snapshot.
     const result = await glacierFetch<unknown>(`/v1/networks/${network}/validators`, { pageSize: '100' });
     return json({
       source: 'glacier',
       target: 'network',
       network,
-      note: 'P-chain validator/delegator metrics are a current snapshot — ClickHouse holds EVM data only, so no historical P-chain time-series here.',
+      note: 'P-chain validator/delegator metrics are a current snapshot — there is no historical P-chain time-series here.',
       result,
     });
   } catch (err) {
@@ -450,11 +518,11 @@ async function onchainQuery(args: Record<string, unknown>): Promise<ToolResult> 
       ? (args.params as Record<string, unknown>)
       : {};
   try {
-    const result: Record<string, unknown> = { ...(await gatewayQuery(op, params)) };
-    if (Number((params as { chainId?: unknown }).chainId) === 43113) {
-      result.note = 'Fuji (43113) ingestion is frozen — results may be empty/stale. Query C-Chain (43114) for live data.';
-    }
-    return json(result);
+    // The gateway now decides Fuji freshness per-window and returns its own
+    // degraded/message ONLY when data is genuinely unavailable — pass it through
+    // verbatim. No blanket "frozen, query C-Chain" note: it contradicted the live
+    // stats-api / Glacier responses Fuji now serves, and C-Chain can't serve Fuji.
+    return json({ ...(await gatewayQuery(op, params)) });
   } catch (err) {
     return errorResult(asMessage(err));
   }
@@ -507,7 +575,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'chain_stats',
       description:
-        'On-chain statistics (ClickHouse-backed). target=chain: tx count/gas/fees/active senders/avg gas price over a recent window (window=recent, `hours`, max 720h = 30 days) OR a time-series (window=series, `days`, max 365). target=contract: per-contract tx/sender/gas totals (`days`, max 365 — use this for contract activity beyond 30 days). target=network: current P-chain validator snapshot. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is ~stable even as tx count varies — expected, not an error.',
+        'On-chain statistics via the query gateway, which picks the most accurate live source PER FIELD and stamps it (sources/warnings in the response). target=chain: tx count/gas/fees/active senders/avg gas price over a recent window (window=recent, `hours`, max 720h = 30 days) OR a time-series (window=series, `days`, max 365). target=contract: per-contract tx/sender/gas totals (`days`, max 365 — use this for contract activity beyond 30 days). target=network: current P-chain validator snapshot. IMPORTANT: relay any `warnings` notes to the user verbatim-in-substance (e.g. gas coverage windows or accuracy caveats) — never present a flagged value as exact. Note: C-Chain gasUsed is gas-target-regulated, so daily gas is ~stable even as tx count varies — expected, not an error.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -526,7 +594,7 @@ export const dataTools: ToolDomain = {
     {
       name: 'onchain_query',
       description:
-        'PRIMARY tool for indexed on-chain stats/activity/totals (query gateway, ClickHouse-backed + cached) — prefer this over raw RPC for chain data. Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Lookback: hour-based ops (chainStatsRecent/chainActivity/addressActivity) max 720h (30 days); day-based ops (chainStatsSeries/contractStats/chainGasTotal/protocolRanking/contractGasFlow/topUnknownContracts) max 365 days — use a day-based op for windows over 30 days. Ops: ' +
+        'PRIMARY tool for indexed on-chain stats/activity/totals — prefer this over raw RPC for chain data. Each `op` is a backend-agnostic intent: the query gateway selects the most accurate live source per field (indexed DB / pre-aggregated metrics / Data API), stamps every field (`sources`), and flags any caveat (`warnings`) — relay warnings to the user, never present a flagged value as exact. Pick an `op` and pass its `params`; `chainId` is an allowlisted EVM chain (43114 C-Chain, 43113 Fuji, + L1s). Lookback: hour-based ops (chainStatsRecent/chainActivity/addressActivity) max 720h (30 days); day-based ops (chainStatsSeries/contractStats/chainGasTotal/protocolRanking/contractGasFlow/topUnknownContracts) max 365 days — use a day-based op for windows over 30 days. Ops: ' +
         'chainStatsRecent {chainId, hours≤720} — tx count/gas/fees/active senders/avg gas price over the last N hours; ' +
         'chainStatsSeries {chainId, days≤365, bucket: hour|day|week|month} — bucketed time-series of the same; ' +
         'addressActivity {chainId, address, hours≤720, limit≤100} — tx count + recent sample for an address in a window; ' +

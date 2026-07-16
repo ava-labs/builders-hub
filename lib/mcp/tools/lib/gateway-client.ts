@@ -16,9 +16,21 @@ const GATEWAY_TIMEOUT_MS = 20000;
 
 export interface GatewayResult {
   op: string;
-  source: string;
+  source: string; // primary source of the answer ('clickhouse' | 'stats-api' | 'glacier' | 'gateway')
   results: Record<string, Array<Record<string, unknown>>>;
   truncated: boolean;
+  // Per-field routing metadata (category router): which backend produced each
+  // field, mandatory flags for backup-served/caveated fields, settle coverage
+  // for stats-api sums, and staleness stamps from the circuit breaker.
+  sources?: Record<string, string>;
+  warnings?: Array<{ fields: string[]; source: string; note: string }>;
+  settledFromSec?: number;
+  settledThroughSec?: number;
+  degraded?: string;
+  staleSince?: string;
+  message?: string;
+  servedStale?: boolean;
+  asOf?: number;
 }
 
 /** True when both the gateway URL and shared secret are configured. */
