@@ -107,9 +107,9 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
               </div>
             </motion.div>
 
-            {pattern.flow?.diagram && (
+            {pattern.heroDiagram && (
               <motion.div className="flex items-center justify-center" {...rise(0.16)}>
-                <PatternDiagram id={pattern.flow.diagram} />
+                <PatternDiagram id={pattern.heroDiagram} />
               </motion.div>
             )}
           </div>

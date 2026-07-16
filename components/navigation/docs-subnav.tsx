@@ -16,7 +16,6 @@ import {
   nodesOptions,
   toolingOptions,
   acpsOptions,
-  institutionsOptions,
 } from "./docs-nav-config";
 
 const tabs = [
@@ -57,12 +56,6 @@ const tabs = [
     href: "/docs/acps",
     items: acpsOptions,
     pathMatch: (path: string) => path.startsWith("/docs/acps"),
-  },
-  {
-    label: "Institutions",
-    href: "/docs/institutions/privacy",
-    items: institutionsOptions,
-    pathMatch: (path: string) => path.startsWith("/docs/institutions"),
   },
 ];
 

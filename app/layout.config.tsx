@@ -86,6 +86,16 @@ export const solutionsMenu: LinkItemType = {
         className: 'lg:col-start-3 lg:row-start-2',
       },
     },
+    {
+      icon: <Blocks />,
+      text: 'Design Patterns',
+      description:
+        'Real-world institutional builds that compose the guarantees into one architecture.',
+      url: '/solutions/design-patterns',
+      menu: {
+        className: 'md:row-span-2 lg:col-start-4 lg:row-span-2',
+      },
+    },
   ],
 };
 

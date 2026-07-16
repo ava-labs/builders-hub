@@ -16,9 +16,7 @@ import {
   Eye,
   Bot,
   AppWindow,
-  Cloud,
-  ShieldCheck,
-  Boxes,
+  Cloud
 } from 'lucide-react';
 
 export type NavOption = {
@@ -173,21 +171,6 @@ export const toolingOptions: NavOption[] = [
   },
 ];
 
-
-export const institutionsOptions: NavOption[] = [
-  {
-    title: 'Privacy',
-    description: 'Walled Garden, Partitioned Ledger, and Encrypted Settlement',
-    icon: <ShieldCheck className="w-5 h-5" />,
-    url: '/docs/institutions/privacy',
-  },
-  {
-    title: 'Supply-Chain Provenance',
-    description: 'Anti-counterfeit and traceability infrastructure',
-    icon: <Boxes className="w-5 h-5" />,
-    url: '/docs/institutions/provenance',
-  },
-];
 
 export const acpsOptions: NavOption[] = [
   {

@@ -54,8 +54,6 @@ export function DocsLayoutWrapper({
       document.body.setAttribute('data-docs-section', 'api-reference');
     } else if (pathname.startsWith('/docs/rpcs') || pathname.startsWith('/docs/nodes')) {
       document.body.setAttribute('data-docs-section', 'nodes');
-    } else if (pathname.startsWith('/docs/institutions')) {
-      document.body.setAttribute('data-docs-section', 'institutions');
     } else if (pathname.startsWith('/docs')) {
       document.body.setAttribute('data-docs-section', 'documentation');
     }
@@ -91,15 +89,6 @@ export function DocsLayoutWrapper({
     sidebarOptions = {
       tabs: false,
     };
-  } else if (pathname.startsWith('/docs/institutions')) {
-    pageTree = {
-      name: 'Institutions',
-      children: [
-        { type: 'page' as const, name: 'Privacy', url: '/docs/institutions/privacy' },
-        { type: 'page' as const, name: 'Supply-Chain Provenance', url: '/docs/institutions/provenance' },
-      ],
-    };
-    sidebarOptions = { tabs: false };
   } else {
     pageTree = documentationTree;
     sidebarOptions = {

@@ -30,8 +30,10 @@ export interface DesignPattern {
   /** the concepts this build composes, linked to the pillars they rest on */
   concepts: { pillar?: PillarSlug; label: string; role: string }[];
   problem?: { body: string; points: string[] };
-  /** end-to-end flow; diagram id renders the hero instrument */
-  flow?: { diagram?: string; phases: { label: string; detail: string }[] };
+  /** id of the hero diagram rendered by PatternDiagrams */
+  heroDiagram?: string;
+  /** end-to-end flow phases */
+  flow?: { phases: { label: string; detail: string }[] };
   elements?: { title: string; body: string }[];
   whyAvalanche?: { title: string; body: string }[];
   inProduction?: { name: string; sub: string; body: string }[];
@@ -60,6 +62,7 @@ export const PATTERNS: DesignPattern[] = [
     metaDescription:
       "Clear tokenized deposits between institutions as a coordinated burn-and-mint verified chain-to-chain over Interchain Messaging — sovereign L1 per bank, no shared bridge, a light clearing entity that never sees customer ledgers.",
     status: "live",
+    heroDiagram: "burn-mint",
     intro: [
       "A deposit at Bank A is not a deposit at Bank B — it's a claim on a different balance sheet. So moving tokenized deposits between institutions is not a token transfer.",
       "It's clearing — and it can run without a shared bridge, a central sequencer, or anyone seeing anyone else's books.",
@@ -95,7 +98,6 @@ export const PATTERNS: DesignPattern[] = [
       ],
     },
     flow: {
-      diagram: "burn-mint",
       phases: [
         { label: "Lock", detail: "Bank A locks the customer's deposit tokens and runs its compliance checks." },
         { label: "Burn", detail: "Bank A burns the tokens on its own chain — the claim on Bank A is destroyed." },
@@ -258,7 +260,8 @@ export const PATTERNS: DesignPattern[] = [
       "A permissioned chain where every actor is role-gated and end customers verify authenticity in one scan.",
     metaDescription:
       "Anti-counterfeit and traceability infrastructure on Avalanche: role-gated permissioned L1s, sub-2s QR verification, and three composable models from walled-garden to public attestation.",
-    status: "coming-soon",
+    status: "live",
+    heroDiagram: "provenance",
     intro: [
       "Every product leaves a trace. Make yours tamper-proof — a permissioned Avalanche L1 that role-gates every actor, hides data from unauthorized eyes, and returns a verified result from a single QR scan in under two seconds.",
     ],
@@ -267,10 +270,83 @@ export const PATTERNS: DesignPattern[] = [
       { pillar: "interoperability", label: "Interoperability", role: "Interchain Messaging stitches regional L1s into one verifiable record across a multi-region supply chain." },
       { pillar: "compliance", label: "Compliance", role: "Permissions enforced at the validator and deployer-allowlist level, not by application logic alone." },
     ],
+    tiers: [
+      {
+        name: "Walled-Garden L1",
+        tagline: "Only authorized actors touch the chain",
+        description:
+          "A fully permissioned Avalanche L1 where every participant — manufacturer, distributor, retailer, regulator — must be approved. No public RPC, no block explorer. Data is readable only by role-appropriate actors.",
+        bestFor: "Pharma, luxury goods, defense, high-value regulated supply chains.",
+      },
+      {
+        name: "Consortium Trace Network",
+        tagline: "Shared verification, isolated brand data",
+        description:
+          "Multiple brands share one verification infrastructure, each with isolated data visibility. A member can verify any product in the network but cannot read another brand's supply-chain data.",
+        bestFor: "Food-safety consortia, automotive multi-tier supply chains, cross-border trade networks.",
+      },
+      {
+        name: "Public Attestation Layer",
+        tagline: "Cryptographic proof, no trusted intermediary",
+        description:
+          "Cryptographic attestations anchored on-chain. Verification is public — any consumer with a QR scanner confirms authenticity — while the commercial data (pricing, volumes, supplier identities) stays off-chain.",
+        bestFor: "Consumer goods, art and collectibles, sustainability claims, carbon credits.",
+      },
+    ],
+    whyAvalanche: [
+      {
+        title: "Proven in production",
+        body: "Blockticity runs product authentication on Avalanche today, and a regulated pharmaceutical supply-chain deployment is in advanced validation — the infrastructure works at regulated-industry scale.",
+      },
+      {
+        title: "QR verification in under 2 seconds",
+        body: "L1 finality is sub-second. A scan at a pharmacy counter, a point of sale, or a border checkpoint returns a verified result before the transaction completes, with no congestion from unrelated traffic.",
+      },
+      {
+        title: "No public explorer by default",
+        body: "A walled-garden L1 has no public RPC endpoint and no block explorer. Competitors cannot read your supply volumes, distributor relationships, or pricing patterns from on-chain data.",
+      },
+      {
+        title: "Role-gated from the protocol layer",
+        body: "Manufacturer, distributor, retailer, regulator — each role is enforced at the validator and deployer-allowlist level, not by application logic alone. Permissions can't be bypassed by a contract exploit.",
+      },
+      {
+        title: "Your existing team can build it",
+        body: "Full EVM compatibility. Every Solidity developer, Web3 toolchain, and audit process transfers unchanged — no new language, no new runtime.",
+      },
+      {
+        title: "Multi-region, one network",
+        body: "Interchain Messaging connects regional L1s without a public bridge. A product tracked across manufacturing in Asia, distribution in Europe, and retail in the Americas stays on one verifiable record.",
+      },
+    ],
+    inProduction: [
+      {
+        name: "Blockticity",
+        sub: "Live on Avalanche",
+        body: "Blockchain-powered product authentication running on Avalanche today, issuing verifiable certificates of authenticity at scale.",
+      },
+      {
+        name: "Regulated pilot",
+        sub: "In advanced validation",
+        body: "A regulated pharmaceutical supply-chain deployment exercising role-gated custody and sub-2-second verification at industry scale.",
+      },
+    ],
     resources: [
       {
         heading: "DOCUMENTATION",
-        links: [{ text: "Avalanche L1s", href: "/docs/avalanche-l1s" }],
+        links: [
+          { text: "Avalanche L1s", href: "/docs/avalanche-l1s" },
+          { text: "Deployer allowlist", href: "/docs/avalanche-l1s/precompiles/deployer-allowlist" },
+          { text: "Transaction allowlist", href: "/docs/avalanche-l1s/precompiles/transaction-allowlist" },
+        ],
+      },
+      {
+        heading: "MULTI-REGION",
+        links: [{ text: "Interchain Messaging", href: "/docs/cross-chain" }],
+      },
+      {
+        heading: "TOOLING",
+        links: [{ text: "Launch an L1 in the Console", href: "/console" }],
       },
     ],
   },

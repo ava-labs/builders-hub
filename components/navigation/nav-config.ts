@@ -35,6 +35,7 @@ export const menuSections: NavSection[] = [
       { text: 'Interoperability', href: '/solutions/interoperability' },
       { text: 'Privacy', href: '/solutions/privacy' },
       { text: 'Compliance', href: '/solutions/compliance' },
+      { text: 'Design Patterns', href: '/solutions/design-patterns' },
     ],
   },
     {
