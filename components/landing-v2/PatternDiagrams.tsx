@@ -23,56 +23,50 @@ function frame(label: string) {
   };
 }
 
-/* Interbank clearing — a claim is burned on Bank A's L1, the burn proof  */
-/* travels over ICM, Bank B mints, and the clearing chain records the     */
-/* obligation without seeing either ledger.                               */
+/* Partitioned clearing — value re-issued between two sovereign walled-garden */
+/* L1s: A locks then burns, B mints, verified chain-to-chain over ICM, with a  */
+/* light clearing chain netting the obligation. Steps numbered 1 → 3 so the    */
+/* order reads without the animation.                                          */
 function BurnMint() {
+  const ALIVE = "#E6212F";
   return (
-    <svg {...frame("A transfer as coordinated burn-and-mint verified between two sovereign L1s over ICM")}>
-      {/* Bank A — sovereign L1 */}
-      <rect x={24} y={40} width={150} height={64} rx={6} fill="none" strokeWidth={1.5} className={STRONG} />
-      <text x={36} y={60} fontSize={10} letterSpacing={1.5} className={MONO}>BANK A · L1</text>
-      <text x={36} y={94} fontSize={9} letterSpacing={1} className={FAINT}>lock · burn</text>
-      {/* A core + burn pulse */}
-      <circle cx={148} cy={72} r={4} fill="#E84142">
+    <svg {...frame("A transfer re-issued between two sovereign walled-garden L1s, verified over ICM")}>
+      {/* Bank A — a walled-garden L1 (doubled, sealed boundary) */}
+      <rect x={24} y={38} width={152} height={82} rx={8} fill="none" strokeWidth={1.5} className={STRONG} />
+      <rect x={30} y={44} width={140} height={70} rx={6} fill="none" strokeWidth={1} opacity={0.4} className={STRONG} />
+      <text x={38} y={58} fontSize={10} letterSpacing={1.5} className={MONO}>BANK A · L1</text>
+      <text x={38} y={86} fontSize={9} letterSpacing={1} className={FAINT}>1 · LOCK</text>
+      <text x={38} y={103} fontSize={9} letterSpacing={1} className={FAINT}>3 · BURN</text>
+      <circle cx={162} cy={79} r={4} fill={ALIVE}>
         <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
       </circle>
-      <circle cx={148} cy={72} r={6} fill="none" strokeWidth={1} className="stroke-[#E84142]">
-        <animate attributeName="r" values="6;16" dur="1.6s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.5;0" dur="1.6s" repeatCount="indefinite" />
+
+      {/* Bank B — a walled-garden L1 */}
+      <rect x={264} y={38} width={152} height={82} rx={8} fill="none" strokeWidth={1.5} className={STRONG} />
+      <rect x={270} y={44} width={140} height={70} rx={6} fill="none" strokeWidth={1} opacity={0.4} className={STRONG} />
+      <text x={278} y={58} fontSize={10} letterSpacing={1.5} className={MONO}>BANK B · L1</text>
+      <text x={278} y={94} fontSize={9} letterSpacing={1} className={FAINT}>2 · MINT</text>
+      <circle cx={278} cy={79} r={4} fill={ALIVE}>
+        <animate attributeName="opacity" values="0.4;1;0.4" dur="2.5s" begin="0.7s" repeatCount="indefinite" />
       </circle>
 
-      {/* Bank B — sovereign L1 */}
-      <rect x={266} y={40} width={150} height={64} rx={6} fill="none" strokeWidth={1.5} className={STRONG} />
-      <text x={278} y={60} fontSize={10} letterSpacing={1.5} className={MONO}>BANK B · L1</text>
-      <text x={278} y={94} fontSize={9} letterSpacing={1} className={FAINT}>mint</text>
-      {/* B core + mint pulse (offset so it reads as arriving after the burn) */}
-      <circle cx={292} cy={72} r={4} fill="#E84142">
-        <animate attributeName="opacity" values="0.4;1;0.4" dur="2.5s" begin="0.8s" repeatCount="indefinite" />
-      </circle>
-      <circle cx={292} cy={72} r={6} fill="none" strokeWidth={1} className="stroke-[#E84142]">
-        <animate attributeName="r" values="6;16" dur="1.6s" begin="0.8s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="0.5;0" dur="1.6s" begin="0.8s" repeatCount="indefinite" />
-      </circle>
-
-      {/* ICM channel */}
-      <text x={220} y={34} textAnchor="middle" fontSize={9} letterSpacing={2} className={MONO}>ICM</text>
-      <line x1={174} y1={72} x2={266} y2={72} strokeDasharray="4 4" strokeWidth={1} className={HAIRLINE} />
-      {/* burn proof travelling A → B */}
-      <circle r={4.5} cy={72} fill="#E84142">
-        <animate attributeName="cx" values="174;174;266;266" keyTimes="0;0.15;0.5;1" dur="4s" repeatCount="indefinite" />
+      {/* ICM channel — no bridge; a validator-attested authorization crosses A → B */}
+      <text x={220} y={32} textAnchor="middle" fontSize={9} letterSpacing={2} className={MONO}>ICM</text>
+      <line x1={176} y1={79} x2={264} y2={79} strokeDasharray="4 4" strokeWidth={1} className={HAIRLINE} />
+      <circle r={4.5} cy={79} fill={ALIVE}>
+        <animate attributeName="cx" values="176;176;264;264" keyTimes="0;0.15;0.5;1" dur="4s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.15;0.17;0.5;0.52;1" dur="4s" repeatCount="indefinite" />
       </circle>
-      <text x={220} y={90} textAnchor="middle" fontSize={8} className={FAINT}>authorization</text>
+      <text x={220} y={97} textAnchor="middle" fontSize={8} className={FAINT}>authorization</text>
 
       {/* obligation-status lines down to the clearing chain */}
-      <line x1={99} y1={104} x2={168} y2={168} strokeDasharray="2 5" strokeWidth={1} className={HAIRLINE} />
-      <line x1={341} y1={104} x2={272} y2={168} strokeDasharray="2 5" strokeWidth={1} className={HAIRLINE} />
+      <line x1={100} y1={120} x2={172} y2={178} strokeDasharray="2 5" strokeWidth={1} className={HAIRLINE} />
+      <line x1={340} y1={120} x2={268} y2={178} strokeDasharray="2 5" strokeWidth={1} className={HAIRLINE} />
 
-      {/* clearing chain */}
-      <rect x={120} y={168} width={200} height={50} rx={6} fill="none" strokeWidth={1.5} className={STRONG} />
-      <text x={220} y={190} textAnchor="middle" fontSize={10} letterSpacing={1.5} className={GLYPH}>CLEARING ENTITY</text>
-      <text x={220} y={206} textAnchor="middle" fontSize={8} className={FAINT}>nets · settles · never sees ledgers</text>
+      {/* light clearing chain — nets the obligation, never sees a ledger */}
+      <rect x={118} y={178} width={204} height={48} rx={8} fill="none" strokeWidth={1.5} className={STRONG} />
+      <text x={220} y={200} textAnchor="middle" fontSize={10} letterSpacing={1.5} className={GLYPH}>CLEARING CHAIN</text>
+      <text x={220} y={216} textAnchor="middle" fontSize={8} className={FAINT}>nets · settles · never sees ledgers</text>
     </svg>
   );
 }
@@ -101,7 +95,7 @@ function Provenance() {
         </g>
       ))}
       {/* origin lights up when a scan verifies back to it */}
-      <circle cx={78} cy={102} r={3.5} fill="#E84142">
+      <circle cx={78} cy={102} r={3.5} fill="#E6212F">
         <animate attributeName="opacity" values="0.35;1;0.35" dur="4s" begin="1.2s" repeatCount="indefinite" />
       </circle>
 
@@ -116,7 +110,7 @@ function Provenance() {
       <line x1={372} y1={102} x2={324} y2={102} strokeDasharray="2 5" strokeWidth={1} className={HAIRLINE} />
 
       {/* verification pulse: scan traces back to origin */}
-      <circle r={4.5} cy={102} fill="#E84142">
+      <circle r={4.5} cy={102} fill="#E6212F">
         <animate attributeName="cx" values="360;360;78;78" keyTimes="0;0.2;0.6;1" dur="4s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.2;0.22;0.6;0.62;1" dur="4s" repeatCount="indefinite" />
       </circle>

@@ -39,7 +39,7 @@ export default function DesignPatternsIndex() {
 
           <motion.div className="py-16 lg:py-24" {...rise(0.08)}>
             <h1 className="max-w-4xl text-4xl font-extralight leading-[1.12] tracking-[-0.03em] text-zinc-900 dark:text-zinc-50 md:text-6xl xl:text-[4.25rem]">
-              Design patterns<span className="text-[#E84142]">.</span>
+              Design patterns<span className="text-[#E6212F]">.</span>
             </h1>
             <p className="mt-8 max-w-2xl text-base leading-relaxed text-zinc-600 dark:text-zinc-300 md:text-lg">
               Real-world institutional builds — each composes several of the four guarantees into one
@@ -87,7 +87,7 @@ export default function DesignPatternsIndex() {
                   href={`/solutions/design-patterns/${pattern.slug}`}
                   className={`group transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/60 ${grid}`}
                 >
-                  <span className="absolute bottom-0 left-0 top-0 w-px bg-transparent transition-colors duration-300 group-hover:bg-[#E84142]" />
+                  <span className="absolute bottom-0 left-0 top-0 w-px bg-transparent transition-colors duration-300 group-hover:bg-[#E6212F]" />
                   {body}
                 </Link>
               ) : (

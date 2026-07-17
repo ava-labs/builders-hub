@@ -70,13 +70,13 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
           <div className="grid gap-12 py-14 lg:grid-cols-[7fr_5fr] lg:items-center lg:gap-20 lg:py-20">
             <motion.div {...rise(0.08)}>
               {pattern.status === "coming-soon" && (
-                <p className="mb-5 inline-block font-mono text-[10px] tracking-[0.2em] text-[#E84142]">
+                <p className="mb-5 inline-block font-mono text-[10px] tracking-[0.2em] text-[#E6212F]">
                   IN PROGRESS
                 </p>
               )}
               <h1 className="text-4xl font-extralight leading-[1.08] tracking-[-0.03em] text-zinc-900 dark:text-zinc-50 md:text-6xl xl:text-[3.75rem]">
                 {pattern.title}
-                <span className="text-[#E84142]">.</span>
+                <span className="text-[#E6212F]">.</span>
               </h1>
               {pattern.intro.map((para, i) => (
                 <p
@@ -172,7 +172,7 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
                   {pattern.flow.phases.map((ph, i) => (
                     <li key={ph.label} className="grid gap-3 px-5 py-6 md:grid-cols-[13rem_1fr] md:gap-10 md:px-6">
                       <div className="flex items-baseline gap-3">
-                        <span className="font-mono text-[11px] text-[#E84142]">{String(i + 1).padStart(2, "0")}</span>
+                        <span className="font-mono text-[11px] text-[#E6212F]">{String(i + 1).padStart(2, "0")}</span>
                         <span className="text-base font-medium text-zinc-900 dark:text-zinc-50">{ph.label}</span>
                       </div>
                       <p className="max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{ph.detail}</p>
@@ -241,7 +241,7 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
                 {pattern.inProduction.map((p) => (
                   <div key={p.name} className="px-5 py-8 md:px-6">
                     <h3 className="text-base font-medium text-zinc-900 dark:text-zinc-50">{p.name}</h3>
-                    <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E84142]">{p.sub}</p>
+                    <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">{p.sub}</p>
                     <p className="mt-4 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">{p.body}</p>
                   </div>
                 ))}
@@ -269,7 +269,7 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
                           <th
                             key={i}
                             className={`border-b border-zinc-200 px-4 py-3 font-mono text-[10px] uppercase tracking-[0.14em] dark:border-zinc-800 ${
-                              last ? "text-[#E84142]" : "text-zinc-500 dark:text-zinc-400"
+                              last ? "text-[#E6212F]" : "text-zinc-500 dark:text-zinc-400"
                             }`}
                           >
                             {h}
@@ -290,7 +290,7 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
                             <td
                               key={i}
                               className={`border-b border-zinc-200 px-4 py-4 align-top text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 ${
-                                last ? "bg-[#E84142]/5 text-zinc-900 dark:text-zinc-100" : ""
+                                last ? "bg-[#E6212F]/5 text-zinc-900 dark:text-zinc-100" : ""
                               }`}
                             >
                               {v}
@@ -326,7 +326,7 @@ export default function PatternPage({ pattern }: { pattern: DesignPattern }) {
                     <ul className="space-y-3">
                       {col.items.map((t) => (
                         <li key={t} className="flex gap-3 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-                          <span className="shrink-0 font-mono text-[#E84142]">{col.mark}</span>
+                          <span className="shrink-0 font-mono text-[#E6212F]">{col.mark}</span>
                           <span>{t}</span>
                         </li>
                       ))}

@@ -54,39 +54,39 @@ export interface DesignPattern {
 
 export const PATTERNS: DesignPattern[] = [
   {
-    slug: "interbank-tokenized-deposit-clearing",
-    label: "CLEARING & SETTLEMENT",
-    title: "Interbank Tokenized-Deposit Clearing",
+    slug: "partitioned-clearing",
+    label: "CLEARING",
+    title: "Partitioned Clearing",
     tagline:
-      "A sovereign chain per institution, native interoperability, and no shared bridge.",
+      "Clear per-issuer value between sovereign, private ledgers — no shared bridge, no operator in the transaction path.",
     metaDescription:
-      "Clear tokenized deposits between institutions as a coordinated burn-and-mint verified chain-to-chain over Interchain Messaging — sovereign L1 per bank, no shared bridge, a light clearing entity that never sees customer ledgers.",
+      "A partitioned ledger of sovereign walled-garden L1s, cleared by a burn-and-mint adaptation of ICTT over ICM — no shared bridge, no central operator sequencing payments. Lead case: interbank tokenized-deposit clearing.",
     status: "live",
     heroDiagram: "burn-mint",
     intro: [
-      "A deposit at Bank A is not a deposit at Bank B — it's a claim on a different balance sheet. So moving tokenized deposits between institutions is not a token transfer.",
-      "It's clearing — and it can run without a shared bridge, a central sequencer, or anyone seeing anyone else's books.",
+      "Some value can't just move between chains. A bank deposit is a claim on its issuer; a tokenized liability lives on one balance sheet — not a bearer token you can lock on one chain and mint on another. Moving it means clearing it.",
+      "This pattern clears that value across a partitioned ledger of sovereign, walled-garden L1s: each participant runs its own private chain, and a transfer settles as a coordinated burn-and-mint verified chain-to-chain over ICM — no shared bridge, no one sequencing payments, no one seeing anyone else's books. Interbank tokenized-deposit clearing is the lead case.",
     ],
     concepts: [
       {
-        pillar: "interoperability",
-        label: "Interoperability",
-        role: "The receiving chain verifies the sender's burn at the protocol layer via Interchain Messaging — no bridge, no external attestor in the settlement path.",
-      },
-      {
         pillar: "privacy",
         label: "Privacy",
-        role: "Each institution runs its own sovereign L1; intra-bank activity never leaves the building, and the clearing entity sees obligation status, never customer ledgers.",
+        role: "Each participant is a Walled Garden — its own sovereign, permissioned L1 — and transfers run on a Partitioned Ledger: only the two counterparties see a transfer, and the operator sees obligation status, never a customer ledger.",
       },
       {
-        pillar: "compliance",
-        label: "Compliance",
-        role: "Permissioned member chains, ISO 20022 / travel-rule-grade payloads, and a supervisory audit copy for regulators — built into the message, not bolted on.",
+        pillar: "interoperability",
+        label: "Interoperability",
+        role: "ICM carries validator-set-attested messages between chains with no bridge; ICTT, adapted from lock-and-mint to burn-and-mint, moves the value as a re-issued claim rather than an escrowed token.",
       },
       {
         pillar: "performance",
         label: "Performance",
-        role: "Sub-second, irreversible finality — a settlement system can't be built on probabilistic confirmation.",
+        role: "Sub-second, irreversible finality delivers payment finality at the mint — the payee is credited in seconds, and settlement nets behind it.",
+      },
+      {
+        pillar: "compliance",
+        label: "Compliance",
+        role: "Permissioned membership and an immutable, supervisor-ready audit trail — enforced by the chain and its precompiles, not by application logic alone.",
       },
     ],
     problem: {
@@ -106,6 +106,10 @@ export const PATTERNS: DesignPattern[] = [
       ],
     },
     elements: [
+      {
+        title: "Burn-and-mint, not lock-and-mint",
+        body: "ICTT ships lock-and-mint: escrow a token on the source chain, mint a wrapper on the destination — right for a fungible bearer asset. A deposit is a claim on its issuer, not a bearer token, so moving it must extinguish the claim on one balance sheet and re-issue it on another. The home-chain action becomes a burn, not a lock — the same ICM verification, adapted to re-issue a liability instead of relocating an asset.",
+      },
       {
         title: "Sovereign L1 per institution",
         body: "Each institution runs and governs its own compliant Avalanche L1, holding its deposits as tokens on its own chain. Intra-bank activity never leaves the building.",
