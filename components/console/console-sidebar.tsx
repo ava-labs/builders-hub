@@ -22,7 +22,6 @@ import {
   SquarePlus,
   HandCoins,
   ExternalLink,
-  BookKey,
   ShieldOff,
   Activity,
   ChevronRight,
@@ -32,6 +31,7 @@ import {
   Workflow,
   Lock,
   BookOpen,
+  Send,
   Search,
   Star,
   X,
@@ -297,6 +297,24 @@ const data = {
           title: "Deploy Your Own",
           url: "/console/encrypted-erc/deploy",
           icon: Rocket,
+        },
+      ],
+    },
+    // Unlink
+    {
+      id: "unlink",
+      title: "Unlink",
+      icon: Lock,
+      items: [
+        {
+          title: "Overview",
+          url: "/console/unlink/overview",
+          icon: BookOpen,
+        },
+        {
+          title: "Try on Fuji",
+          url: "/console/unlink/demo",
+          icon: Send,
         },
       ],
     },

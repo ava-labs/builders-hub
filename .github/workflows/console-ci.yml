@@ -7,6 +7,12 @@ on:
     paths:
       - 'components/toolbox/**'
       - 'app/console/**'
+      - 'app/api/unlink/**'
+      - 'lib/unlink/**'
+      - 'tests/unit/unlink/**'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/console-ci.yml'
       - 'hooks/useConsoleNotifications.ts'
       - 'hooks/useEVMNotifications.ts'
       - 'hooks/usePChainNotifications.ts'
@@ -38,6 +44,9 @@ jobs:
 
       - name: Type check
         run: npx tsc --noEmit
+
+      - name: Unlink unit tests
+        run: npx vitest run tests/unit/unlink components/toolbox/console/unlink
 
       # ── Console conventions ──────────────────────────────
 

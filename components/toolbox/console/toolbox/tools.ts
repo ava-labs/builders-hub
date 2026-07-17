@@ -540,6 +540,23 @@ const TOOLS_RAW: ToolCard[] = [
     category: 'Encrypted ERC',
     icon: UserCheck,
   },
+
+  // Unlink
+  {
+    name: 'Unlink Overview',
+    description: 'Private transfers with EOA wallets, one project API key, and no contracts to deploy.',
+    path: '/console/unlink/overview',
+    category: 'Unlink',
+    icon: BookOpen,
+    featured: true,
+  },
+  {
+    name: 'Unlink Private Transfer',
+    description: 'Use an EOA wallet to send a private USDCm transfer on Avalanche Fuji.',
+    path: '/console/unlink/demo',
+    category: 'Unlink',
+    icon: Send,
+  },
 ];
 
 // Sub-step catalogue auto-derived from each flow's `steps.ts`. Keyed by the
@@ -690,5 +707,6 @@ export const CATEGORY_ORDER = [
   'Interchain Messaging',
   'L1 Management',
   'Encrypted ERC',
+  'Unlink',
   'Utilities',
 ];

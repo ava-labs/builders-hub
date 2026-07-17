@@ -40,6 +40,10 @@ export const pathToBreadcrumb = {
   "/console/ictt/setup": ["Console", "Interchain Messaging", "ICTT (Token Transfer) Setup"],
   "/console/ictt/token-transfer": ["Console", "Interchain Messaging", "Token Transfer Test"],
 
+  // Unlink
+  "/console/unlink/overview": ["Console", "Unlink", "Overview"],
+  "/console/unlink/demo": ["Console", "Unlink", "Try on Fuji"],
+
   // Utilities
   "/console/utilities/format-converter": ["Console", "Utilities", "Format Converter"],
   "/console/utilities/vmcMigrateFromV1": ["Console", "Utilities", "Migrate VMC From V1 to V2"],

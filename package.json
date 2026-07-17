@@ -103,6 +103,7 @@
     "@types/leaflet": "^1.9.20",
     "@types/lunr": "^2.3.7",
     "@types/sanitize-html": "^2.16.1",
+    "@unlink-xyz/sdk": "0.3.0-canary.738",
     "@vercel/blob": "^0.27.3",
     "@walletconnect/ethereum-provider": "^2.23.0",
     "@walletconnect/types": "^2.23.0",
