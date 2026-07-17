@@ -1,66 +1,45 @@
 "use client";
+import { useEffect, useState } from "react";
 import { Banner } from "fumadocs-ui/components/banner";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCountdown } from "@/components/hackathons/project-submission/hooks/Count-down";
 
-const FORM_URL = "/grants/avalanche-research-proposals";
-const DEADLINE = Date.UTC(2026, 5, 1, 23, 59, 59); // June 1, 2026 (month is 0-indexed)
-
-function getDaysRemaining(): number {
-  const diff = DEADLINE - Date.now();
-  return diff > 0 ? Math.ceil(diff / (1000 * 60 * 60 * 24)) : 0;
-}
+const BLOG_URL = "/blog/helicon-upgrade";
+const ACTIVATION = Date.UTC(2026, 6, 20, 0, 0, 0); // Fuji Testnet activation: Placeholder TDB
 
 export function CustomCountdownBanner() {
-  const [daysLeft, setDaysLeft] = useState<number | null>(null);
-
-  useEffect(() => {
-    setDaysLeft(getDaysRemaining());
-    const interval = setInterval(() => setDaysLeft(getDaysRemaining()), 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const countdownLabel =
-    daysLeft === null
-      ? null
-      : daysLeft === 0
-        ? "Closes today"
-        : daysLeft === 1
-          ? "1 day left"
-          : `${daysLeft} days left`;
+  const timeLeft = useCountdown(ACTIVATION);
+  // Only render the live countdown after mount. Its value depends on Date.now(),
+  // so rendering it during SSR produces a server/client text mismatch (React #418)
+  // on every page this banner appears on via the layout.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <Banner
-      id="call-for-research-proposals-2026"
+      id="helicon-upgrade-fuji-2026"
       variant="rainbow"
       className="z-50 max-md:!h-auto max-md:min-h-12 max-md:py-2"
       style={{ background: "linear-gradient(90deg, #0b1e30 0%, #1a3a5c 50%, #0b1e30 100%)", color: "#fff" }}
     >
       <div className="inline-flex items-center gap-2 flex-wrap justify-center text-center">
         <span className="md:hidden">
-          <strong>Call for Research Proposals</strong> — up to <strong>$50,000</strong>. Deadline June 1, 2026.
+          <strong>Helicon Upgrade</strong> hits the Fuji Testnet <strong>July 20</strong>.
         </span>
         <span className="hidden md:inline">
-          <strong>Avalanche Foundation Call for Research Proposals</strong> — grants up to{" "}
-          <strong>$50,000 USD</strong> for academic research on the economics of decentralized networks. Deadline June 1, 2026.
+          <strong>Avalanche Helicon Upgrade</strong> activates on the Fuji Testnet on{" "}
+          <strong>DATE TBD 2026</strong>: auto-renewed staking, shorter minimum durations, and Streaming Asynchronous Execution.
         </span>
-        {countdownLabel && (
-          <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold tracking-wide">
-            {countdownLabel}
-          </span>
-        )}
+        <span className="rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold tracking-wide">
+          {mounted ? `Fuji in${timeLeft}` : "Fuji Testnet July 20"}
+        </span>
         <Link
-          href={FORM_URL}
+          href={BLOG_URL}
           className="underline underline-offset-4 hover:text-[#66acd6] transition-colors"
         >
-          Apply now
+          Read more
         </Link>
       </div>
     </Banner>
   );
 }
-
-
-
-
-

@@ -87,11 +87,23 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     h4: (props: any) => <Heading as="h4" {...props} />,
     h5: (props: any) => <Heading as="h5" {...props} />,
     h6: (props: any) => <Heading as="h6" {...props} />,
-    // Fix srcset -> srcSet for React 19 compatibility
+    // Fix srcset -> srcSet for React 19 compatibility.
+    // remark-image turns local images into static-import objects
+    // ({ src, width, height, blurDataURL }) meant for next/image; unwrap them
+    // so a plain <img> doesn't stringify src to "[object Object]".
     img: (props: any) => {
-      const { srcset, ...imgProps } = props;
+      const { srcset, src, placeholder, ...imgProps } = props;
+      const resolved = typeof src === "object" && src !== null ? src : { src };
       // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
-      return <img {...imgProps} {...(srcset && { srcSet: srcset })} />;
+      return (
+        <img
+          src={resolved.src}
+          {...(resolved.width && { width: resolved.width })}
+          {...(resolved.height && { height: resolved.height })}
+          {...imgProps}
+          {...(srcset && { srcSet: srcset })}
+        />
+      );
     },
     pre: ({ title, className, icon, allowCopy, ...props }: CodeBlockProps) => (
       <CodeBlock title={title} icon={icon} allowCopy={allowCopy}>
