@@ -1,7 +1,10 @@
 import { getUnsubscribeUrl } from '@/server/services/unsubscribe-token';
+import he from 'he';
 
 const EXPLORER_BASE = 'https://subnets.avax.network';
 const GITHUB_RELEASE_BASE = 'https://github.com/ava-labs/avalanchego/releases/tag';
+
+const escapeHtml = he.escape.bind(he);
 
 function wrapTemplate(title: string, content: string, accentColor = '#EF4444', alertId?: string): string {
   const unsubscribeLink = alertId
@@ -24,19 +27,21 @@ function wrapTemplate(title: string, content: string, accentColor = '#EF4444', a
 }
 
 function explorerLink(nodeId: string): string {
-  return `<a href="${EXPLORER_BASE}/validators/${nodeId}" style="color: #3B82F6; text-decoration: underline;">${EXPLORER_BASE}/validators/${nodeId.slice(0, 15)}...</a>`;
+  const safeId = encodeURIComponent(nodeId);
+  return `<a href="${EXPLORER_BASE}/validators/${safeId}" style="color: #3B82F6; text-decoration: underline;">${EXPLORER_BASE}/validators/${escapeHtml(nodeId.slice(0, 15))}...</a>`;
 }
 
 function releaseLink(version: string): string {
   const tag = version.replace('avalanchego/', 'v');
-  return `<a href="${GITHUB_RELEASE_BASE}/${tag}" style="color: #3B82F6; text-decoration: underline;">${tag}</a>`;
+  const safeTag = encodeURIComponent(tag);
+  return `<a href="${GITHUB_RELEASE_BASE}/${safeTag}" style="color: #3B82F6; text-decoration: underline;">${escapeHtml(tag)}</a>`;
 }
 
 function dataRow(label: string, value: string, valueColor = 'white'): string {
   return `
     <tr>
-      <td style="padding: 8px 0; color: #A1A1AA; font-size: 14px;">${label}</td>
-      <td style="padding: 8px 0; color: ${valueColor}; font-size: 14px; text-align: right; font-weight: bold;">${value}</td>
+      <td style="padding: 8px 0; color: #A1A1AA; font-size: 14px;">${escapeHtml(label)}</td>
+      <td style="padding: 8px 0; color: ${valueColor}; font-size: 14px; text-align: right; font-weight: bold;">${escapeHtml(value)}</td>
     </tr>`;
 }
 

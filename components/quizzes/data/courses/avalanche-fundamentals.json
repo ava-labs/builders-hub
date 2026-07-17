@@ -547,6 +547,36 @@
           "explanation": "New Avalanche L1s are registered on the P-Chain, which coordinates validators and tracks active L1s. The registration process includes defining validator requirements, setting up economic parameters, and establishing the L1's relationship with the Primary Network. The option about the P-Chain maintaining a validator registry is the base question's correct answer -- it describes the P-Chain's main purpose but not the L1 registration process specifically."
         }
       ]
+    },
+    "309": {
+      "question": "What is the purpose of the `Recover` algorithm in some signature schemes?",
+      "options": [
+        "To generate a key pair.",
+        "To sign a message using the private key.",
+        "To recover the public key from a message and its signature.",
+        "To verify the integrity of a message."
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "The `Recover` algorithm helps to retrieve the public key used to create a signature.",
+      "explanation": "The `Recover` algorithm is used to retrieve the public key that corresponds to the private key used to create the signature for a given message. This allows for verification of the signature by matching the recovered public key with the sender's public key, ensuring the authenticity and integrity of the message.",
+      "chapter": "Signature Schemes"
+    },
+    "310": {
+      "question": "What is a key advantage of the BLS multi-signature scheme in blockchain applications?",
+      "options": [
+        "It requires only one private key for all participants.",
+        "It eliminates the need for public keys.",
+        "It uses symmetric cryptography for enhanced security.",
+        "It supports signature and public key aggregation, resulting in compact signatures."
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "The BLS scheme is known for its ability to aggregate multiple signatures into one.",
+      "explanation": "The BLS (Boneh-Lynn-Shacham) multi-signature scheme is highly efficient for blockchain applications due to its support for both signature and public key aggregation. This means multiple signatures can be compressed into a single short signature, and multiple public keys can be aggregated into one, reducing the storage and transmission overhead while maintaining security and integrity.",
+      "chapter": "Signature Schemes"
     }
   }
 }

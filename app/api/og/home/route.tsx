@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-const light = fetch(new URL('../Geist-Light.ttf', import.meta.url)).then((res) =>
+const medium = fetch(new URL('../Geist-Medium.ttf', import.meta.url)).then((res) =>
   res.arrayBuffer(),
 );
 
@@ -57,9 +57,9 @@ export async function GET(): Promise<ImageResponse> {
         >
           {latticeLines()}
           {/* lattice blips in the page's palette, clear of the statement */}
-          <polygon points="1053.07,96 997.65,192 1108.5,192" fill="rgba(232,65,66,0.12)" />
-          <polygon points="886.8,576 831.38,480 942.23,480" fill="rgba(37,99,235,0.10)" />
-          <polygon points="388,192 332.55,96 443.4,96" fill="rgba(16,185,129,0.08)" />
+          <polygon points="1053.07,96 997.65,192 1108.5,192" fill="rgba(230,33,47,0.12)" />
+          <polygon points="886.8,576 831.38,480 942.23,480" fill="rgba(0,97,226,0.10)" />
+          <polygon points="388,192 332.55,96 443.4,96" fill="rgba(162,175,178,0.14)" />
         </svg>
 
         {/* brand row */}
@@ -73,11 +73,11 @@ export async function GET(): Promise<ImageResponse> {
         >
           <svg width="52" height="45" viewBox="0 0 220 190">
             <path
-              fill="#E84142"
+              fill="#E6212F"
               d="M109.14,23.04 C111.74,24.52 114.79,25.52 116.04,27.60 C123.77,40.44 131.11,53.51 138.55,66.53 C141.52,71.75 141.39,76.93 138.38,82.18 C122.78,109.33 107.21,136.49 91.73,163.71 C88.43,169.50 83.77,172.30 77.08,172.24 C62.58,172.11 48.08,172.24 33.58,172.18 C25.90,172.16 23.04,167.40 26.88,160.67 C49.34,121.33 71.90,82.04 94.42,42.74 C97.24,37.82 99.81,32.75 102.94,28.05 C104.30,26.00 106.78,24.70 109.14,23.04 z"
             />
             <path
-              fill="#E84142"
+              fill="#E6212F"
               d="M190.15,151.84 C192.16,155.32 194.13,158.41 195.81,161.65 C198.64,167.14 196.01,172.08 189.92,172.13 C171.13,172.29 152.34,172.29 133.55,172.12 C127.53,172.07 124.73,166.87 127.78,161.59 C136.92,145.76 146.17,129.99 155.55,114.31 C159.02,108.51 164.86,108.84 168.51,114.97 C175.76,127.10 182.83,139.33 190.15,151.84 z"
             />
           </svg>
@@ -107,13 +107,13 @@ export async function GET(): Promise<ImageResponse> {
           <div
             style={{
               display: 'flex',
-              fontFamily: 'Geist-Light',
-              fontSize: 118,
-              letterSpacing: -4,
+              fontFamily: 'Geist-Medium',
+              fontSize: 104,
+              letterSpacing: -3,
               color: '#18181b',
             }}
           >
-            Launch a network<span style={{ color: '#E84142', marginLeft: -10 }}>.</span>
+            LAUNCH A NETWORK<span style={{ color: '#E6212F', marginLeft: -8 }}>.</span>
           </div>
           <div
             style={{
@@ -168,7 +168,7 @@ export async function GET(): Promise<ImageResponse> {
       width: W,
       height: H,
       fonts: [
-        { name: 'Geist-Light', data: await light, weight: 300 },
+        { name: 'Geist-Medium', data: await medium, weight: 600 },
         { name: 'Geist-Mono', data: await mono, weight: 500 },
       ],
     },

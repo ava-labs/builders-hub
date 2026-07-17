@@ -26,9 +26,10 @@ export function doesExtensionMatchMimeType(file: File): boolean {
   const name = file.name.toLowerCase();
   const dotIndex = name.lastIndexOf('.');
 
-  // No extension — trust the MIME type (common for programmatic uploads like base64 conversions)
+  // Reject files without a proper extension — a missing extension bypasses the
+  // extension-vs-MIME check and allows arbitrary content under a known MIME type.
   if (dotIndex === -1 || dotIndex === name.length - 1) {
-    return true;
+    return false;
   }
 
   const ext = name.slice(dotIndex);
@@ -165,18 +166,19 @@ async function findProjectByImageUrl(fileIdentifier: string): Promise<{ id: stri
   // Extract the file name from the URL if necessary
   const fileName = extractFileNameFromUrl(fileIdentifier);
 
+  // Use exact equality rather than substring `contains` matching.
+  // Substring matching allowed an attacker to create a project whose logo_url
+  // contained the victim's blob URL, causing the ownership check to pass for
+  // an arbitrary file.  Exact matching is strictly safer.
   const project = await prisma.project.findFirst({
     where: {
       OR: [
-        // Search by full URL
-        { logo_url: { contains: fileIdentifier } },
-        { cover_url: { contains: fileIdentifier } },
-        { small_cover_url: { contains: fileIdentifier } },
-        // Search by file name
-        { logo_url: { contains: fileName } },
-        { cover_url: { contains: fileName } },
-        { small_cover_url: { contains: fileName } },
-        // For screenshots (array), search if it contains the full URL or the name
+        { logo_url: fileIdentifier },
+        { cover_url: fileIdentifier },
+        { small_cover_url: fileIdentifier },
+        { logo_url: fileName },
+        { cover_url: fileName },
+        { small_cover_url: fileName },
         {
           screenshots: {
             hasSome: [fileIdentifier, fileName],

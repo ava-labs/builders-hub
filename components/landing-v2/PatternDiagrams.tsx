@@ -32,7 +32,7 @@ function BurnMint() {
       {/* Bank A — sovereign L1 */}
       <rect x={24} y={40} width={150} height={64} rx={6} fill="none" strokeWidth={1.5} className={STRONG} />
       <text x={36} y={60} fontSize={10} letterSpacing={1.5} className={MONO}>BANK A · L1</text>
-      <text x={36} y={94} fontSize={9} letterSpacing={1} className={FAINT}>burn</text>
+      <text x={36} y={94} fontSize={9} letterSpacing={1} className={FAINT}>lock · burn</text>
       {/* A core + burn pulse */}
       <circle cx={148} cy={72} r={4} fill="#E84142">
         <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
@@ -63,7 +63,7 @@ function BurnMint() {
         <animate attributeName="cx" values="174;174;266;266" keyTimes="0;0.15;0.5;1" dur="4s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.15;0.17;0.5;0.52;1" dur="4s" repeatCount="indefinite" />
       </circle>
-      <text x={220} y={90} textAnchor="middle" fontSize={8} className={FAINT}>burn proof</text>
+      <text x={220} y={90} textAnchor="middle" fontSize={8} className={FAINT}>authorization</text>
 
       {/* obligation-status lines down to the clearing chain */}
       <line x1={99} y1={104} x2={168} y2={168} strokeDasharray="2 5" strokeWidth={1} className={HAIRLINE} />

@@ -18,6 +18,7 @@ import {
 } from '../../components/WithConsoleToolMetadata';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
 import { SDKCodeViewer, type SDKCodeSource } from '@/components/console/sdk-code-viewer';
+import { AutoSwitchChainGate } from '@/components/console/auto-switch-chain-gate';
 import { CliAlternative } from '@/components/console/cli-alternative';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import Link from 'next/link';
@@ -574,194 +575,208 @@ console.log("Import tx:", txnResponse.txHash);`,
       ? 'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg'
       : 'https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg';
 
+  // The SDK's cChain.prepareExportTxn/prepareImportTxn fetch the nonce and
+  // base fee via plain eth_* calls through the wallet transport, which Core
+  // routes to the *active* chain. With an L1 selected, the export tx gets
+  // built with the L1's nonce and the C-Chain node rejects it ("invalid
+  // nonce"). Gate the whole tool on the C-Chain so those reads can't hit the
+  // wrong network. `null` while isTestnet is unresolved keeps the gate open
+  // rather than flashing a switch prompt against an unknown target.
+  const requiredCChainId = isTestnet === undefined ? null : isTestnet ? 43113 : 43114;
+
   return (
     <SDKCodeViewer sources={sdkSources} height="auto">
-      <div className="space-y-4">
-        {/* Transfer Widget */}
-        <div className="rounded-lg border border-border overflow-hidden">
-          {/* From */}
-          <div className="p-4 bg-card">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <img src={chainLogo(sourceChain)} alt="" className="h-5 w-5" />
-                <span className="text-sm font-medium text-foreground">From {sourceChainName}</span>
+      <AutoSwitchChainGate
+        requiredChainId={requiredCChainId}
+        requiredChainName={isTestnet ? 'Fuji C-Chain' : 'C-Chain'}
+      >
+        <div className="space-y-4">
+          {/* Transfer Widget */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            {/* From */}
+            <div className="p-4 bg-card">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <img src={chainLogo(sourceChain)} alt="" className="h-5 w-5" />
+                  <span className="text-sm font-medium text-foreground">From {sourceChainName}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Balance: {sourceBalance.toFixed(4)} AVAX</span>
               </div>
-              <span className="text-xs text-muted-foreground">Balance: {sourceBalance.toFixed(4)} AVAX</span>
+              <AmountInput
+                label=""
+                value={amount}
+                onChange={setAmount}
+                type="number"
+                min="0"
+                max={sourceBalance.toString()}
+                step="0.000001"
+                required
+                disabled={exportLoading || importLoading}
+                error={error ?? undefined}
+                button={
+                  <Button onClick={handleMaxAmount} disabled={exportLoading || sourceBalance <= 0} stickLeft>
+                    MAX
+                  </Button>
+                }
+              />
             </div>
-            <AmountInput
-              label=""
-              value={amount}
-              onChange={setAmount}
-              type="number"
-              min="0"
-              max={sourceBalance.toString()}
-              step="0.000001"
-              required
-              disabled={exportLoading || importLoading}
-              error={error ?? undefined}
-              button={
-                <Button onClick={handleMaxAmount} disabled={exportLoading || sourceBalance <= 0} stickLeft>
-                  MAX
-                </Button>
-              }
-            />
+
+            {/* Swap Divider */}
+            <div className="relative flex justify-center">
+              <div className="absolute inset-x-0 top-1/2 border-t border-border" />
+              <button
+                type="button"
+                onClick={handleSwapChains}
+                disabled={exportLoading || importLoading}
+                className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted border border-border hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Swap chains"
+              >
+                <ArrowDownUp className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </div>
+
+            {/* To */}
+            <div className="p-4 bg-card">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <img src={chainLogo(destinationChain)} alt="" className="h-5 w-5" />
+                  <span className="text-sm font-medium text-foreground">To {destChainName}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Balance: {destBalance.toFixed(4)} AVAX</span>
+              </div>
+            </div>
           </div>
 
-          {/* Swap Divider */}
-          <div className="relative flex justify-center">
-            <div className="absolute inset-x-0 top-1/2 border-t border-border" />
-            <button
-              type="button"
-              onClick={handleSwapChains}
-              disabled={exportLoading || importLoading}
-              className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-muted border border-border hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="Swap chains"
-            >
-              <ArrowDownUp className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
+          {/* Step Progress */}
+          <div className="flex items-center justify-center gap-3">
+            <StepIndicator stepNumber={1} title="Export" status={getStep1Status()} />
+            <StepIndicator stepNumber={2} title="Import" status={getStep2Status()} isLast />
           </div>
 
-          {/* To */}
-          <div className="p-4 bg-card">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <img src={chainLogo(destinationChain)} alt="" className="h-5 w-5" />
-                <span className="text-sm font-medium text-foreground">To {destChainName}</span>
-              </div>
-              <span className="text-xs text-muted-foreground">Balance: {destBalance.toFixed(4)} AVAX</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Step Progress */}
-        <div className="flex items-center justify-center gap-3">
-          <StepIndicator stepNumber={1} title="Export" status={getStep1Status()} />
-          <StepIndicator stepNumber={2} title="Import" status={getStep2Status()} isLast />
-        </div>
-
-        {/* Action Area */}
-        <div className="space-y-3">
-          {/* Export phase */}
-          {!completedExportTxId && !exportLoading && availableUTXOs.length === 0 && (
-            <Button
-              variant="primary"
-              onClick={handleExport}
-              disabled={Number(amount) <= 0 || !!error}
-              icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
-              className="w-full"
-            >
-              Export {amount || '0'} AVAX from {sourceChainName}
-            </Button>
-          )}
-
-          {/* Export loading */}
-          {exportLoading && (
-            <Button
-              variant="primary"
-              disabled
-              loading
-              loadingText={`Exporting from ${sourceChainName}...`}
-              className="w-full"
-            >
-              Exporting...
-            </Button>
-          )}
-
-          {/* Export error */}
-          {error && (
-            <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-              <p className="text-sm text-destructive">{error}</p>
-            </div>
-          )}
-
-          {/* Waiting for UTXOs after export */}
-          {completedExportTxId && availableUTXOs.length === 0 && !exportLoading && (
-            <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4 animate-pulse" />
-              Waiting for UTXOs to arrive...
-            </div>
-          )}
-
-          {/* Import phase - auto-importing after export */}
-          {importLoading && (
-            <Button
-              variant="primary"
-              disabled
-              loading
-              loadingText={`Importing to ${destChainName}...`}
-              className="w-full"
-            >
-              Importing...
-            </Button>
-          )}
-
-          {/* Import phase - manual button for pre-existing UTXOs only */}
-          {availableUTXOs.length > 0 && !importTxId && !importLoading && completedExportTxId === 'utxo-available' && (
-            <>
-              <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm">
-                <span className="text-muted-foreground">Pending import from a previous transfer</span>
-                <span className="font-mono font-medium text-foreground">{totalUtxoAmount.toFixed(6)} AVAX</span>
-              </div>
-
+          {/* Action Area */}
+          <div className="space-y-3">
+            {/* Export phase */}
+            {!completedExportTxId && !exportLoading && availableUTXOs.length === 0 && (
               <Button
                 variant="primary"
-                onClick={handleImport}
+                onClick={handleExport}
+                disabled={Number(amount) <= 0 || !!error}
                 icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
                 className="w-full"
               >
-                Import {totalUtxoAmount.toFixed(6)} AVAX to {destChainName}
+                Export {amount || '0'} AVAX from {sourceChainName}
               </Button>
-            </>
-          )}
+            )}
 
-          {/* Import error */}
-          {importError && (
-            <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
-              <p className="text-sm text-destructive">{importError}</p>
-              <Button variant="secondary" onClick={handleImport} disabled={importLoading} className="w-full mt-2">
-                Retry Import
-              </Button>
-            </div>
-          )}
-
-          {/* Transfer complete */}
-          {importTxId && (
-            <>
+            {/* Export loading */}
+            {exportLoading && (
               <Button
-                variant="secondary"
-                onClick={() => {
-                  setExportTxId('');
-                  setCompletedExportTxId('');
-                  setImportTxId(null);
-                  setAmount('');
-                  setError(null);
-                  setImportError(null);
-                  setStep1AutoCollapse(false);
-                  setStep2AutoCollapse(false);
-                  autoImportTriggeredRef.current = false;
-                  setTimeout(() => {
-                    if (availableUTXOs.length > 0) {
-                      setCompletedExportTxId('utxo-available');
-                      setStep1AutoCollapse(true);
-                    }
-                  }, 100);
-                }}
+                variant="primary"
+                disabled
+                loading
+                loadingText={`Exporting from ${sourceChainName}...`}
                 className="w-full"
               >
-                Start New Transfer
+                Exporting...
               </Button>
-            </>
-          )}
-        </div>
+            )}
 
-        {/* Fee */}
-        <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
-          <span>Estimated fee</span>
-          <span>~0.001 AVAX</span>
-        </div>
+            {/* Export error */}
+            {error && (
+              <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+                <p className="text-sm text-destructive">{error}</p>
+              </div>
+            )}
 
-        <CliAlternative command={cliCommand} />
-      </div>
+            {/* Waiting for UTXOs after export */}
+            {completedExportTxId && availableUTXOs.length === 0 && !exportLoading && (
+              <div className="flex items-center justify-center gap-2 py-3 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4 animate-pulse" />
+                Waiting for UTXOs to arrive...
+              </div>
+            )}
+
+            {/* Import phase - auto-importing after export */}
+            {importLoading && (
+              <Button
+                variant="primary"
+                disabled
+                loading
+                loadingText={`Importing to ${destChainName}...`}
+                className="w-full"
+              >
+                Importing...
+              </Button>
+            )}
+
+            {/* Import phase - manual button for pre-existing UTXOs only */}
+            {availableUTXOs.length > 0 && !importTxId && !importLoading && completedExportTxId === 'utxo-available' && (
+              <>
+                <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/50 border border-border text-sm">
+                  <span className="text-muted-foreground">Pending import from a previous transfer</span>
+                  <span className="font-mono font-medium text-foreground">{totalUtxoAmount.toFixed(6)} AVAX</span>
+                </div>
+
+                <Button
+                  variant="primary"
+                  onClick={handleImport}
+                  icon={<img src="/images/core.svg" alt="" className="w-4 h-4" />}
+                  className="w-full"
+                >
+                  Import {totalUtxoAmount.toFixed(6)} AVAX to {destChainName}
+                </Button>
+              </>
+            )}
+
+            {/* Import error */}
+            {importError && (
+              <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/5">
+                <p className="text-sm text-destructive">{importError}</p>
+                <Button variant="secondary" onClick={handleImport} disabled={importLoading} className="w-full mt-2">
+                  Retry Import
+                </Button>
+              </div>
+            )}
+
+            {/* Transfer complete */}
+            {importTxId && (
+              <>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setExportTxId('');
+                    setCompletedExportTxId('');
+                    setImportTxId(null);
+                    setAmount('');
+                    setError(null);
+                    setImportError(null);
+                    setStep1AutoCollapse(false);
+                    setStep2AutoCollapse(false);
+                    autoImportTriggeredRef.current = false;
+                    setTimeout(() => {
+                      if (availableUTXOs.length > 0) {
+                        setCompletedExportTxId('utxo-available');
+                        setStep1AutoCollapse(true);
+                      }
+                    }, 100);
+                  }}
+                  className="w-full"
+                >
+                  Start New Transfer
+                </Button>
+              </>
+            )}
+          </div>
+
+          {/* Fee */}
+          <div className="flex justify-between items-center text-xs text-muted-foreground px-1">
+            <span>Estimated fee</span>
+            <span>~0.001 AVAX</span>
+          </div>
+
+          <CliAlternative command={cliCommand} />
+        </div>
+      </AutoSwitchChainGate>
     </SDKCodeViewer>
   );
 }

@@ -127,7 +127,7 @@ export function Footer() {
 
         {/* Colophon */}
         <div className="flex flex-col items-start justify-between gap-3 border-t border-zinc-200 px-5 py-6 font-mono text-[10px] tracking-[0.18em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 sm:flex-row sm:items-center md:px-6">
-          <p>CRAFTED WITH <span className="text-[#E84142]">❤</span> BY THE AVA LABS DEVREL TEAM</p>
+          <p>CRAFTED WITH <span className="text-[#E6212F]">❤</span> BY THE AVA LABS DEVREL TEAM</p>
           <p>© {new Date().getFullYear()} AVA LABS, INC.</p>
         </div>
       </div>

@@ -19,42 +19,67 @@ export interface Pillar {
   title: string;
   /** one-liner for the homepage row and nav card */
   tagline: string;
+  /** panel headline in the brand pattern: steel lead lines, red punch line */
+  display: { lead: string[]; punch: string };
   metaDescription: string;
   /** splash-page lead paragraph */
   intro: string;
   proofs: { label: string; value: string }[];
   capabilities: { title: string; body: string }[];
   resources: { heading: string; links: PillarLink[] }[];
+  /**
+   * Optional: architecture models — the shapes this pillar's primitives
+   * compose into. Rendered as a section only when present.
+   */
+  models?: {
+    /** mono index, e.g. "MODEL 01" */
+    label: string;
+    name: string;
+    tagline: string;
+    description: string;
+    bestFor: string;
+    /** id of the architecture diagram to render alongside this model */
+    diagram?: string;
+  }[];
+  /** Optional: representative use-cases, one row each. */
+  useCases?: {
+    title: string;
+    /** the model name this maps to */
+    model: string;
+    problem: string;
+    solution: string;
+  }[];
 }
 
 export const PILLARS: Pillar[] = [
   {
     slug: "interoperability",
+    display: { lead: ["Chain to chain,", "natively,"], punch: "no intermediaries" },
     label: "INTEROPERABILITY",
     title: "Every chain speaks natively",
     tagline:
-      "Native messaging between every chain on the network: public, permissioned, or private. No third-party bridges.",
+      "Native messaging between Avalanche chains, public or private, verified against validator sets on the P-Chain.",
     metaDescription:
-      "Interchain Messaging is built into Avalanche: authenticated messages and token transfers between public, permissioned, and private chains, with no third-party bridges.",
+      "Interchain Messaging is built into Avalanche: authenticated messages and token transfers between public, permissioned, and private chains, verified against P-Chain validator sets.",
     intro:
-      "Interchain Messaging (ICM) is built into the protocol, not bolted on. Any Avalanche chain can message any other, public, permissioned, or private, attested by the source chain's own validators. No bridge committee, no custodian.",
+      "An Interchain Messaging (ICM) message carries an aggregate signature from the source chain's validators, verified against the P-Chain's validator registry. No committee, no custodian.",
     proofs: [
       { label: "MESSAGING", value: "PROTOCOL-NATIVE" },
       { label: "ATTESTATION", value: "SOURCE VALIDATOR SET" },
-      { label: "EXTERNAL BRIDGES", value: "NONE REQUIRED" },
+      { label: "VERIFICATION", value: "P-CHAIN REGISTRY" },
     ],
     capabilities: [
       {
         title: "Authenticated messaging",
-        body: "Messages carry aggregate BLS signatures from the source validator set, verified on-chain at the destination.",
+        body: "Messages carry aggregate BLS signatures from the source validator set, verified at the destination against the validator registry on the P-Chain.",
       },
       {
         title: "Native token transfer",
         body: "Interchain Token Transfer (ICTT) moves tokens between L1s over ICM, with contracts you deploy and control.",
       },
       {
-        title: "C-Chain reach",
-        body: "Stablecoins, DeFi, and tokenized assets on the C-Chain are one message away.",
+        title: "Permissionless relay",
+        body: "Messages are carried by relayers anyone can run. The destination chain verifies the source validators' signatures — never the messenger.",
       },
     ],
     resources: [
@@ -64,25 +89,65 @@ export const PILLARS: Pillar[] = [
           { text: "Interchain Messaging", href: "/docs/cross-chain" },
           { text: "ICM contracts", href: "/docs/cross-chain/icm-contracts" },
           { text: "Interchain Token Transfer", href: "/docs/cross-chain/interchain-token-transfer/overview" },
+          { text: "Avalanche Warp Messaging", href: "/docs/cross-chain/avalanche-warp-messaging" },
         ],
       },
       {
         heading: "LEARN",
         links: [
           { text: "Interchain Messaging course", href: "/academy/avalanche-l1/interchain-messaging" },
+          { text: "Build an ERC-20 bridge", href: "/academy/avalanche-l1/erc20-bridge" },
+          { text: "Bridge a native token", href: "/academy/avalanche-l1/native-token-bridge" },
         ],
       },
       {
         heading: "TOOLING",
         links: [
-          { text: "ICM setup", href: "/console/icm/setup" },
-          { text: "ICTT setup", href: "/console/ictt/setup" },
+          { text: "Set up ICM in the Console", href: "/console/icm/setup" },
+          { text: "Set up a token bridge", href: "/console/ictt/setup" },
+          { text: "Test a connection", href: "/console/icm/test-connection" },
+          { text: "Avalanche SDK", href: "/docs/tooling/avalanche-sdk" },
         ],
+      },
+    ],
+    useCases: [
+      {
+        title: "Stablecoin Settlement",
+        model: "ICM + C-Chain",
+        problem:
+          "The business runs on a permissioned L1, but the stablecoin liquidity it settles against lives on the public C-Chain.",
+        solution:
+          "The L1 messages the C-Chain directly over ICM, so settlement reaches public liquidity without a custodial bridge in the path.",
+      },
+      {
+        title: "Cross-Chain Token Issuance",
+        model: "ICTT",
+        problem:
+          "A token issued on one chain needs to circulate on others without wrapped versions minted by a third-party bridge operator.",
+        solution:
+          "ICTT puts a home contract you control on the issuing chain and remotes on each destination; every transfer is attested by the source chain's validators.",
+      },
+      {
+        title: "Multi-Entity Consortium",
+        model: "ICM",
+        problem:
+          "Each member or subsidiary runs its own chain for governance and jurisdictional reasons, but shared workflows span all of them.",
+        solution:
+          "Every entity keeps a sovereign L1 — its own validators, rules, and data — while ICM gives the group authenticated messaging between them.",
+      },
+      {
+        title: "Public Proof of Private Activity",
+        model: "ICM + C-Chain",
+        problem:
+          "Counterparties of a private chain want independent evidence that agreed state exists, without being given access to the chain itself.",
+        solution:
+          "The L1 sends state commitments to the C-Chain over ICM: a public, timestamped anchor attested by the private chain's own validator set.",
       },
     ],
   },
   {
     slug: "performance",
+    display: { lead: ["Under a second,", "irreversible,"], punch: "every time" },
     label: "PERFORMANCE",
     title: "Finality in under a second",
     tagline:
@@ -99,7 +164,7 @@ export const PILLARS: Pillar[] = [
     capabilities: [
       {
         title: "Irreversible settlement",
-        body: "Finality is absolute. There is no confirmation-depth arithmetic and no window in which settled value can be clawed back.",
+        body: "Snowman consensus accepts each block exactly once. No confirmation counting, no reorg window, no clawback of settled value.",
       },
       {
         title: "Dedicated blockspace",
@@ -107,7 +172,7 @@ export const PILLARS: Pillar[] = [
       },
       {
         title: "Horizontal scale",
-        body: "The network scales by multiplying L1s, not by pushing a single chain to its limit.",
+        body: "Capacity grows by adding L1s: each new chain brings its own validators and fee market instead of bidding for shared blockspace.",
       },
     ],
     resources: [
@@ -115,6 +180,7 @@ export const PILLARS: Pillar[] = [
         heading: "DOCUMENTATION",
         links: [
           { text: "Avalanche consensus", href: "/docs/primary-network/avalanche-consensus" },
+          { text: "Streaming async execution", href: "/docs/primary-network/streaming-async-execution" },
           { text: "The Primary Network", href: "/docs/primary-network" },
           { text: "Customize your EVM", href: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1" },
         ],
@@ -122,21 +188,24 @@ export const PILLARS: Pillar[] = [
       {
         heading: "LEARN",
         links: [
-          { text: "Blockchain fundamentals", href: "/academy?path=blockchain" },
           { text: "Avalanche fundamentals", href: "/academy/avalanche-l1/avalanche-fundamentals" },
+          { text: "Customizing the EVM", href: "/academy/avalanche-l1/customizing-evm" },
+          { text: "Blockchain fundamentals", href: "/academy?path=blockchain" },
         ],
       },
       {
         heading: "TOOLING",
         links: [
-          { text: "Launch an L1 in the Console", href: "/console" },
+          { text: "Create an L1 in the Console", href: "/console/create-l1" },
           { text: "Live network stats", href: "/stats/overview" },
+          { text: "Avalanche SDK", href: "/docs/tooling/avalanche-sdk" },
         ],
       },
     ],
   },
   {
     slug: "privacy",
+    display: { lead: ["Visible to you,", "invisible to"], punch: "everyone else" },
     label: "PRIVACY",
     title: "Visible to participants. Invisible to everyone else",
     tagline:
@@ -144,7 +213,7 @@ export const PILLARS: Pillar[] = [
     metaDescription:
       "Validator-only Avalanche L1s keep chain data inside the network's edge, with operator-controlled data residency and encrypted token standards.",
     intro:
-      "Run a validator-only L1 and the chain's data stops at the network's edge: only nodes you admit can sync, query, or even see it. On-chain, EncryptedERC (eERC) tokens keep balances and transfer amounts encrypted, readable only by the parties involved and the auditors you designate.",
+      "Run a validator-only L1 and the chain's data stops at the network's edge. Only nodes you admit can sync, query, or even see it.",
     proofs: [
       { label: "NETWORK ACCESS", value: "VALIDATOR-ONLY" },
       { label: "DATA RESIDENCY", value: "OPERATOR-CONTROLLED" },
@@ -177,19 +246,101 @@ export const PILLARS: Pillar[] = [
         heading: "LEARN",
         links: [
           { text: "Permissioned L1s", href: "/academy/avalanche-l1/permissioned-l1s" },
+          { text: "Avalanche fundamentals", href: "/academy/avalanche-l1/avalanche-fundamentals" },
         ],
       },
       {
         heading: "TOOLING",
         links: [
-          { text: "Launch an L1 in the Console", href: "/console" },
-          { text: "Avalanche CLI & SDKs", href: "/docs/tooling" },
+          { text: "Deploy eERC in the Console", href: "/console/encrypted-erc/overview" },
+          { text: "Create an L1 in the Console", href: "/console/create-l1" },
+          { text: "Avalanche SDK", href: "/docs/tooling/avalanche-sdk" },
         ],
+      },
+    ],
+    models: [
+      {
+        label: "MODEL 01",
+        name: "Walled Garden",
+        tagline: "Full control over who enters the perimeter",
+        description:
+          "You decide who participates. The network sits behind a permissioned perimeter — no outsider can query it, read its transactions, or join without approval. Inside, everything is visible to participants; outside, the network is invisible.",
+        bestFor: "Closed consortia, single-institution tokenization, regulated market infrastructure.",
+        diagram: "walled-garden",
+      },
+      {
+        label: "MODEL 02",
+        name: "Partitioned Ledger",
+        tagline: "Each party holds only their own ledger",
+        description:
+          "Every counterparty pair runs its own isolated ledger, exchanging settlement proofs directly rather than on a shared global one. Non-parties see nothing — no amounts, no identities, no timing.",
+        bestFor: "DVP settlement, inter-bank clearing, FX netting, bilateral repo.",
+        diagram: "partitioned-ledger",
+      },
+      {
+        label: "MODEL 03",
+        name: "Encrypted Settlement",
+        tagline: "Amounts encrypted on shared infrastructure",
+        description:
+          "Transactions run on shared infrastructure, so everyone keeps shared liquidity and interoperability — but amounts, counterparties, and logic stay encrypted. Settlement is verified without anyone reading the underlying values.",
+        bestFor: "Tokenized assets, cross-institution liquidity pools, digital bonds.",
+        diagram: "encrypted-settlement",
+      },
+    ],
+    useCases: [
+      {
+        title: "DVP Settlement",
+        model: "Partitioned Ledger",
+        problem:
+          "Two banks exchange securities and cash. Neither wants the other to see their full position or book.",
+        solution:
+          "Each leg is visible only to its counterparties. Validators confirm settlement without ever reading the amounts.",
+      },
+      {
+        title: "FX Netting",
+        model: "Partitioned Ledger",
+        problem:
+          "Multiple institutions net bilateral exposures, but showing a full book to competitors is commercially unacceptable.",
+        solution:
+          "Each bilateral relationship runs on a separate ledger. Net positions are calculated without exposing gross flows to others.",
+      },
+      {
+        title: "RWA Tokenization",
+        model: "Encrypted Settlement",
+        problem:
+          "Holdings on a shared public chain are visible to anyone — competitors, counterparties, and the market.",
+        solution:
+          "Balances are encrypted on-chain. Regulators receive a dedicated auditor key. Settlement is verifiable without revealing amounts.",
+      },
+      {
+        title: "Trade Finance",
+        model: "Walled Garden",
+        problem:
+          "Letter-of-credit issuance, cargo data, and pricing terms are commercially sensitive — yet multiple banks must participate.",
+        solution:
+          "A permissioned network with role-based visibility. Cargo is visible to logistics parties; pricing stays between originator and buyer.",
+      },
+      {
+        title: "Repo & Securities Lending",
+        model: "Partitioned Ledger",
+        problem:
+          "Intraday repo positions signal trading strategy. Broadcasting them to a shared ledger is competitively damaging.",
+        solution:
+          "Bilateral repo ledgers, one per counterparty pair. Each relationship keeps an isolated, private view.",
+      },
+      {
+        title: "Digital Bond Issuance",
+        model: "Encrypted Settlement",
+        problem:
+          "KYC-verified investors need to transact, but investor identity and allocation sizes must stay confidential.",
+        solution:
+          "Investor eligibility is verified without exposing identity. Allocations are encrypted on-chain, with an auditor key for regulatory reporting.",
       },
     ],
   },
   {
     slug: "compliance",
+    display: { lead: ["Your rules,", "enforced by"], punch: "the protocol" },
     label: "COMPLIANCE",
     title: "Policy enforced by the protocol",
     tagline:
@@ -213,8 +364,8 @@ export const PILLARS: Pillar[] = [
         body: "The TxAllowList precompile controls who can transact at all: approved wallets in, everyone else out.",
       },
       {
-        title: "Accountable validators",
-        body: "Named, contracted operators or your own machines, with uptime, geography, and identity yours to require.",
+        title: "Permissioned validator set",
+        body: "You decide which operators validate — your machines or named partners — and admit or remove them through the validator manager contract.",
       },
     ],
     resources: [
@@ -224,6 +375,7 @@ export const PILLARS: Pillar[] = [
           { text: "Deployer allowlist", href: "/docs/avalanche-l1s/precompiles/deployer-allowlist" },
           { text: "Transaction allowlist", href: "/docs/avalanche-l1s/precompiles/transaction-allowlist" },
           { text: "AllowList interface", href: "/docs/avalanche-l1s/precompiles/allowlist-interface" },
+          { text: "Native minter precompile", href: "/docs/avalanche-l1s/precompiles/native-minter" },
         ],
       },
       {
@@ -236,8 +388,9 @@ export const PILLARS: Pillar[] = [
       {
         heading: "TOOLING",
         links: [
-          { text: "Launch an L1 in the Console", href: "/console" },
-          { text: "Developer tooling", href: "/docs/tooling" },
+          { text: "Deployer allowlist tool", href: "/console/l1-access-restrictions/deployer-allowlist" },
+          { text: "Transactor allowlist tool", href: "/console/l1-access-restrictions/transactor-allowlist" },
+          { text: "Create an L1 in the Console", href: "/console/create-l1" },
         ],
       },
     ],

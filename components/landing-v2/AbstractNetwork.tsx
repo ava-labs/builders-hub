@@ -122,7 +122,7 @@ export default function AbstractNetwork({
                     strokeWidth={1}
                     className="stroke-zinc-200 dark:stroke-zinc-800"
                   />
-                  <circle r={2.2} fill="#E84142">
+                  <circle r={2.2} fill="#E6212F">
                     <animateMotion
                       dur={`${3.2 + i * 0.9}s`}
                       begin={`${i * 1.3}s`}
@@ -162,16 +162,16 @@ export default function AbstractNetwork({
         {backdrop ? (
           <>
             {/* soft glow so the headline can sit directly over the hub */}
-            <circle cx={C} cy={C} r={80} fill="#E84142" opacity={0.3} filter="url(#v2-hub-glow)">
+            <circle cx={C} cy={C} r={80} fill="#E6212F" opacity={0.3} filter="url(#v2-hub-glow)">
               <animate attributeName="opacity" values="0.3;0.16;0.3" dur="5s" repeatCount="indefinite" />
             </circle>
-            <circle cx={C} cy={C} r={5} fill="#E84142">
+            <circle cx={C} cy={C} r={5} fill="#E6212F">
               <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
             </circle>
           </>
         ) : (
           <>
-            <circle cx={C} cy={C} r={40} fill="#E84142">
+            <circle cx={C} cy={C} r={40} fill="#E6212F">
               <animate attributeName="r" values="40;42;40" dur="4s" repeatCount="indefinite" />
             </circle>
             <circle
@@ -180,7 +180,7 @@ export default function AbstractNetwork({
               r={52}
               fill="none"
               strokeWidth={1}
-              className="stroke-[#E84142]/40"
+              className="stroke-[#E6212F]/40"
             >
               <animate attributeName="r" values="52;60;52" dur="4s" repeatCount="indefinite" />
               <animate attributeName="opacity" values="0.6;0.15;0.6" dur="4s" repeatCount="indefinite" />

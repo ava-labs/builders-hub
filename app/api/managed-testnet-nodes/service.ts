@@ -85,6 +85,95 @@ export async function builderHubDeleteNode(
   throw new ManagedTestnetNodeServiceRequestError(502, message);
 }
 
+export async function builderHubGetUpgradeJson(params: {
+  subnetId: string;
+  nodeIndex: number;
+  blockchainId: string;
+}): Promise<{ exists: boolean; upgradeJson: unknown | null }> {
+  const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
+  if (!password) {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub service is not configured');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      ManagedTestnetNodesServiceURLs.upgradeJson(params.subnetId, params.nodeIndex, params.blockchainId, password),
+      { method: 'GET', headers: { Accept: 'application/json' } },
+    );
+  } catch {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub was unreachable.');
+  }
+
+  if (!response.ok) {
+    const message = await extractServiceErrorMessage(response) || 'Failed to fetch upgrade.json from Builder Hub.';
+    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : 502, message);
+  }
+
+  return (await response.json()) as { exists: boolean; upgradeJson: unknown | null };
+}
+
+export async function builderHubWriteUpgradeJson(params: {
+  subnetId: string;
+  nodeIndex: number;
+  blockchainId: string;
+  upgradeJson: unknown;
+}): Promise<{ success: boolean; path?: string }> {
+  const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
+  if (!password) {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub service is not configured');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      ManagedTestnetNodesServiceURLs.upgradeJson(params.subnetId, params.nodeIndex, params.blockchainId, password),
+      {
+        method: 'PUT',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ upgradeJson: params.upgradeJson }),
+      },
+    );
+  } catch {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub was unreachable.');
+  }
+
+  if (!response.ok) {
+    const message = await extractServiceErrorMessage(response) || 'Failed to write upgrade.json in Builder Hub.';
+    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : 502, message);
+  }
+
+  return (await response.json()) as { success: boolean; path?: string };
+}
+
+export async function builderHubRestartManagedNode(params: {
+  subnetId: string;
+  nodeIndex: number;
+}): Promise<{ success: boolean; message?: string }> {
+  const password = process.env.MANAGED_TESTNET_NODE_SERVICE_PASSWORD;
+  if (!password) {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub service is not configured');
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(ManagedTestnetNodesServiceURLs.restartNode(params.subnetId, params.nodeIndex, password), {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+  } catch {
+    throw new ManagedTestnetNodeServiceRequestError(503, 'Builder Hub was unreachable.');
+  }
+
+  if (!response.ok) {
+    const message = await extractServiceErrorMessage(response) || 'Failed to restart managed node.';
+    throw new ManagedTestnetNodeServiceRequestError(response.status === 404 ? 404 : 502, message);
+  }
+
+  return (await response.json()) as { success: boolean; message?: string };
+}
+
 export async function createDbNode(params: {
   userId: string;
   subnetId: string;

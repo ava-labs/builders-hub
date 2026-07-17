@@ -10,15 +10,22 @@ import React from "react";
 /* a pre-rounded literal (computed values hydrate differently).         */
 /* ------------------------------------------------------------------ */
 
-const MONO_LABEL = "fill-zinc-500 font-mono dark:fill-zinc-400";
-const HAIRLINE = "stroke-zinc-300 dark:stroke-zinc-700";
+const MONO_LABEL = "fill-zinc-500 font-mono dark:fill-[#A2AFB2]";
+const HAIRLINE = "stroke-zinc-300 dark:stroke-zinc-500";
 const STRONG = "stroke-zinc-900 dark:stroke-zinc-100";
 const NODE_FILL = "fill-zinc-700 dark:fill-zinc-300";
 
-function svgProps(label: string) {
+/* Each diagram declares a viewBox cropped tight to its own ink. The four
+   drawings have very different footprints (the performance timeline is a
+   thin strip; the privacy seal is nearly square), so sharing one 480×360
+   frame left some of them small and off-center in their stage. A tight
+   box also raises the viewBox→viewport scale, so strokes, nodes, and
+   labels all render heavier — the boldness comes from the crop, not from
+   retouching every element. max-w per diagram equalizes optical mass. */
+function svgProps(label: string, viewBox: string, sizeClass: string) {
   return {
-    viewBox: "0 0 480 360",
-    className: "w-full max-w-[500px] select-none",
+    viewBox,
+    className: `h-auto max-h-full w-full select-none ${sizeClass}`,
     role: "img" as const,
     "aria-label": label,
   };
@@ -28,7 +35,7 @@ function svgProps(label: string) {
 /* lock ring pulses once per pass: settlement is an event, not a curve. */
 function PerformanceDiagram() {
   return (
-    <svg {...svgProps("A transaction finalizing in under a second")}>
+    <svg {...svgProps("A transaction finalizing in under a second", "16 145 448 85", "max-w-[640px]")}>
       {/* timeline */}
       <line x1={40} y1={180} x2={440} y2={180} strokeWidth={1} className={HAIRLINE} />
       {[90, 140, 190, 240, 290, 340].map((x) => (
@@ -40,7 +47,7 @@ function PerformanceDiagram() {
 
       {/* finality lock */}
       <circle cx={420} cy={180} r={14} fill="none" strokeWidth={1.5} className={STRONG} />
-      <circle cx={420} cy={180} r={5} fill="#E84142">
+      <circle cx={420} cy={180} r={5} fill="#E6212F">
         <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
       </circle>
       {/* arrivals land every 0.3s, so the lock breathes continuously */}
@@ -52,7 +59,7 @@ function PerformanceDiagram() {
       {/* not one transaction — a pipeline of them, each final in under a
           second. The evenly staggered stream is the throughput story. */}
       {[0, 0.3, 0.6, 0.9, 1.2, 1.5].map((delay) => (
-        <circle key={delay} cy={180} r={3.5} fill="#E84142">
+        <circle key={delay} cy={180} r={3.5} fill="#E6212F">
           <animate attributeName="cx" values="60;420" keyTimes="0;1" dur="1.8s" begin={`${delay}s`} repeatCount="indefinite" />
           <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.08;0.85;1" dur="1.8s" begin={`${delay}s`} repeatCount="indefinite" />
         </circle>
@@ -99,7 +106,7 @@ function InteropRing({
         </g>
       ))}
       <circle cx={cx} cy={cy} r={13} strokeWidth={1.5} className={`fill-white ${STRONG} dark:fill-zinc-950`} />
-      <circle cx={cx} cy={cy} r={3.5} fill="#E84142">
+      <circle cx={cx} cy={cy} r={3.5} fill="#E6212F">
         <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
       </circle>
       {boundary !== "open" && (
@@ -128,7 +135,7 @@ function InteropRing({
 /* messaging doesn't.                                                   */
 function InteropDiagram() {
   return (
-    <svg {...svgProps("Public, permissioned, and private chains exchanging native messages")}>
+    <svg {...svgProps("Public, permissioned, and private chains exchanging native messages", "78 46 336 308", "max-w-[500px]")}>
       {/* message lanes between ring edges */}
       <line x1={180} y1={110} x2={292} y2={110} strokeWidth={1} className={HAIRLINE} />
       <line x1={321.05} y1={150.79} x2={275.9} y2={214.42} strokeWidth={1} className={HAIRLINE} />
@@ -139,15 +146,15 @@ function InteropDiagram() {
       <InteropRing cx={240} cy={265} label="PRIVATE" boundary="sealed" />
 
       {/* one relay, three hops: public → permissioned → private → public */}
-      <circle r={4.5} fill="#E84142">
+      <circle r={4.5} fill="#E6212F">
         <animateMotion path="M180,110 L292,110" calcMode="linear" keyPoints="0;1;1" keyTimes="0;0.3;1" dur="6s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.03;0.28;0.33;1" dur="6s" repeatCount="indefinite" />
       </circle>
-      <circle r={4.5} fill="#E84142">
+      <circle r={4.5} fill="#E6212F">
         <animateMotion path="M321.05,150.79 L275.9,214.42" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.33;0.63;1" dur="6s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.33;0.36;0.61;0.66;1" dur="6s" repeatCount="indefinite" />
       </circle>
-      <circle r={4.5} fill="#E84142">
+      <circle r={4.5} fill="#E6212F">
         <animateMotion path="M204.1,214.42 L158.95,150.79" calcMode="linear" keyPoints="0;0;1;1" keyTimes="0;0.66;0.96;1" dur="6s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.66;0.69;0.94;1" dur="6s" repeatCount="indefinite" />
       </circle>
@@ -173,7 +180,7 @@ function PrivacyDiagram() {
     { ox: 210.48, oy: 12.58, bx: 218.82, by: 59.85, begin: "4.6s" },
   ];
   return (
-    <svg {...svgProps("A validator-only L1 invisible to outside observers")}>
+    <svg {...svgProps("A validator-only L1 invisible to outside observers", "82 2 316 304", "max-w-[460px]")}>
       {/* the chain, alive inside its boundary */}
       {inner.map(([dx, dy], i) => (
         <g key={i}>
@@ -182,7 +189,7 @@ function PrivacyDiagram() {
         </g>
       ))}
       <circle cx={240} cy={180} r={20} strokeWidth={1.5} className={`fill-white ${STRONG} dark:fill-zinc-950`} />
-      <circle cx={240} cy={180} r={5} fill="#E84142">
+      <circle cx={240} cy={180} r={5} fill="#E6212F">
         <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
       </circle>
 
@@ -229,7 +236,7 @@ function ComplianceDiagram() {
     [246.74, 162.69],
   ];
   return (
-    <svg {...svgProps("An allowlist gate admitting approved transactions only")}>
+    <svg {...svgProps("An allowlist gate admitting approved transactions only", "34 62 384 236", "max-w-[560px]")}>
       {/* boundary with a gate notch on the left (arc from 166° to 194°) */}
       <path
         d="M193.27,206.61 A110,110 0 1 1 193.27,153.39"
@@ -249,7 +256,7 @@ function ComplianceDiagram() {
         </g>
       ))}
       <circle cx={300} cy={180} r={16} strokeWidth={1.5} className={`fill-white ${STRONG} dark:fill-zinc-950`} />
-      <circle cx={300} cy={180} r={4} fill="#E84142">
+      <circle cx={300} cy={180} r={4} fill="#E6212F">
         <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
       </circle>
 

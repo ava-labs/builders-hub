@@ -26,7 +26,7 @@ export const metadata: Metadata = {
 async function getGlobeData() {
   try {
     const [metricsRes, icmRes] = await Promise.all([
-      fetch(`${BASE_URL}/api/overview-stats?timeRange=day`, {
+      fetch(`${BASE_URL}/api/overview-stats?timeRange=month`, {
         next: { revalidate: 3600 },
       }),
       fetch(`${BASE_URL}/api/icm-flow?days=30`, {
@@ -109,19 +109,23 @@ async function getCirculatingSupply(): Promise<number | null> {
 }
 
 // Kite AI's mainnet L1 is not indexed by the shared Metrics API; the
-// chain-stats route proxies its dedicated metrics source. We take the most
-// recent daily transaction count so the showcase row shows a real figure.
+// chain-stats route proxies its dedicated metrics source. We sum the daily
+// series so the showcase row matches the table's 30-day window.
 const KITEAI_CHAIN_ID = '3USaEfTcoUhHxpKXvpAG916UKCUEyjrtkg2hBArBG3JyDP7my';
 
 async function getKiteTxCount(): Promise<number | null> {
   try {
-    const res = await fetch(`${BASE_URL}/api/chain-stats/${KITEAI_CHAIN_ID}?timeRange=day`, {
+    const res = await fetch(`${BASE_URL}/api/chain-stats/${KITEAI_CHAIN_ID}?timeRange=30d`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const latest = data?.txCount?.data?.[0]?.value;
-    return typeof latest === 'number' && latest > 0 ? latest : null;
+    const points: { value?: unknown }[] = data?.txCount?.data ?? [];
+    const total = points.reduce(
+      (sum, p) => sum + (typeof p.value === 'number' && Number.isFinite(p.value) ? p.value : 0),
+      0,
+    );
+    return total > 0 ? total : null;
   } catch (error) {
     console.error('Failed to fetch Kite AI stats:', error);
     return null;
@@ -133,7 +137,7 @@ async function getKiteTxCount(): Promise<number | null> {
 async function getDefiStats(): Promise<{
   tvlUsd: number | null;
   stablesUsd: number | null;
-  dexVolume24hUsd: number | null;
+  dexVolume30dUsd: number | null;
 }> {
   const opts = { next: { revalidate: 3600 } };
   const [tvl, stables, dex] = await Promise.all([
@@ -158,11 +162,12 @@ async function getDefiStats(): Promise<{
       opts,
     )
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d?.total24h ?? null)
+      .then((d) => d?.total30d ?? null)
       .catch(() => null),
   ]);
-  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : null);
-  return { tvlUsd: num(tvl), stablesUsd: num(stables), dexVolume24hUsd: num(dex) };
+  // full float precision — the ledger displays money to the cent
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null);
+  return { tvlUsd: num(tvl), stablesUsd: num(stables), dexVolume30dUsd: num(dex) };
 }
 
 export default async function HomePage(): Promise<React.ReactElement> {
@@ -182,7 +187,7 @@ export default async function HomePage(): Promise<React.ReactElement> {
       primaryStakeAvax={pchain.primaryStakeAvax}
       primaryStakeUsd={
         pchain.primaryStakeAvax !== null && avaxUsd !== null
-          ? Math.round(pchain.primaryStakeAvax * avaxUsd)
+          ? pchain.primaryStakeAvax * avaxUsd
           : null
       }
       avaxUsdPrice={avaxUsd}

@@ -71,11 +71,10 @@ export async function POST(req: NextRequest) {
     if (body.balance_threshold_days !== undefined && (!Number.isInteger(body.balance_threshold_days) || body.balance_threshold_days < 1 || body.balance_threshold_days > 365)) {
       return NextResponse.json({ error: 'Balance threshold days must be between 1 and 365.' }, { status: 400 });
     }
-    if (body.email !== undefined && !EMAIL_REGEX.test(body.email)) {
-      return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
-    }
-
-    const email = body.email ?? session.user.email;
+    // Recipient is always bound to the authenticated session email. We deliberately
+    // ignore any client-supplied body.email to prevent an authenticated user from
+    // directing transactional emails to arbitrary recipients from our trusted domain.
+    const email = session.user.email;
     if (!email || !EMAIL_REGEX.test(email)) {
       return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
     }

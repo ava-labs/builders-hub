@@ -27,9 +27,9 @@ export async function GET(req: NextRequest, context: any) {
 
     return NextResponse.json(hackathon);
   } catch (error) {
-    console.error("Error in GET /api/events/[id]:");
+    console.error("Error in GET /api/events/[id]:", error);
     return NextResponse.json(
-      { error: (error as Error).message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -46,7 +46,9 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
       return NextResponse.json(updatedHackathon);
     } else {
       const partialEditedHackathon = updateData as Partial<HackathonHeader>;
-      const updatedHackathon = await updateHackathon(partialEditedHackathon.id ?? id, partialEditedHackathon, userId);
+      // Always use the URL path id — never let a body-supplied id redirect the
+      // update to a different hackathon row or rename the primary key.
+      const updatedHackathon = await updateHackathon(id, partialEditedHackathon, userId);
       return NextResponse.json(updatedHackathon);
     }
   } catch (error) {
@@ -60,7 +62,7 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
       return NextResponse.json({ error: 'Invalid request body', details }, { status: 400 });
     }
     console.error("Error in PUT /api/events/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 });
 
@@ -78,6 +80,6 @@ export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: an
     }
   } catch (error) {
     console.error("Error in PATCH /api/events/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 });

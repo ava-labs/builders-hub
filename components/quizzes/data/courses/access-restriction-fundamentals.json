@@ -1,0 +1,320 @@
+{
+  "title": "Access Restriction Fundamentals",
+  "quizzes": {
+    "3001": {
+      "question": "What is the key difference between stateless and stateful precompiles in Avalanche L1s? (Select all that apply)",
+      "options": [
+        "Stateless precompiles are faster while stateful precompiles are slower",
+        "Stateless precompiles are written in Solidity while stateful precompiles are written in Go",
+        "Stateless precompiles can only be called by admins while stateful precompiles are public",
+        "Stateless precompiles perform pure computation with no persistent storage, while stateful precompiles can read and write data to the EVM state"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about what happens to data after a precompile executes - does it persist or disappear?",
+      "explanation": "Stateless precompiles perform pure computation with no persistent storage - they take input, compute a result, and return it with nothing stored (examples include cryptographic operations like ecrecover or sha256). Stateful precompiles can read and write data to the EVM state, storing information like role assignments (Admin, Manager, Enabled) for each address that persists across blocks. Both types are backed by Go code in the VM implementation, but the key distinction is whether they maintain persistent state.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "What is an example of a stateless precompile that exists in the standard EVM?",
+          "options": [
+            "The AllowList precompile that manages Admin, Manager, and Enabled roles",
+            "ecrecover, which recovers a signer's address from a signature — it takes inputs, performs computation, and returns a result without storing any data",
+            "The Fee Manager precompile that adjusts gas parameters",
+            "The Native Minter precompile that creates new tokens"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "Think about cryptographic operations that are pure functions — same input always produces same output with no side effects.",
+          "explanation": "ecrecover is a classic example of a stateless precompile. It takes a message hash and signature components (v, r, s) as input, performs elliptic curve recovery computation, and returns the signer's Ethereum address. It stores nothing — given the same inputs, it always produces the same output with no side effects. Other stateless precompile examples include sha256 and ripemd160. In contrast, Avalanche's custom precompiles like AllowList are stateful because they maintain persistent mappings of addresses to roles in the EVM state."
+        },
+        {
+          "question": "At what type of addresses are Subnet-EVM precompiles deployed, and why are these addresses significant?",
+          "options": [
+            "Random addresses generated at deployment time",
+            "Stateless precompiles use address 0x0 while stateful ones use standard contract addresses, allowing them to read and write to EVM state",
+            "Reserved addresses in the 0x0200...0000 range, which are hardcoded so the EVM can recognize calls to these addresses and route them to native Go implementations",
+            "Standard contract addresses created via CREATE2 opcode"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "These addresses don't have deployed bytecode — the EVM intercepts calls to them.",
+          "explanation": "Subnet-EVM precompiles are deployed at reserved addresses in the 0x0200...0000 range (e.g., Transaction AllowList at 0x0200000000000000000000000000000000000002). These addresses are significant because they are hardcoded into the VM. When the EVM processes a call to one of these addresses, instead of looking for deployed bytecode, it recognizes the address as a precompile and routes the call directly to the native Go implementation. This is what makes precompiles more gas-efficient than regular smart contracts — they bypass EVM bytecode interpretation entirely."
+        }
+      ]
+    },
+    "3002": {
+      "question": "In the AllowList interface, what is the difference between the Manager role and the Admin role?",
+      "options": [
+        "Managers can only manage Enabled addresses, while Admins can manage all roles including Admin, Manager, and Enabled",
+        "Managers can only read roles while Admins can write roles",
+        "There is no difference - they are equivalent roles",
+        "Managers have temporary permissions while Admins have permanent permissions"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Consider what each role can do - which addresses can each role type modify?",
+      "explanation": "In the AllowList interface, the Admin role can manage all roles (Admin, Manager, and Enabled), giving them full control over the permission system. The Manager role is more limited - it can only manage Enabled addresses. This creates a permission hierarchy where Admins have ultimate control, Managers have delegated authority to grant basic access, and Enabled addresses can use the precompile's functionality without managing others.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "In the AllowList interface, what is the role value returned by readAllowList for an address that has never been assigned any role?",
+          "options": [
+            "1 (Enabled)",
+            "3 (Admin) by default",
+            "0 (None) — the address has no permissions and cannot use the precompile's functionality or manage any roles",
+            "Managers can only manage Enabled addresses while Admins can manage all roles including Admin, Manager, and Enabled"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Consider the default state for addresses that haven't been explicitly configured.",
+          "explanation": "When readAllowList is called for an address that has never been assigned a role, it returns 0, representing the 'None' role. This is the default state — addresses start with no permissions. An address with role 0 cannot use the precompile's functionality (e.g., cannot send transactions if Transaction AllowList is active, cannot deploy contracts if Contract Deployer AllowList is active) and cannot manage any other addresses' roles. An Admin or Manager must explicitly grant a role to change this default."
+        },
+        {
+          "question": "Which AllowList function would a Manager call to grant a new user basic access to a precompile's functionality?",
+          "options": [
+            "setAdmin, since it grants the highest level of access",
+            "setManager to delegate management responsibilities, since Admins can manage all roles including Admin, Manager, and Enabled",
+            "readAllowList to check the user's current role",
+            "setEnabled — Managers can grant Enabled status, giving the address permission to use the precompile functionality without management capabilities"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Managers have limited scope — they can only assign one specific role level.",
+          "explanation": "A Manager would call setEnabled(address) to grant basic access. The Manager role can only manage Enabled addresses — it can call setEnabled to grant access and setNone to revoke it. Managers cannot call setAdmin or setManager; those functions are restricted to Admin-only. The setEnabled function changes the target address's role to 1 (Enabled), allowing them to use the precompile's functionality (send transactions, deploy contracts, etc.) but not manage other addresses' roles."
+        }
+      ]
+    },
+    "3003": {
+      "question": "Why might a consortium of banks choose to implement Transaction AllowList and Contract Deployer AllowList on their shared Avalanche L1?",
+      "options": [
+        "To reduce gas fees for all participants",
+        "To make the blockchain faster and more efficient",
+        "To enable cross-chain interoperability with other blockchains",
+        "To control who can submit transactions and deploy contracts, ensuring only known, onboarded entities participate while reducing exploit surface and meeting regulatory requirements"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Think about the operational and compliance needs of a consortium network with known participants.",
+      "explanation": "A consortium of banks would implement these allowlist precompiles to control participation and meet regulatory requirements. By restricting who can submit transactions and deploy contracts to known, onboarded entities (KYC/AML gating), they reduce operational risk, minimize the exploit surface from malicious contract deployments, and maintain auditability over network participants. This controlled access is essential for regulated businesses that must prove governance over who can run what on their network, while supporting staged rollouts during pilot phases.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "A healthcare consortium wants to run a private Avalanche L1 where only verified hospitals can deploy smart contracts but any verified participant can submit transactions. Which precompile configuration achieves this?",
+          "options": [
+            "Enable only the Transaction AllowList and set all hospitals as Admin",
+            "Control who can submit transactions and deploy contracts so only known onboarded entities participate while meeting regulatory requirements",
+            "Enable only the Fee Manager to control gas costs for all participants",
+            "Enable Contract Deployer AllowList with hospitals as Enabled/Admin, and enable Transaction AllowList with all verified participants as Enabled — this restricts deployment to hospitals while allowing broader transaction access"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Think about using different allowlists with different sets of authorized addresses.",
+          "explanation": "The healthcare consortium needs two separate access controls: (1) Contract Deployer AllowList restricting deployment to hospitals only — hospitals get Enabled or Admin role, ensuring only they can deploy smart contracts (e.g., patient record systems, billing contracts), and (2) Transaction AllowList with all verified participants (hospitals, clinics, insurers) as Enabled — this allows broader transaction submission for interacting with deployed contracts. This dual-list approach provides fine-grained access control where deployment is more restricted than transaction submission."
+        },
+        {
+          "question": "What is the difference between using allowlist precompiles at genesis vs. enabling them later via upgrade.json?",
+          "options": [
+            "Genesis activation means the precompile is active from block 0 with initial roles set in the genesis config, while upgrade.json activates at a future timestamp and can also disable previously active precompiles",
+            "There is no difference — both methods produce identical results",
+            "Genesis is for testing only while upgrade.json is for production",
+            "Only known onboarded entities can participate through allowlists to reduce exploit surface and meet regulatory requirements when using genesis activation"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Consider when each configuration takes effect and what flexibility each provides.",
+          "explanation": "Genesis activation (blockTimestamp: 0) means the precompile is active from the very first block, with adminAddresses specified in the genesis config becoming admins immediately. This is set before the chain launches and cannot be changed after. upgrade.json activation happens at a specified future timestamp after the chain is already running, and provides flexibility to enable, disable, or reconfigure precompiles post-launch. The key difference is timing and mutability — genesis is permanent initial state, while upgrades allow dynamic changes to a running chain."
+        }
+      ]
+    },
+    "3004": {
+      "question": "When enabling the Transaction AllowList and Contract Deployer AllowList at genesis, what does the 'blockTimestamp: 0' configuration value mean?",
+      "options": [
+        "The precompiles will be disabled at genesis",
+        "The precompiles will activate after a 0-second delay from when the node starts",
+        "The precompiles require no timestamp configuration",
+        "The precompiles will be activated at the genesis block (from the very beginning of the chain)"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Consider what timestamp 0 represents in the context of a blockchain's lifetime.",
+      "explanation": "When 'blockTimestamp' is set to 0 in the genesis configuration, it means the precompiles will be activated at the genesis block - from the very beginning of the chain. This is different from network upgrades where you set future timestamps. The 'adminAddresses' specified in this configuration become AllowList Admins for each precompile immediately upon chain launch, giving them the ability to manage roles from the first block.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "When configuring allowlist precompiles at genesis, what does the 'adminAddresses' field specify?",
+          "options": [
+            "The addresses that will receive initial token allocations",
+            "The precompiles activate at the genesis block with blockTimestamp 0, meaning they are active from the very beginning",
+            "The addresses that are granted Admin role from block 0, giving them full control to manage all roles (Admin, Manager, Enabled) for the precompile",
+            "The addresses of validator nodes that will secure the chain"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "These addresses receive the highest permission level at chain launch.",
+          "explanation": "The 'adminAddresses' field in the genesis precompile configuration specifies which addresses are granted the Admin role immediately when the chain launches. These addresses have full control over the allowlist from block 0 — they can call setAdmin, setManager, setEnabled, and setNone to manage all role levels for any address. This is typically set to the chain deployer's address or a set of governance addresses. Without at least one admin address, the precompile would be active but unmanageable, since no one would have permission to grant roles."
+        },
+        {
+          "question": "If you want to activate a precompile not at genesis but at a specific future time on a running chain, where do you configure the activation timestamp?",
+          "options": [
+            "In the genesis.json file by setting blockTimestamp to a future Unix timestamp",
+            "In the node's command-line flags when starting the validator",
+            "At genesis with blockTimestamp 0, activating the precompile from the very beginning of the chain",
+            "In the precompileUpgrades array of upgrade.json, with blockTimestamp set to a future Unix timestamp relative to the current chain head"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "Genesis configuration is set before launch — a different file handles post-launch changes.",
+          "explanation": "To activate a precompile at a future time on an already-running chain, you use the precompileUpgrades array in upgrade.json. The blockTimestamp in this file must be set to a future Unix timestamp relative to the current chain head. When the chain reaches that timestamp, the precompile activates with the specified configuration. This is different from genesis activation (blockTimestamp: 0 in genesis.json), which activates at chain launch. The upgrade.json approach allows dynamic chain configuration changes without redeploying."
+        }
+      ]
+    },
+    "3005": {
+      "question": "After creating an L1 with allowlist precompiles enabled via BuilderHub hosted nodes, why would you later need to set up a Docker validator for certain operations?",
+      "options": [
+        "Docker validators are faster than hosted nodes",
+        "BuilderHub hosted nodes don't allow direct access to configuration files needed for network upgrades like modifying upgrade.json",
+        "Docker is required for all blockchain operations",
+        "BuilderHub nodes cannot sync with the network"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "Think about what file system access is needed to perform network upgrades.",
+      "explanation": "While BuilderHub hosted nodes are convenient for initial setup and testing, they don't provide direct access to the node's configuration files. To perform network upgrades - such as enabling, disabling, or reconfiguring precompiles via upgrade.json - you need to edit files in the chain's config directory and restart the node. This requires running your own Docker validator with full filesystem access. BuilderHub hosted nodes are managed services that abstract away the file system for simplicity, but this means you can't manually modify upgrade.json or other configuration files.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "What is the specific file path where upgrade.json must be placed on a Docker validator node for an Avalanche L1?",
+          "options": [
+            "~/.avalanchego/configs/chains/<BLOCKCHAIN_ID>/upgrade.json — each chain has its own config directory identified by its blockchain ID",
+            "/etc/avalanche/upgrade.json at the system level",
+            "BuilderHub hosted nodes don't allow direct access to configuration files needed for modifying upgrade.json",
+            "The file can be placed anywhere and referenced via command-line flags"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "AvalancheGo organizes per-chain configuration files in a specific directory structure.",
+          "explanation": "The upgrade.json file must be placed at ~/.avalanchego/configs/chains/<BLOCKCHAIN_ID>/upgrade.json, where <BLOCKCHAIN_ID> is the unique identifier of the specific L1 chain. AvalancheGo uses this directory structure to organize per-chain configuration — each chain has its own subdirectory under configs/chains/. When the node starts or restarts, it reads this file to determine which precompile upgrades to apply. This is why direct filesystem access (via Docker) is required — you need to write to this specific path."
+        },
+        {
+          "question": "After placing upgrade.json in the correct directory on a Docker validator, what additional step is required for the upgrade to take effect?",
+          "options": [
+            "Submit a governance proposal on the P-Chain",
+            "BuilderHub hosted nodes don't provide filesystem access needed for upgrade.json modifications",
+            "The node must be restarted so it reads the new upgrade.json configuration and applies the precompile changes at the specified timestamp",
+            "Run a special avalanche-cli command to activate the upgrade"
+          ],
+          "correctAnswers": [
+            2
+          ],
+          "hint": "Configuration files are read at a specific point in the node's lifecycle.",
+          "explanation": "After placing or modifying upgrade.json, the Docker validator node must be restarted. AvalancheGo reads configuration files during startup, so changes to upgrade.json don't take effect until the node restarts. Upon restart, the node parses upgrade.json, validates the entries, and schedules the precompile changes for their specified timestamps. If the timestamp is in the past relative to the current chain head, the node may fail to start — this is why upgrades should be timestamped slightly in the future before restarting."
+        }
+      ]
+    },
+    "3006": {
+      "question": "When testing the Transaction AllowList precompile, if 'readAllowList' returns value '2' for your wallet address, what does this mean? (Select all that apply)",
+      "options": [
+        "Your wallet has no role",
+        "Your wallet has Admin role (can manage all roles)",
+        "Your wallet has Enabled role (can use the functionality)",
+        "Your wallet has Manager role (can manage Enabled addresses only)"
+      ],
+      "correctAnswers": [
+        3
+      ],
+      "hint": "Role values are: 0 = None, 1 = Enabled, 2 = Manager, 3 = Admin.",
+      "explanation": "In the AllowList interface, the role values are mapped as follows: 0 = None (no access), 1 = Enabled (can use functionality), 2 = Manager (can manage Enabled addresses), and 3 = Admin (can manage all roles). When 'readAllowList' returns value '2', it indicates your wallet has the Manager role, which allows you to grant and revoke Enabled status for other addresses, but you cannot create new Admins or Managers. Note: The content shows '2' as Manager role based on the enumeration pattern.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "In the AllowList role numbering, what value does readAllowList return for an address with the Admin role?",
+          "options": [
+            "0 (None)",
+            "1 (Enabled)",
+            "2 (Manager), which can manage Enabled addresses only",
+            "3 (Admin)"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "The role values increase from no access to full access: None, Enabled, Manager, Admin.",
+          "explanation": "The AllowList role values follow an ascending hierarchy: 0 = None (no access), 1 = Enabled (can use functionality), 2 = Manager (can manage Enabled addresses), 3 = Admin (can manage all roles). When readAllowList returns 3, the address has the Admin role — the highest permission level with full control over the allowlist. Admins can call setAdmin, setManager, setEnabled, and setNone for any address."
+        },
+        {
+          "question": "If you call readAllowList for an address and it returns 1, which allowlist operations can that address perform?",
+          "options": [
+            "The address can use the precompile's functionality (send transactions or deploy contracts) but cannot manage any other address's role",
+            "The address can manage Enabled addresses and use the functionality",
+            "A readAllowList value of 2 means Manager role which can manage Enabled addresses only",
+            "The address can manage all roles including Admin, Manager, and Enabled"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Value 1 is the most basic access level — what can and can't it do?",
+          "explanation": "A readAllowList value of 1 indicates the Enabled role. An Enabled address can use the precompile's core functionality — for Transaction AllowList, it can submit transactions; for Contract Deployer AllowList, it can deploy contracts. However, Enabled addresses cannot manage any other address's roles — they cannot call setEnabled, setManager, setAdmin, or setNone. They can only call readAllowList to check roles. It's the basic 'user' level of access without any administrative capabilities."
+        }
+      ]
+    },
+    "3007": {
+      "question": "What happens when you try to deploy a contract on an L1 with Contract Deployer AllowList enabled, but your address does not have Enabled, Manager, or Admin role?",
+      "options": [
+        "The transaction fails and reverts because the precompile blocks your address from deploying contracts",
+        "The contract deploys successfully but with limited functionality",
+        "The contract is deployed to a temporary address",
+        "You receive a warning but the contract deploys normally"
+      ],
+      "correctAnswers": [
+        0
+      ],
+      "hint": "Remember that allowlist enforcement happens automatically at the VM level.",
+      "explanation": "When the Contract Deployer AllowList precompile is enabled and your address lacks the required role (Enabled, Manager, or Admin), the transaction will fail and revert before the contract is created. The enforcement happens automatically through the CanCreateContract hook in the EVM - it reads your role from the precompile's storage and rejects the deployment if you're not authorized. The transaction consumes gas but the contract is never created, and you'll see an authorization error in your wallet or deployment tool.",
+      "chapter": "Access Restriction",
+      "alternates": [
+        {
+          "question": "When the Transaction AllowList is enabled and an unauthorized address tries to send a simple AVAX transfer, at what point is the transaction first rejected?",
+          "options": [
+            "The transaction fails at the contract deployment hook because the precompile blocks it",
+            "At mempool validation — the local node rejects the transaction before it even enters the mempool, preventing it from propagating across the network",
+            "After the transaction is included in a block, during execution",
+            "The wallet software prevents the transaction from being signed"
+          ],
+          "correctAnswers": [
+            1
+          ],
+          "hint": "There are two enforcement checkpoints — which one catches the transaction first?",
+          "explanation": "The Transaction AllowList enforces permissions at two checkpoints, and mempool validation is the first. When an unauthorized address submits a transaction, the local node checks the sender's role during mempool validation. Since the address lacks Enabled/Manager/Admin status, the transaction is immediately rejected and never enters the mempool. This provides fast, local rejection that prevents unauthorized transactions from consuming network bandwidth. Even if somehow bypassed, the execution-time check would catch it during state transition."
+        },
+        {
+          "question": "What is the difference in behavior between Contract Deployer AllowList blocking a deployment vs. Transaction AllowList blocking a transaction?",
+          "options": [
+            "Contract Deployer AllowList intercepts specifically at the CanCreateContract EVM hook during contract creation opcodes, while Transaction AllowList intercepts at both mempool validation and state transition for all transaction types",
+            "Both precompiles use exactly the same enforcement mechanism",
+            "The transaction fails and reverts because the precompile blocks your address from deploying contracts — this is how Contract Deployer AllowList works",
+            "Transaction AllowList only blocks smart contract calls, not simple transfers"
+          ],
+          "correctAnswers": [
+            0
+          ],
+          "hint": "Each precompile hooks into different parts of the EVM execution pipeline.",
+          "explanation": "The two precompiles intercept at different EVM enforcement points. Transaction AllowList checks at mempool validation (fast local rejection) and during state transition (consensus-critical check) for ALL transaction types — transfers, contract calls, and deployments alike. Contract Deployer AllowList specifically hooks into the CanCreateContract callback, which is triggered only when the EVM encounters a CREATE or CREATE2 opcode during execution. This means a deployment transaction from an unauthorized deployer would pass the Transaction AllowList (if the address is transaction-enabled) but fail at the contract creation step."
+        }
+      ]
+    }
+  }
+}

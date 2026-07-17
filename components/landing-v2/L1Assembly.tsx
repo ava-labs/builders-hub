@@ -160,7 +160,7 @@ export default function L1Assembly({
             className="fill-white dark:fill-zinc-950 stroke-zinc-900 dark:stroke-zinc-100"
             strokeWidth={1.5}
           />
-          <circle cx={CX} cy={CY} r={5} fill="#E84142">
+          <circle cx={CX} cy={CY} r={5} fill="#E6212F">
             <animate attributeName="opacity" values="1;0.35;1" dur="2s" repeatCount="indefinite" />
           </circle>
         </motion.g>
@@ -198,7 +198,7 @@ export default function L1Assembly({
       >
         <span className="text-zinc-400 dark:text-zinc-500">PUBLIC</span>
         <span className="text-zinc-400 dark:text-zinc-500">PERMISSIONED</span>
-        <span className="text-zinc-900 dark:text-zinc-100 border-b border-[#E84142] pb-0.5">
+        <span className="text-zinc-900 dark:text-zinc-100 border-b border-[#E6212F] pb-0.5">
           PRIVATE
         </span>
       </motion.div>

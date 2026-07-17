@@ -156,6 +156,17 @@ const TOOLS_RAW: ToolCard[] = [
     category: 'Create & Deploy',
     icon: LayoutDashboard,
   },
+  {
+    name: 'Upgrade JSON Builder',
+    description: 'Generate upgrade.json for precompile and state upgrades on an Avalanche L1.',
+    path: '/console/layer-1/upgrade',
+    category: 'Create & Deploy',
+    icon: Wrench,
+    subSteps: [
+      { name: 'Select L1', path: '/console/layer-1/upgrade/select-l1' },
+      { name: 'Upgrade JSON', path: '/console/layer-1/upgrade/upgrade-json' },
+    ],
+  },
 
   // ── Permissioned L1s ─────────────────────────────────────
   {

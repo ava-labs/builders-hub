@@ -1,7 +1,7 @@
 // Reuse the same base URLs as managed testnet nodes
 export let MANAGED_TESTNET_RELAYERS_SERVICE_URL = process.env.MANAGED_NODES_OVERRIDE ||
   (process.env.VERCEL_ENV === "production"
-    ? 'https://nodes-prod.18.182.4.86.sslip.io'
+    ? 'https://nodes-prod.43.207.73.245.sslip.io'
     : 'https://nodes-staging.35.74.237.34.sslip.io');
 
 if (MANAGED_TESTNET_RELAYERS_SERVICE_URL.endsWith('/')) {

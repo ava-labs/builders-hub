@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
+import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
 import { menuSections, singleItems } from './nav-config';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
@@ -87,7 +87,7 @@ export function NavbarDropdown() {
                     html.style.colorScheme = newTheme;
                     localStorage.setItem('theme', newTheme);
                   }}
-                  className="inline-flex items-center border border-zinc-200 dark:border-zinc-800 p-1 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
+                  className="inline-flex h-8 items-center border border-zinc-200 dark:border-zinc-800 px-1 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
                   aria-label="Toggle Theme"
                   type="button"
                 >
@@ -99,23 +99,23 @@ export function NavbarDropdown() {
                     href="/profile"
                     aria-label="Profile"
                     title="Profile"
-                    className="inline-flex items-center justify-center p-1.5 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
+                    className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
-                    <CircleUserRound className="size-5" />
+                    <UserRound className="size-4.5" strokeWidth={1.25} />
                   </Link>
                 ) : (
                   <button
                     type="button"
                     aria-label="Login"
                     title="Login"
-                    className="inline-flex items-center justify-center p-1.5 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
+                    className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
                     onClick={() => {
                       setIsOpen(false);
                       openLoginModal(window.location.href);
                     }}
                   >
-                    <CircleUserRound className="size-5" />
+                    <UserRound className="size-4.5" strokeWidth={1.25} />
                   </button>
                 )}
               </div>

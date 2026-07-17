@@ -151,17 +151,16 @@ nav#nd-nav {
 
   /* Viewport element: background + depth (only rendered when a menu is open) */
   /* v2: flat sheet closed by a hairline rule, no rounded corners */
+  /* Fully opaque: page content must never ghost through the open sheet */
   #nd-nav > :last-child > * {
-    background-color: rgb(255 255 255 / 0.96) !important; /* white, v2 surface */
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
+    background-color: rgb(255 255 255) !important; /* white, v2 surface */
     border-bottom: 1px solid rgb(228 228 231) !important; /* zinc-200 */
     border-radius: 0 !important;
     box-shadow: 0 12px 24px -12px rgb(0 0 0 / 0.08) !important;
   }
 
   .dark #nd-nav > :last-child > * {
-    background-color: rgb(9 9 11 / 0.96) !important; /* zinc-950 */
+    background-color: rgb(9 9 11) !important; /* zinc-950 */
     border-bottom-color: rgb(39 39 42) !important; /* zinc-800 */
   }
 
@@ -1097,27 +1096,37 @@ nav li > a {
   align-items: center !important;
 }
 
-/* Docs subnav hover and active states */
-.docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+/* Docs subnav hover and active states — same grammar as the top navbar:
+   squared inverted-ink hover, red rule under the active tab, no pills. */
+.docs-subnav-link {
+  border-radius: 0 !important;
 }
 
-.dark .docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+.docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]),
+.docs-subnav-link[data-state="open"]:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgb(24 24 27) !important; /* zinc-900 */
+  color: rgb(250 250 250) !important;
+  box-shadow: none !important;
+}
+
+.dark .docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]),
+.dark .docs-subnav-link[data-state="open"]:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgb(250 250 250) !important; /* zinc-50 */
+  color: rgb(9 9 11) !important;
 }
 
 .docs-subnav-link[data-active="true"],
 .docs-subnav-link[aria-current="page"] {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  color: rgb(24 24 27) !important; /* zinc-900 */
 }
 
 .dark .docs-subnav-link[data-active="true"],
 .dark .docs-subnav-link[aria-current="page"] {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
 /* Hover state for type: 'main' nav links (University, Blog) - direct <a> children, not wrapped in buttons */
@@ -1908,6 +1917,50 @@ html.embed-mode #nd-toc {
 #nd-nav > :last-child [class*="lg:grid-cols-3"] {
   gap: 2px !important;
   padding: 10px !important;
+}
+
+/* v2 display voice: brand-aligned heavy caps, matching avalanche.com's
+   headline grammar. Every statement on the story/solutions pages uses
+   this class, so when comms provides the brand display font (Aeonik
+   heavy or similar) the swap happens here, once. */
+.v2-display {
+  font-family: "Aeonik", var(--font-sans, ui-sans-serif), sans-serif;
+  text-transform: uppercase;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+/* Brand display face per AvalancheVisualGuidelines_7.2.2026: Aeonik, all
+   caps ("Headline alt: Aeonik Regular" is the sanctioned treatment; Black
+   is primary and should replace Medium here when comms provides the cut). */
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Black.woff2") format("woff2");
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
 }
 
 /* Solutions mega-menu → 4 columns so Design Patterns sits as a right bookend

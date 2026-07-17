@@ -1,53 +1,55 @@
 /**
  * Utility for sanitizing and rendering markdown content safely.
- * Addresses vulnerability SBP-002: Persistent XSS risk from untrusted content.
- * Uses `marked` for markdown parsing and `DOMPurify` for HTML sanitization.
+ * Uses `marked` for markdown parsing and `sanitize-html` for HTML sanitization
+ * with a strict allowlist. This replaces the previous regex-based approach,
+ * which was bypassable via HTML-entity-encoded protocol schemes (e.g. java&#x09;script:).
  */
 
 import { marked } from 'marked';
+import sanitizeHtmlLib from 'sanitize-html';
 
-/**
- * Simple sanitizer for Edge Runtime environments
- * Removes script tags and dangerous attributes
- */
-function simpleSanitize(html: string): string {
-  if (!html) return '';
-
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/gi, '')
-    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-    .replace(/on\w+\s*=\s*[^\s>]*/gi, '')
-    .replace(/javascript:/gi, '');
-}
+const SANITIZE_OPTIONS: sanitizeHtmlLib.IOptions = {
+  allowedTags: [
+    'a', 'b', 'blockquote', 'br', 'code', 'div', 'em',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i',
+    'li', 'ol', 'p', 'pre', 'span', 'strong',
+    'table', 'tbody', 'td', 'th', 'thead', 'tr', 'ul',
+  ],
+  allowedAttributes: {
+    'a': ['href', 'title', 'target', 'rel'],
+    'code': ['class'],
+    'pre': ['class'],
+    'span': ['class'],
+    'div': ['class'],
+    'td': ['align'],
+    'th': ['align'],
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+  allowedSchemesByTag: {},
+  // sanitize-html parses and re-serializes, so entity-encoded protocol bypasses
+  // (java&#x09;script:) are decoded and caught before the scheme check.
+};
 
 /**
  * Sanitizes HTML content, removing dangerous elements while preserving safe ones.
- * Falls back to simple sanitization if DOMPurify is not available (Edge Runtime)
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
-
-  // Use simple sanitizer that works in all environments
-  // This is safer for Edge Runtime and serverless environments
-  return simpleSanitize(html);
+  return sanitizeHtmlLib(html, SANITIZE_OPTIONS);
 }
 
 /**
  * Converts markdown to safe HTML.
- * Parses markdown with `marked`, then sanitizes with DOMPurify.
+ * Parses markdown with `marked`, then sanitizes with sanitize-html.
  */
 export function markdownToSafeHtml(text: string): string {
   if (!text) return '';
-  
-  // Parse markdown to HTML
+
   const html = marked.parse(text, {
     async: false,
     gfm: true,
     breaks: true,
   }) as string;
-  
-  // Sanitize the resulting HTML
+
   return sanitizeHtml(html);
 }

@@ -2,19 +2,22 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion, useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { PILLARS } from "@/components/landing-v2/pillars";
+import { BrandButton } from "@/components/landing-v2/BrandButton";
 import PillarDiagram from "@/components/landing-v2/PillarDiagrams";
 import { ROTATE_MS } from "@/components/landing-v2/scrub";
 import { track } from "@/components/landing-v2/track";
 
 /* ------------------------------------------------------------------ */
-/* Why Avalanche — one full-screen stage; the four guarantees rotate    */
+/* Why Avalanche — brand accordion: four numbered panels, one expanded  */
 /* ------------------------------------------------------------------ */
 
 // Board-row listing of the pillars, used by the /solutions index (the
-// homepage chapter below cycles them on one stage instead).
+// homepage chapter below cycles them on one stage instead). Each row is
+// a hard vertical split in the brand's diptych grammar: statement on the
+// left, the pillar's live instrument right of a hairline rule.
 export function PillarRows({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <div className="divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
@@ -28,9 +31,12 @@ export function PillarRows({ reducedMotion }: { reducedMotion: boolean }) {
         >
           <Link
             href={`/solutions/${pillar.slug}`}
-            className="group relative grid grid-cols-1 items-center gap-x-10 gap-y-3 px-5 py-9 transition-colors hover:bg-zinc-50 md:px-6 lg:grid-cols-[10rem_1fr_auto] dark:hover:bg-zinc-900/60"
+            className="group relative grid grid-cols-1 items-center gap-x-10 gap-y-3 px-5 py-9 transition-colors hover:bg-zinc-50 md:px-6 lg:grid-cols-[2.5rem_10rem_minmax(0,1fr)_minmax(0,20rem)_auto] lg:py-6 dark:hover:bg-zinc-900/60"
           >
-            <span className="absolute bottom-0 left-0 top-0 w-px bg-transparent transition-colors duration-300 group-hover:bg-[#E84142]" />
+            <span className="absolute bottom-0 left-0 top-0 w-px bg-transparent transition-colors duration-300 group-hover:bg-[#E6212F]" />
+            <span className="hidden font-mono text-[10px] tracking-[0.18em] text-zinc-400 lg:block dark:text-zinc-500">
+              {`0${i + 1}`}
+            </span>
             <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
               {pillar.label}
             </span>
@@ -42,10 +48,10 @@ export function PillarRows({ reducedMotion }: { reducedMotion: boolean }) {
                 {pillar.tagline}
               </span>
             </span>
-            <span className="flex items-center gap-6 justify-self-start lg:justify-self-end">
-              <span className="hidden font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500 xl:block">
-                {pillar.proofs[0].label} · {pillar.proofs[0].value}
-              </span>
+            <span className="hidden h-44 items-center justify-center border-l border-zinc-200 pl-10 lg:flex dark:border-zinc-800">
+              <PillarDiagram slug={pillar.slug} />
+            </span>
+            <span className="flex items-center justify-self-start lg:justify-self-end">
               <ArrowRight className="h-5 w-5 text-zinc-400 transition-transform group-hover:translate-x-1 group-hover:text-zinc-900 dark:group-hover:text-zinc-50" />
             </span>
           </Link>
@@ -57,69 +63,8 @@ export function PillarRows({ reducedMotion }: { reducedMotion: boolean }) {
 
 type PillarSlug = (typeof PILLARS)[number]["slug"];
 
-// Tab rail: bordered chips so the four guarantees read as controls, not
-// captions. The active chip carries a red lattice triangle — the sheet's
-// own glyph — plus a hairline that fills over the rotation interval, so
-// the auto-advance (and the invitation to click ahead) is visible.
-function PillarRail({
-  activeSlug,
-  onSelect,
-  progressKey,
-  animate,
-}: {
-  activeSlug: string;
-  onSelect: (slug: PillarSlug) => void;
-  progressKey: string;
-  animate: boolean;
-}) {
-  return (
-    <div role="tablist" className="flex flex-wrap items-center gap-2.5">
-      {PILLARS.map((pillar) => {
-        const isActive = pillar.slug === activeSlug;
-        return (
-          <button
-            key={pillar.slug}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => onSelect(pillar.slug)}
-            className={`relative flex cursor-pointer items-center gap-2 overflow-hidden border px-4 py-2.5 transition-colors duration-300 ${
-              isActive
-                ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-900"
-                : "border-zinc-200 hover:border-zinc-500 dark:border-zinc-800 dark:hover:border-zinc-400"
-            }`}
-          >
-            {isActive && animate && (
-              <span
-                key={progressKey}
-                aria-hidden
-                className="absolute bottom-0 left-0 h-px w-full origin-left bg-[#E84142]"
-                style={{ animation: `v2-fill-x ${ROTATE_MS}ms linear forwards`, transform: "scaleX(0)" }}
-              />
-            )}
-            <svg
-              width="8"
-              height="7"
-              viewBox="0 0 8 7"
-              aria-hidden
-              className={`transition-opacity duration-300 ${isActive ? "opacity-100" : "opacity-0"}`}
-            >
-              <polygon points="4,0 0,7 8,7" fill="#E84142" />
-            </svg>
-            <span
-              className={`font-mono text-[10px] tracking-[0.18em] transition-colors duration-300 ${
-                isActive
-                  ? "text-zinc-900 dark:text-zinc-100"
-                  : "text-zinc-500 dark:text-zinc-400"
-              }`}
-            >
-              {pillar.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
+function titleCase(label: string): string {
+  return label.charAt(0) + label.slice(1).toLowerCase();
 }
 
 export default function PillarsChapter({ reducedMotion }: { reducedMotion: boolean }) {
@@ -143,13 +88,11 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
     setActiveIdx(PILLARS.findIndex((p) => p.slug === slug));
   };
 
-  const active = PILLARS[activeIdx];
-
   return (
     <section
       ref={sectionRef}
       data-chapter="pillars"
-      className="v2-snap-section flex items-center border-y border-zinc-200 bg-white py-24 dark:border-zinc-800 dark:bg-zinc-950 lg:min-h-[calc(100vh-3.5rem)] lg:py-0"
+      className="v2-snap-section flex items-center py-24 lg:min-h-[calc(100vh-3.5rem)] lg:py-0"
     >
       <motion.div
         className="w-full"
@@ -159,46 +102,87 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="mx-auto w-full max-w-7xl px-5 md:px-6">
-          <PillarRail
-            activeSlug={active.slug}
-            onSelect={select}
-            progressKey={`${active.slug}-${cycle}`}
-            animate={!reducedMotion && inView}
-          />
-
-          {/* one guarantee at a time: statement, tagline, and its instrument */}
-          <div className="mt-12 lg:mt-16">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={active.slug}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="grid items-center gap-12 lg:grid-cols-[7fr_5fr] lg:gap-16"
-              >
-                <div>
-                  <h3 className="text-4xl font-extralight leading-[1.08] tracking-[-0.03em] text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl">
-                    {active.title}
-                    <span className="text-[#E84142]">.</span>
-                  </h3>
-                  <p className="mt-6 max-w-lg text-lg leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    {active.tagline}
-                  </p>
-                  <Link
-                    href={`/solutions/${active.slug}`}
-                    onClick={() => track("home_cta_clicked", { section: "pillars", label: `Explore ${active.slug}`, href: `/solutions/${active.slug}` })}
-                    className="group mt-9 inline-flex items-center gap-3 bg-blue-600 px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 dark:hover:bg-blue-500"
+          {/* brand accordion: the active guarantee expands, the rest wait as
+              numbered strips. Panels are always brand-dark (#1F1F1F), so the
+              diagram wrapper carries `dark` to flip its palette locally. */}
+          <div className="flex h-[min(74vh,680px)] flex-col gap-3 lg:flex-row">
+            {PILLARS.map((pillar, i) => {
+              const isActive = i === activeIdx;
+              const number = `0${i + 1}`;
+              return (
+                <div
+                  key={pillar.slug}
+                  className="relative overflow-hidden rounded-2xl bg-[#1F1F1F] transition-[flex-grow] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  style={{ flexGrow: isActive ? 8 : 1, flexBasis: 0, minWidth: 0 }}
+                >
+                  {/* collapsed strip: number, label, red arrow */}
+                  <button
+                    type="button"
+                    onClick={() => select(pillar.slug)}
+                    aria-label={`Show ${titleCase(pillar.label)}`}
+                    className={`absolute inset-0 z-10 flex flex-row items-center justify-between p-4 transition-opacity duration-300 lg:flex-col lg:p-5 ${
+                      isActive ? "pointer-events-none opacity-0" : "opacity-100"
+                    }`}
                   >
-                    Explore {active.label.charAt(0) + active.label.slice(1).toLowerCase()}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                  </Link>
+                    <span className="font-mono text-[11px] tracking-[0.18em] text-[#A2AFB2]">{number}</span>
+                    <span className="font-mono text-[10px] tracking-[0.18em] text-[#A2AFB2]/80 lg:hidden">
+                      {pillar.label}
+                    </span>
+                    <span className="hidden rotate-180 font-mono text-[10px] tracking-[0.18em] text-[#A2AFB2]/80 [writing-mode:vertical-rl] lg:block">
+                      {pillar.label}
+                    </span>
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E6212F]">
+                      <ArrowRight className="h-4 w-4 text-white" />
+                    </span>
+                  </button>
+
+                  {/* expanded panel */}
+                  <div
+                    className={`flex h-full flex-col p-6 transition-opacity duration-500 md:p-10 ${
+                      isActive ? "opacity-100 delay-200" : "pointer-events-none opacity-0"
+                    }`}
+                  >
+                    <span className="font-mono text-[11px] tracking-[0.18em] text-[#A2AFB2]">{number}</span>
+                    <div className="mt-5 grid gap-6 lg:grid-cols-[7fr_5fr] lg:gap-12">
+                      <h3 className="v2-display text-2xl md:text-4xl xl:text-[3.25rem]">
+                        {pillar.display.lead.map((line) => (
+                          <span key={line} className="block text-[#EBF0FA]">
+                            {line}
+                          </span>
+                        ))}
+                        <span className="block text-[#E6212F]">{pillar.display.punch}</span>
+                      </h3>
+                      <p className="max-w-md text-sm leading-relaxed text-[#A2AFB2] md:text-base">
+                        {pillar.tagline}
+                      </p>
+                    </div>
+                    {/* the instrument holds the panel's center, like the
+                        imagery band in the brand reference */}
+                    <div className="dark hidden min-h-0 flex-1 items-center justify-center py-4 lg:flex">
+                      <PillarDiagram slug={pillar.slug} />
+                    </div>
+                    <div className="mt-auto flex items-center justify-between gap-8 pt-6 lg:mt-0">
+                      <BrandButton
+                        href={`/solutions/${pillar.slug}`}
+                        onClick={() => track("home_cta_clicked", { section: "pillars", label: `Explore ${pillar.slug}`, href: `/solutions/${pillar.slug}` })}
+                        className="w-full sm:w-auto"
+                      >
+                        Explore {titleCase(pillar.label)}
+                      </BrandButton>
+                    </div>
+                    {/* rotation progress along the panel floor */}
+                    {isActive && !reducedMotion && inView && (
+                      <span
+                        key={`${pillar.slug}-${cycle}`}
+                        aria-hidden
+                        className="absolute bottom-0 left-0 h-[3px] w-full origin-left bg-[#E6212F]"
+                        style={{ animation: `v2-fill-x ${ROTATE_MS}ms linear forwards`, transform: "scaleX(0)" }}
+                      />
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-center">
-                  <PillarDiagram slug={active.slug} />
-                </div>
-              </motion.div>
-            </AnimatePresence>
+              );
+            })}
           </div>
         </div>
       </motion.div>

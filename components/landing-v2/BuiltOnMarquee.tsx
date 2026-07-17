@@ -82,18 +82,18 @@ function TapeRow({
             href={chain.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex shrink-0 items-center gap-3.5 border-r border-zinc-200 px-8 py-5 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            className="flex shrink-0 items-center gap-3 border-r border-zinc-200 px-5 py-3.5 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900 lg:gap-3.5 lg:px-8 lg:py-5"
           >
             <img
               src={chain.image}
               alt=""
-              className="h-7 w-7 rounded-full object-contain"
+              className="h-6 w-6 rounded-full object-contain lg:h-7 lg:w-7"
               loading="lazy"
               onError={(e) => {
                 e.currentTarget.style.display = "none";
               }}
             />
-            <span className="whitespace-nowrap text-base font-medium text-zinc-800 dark:text-zinc-200">
+            <span className="whitespace-nowrap text-sm font-medium text-zinc-800 dark:text-zinc-200 lg:text-base">
               {chain.name}
             </span>
           </a>
@@ -123,7 +123,7 @@ export default function BuiltOnMarquee({ embedded = false }: { embedded?: boolea
 
   return (
     <section className="py-24 lg:py-32">
-      <div className="mx-auto mb-12 flex max-w-7xl items-baseline gap-4 px-5 md:px-6">
+      <div className="mx-auto mb-12 flex max-w-7xl items-center gap-4 px-5 md:px-6">
         <p className="shrink-0 font-mono text-[11px] tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
           BUILT ON AVALANCHE
         </p>

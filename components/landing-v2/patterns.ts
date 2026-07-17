@@ -99,11 +99,10 @@ export const PATTERNS: DesignPattern[] = [
     },
     flow: {
       phases: [
-        { label: "Lock", detail: "Bank A locks the customer's deposit tokens and runs its compliance checks." },
-        { label: "Burn", detail: "Bank A burns the tokens on its own chain — the claim on Bank A is destroyed." },
-        { label: "Verify", detail: "Bank B's chain verifies Bank A's burn directly via Interchain Messaging — no bridge, no intermediary." },
-        { label: "Mint", detail: "Bank B mints equivalent deposit tokens to the recipient — the commit point: before it, only rollback; after it, only completion." },
-        { label: "Net & Settle", detail: "The clearing chain records the obligation status; positions are netted and settled per cycle over existing rails." },
+        { label: "Lock", detail: "Bank A places a hold on the payer's deposit, runs its checks (balance, AML, membership, exposure limits), and emits a Mint Authorization to Bank B. Nothing irreversible yet — the deposit is locked, not burned." },
+        { label: "Mint", detail: "Bank B verifies the authorization against Bank A's chain, checks the payee, mints the payee's deposit, and atomically marks the authorization Consumed. This is the commit point." },
+        { label: "Burn", detail: "Bank A verifies the Consumed status against Bank B's chain, and only then converts the hold into a burn — extinguishing the payer's deposit — recording the interbank obligation on the clearing chain." },
+        { label: "Settle", detail: "The clearing entity nets obligations across members and moves central-bank money over the external rail per settlement cycle. Payment finality already happened at Mint." },
       ],
     },
     elements: [
@@ -112,8 +111,8 @@ export const PATTERNS: DesignPattern[] = [
         body: "Each institution runs and governs its own compliant Avalanche L1, holding its deposits as tokens on its own chain. Intra-bank activity never leaves the building.",
       },
       {
-        title: "Transfer = coordinated burn-and-mint",
-        body: "A deposit is a claim on its issuer, so it can't simply move chains. The sender burns, the receiver mints, and each verifies the other's action directly, chain to chain.",
+        title: "Lock, mint, then burn",
+        body: "A deposit is a claim on its issuer, so it can't simply move chains. The payer's deposit is locked, the receiver mints against a single authorization, and only after that mint commits does the sender burn — so the payer is never debited before the payee is paid.",
       },
       {
         title: "Unsafe states are unconstructable",

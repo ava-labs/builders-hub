@@ -5,7 +5,8 @@ import encryptedErc from './courses/encrypted-erc.json';
 import nftDeployment from './courses/nft-deployment.json';
 import x402PaymentInfrastructure from './courses/x402-payment-infrastructure.json';
 import avalancheFundamentals from './courses/avalanche-fundamentals.json';
-import accessRestriction from './courses/access-restriction.json';
+import accessRestrictionFundamentals from './courses/access-restriction-fundamentals.json';
+import accessRestrictionAdvanced from './courses/access-restriction-advanced.json';
 import avacloudapis from './courses/avacloudapis.json';
 import customizingEvm from './courses/customizing-evm.json';
 import icmChainlink from './courses/icm-chainlink.json';
@@ -25,6 +26,7 @@ import team1Fundamentals from './courses/team1-fundamentals.json';
 import team1TechnicalMember from './courses/team1-technical-member.json';
 import team1AdvancedTechnicalMember from './courses/team1-advanced-technical-member.json';
 import team1SoftSkills from './courses/team1-soft-skills.json';
+import solidityFoundry from './courses/solidity-foundry.json';
 
 const courseFiles: Record<string, { title: string; quizzes: Record<string, unknown> }> = {
   'blockchain-fundamentals': blockchainFundamentals,
@@ -32,7 +34,8 @@ const courseFiles: Record<string, { title: string; quizzes: Record<string, unkno
   'nft-deployment': nftDeployment,
   'x402-payment-infrastructure': x402PaymentInfrastructure,
   'avalanche-fundamentals': avalancheFundamentals,
-  'access-restriction': accessRestriction,
+  'access-restriction-fundamentals': accessRestrictionFundamentals,
+  'access-restriction-advanced': accessRestrictionAdvanced,
   'avacloudapis': avacloudapis,
   'customizing-evm': customizingEvm,
   'icm-chainlink': icmChainlink,
@@ -52,6 +55,7 @@ const courseFiles: Record<string, { title: string; quizzes: Record<string, unkno
   'team1-technical-member': team1TechnicalMember,
   'team1-advanced-technical-member': team1AdvancedTechnicalMember,
   'team1-soft-skills': team1SoftSkills,
+  'solidity-foundry': solidityFoundry,
 };
 
 const courses: Record<string, Course> = {};

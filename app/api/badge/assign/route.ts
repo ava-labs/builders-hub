@@ -54,16 +54,10 @@ export const POST = withAuth(async (req: NextRequest) => {
   } catch (error: any) {
     console.error('Error POST /api/badge/assign:', error.message);
     const wrappedError = error as Error;
+    const status = wrappedError.cause == "ValidationError" ? 400 : 500;
     return NextResponse.json(
-      {
-        error: {
-          message: wrappedError.message,
-          stack: wrappedError.stack,
-          cause: wrappedError.cause,
-          name: wrappedError.name,
-        },
-      },
-      { status: wrappedError.cause == "ValidationError" ? 400 : 500 }
+      { error: { message: status === 400 ? wrappedError.message : "An internal error occurred" } },
+      { status }
     );
   }
 });

@@ -43,11 +43,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       valid: true,
       sub,
-      payload: decoded,
     });
-  } catch (err: unknown) {
+  } catch {
     return NextResponse.json(
-      { valid: false, error: "Invalid token", details: String(err) },
+      { valid: false, error: "Invalid token" },
       { status: 401 }
     );
   }

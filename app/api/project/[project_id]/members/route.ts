@@ -80,7 +80,7 @@ export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (reques
       return NextResponse.json({ error: 'Forbidden: insufficient role' }, { status: 403 });
     }
 
-    const updatedMember = await UpdateRoleMember(member_id, role);
+    const updatedMember = await UpdateRoleMember(member_id, role, project_id);
 
     return NextResponse.json(updatedMember);
   } catch (error: any) {
