@@ -113,7 +113,7 @@ const signedTx = await walletClient.signXPTransaction({
 });
 
 const { txHash } = await walletClient.sendXPTransaction({
-  txOrTxHex: signedTx.signedTxHex,
+  tx: signedTx.signedTxHex,
   chainAlias: "P",
 });
 
@@ -222,7 +222,7 @@ const signedTx = await walletClient.signXPTransaction({
 });
 
 const { txHash } = await walletClient.sendXPTransaction({
-  txOrTxHex: signedTx.signedTxHex,
+  tx: signedTx.signedTxHex,
   chainAlias: "P",
 });
 ```
@@ -319,7 +319,11 @@ const delegatorTx =
 
 ## prepareAddAutoRenewedValidatorTxn
 
-Prepare a transaction to add an auto-renewed validator (ACP-236) to the Primary Network. The validator automatically starts a new validation cycle of length `period` at each cycle boundary and can compound a configurable share of its rewards.
+Prepare a transaction to add an auto-renewed validator (ACP-236) to the Primary Network. The validator automatically starts a new validation cycle of length `period` at each cycle boundary and can compound a configurable share of its rewards. Renewal happens only if the validator met its uptime requirement for the cycle (90% for Primary Network validators); otherwise it is removed from the validator set at the cycle boundary, its staked funds unlock, and the reward for that cycle is forfeited.
+
+<Callout>
+  ACP-236 transactions require the Helicon upgrade — active on Fuji from July 28, 2026 at 15:00 UTC, and not yet scheduled on Mainnet.
+</Callout>
 
 **Function Signature:**
 
@@ -421,7 +425,7 @@ const signedTx = await walletClient.signXPTransaction({
 });
 
 const { txHash } = await walletClient.sendXPTransaction({
-  txOrTxHex: signedTx.signedTxHex,
+  tx: signedTx.signedTxHex,
   chainAlias: "P",
 });
 ```
@@ -591,7 +595,7 @@ const signedTx = await walletClient.signXPTransaction({
 });
 
 const { txHash } = await walletClient.sendXPTransaction({
-  txOrTxHex: signedTx.signedTxHex,
+  tx: signedTx.signedTxHex,
   chainAlias: "P",
 });
 ```
@@ -689,7 +693,7 @@ const signedTx = await walletClient.signXPTransaction({
 });
 
 const { txHash } = await walletClient.sendXPTransaction({
-  txOrTxHex: signedTx.signedTxHex,
+  tx: signedTx.signedTxHex,
   chainAlias: "P",
 });
 ```
