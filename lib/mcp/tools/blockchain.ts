@@ -370,7 +370,6 @@ export const blockchainTools: ToolDomain = {
                     chain: 'P-Chain',
                     transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
                     network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
-                    ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
                     explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/p-chain/tx/${txHash}`,
                     note: net !== network
                       ? `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)`

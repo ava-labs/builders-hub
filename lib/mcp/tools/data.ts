@@ -258,9 +258,8 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
         });
       }
       case 'pchain': {
-        // P-/X-chain bech32 account. Infer network from the HRP (avax=mainnet, fuji=fuji).
-        const hrp = (value.match(/^[PX]-([a-z0-9]+)1/i)?.[1] || '').toLowerCase();
-        const net: Network = hrp === 'fuji' ? 'fuji' : hrp === 'avax' ? 'mainnet' : network;
+        // P-/X-chain bech32 account; network inferred from the address HRP.
+        const net = pxNetwork(value, network);
         if (/^X-/i.test(value)) {
           const balances = await glacierFetch<unknown>(
             `/v1/networks/${net}/blockchains/${X_CHAIN_ID[net]}/balances`,
