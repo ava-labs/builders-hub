@@ -104,18 +104,22 @@ export function Stage({
             }
             animate={
               reducedMotion
-                ? { x: route.x1, y: route.y1, opacity: 1 }
+                ? { x: route.x1, y: route.y1, opacity: [0, 1, 1, 0] }
                 : {
                     x: [route.x0, route.xm, route.x1],
                     y: [route.y0, route.ym, route.y1],
-                    opacity: 1,
+                    opacity: [0, 1, 1, 0],
                   }
             }
             exit={{ opacity: 0, transition: { duration: 0.2 } }}
             transition={
               reducedMotion
-                ? { duration: 0.2 }
-                : { duration: 1.1, ease: "easeInOut" }
+                ? { opacity: { duration: 2.4, times: [0, 0.1, 0.75, 1] } }
+                : {
+                    x: { duration: 1.1, ease: "easeInOut" },
+                    y: { duration: 1.1, ease: "easeInOut" },
+                    opacity: { duration: 2.4, times: [0, 0.08, 0.75, 1] },
+                  }
             }
           >
             <circle r={9} className={KIND_CLASS[travel.kind]} />

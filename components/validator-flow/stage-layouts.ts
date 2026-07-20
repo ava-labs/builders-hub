@@ -66,19 +66,43 @@ export function center(pos: StagePosition): { x: number; y: number } {
   return { x: pos.x + pos.w / 2, y: pos.y + pos.h / 2 };
 }
 
+const EDGE_OUTSET = 8;
+
+// Point where the ray from the box center toward `toward` crosses the box
+// boundary, pushed EDGE_OUTSET px past it so arrowheads and the travelling
+// token sit visibly outside the box instead of underneath it.
+function edgePoint(
+  pos: StagePosition,
+  toward: { x: number; y: number },
+): { x: number; y: number } {
+  const c = center(pos);
+  const dx = toward.x - c.x;
+  const dy = toward.y - c.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return c;
+  const scaleX = dx === 0 ? Infinity : pos.w / 2 / Math.abs(dx);
+  const scaleY = dy === 0 ? Infinity : pos.h / 2 / Math.abs(dy);
+  const scale = Math.min(scaleX, scaleY) + EDGE_OUTSET / len;
+  return { x: c.x + dx * scale, y: c.y + dy * scale };
+}
+
 export function routeBetween(
   layout: StageLayout,
   from: ActorId,
   to: ActorId,
 ): RoutePoints {
-  const a = center(layout.actors[from]);
-  const b = center(layout.actors[to]);
+  const fromPos = layout.actors[from];
+  const toPos = layout.actors[to];
+  const a = center(fromPos);
+  const b = center(toPos);
+  const start = edgePoint(fromPos, b);
+  const end = edgePoint(toPos, a);
   return {
-    x0: a.x,
-    y0: a.y,
+    x0: start.x,
+    y0: start.y,
     xm: (a.x + b.x) / 2,
     ym: (a.y + b.y) / 2 - 48,
-    x1: b.x,
-    y1: b.y,
+    x1: end.x,
+    y1: end.y,
   };
 }
