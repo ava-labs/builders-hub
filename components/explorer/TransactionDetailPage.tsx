@@ -580,8 +580,8 @@ export default function TransactionDetailPage({
 
   if (loading) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-6">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-6">
             <div className="space-y-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="flex items-start gap-4">
@@ -597,7 +597,7 @@ export default function TransactionDetailPage({
 
   if (error) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={fetchTransaction}>Retry</Button>
@@ -609,14 +609,14 @@ export default function TransactionDetailPage({
   return (
     <>
       {/* Transaction Details Title */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pt-6 pb-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
           Transaction Details
         </h2>
       </div>
 
       {/* Tabs - Outside Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-5 md:px-6">
         <div className="flex items-center gap-2 mb-4">
           <Link
             href={`#overview`}
@@ -624,7 +624,7 @@ export default function TransactionDetailPage({
               e.preventDefault();
               handleTabChange('overview');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm font-medium  transition-colors cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -638,7 +638,7 @@ export default function TransactionDetailPage({
               e.preventDefault();
               handleTabChange('logs');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm font-medium  transition-colors cursor-pointer ${
               activeTab === 'logs'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -650,8 +650,8 @@ export default function TransactionDetailPage({
       </div>
 
       {/* Transaction Details */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pb-6">
+        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
           {activeTab === 'overview' ? (
             <div className="p-4 sm:p-6 space-y-5">
             {/* Transaction Hash */}
@@ -686,7 +686,6 @@ export default function TransactionDetailPage({
                     <Link
                       href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, tx.blockNumber)}
                       className="text-sm font-medium hover:underline cursor-pointer"
-                      style={{ color: themeColor }}
                     >
                       {parseInt(tx.blockNumber).toLocaleString()}
                     </Link>
@@ -722,7 +721,6 @@ export default function TransactionDetailPage({
                   <Link
                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)}
                     className="text-sm font-mono break-all hover:underline cursor-pointer"
-                    style={{ color: themeColor }}
                   >
                     {tx.from}
                   </Link>
@@ -744,7 +742,6 @@ export default function TransactionDetailPage({
                   <Link
                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)}
                       className="text-sm font-mono break-all hover:underline cursor-pointer"
-                    style={{ color: themeColor }}
                   >
                     {tx.to}
                   </Link>
@@ -763,7 +760,6 @@ export default function TransactionDetailPage({
                     <Link
                       href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.contractAddress)}
                       className="text-sm font-mono hover:underline cursor-pointer"
-                      style={{ color: themeColor }}
                     >
                       {tx.contractAddress}
                     </Link>
@@ -793,7 +789,7 @@ export default function TransactionDetailPage({
                 label="Method"
                 themeColor={themeColor}
                 value={
-                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
+                  <span className="inline-flex items-center px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
                       {decoded.name}
                   </span>
                 }
@@ -810,13 +806,12 @@ export default function TransactionDetailPage({
                 value={
                   <div className="space-y-3">
                     {erc20Transfers.map((transfer, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2  bg-zinc-50 dark:bg-zinc-800/50">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-zinc-500">From</span>
                           <Link 
                             href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)}
-                            className="font-mono text-xs hover:underline cursor-pointer" 
-                            style={{ color: themeColor }}
+                            className="font-mono text-xs hover:underline cursor-pointer"
                           >
                             {formatAddress(transfer.from)}
                           </Link>
@@ -824,8 +819,7 @@ export default function TransactionDetailPage({
                           <span className="text-zinc-500">To</span>
                           <Link 
                             href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)}
-                            className="font-mono text-xs hover:underline cursor-pointer" 
-                            style={{ color: themeColor }}
+                            className="font-mono text-xs hover:underline cursor-pointer"
                           >
                             {formatAddress(transfer.to)}
                           </Link>
@@ -837,8 +831,7 @@ export default function TransactionDetailPage({
                           </span>
                           <Link 
                             href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.tokenAddress)}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
-                            style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                            className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                           >
                             {transfer.logoUri && (
                               <Image
@@ -883,15 +876,14 @@ export default function TransactionDetailPage({
                         return (
                           <div 
                             key={idx} 
-                            className="flex flex-col gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50"
+                            className="flex flex-col gap-2 text-sm p-2  bg-zinc-50 dark:bg-zinc-800/50"
                           >
                             {/* Line 1: Source Chain → Destination Chain */}
                             <div className="flex items-center gap-2 flex-wrap">
                               {/* Source Chain */}
                               <Link 
                                 href={`/explorer/mainnet/${chainSlug}`}
-                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
-                                style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                                className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                               >
                                 {chainLogoURI && (
                                   <Image
@@ -938,8 +930,7 @@ export default function TransactionDetailPage({
                               <span className="text-zinc-500">From</span>
                               <Link 
                                 href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.sender)}
-                                className="font-mono text-xs hover:underline cursor-pointer" 
-                                style={{ color: themeColor }}
+                                className="font-mono text-xs hover:underline cursor-pointer"
                               >
                                 {formatAddress(transfer.sender)}
                               </Link>
@@ -964,8 +955,7 @@ export default function TransactionDetailPage({
                               </span>
                               <Link 
                                 href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.contractAddress)}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
-                                style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                                className="inline-flex items-center border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                               >
                                 {transferTokenSymbol}
                               </Link>
@@ -1033,7 +1023,6 @@ export default function TransactionDetailPage({
             <button
               onClick={() => setShowMore(!showMore)}
               className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
-              style={{ color: themeColor }}
             >
               {showMore ? 'Click to see Less' : 'Click to see More'}
               {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -1092,7 +1081,7 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => setShowRawInput(false)}
-                                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                className={`px-3 py-1 text-xs font-medium  transition-colors cursor-pointer ${
                                   !showRawInput
                                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -1102,7 +1091,7 @@ export default function TransactionDetailPage({
                               </button>
                               <button
                                 onClick={() => setShowRawInput(true)}
-                                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                className={`px-3 py-1 text-xs font-medium  transition-colors cursor-pointer ${
                                   showRawInput
                                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -1115,7 +1104,7 @@ export default function TransactionDetailPage({
                           
                           {/* Decoded View */}
                           {decodedInput && !showRawInput ? (
-                            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800  p-4 space-y-3">
                               {/* Method Signature */}
                               <div>
                                 <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Function</div>
@@ -1150,7 +1139,6 @@ export default function TransactionDetailPage({
                                               <Link
                                                 href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, param.value)}
                                                 className="font-mono text-xs hover:underline cursor-pointer break-all"
-                                                style={{ color: themeColor }}
                                               >
                                                 {param.value}
                                               </Link>
@@ -1172,7 +1160,6 @@ export default function TransactionDetailPage({
                                                         <Link
                                                           href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, comp.value)}
                                                           className="font-mono hover:underline cursor-pointer break-all"
-                                                          style={{ color: themeColor }}
                                                         >
                                                           {comp.value}
                                                         </Link>
@@ -1205,7 +1192,7 @@ export default function TransactionDetailPage({
                           ) : (
                             /* Raw View */
                     <div className="w-full">
-                              <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg overflow-x-auto max-h-64 text-zinc-700 dark:text-zinc-300">
+                              <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3  overflow-x-auto max-h-64 text-zinc-700 dark:text-zinc-300">
                         {tx?.input || '0x'}
                       </pre>
                             </div>
@@ -1230,7 +1217,7 @@ export default function TransactionDetailPage({
                     return (
                       <div
                         key={index}
-                        className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4"
+                        className="border border-zinc-200 dark:border-zinc-800  p-4 space-y-4"
                       >
                         {/* Header with Index Badge */}
                         <div className="flex items-start gap-4">
@@ -1251,7 +1238,7 @@ export default function TransactionDetailPage({
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm break-all" style={{ color: themeColor }}>
+                                <span className="font-mono text-sm break-all">
                                   {log.address}
                                 </span>
                                 <CopyButton text={log.address} />

@@ -265,14 +265,14 @@ export default function BlockDetailPage({
     return (
       <>
         {/* Tabs skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 pt-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-10 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
-            <div className="h-10 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-10 w-24 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            <div className="h-10 w-32 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+        <div className="max-w-7xl mx-auto px-5 md:px-6">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-6">
             <div className="space-y-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="flex items-start gap-4">
@@ -289,7 +289,7 @@ export default function BlockDetailPage({
 
   if (error) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
           <Button onClick={fetchBlock} className="cursor-pointer">Retry</Button>
@@ -301,14 +301,14 @@ export default function BlockDetailPage({
   return (
     <>
       {/* Block Title */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pt-6 pb-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
           Block #{blockNumber}
         </h2>
       </div>
 
       {/* Tabs - Outside Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-5 md:px-6">
         <div className="flex items-center gap-2 mb-4">
           <Link
             href={`#overview`}
@@ -316,7 +316,7 @@ export default function BlockDetailPage({
               e.preventDefault();
               handleTabChange('overview');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm font-medium  transition-colors cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -330,7 +330,7 @@ export default function BlockDetailPage({
               e.preventDefault();
               handleTabChange('transactions');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm font-medium  transition-colors cursor-pointer ${
               activeTab === 'transactions'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -342,8 +342,8 @@ export default function BlockDetailPage({
       </div>
 
       {/* Block Details */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pb-6">
+        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
           {activeTab === 'overview' ? (
             <div className="p-4 sm:p-6 space-y-5">
               {/* Block Height */}
@@ -426,8 +426,7 @@ export default function BlockDetailPage({
                 value={
                   <button
                     onClick={() => handleTabChange('transactions')}
-                    className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                    style={{ color: themeColor }}
+                    className="inline-flex items-center px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                   >
                     {block?.transactionCount || 0} transaction{(block?.transactionCount || 0) !== 1 ? 's' : ''}
                   </button>
@@ -581,7 +580,6 @@ export default function BlockDetailPage({
               <button
                 onClick={() => setShowMore(!showMore)}
                 className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
-                style={{ color: themeColor }}
               >
                 {showMore ? 'Click to see Less' : 'Click to see More'}
                 {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -611,7 +609,6 @@ export default function BlockDetailPage({
                       <Link
                         href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, prevBlock)}
                         className="text-sm font-mono break-all hover:underline cursor-pointer"
-                        style={{ color: themeColor }}
                       >
                         {block?.parentHash || '-'}
                       </Link>
@@ -629,7 +626,6 @@ export default function BlockDetailPage({
                         <Link
                           href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, block.miner)}
                           className="text-sm font-mono break-all hover:underline cursor-pointer"
-                          style={{ color: themeColor }}
                         >
                           {block.miner}
                         </Link>
@@ -690,7 +686,7 @@ export default function BlockDetailPage({
             <div className="overflow-x-auto">
               {txLoading ? (
                 <div className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: themeColor }}></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto"></div>
                   <p className="text-zinc-500 dark:text-zinc-400 mt-4">Loading transactions...</p>
                 </div>
               ) : transactions.length > 0 ? (
@@ -749,7 +745,6 @@ export default function BlockDetailPage({
                             <Link
                               href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash)}
                               className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
                             >
                               {formatAddress(tx.hash)}
                             </Link>
@@ -764,7 +759,6 @@ export default function BlockDetailPage({
                             <Link
                               href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)}
                                 className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
                             >
                               {formatAddress(tx.from)}
                             </Link>
@@ -780,7 +774,6 @@ export default function BlockDetailPage({
                               <Link
                                 href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)}
                                   className="font-mono text-sm hover:underline cursor-pointer"
-                                style={{ color: themeColor }}
                               >
                                 {formatAddress(tx.to)}
                               </Link>

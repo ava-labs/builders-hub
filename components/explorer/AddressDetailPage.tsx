@@ -674,10 +674,10 @@ export default function AddressDetailPage({
 
   if (loading) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 h-48 animate-pulse" />
+              <div key={i} className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800  p-6 h-48 animate-pulse" />
             ))}
           </div>
       </div>
@@ -686,7 +686,7 @@ export default function AddressDetailPage({
 
   if (error) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={() => fetchAddressData()}>Retry</Button>
@@ -709,7 +709,7 @@ export default function AddressDetailPage({
   return (
     <>
       {/* Address Title */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pt-6 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
           <div className="flex items-center gap-2 sm:gap-3">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-zinc-900 dark:text-white">
@@ -717,7 +717,7 @@ export default function AddressDetailPage({
             </h2>
             {/* Verified Badge */}
             {data?.isContract && sourcifyData?.match === 'match' && (
-              <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" title="Verified on Sourcify">
+              <div className="flex items-center gap-1 px-2 py-1  bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" title="Verified on Sourcify">
                 <ShieldCheck className="w-4 h-4" />
                 <span className="text-xs font-medium">Verified</span>
               </div>
@@ -744,7 +744,7 @@ export default function AddressDetailPage({
               {duneLabels.map((label, idx) => (
                 <div 
                   key={`${label.blockchain}-${label.name}-${idx}`}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1  text-xs font-medium transition-colors"
                   style={{ 
                     backgroundColor: label.chainColor ? `${label.chainColor}15` : 'rgb(244 244 245)',
                     color: label.chainColor || 'rgb(113 113 122)'
@@ -788,10 +788,10 @@ export default function AddressDetailPage({
       </div>
 
       {/* Three Panel Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Overview Panel */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-5">
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">Overview</h3>
             
             {/* Native Balance */}
@@ -832,7 +832,7 @@ export default function AddressDetailPage({
               <div className="relative">
                 <button
                   onClick={() => setShowTokenDropdown(!showTokenDropdown)}
-                  className="flex items-center justify-between w-full bg-zinc-100 dark:bg-zinc-800 rounded-lg px-3 py-2 text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+                  className="flex items-center justify-between w-full bg-zinc-100 dark:bg-zinc-800  px-3 py-2 text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                 >
                   <span className="flex items-center gap-1.5 text-zinc-900 dark:text-white">
                     {tokenCount === 0 && erc20Loading ? (
@@ -855,7 +855,7 @@ export default function AddressDetailPage({
                 
                 {/* Token Dropdown */}
                 {showTokenDropdown && tokenCount > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl z-10 max-h-80 overflow-hidden">
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700  shadow-xl z-10 max-h-80 overflow-hidden">
                     {/* Search Bar */}
                     <div className="p-2 border-b border-zinc-200 dark:border-zinc-700 sticky top-0 bg-white dark:bg-zinc-800">
                       <div className="relative">
@@ -912,7 +912,7 @@ export default function AddressDetailPage({
           </div>
 
           {/* More Info Panel */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-5">
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">More Info</h3>
             
             {/* Contract Name & Symbol */}
@@ -967,7 +967,6 @@ export default function AddressDetailPage({
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-sm hover:underline flex items-center gap-1 cursor-pointer"
-                  style={{ color: themeColor }}
                 >
                   {data.contractMetadata.officialSite}
                   <ArrowUpRight className="w-3 h-3" />
@@ -985,7 +984,6 @@ export default function AddressDetailPage({
                   <Link 
                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, data.contractMetadata.deploymentDetails.deployerAddress)}
                     className="hover:underline cursor-pointer"
-                    style={{ color: themeColor }}
                   >
                     {formatAddressShort(data.contractMetadata.deploymentDetails.deployerAddress)}
                   </Link>
@@ -996,7 +994,6 @@ export default function AddressDetailPage({
                       <Link 
                         href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, data.contractMetadata.deploymentDetails.txHash)}
                         className="hover:underline font-mono cursor-pointer"
-                        style={{ color: themeColor }}
                       >
                         {formatAddressShort(data.contractMetadata.deploymentDetails.txHash)}
                       </Link>
@@ -1079,11 +1076,11 @@ export default function AddressDetailPage({
           </div>
 
           {/* Multichain Info Panel */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-5">
             <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-4">Multichain Info</h3>
             
             {/* Multichain Portfolio value - hidden for now */}
-            {/* <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg px-3 py-2 mb-4">
+            {/* <div className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800  px-3 py-2 mb-4">
               <Wallet className="w-4 h-4 text-zinc-400" />
               <span className="text-zinc-900 dark:text-white font-medium">
                 {formatUsd(data?.totalValueUsd)} <span className="text-zinc-500 dark:text-zinc-400 text-sm">(Multichain Portfolio)</span>
@@ -1154,7 +1151,7 @@ export default function AddressDetailPage({
       </div>
 
       {/* Tabs - Outside Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-5 md:px-6">
         <div className="flex items-stretch gap-2 mb-4 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map((tab) => (
             <Link
@@ -1164,7 +1161,7 @@ export default function AddressDetailPage({
                 e.preventDefault();
                 handleTabChange(tab.id);
               }}
-              className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 h-10 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 ${
+              className={`flex items-center justify-center gap-1.5 px-3 sm:px-4 h-10 text-xs sm:text-sm font-medium  transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 ${
                 activeTab === tab.id
                   ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                   : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -1182,13 +1179,13 @@ export default function AddressDetailPage({
       </div>
 
       {/* Transaction Table Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pb-6">
+        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
           {/* Table */}
           <div className="overflow-x-auto relative">
             {txLoading && (
               <div className="absolute inset-0 bg-white/50 dark:bg-zinc-900/50 flex items-center justify-center z-10">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: themeColor }}></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2"></div>
               </div>
             )}
             
@@ -1239,7 +1236,7 @@ export default function AddressDetailPage({
                         <tr key={tx.hash || index} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <div className="flex items-center gap-1.5">
-                              <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(tx.hash)}</Link>
+                              <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(tx.hash)}</Link>
                               <CopyButton text={tx.hash} />
                             </div>
                           </td>
@@ -1247,7 +1244,7 @@ export default function AddressDetailPage({
                             <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={tooltipText}>{truncatedMethod}</span>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, tx.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{tx.blockNumber}</Link>
+                            <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, tx.blockNumber)} className="text-sm hover:underline cursor-pointer">{tx.blockNumber}</Link>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <div className="flex items-center gap-1.5">
@@ -1258,9 +1255,9 @@ export default function AddressDetailPage({
                                     ? 'border border-dashed' 
                                     : 'border border-transparent'
                                 }`}
-                                style={{ 
-                                  color: themeColor,
-                                  borderColor: hoveredAddress && hoveredAddress.toLowerCase() === tx.from.toLowerCase() ? themeColor : 'transparent'
+                                style={{
+                                  color: "#E6212F",
+                                  borderColor: hoveredAddress && hoveredAddress.toLowerCase() === tx.from.toLowerCase() ? "#E6212F" : 'transparent'
                                 }}
                                 onMouseEnter={() => setHoveredAddress(tx.from)}
                                 onMouseLeave={() => setHoveredAddress(null)}
@@ -1281,10 +1278,10 @@ export default function AddressDetailPage({
                                         ? 'border border-dashed' 
                                         : 'border border-transparent'
                                     }`}
-                                    style={{ 
-                                      color: themeColor,
-                                      borderColor: hoveredAddress && hoveredAddress.toLowerCase() === tx.to.toLowerCase() ? themeColor : 'transparent'
-                                    }}
+                                    style={{
+                                  color: "#E6212F",
+                                  borderColor: hoveredAddress && hoveredAddress.toLowerCase() === tx.to.toLowerCase() ? "#E6212F" : 'transparent'
+                                }}
                                     onMouseEnter={() => setHoveredAddress(tx.to)}
                                     onMouseLeave={() => setHoveredAddress(null)}
                                   >
@@ -1331,22 +1328,22 @@ export default function AddressDetailPage({
                       <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.txHash)}</Link>
                             <CopyButton text={transfer.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer">{transfer.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.from)}</Link>
                             <CopyButton text={transfer.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.to)}</Link>
                             <CopyButton text={transfer.to} />
                           </div>
                         </td>
@@ -1391,22 +1388,22 @@ export default function AddressDetailPage({
                       <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.txHash)}</Link>
                             <CopyButton text={transfer.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{transfer.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer">{transfer.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.from)}</Link>
                             <CopyButton text={transfer.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(transfer.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.to)}</Link>
                             <CopyButton text={transfer.to} />
                           </div>
                         </td>
@@ -1451,22 +1448,22 @@ export default function AddressDetailPage({
                       <tr key={`${itx.txHash}-${index}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, itx.txHash)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, itx.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.txHash)}</Link>
                             <CopyButton text={itx.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, itx.blockNumber)} className="text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{itx.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, itx.blockNumber)} className="text-sm hover:underline cursor-pointer">{itx.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, itx.from)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, itx.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.from)}</Link>
                             <CopyButton text={itx.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, itx.to)} className="font-mono text-sm hover:underline cursor-pointer" style={{ color: themeColor }}>{formatAddressShort(itx.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, itx.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.to)}</Link>
                             <CopyButton text={itx.to} />
                           </div>
                         </td>
@@ -1499,7 +1496,7 @@ export default function AddressDetailPage({
               <div>
                 {sourcifyLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: themeColor }}></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2"></div>
                   </div>
                 ) : sourcifyData ? (
                   <>
@@ -1552,9 +1549,9 @@ export default function AddressDetailPage({
                         </div>
 
                         {/* Contract Info Table */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-200 dark:divide-zinc-800 border-b border-zinc-100 dark:border-zinc-800">
                           {/* Left Column */}
-                          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                          <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                             {sourcifyData.compilation?.name && (
                               <div className="flex items-center justify-between px-4 py-3">
                                 <span className="text-xs text-zinc-500 dark:text-zinc-400">Contract Name:</span>
@@ -1569,7 +1566,7 @@ export default function AddressDetailPage({
                             )}
                           </div>
                           {/* Right Column */}
-                          <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                          <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                             {sourcifyData.compilation?.compilerSettings?.optimizer && (
                               <div className="flex items-center justify-between px-4 py-3">
                                 <span className="text-xs text-zinc-500 dark:text-zinc-400">Optimization Enabled:</span>
@@ -1664,14 +1661,13 @@ export default function AddressDetailPage({
                         <div className="space-y-4">
                           <h4 className="text-sm font-medium text-zinc-900 dark:text-white">Implementation Contracts</h4>
                           {sourcifyData.proxyResolution.implementations?.map((impl, idx) => (
-                            <div key={idx} className="flex items-center gap-2 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
+                            <div key={idx} className="flex items-center gap-2 p-3  bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700">
                               <FileCode className="w-4 h-4 text-zinc-400" />
                               <div className="flex-1">
                                 {impl.name && <div className="text-sm font-medium text-zinc-900 dark:text-white">{impl.name}</div>}
                                 <Link 
                                   href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, impl.address)} 
-                                  className="text-sm font-mono hover:underline cursor-pointer" 
-                                  style={{ color: themeColor }}
+                                  className="text-sm font-mono hover:underline cursor-pointer"
                                 >
                                   {impl.address}
                                 </Link>
@@ -1688,7 +1684,7 @@ export default function AddressDetailPage({
                       <div>
                         {!sourcifyData?.abi || sourcifyData.abi.length === 0 ? (
                           <div className="p-6">
-                            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex items-start gap-3 p-4  bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                               <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                               <div>
                                 <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">ABI Not Available</span>
@@ -1714,7 +1710,7 @@ export default function AddressDetailPage({
                       <div>
                         {!sourcifyData?.abi || sourcifyData.abi.length === 0 ? (
                           <div className="p-6">
-                            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex items-start gap-3 p-4  bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                               <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                               <div>
                                 <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">ABI Not Available</span>
@@ -1752,7 +1748,6 @@ export default function AddressDetailPage({
                                   <Link
                                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
                                     className="font-mono ml-1 hover:underline cursor-pointer"
-                                    style={{ color: themeColor }}
                                   >
                                     {sourcifyData.proxyResolution.implementations[0].name || formatAddressShort(sourcifyData.proxyResolution.implementations[0].address)}
                                   </Link>
@@ -1777,7 +1772,7 @@ export default function AddressDetailPage({
                           />
                         ) : (
                           <div className="p-6">
-                            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex items-start gap-3 p-4  bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                               <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                               <div>
                                 <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Implementation ABI Not Available</span>
@@ -1789,7 +1784,6 @@ export default function AddressDetailPage({
                                     key={idx}
                                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, impl.address)}
                                     className="inline-flex items-center gap-1 text-sm font-mono mt-2 hover:underline cursor-pointer"
-                                    style={{ color: themeColor }}
                                   >
                                     {impl.name || formatAddressShort(impl.address)}
                                     <ArrowUpRight className="w-3 h-3" />
@@ -1817,7 +1811,6 @@ export default function AddressDetailPage({
                                   <Link
                                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
                                     className="font-mono ml-1 hover:underline cursor-pointer"
-                                    style={{ color: themeColor }}
                                   >
                                     {sourcifyData.proxyResolution.implementations[0].name || formatAddressShort(sourcifyData.proxyResolution.implementations[0].address)}
                                   </Link>
@@ -1844,7 +1837,7 @@ export default function AddressDetailPage({
                           />
                         ) : (
                           <div className="p-6">
-                            <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                            <div className="flex items-start gap-3 p-4  bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
                               <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                               <div>
                                 <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Implementation ABI Not Available</span>
@@ -1856,7 +1849,6 @@ export default function AddressDetailPage({
                                     key={idx}
                                     href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, impl.address)}
                                     className="inline-flex items-center gap-1 text-sm font-mono mt-2 hover:underline cursor-pointer"
-                                    style={{ color: themeColor }}
                                   >
                                     {impl.name || formatAddressShort(impl.address)}
                                     <ArrowUpRight className="w-3 h-3" />
@@ -1882,7 +1874,7 @@ export default function AddressDetailPage({
                       href={`https://verify.sourcify.dev/`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-4 py-2 text-sm font-medium  border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                     >
                       Verify on Sourcify
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -1903,7 +1895,7 @@ export default function AddressDetailPage({
                 <button
                   onClick={handlePrevPage}
                   disabled={pageTokens.length === 0 || txLoading}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium  border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Previous
@@ -1911,7 +1903,7 @@ export default function AddressDetailPage({
                 <button
                   onClick={handleNextPage}
                   disabled={!data?.nextPageToken || txLoading}
-                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium  border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />

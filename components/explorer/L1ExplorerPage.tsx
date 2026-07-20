@@ -667,8 +667,8 @@ export default function L1ExplorerPage({
         <style>{newItemStyles}</style>
 
         {/* Stats skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 pt-4">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="space-y-1">
@@ -681,14 +681,14 @@ export default function L1ExplorerPage({
         </div>
 
         {/* Tables skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1, 2].map((i) => (
-              <div key={i} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+              <div key={i} className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
                 <div className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
                   <div className="h-5 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                 </div>
-                <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                   {[1, 2, 3, 4, 5].map((j) => (
                     <div key={j} className="p-3">
                       <div className="h-4 w-full bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mb-2" />
@@ -708,7 +708,7 @@ export default function L1ExplorerPage({
     return (
       <>
         <style>{newItemStyles}</style>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={fetchData}>Retry</Button>
@@ -723,21 +723,20 @@ export default function L1ExplorerPage({
       <style>{newItemStyles}</style>
 
       {/* Stats Card - Left stats, Right transaction history */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-5">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 py-5">
+        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-5">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Left: Stats Grid */}
             <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-4">
               {/* Token Price */}
               <div className="flex items-center gap-2.5">
                 <div 
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${themeColor}15` }}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                 >
                   {chainLogoURI ? (
                     <img src={chainLogoURI} alt="" className="w-5 h-5 rounded" />
                   ) : (
-                    <DollarSign className="w-5 h-5" style={{ color: themeColor }} />
+                    <DollarSign className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -746,7 +745,7 @@ export default function L1ExplorerPage({
                   </div>
                   {data?.price ? (
                     <div className="flex items-baseline gap-1 flex-wrap">
-                      <span className="text-base font-bold text-zinc-900 dark:text-white">
+                      <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
                         {formatPrice(data.price.price)}
                       </span>
                       {data.price.priceInAvax && (
@@ -759,7 +758,7 @@ export default function L1ExplorerPage({
                       </span>
                     </div>
                   ) : (
-                    <span className="text-base font-bold text-zinc-400">N/A</span>
+                    <span className="font-mono text-[15px] text-zinc-400">N/A</span>
                   )}
                 </div>
               </div>
@@ -767,16 +766,15 @@ export default function L1ExplorerPage({
               {/* Market Cap */}
               <div className="flex items-center gap-2.5">
                 <div 
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${themeColor}15` }}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                 >
-                  <Globe className="w-5 h-5" style={{ color: themeColor }} />
+                  <Globe className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                 </div>
                 <div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                     Market Cap
                   </div>
-                  <div className="text-base font-bold text-zinc-900 dark:text-white">
+                  <div className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
                     {data?.price?.marketCap ? formatMarketCap(data.price.marketCap) : 'N/A'}
                   </div>
                 </div>
@@ -785,17 +783,16 @@ export default function L1ExplorerPage({
               {/* Transactions */}
               <div className="flex items-center gap-2.5">
                 <div 
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${themeColor}15` }}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                 >
-                  <ArrowRightLeft className="w-5 h-5" style={{ color: themeColor }} />
+                  <ArrowRightLeft className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                 </div>
                 <div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                     Transactions
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-base font-bold text-zinc-900 dark:text-white">
+                    <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
                       {formatNumber(data?.stats.totalTransactions || 0)}
                     </span>
                     <Tooltip>
@@ -817,16 +814,15 @@ export default function L1ExplorerPage({
               {/* Gas Price */}
               <div className="flex items-center gap-2.5">
                 <div 
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${themeColor}15` }}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                 >
-                  <Fuel className="w-5 h-5" style={{ color: themeColor }} />
+                  <Fuel className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                 </div>
                 <div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                     Med Gas Price
                   </div>
-                  <div className="text-base font-bold text-zinc-900 dark:text-white">
+                  <div className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
                     {data?.stats.gasPrice}
                   </div>
                 </div>
@@ -835,17 +831,16 @@ export default function L1ExplorerPage({
               {/* Last Block */}
               <div className="flex items-center gap-2.5">
                 <div 
-                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${themeColor}15` }}
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                 >
-                  <Layers className="w-5 h-5" style={{ color: themeColor }} />
+                  <Layers className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                 </div>
                 <div>
                   <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
                     Last Block
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-base font-bold text-zinc-900 dark:text-white">
+                    <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
                       <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
                     </span>
                     {/* Show blocks/sec for Avalanche C-Chain */}
@@ -882,10 +877,9 @@ export default function L1ExplorerPage({
               {data?.stats.avgBlockTime !== undefined && (
                 <div className="flex items-center gap-2.5">
                   <div 
-                    className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: `${themeColor}15` }}
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                   >
-                    <Clock className="w-5 h-5" style={{ color: themeColor }} />
+                    <Clock className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
                   </div>
                   <div>
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-1">
@@ -901,7 +895,7 @@ export default function L1ExplorerPage({
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <div className="text-base font-bold text-zinc-900 dark:text-white">
+                    <div className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
                       {data.stats.avgBlockTimeMs !== undefined ? (
                         // Show millisecond precision for Avalanche
                         `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
@@ -932,9 +926,9 @@ export default function L1ExplorerPage({
                       content={({ active, payload }) => {
                         if (!active || !payload?.[0]) return null;
                         return (
-                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 shadow-lg">
+                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
                             <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                            <p className="text-xs font-semibold" style={{ color: themeColor }}>
+                            <p className="text-xs font-semibold text-[#E6212F]">
                               {payload[0].value?.toLocaleString()} txns
                             </p>
                           </div>
@@ -976,21 +970,21 @@ export default function L1ExplorerPage({
         const hasIcmMessages = icmMessages.length > 0;
         
         return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 py-4">
             <div className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
           {/* Latest Blocks */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                <Box className="w-4 h-4" style={{ color: themeColor }} />
+              <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Box className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                 Latest Blocks
               </h2>
               <div className="flex items-center gap-1.5">
-                <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
+                <Circle className="w-2 h-2 fill-[#E6212F] text-[#E6212F] animate-pulse" />
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Live</span>
               </div>
             </div>
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
               {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link 
                   key={block.number}
@@ -1002,14 +996,13 @@ export default function L1ExplorerPage({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div 
-                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${themeColor}15` }}
+                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                       >
-                        <Box className="w-4 h-4" style={{ color: themeColor }} />
+                        <Box className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm hover:underline" style={{ color: themeColor }}>
+                          <span className="font-mono text-sm text-zinc-900 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-100">
                             {block.number}
                           </span>
                           <span className="text-xs text-zinc-400">
@@ -1017,7 +1010,7 @@ export default function L1ExplorerPage({
                           </span>
                         </div>
                         <div className="text-xs text-zinc-500 mt-0.5">
-                          <span style={{ color: themeColor }}>{block.transactionCount} txns</span>
+                          <span className="text-zinc-500 dark:text-zinc-400">{block.transactionCount} txns</span>
                           <span className="text-zinc-400"> • {block.gasUsed} gas</span>
                         </div>
                       </div>
@@ -1035,18 +1028,18 @@ export default function L1ExplorerPage({
           </div>
 
           {/* Latest Transactions */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
+              <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                 Latest Transactions
               </h2>
               <div className="flex items-center gap-1.5">
-                <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
+                <Circle className="w-2 h-2 fill-[#E6212F] text-[#E6212F] animate-pulse" />
+                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Live</span>
               </div>
             </div>
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div 
                   key={`${tx.hash}-${index}`}
@@ -1058,14 +1051,13 @@ export default function L1ExplorerPage({
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div 
-                        className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ backgroundColor: `${themeColor}15` }}
+                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                       >
-                        <ArrowRightLeft className="w-4 h-4" style={{ color: themeColor }} />
+                        <ArrowRightLeft className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
+                          <span className="font-mono text-xs text-zinc-900 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-100">
                             {tx.hash.slice(0, 16)}...
                           </span>
                           <span className="text-xs text-zinc-400">
@@ -1076,8 +1068,7 @@ export default function L1ExplorerPage({
                           <span className="text-zinc-400">From </span>
                           <Link 
                             href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)} 
-                                className="font-mono hover:underline cursor-pointer" 
-                            style={{ color: themeColor }}
+                                className="font-mono text-zinc-700 transition-colors hover:text-[#E6212F] hover:underline cursor-pointer dark:text-zinc-300"
                             onClick={(e) => e.stopPropagation()}
                           >
                             {shortenAddress(tx.from)}
@@ -1088,8 +1079,7 @@ export default function L1ExplorerPage({
                           {tx.to ? (
                             <Link 
                               href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)} 
-                                  className="font-mono hover:underline cursor-pointer" 
-                              style={{ color: themeColor }}
+                                  className="font-mono text-zinc-700 transition-colors hover:text-[#E6212F] hover:underline cursor-pointer dark:text-zinc-300"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {shortenAddress(tx.to)}
@@ -1111,18 +1101,18 @@ export default function L1ExplorerPage({
 
               {/* ICM Messages - Only show if there are cross-chain transactions */}
               {hasIcmMessages && (
-                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+                <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-                    <h2 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
-                      <Link2 className="w-4 h-4" style={{ color: themeColor }} />
+                    <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                       ICM Messages
                     </h2>
                     <div className="flex items-center gap-1.5">
-                      <Circle className="w-2 h-2 fill-green-500 text-green-500 animate-pulse" />
-                      <span className="text-xs text-zinc-500 dark:text-zinc-400 font-normal">Live</span>
+                      <Circle className="w-2 h-2 fill-[#E6212F] text-[#E6212F] animate-pulse" />
+                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Live</span>
         </div>
       </div>
-                  <div className="divide-y divide-zinc-100 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+                  <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
                     {icmMessages.map((tx, index) => (
                       <div 
                         key={`icm-${tx.hash}-${index}`}
@@ -1134,14 +1124,13 @@ export default function L1ExplorerPage({
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3">
                             <div 
-                              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: `${themeColor}15` }}
+                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
                             >
-                              <Link2 className="w-4 h-4" style={{ color: themeColor }} />
+                              <Link2 className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
                             </div>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-xs hover:underline" style={{ color: themeColor }}>
+                                <span className="font-mono text-xs text-zinc-900 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-100">
                                   {tx.hash.slice(0, 16)}...
                                 </span>
                                 <span className="text-xs text-zinc-400">
