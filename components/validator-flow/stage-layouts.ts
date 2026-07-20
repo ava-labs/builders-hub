@@ -1,0 +1,84 @@
+import type { ActorId } from "./data/types";
+
+export interface StagePosition {
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+export interface StageZone {
+  readonly label: string;
+  readonly x: number;
+  readonly y: number;
+  readonly w: number;
+  readonly h: number;
+}
+
+export interface StageLayout {
+  readonly viewBox: { readonly w: number; readonly h: number };
+  readonly zones: readonly StageZone[];
+  readonly actors: Readonly<Record<ActorId, StagePosition>>;
+}
+
+export interface RoutePoints {
+  readonly x0: number;
+  readonly y0: number;
+  readonly xm: number;
+  readonly ym: number;
+  readonly x1: number;
+  readonly y1: number;
+}
+
+export const desktopLayout: StageLayout = {
+  viewBox: { w: 1000, h: 620 },
+  zones: [
+    { label: "L1 (Subnet-EVM)", x: 40, y: 40, w: 560, h: 320 },
+    { label: "P-Chain", x: 680, y: 40, w: 280, h: 320 },
+  ],
+  actors: {
+    l1: { x: 70, y: 100, w: 240, h: 100 },
+    validators: { x: 70, y: 240, w: 490, h: 90 },
+    pchain: { x: 710, y: 130, w: 220, h: 150 },
+    owner: { x: 70, y: 470, w: 200, h: 100 },
+    aggregator: { x: 390, y: 470, w: 250, h: 100 },
+    node: { x: 720, y: 470, w: 210, h: 100 },
+  },
+};
+
+export const mobileLayout: StageLayout = {
+  viewBox: { w: 480, h: 1060 },
+  zones: [
+    { label: "L1 (Subnet-EVM)", x: 40, y: 160, w: 400, h: 260 },
+    { label: "P-Chain", x: 40, y: 700, w: 400, h: 150 },
+  ],
+  actors: {
+    owner: { x: 60, y: 40, w: 360, h: 90 },
+    l1: { x: 60, y: 200, w: 360, h: 90 },
+    validators: { x: 60, y: 315, w: 360, h: 85 },
+    aggregator: { x: 60, y: 540, w: 360, h: 90 },
+    pchain: { x: 60, y: 740, w: 360, h: 90 },
+    node: { x: 60, y: 930, w: 360, h: 85 },
+  },
+};
+
+export function center(pos: StagePosition): { x: number; y: number } {
+  return { x: pos.x + pos.w / 2, y: pos.y + pos.h / 2 };
+}
+
+export function routeBetween(
+  layout: StageLayout,
+  from: ActorId,
+  to: ActorId,
+): RoutePoints {
+  const a = center(layout.actors[from]);
+  const b = center(layout.actors[to]);
+  return {
+    x0: a.x,
+    y0: a.y,
+    xm: (a.x + b.x) / 2,
+    ym: (a.y + b.y) / 2 - 48,
+    x1: b.x,
+    y1: b.y,
+  };
+}
