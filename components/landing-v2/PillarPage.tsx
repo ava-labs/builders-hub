@@ -8,7 +8,8 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import ConsoleBar from "@/components/landing-v2/ConsoleBar";
 import PillarDiagram from "@/components/landing-v2/PillarDiagrams";
 import PrivacyModelDiagram from "@/components/landing-v2/PrivacyModelDiagrams";
-import { PILLARS, type Pillar } from "@/components/landing-v2/pillars";
+import { UseCaseRows } from "@/components/landing-v2/UseCases";
+import { PILLARS, USE_CASES, type Pillar } from "@/components/landing-v2/pillars";
 
 /* ------------------------------------------------------------------ */
 /* Solution splash page — one pillar, sold in the drafting-sheet voice */
@@ -21,6 +22,8 @@ export default function PillarPage({ pillar }: { pillar: Pillar }) {
   const index = PILLARS.findIndex((p) => p.slug === pillar.slug);
   const next = PILLARS[(index + 1) % PILLARS.length];
   const rest = PILLARS.filter((p) => p.slug !== pillar.slug && p.slug !== next.slug);
+  // the institutional patterns that live on this pillar
+  const useCases = USE_CASES.filter((u) => u.pillar === pillar.slug);
 
   const rise = (delay: number) =>
     reducedMotion
@@ -167,51 +170,16 @@ export default function PillarPage({ pillar }: { pillar: Pillar }) {
             </motion.div>
           )}
 
-          {/* use cases — problem, then the Avalanche shape that solves it */}
-          {pillar.useCases && pillar.useCases.length > 0 && (
+          {/* use cases — the institutional patterns that lean on this pillar */}
+          {useCases.length > 0 && (
             <motion.div className="pb-20 lg:pb-28" {...rise(0.34)}>
               <div className="mb-10 flex items-center gap-4">
                 <p className="shrink-0 font-mono text-[11px] tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-                  USE CASES
+                  {useCases.length === 1 ? "USE CASE" : "USE CASES"}
                 </p>
                 <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
               </div>
-              {/* problem|solution diptych: the muted left cell states the
-                  problem, the red-ruled right cell answers it — the pivot is
-                  structural, not an inline label */}
-              <div className="divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
-                {pillar.useCases.map((useCase) => (
-                  <div
-                    key={useCase.title}
-                    className="grid gap-6 px-5 py-8 md:grid-cols-[minmax(0,15rem)_1fr_1fr] md:gap-10 md:px-6 md:py-9"
-                  >
-                    <div>
-                      <h3 className="v2-display text-xl text-zinc-900 dark:text-zinc-50 md:text-2xl">
-                        {useCase.title}
-                      </h3>
-                      <p className="mt-2 font-mono text-[10px] tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                        {useCase.model}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                        THE PROBLEM
-                      </p>
-                      <p className="mt-3 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-                        {useCase.problem}
-                      </p>
-                    </div>
-                    <div className="border-l-2 border-[#E6212F] pl-6">
-                      <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                        ON AVALANCHE
-                      </p>
-                      <p className="mt-3 text-sm leading-relaxed text-zinc-700 dark:text-zinc-200">
-                        {useCase.solution}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <UseCaseRows useCases={useCases} />
             </motion.div>
           )}
 

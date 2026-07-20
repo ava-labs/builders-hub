@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { type LinkItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
@@ -43,7 +44,18 @@ export const solutionsMenu: LinkItemType = {
         'The guarantees enterprise chains are built on: performance, interoperability, privacy, and compliance.',
       url: '/solutions',
       menu: {
-        className: 'md:row-span-2 lg:col-span-1',
+        // featured panel: the image leads, the four pillars stack in the
+        // right rail. .nav-featured + the :has() popover rules in global.css.
+        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-4',
+        banner: (
+          <Image
+            src="/nav/why-avalanche.webp"
+            alt="Why Avalanche"
+            width={2400}
+            height={890}
+            className="nav-banner border border-zinc-200 dark:border-zinc-800"
+          />
+        ),
       },
     },
     {
@@ -73,7 +85,7 @@ export const solutionsMenu: LinkItemType = {
         'Validator-only L1s with operator-controlled data residency.',
       url: '/solutions/privacy',
       menu: {
-        className: 'lg:col-start-3 lg:row-start-1',
+        className: 'lg:col-start-2 lg:row-start-3',
       },
     },
     {
@@ -83,7 +95,7 @@ export const solutionsMenu: LinkItemType = {
         'Permissioning enforced on-chain with allowlist precompiles.',
       url: '/solutions/compliance',
       menu: {
-        className: 'lg:col-start-3 lg:row-start-2',
+        className: 'lg:col-start-2 lg:row-start-4',
       },
     },
     {
@@ -109,6 +121,8 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Hands-on learning and real building, from hackathons to workshops and bootcamps.',
       url: '/events',
+      // marker: the popover CSS lays four-item menus out as a 2x2 grid
+      menu: { className: 'nav-grid-2' },
     },
     {
       icon: <Gamepad2 />,
@@ -128,7 +142,7 @@ export const ecosystemMenu: LinkItemType = {
       icon: <HandCoins />,
       text: 'Grants & Funding',
       description:
-        'Retro9000, research grants, and the Blizzard Fund for your project.',
+        'Research grants and the Blizzard Fund for your project.',
       url: '/grants',
     },
   ],
@@ -236,14 +250,17 @@ export const docsMenu: LinkItemType = {
       ),
     },
     {
-      icon: <Computer />,
-      text: 'Nodes & Validators',
-      description:
-        'Set up, configure, and maintain Avalanche nodes and validators.',
-      url: '/docs/nodes',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-1',
-      },
+      type: 'custom',
+      children: (
+        <DocsLearnCard
+          className='lg:col-start-2 lg:row-start-1'
+          icon={<Computer />}
+          title='Nodes & Validators'
+          description='Set up, configure, and maintain Avalanche nodes and validators.'
+          docsHref='/docs/nodes'
+          learnHref='/academy/avalanche-l1/permissionless-l1s'
+        />
+      ),
     },
     {
       icon: <Database />,
@@ -256,14 +273,17 @@ export const docsMenu: LinkItemType = {
       },
     },
     {
-      icon: <Code />,
-      text: 'Developer Tools',
-      description:
-        'Explore the Avalanche SDKs, CLI, and more.',
-      url: '/docs/tooling',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-3',
-      },
+      type: 'custom',
+      children: (
+        <DocsLearnCard
+          className='lg:col-start-2 lg:row-start-3'
+          icon={<Code />}
+          title='Developer Tools'
+          description='Explore the Avalanche SDKs, CLI, and more.'
+          docsHref='/docs/tooling'
+          learnHref='/academy/blockchain/solidity-foundry'
+        />
+      ),
     },
     {
       icon: <BookOpen />,
@@ -308,6 +328,20 @@ export const consoleMenu: LinkItemType = {
       text: 'Console',
       description: 'Manage your L1 with a highly granular set of tools.',
       url: '/console',
+      menu: {
+        // featured panel: the image leads, links stack in the right rail.
+        // .nav-featured + the :has() popover rules live in global.css.
+        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-3',
+        banner: (
+          <Image
+            src="/nav/builder-console.png"
+            alt="The Builder Console"
+            width={1200}
+            height={676}
+            className="nav-banner border border-zinc-200 dark:border-zinc-800"
+          />
+        ),
+      },
     },
     {
       icon: <SendHorizontal />,
@@ -315,6 +349,7 @@ export const consoleMenu: LinkItemType = {
       description:
         'Set up Interchain Messaging (ICM) for your L1.',
       url: '/console/icm/setup',
+      menu: { className: 'lg:col-start-2 lg:row-start-1' },
     },
     {
       icon: <ArrowLeftRight />,
@@ -322,6 +357,7 @@ export const consoleMenu: LinkItemType = {
       description:
         'Set up cross-L1 bridges with Interchain Token Transfer.',
       url: '/console/ictt/setup',
+      menu: { className: 'lg:col-start-2 lg:row-start-2' },
     },
     {
       icon: <HandCoins />,
@@ -329,6 +365,7 @@ export const consoleMenu: LinkItemType = {
       description:
         'Claim Fuji AVAX to test your dApps.',
       url: '/console/primary-network/faucet',
+      menu: { className: 'lg:col-start-2 lg:row-start-3' },
     }
   ],
 };

@@ -35,7 +35,7 @@ function svgProps(label: string, viewBox: string, sizeClass: string) {
 /* lock ring pulses once per pass: settlement is an event, not a curve. */
 function PerformanceDiagram() {
   return (
-    <svg {...svgProps("A transaction finalizing in under a second", "16 145 448 85", "max-w-[640px]")}>
+    <svg {...svgProps("A transaction reaching irreversible finality", "16 145 448 85", "max-w-[640px]")}>
       {/* timeline */}
       <line x1={40} y1={180} x2={440} y2={180} strokeWidth={1} className={HAIRLINE} />
       {[90, 140, 190, 240, 290, 340].map((x) => (
@@ -69,7 +69,7 @@ function PerformanceDiagram() {
         SUBMITTED
       </text>
       <text x={420} y={214} textAnchor="middle" fontSize={10} letterSpacing={2} className={MONO_LABEL}>
-        FINAL · &lt;1S
+        FINAL
       </text>
     </svg>
   );

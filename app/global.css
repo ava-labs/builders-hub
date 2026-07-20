@@ -1879,6 +1879,9 @@ html.embed-mode #nd-toc {
   column-gap: 10px;
   row-gap: 2px;
   align-items: start;
+  /* rows hug their content; without this, a tall sibling card (e.g. one
+     with a banner) stretches the row and the text drifts apart */
+  align-content: start;
   border: none !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -1886,9 +1889,11 @@ html.embed-mode #nd-toc {
 }
 #nd-nav > :last-child [class*="bg-fd-card"]:hover {
   background: rgb(244 244 245) !important; /* zinc-100 */
+  box-shadow: inset 2px 0 0 #e6212f; /* the board rows' red hover edge */
 }
 .dark #nd-nav > :last-child [class*="bg-fd-card"]:hover {
   background: rgb(24 24 27) !important; /* zinc-900 */
+  box-shadow: inset 2px 0 0 #e6212f;
 }
 #nd-nav > :last-child [class*="bg-fd-card"] > [class*="bg-fd-muted"] {
   grid-row: span 8;
@@ -1913,10 +1918,48 @@ html.embed-mode #nd-toc {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* tighter popover grid around the rows */
+/* tighter popover grid around the rows; every mega-menu hangs as a
+   fixed-width panel under the centered nav cluster (~52% of the header)
+   instead of sprawling across the full container */
 #nd-nav > :last-child [class*="lg:grid-cols-3"] {
   gap: 2px !important;
   padding: 10px !important;
+  max-width: 64rem;
+  margin-left: max(1.5rem, calc(52% - 32rem));
+  margin-right: 0;
+}
+/* four-item menus (marker: .nav-grid-2 on any card) read as a 2x2 grid */
+#nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-grid-2) {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  max-width: 44rem;
+  margin-left: max(1.5rem, calc(52% - 22rem));
+}
+/* a popover that contains a featured card becomes a two-zone panel:
+   image panel left, link rail right, at a fixed comfortable width
+   centered under the navbar instead of sprawling the full container */
+#nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-featured) {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) !important;
+  max-width: 56rem;
+  /* hang the panel under its trigger: the centered nav cluster puts the
+     Console item just right of the midline (~52%), so the panel centers
+     there instead of dead-center; the max() keeps it on-screen when the
+     viewport gets narrow */
+  margin-left: max(1.5rem, calc(52% - 28rem));
+  margin-right: 0;
+}
+/* featured card (a menu item with a banner): the artwork leads at its
+   natural aspect ratio, full card width, title and description beneath.
+   Neighbor cards stay tight thanks to align-content: start above. */
+#nd-nav > :last-child [class*="bg-fd-card"].nav-featured {
+  grid-template-columns: 1fr;
+}
+#nd-nav > :last-child [class*="bg-fd-card"].nav-featured > * {
+  grid-column: 1;
+}
+#nd-nav > :last-child [class*="bg-fd-card"].nav-featured .nav-banner {
+  width: 100%;
+  height: auto;
+  margin-bottom: 8px;
 }
 
 /* v2 display voice: brand-aligned heavy caps, matching avalanche.com's

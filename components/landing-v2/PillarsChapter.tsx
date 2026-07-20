@@ -152,7 +152,7 @@ export default function PillarsChapter({ reducedMotion }: { reducedMotion: boole
                         ))}
                         <span className="block text-[#E6212F]">{pillar.display.punch}</span>
                       </h3>
-                      <p className="max-w-md text-sm leading-relaxed text-[#A2AFB2] md:text-base">
+                      <p className="max-w-md text-sm leading-relaxed text-[#EBF0FA]/90 md:text-base">
                         {pillar.tagline}
                       </p>
                     </div>

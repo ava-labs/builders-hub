@@ -19,7 +19,7 @@ import BuiltOnMarquee from "@/components/landing-v2/BuiltOnMarquee";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import PillarsChapter from "@/components/landing-v2/PillarsChapter";
-import StakeGlobe from "@/components/landing-v2/StakeGlobe";
+import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { ROTATE_MS, SCRUB_SPRING } from "@/components/landing-v2/scrub";
 import { track } from "@/components/landing-v2/track";
@@ -170,8 +170,8 @@ function LedgerCell({
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
         {live && (
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
           </span>
         )}
         {label}
@@ -219,7 +219,7 @@ function LedgerStrip({
             <LedgerDash />
           )}
         </LedgerCell>
-        <LedgerCell label="CROSS-CHAIN MSGS · 30D" href="/stats/interchain-messaging">
+        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/stats/interchain-messaging">
           {icmTotal30d > 0 ? (
             <LedgerFigure value={icmTotal30d} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
           ) : (
@@ -246,7 +246,21 @@ function LedgerDash() {
 /* ------------------------------------------------------------------ */
 
 
-const HERO_NOUNS = ["network", "stablecoin", "game", "agent", "business", "fund", "exchange", "marketplace"];
+const HERO_NOUNS = [
+  "network",
+  "stablecoin",
+  "market",
+  "game",
+  "treasury",
+  "agent",
+  "protocol",
+  "business",
+  "vault",
+  "fund",
+  "exchange",
+  "economy",
+  "marketplace",
+];
 
 function ChapterOne() {
   const reducedMotion = useReducedMotion();
@@ -403,23 +417,6 @@ function TokenStack({ srcs }: { srcs: string[] }) {
 /* measurement rules in the technical-drawing grammar                  */
 /* ------------------------------------------------------------------ */
 
-function ChapterEyebrow({ text, reducedMotion }: { text: string; reducedMotion: boolean }) {
-  return (
-    <motion.div
-      className="mb-8 flex items-center gap-4"
-      initial={reducedMotion ? false : { opacity: 0 }}
-      whileInView={{ opacity: 1 }}
-      viewport={{ once: true, amount: 0.4 }}
-      transition={{ duration: 0.5 }}
-    >
-      <p className="shrink-0 font-mono text-[11px] tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-        <span className="text-[#E6212F]">→</span> {text}
-      </p>
-      <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-    </motion.div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /* Chapter 2 — proof: one dominant figure and its quiet receipts       */
 /* ------------------------------------------------------------------ */
@@ -455,16 +452,17 @@ function StatsChapter({
     <section data-chapter="stats" className="v2-snap-section relative flex flex-col justify-center py-16 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
       {/* reference-hero structure: arrowed eyebrow, measured headline on
           the left, small mono caption holding the opposite corner */}
-      <div className="mx-auto mb-10 w-full max-w-7xl px-5 md:px-6">
-        <ChapterEyebrow text="LIVE FROM MAINNET" reducedMotion={staticMode} />
+      <div className="mx-auto mb-8 w-full max-w-7xl px-5 md:px-6">
         <motion.div
+          className="flex items-center justify-between gap-10"
           initial={staticMode ? false : { opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 0.6, ease: EASE_OUT }}
         >
           {/* staircase stack per the /solutions hero: lines step right,
-              the red period closes the set */}
+              the red period closes the set; the validator globe holds the
+              other end of the line */}
           <h2 className="v2-display text-3xl text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl">
             <span className="block">Technology</span>
             <span className="block" style={{ marginLeft: "0.6em" }}>
@@ -474,6 +472,7 @@ function StatsChapter({
               business<span className="text-[#E6212F]">.</span>
             </span>
           </h2>
+          <NetworkGlobe />
         </motion.div>
       </div>
       <motion.div
@@ -487,13 +486,14 @@ function StatsChapter({
           <LedgerStrip globeData={globeData} l1Count={l1Count} animateIn={!reducedMotion} />
         </motion.div>
 
-        {/* key stat: the economic security institutions underwrite */}
-        <motion.div className="mx-auto w-full max-w-7xl" variants={ROW_VARIANTS}>
+        {/* key stat: the economic security institutions underwrite. Row
+            wrappers stay full-width so the board's dividers run full-bleed;
+            content insets to the 7xl measure inside. */}
+        <motion.div variants={ROW_VARIANTS}>
           <Link
             href="/stats/validators"
-            className="relative flex flex-col justify-center gap-4 overflow-hidden px-5 py-14 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900 lg:py-16"
+            className="mx-auto flex w-full max-w-7xl flex-col justify-center gap-4 px-5 py-10 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900 lg:py-12"
           >
-            <StakeGlobe />
             <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
               STAKE SECURING THE NETWORK
             </span>
@@ -505,7 +505,7 @@ function StatsChapter({
                   : "—"}
             </span>
             {primaryStakeUsd !== null && primaryStakeAvax !== null && (
-              <span className="font-mono text-[11px] tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+              <span className="font-mono text-xs tracking-[0.16em] text-zinc-600 dark:text-zinc-300">
                 {primaryStakeAvax.toLocaleString("en-US")} AVAX
                 {supplyStakedPct !== null && ` · ${supplyStakedPct.toFixed(1)}% OF CIRCULATING SUPPLY`}
               </span>
@@ -514,10 +514,8 @@ function StatsChapter({
         </motion.div>
 
         {/* on-chain capital */}
-        <motion.div
-          className="mx-auto grid w-full max-w-7xl grid-cols-1 divide-y divide-zinc-200 dark:divide-zinc-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0 lg:divide-zinc-200 dark:lg:divide-zinc-800"
-          variants={ROW_VARIANTS}
-        >
+        <motion.div variants={ROW_VARIANTS}>
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 divide-y divide-zinc-200 dark:divide-zinc-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0 lg:divide-zinc-200 dark:lg:divide-zinc-800">
           <Link
             href="/stats/dapps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
@@ -551,7 +549,11 @@ function StatsChapter({
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              <span className="flex items-center gap-2 font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+                </span>
                 DEX VOLUME · 30D
               </span>
               <TokenStack srcs={["/logos/tokens/uniswap.png", "/logos/tokens/lfj.png", "/logos/tokens/pharaoh.png"]} />
@@ -560,6 +562,7 @@ function StatsChapter({
               {liveDexVolume > 0 ? fmtUsd(liveDexVolume) : "—"}
             </span>
           </Link>
+        </div>
         </motion.div>
 
         {/* board footer: the full instrument lives at /stats */}
@@ -595,7 +598,11 @@ const OFFERINGS = [
     mark: "avax" as const,
     eyebrow: "C-CHAIN",
     title: "Build on the C-Chain",
-    body: "One public, permissionless EVM chain shared with hundreds of live applications: deep stablecoin liquidity, institutional custody, and every major wallet and data integration already in place.",
+    lines: [
+      "One public EVM chain, hundreds of live applications.",
+      "Deep stablecoin liquidity, institutional custody.",
+      "Every major wallet and data integration in place.",
+    ],
     cta: { text: "Build on C-Chain", href: "/docs/primary-network#c-chain-contract-chain" },
     secondary: { text: "BROWSE INTEGRATIONS", href: "/integrations" },
   },
@@ -603,7 +610,11 @@ const OFFERINGS = [
     mark: "yours" as const,
     eyebrow: "SOVEREIGN L1",
     title: "Build your own L1",
-    body: "An Avalanche L1 is a sovereign blockchain you customize end to end: your own virtual machine, gas token, fee rules, and permissioning, validated by operators you choose. Optionally connected to the C-Chain and every other L1 through native Interchain Messaging.",
+    lines: [
+      "One sovereign chain, customized end to end.",
+      "Your own VM, gas token, fees, and permissioning.",
+      "Validated by operators you choose, ICM optional.",
+    ],
     cta: { text: "Build an L1", href: "/console" },
     secondary: { text: "READ THE ARCHITECTURE", href: "/docs/avalanche-l1s" },
   },
@@ -613,7 +624,6 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
   return (
     <section data-chapter="offering" className="v2-snap-section relative flex flex-col justify-center py-24 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
       <div className="mx-auto w-full max-w-7xl px-5 md:px-6">
-        <ChapterEyebrow text="THE OFFERING" reducedMotion={reducedMotion} />
         <motion.h2
           className="v2-display text-3xl text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl"
           initial={reducedMotion ? false : { opacity: 0, y: 24 }}
@@ -671,9 +681,15 @@ function OfferingChapter({ reducedMotion }: { reducedMotion: boolean }) {
               <h3 className="mt-4 text-2xl font-light tracking-[-0.02em] text-zinc-900 dark:text-zinc-50 md:text-3xl">
                 {offering.title}
               </h3>
-              <p className="mt-4 max-w-md text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 md:text-base">
-                {offering.body}
-              </p>
+              {/* three matched beats, one fact each — the same count and
+                  rhythm on both sides so the panels mirror line for line */}
+              <div className="mt-4 max-w-md space-y-1.5">
+                {offering.lines.map((line) => (
+                  <p key={line} className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400 md:text-base">
+                    {line}
+                  </p>
+                ))}
+              </div>
               <div className="mt-auto flex flex-col items-center gap-5 pt-9 sm:flex-row sm:gap-7">
                 <BrandButton
                   href={offering.cta.href}
@@ -897,7 +913,6 @@ function LiveChainsChapter({
   return (
     <section data-chapter="live-chains" className="v2-snap-section relative flex flex-col justify-center py-24 lg:min-h-[calc(100vh-3.5rem)] lg:py-0">
       <div className="mx-auto w-full max-w-7xl px-5 md:px-6">
-        <ChapterEyebrow text="IN PRODUCTION" reducedMotion={reducedMotion} />
         <motion.h2
           className="v2-display text-3xl text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl"
           initial={reducedMotion ? false : { opacity: 0, y: 24 }}
@@ -1333,7 +1348,6 @@ function PlaybooksChapter({ reducedMotion }: { reducedMotion: boolean }) {
 
   const body = (
     <div className="mx-auto w-full max-w-7xl px-5 md:px-6">
-      <ChapterEyebrow text="ARCHITECTURE" reducedMotion={reducedMotion} />
       {/* the last word is the surprise, so it takes the red — the same
           lead/punch grammar as the accordion headlines */}
       <h2 className="v2-display text-3xl text-zinc-900 dark:text-zinc-50 md:text-5xl xl:text-6xl">
