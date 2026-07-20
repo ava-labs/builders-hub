@@ -430,7 +430,7 @@ export default function ContractWriteSection({
                             {result.txHash}
                           </span>
                           <Link
-                            href={`/explorer/${chainSlug}/tx/${result.txHash}`}
+                            href={`/explorer/mainnet/${chainSlug}/tx/${result.txHash}`}
                             className="flex items-center gap-1 text-xs font-medium hover:underline cursor-pointer"
                             style={{ color: themeColor }}
                           >

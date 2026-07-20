@@ -129,7 +129,7 @@ export function StatsBreadcrumb({
       if (result?.success && result?.chainData) {
         // Chain was added successfully, the dropdown will update automatically via the store subscription
         // Optionally navigate to the new chain's explorer
-        router.push(`/explorer/${result.chainData.id}`);
+        router.push(`/explorer/mainnet/${result.chainData.id}`);
       }
     } catch (error) {
       // Modal was closed or cancelled, do nothing
@@ -237,7 +237,7 @@ export function StatsBreadcrumb({
 
   const handleChainSelect = (selectedSlug: string) => {
     if (showExplorer) {
-      router.push(`/explorer/${selectedSlug}`);
+      router.push(`/explorer/mainnet/${selectedSlug}`);
     } else if (showStats) {
       router.push(`/stats/l1/${selectedSlug}`);
     } else if (showValidators) {
@@ -796,7 +796,7 @@ export function StatsBreadcrumb({
               <>
                 <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600 flex-shrink-0" />
                 <Link 
-                  href={`/explorer/${chainSlug}`}
+                  href={`/explorer/mainnet/${chainSlug}`}
                   className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   <Home className="w-3 h-3 sm:w-3.5 sm:h-3.5" />

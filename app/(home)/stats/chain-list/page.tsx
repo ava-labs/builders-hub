@@ -704,7 +704,7 @@ export default function ChainListPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => chain.rpcUrl && (window.location.href = `/explorer/${chain.slug}`)}
+                              onClick={() => chain.rpcUrl && (window.location.href = `/explorer/mainnet/${chain.slug}`)}
                               disabled={!chain.rpcUrl}
                               className="h-10 gap-2 font-medium border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100 transition-all shadow-sm hover:shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-zinc-900 disabled:hover:border-zinc-200 dark:disabled:hover:border-zinc-800"
                             >

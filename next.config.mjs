@@ -73,6 +73,25 @@ const config = {
   },
   async redirects() {
     return [
+      // ── Explorer: legacy chain-first URLs → network-first scheme ──
+      // /explorer/{slug}/tx|block|address/... predate the [network] segment;
+      // the slug can't be a network name (or the chains directory), so the
+      // lookahead lets real network routes through untouched.
+      {
+        source: '/explorer/:slug((?!(?:mainnet|fuji|devnet|chains)/)[^/]+)/tx/:hash',
+        destination: '/explorer/mainnet/:slug/tx/:hash',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:slug((?!(?:mainnet|fuji|devnet|chains)/)[^/]+)/block/:blockNumber',
+        destination: '/explorer/mainnet/:slug/block/:blockNumber',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:slug((?!(?:mainnet|fuji|devnet|chains)/)[^/]+)/address/:address',
+        destination: '/explorer/mainnet/:slug/address/:address',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):

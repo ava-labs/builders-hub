@@ -78,13 +78,13 @@ export default async function L1Page({
   // Redirect explorer routes to new /explorer/ prefix
   if (isExplorer) {
     if (isAddress && address) {
-      redirect(`/explorer/${chainSlug}/address/${address}`);
+      redirect(`/explorer/mainnet/${chainSlug}/address/${address}`);
     } else if (isTx && txHash) {
-      redirect(`/explorer/${chainSlug}/tx/${txHash}`);
+      redirect(`/explorer/mainnet/${chainSlug}/tx/${txHash}`);
     } else if (isBlock && blockNumber) {
-      redirect(`/explorer/${chainSlug}/block/${blockNumber}`);
+      redirect(`/explorer/mainnet/${chainSlug}/block/${blockNumber}`);
     } else {
-      redirect(`/explorer/${chainSlug}`);
+      redirect(`/explorer/mainnet/${chainSlug}`);
     }
   }
 

@@ -148,14 +148,14 @@ export const explorerMenu: LinkItemType = {
       text: "Block Explorer",
       url: "/explorer",
       description:
-      "Explore blocks, transactions, and addresses across Avalanche L1s.",
+      "Blocks, transactions, validators, and staking on the Avalanche P-Chain.",
     },
     {
       icon: <Network />,
-      text: "P-Chain Explorer",
-      url: "/explorer/mainnet/p-chain",
+      text: "L1 Explorers",
+      url: "/explorer/chains",
       description:
-      "Blocks, transactions, UTXOs, validators, and staking on the Avalanche P-Chain.",
+      "Blocks, transactions, and addresses on the C-Chain and every Avalanche L1.",
     },
     {
       icon: <DraftingCompass />,

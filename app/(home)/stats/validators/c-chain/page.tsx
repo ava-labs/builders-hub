@@ -917,7 +917,7 @@ export default function CChainValidatorMetrics() {
                   website={chainConfig.website}
                   socials={chainConfig.socials}
                   explorers={chainConfig.rpcUrl ? [
-                    { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
+                    { name: "BuilderHub", link: `/explorer/mainnet/${chainConfig.slug}` },
                     ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
                   ] : undefined}
                 />
@@ -1040,7 +1040,7 @@ export default function CChainValidatorMetrics() {
                   <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                     <ExplorerDropdown
                       explorers={[
-                        { name: "BuilderHub", link: `/explorer/${chainConfig.slug}` },
+                        { name: "BuilderHub", link: `/explorer/mainnet/${chainConfig.slug}` },
                         ...chainConfig.explorers.filter((e: { name: string }) => e.name !== "BuilderHub"),
                       ]}
                       variant="outline"

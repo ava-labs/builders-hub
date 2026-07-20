@@ -594,7 +594,7 @@ export default function ChainValidatorsPage() {
                   website={chainInfo.website}
                   socials={chainInfo.socials}
                   explorers={chainInfo.rpcUrl ? [
-                    { name: "BuilderHub", link: `/explorer/${chainInfo.slug}` },
+                    { name: "BuilderHub", link: `/explorer/mainnet/${chainInfo.slug}` },
                     ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
                   ] : undefined}
                 />
@@ -675,7 +675,7 @@ export default function ChainValidatorsPage() {
                   <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
                     <ExplorerDropdown
                       explorers={[
-                        { name: "BuilderHub", link: `/explorer/${chainInfo.slug}` },
+                        { name: "BuilderHub", link: `/explorer/mainnet/${chainInfo.slug}` },
                         ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
                       ]}
                       variant="outline"

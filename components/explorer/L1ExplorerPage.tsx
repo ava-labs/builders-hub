@@ -994,7 +994,7 @@ export default function L1ExplorerPage({
               {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link 
                   key={block.number}
-                  href={buildBlockUrl(`/explorer/${chainSlug}`, block.number)}
+                  href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, block.number)}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newBlockNumbers.has(block.number) ? 'new-item' : ''
                   }`}
@@ -1050,7 +1050,7 @@ export default function L1ExplorerPage({
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div 
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
+                  onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newTxHashes.has(tx.hash) ? 'new-item' : ''
                   }`}
@@ -1075,7 +1075,7 @@ export default function L1ExplorerPage({
                         <div className="text-xs text-zinc-500 mt-0.5">
                           <span className="text-zinc-400">From </span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)} 
+                            href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)} 
                                 className="font-mono hover:underline cursor-pointer" 
                             style={{ color: themeColor }}
                             onClick={(e) => e.stopPropagation()}
@@ -1087,7 +1087,7 @@ export default function L1ExplorerPage({
                           <span className="text-zinc-400">To </span>
                           {tx.to ? (
                             <Link 
-                              href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)} 
+                              href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)} 
                                   className="font-mono hover:underline cursor-pointer" 
                               style={{ color: themeColor }}
                               onClick={(e) => e.stopPropagation()}
@@ -1126,7 +1126,7 @@ export default function L1ExplorerPage({
                     {icmMessages.map((tx, index) => (
                       <div 
                         key={`icm-${tx.hash}-${index}`}
-                        onClick={() => router.push(buildTxUrl(`/explorer/${chainSlug}`, tx.hash))}
+                        onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
                         className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                           newTxHashes.has(tx.hash) ? 'new-item' : ''
                         }`}
@@ -1160,7 +1160,7 @@ export default function L1ExplorerPage({
                                       <ChainChip 
                                         chain={sourceChain} 
                                         size="xs" 
-                                        onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)} 
+                                        onClick={() => router.push(`/explorer/mainnet/${sourceChain.chainSlug}`)} 
                                       />
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
@@ -1176,7 +1176,7 @@ export default function L1ExplorerPage({
                                       <ChainChip 
                                         chain={destChain} 
                                         size="xs" 
-                                        onClick={() => router.push(`/explorer/${destChain.chainSlug}`)} 
+                                        onClick={() => router.push(`/explorer/mainnet/${destChain.chainSlug}`)} 
                                       />
                                     ) : (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">

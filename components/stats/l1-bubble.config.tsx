@@ -48,7 +48,7 @@ export function L1BubbleNav({
   const l1BubbleConfig: BubbleNavigationConfig = useMemo(() => {
     const items = [
       { id: "stats", label: "Stats", href: `/stats/l1/${chainSlug}`, icon: ChartArea },
-      { id: "explorer", label: "Explorer", href: `/explorer/${chainSlug}`, icon: Compass },
+      { id: "explorer", label: "Explorer", href: `/explorer/mainnet/${chainSlug}`, icon: Compass },
     ];
 
     if (showValidators) {

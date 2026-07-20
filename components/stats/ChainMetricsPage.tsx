@@ -246,7 +246,7 @@ export default function ChainMetricsPage({
     if (effectiveRpcUrl && chainSlug) {
       // Prepend BuilderHub explorer if chain has RPC URL
       return [
-        { name: "BuilderHub", link: `/explorer/${chainSlug}` },
+        { name: "BuilderHub", link: `/explorer/mainnet/${chainSlug}` },
         ...baseExplorers.filter((e) => e.name !== "BuilderHub"), // Avoid duplicates
       ];
     }

@@ -907,7 +907,7 @@ export default function AllChainsExplorerPage() {
               {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link 
                   key={`${block.chain?.chainId}-${block.number}`}
-                  href={buildBlockUrl(`/explorer/${block.chain?.chainSlug}`, block.number)}
+                  href={buildBlockUrl(`/explorer/mainnet/${block.chain?.chainSlug}`, block.number)}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newBlockIds.has(`${block.chain?.chainId}-${block.number}`) ? 'new-item' : ''
                   }`}
@@ -940,7 +940,7 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {block.chain && <ChainChip chain={block.chain} size="xs" onClick={() => router.push(`/explorer/${block.chain?.chainSlug}`)} />}
+                          {block.chain && <ChainChip chain={block.chain} size="xs" onClick={() => router.push(`/explorer/mainnet/${block.chain?.chainSlug}`)} />}
                           <span className="text-xs text-zinc-500">
                             <span style={{ color: block.chain?.color || themeColor }}>{block.transactionCount} txns</span>
                           </span>
@@ -975,7 +975,7 @@ export default function AllChainsExplorerPage() {
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div 
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))}
+                  onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${tx.chain?.chainSlug}`, tx.hash))}
                   className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                     newTxHashes.has(tx.hash) ? 'new-item' : ''
                   }`}
@@ -1008,12 +1008,12 @@ export default function AllChainsExplorerPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {tx.chain && <ChainChip chain={tx.chain} size="xs" onClick={() => router.push(`/explorer/${tx.chain?.chainSlug}`)} />}
+                          {tx.chain && <ChainChip chain={tx.chain} size="xs" onClick={() => router.push(`/explorer/mainnet/${tx.chain?.chainSlug}`)} />}
                         </div>
                         <div className="text-xs text-zinc-500 mt-0.5">
                           <span className="text-zinc-400">From </span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.from)} 
+                            href={buildAddressUrl(`/explorer/mainnet/${tx.chain?.chainSlug}`, tx.from)} 
                             className="font-mono hover:underline cursor-pointer" 
                             style={{ color: tx.chain?.color || themeColor }}
                             onClick={(e) => e.stopPropagation()}
@@ -1023,7 +1023,7 @@ export default function AllChainsExplorerPage() {
                           <span className="text-zinc-400"> → </span>
                           {tx.to ? (
                             <Link 
-                              href={buildAddressUrl(`/explorer/${tx.chain?.chainSlug}`, tx.to)} 
+                              href={buildAddressUrl(`/explorer/mainnet/${tx.chain?.chainSlug}`, tx.to)} 
                               className="font-mono hover:underline cursor-pointer" 
                               style={{ color: tx.chain?.color || themeColor }}
                               onClick={(e) => e.stopPropagation()}
@@ -1067,7 +1067,7 @@ export default function AllChainsExplorerPage() {
                   return (
                     <div 
                       key={`icm-${tx.hash}-${index}`}
-                      onClick={() => router.push(buildTxUrl(`/explorer/${tx.chain?.chainSlug}`, tx.hash))}
+                      onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${tx.chain?.chainSlug}`, tx.hash))}
                       className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
                         newTxHashes.has(tx.hash) ? 'new-item' : ''
                       }`}
@@ -1092,7 +1092,7 @@ export default function AllChainsExplorerPage() {
                             {/* Cross-chain chips */}
                             <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                               {sourceChain ? (
-                                <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/${sourceChain.chainSlug}`)} />
+                                <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/mainnet/${sourceChain.chainSlug}`)} />
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
                                   Unknown
@@ -1100,7 +1100,7 @@ export default function AllChainsExplorerPage() {
                               )}
                               <span className="text-zinc-400">→</span>
                               {destChain ? (
-                                <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/${destChain.chainSlug}`)} />
+                                <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/mainnet/${destChain.chainSlug}`)} />
                               ) : (
                                 <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500">
                                   Unknown

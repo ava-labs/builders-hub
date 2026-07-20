@@ -117,7 +117,7 @@ export function ExplorerLayout({
       if (/^\d+$/.test(query)) {
         const blockNum = parseInt(query);
         if (blockNum >= 0 && blockNum <= (latestBlock || Infinity)) {
-          router.push(buildBlockUrl(`/explorer/${chainSlug}`, query));
+          router.push(buildBlockUrl(`/explorer/mainnet/${chainSlug}`, query));
           return;
         } else {
           setSearchError("Block number not found");
@@ -127,13 +127,13 @@ export function ExplorerLayout({
 
       // Check if it's a transaction hash (0x + 64 hex chars = 66 total)
       if (/^0x[a-fA-F0-9]{64}$/.test(query)) {
-        router.push(buildTxUrl(`/explorer/${chainSlug}`, query));
+        router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, query));
         return;
       }
 
       // Check if it's an address (0x + 40 hex chars = 42 total)
       if (/^0x[a-fA-F0-9]{40}$/.test(query)) {
-        router.push(buildAddressUrl(`/explorer/${chainSlug}`, query));
+        router.push(buildAddressUrl(`/explorer/mainnet/${chainSlug}`, query));
         return;
       }
 
@@ -141,7 +141,7 @@ export function ExplorerLayout({
       if (/^0x[a-fA-F0-9]+$/.test(query) && query.length < 42) {
         const blockNum = parseInt(query, 16);
         if (!isNaN(blockNum) && blockNum >= 0) {
-          router.push(buildBlockUrl(`/explorer/${chainSlug}`, blockNum.toString()));
+          router.push(buildBlockUrl(`/explorer/mainnet/${chainSlug}`, blockNum.toString()));
           return;
         }
       }

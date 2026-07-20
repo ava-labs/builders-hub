@@ -281,9 +281,9 @@ export function OverviewValidatorsTable({
                               <button
                                 onClick={() => {
                                   if (isPrimaryNetwork) {
-                                    router.push("/explorer/c-chain");
+                                    router.push("/explorer/mainnet/c-chain");
                                   } else if (slug) {
-                                    router.push(`/explorer/${slug}`);
+                                    router.push(`/explorer/mainnet/${slug}`);
                                   }
                                 }}
                                 disabled={!isPrimaryNetwork && !slug}

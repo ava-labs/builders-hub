@@ -305,7 +305,7 @@ export function OverviewSummaryTable({
                                 onClick={() =>
                                   chainSlug &&
                                   hasRpcUrl &&
-                                  router.push(`/explorer/${chainSlug}`)
+                                  router.push(`/explorer/mainnet/${chainSlug}`)
                                 }
                                 disabled={!chainSlug || !hasRpcUrl}
                                 className="p-2 rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-zinc-500"
