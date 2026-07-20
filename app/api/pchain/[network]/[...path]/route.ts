@@ -38,8 +38,14 @@ export async function GET(
   const search = req.nextUrl.search; // forward ?limit=, ?before=, ?q=, …
   const upstream = `${EXPLORER_API_BASE}/api/${network}/${resource}${search}`;
 
+  // The stats aggregate is computed lazily upstream: a cold call takes
+  // ~15s before its cache makes it instant. Cutting it off at the default
+  // 8s guarantees a 504 AND wastes the compute, so the priming request
+  // gets a longer leash.
+  const timeoutMs = resource === "stats" ? 25_000 : REQUEST_TIMEOUT_MS;
+
   try {
-    const res = await fetchWithTimeout(upstream);
+    const res = await fetchWithTimeout(upstream, timeoutMs);
     const body = await res.text();
     // Pass through status + body; attach cache headers only on success.
     return new NextResponse(body, {
