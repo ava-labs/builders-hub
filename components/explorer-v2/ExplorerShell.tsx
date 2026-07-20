@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Search } from "lucide-react";
+import { ArrowRight, Clock, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   EXPLORER_CHAINS,
@@ -41,34 +41,98 @@ function NetworkSwitcher({ chain, network }: { chain: string; network: string })
   );
 }
 
-/* Search — classifies via the explorer API then routes to the entity. */
+/* Unambiguous shapes route instantly, no API round-trip: block heights are
+   digits, NodeIDs and bech32 addresses carry their own prefixes. CB58 hashes
+   stay ambiguous (block vs tx) and go to the search API. */
+type EntityType = "block" | "tx" | "address" | "node";
+function classifyLocally(q: string): { type: EntityType; id: string } | null {
+  if (/^\d+$/.test(q)) return { type: "block", id: q };
+  if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) return { type: "node", id: q };
+  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
+  return null;
+}
+
+/* Recent searches — per network, newest first, capped. */
+type Recent = { type: EntityType; id: string };
+const RECENTS_CAP = 5;
+const recentsKey = (network: string) => `pchain-explorer-recents-${network}`;
+function loadRecents(network: string): Recent[] {
+  try {
+    const raw = localStorage.getItem(recentsKey(network));
+    return raw ? (JSON.parse(raw) as Recent[]).slice(0, RECENTS_CAP) : [];
+  } catch {
+    return [];
+  }
+}
+function saveRecent(network: string, entry: Recent): Recent[] {
+  const next = [entry, ...loadRecents(network).filter((r) => r.id !== entry.id)].slice(0, RECENTS_CAP);
+  try {
+    localStorage.setItem(recentsKey(network), JSON.stringify(next));
+  } catch {
+    /* storage unavailable — recents just don't persist */
+  }
+  return next;
+}
+
+function truncateId(id: string, max = 34) {
+  return id.length <= max ? id : `${id.slice(0, max - 6)}…${id.slice(-5)}`;
+}
+
+/* Search — the explorer's front door: instant local classification, "/" to
+   focus, recents on focus, API classification only for ambiguous hashes. */
 function SearchBox({ chain, network }: { chain: string; network: string }) {
   const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [recents, setRecents] = useState<Recent[]>([]);
+
+  const base = `/explorer/${network}/${chain}`;
+
+  useEffect(() => {
+    setRecents(loadRecents(network));
+  }, [network]);
+
+  // "/" focuses the search from anywhere on the page (unless already typing)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const go = (type: EntityType, id: string) => {
+    setRecents(saveRecent(network, { type, id }));
+    setQ("");
+    inputRef.current?.blur();
+    router.push(`${base}/${type}/${id}`);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const query = q.trim();
     if (!query || !isPchainNetwork(network)) return;
-    setBusy(true);
     setNotFound(false);
+
+    const local = classifyLocally(query);
+    if (local) {
+      go(local.type, local.id);
+      return;
+    }
+
+    setBusy(true);
     try {
       const res = await fetch(pchainApiPath(network, "search", { q: query }));
       const r: SearchResult = res.ok ? await res.json() : { type: "none", id: query };
-      const base = `/explorer/${network}/${chain}`;
-      const dest: Record<SearchResult["type"], string | null> = {
-        block: `${base}/block/${r.id}`,
-        tx: `${base}/tx/${r.id}`,
-        address: `${base}/address/${r.id}`,
-        node: `${base}/node/${r.id}`,
-        none: null,
-      };
-      const to = dest[r.type];
-      if (to) {
-        setQ("");
-        router.push(to);
+      if (r.type !== "none") {
+        go(r.type, r.id);
       } else {
         setNotFound(true);
       }
@@ -79,29 +143,107 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
     }
   };
 
+  const showRecents = focused && !q && recents.length > 0;
+
   return (
-    <form onSubmit={submit} className="relative w-full">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
-      <input
-        value={q}
-        onChange={(e) => {
-          setQ(e.target.value);
-          setNotFound(false);
-        }}
-        placeholder="Search block · tx · address · node"
-        spellCheck={false}
-        className={cn(
-          "w-full border bg-white/80 py-2 pl-9 pr-3 font-mono text-[12px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
-          notFound ? "border-[#E6212F]" : "border-zinc-200 dark:border-zinc-800",
-          busy && "opacity-60",
+    <div className="relative w-full">
+      <form onSubmit={submit} className="relative">
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+        <input
+          ref={inputRef}
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setNotFound(false);
+          }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder="Search by block height, tx hash, NodeID, or address"
+          spellCheck={false}
+          className={cn(
+            "w-full border bg-white/80 py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
+            notFound ? "border-[#E6212F]" : "border-zinc-200 dark:border-zinc-800",
+            busy && "opacity-60",
+          )}
+        />
+        {/* the "/" affordance parks at the right edge until the field is live */}
+        {!focused && !q && (
+          <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 border border-zinc-200 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 md:block dark:border-zinc-800 dark:text-zinc-500">
+            /
+          </kbd>
         )}
-      />
-      {notFound && (
-        <span className="absolute -bottom-5 left-0 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">
-          Not found
-        </span>
+        {q && (
+          <button
+            type="button"
+            aria-label="Clear search"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setQ("");
+              setNotFound(false);
+              inputRef.current?.focus();
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </form>
+
+      {/* recents — mousedown beats blur, so rows stay clickable */}
+      {showRecents && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="border-b border-zinc-100 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:border-zinc-900 dark:text-zinc-500">
+            Recent
+          </p>
+          {recents.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                go(r.type, r.id);
+              }}
+              className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+            >
+              <Clock className="h-3.5 w-3.5 shrink-0 text-zinc-300 dark:text-zinc-600" />
+              <span className="w-16 shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {r.type}
+              </span>
+              <span className="flex-1 truncate font-mono text-[12px] text-zinc-700 dark:text-zinc-300">
+                {truncateId(r.id)}
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] dark:text-zinc-600" />
+            </button>
+          ))}
+        </div>
       )}
-    </form>
+
+      {/* quick paths under the bar, in the drafting voice */}
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5">
+        {(
+          [
+            ["Latest blocks", `${base}/blocks`],
+            ["Latest transactions", `${base}/txs`],
+            ["Validators", `${base}/validators`],
+            ["All L1 chains", "/explorer/chains"],
+          ] as const
+        ).map(([label, href]) => (
+          <Link
+            key={href}
+            href={href}
+            className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+          >
+            {label}
+            <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+          </Link>
+        ))}
+        {notFound && (
+          <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">
+            Not found
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
