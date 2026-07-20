@@ -138,8 +138,8 @@ export function StakingRewardCurveChart(): JSX.Element {
         </LineChart>
       </ResponsiveContainer>
       <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
-        ACP-285 lowers the minimum consumption rate from 10% to 7.5% while leaving the
-        maximum (1-year) rate untouched, so the curve steepens and the two lines meet at
+        ACP-285 lowers the minimum consumption rate from 10% to 7.5% <strong>while leaving the
+        maximum (1-year) rate untouched</strong>, so the curve steepens and the two lines meet at
         365 days. APY assumes rewards auto-compound each period (ACP-236). Rates use an
         approximate current supply of 475M AVAX and the network&apos;s standard rewards formula.
       </div>
