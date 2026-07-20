@@ -13,6 +13,16 @@ const KIND_CLASS: Record<MessageKind, string> = {
   signatures: "fill-amber-500",
 };
 
+const STROKE_CLASS: Record<MessageKind, string> = {
+  "warp-l1-sourced": "stroke-red-500",
+  "warp-pchain-sourced": "stroke-purple-500",
+  "evm-tx": "stroke-blue-500",
+  "pchain-tx": "stroke-emerald-600",
+  signatures: "stroke-amber-500",
+};
+
+const MESSAGE_KINDS = Object.keys(KIND_CLASS) as readonly MessageKind[];
+
 export function Stage({
   flow,
   step,
@@ -43,8 +53,22 @@ export function Stage({
           markerHeight="7"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" className="fill-zinc-400 dark:fill-zinc-500" />
+          <path d="M 0 0 L 10 5 L 0 10 z" className="fill-zinc-300 dark:fill-zinc-600" />
         </marker>
+        {MESSAGE_KINDS.map((kind) => (
+          <marker
+            key={kind}
+            id={`vf-arrow-${kind}`}
+            viewBox="0 0 10 10"
+            refX="9"
+            refY="5"
+            markerWidth="7"
+            markerHeight="7"
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" className={KIND_CLASS[kind]} />
+          </marker>
+        ))}
       </defs>
       {layout.zones.map((zone) => (
         <g key={zone.label}>
@@ -70,17 +94,20 @@ export function Stage({
         .filter((s) => s.travel)
         .map((s) => {
           const r = routeBetween(layout, s.travel!.from, s.travel!.to);
+          const active = s.id === step.id;
           return (
             <path
               key={s.id}
               d={`M ${r.x0} ${r.y0} Q ${r.xm} ${r.ym} ${r.x1} ${r.y1}`}
               fill="none"
-              strokeWidth={1.5}
-              markerEnd="url(#vf-arrow)"
+              strokeWidth={active ? 2.5 : 1.25}
+              markerEnd={
+                active ? `url(#vf-arrow-${s.travel!.kind})` : "url(#vf-arrow)"
+              }
               className={
-                s.id === step.id
-                  ? "stroke-zinc-500 dark:stroke-zinc-300"
-                  : "stroke-zinc-200 dark:stroke-zinc-700"
+                active
+                  ? STROKE_CLASS[s.travel!.kind]
+                  : "stroke-zinc-200 opacity-60 dark:stroke-zinc-700"
               }
             />
           );
@@ -104,29 +131,31 @@ export function Stage({
             }
             animate={
               reducedMotion
-                ? { x: route.x1, y: route.y1, opacity: [0, 1, 1, 0] }
+                ? { x: route.x1, y: route.y1, opacity: 1 }
                 : {
                     x: [route.x0, route.xm, route.x1],
                     y: [route.y0, route.ym, route.y1],
-                    opacity: [0, 1, 1, 0],
+                    opacity: 1,
                   }
             }
             exit={{ opacity: 0, transition: { duration: 0.2 } }}
             transition={
               reducedMotion
-                ? { opacity: { duration: 2.4, times: [0, 0.1, 0.75, 1] } }
+                ? { duration: 0.2 }
                 : {
                     x: { duration: 1.1, ease: "easeInOut" },
                     y: { duration: 1.1, ease: "easeInOut" },
-                    opacity: { duration: 2.4, times: [0, 0.08, 0.75, 1] },
+                    opacity: { duration: 0.3 },
                   }
             }
           >
             <circle r={9} className={KIND_CLASS[travel.kind]} />
             <text
-              y={-14}
+              y={-16}
               textAnchor="middle"
-              className="fill-zinc-700 text-[11px] font-medium dark:fill-zinc-200"
+              paintOrder="stroke"
+              strokeWidth={3}
+              className="fill-zinc-700 stroke-white text-[11px] font-semibold dark:fill-zinc-100 dark:stroke-zinc-900"
             >
               {travel.label}
             </text>
