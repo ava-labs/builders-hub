@@ -3,20 +3,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter, notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
-import { Activity, ArrowUpRight, Twitter, Linkedin } from "lucide-react";
-import { ChainIdChips } from "@/components/ui/copyable-id-chip";
-import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
+import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
-import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
-import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
+import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import l1ChainsData from "@/constants/l1-chains.json";
-import Image from "next/image";
 import Link from "next/link";
 import {
   compareVersions,
@@ -341,11 +335,18 @@ export default function ChainValidatorsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="min-h-screen bg-white dark:bg-zinc-950">
         <div className="border-b border-zinc-200 dark:border-zinc-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-8 sm:pb-12">
+            {/* the rail renders for real during loading — identity comes from the catalog */}
+            <ExplorerSubnav
+              network="mainnet"
+              chainSlug={slug}
+              chainName={chainFromData?.chainName ?? slug}
+              chainLogoURI={chainFromData?.chainLogoURI}
+              className="mb-8"
+            />
             <div className="animate-pulse space-y-6">
-              <div className="h-6 w-64 bg-zinc-200 dark:bg-zinc-800 rounded" />
               <div className="flex items-center gap-6">
                 <div className="w-16 h-16 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
                 <div className="space-y-3 flex-1">
@@ -477,7 +478,6 @@ export default function ChainValidatorsPage() {
             </div>
           </Card>
         </div>
-        <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
       </div>
     );
   }
@@ -489,13 +489,14 @@ export default function ChainValidatorsPage() {
 
   if (error || !chainInfo) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      <div className="min-h-screen bg-white dark:bg-zinc-950">
         <div className="border-b border-zinc-200 dark:border-zinc-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
-            <StatsBreadcrumb
-              showValidators
+            <ExplorerSubnav
+              network="mainnet"
               chainSlug={slug}
-              chainName="Unknown"
+              chainName={chainFromData?.chainName ?? slug}
+              chainLogoURI={chainFromData?.chainLogoURI}
             />
           </div>
         </div>
@@ -509,186 +510,51 @@ export default function ChainValidatorsPage() {
             </div>
           </div>
         </div>
-        <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      {/* Hero - with gradient decoration */}
-      <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
-        {/* Gradient decoration */}
-        <div 
-          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-          style={{
-            background: `linear-gradient(to left, ${chainInfo.color}35 0%, ${chainInfo.color}20 40%, ${chainInfo.color}08 70%, transparent 100%)`,
-          }}
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
+      {/* the shared spine + identity block, same as the explorer */}
+      <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+        <ExplorerSubnav
+          network="mainnet"
+          chainSlug={chainInfo.slug}
+          chainName={chainInfo.chainName}
+          chainLogoURI={chainInfo.chainLogoURI}
+          className="mb-8"
         />
-        
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
-          {/* Breadcrumb - outside the flex container */}
-          <StatsBreadcrumb
-            showValidators
-            chainSlug={chainInfo.slug}
-            chainName={chainInfo.chainName}
-            chainLogoURI={chainInfo.chainLogoURI}
-            themeColor={chainInfo.color}
-          />
-
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-4 sm:space-y-6 flex-1">
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo className="w-4 h-4 sm:w-5 sm:h-5" fill="#E84142" />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  {chainInfo.chainLogoURI && (
-                    <Image
-                      src={chainInfo.chainLogoURI}
-                      alt={chainInfo.chainName}
-                      width={56}
-                      height={56}
-                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
-                    />
-                  )}
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    {chainInfo.chainName} Validators
-                  </h1>
-                </div>
-                {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
-                {(chainInfo.subnetId || chainInfo.blockchainId || chainInfo.rpcUrl) && (
-                  <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <ChainIdChips subnetId={chainInfo.subnetId} blockchainId={chainInfo.blockchainId} />
-                      </div>
-                      {chainInfo.rpcUrl && (
-                        <div className="flex-shrink-0">
-                          <AddToWalletButton 
-                            rpcUrl={chainInfo.rpcUrl}
-                            chainName={chainInfo.chainName}
-                            chainId={chainInfo.chainId ? parseInt(chainInfo.chainId) : undefined}
-                            tokenSymbol={chainInfo.networkToken?.symbol}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                {(chainInfo.description || chainInfo.chainName) && (
-                  <div className="flex items-center gap-3 mt-3">
-                    <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                      {chainInfo.description || `Active validators and delegation metrics for ${chainInfo.chainName}`}
-                    </p>
-                  </div>
-                )}
-                {/* Mobile Social Links - shown below description */}
-                <MobileSocialLinks
-                  website={chainInfo.website}
-                  socials={chainInfo.socials}
-                  explorers={chainInfo.rpcUrl ? [
-                    { name: "BuilderHub", link: `/explorer/mainnet/${chainInfo.slug}` },
-                    ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
-                  ] : undefined}
-                />
-                {chainInfo.category && (
-                  <div className="mt-3">
-                    <span 
-                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                      style={{
-                        backgroundColor: `${chainInfo.color}15`,
-                        color: chainInfo.color,
-                      }}
-                    >
-                      {chainInfo.category}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Desktop Social Links - hidden on mobile */}
-            <div className="hidden sm:flex flex-row items-end gap-2">
-              <div className="flex items-center gap-2">
-                {chainInfo.website && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                  >
-                    <a href={chainInfo.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                      Website
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  </Button>
-                )}
-                
-                {/* Social buttons */}
-                {chainInfo.socials && (chainInfo.socials.twitter || chainInfo.socials.linkedin) && (
-                  <>
-                    {chainInfo.socials.twitter && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                      >
-                        <a 
-                          href={`https://x.com/${chainInfo.socials.twitter}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          aria-label="Twitter"
-                        >
-                          <Twitter className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {chainInfo.socials.linkedin && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                      >
-                        <a 
-                          href={`https://linkedin.com/company/${chainInfo.socials.linkedin}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          aria-label="LinkedIn"
-                        >
-                          <Linkedin className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                  </>
-                )}
-                
-                {chainInfo.rpcUrl && (
-                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                    <ExplorerDropdown
-                      explorers={[
-                        { name: "BuilderHub", link: `/explorer/mainnet/${chainInfo.slug}` },
-                        ...(chainInfo.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
-                      ]}
-                      variant="outline"
-                      size="sm"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
+        <ChainHeader
+          chainName={chainInfo.chainName}
+          chainLogoURI={chainInfo.chainLogoURI}
+          website={chainInfo.website}
+          socials={chainInfo.socials}
+          exits={(chainInfo.explorers || [])
+            .filter((e: { link: string }) => !e.link.startsWith("/"))
+            .map((e: { name: string; link: string }) => ({ label: e.name, href: e.link }))}
+          subnetId={chainInfo.subnetId}
+          blockchainId={chainInfo.blockchainId}
+          wallet={
+            chainInfo.rpcUrl
+              ? {
+                  rpcUrl: chainInfo.rpcUrl,
+                  chainId: chainInfo.chainId ? parseInt(chainInfo.chainId) : undefined,
+                  tokenSymbol: chainInfo.networkToken?.symbol,
+                }
+              : undefined
+          }
+        />
+        {chainInfo.category && (
+          <div className="mt-4">
+            <span className="border border-zinc-200 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              {chainInfo.category}
+            </span>
           </div>
+        )}
 
-            {/* Key metrics - inline */}
-          <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
+        {/* Key metrics - inline */}
+        <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-8 border-t border-zinc-200 dark:border-zinc-800">
               <div>
                 <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                   {stats.totalValidators}
@@ -740,7 +606,6 @@ export default function ChainValidatorsPage() {
                   </span>
                 </div>
               )}
-          </div>
         </div>
       </div>
 
@@ -1043,7 +908,6 @@ export default function ChainValidatorsPage() {
         )}
       </main>
 
-      <L1BubbleNav chainSlug={slug} themeColor={chainInfo?.color} rpcUrl={chainInfo?.rpcUrl} />
     </div>
   );
 }

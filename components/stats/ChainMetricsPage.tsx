@@ -23,7 +23,8 @@ import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
-import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { PeriodSelector } from "@/components/stats/PeriodSelector";
@@ -252,6 +253,16 @@ export default function ChainMetricsPage({
     }
     return baseExplorers;
   }, [rpcUrl, chainData?.rpcUrl, chainSlug, baseExplorers]);
+
+  // Third-party explorers surface as header exits; internal ones are the
+  // subnav's job, so they stay out of the list.
+  const externalExplorers = useMemo(
+    () =>
+      explorers
+        .filter((e) => !e.link.startsWith("/"))
+        .map((e) => ({ label: e.name, href: e.link })),
+    [explorers],
+  );
 
   // Determine which chainIds are EXCLUDED (not selected)
   const excludedChainIds = useMemo(() => {
@@ -1178,46 +1189,23 @@ export default function ChainMetricsPage({
   if (loading && isInitialLoad) {
     return (
       <div className="min-h-screen bg-white dark:bg-zinc-950">
-        {/* Hero Skeleton with gradient */}
-        <div className="relative overflow-hidden">
-          {/* Gradient decoration skeleton */}
-          <div
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-            }}
-          />
-
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-            {/* Breadcrumb Skeleton */}
-            <div className="flex items-center gap-1.5 mb-3">
-              <div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="w-3.5 h-3.5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-              <div className="space-y-4 sm:space-y-6 flex-1">
-                <div>
-                  <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-red-200 dark:bg-red-900/30 rounded animate-pulse" />
-                    <div className="h-3 sm:h-4 w-36 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                  </div>
-                  <div className="flex items-center gap-3 sm:gap-4">
-                    {chainLogoURI && (
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
-                    )}
-                    <div className="h-8 sm:h-10 md:h-12 w-64 sm:w-80 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                  </div>
-                  <div className="h-4 sm:h-5 w-full max-w-2xl bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse mt-3" />
-                  <div className="h-6 w-20 bg-zinc-200 dark:bg-zinc-800 rounded-full animate-pulse mt-3" />
-                </div>
-              </div>
-              {!chainName.includes("C-Chain") && (
-                <div className="h-9 w-32 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-              )}
-            </div>
+        {/* header skeleton — the rail renders for real (it only needs props);
+            the identity block pulses in square, in the sheet's rhythm */}
+        <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+          {chainSlug && !isAllChainsView && (
+            <ExplorerSubnav
+              network="mainnet"
+              chainSlug={chainSlug}
+              chainName={chainName}
+              chainLogoURI={chainLogoURI}
+              className="mb-8"
+            />
+          )}
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 animate-pulse rounded-full bg-zinc-100 md:h-11 md:w-11 dark:bg-zinc-900" />
+            <div className="h-10 w-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           </div>
+          <div className="mt-6 h-6 w-96 max-w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
         </div>
 
         {/* Navbar Skeleton */}
@@ -1300,16 +1288,7 @@ export default function ChainMetricsPage({
             </div>
           </section>
         </div>
-        {chainSlug && !isAllChainsView ? (
-          <L1BubbleNav
-            chainSlug={chainSlug}
-            themeColor={themeColor}
-            rpcUrl={rpcUrl}
-            isCustomChain={!chainData}
-          />
-        ) : (
-          <StatsBubbleNav />
-        )}
+        {(!chainSlug || isAllChainsView) && <StatsBubbleNav />}
       </div>
     );
   }
@@ -1327,16 +1306,7 @@ export default function ChainMetricsPage({
             </div>
           </div>
         </div>
-        {chainSlug && !isAllChainsView ? (
-          <L1BubbleNav
-            chainSlug={chainSlug}
-            themeColor={themeColor}
-            rpcUrl={rpcUrl}
-            isCustomChain={!chainData}
-          />
-        ) : (
-          <StatsBubbleNav />
-        )}
+        {(!chainSlug || isAllChainsView) && <StatsBubbleNav />}
       </div>
     );
   }
@@ -1363,7 +1333,47 @@ export default function ChainMetricsPage({
 
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* Hero - Clean typographic approach with gradient accent */}
+      {chainSlug && !isAllChainsView ? (
+        /* chain view: the shared spine + identity block, same as the explorer */
+        <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+          <ExplorerSubnav
+            network="mainnet"
+            chainSlug={chainSlug}
+            chainName={chainName}
+            chainLogoURI={chainLogoURI}
+            className="mb-8"
+          />
+          <ChainHeader
+            chainName={chainName}
+            chainLogoURI={chainLogoURI}
+            website={website}
+            socials={socials}
+            exits={externalExplorers}
+            subnetId={subnetId}
+            blockchainId={blockchainId}
+            wallet={
+              rpcUrl || chainData?.rpcUrl
+                ? {
+                    rpcUrl: (rpcUrl || chainData?.rpcUrl)!,
+                    chainId: chainId ? parseInt(chainId) : undefined,
+                    tokenSymbol: chainData?.networkToken?.symbol,
+                  }
+                : undefined
+            }
+          />
+          {(baasProviders?.length || category) ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <BaasProviderList providers={baasProviders} />
+              {category && (
+                <span className="border border-zinc-200 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+                  {category}
+                </span>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+      /* all-chains aggregate keeps its own hero until the observatory pass */
       <div className="relative overflow-hidden">
         {/* Gradient decoration on the right */}
         {chainLogoURI && (
@@ -1565,6 +1575,7 @@ export default function ChainMetricsPage({
           </div>
         </div>
       </div>
+      )}
 
       {isNotIndexed ? (
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
@@ -2261,17 +2272,8 @@ export default function ChainMetricsPage({
         </>
       )}
 
-      {/* Bubble Navigation */}
-      {chainSlug && !isAllChainsView ? (
-        <L1BubbleNav
-          chainSlug={chainSlug}
-          themeColor={themeColor}
-          rpcUrl={rpcUrl}
-          isCustomChain={!chainData}
-        />
-      ) : (
-        <StatsBubbleNav />
-      )}
+      {/* Bubble Navigation — the all-chains aggregate only; chain views ride the subnav rail */}
+      {(!chainSlug || isAllChainsView) && <StatsBubbleNav />}
     </div>
   );
 }

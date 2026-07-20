@@ -2,27 +2,21 @@
 import React, { useState, useEffect, useMemo, useTransition, useRef } from "react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Pie, PieChart, Line, LineChart, Brush, ResponsiveContainer, Tooltip, ComposedChart, Cell, ReferenceLine, Label } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
-import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, ArrowUpRight, Twitter, Linkedin, Coins, Download, Camera } from "lucide-react";
+import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, Coins, Download, Camera } from "lucide-react";
 import Link from "next/link";
-import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
-import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
+import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
-import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
 import { SortIcon } from "@/components/stats/SortIcon";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { ChartSkeletonLoader } from "@/components/ui/chart-skeleton";
 import { TimeSeriesDataPoint, TimeSeriesMetric, ChartDataPoint, PrimaryNetworkMetrics, VersionCount, L1Chain } from "@/types/stats";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
-import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
-import { ChainIdChips } from "@/components/ui/copyable-id-chip";
-import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { VersionBreakdownCard, calculateVersionStats, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
 import { ValidatorChartCard } from "@/components/stats/ValidatorChartCard";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -724,37 +718,21 @@ export default function CChainValidatorMetrics() {
   // Toggle validator expansion and fetch details
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-        {/* Header Skeleton with gradient */}
-        <div className="relative overflow-hidden border-b border-zinc-200 dark:border-zinc-800">
-          <div
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, rgba(229, 115, 115, 0.21) 0%, rgba(229, 115, 115, 0.12) 40%, rgba(229, 115, 115, 0.03) 70%, transparent 100%)`,
-            }}
+      <div className="min-h-screen bg-white dark:bg-zinc-950">
+        {/* header skeleton — the rail renders for real; the identity block
+            pulses in square, in the sheet's rhythm */}
+        <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+          <ExplorerSubnav
+            network="mainnet"
+            chainSlug="c-chain"
+            chainName="Avalanche C-Chain"
+            className="mb-8"
           />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-            <div className="animate-pulse space-y-4">
-              {/* Breadcrumb skeleton */}
-              <div className="flex items-center gap-1.5">
-                <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                <div className="h-3 w-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                <div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                <div className="h-3 w-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                <div className="h-4 w-28 bg-zinc-200 dark:bg-zinc-800 rounded" />
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="h-4 w-4 sm:h-5 sm:w-5 bg-zinc-200 dark:bg-zinc-800 rounded" />
-                <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-800 rounded" />
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 bg-zinc-200 dark:bg-zinc-800 rounded-xl" />
-                <div className="h-10 sm:h-12 w-64 sm:w-96 bg-zinc-200 dark:bg-zinc-800 rounded" />
-              </div>
-              <div className="h-4 w-48 sm:w-80 bg-zinc-200 dark:bg-zinc-800 rounded" />
-              <div className="h-6 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
-            </div>
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 animate-pulse rounded-full bg-zinc-100 md:h-11 md:w-11 dark:bg-zinc-900" />
+            <div className="h-10 w-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           </div>
+          <div className="mt-6 h-6 w-96 max-w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
         </div>
         {/* Navbar Skeleton */}
         <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
@@ -812,18 +790,13 @@ export default function CChainValidatorMetrics() {
             ))}
           </div>
         </div>
-        <L1BubbleNav
-          chainSlug="c-chain"
-          themeColor="#E57373"
-          rpcUrl="https://api.avax.network/ext/bc/C/rpc"
-        />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center">
         <div className="text-center space-y-4">
           <Monitor className="h-12 w-12 text-red-500 mx-auto" />
           <p className="text-red-600 dark:text-red-400">{error}</p>
@@ -834,107 +807,40 @@ export default function CChainValidatorMetrics() {
             Retry
           </button>
         </div>
-        <L1BubbleNav
-          chainSlug="c-chain"
-          themeColor="#E57373"
-          rpcUrl="https://api.avax.network/ext/bc/C/rpc"
-        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
-      {/* Hero - with gradient decoration */}
-      <div className="relative overflow-hidden border-zinc-200 dark:border-zinc-800">
-        {/* Gradient decoration on the right */}
-        <div
-          className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-          style={{
-            background: `linear-gradient(to left, ${chainConfig.color}35 0%, ${chainConfig.color}20 40%, ${chainConfig.color}08 70%, transparent 100%)`,
-          }}
+    <div className="min-h-screen bg-white dark:bg-zinc-950">
+      {/* the shared spine + identity block, same as the explorer */}
+      <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+        <ExplorerSubnav
+          network="mainnet"
+          chainSlug="c-chain"
+          chainName="Avalanche C-Chain"
+          chainLogoURI={chainConfig.chainLogoURI}
+          className="mb-8"
+        />
+        <ChainHeader
+          chainName="Avalanche C-Chain"
+          chainLogoURI={chainConfig.chainLogoURI}
+          website={chainConfig.website}
+          socials={chainConfig.socials}
+          exits={(chainConfig.explorers || [])
+            .filter((e: { link: string }) => !e.link.startsWith("/"))
+            .map((e: { name: string; link: string }) => ({ label: e.name, href: e.link }))}
+          subnetId={chainConfig.subnetId}
+          blockchainId={chainConfig.blockchainId}
+          wallet={
+            chainConfig.rpcUrl
+              ? { rpcUrl: chainConfig.rpcUrl, chainId: 43114, tokenSymbol: "AVAX" }
+              : undefined
+          }
         />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-          {/* Breadcrumb - outside the flex container */}
-          <StatsBreadcrumb
-            showValidators
-            chainSlug="c-chain"
-            chainName="Avalanche C-Chain"
-            chainLogoURI={chainConfig.chainLogoURI}
-            themeColor={chainConfig.color}
-          />
-
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
-            <div className="space-y-4 sm:space-y-6 flex-1">
-              <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="#E84142"
-                  />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <img
-                    src={chainConfig.chainLogoURI}
-                    alt="C-Chain logo"
-                    className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                  />
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    C-Chain Validators
-                  </h1>
-                </div>
-                {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
-                {(chainConfig.subnetId || chainConfig.blockchainId || chainConfig.rpcUrl) && (
-                  <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <div className="flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <ChainIdChips subnetId={chainConfig.subnetId} blockchainId={chainConfig.blockchainId} />
-                      </div>
-                      {chainConfig.rpcUrl && (
-                        <div className="flex-shrink-0">
-                          <AddToWalletButton 
-                            rpcUrl={chainConfig.rpcUrl}
-                            chainName="Avalanche C-Chain"
-                            chainId={43114}
-                            tokenSymbol="AVAX"
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-center gap-3 mt-3">
-                  <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
-                    {chainConfig.description}
-                  </p>
-                </div>
-                {/* Mobile Social Links - shown below description */}
-                <MobileSocialLinks
-                  website={chainConfig.website}
-                  socials={chainConfig.socials}
-                  explorers={chainConfig.rpcUrl ? [
-                    { name: "BuilderHub", link: `/explorer/mainnet/${chainConfig.slug}` },
-                    ...(chainConfig.explorers || []).filter((e: { name: string }) => e.name !== "BuilderHub"),
-                  ] : undefined}
-                />
-                <div className="mt-3">
-                  <span
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium"
-                    style={{
-                      backgroundColor: `${chainConfig.color}15`,
-                      color: chainConfig.color,
-                    }}
-                  >
-                    {chainConfig.category}
-                  </span>
-                </div>
-
-                {/* Key metrics - inline */}
-                <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-6 border-t border-zinc-200 dark:border-zinc-800">
+        {/* Key metrics - inline */}
+        <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-8 border-t border-zinc-200 dark:border-zinc-800">
                   <div>
                     <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
                       {validators.length}
@@ -975,82 +881,6 @@ export default function CChainValidatorMetrics() {
                       total weight
                     </span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Social Links - hidden on mobile */}
-            <div className="hidden sm:flex flex-row items-end gap-2">
-              <div className="flex items-center gap-2">
-                {chainConfig.website && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                    className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600"
-                  >
-                    <a href={chainConfig.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                      Website
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  </Button>
-                )}
-                
-                {/* Social buttons */}
-                {chainConfig.socials && (chainConfig.socials.twitter || chainConfig.socials.linkedin) && (
-                  <>
-                    {chainConfig.socials.twitter && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                      >
-                        <a 
-                          href={`https://x.com/${chainConfig.socials.twitter}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          aria-label="Twitter"
-                        >
-                          <Twitter className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                    {chainConfig.socials.linkedin && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="border-zinc-300 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-600 px-2"
-                      >
-                        <a 
-                          href={`https://linkedin.com/company/${chainConfig.socials.linkedin}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          aria-label="LinkedIn"
-                        >
-                          <Linkedin className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                  </>
-                )}
-                
-                {chainConfig.rpcUrl && (
-                  <div className="[&_button]:border-zinc-300 dark:[&_button]:border-zinc-700 [&_button]:text-zinc-600 dark:[&_button]:text-zinc-400 [&_button]:hover:border-zinc-400 dark:[&_button]:hover:border-zinc-600">
-                    <ExplorerDropdown
-                      explorers={[
-                        { name: "BuilderHub", link: `/explorer/mainnet/${chainConfig.slug}` },
-                        ...chainConfig.explorers.filter((e: { name: string }) => e.name !== "BuilderHub"),
-                      ]}
-                      variant="outline"
-                      size="sm"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -2255,11 +2085,6 @@ export default function CChainValidatorMetrics() {
       </main>
 
       {/* Bubble Navigation */}
-      <L1BubbleNav
-        chainSlug="c-chain"
-        themeColor="#E57373"
-        rpcUrl="https://api.avax.network/ext/bc/C/rpc"
-      />
     </div>
   );
 }

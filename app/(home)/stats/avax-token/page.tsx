@@ -8,12 +8,17 @@ import { CircleDotDashed, CircleFadingPlus, Lock, BadgeDollarSign, RefreshCw, Fl
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
-import { L1BubbleNav } from "@/components/stats/l1-bubble.config";
+import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import l1ChainsData from "@/constants/l1-chains.json";
 import { DatEtfSection } from "./_components/DatEtfSection";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { LiveBlockBurns } from "@/components/stats/LiveBlockBurns";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
+
+const cChainLogo = (l1ChainsData as { slug: string; chainLogoURI?: string }[]).find(
+  (c) => c.slug === "c-chain",
+)?.chainLogoURI;
 
 interface AvaxSupplyData {
   totalSupply: string;
@@ -428,8 +433,16 @@ export default function AvaxTokenPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 pt-6 pb-24 max-w-7xl">
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
+        <div className="container mx-auto px-6 pt-10 pb-24 max-w-7xl">
+          <ExplorerSubnav
+            network="mainnet"
+            chainSlug="c-chain"
+            chainName="Avalanche C-Chain"
+            chainLogoURI={cChainLogo}
+            className="mb-10"
+          />
+
           <div className="mb-8 space-y-8">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-full bg-muted animate-pulse" />
@@ -452,15 +465,22 @@ export default function AvaxTokenPage() {
             ))}
           </div>
         </div>
-        <L1BubbleNav chainSlug="c-chain" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-        <div className="container mx-auto px-6 pt-6 pb-24 max-w-7xl">
+      <div className="min-h-screen bg-white dark:bg-neutral-950">
+        <div className="container mx-auto px-6 pt-10 pb-24 max-w-7xl">
+          <ExplorerSubnav
+            network="mainnet"
+            chainSlug="c-chain"
+            chainName="Avalanche C-Chain"
+            chainLogoURI={cChainLogo}
+            className="mb-10"
+          />
+
           <Card className="max-w-md mx-auto border-gray-200 dark:border-gray-700 rounded-md">
             <CardContent className="p-4 text-center">
               <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
@@ -468,14 +488,21 @@ export default function AvaxTokenPage() {
             </CardContent>
           </Card>
         </div>
-        <L1BubbleNav chainSlug="c-chain" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950 pt-8">
-      <div className="container mx-auto px-6 pt-6 pb-24 max-w-7xl">
+    <div className="min-h-screen bg-white dark:bg-neutral-950">
+      <div className="container mx-auto px-6 pt-10 pb-24 max-w-7xl">
+          <ExplorerSubnav
+        network="mainnet"
+        chainSlug="c-chain"
+        chainName="Avalanche C-Chain"
+        chainLogoURI={cChainLogo}
+        className="mb-10"
+      />
+
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-center gap-5">
@@ -483,7 +510,7 @@ export default function AvaxTokenPage() {
                 <AvalancheLogo className="w-full h-full -mt-0.5" fill="currentColor"/>
               </div>
               <div>
-                <h1 className="text-5xl font-semibold tracking-tight text-black dark:text-white mb-2">Avalanche (AVAX)</h1>
+                <h1 className="v2-display text-[clamp(2rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50 mb-2">Avalanche (AVAX)<span className="text-[#E6212F]">.</span></h1>
                 <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <Badge variant="outline" className="bg-neutral-50 dark:bg-neutral-900">Native Token</Badge>
                   <a
@@ -857,7 +884,6 @@ export default function AvaxTokenPage() {
         </div>
       </div>
 
-      <L1BubbleNav chainSlug="c-chain" rpcUrl="https://api.avax.network/ext/bc/C/rpc" />
     </div>
   );
 }
