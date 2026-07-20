@@ -44,13 +44,6 @@ export default function SolutionsIndex() {
       <SheetBackdrop snowOnly />
       <div className="relative">
         <div className="mx-auto w-full max-w-7xl px-5 pt-14 md:px-6">
-          <motion.div className="flex items-center gap-4" {...rise(0)}>
-            <p className="shrink-0 font-mono text-[11px] tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-              SOLUTIONS
-            </p>
-            <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
-          </motion.div>
-
           <motion.div className="py-16 lg:py-24" {...rise(0.08)}>
             {/* the deck's hero template: stacked display left, dek in the right
                 column, bottom-aligned so it meets the closing line. The stack
