@@ -568,8 +568,8 @@ function StatsChapter({
         {/* board footer: the full instrument lives at /stats */}
         <motion.div variants={ROW_VARIANTS}>
           <Link
-            href="/stats/overview"
-            onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore all network stats", href: "/stats/overview" })}
+            href="/explorer"
+            onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore the network", href: "/explorer" })}
             className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-5"
           >
             <span
@@ -578,7 +578,7 @@ function StatsChapter({
             />
             <span className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 md:px-6">
               <span className="text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">
-                Explore all network stats
+                Explore the network
               </span>
               <ArrowRight className="h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
             </span>
@@ -972,11 +972,11 @@ function LiveChainsChapter({
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <Link
-            href="/stats/overview"
-            onClick={() => track("home_cta_clicked", { section: "live-chains", label: "All network stats", href: "/stats/overview" })}
+            href="/explorer"
+            onClick={() => track("home_cta_clicked", { section: "live-chains", label: "Explorer", href: "/explorer" })}
             className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
           >
-            ALL NETWORK STATS
+            EXPLORER
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </motion.div>
@@ -1475,7 +1475,7 @@ function FinaleChapter({ reducedMotion }: { reducedMotion: boolean }) {
             description="How sovereign L1s, the primary network, and interchain messaging fit together."
           />
           <FinaleRow
-            href="/stats/overview"
+            href="/explorer"
             title="Explore the live network"
             description="Every chain, validator, and message, observed on-chain."
           />
