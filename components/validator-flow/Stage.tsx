@@ -1,27 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import type { FlowDefinition, FlowStep, MessageKind } from "./data/types";
+import type { FlowDefinition, FlowStep } from "./data/types";
 import { routeBetween, type StageLayout } from "./stage-layouts";
 import { StageActor } from "./StageActor";
-
-const KIND_CLASS: Record<MessageKind, string> = {
-  "warp-l1-sourced": "fill-red-500",
-  "warp-pchain-sourced": "fill-purple-500",
-  "evm-tx": "fill-blue-500",
-  "pchain-tx": "fill-emerald-600",
-  signatures: "fill-amber-500",
-};
-
-const STROKE_CLASS: Record<MessageKind, string> = {
-  "warp-l1-sourced": "stroke-red-500",
-  "warp-pchain-sourced": "stroke-purple-500",
-  "evm-tx": "stroke-blue-500",
-  "pchain-tx": "stroke-emerald-600",
-  signatures: "stroke-amber-500",
-};
-
-const MESSAGE_KINDS = Object.keys(KIND_CLASS) as readonly MessageKind[];
 
 export function Stage({
   flow,
@@ -53,22 +35,8 @@ export function Stage({
           markerHeight="7"
           orient="auto-start-reverse"
         >
-          <path d="M 0 0 L 10 5 L 0 10 z" className="fill-zinc-300 dark:fill-zinc-600" />
+          <path d="M 0 0 L 10 5 L 0 10 z" className="fill-red-500 dark:fill-red-400" />
         </marker>
-        {MESSAGE_KINDS.map((kind) => (
-          <marker
-            key={kind}
-            id={`vf-arrow-${kind}`}
-            viewBox="0 0 10 10"
-            refX="9"
-            refY="5"
-            markerWidth="7"
-            markerHeight="7"
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" className={KIND_CLASS[kind]} />
-          </marker>
-        ))}
       </defs>
       {layout.zones.map((zone) => (
         <g key={zone.label}>
@@ -78,8 +46,9 @@ export function Stage({
             width={zone.w}
             height={zone.h}
             rx={16}
+            strokeWidth={1.5}
             strokeDasharray="6 6"
-            className="fill-zinc-100/70 stroke-zinc-200 dark:fill-zinc-800/40 dark:stroke-zinc-700"
+            className="fill-zinc-100/70 stroke-zinc-300 dark:fill-zinc-800/40 dark:stroke-zinc-700"
           />
           <text
             x={zone.x + 14}
@@ -90,28 +59,15 @@ export function Stage({
           </text>
         </g>
       ))}
-      {flow.steps
-        .filter((s) => s.travel)
-        .map((s) => {
-          const r = routeBetween(layout, s.travel!.from, s.travel!.to);
-          const active = s.id === step.id;
-          return (
-            <path
-              key={s.id}
-              d={`M ${r.x0} ${r.y0} Q ${r.xm} ${r.ym} ${r.x1} ${r.y1}`}
-              fill="none"
-              strokeWidth={active ? 2.5 : 1.25}
-              markerEnd={
-                active ? `url(#vf-arrow-${s.travel!.kind})` : "url(#vf-arrow)"
-              }
-              className={
-                active
-                  ? STROKE_CLASS[s.travel!.kind]
-                  : "stroke-zinc-200 opacity-60 dark:stroke-zinc-700"
-              }
-            />
-          );
-        })}
+      {route ? (
+        <path
+          d={`M ${route.x0} ${route.y0} Q ${route.xm} ${route.ym} ${route.x1} ${route.y1}`}
+          fill="none"
+          strokeWidth={2.5}
+          markerEnd="url(#vf-arrow)"
+          className="stroke-red-500 dark:stroke-red-400"
+        />
+      ) : null}
       {flow.actors.map((actor) => (
         <StageActor
           key={actor.id}
@@ -149,7 +105,7 @@ export function Stage({
                   }
             }
           >
-            <circle r={9} className={KIND_CLASS[travel.kind]} />
+            <circle r={9} className="fill-red-500 dark:fill-red-400" />
             <text
               y={-16}
               textAnchor="middle"
