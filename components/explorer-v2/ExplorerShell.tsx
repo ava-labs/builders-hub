@@ -2,55 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Clock, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   EXPLORER_CHAINS,
-  NETWORK_LABEL,
   getExplorerChain,
+  classifyLocally,
   isPchainNetwork,
   pchainApiPath,
   type SearchResult,
 } from "@/lib/pchain-explorer";
+import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 
-/* Network segmented control — switching goes to that network's explorer home. */
-function NetworkSwitcher({ chain, network }: { chain: string; network: string }) {
-  const c = getExplorerChain(chain);
-  if (!c) return null;
-  return (
-    <div className="inline-flex border border-zinc-200 dark:border-zinc-800">
-      {c.networks.map((n) => {
-        const active = n === network;
-        return (
-          <Link
-            key={n}
-            href={`/explorer/${n}/${chain}`}
-            className={cn(
-              "px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-              active
-                ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
-            )}
-          >
-            {NETWORK_LABEL[n as keyof typeof NETWORK_LABEL] ?? n}
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-/* Unambiguous shapes route instantly, no API round-trip: block heights are
-   digits, NodeIDs and bech32 addresses carry their own prefixes. CB58 hashes
-   stay ambiguous (block vs tx) and go to the search API. */
 type EntityType = "block" | "tx" | "address" | "node";
-function classifyLocally(q: string): { type: EntityType; id: string } | null {
-  if (/^\d+$/.test(q)) return { type: "block", id: q };
-  if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) return { type: "node", id: q };
-  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
-  return null;
-}
 
 /* Recent searches — per network, newest first, capped. */
 type Recent = { type: EntityType; id: string };
@@ -218,69 +183,14 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
         </div>
       )}
 
-      {/* quick paths under the bar, in the drafting voice */}
-      <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1.5">
-        {(
-          [
-            ["Latest blocks", `${base}/blocks`],
-            ["Latest transactions", `${base}/txs`],
-            ["Validators", `${base}/validators`],
-            ["All L1 chains", "/explorer/chains"],
-          ] as const
-        ).map(([label, href]) => (
-          <Link
-            key={href}
-            href={href}
-            className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-          >
-            {label}
-            <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-          </Link>
-        ))}
-        {notFound && (
-          <span className="ml-auto font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">
-            Not found
-          </span>
-        )}
-      </div>
+      {notFound && (
+        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">Not found</p>
+      )}
     </div>
   );
 }
 
-type Crumb = { label: string; href?: string };
-
-/* Resource segment → display label. Detail pages (tx/block/address/node) also
-   append a truncated id; list pages are their own leaf. */
-const RESOURCE_LABEL: Record<string, string> = {
-  tx: "Transaction",
-  block: "Block",
-  address: "Address",
-  node: "Node",
-  blocks: "Blocks",
-  txs: "Transactions",
-  validators: "Validators",
-};
-
-/* Builds the breadcrumb trail for the current path:
-   Explorer / {Chain} / {Resource} / {id?}. The chain crumb links back to that
-   specific chain's network home so there's always a clean way back. */
-function buildCrumbs(pathname: string, chain: string, network: string, chainName: string): Crumb[] {
-  const home = `/explorer/${network}/${chain}`;
-  const crumbs: Crumb[] = [
-    { label: "Explorer", href: "/explorer" },
-    { label: chainName, href: home },
-  ];
-  const rest = pathname.startsWith(home)
-    ? pathname.slice(home.length).split("/").filter(Boolean)
-    : [];
-  if (rest.length) {
-    const resource = rest[0];
-    crumbs.push({ label: RESOURCE_LABEL[resource] ?? resource });
-  }
-  return crumbs;
-}
-
-/* The explorer page shell: signature lattice backdrop + container + header. */
+/* The explorer page shell: subnav spine + container + header. */
 export function ExplorerShell({
   chain,
   network,
@@ -291,43 +201,18 @@ export function ExplorerShell({
   children: React.ReactNode;
 }) {
   const c = getExplorerChain(chain) ?? EXPLORER_CHAINS["p-chain"];
-  const pathname = usePathname();
-  const crumbs = buildCrumbs(pathname, chain, network, c.name);
   return (
     <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-7xl px-5 pb-24 pt-14 md:px-6">
+      <div className="relative mx-auto w-full max-w-7xl px-5 pb-24 pt-10 md:px-6">
+        {/* the app's spine: chain switcher, section tabs, network */}
+        <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
         <header className="flex flex-col gap-6 pb-10">
-          {/* breadcrumb — updates per page; chain crumb returns to that chain's home */}
-          <nav className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.22em]">
-            {crumbs.map((cr, i) => {
-              const last = i === crumbs.length - 1;
-              return (
-                <span key={`${cr.label}-${i}`} className="flex items-center gap-2.5">
-                  {i > 0 && <span className="text-zinc-300 dark:text-zinc-700">/</span>}
-                  {cr.href && !last ? (
-                    <Link
-                      href={cr.href}
-                      className="text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-                    >
-                      {cr.label}
-                    </Link>
-                  ) : (
-                    <span className={last ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-500"}>
-                      {cr.label}
-                    </span>
-                  )}
-                </span>
-              );
-            })}
-          </nav>
-          {/* title + network switcher on one baseline-aligned row.
-              pl-0!/pr-0! override the global `header > div` navbar padding hack
-              (global.css) that otherwise pushes this row in by 3rem. */}
+          {/* title row. pl-0!/pr-0! override the global `header > div` navbar
+              padding hack (global.css) that otherwise pushes it in by 3rem. */}
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
             <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
               {c.title}<span className="text-[#E6212F]">.</span>
             </h1>
-            <NetworkSwitcher chain={chain} network={network} />
           </div>
           {/* search — its own full-width row */}
           <SearchBox chain={chain} network={network} />
