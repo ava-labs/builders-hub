@@ -84,6 +84,24 @@ export function knownChainName(cb58?: string): string | undefined {
 // --- client fetch helper (same-origin proxy) ------------------------------
 
 /** Builds the same-origin proxy path for an explorer API call. */
+
+/* Unambiguous query shapes route with no API round-trip: block heights are
+   digits, NodeIDs and bech32 addresses carry their own prefixes. CB58 hashes
+   stay ambiguous (block vs tx) and need the search API. */
+export function classifyLocally(q: string): { type: "block" | "node" | "address"; id: string } | null {
+  if (/^\d+$/.test(q)) return { type: "block", id: q };
+  if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) return { type: "node", id: q };
+  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
+  return null;
+}
+
+
+/* Glacier serves a generic AvaCloud placeholder when a chain has no brand
+   asset; surfaces that lead with artwork should treat those as no logo. */
+export function hasRealChainLogo(logoURI?: string | null): boolean {
+  return !!logoURI && !logoURI.includes("AvaCloud");
+}
+
 export function pchainApiPath(
   network: string,
   resource: string,

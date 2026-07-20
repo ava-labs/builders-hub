@@ -1,7 +1,18 @@
-import { redirect } from "next/navigation";
+import { Metadata } from "next";
+import ExplorerPortal from "@/components/explorer-v2/ExplorerPortal";
 
-/* The Platform Chain explorer is the default: /explorer opens it on mainnet.
-   The all-chains EVM directory lives at /explorer/chains. */
+export const metadata: Metadata = {
+  title: "Explorer | Avalanche Builder Hub",
+  description:
+    "One front door for every Avalanche chain: search any block, transaction, address, or node, and open the P-Chain, C-Chain, or any L1's explorer.",
+  openGraph: {
+    title: "Avalanche Explorer",
+    description:
+      "Search any block, transaction, address, or node across Avalanche, live.",
+  },
+};
+
+/* /explorer — the portal into every chain's explorer. */
 export default function ExplorerHome() {
-  redirect("/explorer/mainnet/p-chain");
+  return <ExplorerPortal />;
 }
