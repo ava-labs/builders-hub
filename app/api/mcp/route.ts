@@ -1,10 +1,12 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { MCPServer } from '@/lib/mcp/server';
 import { validateOrigin, getCORSHeaders } from '@/lib/mcp/cors';
-import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
+import { checkMCPRateLimit, getMCPRequestCost, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
+import { MCPBodyTooLargeError, readMCPJson } from '@/lib/mcp/request-body';
 import {
   docsTools,
   blockchainTools,
+  githubTools,
   platformTools,
   infoTools,
   dataTools,
@@ -31,6 +33,7 @@ const server = new MCPServer({
 
 server.registerToolDomain(docsTools);
 server.registerToolDomain(blockchainTools);
+server.registerToolDomain(githubTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
 // dataTools' indexed on-chain queries (onchain_activity / chain_stats / onchain_query) route
@@ -99,6 +102,7 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
+  let rateLimitChecked = false;
 
   // CORS validation
   if (!validateOrigin(origin)) {
@@ -108,27 +112,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Rate limiting
-  const rateLimitResponse = await checkMCPRateLimit(request);
-  if (rateLimitResponse) {
-    const corsHeaders = getCORSHeaders(origin);
-    const headers = new Headers(rateLimitResponse.headers);
-    Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
-    return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
-  }
-
-  // Reject oversized request bodies before parsing JSON.
-  const contentLength = Number(request.headers.get('content-length') || '0');
-  const MAX_BODY_BYTES = 256 * 1024; // 256 KB
-  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-    return NextResponse.json(
-      { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Request body too large' } },
-      { status: 413, headers: getCORSHeaders(origin) }
-    );
-  }
-
   try {
-    const body = await request.json();
+    const body = await readMCPJson(request);
+    const rateLimitResponse = await checkMCPRateLimit(request, getMCPRequestCost(body));
+    rateLimitChecked = true;
+    if (rateLimitResponse) {
+      const corsHeaders = getCORSHeaders(origin);
+      const headers = new Headers(rateLimitResponse.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
+      return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
+    }
     const useSSE = wantsSSE(request);
     const corsHeaders = getCORSHeaders(origin);
     const rateLimitHeaders = await getRateLimitHeaders(request);
@@ -149,6 +142,29 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { headers: allHeaders });
   } catch (err) {
+    if (err instanceof MCPBodyTooLargeError) {
+      const rateLimitResponse = await checkMCPRateLimit(request);
+      rateLimitChecked = true;
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        Object.entries(getCORSHeaders(origin)).forEach(([key, value]) => headers.set(key, value));
+        return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
+      }
+      return NextResponse.json(
+        { jsonrpc: '2.0', id: null, error: { code: -32600, message: err.message } },
+        { status: 413, headers: getCORSHeaders(origin) }
+      );
+    }
+    // Invalid JSON must still consume quota; otherwise parse errors become a
+    // cheap bypass around the distributed limiter.
+    if (!rateLimitChecked) {
+      const rateLimitResponse = await checkMCPRateLimit(request);
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        Object.entries(getCORSHeaders(origin)).forEach(([key, value]) => headers.set(key, value));
+        return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
+      }
+    }
     console.error('[mcp] failed to parse JSON-RPC request body', err);
     const errorResponse = { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } };
     const corsHeaders = getCORSHeaders(origin);

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { MCPServer, MAX_BATCH_SIZE } from '@/lib/mcp/server'
+import { MCPServer, MAX_BATCH_CONCURRENCY, MAX_BATCH_SIZE } from '@/lib/mcp/server'
 import { jsonRpcMessageSchema } from '@/lib/mcp/types'
 import { GITHUB_REPOSITORIES, githubTools } from '@/lib/mcp/tools/github'
 
@@ -99,6 +99,40 @@ describe('MCPServer.handlePost', () => {
         message: expect.stringContaining(`exceeds the maximum of ${MAX_BATCH_SIZE}`),
       },
     })
+  })
+
+  it('rejects an empty JSON-RPC batch', async () => {
+    await expect(createServer().handlePost([])).resolves.toMatchObject({
+      error: { code: -32600, message: expect.stringContaining('at least one') },
+    })
+  })
+
+  it('bounds concurrent work inside an accepted batch', async () => {
+    const server = createServer()
+    let active = 0
+    let peak = 0
+    server.registerToolDomain({
+      tools: [{ name: 'slow', description: 'test', inputSchema: { type: 'object', properties: {} } }],
+      handlers: {
+        slow: async () => {
+          active++
+          peak = Math.max(peak, active)
+          await new Promise((resolve) => setTimeout(resolve, 5))
+          active--
+          return { content: [{ type: 'text', text: 'ok' }] }
+        },
+      },
+    })
+    const batch = Array.from({ length: 10 }, (_, id) => ({
+      jsonrpc: '2.0' as const,
+      id,
+      method: 'tools/call' as const,
+      params: { name: 'slow', arguments: {} },
+    }))
+
+    const response = await server.handlePost(batch)
+    expect(response).toHaveLength(10)
+    expect(peak).toBe(MAX_BATCH_CONCURRENCY)
   })
 })
 

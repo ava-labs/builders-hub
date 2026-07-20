@@ -29,15 +29,15 @@ const OPERATIONS = ['create-l1', 'ictt', 'validator-manager', 'staking', 'transf
 type Operation = (typeof OPERATIONS)[number];
 
 const CONSOLE_FLOWS = {
-  'create-l1': '/primary-network/l1/create',
-  'convert-to-l1': '/primary-network/l1/convert',
-  'validator-manager': '/primary-network/l1/validator-manager',
-  ictt: '/icm/ictt',
+  'create-l1': '/create-l1',
+  'convert-to-l1': '/layer-1/create',
+  'validator-manager': '/permissioned-l1s/validator-manager-setup',
+  ictt: '/ictt/setup',
   faucet: '/primary-network/faucet',
-  multisig: '/primary-network/multisig',
+  multisig: '/permissioned-l1s/multisig-setup',
   staking: '/primary-network/stake',
-  transfers: '/primary-network/transfer',
-  'interchain-kit-local': '/icm/ictt',
+  transfers: '/primary-network/c-p-bridge',
+  'interchain-kit-local': '/ictt/setup',
 } as const;
 type ConsoleFlowKey = keyof typeof CONSOLE_FLOWS;
 
@@ -54,6 +54,28 @@ function getNetwork(args: Record<string, unknown>): ActionNetwork {
 function getManager(args: Record<string, unknown>): ValidatorManager {
   const m = getString(args, 'validatorManager') || getString(args, 'type', 'poa');
   return (VALIDATOR_MANAGERS as readonly string[]).includes(m) ? (m as ValidatorManager) : 'poa';
+}
+
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
+function consoleFlowUrl(flow: ConsoleFlowKey, args: Record<string, unknown> = {}): string {
+  if (flow === 'interchain-kit-local') return INTERCHAIN_KIT_DOCS;
+  if (flow === 'validator-manager') {
+    const manager = getManager(args);
+    const path = manager === 'poa'
+      ? '/permissioned-l1s/validator-manager-setup'
+      : manager === 'pos-native'
+        ? '/permissionless-l1s/native-staking-manager-setup'
+        : '/permissionless-l1s/erc20-staking-manager-setup';
+    return `${CONSOLE_BASE}${path}`;
+  }
+  return `${CONSOLE_BASE}${CONSOLE_FLOWS[flow]}`;
+}
+
+function matches(value: string, pattern: RegExp, label: string): ToolResult | null {
+  return pattern.test(value) ? null : errorResult(`${label} has an invalid format.`);
 }
 
 function text(t: string): ToolResult {
@@ -86,10 +108,28 @@ const MANAGER_LABEL: Record<ValidatorManager, string> = {
 function buildL1Plan(args: Record<string, unknown>): ToolResult {
   const name = getString(args, 'name', 'myL1');
   const network = getNetwork(args);
-  const chainId = getString(args, 'chainId', '<evm-chain-id>');
+  const chainId = getString(args, 'chainId');
   const tokenSymbol = getString(args, 'tokenSymbol', 'TOK');
   const vm = getString(args, 'vm', 'subnet-evm') === 'custom' ? 'custom' : 'subnet-evm';
   const manager = getManager(args);
+  if (!chainId) return errorResult('chainId is required for create-l1 so genesis.json is valid.');
+  const invalidName = matches(name, /^[A-Za-z][A-Za-z0-9_-]{0,31}$/, 'name');
+  if (invalidName) return invalidName;
+  const invalidChainId = matches(chainId, /^[1-9]\d{0,11}$/, 'chainId');
+  if (invalidChainId) return invalidChainId;
+  const invalidSymbol = matches(tokenSymbol, /^[A-Z][A-Z0-9]{1,10}$/, 'tokenSymbol');
+  if (invalidSymbol) return invalidSymbol;
+  const genesis = JSON.stringify({
+    config: {
+      chainId: Number(chainId),
+      feeConfig: { gasLimit: 12000000, minBaseFee: 25000000000, targetGas: 60000000 },
+    },
+    alloc: {
+      '0xYOUR_ADDRESS_WITHOUT_0x': { balance: '0x295BE96E64066972000000' },
+    },
+    gasLimit: '0xB71B00',
+    timestamp: '0x0',
+  }, null, 2);
 
   return text(
     [
@@ -97,44 +137,42 @@ function buildL1Plan(args: Record<string, unknown>): ToolResult {
       `VM: ${vm} · Validator manager: ${MANAGER_LABEL[manager]} · EVM chain ID: ${chainId} · Token: ${tokenSymbol}`,
       '',
       '## Option 1 — Quick Build (no-code, recommended)',
-      `Create and deploy from the Builder Console: ${CONSOLE_BASE}${CONSOLE_FLOWS['create-l1']}`,
+      `Create and deploy from the Builder Console: ${consoleFlowUrl('create-l1')}`,
       'Pick the VM, set genesis (chain ID, token, precompiles), choose the validator manager, and deploy with your connected wallet.',
       '',
       '## Option 2 — platform-cli (scriptable)',
       '```bash',
       '# 0. Prerequisites: a funded P-Chain key and (fuji) testnet AVAX from the faucet.',
       `${CLI.keysGenerate} --key-name myKey   # or: platform keys import`,
+      "SUBNET_ID='replace-after-step-1'",
+      "MANAGER_ADDRESS='0x-replace-with-validator-manager-address'",
+      "NODE_POP='replace-with-node-proof-of-possession-hex'",
+      "WARP_MESSAGE='replace-with-warp-message-hex'",
+      ...(vm === 'custom' ? ["VM_ID='replace-with-your-vm-id'"] : []),
       '',
       '# 1. Create the subnet (records you as the owner)',
       `${CLI.subnetCreate} --key-name myKey --network ${network}`,
       '',
       `# 2. Create the blockchain on that subnet from your genesis (sets chain ID ${chainId} + the ${tokenSymbol} token)`,
-      `${CLI.chainCreate} --subnet-id <subnet-id-from-step-1> --name ${name} --genesis genesis.json${vm === 'custom' ? ' --vm-id <your-vm-id>' : ''}`,
+      `${CLI.chainCreate} --subnet-id "$SUBNET_ID" --name ${shellQuote(name)} --genesis genesis.json${vm === 'custom' ? ' --vm-id "$VM_ID"' : ''}`,
       '',
       '# 3. Convert the subnet to an L1 (points it at a validator manager)',
       `${CLI.subnetConvertL1} \\`,
-      '  --subnet-id <subnet-id-from-step-1> \\',
-      '  --manager <validator-manager-address>',
+      '  --subnet-id "$SUBNET_ID" \\',
+      '  --manager "$MANAGER_ADDRESS"',
       '',
       '# 4. Register your first L1 validator',
       `#    (--pop from \`${CLI.nodeInfo}\`; the Warp --message comes from the Console`,
       '#     validator-manager flow or the SDK — the CLI alone cannot produce it)',
       `${CLI.l1RegisterValidator} \\`,
-      '  --balance <AVAX-fee-deposit> \\',
-      '  --pop <node-proof-of-possession-hex> \\',
-      '  --message <warp-message-hex>',
+      "  --balance 'replace-with-AVAX-fee-deposit' \\",
+      '  --pop "$NODE_POP" \\',
+      '  --message "$WARP_MESSAGE"',
       '```',
       '',
       `### genesis.json — sets chain ID ${chainId}, fee config, and the initial ${tokenSymbol} supply`,
       '```json',
-      '{',
-      `  "config": { "chainId": ${chainId}, "feeConfig": { "gasLimit": 12000000, "minBaseFee": 25000000000, "targetGas": 60000000 } },`,
-      '  "alloc": {',
-      '    "0xYOUR_ADDRESS_WITHOUT_0x": { "balance": "0x295BE96E64066972000000" }',
-      '  },',
-      '  "gasLimit": "0xB71B00",',
-      '  "timestamp": "0x0"',
-      '}',
+      genesis,
       '```',
       `_The alloc balance credits ~50,000,000 ${tokenSymbol} (×10^18 wei) to your address as the L1's initial native supply — change the address/amount as needed._`,
       `Command reference: ${PLATFORM_CLI_DOCS}`,
@@ -162,7 +200,7 @@ function buildICTTPlan(args: Record<string, unknown>): ToolResult {
       `Token: ${token}`,
       '',
       '## Option 1 — Builder Console (guided)',
-      `Use the ICTT flow: ${CONSOLE_BASE}${CONSOLE_FLOWS.ictt}`,
+      `Use the ICTT flow: ${consoleFlowUrl('ictt')}`,
       'It walks token → home → remote → register → collateral and deploys with your wallet.',
       '',
       '## Option 2 — @avalanche-sdk/interchain (scriptable)',
@@ -206,7 +244,7 @@ function buildValidatorManagerPlan(args: Record<string, unknown>): ToolResult {
   return text(
     [
       `# Plan: ${MANAGER_LABEL[manager]} validator manager`,
-      `Console: ${CONSOLE_BASE}${CONSOLE_FLOWS['validator-manager']}`,
+      `Console: ${consoleFlowUrl('validator-manager', args)}`,
       'Standard: ACP-99 ValidatorManager. Steps:',
       '',
       ...steps[manager].map((s, i) => `${i + 1}. ${s}`),
@@ -220,9 +258,16 @@ function buildValidatorManagerPlan(args: Record<string, unknown>): ToolResult {
 
 function buildStakingPlan(args: Record<string, unknown>): ToolResult {
   const network = getNetwork(args);
-  const stake = getString(args, 'stake', '<amount>');
-  const duration = getString(args, 'duration', '<duration e.g. 336h>');
-  const nodeId = getString(args, 'nodeId', '<NodeID-...>');
+  const stake = getString(args, 'stake');
+  const duration = getString(args, 'duration');
+  const nodeId = getString(args, 'nodeId');
+  if (!stake || !duration || !nodeId) return errorResult('stake, duration, and nodeId are required for a safe staking command.');
+  const invalidStake = matches(stake, /^(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)$/, 'stake');
+  if (invalidStake) return invalidStake;
+  const invalidDuration = matches(duration, /^[1-9]\d*(?:h|d)$/, 'duration');
+  if (invalidDuration) return invalidDuration;
+  const invalidNodeId = matches(nodeId, /^NodeID-[1-9A-HJ-NP-Za-km-z]{20,60}$/, 'nodeId');
+  if (invalidNodeId) return invalidNodeId;
   return text(
     [
       `# Plan: stake / validate on the Primary Network (${network})`,
@@ -233,18 +278,20 @@ function buildStakingPlan(args: Record<string, unknown>): ToolResult {
       '',
       '# 2. Get your node\'s NodeID + BLS public key + proof-of-possession',
       `${CLI.nodeInfo}`,
+      "BLS_PUBLIC_KEY='replace-with-hex'",
+      "BLS_POP='replace-with-hex'",
       '',
       '# 3. Add yourself as a permissionless Primary Network validator',
       `${CLI.validatorAdd} \\`,
-      `  --node-id ${nodeId} \\`,
-      `  --stake-amount ${stake} \\`,
-      `  --staking-period ${duration} \\`,
-      '  --bls-public-key <hex> \\',
-      '  --bls-pop <hex> \\',
+      `  --node-id ${shellQuote(nodeId)} \\`,
+      `  --stake-amount ${shellQuote(stake)} \\`,
+      `  --staking-period ${shellQuote(duration)} \\`,
+      '  --bls-public-key "$BLS_PUBLIC_KEY" \\',
+      '  --bls-pop "$BLS_POP" \\',
       `  --network ${network}`,
       '',
       '# 4. (optional) Delegate additional stake to a validator',
-      `${CLI.validatorDelegate} --node-id ${nodeId} --stake-amount <amount> --staking-period <duration>`,
+      `${CLI.validatorDelegate} --node-id ${shellQuote(nodeId)} --stake-amount 'replace-with-amount' --staking-period 'replace-with-duration'`,
       '```',
       '',
       `Notes: min stake — ${MIN_VALIDATOR_STAKE[network]}. Command reference: ${PLATFORM_CLI_DOCS}`,
@@ -257,14 +304,22 @@ function buildStakingPlan(args: Record<string, unknown>): ToolResult {
 function buildTransferPlan(args: Record<string, unknown>): ToolResult {
   const network = getNetwork(args);
   const kind = getString(args, 'transferKind', 'send');
-  const amount = getString(args, 'amount', '<amount>');
-  const to = getString(args, 'to', '<destination-address>');
+  const amount = getString(args, 'amount');
+  const to = getString(args, 'to');
+  if (!amount) return errorResult('amount is required for a safe transfer command.');
+  const invalidAmount = matches(amount, /^(?:[1-9]\d*(?:\.\d+)?|0\.\d*[1-9]\d*)$/, 'amount');
+  if (invalidAmount) return invalidAmount;
+  if (kind === 'send' && !to) return errorResult('to is required for transferKind=send.');
+  if (kind === 'send') {
+    const invalidDestination = matches(to, /^(?:0x[0-9a-fA-F]{40}|[PX]-[A-Za-z0-9]{20,100})$/, 'to');
+    if (invalidDestination) return invalidDestination;
+  }
   const cmd =
     kind === 'p-to-c'
-      ? `${CLI.transferPtoC} --amount ${amount} --network ${network}`
+      ? `${CLI.transferPtoC} --amount ${shellQuote(amount)} --network ${network}`
       : kind === 'c-to-p'
-        ? `${CLI.transferCtoP} --amount ${amount} --network ${network}`
-        : `${CLI.transferSend} --to ${to} --amount ${amount} --network ${network}`;
+        ? `${CLI.transferCtoP} --amount ${shellQuote(amount)} --network ${network}`
+        : `${CLI.transferSend} --to ${shellQuote(to)} --amount ${shellQuote(amount)} --network ${network}`;
   return text(
     [
       `# Plan: transfer AVAX (${kind}, ${network})`,
@@ -364,6 +419,7 @@ export const actionTools: ToolDomain = {
         properties: {
           flow: { type: 'string', enum: Object.keys(CONSOLE_FLOWS), description: 'The console flow to link to' },
           network: { type: 'string', enum: [...NETWORKS], description: 'Network (only affects faucet; default: fuji)' },
+          validatorManager: { type: 'string', enum: [...VALIDATOR_MANAGERS], description: 'Validator-manager variant (default: poa)' },
         },
         required: ['flow'],
       },
@@ -373,6 +429,18 @@ export const actionTools: ToolDomain = {
   handlers: {
     build_plan: async (args): Promise<ToolResult> => {
       const op = getString(args, 'operation');
+      const network = getString(args, 'network');
+      if (network && !(NETWORKS as readonly string[]).includes(network)) return errorResult(`network must be one of: ${NETWORKS.join(', ')}.`);
+      const manager = getString(args, 'validatorManager') || getString(args, 'type');
+      if (manager && !(VALIDATOR_MANAGERS as readonly string[]).includes(manager)) return errorResult(`validatorManager must be one of: ${VALIDATOR_MANAGERS.join(', ')}.`);
+      const vm = getString(args, 'vm');
+      if (vm && !['subnet-evm', 'custom'].includes(vm)) return errorResult('vm must be subnet-evm or custom.');
+      const transferKind = getString(args, 'transferKind');
+      if (transferKind && !['send', 'p-to-c', 'c-to-p'].includes(transferKind)) return errorResult('transferKind must be send, p-to-c, or c-to-p.');
+      const tokenType = getString(args, 'tokenType');
+      if (tokenType && !['erc20', 'native'].includes(tokenType)) return errorResult('tokenType must be erc20 or native.');
+      const example = getString(args, 'example');
+      if (example && !['send-message', 'transfer-token', 'validator-manager-setup', 'add-validator'].includes(example)) return errorResult('example is not supported.');
       switch (op as Operation) {
         case 'create-l1':
           return buildL1Plan(args);
@@ -396,10 +464,19 @@ export const actionTools: ToolDomain = {
       if (!flow || !(flow in CONSOLE_FLOWS)) {
         return errorResult(`Unknown flow "${flow}". Available: ${Object.keys(CONSOLE_FLOWS).join(', ')}.`);
       }
+      const network = getString(args, 'network');
+      if (network && !(NETWORKS as readonly string[]).includes(network)) {
+        return errorResult(`network must be one of: ${NETWORKS.join(', ')}.`);
+      }
       if (flow === 'faucet' && getNetwork(args) === 'mainnet') {
         return text('There is no faucet for mainnet — mainnet AVAX must be acquired/transferred. The faucet only serves Fuji testnet AVAX.');
       }
-      return text(`Builder Console — ${flow}: ${CONSOLE_BASE}${CONSOLE_FLOWS[flow as ConsoleFlowKey]}`);
+      const manager = getString(args, 'validatorManager');
+      if (manager && !(VALIDATOR_MANAGERS as readonly string[]).includes(manager)) {
+        return errorResult(`validatorManager must be one of: ${VALIDATOR_MANAGERS.join(', ')}.`);
+      }
+      const label = flow === 'interchain-kit-local' ? 'interchain-kit docs' : 'Builder Console';
+      return text(`${label} — ${flow}: ${consoleFlowUrl(flow as ConsoleFlowKey, args)}`);
     },
   },
 };

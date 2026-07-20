@@ -160,6 +160,57 @@ function isRealContract(meta: unknown): boolean {
   return (!!erc && erc !== 'UNKNOWN') || !!m.deploymentDetails || !!m.name || !!m.symbol;
 }
 
+interface NativeBalanceResponse {
+  nativeTokenBalance?: { balance?: string; symbol?: string };
+}
+
+function compatibilityChainId(value: unknown): string {
+  const chainId = typeof value === 'number' ? String(Math.floor(value)) : typeof value === 'string' ? value : '43114';
+  if (chainId !== '43114' && chainId !== '43113') throw new Error('chainId must be 43114 (mainnet) or 43113 (Fuji)');
+  return chainId;
+}
+
+async function compatibilityNativeBalance(addressRaw: unknown, chainIdRaw: unknown): Promise<Record<string, unknown>> {
+  const address = safeAddr(typeof addressRaw === 'string' ? addressRaw : '');
+  const chainId = compatibilityChainId(chainIdRaw);
+  const result = await glacierFetch<NativeBalanceResponse>(`/v1/chains/${chainId}/addresses/${address}/balances:getNative`);
+  const balanceWei = BigInt(result.nativeTokenBalance?.balance || '0');
+  const unit = 10n ** 18n;
+  const formatted = `${balanceWei / unit}.${(balanceWei % unit).toString().padStart(18, '0').slice(0, 6)}`;
+  return {
+    address,
+    chainId,
+    balance: `0x${balanceWei.toString(16)}`,
+    balanceFormatted: formatted,
+    symbol: result.nativeTokenBalance?.symbol || 'AVAX',
+  };
+}
+
+async function compatibilityContractInfo(addressRaw: unknown, chainIdRaw: unknown): Promise<Record<string, unknown>> {
+  const address = safeAddr(typeof addressRaw === 'string' ? addressRaw : '');
+  const chainId = compatibilityChainId(chainIdRaw);
+  const metadata = await glacierFetch<Record<string, unknown>>(`/v1/chains/${chainId}/addresses/${address}`);
+  const isContract = isRealContract(metadata);
+  return {
+    address,
+    chainId,
+    isContract,
+    ...(isContract ? {
+      name: metadata?.name,
+      symbol: metadata?.symbol,
+      ercType: metadata?.ercType,
+    } : {}),
+  };
+}
+
+async function compatibilityResult(load: () => Promise<unknown>): Promise<ToolResult> {
+  try {
+    return json(await load());
+  } catch (error) {
+    return errorResult(asMessage(error));
+  }
+}
+
 // ---------------------------------------------------------------------------
 // onchain_lookup
 // ---------------------------------------------------------------------------
@@ -180,12 +231,24 @@ async function onchainLookup(args: Record<string, unknown>): Promise<ToolResult>
         const [chains, native, erc20, recentTx, contractMeta] = await Promise.all([
           glacierFetch<unknown>(`/v1/address/${addr}/chains`).catch(() => null),
           glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/balances:getNative`).catch(() => null),
-          fetchErc20Balances(chainId, addr).then((r) => r.erc20TokenBalances).catch(() => []),
+          fetchErc20Balances(chainId, addr).then((r) => r.erc20TokenBalances).catch(() => null),
           glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/transactions`, { pageSize: '5' }).catch(() => null),
           glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}`).catch(() => null), // contract metadata; null for an EOA
         ]);
-        const realContract = isRealContract(contractMeta);
-        const out: Record<string, unknown> = { kind: 'address', address: addr, chainId, network, isContract: realContract, contractInfo: realContract ? contractMeta : undefined, chainsTouched: chains, nativeBalance: native, erc20Balances: erc20, recentTransactions: recentTx };
+        const realContract = contractMeta === null ? null : isRealContract(contractMeta);
+        const out: Record<string, unknown> = {
+          kind: 'address',
+          address: addr,
+          chainId,
+          network,
+          isContract: realContract,
+          contractInfo: realContract ? contractMeta : undefined,
+          contractMetadataAvailable: contractMeta !== null,
+          chainsTouched: chains,
+          nativeBalance: native,
+          erc20Balances: erc20,
+          recentTransactions: recentTx,
+        };
         if (include.includes('nfts')) {
           out.collectibles = await glacierFetch<unknown>(`/v1/chains/${chainId}/addresses/${addr}/balances:listCollectibles`).catch(() => null);
         }
@@ -534,6 +597,42 @@ async function onchainQuery(args: Record<string, unknown>): Promise<ToolResult> 
 export const dataTools: ToolDomain = {
   tools: [
     {
+      name: 'blockchain_get_native_balance',
+      description: 'Compatibility alias for onchain_lookup address balances. Prefer onchain_lookup for new clients.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          address: { type: 'string', description: 'EVM address (0x...)' },
+          chainId: { type: 'string', default: '43114', description: '43114 for C-Chain mainnet, 43113 for Fuji' },
+        },
+        required: ['address'],
+      },
+    },
+    {
+      name: 'blockchain_get_contract_info',
+      description: 'Compatibility alias for onchain_lookup contract metadata. Prefer onchain_lookup for new clients.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          address: { type: 'string', description: 'Contract address (0x...)' },
+          chainId: { type: 'string', default: '43114', description: '43114 for C-Chain mainnet, 43113 for Fuji' },
+        },
+        required: ['address'],
+      },
+    },
+    {
+      name: 'blockchain_lookup_address',
+      description: 'Compatibility alias for onchain_lookup address details. Prefer onchain_lookup for new clients.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          address: { type: 'string', description: 'EVM address (0x...)' },
+          chainId: { type: 'string', default: '43114', description: '43114 for C-Chain mainnet, 43113 for Fuji' },
+        },
+        required: ['address'],
+      },
+    },
+    {
       name: 'onchain_lookup',
       description:
         'PRIMARY lookup tool — use this (not raw RPC) to resolve/describe any on-chain identifier in one call: an EVM address (native + token balances, recent txs, contract metadata + isContract), a contract/token (metadata + deployment + recent transfers), an NFT (collection + tokenId), a tx hash, a subnet ID, a NodeID validator, a P-/X-Chain account (P-…/X-… → P-Chain balance), or a chain name/id. Use this for any address balance / contract-info / token / identity question. `kind` auto-detects; network is inferred from P-/X-Chain prefixes. Backed by Glacier + P-Chain RPC.',
@@ -615,6 +714,33 @@ export const dataTools: ToolDomain = {
   ],
 
   handlers: {
+    blockchain_get_native_balance: (args) => compatibilityResult(
+      () => compatibilityNativeBalance(args.address, args.chainId)
+    ),
+    blockchain_get_contract_info: (args) => compatibilityResult(
+      () => compatibilityContractInfo(args.address, args.chainId)
+    ),
+    blockchain_lookup_address: (args) => compatibilityResult(async () => {
+      const chainId = compatibilityChainId(args.chainId);
+      const [balance, contract] = await Promise.all([
+        compatibilityNativeBalance(args.address, chainId),
+        compatibilityContractInfo(args.address, chainId),
+      ]);
+      const address = balance.address as string;
+      return {
+        address,
+        chainId,
+        network: chainId === '43113' ? 'Fuji Testnet' : 'C-Chain Mainnet',
+        balance: `${balance.balanceFormatted} ${balance.symbol}`,
+        isContract: contract.isContract,
+        contractInfo: contract.isContract
+          ? { name: contract.name, symbol: contract.symbol, ercType: contract.ercType }
+          : null,
+        explorerUrl: chainId === '43113'
+          ? `https://testnet.snowtrace.io/address/${address}`
+          : `https://snowtrace.io/address/${address}`,
+      };
+    }),
     onchain_lookup: onchainLookup,
     onchain_activity: onchainActivity,
     chain_stats: chainStats,

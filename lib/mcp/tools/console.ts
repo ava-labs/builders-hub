@@ -12,6 +12,7 @@ import type { ToolDomain, ToolResult } from '../types';
 import { CLI } from './lib/platform-cli-commands';
 
 const CONSOLE_BASE = 'https://build.avax.network/console';
+const INTERCHAIN_KIT_DOCS = 'https://build.avax.network/docs/tooling/avalanche-sdk/interchain-kit';
 
 interface ConsoleFlow {
   key: string;
@@ -27,7 +28,7 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'create-l1',
     title: 'Create an L1 (Quick Build)',
-    path: '/primary-network/l1/create',
+    path: '/create-l1',
     summary: 'No-code creation of a new Avalanche L1: configure genesis, choose a validator manager, and deploy.',
     steps: [
       'Choose VM (Subnet-EVM or custom) and set genesis (chain ID, native token, precompiles)',
@@ -42,7 +43,7 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'convert-to-l1',
     title: 'Convert a subnet to an L1',
-    path: '/primary-network/l1/convert',
+    path: '/layer-1/create',
     summary: 'Convert an existing subnet into a sovereign L1 by pointing it at a validator manager contract.',
     steps: [
       'Select the subnet to convert and the target chain ID',
@@ -55,12 +56,14 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'validator-manager',
     title: 'Validator manager setup',
-    path: '/primary-network/l1/validator-manager',
+    path: '/permissioned-l1s/validator-manager-setup',
     summary: 'Deploy and initialize the ACP-99 ValidatorManager (PoA or PoS) that governs an L1 validator set.',
     steps: [
       'Deploy the manager contract (or use the genesis-predeployed proxy)',
       'Initialize ownership / staking parameters',
       'Initialize the validator set; thereafter add/remove validators via the contract',
+      `For native-token PoS use ${CONSOLE_BASE}/permissionless-l1s/native-staking-manager-setup`,
+      `For ERC-20 PoS use ${CONSOLE_BASE}/permissionless-l1s/erc20-staking-manager-setup`,
     ],
     equivalentCli: `${CLI.l1RegisterValidator} / ${CLI.l1SetWeight} / ${CLI.l1DisableValidator}`,
     signs: true,
@@ -68,7 +71,7 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'ictt',
     title: 'Interchain Token Transfer (ICTT)',
-    path: '/icm/ictt',
+    path: '/ictt/setup',
     summary: 'Bridge ERC-20 or native tokens between Avalanche chains using Teleporter/ICM.',
     steps: [
       'Pick the token and home chain; deploy the TokenHome contract',
@@ -90,7 +93,7 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'multisig',
     title: 'Multisig / Safe',
-    path: '/primary-network/multisig',
+    path: '/permissioned-l1s/multisig-setup',
     summary: 'Set up a Safe multisig as the owner/admin of an L1 (Builder Console pre-deploys the Safe Singleton at genesis).',
     steps: [
       'Use the genesis-predeployed Safe Singleton',
@@ -115,7 +118,7 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'transfers',
     title: 'Transfer AVAX (P ↔ C)',
-    path: '/primary-network/transfer',
+    path: '/primary-network/c-p-bridge',
     summary: 'Move AVAX between addresses or cross-chain between the P-Chain and C-Chain.',
     steps: ['Pick source/destination chain and address', 'Enter amount and sign (export + import for cross-chain)'],
     equivalentCli: `${CLI.transferSend} / ${CLI.transferPtoC} / ${CLI.transferCtoP}`,
@@ -124,7 +127,7 @@ const FLOWS: ConsoleFlow[] = [
   {
     key: 'interchain-kit-local',
     title: 'interchain-kit (local cross-chain dev)',
-    path: '/icm/ictt',
+    path: '',
     summary: 'Iterate on ICM/ICTT against a real local tmpnet (Teleporter + relayer + signature-aggregator) before deploying to Fuji.',
     steps: [
       'pnpm install, then `pnpm run up` (tmpnetjs) to boot the local network + relayer (:8080) + aggregator (:8090)',
@@ -137,6 +140,7 @@ const FLOWS: ConsoleFlow[] = [
 ];
 
 function flowLink(f: ConsoleFlow): string {
+  if (f.key === 'interchain-kit-local') return INTERCHAIN_KIT_DOCS;
   return `${CONSOLE_BASE}${f.path}`;
 }
 

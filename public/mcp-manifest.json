@@ -25,7 +25,10 @@
     "compatibilityAliases": [
       "avalanche_docs_search",
       "avalanche_docs_fetch",
-      "avalanche_docs_list_sections"
+      "avalanche_docs_list_sections",
+      "blockchain_get_native_balance",
+      "blockchain_get_contract_info",
+      "blockchain_lookup_address"
     ]
   },
   "tools": [
@@ -84,6 +87,18 @@
     {
       "name": "blockchain_lookup_validator",
       "description": "Look up a validator by node ID — stake, uptime, delegation info."
+    },
+    {
+      "name": "github_search_code",
+      "description": "Search for code across core Avalanche GitHub repositories including avalanchego, subnet-evm, coreth, libevm, avalanche-cli, platform-cli, icm-services, icm-contracts, avalanche-network-runner, hypersdk, and builders-hub."
+    },
+    {
+      "name": "github_get_file",
+      "description": "Retrieve the contents of a specific file from an Avalanche GitHub repository."
+    },
+    {
+      "name": "github_list_repositories",
+      "description": "List the Avalanche GitHub repositories covered by github_search_code and github_get_file."
     },
     {
       "name": "platform_get_height",
@@ -180,6 +195,18 @@
     {
       "name": "info_acps",
       "description": "Get information about Avalanche Community Proposals (ACPs), including their status and vote counts."
+    },
+    {
+      "name": "blockchain_get_native_balance",
+      "description": "Compatibility alias for onchain_lookup address balances. Prefer onchain_lookup for new clients."
+    },
+    {
+      "name": "blockchain_get_contract_info",
+      "description": "Compatibility alias for onchain_lookup contract metadata. Prefer onchain_lookup for new clients."
+    },
+    {
+      "name": "blockchain_lookup_address",
+      "description": "Compatibility alias for onchain_lookup address details. Prefer onchain_lookup for new clients."
     },
     {
       "name": "onchain_lookup",
