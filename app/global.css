@@ -89,13 +89,24 @@ header[aria-label="Main"] [data-radix-popover-content] {
 }
 
 /* Make main navbar sticky - positions below the banner */
+/* v2 design language: translucent surface over a hairline rule */
 #nd-nav,
 header#nd-nav,
 nav#nd-nav {
   position: sticky !important;
   top: var(--fd-banner-height, 0px) !important;
   z-index: 40 !important; /* Below banner (z-50), above content */
-  background-color: var(--background) !important;
+  background-color: rgb(255 255 255 / 0.85) !important; /* white, v2 surface */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgb(228 228 231) !important; /* zinc-200 */
+}
+
+.dark #nd-nav,
+.dark header#nd-nav,
+.dark nav#nd-nav {
+  background-color: rgb(9 9 11 / 0.85) !important; /* zinc-950 */
+  border-bottom-color: rgb(39 39 42) !important; /* zinc-800 */
 }
 
 /* Keep desktop mega menu overlays from reflowing the page.
@@ -106,6 +117,22 @@ nav#nd-nav {
    NOTE: Radix v1.2+ no longer uses data-radix-navigation-menu-viewport.
    The viewport uses data-state + data-orientation instead. We target the
    wrapper as the last non-nav direct child of #nd-nav. */
+@media (min-width: 1280px) {
+  /* True-center the primary nav cluster. Flex tricks center it in the
+     leftover space, but the search cluster is wider than the logo, so that
+     center reads off-axis. Absolutely pin the menu ul to the bar's midpoint
+     instead. Only at xl+ — below that the centered menu would collide with
+     the search cluster. */
+  #nd-nav nav {
+    position: relative;
+  }
+  #nd-nav nav > ul[class*="px-6"] {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
 @media (min-width: 1024px) {
   /* Viewport wrapper: the LAST direct child of #nd-nav (after the Radix
      NavigationMenuList wrapper div). Must be taken out of flow so the sticky
@@ -123,12 +150,23 @@ nav#nd-nav {
   }
 
   /* Viewport element: background + depth (only rendered when a menu is open) */
+  /* v2: flat sheet closed by a hairline rule, no rounded corners */
+  /* Fully opaque: page content must never ghost through the open sheet */
   #nd-nav > :last-child > * {
-    background-color: var(--background) !important;
-    backdrop-filter: blur(16px) !important;
-    -webkit-backdrop-filter: blur(16px) !important;
-    border-bottom: 1px solid var(--border) !important;
-    box-shadow: 0 8px 16px -4px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05) !important;
+    background-color: rgb(255 255 255) !important; /* white, v2 surface */
+    border-bottom: 1px solid rgb(228 228 231) !important; /* zinc-200 */
+    border-radius: 0 !important;
+    box-shadow: 0 12px 24px -12px rgb(0 0 0 / 0.08) !important;
+  }
+
+  .dark #nd-nav > :last-child > * {
+    background-color: rgb(9 9 11) !important; /* zinc-950 */
+    border-bottom-color: rgb(39 39 42) !important; /* zinc-800 */
+  }
+
+  /* Square every corner inside the mega menu sheet (tiles, banners, previews) */
+  #nd-nav > :last-child [class*="rounded"] {
+    border-radius: 0 !important;
   }
 
   #nd-nav > :last-child * {
@@ -869,89 +907,171 @@ html {
 }
 
 /* Apply consistent padding to all nav items to prevent layout shift */
+/* v2 design language: squared corners everywhere in the navbar */
 nav a {
   padding-left: 0.5rem !important;
   padding-right: 0.5rem !important;
   padding-top: 0.36rem !important;
   padding-bottom: 0.36rem !important;
-  border-radius: 0.5rem !important;
+  border-radius: 0 !important;
   transition: all 0.2s ease !important;
 }
 
 nav button {
   padding: 0.1rem;
-  border-radius: 0.5rem;
+  border-radius: 0;
   transition: all 0.2s ease !important;
+}
+
+/* v2: top-level navbar items in the page's sans voice, sentence case.
+   (Mono microlabels stay reserved for data/ledger labels on the page.)
+   Scoped to the main menu list so the logo link and utility icons keep
+   their own type. */
+#nd-nav nav > ul li > a,
+#nd-nav nav > ul li > button,
+#nd-nav nav > ul li > button > a {
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  color: rgb(82 82 91); /* zinc-600 */
+}
+
+.dark #nd-nav nav > ul li > a,
+.dark #nd-nav nav > ul li > button,
+.dark #nd-nav nav > ul li > button > a {
+  color: rgb(212 212 216); /* zinc-300 */
+}
+
+/* Normalize trigger geometry: menu triggers WITH a url nest an <a> that
+   picks up the global `nav a` padding, while url-less triggers (Ecosystem)
+   render plain text with only the button's 0.1rem padding — making its
+   hover block smaller and its label sit off-line. Let the button carry the
+   padding in both cases and strip it from the nested anchor. */
+#nd-nav nav > ul li > button {
+  padding: 0.36rem 0.5rem !important;
+}
+
+#nd-nav nav > ul li > button > a {
+  padding: 0 !important;
+}
+
+/* v2: hover inverts the label into a solid ink block — unambiguous, no
+   grey halo. Open mega-menu triggers hold the same state while their
+   sheet is visible. */
+#nd-nav nav > ul li > a:hover:not([data-active="true"]):not([aria-current="page"]),
+#nd-nav nav > ul li > button:hover,
+#nd-nav nav > ul li > button[data-state="open"] {
+  background-color: rgb(24 24 27) !important; /* zinc-900 */
+  color: rgb(250 250 250) !important;
+  box-shadow: none !important;
+}
+
+#nd-nav nav > ul li > button:hover > a,
+#nd-nav nav > ul li > button[data-state="open"] > a {
+  color: rgb(250 250 250) !important;
+}
+
+.dark #nd-nav nav > ul li > a:hover:not([data-active="true"]):not([aria-current="page"]),
+.dark #nd-nav nav > ul li > button:hover,
+.dark #nd-nav nav > ul li > button[data-state="open"] {
+  background-color: rgb(250 250 250) !important; /* zinc-50 */
+  color: rgb(9 9 11) !important;
+}
+
+.dark #nd-nav nav > ul li > button:hover > a,
+.dark #nd-nav nav > ul li > button[data-state="open"] > a {
+  color: rgb(9 9 11) !important;
 }
 
 /* Exception for search, theme toggle, and user profile buttons */
-/* Search button - keep it looking like a search bar */
+/* v2: search reads as a squared hairline field with mono placeholder */
 nav button[data-search-full] {
-  padding: 0.375rem 0.625rem !important;
-  padding-left: 0.625rem !important;
-  border-radius: 9999px !important;
-  background-color: rgba(0, 0, 0, 0.03) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  height: 2rem !important;
+  padding: 0 0.625rem !important;
+  align-items: center !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  border: 1px solid rgb(228 228 231) !important; /* zinc-200 */
   transition: all 0.2s ease !important;
   gap: 0.5rem !important;
+  font-family: var(--font-mono) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
 }
 
 nav button[data-search-full]:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  border-color: rgba(0, 0, 0, 0.15) !important;
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgb(161 161 170) !important; /* zinc-400 */
+}
+
+/* Square the ⌘K shortcut chips inside the search field */
+nav button[data-search-full] kbd {
+  border-radius: 0 !important;
+  font-family: var(--font-mono) !important;
 }
 
 .dark nav button[data-search-full] {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: transparent !important;
+  border-color: rgb(39 39 42) !important; /* zinc-800 */
 }
 
 .dark nav button[data-search-full]:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgb(113 113 122) !important; /* zinc-500 */
 }
 
-/* Theme toggle button - rounded with proper padding */
+/* Theme toggle button - squared hairline, same 2rem height as the search field */
 nav button[data-theme-toggle],
 nav button[aria-label="Toggle Theme"] {
-  padding: 0.25rem !important;
-  border-radius: 9999px !important;
+  height: 2rem !important;
+  padding: 0 0.25rem !important;
+  align-items: center !important;
+  border-radius: 0 !important;
   background-color: transparent !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid rgb(228 228 231) !important; /* zinc-200 */
   transition: all 0.2s ease !important;
+}
+
+/* Shrink the sun/moon glyphs to fit the 2rem box; square the active chip */
+nav button[data-theme-toggle] svg,
+nav button[aria-label="Toggle Theme"] svg {
+  width: 1.375rem !important;
+  height: 1.375rem !important;
+  padding: 0.28rem !important;
+  border-radius: 0 !important;
 }
 
 nav button[data-theme-toggle]:hover,
 nav button[aria-label="Toggle Theme"]:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  border-color: rgba(0, 0, 0, 0.15) !important;
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  border-color: rgb(161 161 170) !important; /* zinc-400 */
 }
 
 .dark nav button[data-theme-toggle],
 .dark nav button[aria-label="Toggle Theme"] {
-  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgb(39 39 42) !important; /* zinc-800 */
 }
 
 .dark nav button[data-theme-toggle]:hover,
 .dark nav button[aria-label="Toggle Theme"]:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgb(113 113 122) !important; /* zinc-500 */
 }
 
-/* User profile dropdown button - keep rounded */
+/* User profile dropdown button - squared v2 box; the component's own
+   hairline border handles the hover state */
 nav button[data-slot="dropdown-menu-trigger"] {
-  padding: 0.25rem !important;
-  border-radius: 9999px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
   background-color: transparent !important;
   transition: all 0.2s ease !important;
 }
 
 nav button[data-slot="dropdown-menu-trigger"]:hover {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-}
-
-.dark nav button[data-slot="dropdown-menu-trigger"]:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: transparent !important;
 }
 
 /* Larger padding for nav items - more breathing room between links */
@@ -976,47 +1096,62 @@ nav li > a {
   align-items: center !important;
 }
 
-/* Docs subnav hover and active states */
-.docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+/* Docs subnav hover and active states — same grammar as the top navbar:
+   squared inverted-ink hover, red rule under the active tab, no pills. */
+.docs-subnav-link {
+  border-radius: 0 !important;
 }
 
-.dark .docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]) {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+.docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]),
+.docs-subnav-link[data-state="open"]:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgb(24 24 27) !important; /* zinc-900 */
+  color: rgb(250 250 250) !important;
+  box-shadow: none !important;
+}
+
+.dark .docs-subnav-link:hover:not([data-active="true"]):not([aria-current="page"]),
+.dark .docs-subnav-link[data-state="open"]:not([data-active="true"]):not([aria-current="page"]) {
+  background-color: rgb(250 250 250) !important; /* zinc-50 */
+  color: rgb(9 9 11) !important;
 }
 
 .docs-subnav-link[data-active="true"],
 .docs-subnav-link[aria-current="page"] {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  color: rgb(24 24 27) !important; /* zinc-900 */
 }
 
 .dark .docs-subnav-link[data-active="true"],
 .dark .docs-subnav-link[aria-current="page"] {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
 /* Hover state for type: 'main' nav links (University, Blog) - direct <a> children, not wrapped in buttons */
+/* v2: quiet squared hover — a whisper of surface, ink darkens, no shadow */
 nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  background-color: rgba(0, 0, 0, 0.04) !important;
+  box-shadow: none !important;
+  color: rgb(24 24 27) !important; /* zinc-900 */
 }
 
 .dark nav li > a:hover:not([data-active="true"]):not([aria-current="page"]) {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+  color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
-/* Active navigation item highlighting - matches hover size and prominence */
+/* Active navigation item - full ink plus a red rule underneath, like the
+   /v2 progress rule. No pill, no shadow. */
 nav a[data-active="true"],
 nav a[aria-current="page"],
 nav button[data-active="true"],
 nav button[aria-current="page"] {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  color: rgb(24 24 27) !important; /* zinc-900 */
   cursor: default !important;
 }
 
@@ -1024,8 +1159,9 @@ nav button[aria-current="page"] {
 .dark nav a[aria-current="page"],
 .dark nav button[data-active="true"],
 .dark nav button[aria-current="page"] {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
 /* Keep active state on hover - prevent further changes */
@@ -1033,8 +1169,8 @@ nav a[data-active="true"]:hover,
 nav a[aria-current="page"]:hover,
 nav button[data-active="true"]:hover,
 nav button[aria-current="page"]:hover {
-  background-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
   transform: none !important;
   scale: 1 !important;
 }
@@ -1043,8 +1179,8 @@ nav button[aria-current="page"]:hover {
 .dark nav a[aria-current="page"]:hover,
 .dark nav button[data-active="true"]:hover,
 .dark nav button[aria-current="page"]:hover {
-  background-color: rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px -1px rgba(0, 0, 0, 0.3) !important;
+  background-color: transparent !important;
+  box-shadow: inset 0 -2px 0 0 #E84142 !important;
   transform: none !important;
   scale: 1 !important;
 }
@@ -1683,4 +1819,189 @@ html.embed-mode #nd-toc {
 }
 .animate-collapsible-up {
   animation: collapsible-up 200ms cubic-bezier(0.21, 0.47, 0.32, 0.98);
+}
+
+/* /v2 story page: full-screen section snapping. The html class is added by
+   StoryHome on mount and removed on unmount, so no other route is affected.
+   Desktop-and-tall only — on small screens the sections exceed the viewport
+   and mandatory snapping would trap content, so mobile keeps natural flow.
+   `scroll-snap-stop: always` = one section per flick; scroll-padding offsets
+   the sticky navbar; the footer gets an end-align so it stays reachable
+   under mandatory snapping. */
+@media (min-width: 1024px) and (min-height: 640px) {
+  html.v2-snap {
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: 3.5rem;
+  }
+  html.v2-snap .v2-snap-section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+  html.v2-snap footer {
+    scroll-snap-align: end;
+  }
+}
+
+/* Fill progress for auto-rotating stage controls (pillar chips: X, playbook
+   edge-rule: Y). Duration is set inline to match the rotation cadence; the
+   element only renders when motion is allowed. */
+@keyframes v2-fill-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes v2-fill-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* The offering section's wire: a message shuttling between the C-Chain
+   node and the yet-unbuilt L1 node. Animating `left` is fine here; it is
+   a single 7px dot on one hairline. */
+@keyframes v2-wire-shuttle {
+  from { left: 0; }
+  to { left: calc(100% - 7px); }
+}
+.v2-wire-dot {
+  animation: v2-wire-shuttle 4s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v2-wire-dot { animation: none; }
+}
+
+/* v2: compact mega-menu. Fumadocs renders each entry as a bordered,
+   stacked card (icon box / title / description) which reads bulky; these
+   rules flatten every card into a hairline row: icon inline-left, 13px
+   title, 12px two-line-clamped description, quiet hover block. Scoped to
+   the navbar's menu viewport (#nd-nav's last direct child). */
+#nd-nav > :last-child [class*="bg-fd-card"] {
+  display: grid !important;
+  grid-template-columns: 20px 1fr;
+  column-gap: 10px;
+  row-gap: 2px;
+  align-items: start;
+  /* rows hug their content; without this, a tall sibling card (e.g. one
+     with a banner) stretches the row and the text drifts apart */
+  align-content: start;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 10px 12px !important;
+}
+#nd-nav > :last-child [class*="bg-fd-card"]:hover {
+  background: rgb(244 244 245) !important; /* zinc-100 */
+  box-shadow: inset 2px 0 0 #e6212f; /* the board rows' red hover edge */
+}
+.dark #nd-nav > :last-child [class*="bg-fd-card"]:hover {
+  background: rgb(24 24 27) !important; /* zinc-900 */
+  box-shadow: inset 2px 0 0 #e6212f;
+}
+#nd-nav > :last-child [class*="bg-fd-card"] > [class*="bg-fd-muted"] {
+  grid-row: span 8;
+  margin-top: 2px;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  color: rgb(113 113 122); /* zinc-500 */
+}
+#nd-nav > :last-child [class*="bg-fd-card"] > :not([class*="bg-fd-muted"]) {
+  grid-column: 2;
+}
+#nd-nav > :last-child [class*="bg-fd-card"] p[class*="font-medium"] {
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+}
+#nd-nav > :last-child [class*="bg-fd-card"] p[class*="muted-foreground"] {
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* tighter popover grid around the rows; every mega-menu hangs as a
+   fixed-width panel under the centered nav cluster (~52% of the header)
+   instead of sprawling across the full container */
+#nd-nav > :last-child [class*="lg:grid-cols-3"] {
+  gap: 2px !important;
+  padding: 10px !important;
+  max-width: 64rem;
+  margin-left: max(1.5rem, calc(52% - 32rem));
+  margin-right: 0;
+}
+/* four-item menus (marker: .nav-grid-2 on any card) read as a 2x2 grid */
+#nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-grid-2) {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  max-width: 44rem;
+  margin-left: max(1.5rem, calc(52% - 22rem));
+}
+/* a popover that contains a featured card becomes a two-zone panel:
+   image panel left, link rail right, at a fixed comfortable width
+   centered under the navbar instead of sprawling the full container */
+#nd-nav > :last-child [class*="lg:grid-cols-3"]:has(.nav-featured) {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) !important;
+  max-width: 56rem;
+  /* hang the panel under its trigger: the centered nav cluster puts the
+     Console item just right of the midline (~52%), so the panel centers
+     there instead of dead-center; the max() keeps it on-screen when the
+     viewport gets narrow */
+  margin-left: max(1.5rem, calc(52% - 28rem));
+  margin-right: 0;
+}
+/* featured card (a menu item with a banner): the artwork leads at its
+   natural aspect ratio, full card width, title and description beneath.
+   Neighbor cards stay tight thanks to align-content: start above. */
+#nd-nav > :last-child [class*="bg-fd-card"].nav-featured {
+  grid-template-columns: 1fr;
+}
+#nd-nav > :last-child [class*="bg-fd-card"].nav-featured > * {
+  grid-column: 1;
+}
+#nd-nav > :last-child [class*="bg-fd-card"].nav-featured .nav-banner {
+  width: 100%;
+  height: auto;
+  margin-bottom: 8px;
+}
+
+/* v2 display voice: brand-aligned heavy caps, matching avalanche.com's
+   headline grammar. Every statement on the story/solutions pages uses
+   this class, so when comms provides the brand display font (Aeonik
+   heavy or similar) the swap happens here, once. */
+.v2-display {
+  font-family: "Aeonik", var(--font-sans, ui-sans-serif), sans-serif;
+  text-transform: uppercase;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+/* Brand display face per AvalancheVisualGuidelines_7.2.2026: Aeonik, all
+   caps ("Headline alt: Aeonik Regular" is the sanctioned treatment; Black
+   is primary and should replace Medium here when comms provides the cut). */
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Aeonik";
+  src: url("/fonts/Aeonik-Black.woff2") format("woff2");
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
 }

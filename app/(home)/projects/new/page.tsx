@@ -22,7 +22,7 @@ export default async function NewProjectPage() {
           <div>
             <h1 className="pr-ttl">Create a project</h1>
             <p className="pr-sub">
-              A lightweight registration so your team can show up on Builders Hub — primarily to post Ecosystem Careers listings. You can fill in the deeper details later.
+              A lightweight registration so your team can show up on Builders Hub. You can fill in the deeper details later.
             </p>
           </div>
         </header>

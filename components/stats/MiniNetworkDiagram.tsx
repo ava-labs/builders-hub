@@ -38,6 +38,8 @@ interface MiniNetworkDiagramProps {
   autoRotateSpeed?: number;
   className?: string;
   onChainClick?: (chain: MiniChainData) => void;
+  /** Hide the nebula background and bottom CTA bar (marketing surfaces). */
+  minimal?: boolean;
 }
 
 interface ChainNode {
@@ -137,6 +139,7 @@ export default function MiniNetworkDiagram({
   autoRotateSpeed = 0.15,
   className = "",
   onChainClick,
+  minimal = false,
 }: MiniNetworkDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -782,6 +785,8 @@ export default function MiniNetworkDiagram({
       {/* Background nebula gradient - contained within component.
           Two layers toggled via the `dark` class so SSR output is theme-independent
           (reading resolvedTheme during render causes a hydration mismatch). */}
+      {!minimal && (
+      <>
       <div
         className="absolute pointer-events-none overflow-hidden dark:hidden"
         style={{
@@ -812,6 +817,8 @@ export default function MiniNetworkDiagram({
           ].join(", "),
         }}
       />
+      </>
+      )}
       <canvas
         ref={canvasRef}
         width={dimensions.width * dpr}
@@ -841,6 +848,7 @@ export default function MiniNetworkDiagram({
       )}
       
       {/* Bottom bar with CTAs */}
+      {!minimal && (
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
         <a
           href="/stats/overview"
@@ -855,6 +863,7 @@ export default function MiniNetworkDiagram({
           Explorer
         </a>
       </div>
+      )}
     </div>
   );
 }
