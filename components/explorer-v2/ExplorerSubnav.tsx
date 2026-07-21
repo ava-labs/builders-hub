@@ -314,15 +314,13 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
     if (catalogChain.isTestnet !== true) {
       tabs.push({
         label: "Validators",
-        // the C-Chain's validators ARE the Primary Network's — one page,
-        // shared with the P-Chain
+        // the C-Chain's validators ARE the Primary Network's, but the tab
+        // stays in this chain's chrome — no context switch to the P-Chain
         href:
-          chainSlug === "c-chain"
-            ? `/explorer/mainnet/p-chain/validators`
-            : `/stats/validators/${chainSlug}`,
+          chainSlug === "c-chain" ? `${base}/validators` : `/stats/validators/${chainSlug}`,
         isActive: (p) =>
           chainSlug === "c-chain"
-            ? p.startsWith("/explorer/mainnet/p-chain/validators")
+            ? p.startsWith(`${base}/validators`)
             : p.startsWith(`/stats/validators/${chainSlug}`),
       });
     }

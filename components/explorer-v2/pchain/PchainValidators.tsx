@@ -88,13 +88,23 @@ function NetworkHealth({ network }: { network: string }) {
 }
 
 export function PchainValidators({ chain, network }: { chain: string; network: string }) {
-  const base = `/explorer/${network}/${chain}`;
+  return (
+    <ExplorerShell chain={chain} network={network}>
+      <ValidatorsContent network={network} base={`/explorer/${network}/${chain}`} />
+    </ExplorerShell>
+  );
+}
+
+/* The validators body, shell-agnostic (like ChainDetailsContent): the
+   P-Chain route wraps it in the P-Chain shell; the C-Chain mounts it under
+   its own Validators tab — same set, no context switch. `base` is the
+   P-Chain explorer base, where the node detail pages live. */
+export function ValidatorsContent({ network, base }: { network: string; base: string }) {
   const { data, loading, error } = usePchainData<ValidatorsResponse>(network, "validators");
   const [shown, setShown] = useState(50);
   const validators = data?.validators ?? [];
 
   return (
-    <ExplorerShell chain={chain} network={network}>
       <section className="flex flex-col gap-4">
         <NetworkHealth network={network} />
         <SectionHeader
@@ -166,6 +176,5 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
           </>
         )}
       </section>
-    </ExplorerShell>
   );
 }
