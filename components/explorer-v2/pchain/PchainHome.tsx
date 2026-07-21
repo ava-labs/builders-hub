@@ -11,14 +11,15 @@ import {
   TxTypePill,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
-import { usePchainData } from "./hooks";
+import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import type { Stats, TxSummary, BlockSummary } from "@/lib/pchain-explorer";
 
 export function PchainHome({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
-  const stats = usePchainData<Stats>(network, "stats");
-  const txs = usePchainData<TxSummary[]>(network, "txs", { limit: 8 });
-  const blocks = usePchainData<{ blocks: BlockSummary[] }>(network, "blocks", { limit: 8 });
+  const live = { refreshMs: LIVE_REFRESH_MS };
+  const stats = usePchainData<Stats>(network, "stats", undefined, live);
+  const txs = usePchainData<TxSummary[]>(network, "txs", { limit: 8 }, live);
+  const blocks = usePchainData<{ blocks: BlockSummary[] }>(network, "blocks", { limit: 8 }, live);
 
   const s = stats.data;
   const noData = !stats.loading && (stats.error === "not found" || (s && s.tipHeight === 0));
