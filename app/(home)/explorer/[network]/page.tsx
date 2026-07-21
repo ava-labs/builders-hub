@@ -1,12 +1,27 @@
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { NetworkOverview } from "@/components/explorer-v2/network/NetworkOverview";
 
-/* /explorer/{network} → that network's default chain. The Platform Chain is
-   the explorer's front door; EVM chains hang off /explorer/{network}/{slug}. */
+export const metadata: Metadata = {
+  title: "All Networks | Avalanche Explorer",
+  description:
+    "Every Avalanche chain on one sheet — live activity, interchain messaging, validators, and AVAX, with search across the whole network.",
+  openGraph: {
+    title: "Avalanche Explorer — All Networks",
+    description:
+      "Live activity, interchain messaging, validators, and AVAX across every Avalanche chain.",
+  },
+};
+
+/* /explorer/{network} — the network scope. Mainnet carries the All Networks
+   overview (the aggregate data sources are mainnet-only); other networks
+   keep the P-Chain as their front door. */
 export default async function ExplorerNetworkHome({
   params,
 }: {
   params: Promise<{ network: string }>;
 }) {
   const { network } = await params;
-  redirect(`/explorer/${network}/p-chain`);
+  if (network !== "mainnet") redirect(`/explorer/${network}/p-chain`);
+  return <NetworkOverview />;
 }

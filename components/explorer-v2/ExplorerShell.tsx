@@ -48,8 +48,11 @@ function truncateId(id: string, max = 34) {
 }
 
 /* Search — the explorer's front door: instant local classification, "/" to
-   focus, recents on focus, API classification only for ambiguous hashes. */
-function SearchBox({ chain, network }: { chain: string; network: string }) {
+   focus, recents on focus, API classification only for ambiguous hashes.
+   Exported for the network-scope shell: with chain="p-chain" it already
+   routes every identifier to the right chain (P-Chain entities home, EVM
+   addresses to the C-Chain, tx hashes raced across every indexed chain). */
+export function SearchBox({ chain, network }: { chain: string; network: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");

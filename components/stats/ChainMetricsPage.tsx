@@ -22,7 +22,6 @@ const REQUEST_INDEXING_FORM_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 import { ImageExportStudio } from "@/components/stats/image-export";
 import { ChainIdChips } from "@/components/ui/copyable-id-chip";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
-import { StatsBubbleNav } from "@/components/stats/stats-bubble.config";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerDropdown } from "@/components/stats/ExplorerDropdown";
@@ -33,7 +32,6 @@ import { LinkableHeading } from "@/components/stats/LinkableHeading";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
-import { StatsBreadcrumb } from "@/components/navigation/StatsBreadcrumb";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
 import { BaasProviderList } from "@/components/stats/BaasProviderBadge";
 import { useSectionNavigation } from "@/hooks/use-section-navigation";
@@ -1192,7 +1190,7 @@ export default function ChainMetricsPage({
         {/* header skeleton — the rail renders for real (it only needs props);
             the identity block pulses in square, in the sheet's rhythm */}
         <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
-          {chainSlug && !isAllChainsView && (
+          {chainSlug && !isAllChainsView ? (
             <ExplorerSubnav
               network="mainnet"
               chainSlug={chainSlug}
@@ -1200,6 +1198,9 @@ export default function ChainMetricsPage({
               chainLogoURI={chainLogoURI}
               className="mb-8"
             />
+          ) : (
+            /* the aggregate view is the network scope's Stats facet */
+            <ExplorerSubnav network="mainnet" className="mb-8" />
           )}
           <div className="flex items-center gap-4">
             <div className="h-10 w-10 animate-pulse rounded-full bg-zinc-100 md:h-11 md:w-11 dark:bg-zinc-900" />
@@ -1288,7 +1289,6 @@ export default function ChainMetricsPage({
             </div>
           </section>
         </div>
-        {(!chainSlug || isAllChainsView) && <StatsBubbleNav />}
       </div>
     );
   }
@@ -1306,7 +1306,6 @@ export default function ChainMetricsPage({
             </div>
           </div>
         </div>
-        {(!chainSlug || isAllChainsView) && <StatsBubbleNav />}
       </div>
     );
   }
@@ -1373,37 +1372,11 @@ export default function ChainMetricsPage({
           ) : null}
         </div>
       ) : (
-      /* all-chains aggregate keeps its own hero until the observatory pass */
+      /* all-chains aggregate: the network scope's Stats facet — the shared
+         spine replaces the old gradient hero and breadcrumb */
       <div className="relative overflow-hidden">
-        {/* Gradient decoration on the right */}
-        {chainLogoURI && (
-          <div
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, ${themeColor}35 0%, ${themeColor}20 40%, ${themeColor}08 70%, transparent 100%)`,
-            }}
-          />
-        )}
-        {!chainLogoURI && (
-          <div
-            className="absolute top-0 right-0 w-2/3 h-full pointer-events-none"
-            style={{
-              background: `linear-gradient(to left, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.12) 40%, rgba(239, 68, 68, 0.04) 70%, transparent 100%)`,
-            }}
-          />
-        )}
-
-        <div className="relative max-w-[90rem] mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
-          {/* Breadcrumb */}
-          {chainSlug && (
-            <StatsBreadcrumb
-              chainSlug={chainSlug}
-              chainName={chainName}
-              chainLogoURI={chainLogoURI}
-              showStats={true}
-              themeColor={themeColor}
-            />
-          )}
+        <div className="relative max-w-[90rem] mx-auto px-4 sm:px-6 pt-10 pb-6 sm:pb-8">
+          <ExplorerSubnav network="mainnet" className="mb-8" />
 
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
@@ -2275,7 +2248,6 @@ export default function ChainMetricsPage({
       )}
 
       {/* Bubble Navigation — the all-chains aggregate only; chain views ride the subnav rail */}
-      {(!chainSlug || isAllChainsView) && <StatsBubbleNav />}
     </div>
   );
 }

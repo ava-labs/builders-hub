@@ -7,6 +7,7 @@ import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -38,12 +39,15 @@ type SwitcherEntry = {
 interface ExplorerSubnavProps {
   /** route network segment; defaults to mainnet */
   network?: string;
-  /** current chain slug; omit on chain-agnostic pages like the directory */
+  /** current chain slug; omit for the network scope (All Networks pages) */
   chainSlug?: string;
   chainName?: string;
   chainLogoURI?: string;
   className?: string;
 }
+
+/* The network scope's home — every ecosystem-wide facet hangs off it. */
+const NETWORK_HOME = "/explorer/mainnet";
 
 /* Chain switcher — the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
@@ -109,6 +113,11 @@ function ChainSwitcher({
   const pchainNetwork = isPchainNetwork(network) ? network : "mainnet";
   const pinned: SwitcherEntry[] = [
     {
+      slug: "all-networks",
+      name: "All Networks",
+      href: NETWORK_HOME,
+    },
+    {
       slug: "c-chain",
       name: "Contract Chain",
       logo: cChain?.chainLogoURI,
@@ -145,7 +154,8 @@ function ChainSwitcher({
   const l1sShown = l1s?.filter(matches);
 
   const row = (entry: SwitcherEntry) => {
-    const current = entry.slug === chainSlug;
+    // no chain slug = the network scope, whose row is "All Networks"
+    const current = entry.slug === (chainSlug ?? "all-networks");
     return (
       <Link
         key={entry.slug}
@@ -153,7 +163,9 @@ function ChainSwitcher({
         onClick={() => setOpen(false)}
         className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
-        {entry.logo ? (
+        {entry.slug === "all-networks" ? (
+          <AvalancheLogo className="h-5 w-5 shrink-0 text-[#E6212F]" />
+        ) : entry.logo ? (
           <img src={entry.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
         ) : (
           <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
@@ -182,15 +194,19 @@ function ChainSwitcher({
         }}
         className="group flex items-center gap-2.5 pr-1 text-left"
       >
-        {(chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI) && (
-          <img
-            src={chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI}
-            alt=""
-            className="h-5 w-5 shrink-0 rounded-full object-contain"
-          />
+        {!chainSlug ? (
+          <AvalancheLogo className="h-5 w-5 shrink-0" />
+        ) : (
+          (chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI) && (
+            <img
+              src={chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI}
+              alt=""
+              className="h-5 w-5 shrink-0 rounded-full object-contain"
+            />
+          )
         )}
         <span className="max-w-28 truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:max-w-40 md:max-w-56 dark:text-zinc-100">
-          {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All chains"}
+          {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks"}
         </span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
       </button>
@@ -231,7 +247,7 @@ function ChainSwitcher({
           <div className="border-t border-zinc-100 dark:border-zinc-900">
             {(
               [
-                ["All L1 chains", "/explorer/chains"],
+                ["All L1 chains", `${NETWORK_HOME}/chains`],
                 ["Explorer home", "/explorer"],
               ] as const
             ).map(([label, href]) => (
@@ -258,9 +274,49 @@ type Tab = { label: string; href: string; isActive: (path: string) => boolean };
 
 /* Section tabs per chain kind. Detail pages light up their list's tab
    (a block detail is still "Blocks"); on EVM chains the stats surfaces
-   are first-class sections of the same chain, so they ride here too. */
+   are first-class sections of the same chain, so they ride here too.
+   No chain at all is the widest lens — the network scope, where every
+   ecosystem-wide facet (chains, ICM, validators, apps, the token) lives. */
 function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
-  if (!chainSlug) return [];
+  if (!chainSlug) {
+    return [
+      {
+        label: "Overview",
+        href: NETWORK_HOME,
+        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview"),
+      },
+      {
+        label: "Chains",
+        href: `${NETWORK_HOME}/chains`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains"),
+      },
+      {
+        label: "Stats",
+        href: "/stats/network-metrics",
+        isActive: (p) => p.startsWith("/stats/network-metrics"),
+      },
+      {
+        label: "ICM",
+        href: `${NETWORK_HOME}/icm`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/icm`),
+      },
+      {
+        label: "Validators",
+        href: `${NETWORK_HOME}/validators`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/validators`),
+      },
+      {
+        label: "Apps",
+        href: `${NETWORK_HOME}/apps`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/apps`) || p.startsWith("/stats/dapps"),
+      },
+      {
+        label: "Token",
+        href: `${NETWORK_HOME}/token`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/token`),
+      },
+    ];
+  }
 
   if (getExplorerChain(chainSlug)?.kind === "pchain") {
     const base = `/explorer/${network}/${chainSlug}`;
@@ -322,13 +378,6 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
           chainSlug === "c-chain"
             ? p.startsWith(`${base}/validators`)
             : p.startsWith(`/stats/validators/${chainSlug}`),
-      });
-    }
-    if (chainSlug === "c-chain") {
-      tabs.push({
-        label: "Token",
-        href: "/stats/avax-token",
-        isActive: (p) => p.startsWith("/stats/avax-token"),
       });
     }
     // ICM activity needs an RPC to derive cross-chain txs from
@@ -416,7 +465,14 @@ function NetworkControl({
       </div>
     );
   }
-  if (!chainSlug) return null;
+  if (!chainSlug) {
+    // the network scope aggregates mainnet only — a static label, no toggle
+    return (
+      <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
+        Mainnet
+      </span>
+    );
+  }
 
   // EVM chain with a verified Fuji counterpart: a real toggle
   const isTestnetChain = chainSlug in MAINNET_COUNTERPART;
