@@ -23,10 +23,11 @@ const MINTING_PERIOD = 365; // days
 const CURRENT_MIN_CR = 0.1; // today's floor
 const HELICON_MIN_CR = 0.075; // ACP-285 floor after the ramp
 
-// ponytail: fixed current-supply snapshot (~475M AVAX) instead of a live fetch — the
-// chart illustrates the curve shape, not a live yield. For live numbers, fetch
-// current.supply from /api/staking-apy and pass it in as a prop.
-const SUPPLY = 475_000_000;
+// ponytail: P-Chain supply snapshot (473.1M AVAX, platform.getCurrentSupply on
+// 2026-07-21) instead of a live fetch. Supply grows over time, so these rates drift
+// down slowly; for numbers that always track parafi/live, fetch current.supply from
+// /api/staking-apy and pass it in as a prop.
+const SUPPLY = 473_115_409;
 
 const CURRENT_MIN_DAYS = 14; // 2 weeks — today's minimum (ACP-273 drops it)
 const HELICON_MIN_DAYS = 2; // 48 hours (ACP-273)
@@ -49,8 +50,8 @@ function apy(days: number, minCR: number): number {
   const periodRate = apr(days, minCR) / 100 / periods;
   return ((1 + periodRate) ** periods - 1) * 100;
 }
-// Anchor (APR, supply 475M): 14d today ~5.2%, 14d Helicon ~4.0% (drops ~1.3pp),
-// 365d ~6.2% on both — matches the section copy.
+// Anchor (APR, supply 473.1M): 14d today 5.26%, 14d Helicon 4.00% (drops ~1.3pp),
+// 365d ~6.26% on both — matches parafi's calculator and the section copy.
 
 const DURATIONS = [2, 7, 14, 21, 30, 45, 60, 90, 120, 180, 270, 365];
 
@@ -141,7 +142,11 @@ export function StakingRewardCurveChart(): JSX.Element {
         ACP-285 lowers the minimum consumption rate from 10% to 7.5% <strong>while leaving the
         maximum (1-year) rate untouched</strong>, so the curve steepens and the two lines meet at
         365 days. APY assumes rewards auto-compound each period (ACP-236). Rates use an
-        approximate current supply of 475M AVAX and the network&apos;s standard rewards formula.
+        approximate current supply of 473M AVAX and the network&apos;s standard rewards formula.
+      </div>
+      <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+        Based on the current P-Chain AVAX supply — as supply grows toward the 720M cap
+        over time, the whole curve drifts gradually lower.
       </div>
     </div>
   );
