@@ -9,6 +9,12 @@ import Image from "next/image";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/event-signatures.generated";
+import {
+  fetchVerifiedContract,
+  decodeEventWithAbi,
+  decodeFunctionWithAbi,
+  type SourcifyContract,
+} from "@/lib/sourcify-client";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -402,6 +408,22 @@ function TokenDisplay({ symbol }: { symbol?: string }) {
   return <span>{symbol}</span>;
 }
 
+/* Verified-contract label: the Sourcify name beside the raw address turns
+   "0xB31f…66c7" into "0xB31f…66c7 [✓ WAVAX]". Name may be absent (older
+   verifications) — the check alone still says "this bytecode is known". */
+function ContractBadge({ contract }: { contract?: SourcifyContract }) {
+  if (!contract) return null;
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      title={`Verified on Sourcify (${contract.match === 'exact_match' ? 'exact match' : 'match'})`}
+    >
+      <Check className="h-3 w-3" />
+      {contract.name}
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === 'success') {
     return (
@@ -449,29 +471,30 @@ export default function TransactionDetailPage({
   const [showMore, setShowMore] = useState(false);
   const [showRawInput, setShowRawInput] = useState(false);
   const [erc20Transfers, setErc20Transfers] = useState<Array<ERC20Transfer & { symbol: string; decimals: number; logoUri?: string }>>([]);
-  const [verifiedAddresses, setVerifiedAddresses] = useState<Set<string>>(new Set());
-  
-  // Check Sourcify verification for to/contract addresses
+  // Verified contracts (name + ABI) from Sourcify, keyed by lowercased
+  // address: the tx target plus every log-emitting contract. Names label
+  // the addresses; ABIs decode calldata and events the local signature
+  // registry doesn't know.
+  const [verifiedContracts, setVerifiedContracts] = useState<Map<string, SourcifyContract>>(new Map());
   useEffect(() => {
-    const addressesToCheck = [tx?.to, tx?.contractAddress].filter(Boolean) as string[];
-    if (addressesToCheck.length === 0) return;
-    
-    const checkVerification = async (address: string) => {
-      try {
-        const response = await fetch(`https://sourcify.dev/server/v2/contract/${chainId}/${address}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.match === 'match') {
-            setVerifiedAddresses(prev => new Set(prev).add(address.toLowerCase()));
-          }
-        }
-      } catch {
-        // Ignore errors
-      }
+    const targets = new Set<string>();
+    for (const a of [tx?.to, tx?.contractAddress]) if (a) targets.add(a.toLowerCase());
+    for (const log of tx?.logs ?? []) if (log.address) targets.add(log.address.toLowerCase());
+    // cap the fan-out — a mega-tx with 100 logs shouldn't fire 100 lookups
+    const list = Array.from(targets).slice(0, 16);
+    if (list.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(list.map(async (addr) => [addr, await fetchVerifiedContract(chainId, addr)] as const)).then(
+      (entries) => {
+        if (cancelled) return;
+        setVerifiedContracts(new Map(entries.filter(([, c]) => c !== null) as [string, SourcifyContract][]));
+      },
+    );
+    return () => {
+      cancelled = true;
     };
-    
-    addressesToCheck.forEach(addr => checkVerification(addr));
-  }, [tx?.to, tx?.contractAddress, chainId]);
+  }, [tx, chainId]);
   
   // Extract ERC20 transfers and fetch token info
   useEffect(() => {
@@ -745,14 +768,7 @@ export default function TransactionDetailPage({
                   >
                     {tx.to}
                   </Link>
-                    {verifiedAddresses.has(tx.to.toLowerCase()) && (
-                      <span 
-                        className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500"
-                        title="Verified on Sourcify"
-                      >
-                        <Check className="w-3 h-3 text-white" />
-                      </span>
-                    )}
+                    <ContractBadge contract={verifiedContracts.get(tx.to.toLowerCase())} />
                   </div>
                 ) : tx?.contractAddress ? (
                   <div className="flex items-center gap-2">
@@ -763,14 +779,7 @@ export default function TransactionDetailPage({
                     >
                       {tx.contractAddress}
                     </Link>
-                    {verifiedAddresses.has(tx.contractAddress.toLowerCase()) && (
-                      <span 
-                        className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500"
-                        title="Verified on Sourcify"
-                      >
-                        <Check className="w-3 h-3 text-white" />
-                      </span>
-                    )}
+                    <ContractBadge contract={verifiedContracts.get(tx.contractAddress.toLowerCase())} />
                   </div>
                 ) : (
                   <span className="text-sm text-zinc-500">-</span>
@@ -779,9 +788,16 @@ export default function TransactionDetailPage({
               copyValue={tx?.to || tx?.contractAddress || undefined}
             />
 
-            {/* Decoded Method */}
+            {/* Decoded Method — local signature registry first, then the
+                target contract's verified Sourcify ABI */}
             {(() => {
-              const decoded = tx?.input ? decodeFunctionInput(tx.input) : null;
+              const decoded = tx?.input
+                ? decodeFunctionInput(tx.input) ??
+                  decodeFunctionWithAbi(
+                    tx.to ? verifiedContracts.get(tx.to.toLowerCase())?.abi : null,
+                    tx.input,
+                  )
+                : null;
               if (!decoded) return null;
               return (
               <DetailRow
@@ -1212,8 +1228,11 @@ export default function TransactionDetailPage({
                 <div className="space-y-4">
                   {tx.logs.map((log, index) => {
                     const logIndex = parseInt(log.logIndex || '0', 16);
-                    const decodedEvent = decodeEventLog(log);
-                    
+                    const emitter = log.address ? verifiedContracts.get(log.address.toLowerCase()) : undefined;
+                    // local signature registry first, then the emitting
+                    // contract's verified Sourcify ABI
+                    const decodedEvent = decodeEventLog(log) ?? decodeEventWithAbi(emitter?.abi, log);
+
                     return (
                       <div
                         key={index}
@@ -1241,6 +1260,7 @@ export default function TransactionDetailPage({
                                 <span className="font-mono text-sm break-all">
                                   {log.address}
                                 </span>
+                                <ContractBadge contract={emitter} />
                                 <CopyButton text={log.address} />
                                 <Link
                                   href={`/explorer/mainnet/${chainSlug}`}
