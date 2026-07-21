@@ -434,7 +434,7 @@ export default function AvaxTokenPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-neutral-950">
-        <div className="container mx-auto px-6 pt-10 pb-24 max-w-7xl">
+        <div className="container mx-auto px-6 pt-10 pb-24 max-w-[90rem]">
           <ExplorerSubnav
             network="mainnet"
             chainSlug="c-chain"
@@ -472,7 +472,7 @@ export default function AvaxTokenPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-white dark:bg-neutral-950">
-        <div className="container mx-auto px-6 pt-10 pb-24 max-w-7xl">
+        <div className="container mx-auto px-6 pt-10 pb-24 max-w-[90rem]">
           <ExplorerSubnav
             network="mainnet"
             chainSlug="c-chain"
@@ -494,7 +494,7 @@ export default function AvaxTokenPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950">
-      <div className="container mx-auto px-6 pt-10 pb-24 max-w-7xl">
+      <div className="container mx-auto px-6 pt-10 pb-24 max-w-[90rem]">
           <ExplorerSubnav
         network="mainnet"
         chainSlug="c-chain"

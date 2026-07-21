@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, HashChip, SectionHeader, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -15,7 +15,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
 
   return (
     <ExplorerShell chain={chain} network={network}>
-      {loading && <div className="h-40 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />}
+      {loading && <DetailSkeleton label="Address" />}
       {error && <NotFound label="Address not found" id={addr} />}
       {a && (
         <div className="flex flex-col gap-10">

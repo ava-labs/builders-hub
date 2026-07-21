@@ -721,7 +721,7 @@ export default function CChainValidatorMetrics() {
       <div className="min-h-screen bg-white dark:bg-zinc-950">
         {/* header skeleton — the rail renders for real; the identity block
             pulses in square, in the sheet's rhythm */}
-        <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+        <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
           <ExplorerSubnav
             network="mainnet"
             chainSlug="c-chain"
@@ -736,7 +736,7 @@ export default function CChainValidatorMetrics() {
         </div>
         {/* Navbar Skeleton */}
         <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-2 py-3 px-4 sm:px-6 max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 py-3 px-4 sm:px-6 max-w-[90rem] mx-auto">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
@@ -746,7 +746,7 @@ export default function CChainValidatorMetrics() {
           </div>
         </div>
         {/* Content Skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
           {/* Section header skeleton */}
           <div className="space-y-2 animate-pulse">
             <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -814,7 +814,7 @@ export default function CChainValidatorMetrics() {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       {/* the shared spine + identity block, same as the explorer */}
-      <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+      <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
         <ExplorerSubnav
           network="mainnet"
           chainSlug="c-chain"
@@ -896,7 +896,7 @@ export default function CChainValidatorMetrics() {
         />
       </StickyNavBar>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
+      <main className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
             <LinkableHeading as="h2" id="trends" className="text-lg sm:text-2xl font-medium text-left">

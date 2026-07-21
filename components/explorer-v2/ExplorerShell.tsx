@@ -14,6 +14,7 @@ import {
   type SearchResult,
 } from "@/lib/pchain-explorer";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node";
 
@@ -113,7 +114,9 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
   return (
     <div className="relative w-full">
       <form onSubmit={submit} className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+        {/* z-10: the input's backdrop-blur forms a stacking context that
+            otherwise paints over this icon, leaving a blurred smudge */}
+        <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
         <input
           ref={inputRef}
           value={q}
@@ -194,25 +197,38 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
 export function ExplorerShell({
   chain,
   network,
+  aside,
   children,
 }: {
   chain: string;
   network: string;
+  /** Optional right-hand companion for the title row (e.g. a live figure). */
+  aside?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const c = getExplorerChain(chain) ?? EXPLORER_CHAINS["p-chain"];
   return (
     <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-7xl px-5 pb-24 pt-10 md:px-6">
+      {/* the drafting-sheet triangle lattice, snowfall only — visible in the
+          margins; the content column is an opaque sheet laid on top of it,
+          bounded by the vertical rules */}
+      <SheetBackdrop snowOnly />
+      <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         {/* the app's spine: chain switcher, section tabs, network */}
         <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
         <header className="flex flex-col gap-6 pb-10">
           {/* title row. pl-0!/pr-0! override the global `header > div` navbar
               padding hack (global.css) that otherwise pushes it in by 3rem. */}
-          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
-            <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
-              {c.title}<span className="text-[#E6212F]">.</span>
-            </h1>
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
+            <div className="flex flex-col gap-2.5">
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+                Avalanche Primary Network
+              </p>
+              <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
+                {c.title}<span className="text-[#E6212F]">.</span>
+              </h1>
+            </div>
+            {aside}
           </div>
           {/* search — its own full-width row */}
           <SearchBox chain={chain} network={network} />

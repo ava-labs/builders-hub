@@ -196,7 +196,8 @@ function ChainSwitcher({
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-30 w-80 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        // z-50: must clear the stats pages' sticky section bar (z-40)
+        <div className="absolute left-0 top-full z-50 w-80 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="relative border-b border-zinc-100 dark:border-zinc-900">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -328,6 +329,23 @@ function counterpartTarget(slug: string, pathname: string): string {
   return `/explorer/mainnet/${slug}`;
 }
 
+/* Switching P-Chain networks keeps the section you're on. Entity pages
+   fall back to their parent list — a block height or tx hash means
+   nothing on the other network. */
+function pchainNetworkTarget(network: string, chainSlug: string, pathname: string): string {
+  const base = `/explorer/${network}/${chainSlug}`;
+  const section = pathname.split("/").filter(Boolean)[3];
+  const list =
+    section === "blocks" || section === "block"
+      ? "blocks"
+      : section === "txs" || section === "tx"
+        ? "txs"
+        : section === "validators" || section === "node"
+          ? "validators"
+          : "";
+  return list ? `${base}/${list}` : base;
+}
+
 /* Network control: the P-Chain spans networks, so it gets the segmented
    switcher; EVM chains get a Mainnet/Fuji toggle when a verified
    counterpart chain exists, and a static label otherwise. */
@@ -341,7 +359,7 @@ function NetworkControl({
   pathname: string;
 }) {
   const c = chainSlug ? getExplorerChain(chainSlug) : undefined;
-  if (c && c.kind === "pchain") {
+  if (chainSlug && c && c.kind === "pchain") {
     return (
       <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
         {c.networks.map((n) => {
@@ -349,7 +367,7 @@ function NetworkControl({
           return (
             <Link
               key={n}
-              href={`/explorer/${n}/${chainSlug}`}
+              href={pchainNetworkTarget(n, chainSlug, pathname)}
               className={cn(
                 "px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
                 active

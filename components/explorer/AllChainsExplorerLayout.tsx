@@ -70,7 +70,7 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
 
   return (
     <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-7xl px-5 pb-4 pt-10 md:px-6">
+      <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-4 pt-10 md:px-6">
         {/* the app's spine — chain-agnostic here, so just the switcher */}
         <ExplorerSubnav className="mb-8" />
         <header className="flex flex-col gap-6 pb-6">

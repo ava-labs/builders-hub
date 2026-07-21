@@ -19,7 +19,9 @@ export function SectionHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-4", className)}>
+    // min-h keeps headers the same height whether or not they carry an
+    // action chip, so side-by-side boards always start at the same y
+    <div className={cn("flex min-h-6 items-center gap-4", className)}>
       <p className="shrink-0 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
         {label}
       </p>
@@ -69,16 +71,19 @@ export function SpecRow({
   align?: "baseline" | "start";
 }) {
   return (
+    // hierarchy over volume: quiet mono label, sans value. Mono in the value
+    // column is reserved for identifiers (HashChip carries its own font-mono),
+    // so hashes read as data while types, dates, and amounts read as language.
     <div
       className={cn(
-        "flex justify-between gap-6 py-2.5",
+        "flex justify-between gap-6 py-3.5",
         align === "baseline" ? "items-baseline" : "items-start",
       )}
     >
-      <dt className="shrink-0 font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-right font-mono text-[11px] tracking-[0.08em] text-zinc-900 dark:text-zinc-50">
+      <dd className="min-w-0 text-right text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
         {children}
       </dd>
     </div>
@@ -90,17 +95,24 @@ export function SpecRow({
 function useCountUp(value: number, animateIn: boolean) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-40px" });
-  const [display, setDisplay] = useState(animateIn ? 0 : value);
+  // live figures re-render with fresh values (polling); tween from wherever
+  // the counter currently sits instead of replaying the 0→value entrance.
+  const current = useRef(animateIn ? 0 : value);
+  const [display, setDisplay] = useState(current.current);
   useEffect(() => {
     if (!animateIn) {
+      current.current = value;
       setDisplay(value);
       return;
     }
     if (!inView) return;
-    const controls = animate(0, value, {
+    const controls = animate(current.current, value, {
       duration: 1.2,
       ease: [0.22, 1, 0.36, 1],
-      onUpdate: (v) => setDisplay(Math.round(v)),
+      onUpdate: (v) => {
+        current.current = v;
+        setDisplay(Math.round(v));
+      },
     });
     return () => controls.stop();
   }, [inView, value, animateIn]);
@@ -111,16 +123,21 @@ export function StatFigure({
   value,
   animateIn = true,
   suffix,
+  className,
 }: {
   value: number;
   animateIn?: boolean;
   suffix?: string;
+  className?: string;
 }) {
   const { ref, display } = useCountUp(value, animateIn);
   return (
     <span
       ref={ref}
-      className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50"
+      className={cn(
+        "font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50",
+        className,
+      )}
     >
       {display.toLocaleString("en-US")}
       {suffix && <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">{suffix}</span>}
@@ -180,6 +197,71 @@ export function StatStrip({ children, cols = 4 }: { children: React.ReactNode; c
 }
 
 /* ------------------------------------------------------------------ */
+/* Detail-page skeleton — the page's real chrome lands instantly (the
+   section header and board frames); only the data slots shimmer. The
+   sweep runs left→right with the avalanche ease (sharp attack, long
+   decay), cascading row by row down the plate.                        */
+
+function Bone({ className, delay = 0 }: { className?: string; delay?: number }) {
+  return (
+    <span className={cn("relative block overflow-hidden bg-zinc-100 dark:bg-zinc-900", className)}>
+      <span
+        data-bone-sweep
+        className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/90 to-transparent dark:via-zinc-700/40"
+        style={{
+          animation: `v2-bone-sweep 1.4s cubic-bezier(0.22, 1, 0.36, 1) ${delay}s infinite`,
+          transform: "translateX(-100%)",
+        }}
+      />
+    </span>
+  );
+}
+
+const SKELETON_ROW_WIDTHS = ["w-3/5", "w-28", "w-44", "w-56", "w-36"];
+
+export function DetailSkeleton({ label }: { label: string }) {
+  return (
+    <div role="status" aria-label={`Loading ${label}`} className="flex flex-col gap-10">
+      <style>{`
+        @keyframes v2-bone-sweep { from { transform: translateX(-100%); } to { transform: translateX(400%); } }
+        @media (prefers-reduced-motion: reduce) { [data-bone-sweep] { animation: none !important; } }
+      `}</style>
+
+      {/* section header: real label + the red "alive" pulse while we fetch */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <p className="flex shrink-0 items-center gap-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+            </span>
+            {label}
+          </p>
+          <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+          <Bone className="h-5 w-24" delay={0.1} />
+        </div>
+
+        {/* two rails of spec-plate row shapes, like the loaded page */}
+        <div className="grid items-start gap-8 lg:grid-cols-2">
+          {[0, 1].map((col) => (
+            <Board key={col} divide={false} className="px-5 py-2 md:px-6">
+              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                {SKELETON_ROW_WIDTHS.map((w, i) => (
+                  <div key={i} className="flex items-center justify-between gap-6 py-3.5">
+                    <Bone className="h-2.5 w-20 shrink-0" delay={col * 0.2 + i * 0.08} />
+                    <Bone className={cn("h-2.5", w)} delay={col * 0.2 + i * 0.08} />
+                  </div>
+                ))}
+              </div>
+            </Board>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* HashChip — mono truncated hash/address with copy                    */
 export function HashChip({
   value,
@@ -207,13 +289,13 @@ export function HashChip({
     }
   };
   const text = truncate(value, len);
-  const textCls = cn(mono && "font-mono", "text-[12px] tracking-tight");
+  const textCls = cn(mono && "font-mono", "text-[13px] font-medium tracking-tight");
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
       {href ? (
         <Link
           href={href}
-          className={cn(textCls, "text-zinc-900 underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-zinc-100")}
+          className={cn(textCls, "text-[#0061E2] underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-[#5f9dff]")}
           title={value}
         >
           {text}
@@ -284,13 +366,28 @@ export function TxTypePill({ type, className }: { type: string; className?: stri
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em]",
+        "inline-flex min-w-0 max-w-full items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em]",
         PILL_TONES[tone],
         className,
       )}
     >
       <span className="size-1 shrink-0 bg-current opacity-80" aria-hidden />
-      {type}
+      <span className="truncate">{type}</span>
     </span>
   );
+}
+
+/* Text-only variant of the pill tones, for surfaces (like the block tape)
+   where a bordered badge is too heavy but the family color still reads. */
+const TONE_TEXT = {
+  stake: "text-[#3f7d43] dark:text-[#77c47b]",
+  reward: "text-[#9c7112] dark:text-[#e2b953]",
+  subnet: "text-[#0052bd] dark:text-[#5f9dff]",
+  crosschain: "text-[#0c7590] dark:text-[#3fc1dc]",
+  danger: "text-[#c11824] dark:text-[#ff6b73]",
+  neutral: "text-zinc-500 dark:text-zinc-400",
+} as const;
+
+export function txToneText(type: string): string {
+  return TONE_TEXT[pillTone(type)];
 }

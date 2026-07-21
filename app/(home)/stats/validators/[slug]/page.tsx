@@ -337,7 +337,7 @@ export default function ChainValidatorsPage() {
     return (
       <div className="min-h-screen bg-white dark:bg-zinc-950">
         <div className="border-b border-zinc-200 dark:border-zinc-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-8 sm:pb-12">
+          <div className="max-w-[90rem] mx-auto px-4 sm:px-6 pt-10 pb-8 sm:pb-12">
             {/* the rail renders for real during loading — identity comes from the catalog */}
             <ExplorerSubnav
               network="mainnet"
@@ -365,7 +365,7 @@ export default function ChainValidatorsPage() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
           {/* Version Breakdown Skeleton */}
           <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0">
             <div className="p-6 animate-pulse">
@@ -491,7 +491,7 @@ export default function ChainValidatorsPage() {
     return (
       <div className="min-h-screen bg-white dark:bg-zinc-950">
         <div className="border-b border-zinc-200 dark:border-zinc-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
+          <div className="max-w-[90rem] mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-8 sm:pb-12">
             <ExplorerSubnav
               network="mainnet"
               chainSlug={slug}
@@ -500,7 +500,7 @@ export default function ChainValidatorsPage() {
             />
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center space-y-4">
               <Activity className="h-12 w-12 text-red-500 mx-auto" />
@@ -517,7 +517,7 @@ export default function ChainValidatorsPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       {/* the shared spine + identity block, same as the explorer */}
-      <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+      <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
         <ExplorerSubnav
           network="mainnet"
           chainSlug={chainInfo.slug}
@@ -609,7 +609,7 @@ export default function ChainValidatorsPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+      <main className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
         {/* Version Breakdown Card */}
         {versionBreakdown && availableVersions.length > 0 && (
           <VersionBreakdownCard

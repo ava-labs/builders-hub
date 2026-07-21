@@ -13,7 +13,6 @@ import {
   compareVersions,
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
-import { ValidatorWorldMap } from "@/components/stats/ValidatorWorldMap";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
 import type { ValidatorsResponse } from "@/lib/pchain-explorer";
@@ -21,8 +20,8 @@ import type { ValidatorsResponse } from "@/lib/pchain-explorer";
 const PRIMARY_NETWORK_ID = "11111111111111111111111111111111LpoYY";
 
 /* Network health — the stats surface folded into the explorer: client
-   version breakdown for the Primary Network (per network), the validator
-   world map on mainnet, and the hand-off to the full staking dashboard. */
+   version breakdown for the Primary Network (per network) and the
+   hand-off to the full staking dashboard (which owns the world map). */
 function NetworkHealth({ network }: { network: string }) {
   const [versions, setVersions] = useState<VersionBreakdownData | null>(null);
 
@@ -56,12 +55,10 @@ function NetworkHealth({ network }: { network: string }) {
     ? Object.values(versions.byClientVersion).reduce((sum, v) => sum + v.nodes, 0)
     : 0;
 
-  if (!versions && network !== "mainnet") return null;
+  if (!versions || !latest || !stats) return null;
 
   return (
-    <div className={`grid gap-4 ${network === "mainnet" ? "lg:grid-cols-2" : ""}`}>
-      {versions && latest && stats && (
-        <Board divide={false}>
+    <Board divide={false}>
           <div className="flex h-full flex-col gap-4 px-5 py-5 md:px-6">
             <div className="flex items-baseline justify-between gap-4">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
@@ -86,10 +83,7 @@ function NetworkHealth({ network }: { network: string }) {
               </Link>
             )}
           </div>
-        </Board>
-      )}
-      {network === "mainnet" && <ValidatorWorldMap />}
-    </div>
+    </Board>
   );
 }
 

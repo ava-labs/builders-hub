@@ -1191,7 +1191,7 @@ export default function ChainMetricsPage({
       <div className="min-h-screen bg-white dark:bg-zinc-950">
         {/* header skeleton — the rail renders for real (it only needs props);
             the identity block pulses in square, in the sheet's rhythm */}
-        <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+        <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
           {chainSlug && !isAllChainsView && (
             <ExplorerSubnav
               network="mainnet"
@@ -1211,7 +1211,7 @@ export default function ChainMetricsPage({
         {/* Navbar Skeleton */}
         <div className="sticky top-14 z-40 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
           <div className="w-full">
-            <div className="flex items-center gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-7xl mx-auto">
+            <div className="flex items-center gap-2 overflow-x-auto py-3 px-4 sm:px-6 max-w-[90rem] mx-auto">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
@@ -1222,7 +1222,7 @@ export default function ChainMetricsPage({
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
+        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
           {/* Network Overview Skeleton */}
           <section className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
@@ -1335,7 +1335,7 @@ export default function ChainMetricsPage({
     <div className="min-h-screen bg-white dark:bg-zinc-950">
       {chainSlug && !isAllChainsView ? (
         /* chain view: the shared spine + identity block, same as the explorer */
-        <div className="relative mx-auto w-full max-w-7xl px-5 pt-10 pb-8 md:px-6">
+        <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
           <ExplorerSubnav
             network="mainnet"
             chainSlug={chainSlug}
@@ -1393,7 +1393,7 @@ export default function ChainMetricsPage({
           />
         )}
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
+        <div className="relative max-w-[90rem] mx-auto px-4 sm:px-6 pt-8 sm:pt-16 pb-6 sm:pb-8">
           {/* Breadcrumb */}
           {chainSlug && (
             <StatsBreadcrumb
@@ -1624,7 +1624,7 @@ export default function ChainMetricsPage({
         </div>
       </StickyNavBar>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
+      <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12 sm:space-y-16">
         {/* Loading skeleton for filter changes (not initial load) */}
         {loading && !isInitialLoad && (
           <div className="space-y-12 sm:space-y-16">

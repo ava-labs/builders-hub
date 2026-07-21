@@ -10,6 +10,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
 
@@ -155,7 +156,12 @@ export function ExplorerLayout({
 
   return (
     <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
-      <div className="relative mx-auto w-full max-w-7xl px-5 pb-4 pt-10 md:px-6">
+      {/* the drafting-sheet triangle lattice, snowfall only — visible in the
+          margins; the content column is an opaque sheet laid on top of it,
+          bounded by the vertical rules */}
+      <SheetBackdrop snowOnly />
+      <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+      <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-4 pt-10 md:px-6">
         {/* the app's spine: chain switcher, section tabs, network. Rendered
             during loading too — the chain identity comes in via props. */}
         <ExplorerSubnav
@@ -199,7 +205,7 @@ export function ExplorerLayout({
             {showSearch && (
               <div className="w-full">
                 <form onSubmit={handleSearch} className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
+                  <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
                   <input
                     value={searchQuery}
                     onChange={(e) => {
@@ -245,7 +251,7 @@ export function ExplorerLayout({
 
       {/* Glacier Support Warning - the sheet's voice: square, mono, edge bar */}
       {!loading && !isTokenDataLoading && glacierSupported === false && (
-        <div className="mx-auto w-full max-w-7xl px-5 md:px-6">
+        <div className="relative mx-auto w-full max-w-[90rem] px-5 md:px-6">
           <div className="flex items-start gap-4 border border-zinc-200 border-l-2 border-l-amber-500 bg-white/80 px-4 py-3 backdrop-blur-sm dark:border-zinc-800 dark:border-l-amber-500 dark:bg-zinc-950/80">
             <p className="text-sm text-zinc-600 dark:text-zinc-300">
               <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-500">
@@ -259,13 +265,13 @@ export function ExplorerLayout({
         </div>
       )}
 
-      {/* Page Content */}
-      {children}
+      {/* Page Content — relative so it paints above the fixed snow canvas */}
+      <div className="relative">{children}</div>
 
       {/* the chain's story reads as a colophon, not a header blurb — only on
           the overview page, where someone might actually be meeting the chain */}
       {!loading && showSearch && description && (
-        <div className="mx-auto w-full max-w-7xl px-5 pb-16 pt-4 md:px-6">
+        <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-16 pt-4 md:px-6">
           <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
               About {chainName}
@@ -274,6 +280,7 @@ export function ExplorerLayout({
           </div>
         </div>
       )}
+      </div>
     </main>
   );
 }

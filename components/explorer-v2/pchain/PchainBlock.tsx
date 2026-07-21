@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -14,7 +14,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
 
   return (
     <ExplorerShell chain={chain} network={network}>
-      {loading && <div className="h-40 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />}
+      {loading && <DetailSkeleton label="Block" />}
       {error && <NotFound label="Block not found" id={id} />}
       {b && (
         <div className="flex flex-col gap-10">
