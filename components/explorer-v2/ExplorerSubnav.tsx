@@ -108,13 +108,13 @@ function ChainSwitcher({
 
   const pchainNetwork = isPchainNetwork(network) ? network : "mainnet";
   const pinned: SwitcherEntry[] = [
-    { slug: "p-chain", name: "Platform Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
     {
       slug: "c-chain",
-      name: cChain?.chainName ?? "Avalanche C-Chain",
+      name: "Contract Chain",
       logo: cChain?.chainLogoURI,
       href: "/explorer/mainnet/c-chain",
     },
+    { slug: "p-chain", name: "Platform Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
@@ -190,7 +190,7 @@ function ChainSwitcher({
           />
         )}
         <span className="max-w-40 truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 md:max-w-56 dark:text-zinc-100">
-          {chainName ?? "All chains"}
+          {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All chains"}
         </span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
       </button>
@@ -281,11 +281,24 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   }
 
   const base = `/explorer/${network}/${chainSlug}`;
-  const tabs: Tab[] = [{ label: "Overview", href: base, isActive: (p) => p.startsWith(base) }];
+  const tabs: Tab[] = [
+    {
+      label: "Overview",
+      href: base,
+      isActive: (p) => p.startsWith(base) && !p.startsWith(`${base}/details`),
+    },
+  ];
 
   // custom chains (localStorage imports) have no stats surfaces
   const catalogChain = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
   if (catalogChain) {
+    if (catalogChain.blockchainId) {
+      tabs.push({
+        label: "Details",
+        href: `${base}/details`,
+        isActive: (p) => p.startsWith(`${base}/details`),
+      });
+    }
     tabs.push({
       label: "Stats",
       href: `/stats/l1/${chainSlug}`,
