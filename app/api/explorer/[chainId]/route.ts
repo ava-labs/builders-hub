@@ -533,12 +533,19 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     timing.receiptsCount = 0;
   }
 
-  // Build Block array with gas fees from receipts
+  // Build Block array with gas fees from receipts. When receipts were
+  // skipped (initialLoad), fall back to header math — gasUsed × baseFee is
+  // free (both live in the block header) and on Avalanche it's the burn
+  // floor, so the fees column is never blank.
   const blocks: Block[] = validBlocks.map((block, blockIndex) => {
-    const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
+    let gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
+    let burnedFeeWei = blockBurnedFees.get(blockIndex) || BigInt(0);
+    if (gasFeeWei === BigInt(0) && block.baseFeePerGas && block.gasUsed) {
+      const headerBurn = BigInt(block.gasUsed) * BigInt(block.baseFeePerGas);
+      gasFeeWei = headerBurn;
+      burnedFeeWei = headerBurn;
+    }
     const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
-
-    const burnedFeeWei = blockBurnedFees.get(blockIndex) || BigInt(0);
     const burnedFee = burnedFeeWei > 0 ? (Number(burnedFeeWei) / 1e18).toFixed(18) : undefined;
 
     // Parse timestampMilliseconds for Avalanche (hex string to number)

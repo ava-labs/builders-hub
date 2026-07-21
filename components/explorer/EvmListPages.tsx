@@ -33,6 +33,37 @@ interface EvmTx {
 
 const POLL_MS = 15_000;
 
+/* Gas capacity, toned like a gauge: quiet grey while there's headroom,
+   green as the block carries real load, amber when it's working, brand
+   red when it's slammed. */
+function gasCapacity(gasUsed: string, gasLimit: string): { pct: number; tone: string } | null {
+  const used = Number(gasUsed.replace(/,/g, ""));
+  const limit = Number(gasLimit?.replace(/,/g, "") ?? "");
+  if (!Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0) return null;
+  const pct = (used / limit) * 100;
+  const tone =
+    pct >= 80 ? "#E6212F" : pct >= 50 ? "#f59e0b" : pct >= 25 ? "#10b981" : "#a1a1aa";
+  return { pct, tone };
+}
+
+function CapacityGauge({ gasUsed, gasLimit }: { gasUsed: string; gasLimit: string }) {
+  const cap = gasCapacity(gasUsed, gasLimit);
+  if (!cap) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5" title={`${gasUsed} / ${gasLimit} gas`}>
+      <span className="h-1 w-10 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        <span
+          className="block h-full"
+          style={{ width: `${Math.min(100, Math.max(2, cap.pct))}%`, background: cap.tone }}
+        />
+      </span>
+      <span className="w-9 text-right font-mono text-[11px] tabular-nums" style={{ color: cap.tone }}>
+        {cap.pct < 1 ? "<1" : Math.round(cap.pct)}%
+      </span>
+    </span>
+  );
+}
+
 function useExplorerFeed<T>(
   chainId: string,
   pick: (data: Record<string, unknown>) => T,
@@ -126,9 +157,12 @@ export function EvmBlocksPage({
                   <CellLabel>Txns</CellLabel>
                   {b.transactionCount}
                 </div>
-                <div className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                <div className="min-w-0 font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
                   <CellLabel>Gas Used</CellLabel>
-                  {b.gasUsed}
+                  <span className="flex items-center gap-2.5 md:justify-end">
+                    <span className="truncate">{b.gasUsed}</span>
+                    <CapacityGauge gasUsed={b.gasUsed} gasLimit={b.gasLimit} />
+                  </span>
                 </div>
                 <div className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                   <CellLabel>Fees Burned</CellLabel>
