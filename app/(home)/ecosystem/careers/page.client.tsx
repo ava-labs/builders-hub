@@ -8,6 +8,7 @@ import { HiringCta } from '@/components/ecosystem-careers/HiringCta';
 import { SnowballTalentCta } from '@/components/ecosystem-careers/SnowballTalentCta';
 import { UnlockPrompt } from '@/components/ecosystem-careers/UnlockPrompt';
 import { DevRelReviewLink } from '@/components/ecosystem-careers/DevRelReviewLink';
+import SheetBackdrop from '@/components/landing-v2/SheetBackdrop';
 import type { CompanyOption, SerializableJobCard } from '@/server/services/ecosystemCareers/queries';
 
 interface Props {
@@ -104,30 +105,21 @@ export default function EcosystemCareersClient({
   }
 
   return (
-    <>
-      {/* Match the page-level surface used by /integrations and other home
-          pages: subtle slate-to-white gradient with a faint grid overlay in
-          light mode; flat near-black in dark mode. Fixed so it stays put
-          while content scrolls. */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-[#0A0A0A] dark:via-[#0A0A0A] dark:to-[#0A0A0A]">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] dark:bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)]" />
-        </div>
-      </div>
-      <main className="relative">
+    <main className="relative bg-white dark:bg-zinc-950">
+      {/* Shared landing-v2 hex-lattice backdrop (both themes). snowOnly: a
+          quiet flurry, no avalanche release — this isn't a story page. */}
+      <SheetBackdrop snowOnly />
+      <div className="relative">
         <section className="px-4 pt-16 pb-10">
         <div className="max-w-5xl mx-auto text-center space-y-5">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.95]">
-            <span className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent dark:from-white dark:via-slate-100 dark:to-white">
-              Ecosystem Careers
-            </span>
+          <p className="font-mono text-[11px] tracking-[0.22em] uppercase text-zinc-500 dark:text-zinc-400">
+            Avalanche Ecosystem
+          </p>
+          <h1 className="v2-display text-4xl sm:text-5xl lg:text-6xl leading-[0.95] text-zinc-900 dark:text-zinc-50">
+            Ecosystem Careers
+            <span className="block text-[#E6212F]">Build on Avalanche.</span>
           </h1>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight">
-            <span className="bg-gradient-to-r from-red-600 to-red-500 bg-clip-text text-transparent">
-              Build on Avalanche.
-            </span>
-          </h2>
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-300 max-w-2xl mx-auto">
             Open roles from teams across the Avalanche ecosystem. Click into a listing to read more and apply on the company&apos;s site.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -140,13 +132,13 @@ export default function EcosystemCareersClient({
               />
             )}
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-500 max-w-2xl mx-auto pt-2">
-            Listings are reviewed and sourced externally. When you click through, you&apos;ll leave Builders Hub for a third-party site — we don&apos;t host applications, and per our{' '}
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto pt-2">
+            Listings are reviewed and sourced externally. When you click through, you&apos;ll leave Builders Hub for a third-party site; we don&apos;t host applications, and per our{' '}
             <a
               href="https://www.avax.network/privacy-policy"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-slate-700 dark:hover:text-slate-300"
+              className="underline hover:text-zinc-700 dark:hover:text-zinc-300"
             >
               privacy policy
             </a>{' '}
@@ -220,7 +212,7 @@ export default function EcosystemCareersClient({
           </div>
 
           {mounted && (
-            <div className="flex items-center justify-between text-sm text-zinc-500 dark:text-zinc-400" suppressHydrationWarning>
+            <div className="flex items-center justify-between font-mono text-[11px] tracking-[0.18em] uppercase text-zinc-500 dark:text-zinc-400" suppressHydrationWarning>
               <span>
                 {hasFilters
                   ? `${filtered.length} of ${initialJobs.length} roles shown`
@@ -238,7 +230,7 @@ export default function EcosystemCareersClient({
                     setCompanyId(null);
                     setRemoteType(null);
                   }}
-                  className="text-red-600 dark:text-red-400 hover:underline"
+                  className="text-[#E6212F] hover:underline"
                 >
                   Reset filters
                 </button>
@@ -265,8 +257,8 @@ export default function EcosystemCareersClient({
           )}
         </div>
       </section>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }
 
