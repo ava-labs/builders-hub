@@ -8,6 +8,7 @@ comments: true
 ---
 
 import { HeliconSaeDiagram } from "@/components/sae/HeliconSaeDiagrams";
+import { StakingRewardCurveChart } from "@/components/content-design/staking-reward-curve-chart";
 
 ## Introducing the Helicon Upgrade
 
@@ -84,6 +85,8 @@ ACP-236 and ACP-273 both make short-term staking more attractive, which widens a
 It lowers the mean consumption rate from 10% to 7.5%, pulling the overall annualized reward rate (ARR) down from about 5.4% to 4% while leaving the one-year rate at the top of the curve where it is. Because the maximum consumption rate is untouched, the curve steepens rather than simply dropping: the spread between the shortest and longest stakes widens from about 1 percentage point toward 2.3. Structural modeling of validator and delegator behavior estimates the stake-weighted average staking duration rises by roughly two months and annual inflation falls by 0.5 to 1 percentage point, which also stretches the security-budget runway against the 720M supply cap.
 
 ACP-285 ramps in over roughly 90 days from Helicon's activation, starting at 10% and settling at 7.5% along a straight line, so protocols and strategies priced on current rates can reprice instead of absorbing a discontinuous shock.
+
+<StakingRewardCurveChart />
 
 <Callout type="info" title="Note">
 A 2.5-point cut to the mean consumption rate is not a 2.5-point cut to yield. The remaining-supply-ratio multiplier means the shortest-duration rate drops only about 1.3 points.
