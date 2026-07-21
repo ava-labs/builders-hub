@@ -19,6 +19,7 @@ import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
+import { useContractNames } from "@/lib/sourcify-client";
 
 // Get chain info from hex blockchain ID (checks both static and custom chains)
 export function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
@@ -382,6 +383,12 @@ export default function L1ExplorerPage({
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
   const [accumulatedBlocks, setAccumulatedBlocks] = useState<Block[]>([]); // Accumulated blocks
   const [accumulatedTransactions, setAccumulatedTransactions] = useState<Transaction[]>([]); // Accumulated transactions
+  // Sourcify names for the visible stream's `to` contracts — "→ WAVAX"
+  // reads; "→ 0xB31f…66c7" doesn't
+  const toContractNames = useContractNames(
+    chainId,
+    accumulatedTransactions.slice(0, 10).map((t) => t.to),
+  );
   const [icmMessages, setIcmMessages] = useState<Transaction[]>([]);
   const previousDataRef = useRef<ExplorerData | null>(null);
   const isFirstLoadRef = useRef(true); // Track if this is the first load
@@ -1009,7 +1016,18 @@ export default function L1ExplorerPage({
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-3 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
                     <span className="min-w-0 truncate">
-                      {shortenAddress(tx.from)} → {tx.to ? shortenAddress(tx.to) : "contract creation"}
+                      {shortenAddress(tx.from)} →{" "}
+                      {tx.to ? (
+                        toContractNames.has(tx.to.toLowerCase()) ? (
+                          <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                            {toContractNames.get(tx.to.toLowerCase())}
+                          </span>
+                        ) : (
+                          shortenAddress(tx.to)
+                        )
+                      ) : (
+                        "contract creation"
+                      )}
                     </span>
                     <span className="shrink-0 tabular-nums">{formatTimeAgo(tx.timestamp)}</span>
                   </div>

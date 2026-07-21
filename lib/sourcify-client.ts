@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   decodeEventLog as viemDecodeEventLog,
   decodeFunctionData,
@@ -52,6 +53,46 @@ export function fetchVerifiedContract(
   })();
   inFlight.set(key, promise);
   return promise;
+}
+
+/**
+ * Verified-contract names for a rolling set of addresses — built for live
+ * tx streams, where rows come and go every poll. Resolved names accumulate
+ * across renders (a scrolled-off contract stays labelled when it returns),
+ * and the session-level fetch cache means each contract costs one request
+ * ever, no matter how many polls repeat it.
+ */
+export function useContractNames(
+  chainId: number | string,
+  addresses: Array<string | null | undefined>,
+): Map<string, string> {
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+  // the sorted unique set as a string key: polls that shuffle row order
+  // without changing the visible contracts don't re-run the effect
+  const key = Array.from(new Set(addresses.filter(Boolean).map((a) => a!.toLowerCase())))
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    const addrs = key.split(",").slice(0, 24);
+    Promise.all(addrs.map(async (a) => [a, await fetchVerifiedContract(chainId, a)] as const)).then(
+      (entries) => {
+        if (cancelled) return;
+        setNames((prev) => {
+          const next = new Map(prev);
+          for (const [a, c] of entries) if (c?.name) next.set(a, c.name);
+          return next;
+        });
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [key, chainId]);
+
+  return names;
 }
 
 /* ---- value formatting: match the generated registry's plain-string
