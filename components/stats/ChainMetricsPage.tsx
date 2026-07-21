@@ -16,7 +16,7 @@ import {
   getMAConfig,
   timeSeriesMetricToChartData,
 } from "@/utils/chart-utils";
-import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Sparkles, Monitor, ChevronRight } from "lucide-react";
+import { Users, Activity, FileText, MessageCircleMore, TrendingUp, UserPlus, Hash, Code2, Gauge, DollarSign, Clock, Fuel, ArrowUpRight, Twitter, Linkedin, Download, Camera, Monitor, ChevronRight } from "lucide-react";
 
 const REQUEST_INDEXING_FORM_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 import { ImageExportStudio } from "@/components/stats/image-export";
@@ -1702,7 +1702,7 @@ export default function ChainMetricsPage({
                 <LinkableHeading
                   as="h2"
                   id="overview"
-                  className="text-lg sm:text-2xl font-medium text-left"
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                 >
                   Network Overview
                 </LinkableHeading>
@@ -1738,18 +1738,20 @@ export default function ChainMetricsPage({
                   const Icon = item.icon;
 
                   return (
+                    // drafting-sheet stat cell: square hairline board, mono
+                    // eyebrow, big tabular figure — no shadow, no icon chip
                     <Card
                       key={item.key}
-                      className="relative overflow-hidden !bg-white dark:!bg-black border-gray-200 dark:border-zinc-800 p-4"
+                      className="relative overflow-hidden rounded-none border-zinc-200 !bg-white/80 p-5 shadow-none backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80"
                     >
-                      <div className="relative">
-                        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm mb-2">
-                          <Icon className="w-4 h-4" />
+                      <div className="relative flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                          <Icon className="h-3.5 w-3.5" />
                           {item.label}
                         </div>
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                        <div className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
                           {loading ? (
-                            <div className="h-8 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                            <div className="h-8 w-24 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
                           ) : (
                             formatNumber(currentValue)
                           )}
@@ -1767,7 +1769,7 @@ export default function ChainMetricsPage({
                 <LinkableHeading
                   as="h2"
                   id="activity"
-                  className="text-lg sm:text-2xl font-medium text-left"
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                 >
                   Activity
                 </LinkableHeading>
@@ -1866,7 +1868,7 @@ export default function ChainMetricsPage({
                 <LinkableHeading
                   as="h2"
                   id="contracts"
-                  className="text-lg sm:text-2xl font-medium text-left"
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                 >
                   Contracts
                 </LinkableHeading>
@@ -1949,7 +1951,7 @@ export default function ChainMetricsPage({
                 <LinkableHeading
                   as="h2"
                   id="performance"
-                  className="text-lg sm:text-2xl font-medium text-left"
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                 >
                   Performance
                 </LinkableHeading>
@@ -2053,7 +2055,7 @@ export default function ChainMetricsPage({
                 <LinkableHeading
                   as="h2"
                   id="fees"
-                  className="text-lg sm:text-2xl font-medium text-left"
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                 >
                   Fees
                 </LinkableHeading>
@@ -2148,7 +2150,7 @@ export default function ChainMetricsPage({
                 <LinkableHeading
                   as="h2"
                   id="interchain"
-                  className="text-lg sm:text-2xl font-medium text-left"
+                  className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                 >
                   Interchain
                 </LinkableHeading>
@@ -2202,7 +2204,7 @@ export default function ChainMetricsPage({
                   <LinkableHeading
                     as="h2"
                     id="validators"
-                    className="text-lg sm:text-2xl font-medium text-left"
+                    className="text-xl sm:text-2xl font-bold tracking-tight text-left"
                   >
                     Validators
                   </LinkableHeading>
@@ -2290,17 +2292,14 @@ function ValidatorChartPlaceholder({
   loading: boolean;
 }) {
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+    <Card className="rounded-none border-zinc-200 py-0 shadow-none dark:border-zinc-800">
       <CardContent className="p-0">
-        <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-          <div
-            className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-            style={{ backgroundColor: `${color}20` }}
-          >
-            <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
+        <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800">
+            <Monitor className="h-4 w-4" style={{ color }} />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-normal">{title}</h3>
+            <h3 className="text-base sm:text-lg font-semibold tracking-tight">{title}</h3>
             <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
               {description}
             </p>
@@ -2819,23 +2818,17 @@ function ChartCard({
 
   return (
     <Card
-      className="py-0 border-gray-200 rounded-md dark:border-gray-700"
+      className="rounded-none border-zinc-200 py-0 shadow-none dark:border-zinc-800"
       ref={chartContainerRef}
     >
       <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${config.color}20` }}
-            >
-              <Icon
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: config.color }}
-              />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800">
+              <Icon className="h-4 w-4" style={{ color: config.color }} />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">
+              <h3 className="text-base sm:text-lg font-semibold tracking-tight">
                 {config.title}
               </h3>
               <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
@@ -2892,7 +2885,7 @@ function ChartCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem onClick={() => setShowImageStudio(true)}>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Monitor className="h-4 w-4 mr-2" />
                   Open in studio
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleScreenshot}>

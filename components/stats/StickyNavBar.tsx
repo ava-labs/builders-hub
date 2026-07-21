@@ -39,10 +39,10 @@ export function StickyNavBar({
               <button
                 key={category.id}
                 onClick={() => onNavigate(category.id)}
-                className={`px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg whitespace-nowrap transition-all flex-shrink-0 ${
+                className={`border px-2.5 sm:px-3.5 py-1.5 sm:py-2 font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.14em] whitespace-nowrap transition-colors flex-shrink-0 ${
                   activeSection === category.id
-                    ? "bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 shadow-sm"
-                    : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-white dark:text-zinc-900"
+                    : "border-zinc-200 text-zinc-500 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
                 }`}
               >
                 {category.label}

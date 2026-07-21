@@ -54,7 +54,7 @@ export function PeriodSelector({
           >
             {period}
             {selected === period && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-red-500 rounded-full" />
+              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-[#E6212F]" />
             )}
           </button>
         ))}
@@ -68,13 +68,13 @@ export function PeriodSelector({
         >
           <span className="relative">
             {PERIOD_LABELS[selected]}
-            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-red-500 rounded-full" />
+            <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-[#E6212F]" />
           </span>
           <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? "rotate-180" : ""}`} />
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full mt-1 bg-white dark:bg-zinc-900 rounded-lg shadow-lg border border-zinc-200 dark:border-zinc-700 py-1 min-w-[80px] z-50">
+          <div className="absolute right-0 top-full mt-1 bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-700 py-1 min-w-[80px] z-50">
             {periods.map((period) => (
               <button
                 key={period}
@@ -90,7 +90,7 @@ export function PeriodSelector({
               >
                 {PERIOD_LABELS[period]}
                 {selected === period && (
-                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-red-500 rounded-full" />
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-[#E6212F]" />
                 )}
               </button>
             ))}
