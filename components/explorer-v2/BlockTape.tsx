@@ -25,6 +25,9 @@ export interface TapeBlock {
   labelClass?: string;
   /** preformatted age ("1m ago") */
   ago?: string;
+  /** 0..1 gas utilization — EVM blocks fill from the bottom like vessels;
+   *  omit (P-Chain) and the block renders as before */
+  fill?: number;
   href: string;
 }
 
@@ -36,7 +39,10 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
       <div className="flex gap-2 pr-2 pt-2">
         {blocks.map((b, i) => {
           const live = i === 0;
-          const carries = b.txCount > 0;
+          const hasFill = typeof b.fill === "number";
+          // with a fill level the level IS the tint — a flat carries-tint
+          // underneath would double-shade the face
+          const carries = !hasFill && b.txCount > 0;
           return (
             <motion.div
               key={b.key}
@@ -75,7 +81,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
               <Link
                 href={b.href}
                 className={cn(
-                  "relative flex h-full flex-col gap-1 px-3 py-2.5 backdrop-blur-sm transition-colors",
+                  "relative flex h-full flex-col gap-1 overflow-hidden px-3 py-2.5 backdrop-blur-sm transition-colors",
                   live
                     ? "bg-[var(--chain-accent,#E6212F)] hover:bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_80%,black)]"
                     : carries
@@ -83,9 +89,21 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                       : "border border-zinc-200 bg-white/80 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/80 dark:hover:bg-zinc-900",
                 )}
               >
+                {/* gas level — the block as a vessel, filling bottom-up.
+                    Text spans are positioned so they paint above the level. */}
+                {hasFill && (
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute inset-x-0 bottom-0",
+                      live ? "bg-black/20" : "bg-[#A2AFB2]/40 dark:bg-[#A2AFB2]/25",
+                    )}
+                    style={{ height: `${Math.min(100, Math.max(b.fill! > 0 ? 4 : 0, Math.round(b.fill! * 100)))}%` }}
+                  />
+                )}
                 <span
                   className={cn(
-                    "flex items-center gap-1.5 font-mono text-[10px] tabular-nums tracking-tight",
+                    "relative flex items-center gap-1.5 font-mono text-[10px] tabular-nums tracking-tight",
                     live ? "text-white/80" : "text-zinc-500 dark:text-zinc-400",
                   )}
                 >
@@ -99,7 +117,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 </span>
                 <span
                   className={cn(
-                    "font-mono text-[15px] tabular-nums",
+                    "relative font-mono text-[15px] tabular-nums",
                     live ? "text-white" : "text-zinc-900 dark:text-zinc-100",
                   )}
                 >
@@ -110,7 +128,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 </span>
                 <span
                   className={cn(
-                    "truncate font-mono text-[9px] uppercase tracking-[0.12em]",
+                    "relative truncate font-mono text-[9px] uppercase tracking-[0.12em]",
                     live ? "text-white/90" : (b.labelClass ?? "text-zinc-500 dark:text-zinc-400"),
                   )}
                 >
@@ -118,7 +136,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 </span>
                 <span
                   className={cn(
-                    "font-mono text-[9px] tabular-nums",
+                    "relative font-mono text-[9px] tabular-nums",
                     live ? "text-white/60" : "text-zinc-400 dark:text-zinc-600",
                   )}
                 >

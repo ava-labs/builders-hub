@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
+import { Area, AreaChart, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { BlockTape, type TapeBlock } from "@/components/explorer-v2/BlockTape";
@@ -222,6 +222,23 @@ export function formatTimeAgo(timestamp: string): string {
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   return `${Math.floor(diffInSeconds / 86400)}d ago`;
 }
+
+/* One day of C-Chain work, classified by what its logs say happened
+   (the /api/cchain-activity contract). Stack order: biggest band lowest. */
+interface CchainActivityDay {
+  date: string;
+  defi: number;
+  nft: number;
+  tokens: number;
+  other: number;
+}
+
+const ACTIVITY_SERIES: { key: keyof Omit<CchainActivityDay, "date">; label: string; tone: string }[] = [
+  { key: "tokens", label: "Tokens", tone: "#A2AFB2" },
+  { key: "other", label: "Other", tone: "#d4d4d8" },
+  { key: "defi", label: "DeFi", tone: "#E6212F" },
+  { key: "nft", label: "NFT", tone: "#52525b" },
+];
 
 function shortenAddress(address: string | null): string {
   if (!address) return '';
@@ -662,31 +679,30 @@ export default function L1ExplorerPage({
     };
   }, [chainId, fetchData]);
 
-  // Get transaction history or show empty placeholder
-  const transactionHistory = useMemo(() => {
-    if (data?.transactionHistory && data.transactionHistory.length > 0) {
-      return data.transactionHistory;
-    }
-    
-    // Return zeros as placeholder when no indexed data
-    const history: TransactionHistoryPoint[] = [];
-    const now = new Date();
-    for (let i = 13; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      history.push({
-        date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        transactions: 0,
-      });
-    }
-    return history;
-  }, [data?.transactionHistory]);
-
   // Check if we have real indexed transaction history data
   const hasIndexedTransactionHistory = useMemo(() => {
-    return data?.transactionHistory && data.transactionHistory.length > 0 && 
+    return data?.transactionHistory && data.transactionHistory.length > 0 &&
            data.transactionHistory.some(point => point.transactions > 0);
   }, [data?.transactionHistory]);
+
+  // C-Chain only: 14-day activity split by on-chain behavior (DeFi swaps /
+  // NFT transfers / token transfers / other), classified from the log
+  // archive — no contract labels needed. Other chains keep the tx line.
+  const isCchain = chainId === "43114";
+  const [activity, setActivity] = useState<CchainActivityDay[] | null>(null);
+  useEffect(() => {
+    if (!isCchain) return;
+    let cancelled = false;
+    fetch("/api/cchain-activity")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { days: CchainActivityDay[] } | null) => {
+        if (!cancelled && data?.days?.length) setActivity(data.days);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isCchain]);
 
   // Calculate TPS from accumulated blocks
   const calculatedTps = useMemo(() => {
@@ -800,12 +816,15 @@ export default function L1ExplorerPage({
 
   const tapeBlocks: TapeBlock[] = accumulatedBlocks.slice(0, 20).map((b) => {
     const gas = Number(String(b.gasUsed).replace(/,/g, ""));
+    const gasLimit = Number(String(b.gasLimit).replace(/,/g, ""));
     return {
       key: b.number,
       number: Number(b.number).toLocaleString("en-US"),
       txCount: b.transactionCount,
       label: Number.isFinite(gas) && gas > 0 ? `${compactGas(gas)} gas` : undefined,
       ago: formatTimeAgo(b.timestamp),
+      // each block fills like a vessel: level = gas consumed / gas limit
+      fill: Number.isFinite(gas) && gasLimit > 0 ? gas / gasLimit : undefined,
       href: buildBlockUrl(`/explorer/mainnet/${chainSlug}`, b.number),
     };
   });
@@ -921,60 +940,114 @@ export default function L1ExplorerPage({
         </Board>
       </div>
 
-      {/* transaction history — its own instrument, sheet red */}
-      <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-4">
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label="Transactions · 14 days"
-            action={
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {transactionHistory[0]?.date} — {transactionHistory[transactionHistory.length - 1]?.date}
-              </span>
-            }
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            <div className="relative">
-              <div className={`h-20 ${!hasIndexedTransactionHistory ? "blur-[2px] opacity-50" : ""}`}>
+      {/* what the chain is FOR — C-Chain: 14 days of activity classified by
+          on-chain behavior, stacked areas. Other chains: the plain tx line
+          (only when indexed data actually exists). */}
+      {isCchain && activity && (
+        <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-4">
+          <section className="flex flex-col gap-4">
+            <SectionHeader
+              label="Network Activity · 14 days"
+              action={
+                <span className="flex shrink-0 items-center gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  {ACTIVITY_SERIES.map((s) => (
+                    <span key={s.key} className="flex items-center gap-1.5">
+                      <span className="h-2 w-2" style={{ background: s.tone }} />
+                      {s.label}
+                    </span>
+                  ))}
+                </span>
+              }
+            />
+            <Board divide={false} className="px-5 py-5 md:px-6">
+              <div className="h-28">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={transactionHistory}>
-                    <YAxis hide domain={hasIndexedTransactionHistory ? ["dataMin", "dataMax"] : [0, 100]} />
-                    {hasIndexedTransactionHistory && (
-                      <RechartsTooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.[0]) return null;
-                          return (
-                            <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
-                              <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                              <p className="text-xs font-semibold text-[var(--chain-accent,#E6212F)]">
-                                {payload[0].value?.toLocaleString()} txns
+                  <AreaChart data={activity}>
+                    <YAxis hide domain={[0, "dataMax"]} />
+                    <RechartsTooltip
+                      cursor={{ stroke: "rgba(161,161,170,0.3)" }}
+                      content={({ active: a, payload }) => {
+                        if (!a || !payload?.length) return null;
+                        const d = payload[0].payload as CchainActivityDay;
+                        const total = d.defi + d.nft + d.tokens + d.other;
+                        return (
+                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 shadow-sm">
+                            <p className="text-[10px] text-zinc-500">
+                              {d.date} · {total.toLocaleString()} txns
+                            </p>
+                            {ACTIVITY_SERIES.map((s) => (
+                              <p key={s.key} className="flex items-center gap-1.5 text-xs tabular-nums text-zinc-900 dark:text-zinc-100">
+                                <span className="h-1.5 w-1.5" style={{ background: s.tone }} />
+                                {d[s.key].toLocaleString()} {s.label.toLowerCase()}
                               </p>
-                            </div>
-                          );
-                        }}
+                            ))}
+                          </div>
+                        );
+                      }}
+                    />
+                    {ACTIVITY_SERIES.map((s) => (
+                      <Area
+                        key={s.key}
+                        dataKey={s.key}
+                        stackId="day"
+                        stroke={s.tone}
+                        strokeWidth={1}
+                        fill={s.tone}
+                        fillOpacity={0.85}
+                        type="monotone"
                       />
-                    )}
+                    ))}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </Board>
+          </section>
+        </div>
+      )}
+      {!isCchain && hasIndexedTransactionHistory && data?.transactionHistory && (
+        <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-4">
+          <section className="flex flex-col gap-4">
+            <SectionHeader
+              label="Transactions · 14 days"
+              action={
+                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  {data.transactionHistory[0]?.date} — {data.transactionHistory[data.transactionHistory.length - 1]?.date}
+                </span>
+              }
+            />
+            <Board divide={false} className="px-5 py-5 md:px-6">
+              <div className="h-20">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.transactionHistory}>
+                    <YAxis hide domain={["dataMin", "dataMax"]} />
+                    <RechartsTooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.[0]) return null;
+                        return (
+                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
+                            <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
+                            <p className="text-xs font-semibold text-[var(--chain-accent,#E6212F)]">
+                              {payload[0].value?.toLocaleString()} txns
+                            </p>
+                          </div>
+                        );
+                      }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="transactions"
-                      stroke={hasIndexedTransactionHistory ? "var(--chain-accent, #E6212F)" : "#9CA3AF"}
+                      stroke="var(--chain-accent, #E6212F)"
                       strokeWidth={1.5}
                       dot={false}
-                      activeDot={hasIndexedTransactionHistory ? { r: 3, fill: "var(--chain-accent, #E6212F)" } : false}
+                      activeDot={{ r: 3, fill: "var(--chain-accent, #E6212F)" }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              {!hasIndexedTransactionHistory && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 px-2 py-1">
-                    No indexed data
-                  </span>
-                </div>
-              )}
-            </div>
-          </Board>
-        </section>
-      </div>
+            </Board>
+          </section>
+        </div>
+      )}
 
       {/* live boards: blocks | transactions | ICM — same two-up grammar as
           the P-Chain overview, third column when the chain speaks ICM */}
@@ -1028,10 +1101,8 @@ export default function L1ExplorerPage({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    {/* full hash, width-aware: CSS truncation shows as many
-                        chars as the row actually has room for */}
                     <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
-                      {tx.hash}
+                      {tx.hash.slice(0, 18)}…{tx.hash.slice(-4)}
                     </span>
                     <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />

@@ -2,6 +2,7 @@
 
 import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
 import { ChainDetailsContent } from "@/components/explorer-v2/pchain/PchainChain";
+import { EvmChainDetails } from "@/components/explorer/EvmChainDetails";
 import { useChainContext } from "../layout.client";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
@@ -26,7 +27,10 @@ export function ChainDetailsPageClient({ chainSlug }: { chainSlug: string }) {
       socials={chain.socials}
       rpcUrl={chain.rpcUrl}
     >
-      <div className="mx-auto w-full max-w-[90rem] px-5 pb-16 pt-2 md:px-6">
+      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-10 px-5 pb-16 pt-2 md:px-6">
+        {/* connectivity + live state first — the developer-facing half */}
+        {catalog && <EvmChainDetails catalog={catalog} />}
+        {/* then the chain's on-chain record from the P-Chain */}
         {catalog?.blockchainId ? (
           <ChainDetailsContent
             network={pNetwork}

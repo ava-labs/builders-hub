@@ -312,9 +312,11 @@ export async function getDailyTxsByChain(): Promise<
   return fresh.data;
 }
 
-// --- P-Chain daily txs ----------------------------------------------------
-// Same 14-day series as the EVM chains but from `raw_p_txs`, keyed by the
-// Avalanche network id (`chain_id` column: 1 mainnet, 5 fuji, 0 devnet).
+// --- P-Chain staking economics ----------------------------------------------
+// The P-Chain's real story is money, not tx counts: AVAX paid out to
+// stakers (RewardValidatorTx mints, read from the reward-UTXO archive) and
+// AVAX about to unlock (validator/delegator end_times from the snapshot
+// tables). Past 14 days on one side, next 14 days on the other.
 
 const PCHAIN_NETWORK_IDS: Record<string, number> = {
   mainnet: 1,
@@ -322,12 +324,41 @@ const PCHAIN_NETWORK_IDS: Record<string, number> = {
   devnet: 0,
 };
 
-function sqlPchainDailyTxs(networkId: number): string {
+export interface PchainRewardPoint {
+  date: string;
+  /** AVAX minted to stakers that day */
+  avax: number;
+  /** reward UTXOs created (≈ stake periods that ended) */
+  payouts: number;
+}
+
+export interface PchainUnlockPoint {
+  date: string;
+  /** AVAX whose staking period ends that day (validators + delegators) */
+  avax: number;
+  /** stake entries ending */
+  stakers: number;
+}
+
+export interface PchainStakingSeries {
+  rewards: PchainRewardPoint[];
+  unlocks: PchainUnlockPoint[];
+}
+
+// A reward UTXO's amount sits at a fixed offset in its serialization:
+// codec(2) + txID(32) + outputIndex(4) + assetID(32) + outputTypeID(4),
+// then the 8-byte big-endian amount — bytes 75..82, 1-indexed. Verified
+// against the independent supply_p_history current_supply diffs.
+const REWARD_AMOUNT_EXPR =
+  "reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8)))";
+
+function sqlPchainDailyRewards(networkId: number): string {
   return `
     SELECT
       toDate(block_time) AS day,
-      toString(count()) AS tx_count
-    FROM raw_p_txs
+      toString(count()) AS payouts,
+      toString(round(sum(${REWARD_AMOUNT_EXPR}) / 1e9, 2)) AS avax
+    FROM raw_p_reward_utxos
     WHERE chain_id = ${networkId}
       AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
     GROUP BY day
@@ -336,42 +367,216 @@ function sqlPchainDailyTxs(networkId: number): string {
   `;
 }
 
-const pchainDailyCache = new Map<
+// Primary Network subnet id is 32 zero bytes; L1/subnet validators don't
+// carry meaningful end_times, so unlocks are primary-only by construction.
+function sqlPchainUnlocks(networkId: number, table: string, amountCol: string): string {
+  const subnetFilter =
+    table === "p_validator_snapshots"
+      ? "AND subnet_id = toFixedString(unhex(repeat('00', 32)), 32)"
+      : "";
+  return `
+    SELECT
+      toDate(end_time) AS day,
+      toString(round(sum(${amountCol}) / 1e9, 2)) AS avax,
+      toString(count()) AS n
+    FROM ${table}
+    WHERE chain_id = ${networkId}
+      AND snapshot_time = (SELECT max(snapshot_time) FROM ${table} WHERE chain_id = ${networkId})
+      ${subnetFilter}
+      AND end_time >= now()
+      AND end_time < now() + INTERVAL ${DAILY_WINDOW_DAYS} DAY
+    GROUP BY day
+    ORDER BY day
+    FORMAT JSONEachRow
+  `;
+}
+
+function buildNext14Dates(): string[] {
+  const dates: string[] = [];
+  const today = new Date();
+  for (let i = 0; i < DAILY_WINDOW_DAYS; i++) {
+    const d = new Date(today);
+    d.setUTCDate(d.getUTCDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+const pchainStakingCache = new Map<
   string,
-  { data: TransactionHistoryPoint[]; fetchedAt: number }
+  { data: PchainStakingSeries; fetchedAt: number }
 >();
 
 /**
- * Last-14-day daily P-Chain transaction counts for one network, padded to
- * exactly 14 points. Returns null for unknown networks or when ClickHouse
- * is unreachable with no cached series to fall back on.
+ * Staking money-flow series for one network: AVAX rewards paid per day
+ * (last 14 days) and stake unlocking per day (next 14 days), each padded
+ * to exactly 14 points. Returns null for unknown networks or when
+ * ClickHouse is unreachable with no cached series to fall back on.
  */
-export async function getPchainDailyTxs(
+export async function getPchainStakingSeries(
   network: string,
-): Promise<TransactionHistoryPoint[] | null> {
+): Promise<PchainStakingSeries | null> {
   const networkId = PCHAIN_NETWORK_IDS[network];
   if (networkId === undefined) return null;
 
-  const cached = pchainDailyCache.get(network);
+  const cached = pchainStakingCache.get(network);
   if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
     return cached.data;
   }
 
   try {
-    const rows = await clickhouseFetch<{ day: string; tx_count: string }>(
-      sqlPchainDailyTxs(networkId),
-      QUERY_TIMEOUT_MS,
-    );
-    const counts = new Map(rows.map((r) => [r.day, Number(r.tx_count) || 0]));
-    const data = buildLast14Dates().map((iso) => ({
+    type Row = { day: string; avax: string; n?: string; payouts?: string };
+    const [rewardRows, validatorRows, delegatorRows] = await Promise.all([
+      clickhouseFetch<Row>(sqlPchainDailyRewards(networkId), QUERY_TIMEOUT_MS),
+      clickhouseFetch<Row>(
+        sqlPchainUnlocks(networkId, "p_validator_snapshots", "weight"),
+        QUERY_TIMEOUT_MS,
+      ),
+      clickhouseFetch<Row>(
+        sqlPchainUnlocks(networkId, "p_delegator_snapshots", "stake_amount"),
+        QUERY_TIMEOUT_MS,
+      ),
+    ]);
+
+    const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
+    const rewards = buildLast14Dates().map((iso) => ({
       date: formatDayLabel(iso),
-      transactions: counts.get(iso) ?? 0,
+      avax: Number(rewardsByDay.get(iso)?.avax) || 0,
+      payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
     }));
-    pchainDailyCache.set(network, { data, fetchedAt: Date.now() });
+
+    const unlocksByDay = new Map<string, { avax: number; stakers: number }>();
+    for (const r of [...validatorRows, ...delegatorRows]) {
+      const day = unlocksByDay.get(r.day) ?? { avax: 0, stakers: 0 };
+      day.avax += Number(r.avax) || 0;
+      day.stakers += Number(r.n) || 0;
+      unlocksByDay.set(r.day, day);
+    }
+    const unlocks = buildNext14Dates().map((iso) => ({
+      date: formatDayLabel(iso),
+      avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
+      stakers: unlocksByDay.get(iso)?.stakers ?? 0,
+    }));
+
+    const data = { rewards, unlocks };
+    pchainStakingCache.set(network, { data, fetchedAt: Date.now() });
     return data;
   } catch (err) {
-    console.error('[explorer-clickhouse] pchain daily-txs query failed:', err);
+    console.error('[explorer-clickhouse] pchain staking-series query failed:', err);
     return cached?.data ?? null;
+  }
+}
+
+// --- C-Chain activity by behavior --------------------------------------------
+// Categorize each tx by what its event logs SAY it did — no contract-label
+// curation needed. Priority per tx: DeFi swap beats NFT transfer beats
+// token transfer; txs with no matching logs (plain AVAX sends, simple
+// calls) land in "other" via the daily-total diff.
+
+export interface CchainActivityPoint {
+  date: string;
+  defi: number;
+  nft: number;
+  tokens: number;
+  other: number;
+}
+
+// topic0 signatures: UniV2 Swap, UniV3 Swap, LFJ LiquidityBook Swap;
+// ERC-20/721 Transfer (721 has an indexed tokenId → topic3 present);
+// ERC-1155 TransferSingle / TransferBatch
+const TOPIC_SWAP_V2 = "d78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822";
+const TOPIC_SWAP_V3 = "c42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67";
+const TOPIC_SWAP_LB = "ad7d6f97abf51ce18e17a38f4d70e975be9c0708474987bb3e26ad21bd93ca70";
+const TOPIC_TRANSFER = "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const TOPIC_1155_SINGLE = "c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7aacaa2d0f62";
+const TOPIC_1155_BATCH = "4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb";
+
+const CCHAIN_EVM_ID = 43114;
+// ~80M logs in the window — give the classification room to run
+const CCHAIN_ACTIVITY_TIMEOUT_MS = 60_000;
+
+function sqlCchainClassified(): string {
+  return `
+    SELECT
+      day,
+      toString(countIf(cls = 3)) AS defi,
+      toString(countIf(cls = 2)) AS nft,
+      toString(countIf(cls = 1)) AS tokens
+    FROM (
+      SELECT
+        toDate(block_time) AS day,
+        transaction_hash,
+        max(multiIf(
+          topic0 IN (unhex('${TOPIC_SWAP_V2}'), unhex('${TOPIC_SWAP_V3}'), unhex('${TOPIC_SWAP_LB}')), 3,
+          topic0 = unhex('${TOPIC_TRANSFER}') AND topic3 IS NOT NULL, 2,
+          topic0 IN (unhex('${TOPIC_1155_SINGLE}'), unhex('${TOPIC_1155_BATCH}')), 2,
+          topic0 = unhex('${TOPIC_TRANSFER}'), 1,
+          0
+        )) AS cls
+      FROM raw_logs
+      WHERE chain_id = ${CCHAIN_EVM_ID}
+        AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
+      GROUP BY day, transaction_hash
+    )
+    GROUP BY day
+    ORDER BY day
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlCchainDailyTotals(): string {
+  return `
+    SELECT toDate(block_time) AS day, toString(count()) AS total
+    FROM evm_txs
+    WHERE chain_id = ${CCHAIN_EVM_ID}
+      AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
+    GROUP BY day
+    ORDER BY day
+    FORMAT JSONEachRow
+  `;
+}
+
+let cchainActivityCache: { data: CchainActivityPoint[]; fetchedAt: number } | null = null;
+
+/**
+ * Last-14-day C-Chain activity split by on-chain behavior (DeFi swaps /
+ * NFT transfers / token transfers / everything else), padded to exactly
+ * 14 points. Mainnet only — that's the chain the log archive covers.
+ */
+export async function getCchainDailyActivity(): Promise<CchainActivityPoint[] | null> {
+  if (cchainActivityCache && Date.now() - cchainActivityCache.fetchedAt < DAILY_TTL_MS) {
+    return cchainActivityCache.data;
+  }
+
+  try {
+    const [classified, totals] = await Promise.all([
+      clickhouseFetch<{ day: string; defi: string; nft: string; tokens: string }>(
+        sqlCchainClassified(),
+        CCHAIN_ACTIVITY_TIMEOUT_MS,
+      ),
+      clickhouseFetch<{ day: string; total: string }>(sqlCchainDailyTotals(), QUERY_TIMEOUT_MS),
+    ]);
+    const classifiedByDay = new Map(classified.map((r) => [r.day, r]));
+    const totalsByDay = new Map(totals.map((r) => [r.day, Number(r.total) || 0]));
+    const data = buildLast14Dates().map((iso) => {
+      const c = classifiedByDay.get(iso);
+      const defi = Number(c?.defi) || 0;
+      const nft = Number(c?.nft) || 0;
+      const tokens = Number(c?.tokens) || 0;
+      const total = totalsByDay.get(iso) ?? 0;
+      return {
+        date: formatDayLabel(iso),
+        defi,
+        nft,
+        tokens,
+        other: Math.max(0, total - defi - nft - tokens),
+      };
+    });
+    cchainActivityCache = { data, fetchedAt: Date.now() };
+    return data;
+  } catch (err) {
+    console.error('[explorer-clickhouse] cchain activity query failed:', err);
+    return cchainActivityCache?.data ?? null;
   }
 }
 

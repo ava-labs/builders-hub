@@ -19,6 +19,7 @@ interface EvmBlock {
   timestamp: string;
   transactionCount: number;
   gasUsed: string;
+  gasLimit: string;
   gasFee?: string;
 }
 
