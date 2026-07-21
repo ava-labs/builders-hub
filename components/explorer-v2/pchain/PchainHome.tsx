@@ -378,7 +378,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
               with the hand-off to the network observatory (StoryHome idiom) */}
           {network === "mainnet" && (
             <Link
-              href="/stats/overview"
+              href="/explorer/mainnet"
               className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-5 md:px-6"
             >
               <span

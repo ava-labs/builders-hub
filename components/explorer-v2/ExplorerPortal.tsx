@@ -496,7 +496,7 @@ function ChainDoors() {
           ))}
       {/* the directory holds the long tail */}
       <Link
-        href="/explorer/chains"
+        href="/explorer/mainnet/chains"
         className="group flex items-center justify-between gap-3 bg-white px-4 py-4 transition-colors hover:bg-zinc-50 dark:bg-zinc-950 dark:hover:bg-zinc-900"
       >
         <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
@@ -663,13 +663,13 @@ function NetworkBoard() {
           <StatCell label="Transactions · 30d" live href="/stats/network-metrics">
             {agg && agg.totalTxCount > 0 ? <StatFigure value={agg.totalTxCount} /> : <StatDash />}
           </StatCell>
-          <StatCell label="Cross-chain msgs · 30d" live href="/stats/interchain-messaging">
+          <StatCell label="Cross-chain msgs · 30d" live href="/explorer/mainnet/icm">
             {agg && agg.totalICMMessages > 0 ? <StatFigure value={agg.totalICMMessages} /> : <StatDash />}
           </StatCell>
-          <StatCell label="Active L1s" href="/stats/chain-list">
+          <StatCell label="Active L1s" href="/explorer/mainnet/chains">
             {agg && agg.activeL1Count > 0 ? <StatFigure value={agg.activeL1Count} /> : <StatDash />}
           </StatCell>
-          <StatCell label="Validators" href="/stats/validators">
+          <StatCell label="Validators" href="/explorer/mainnet/validators">
             {agg && agg.totalValidators > 0 ? <StatFigure value={agg.totalValidators} /> : <StatDash />}
           </StatCell>
         </div>
@@ -677,7 +677,7 @@ function NetworkBoard() {
         {/* on-chain capital, as on the homepage board */}
         <div className="grid grid-cols-1 divide-y divide-zinc-200 lg:grid-cols-3 lg:divide-x lg:divide-y-0 dark:divide-zinc-800">
           <Link
-            href="/stats/dapps"
+            href="/explorer/mainnet/apps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -691,7 +691,7 @@ function NetworkBoard() {
             </span>
           </Link>
           <Link
-            href="/stats/dapps"
+            href="/explorer/mainnet/apps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -705,7 +705,7 @@ function NetworkBoard() {
             </span>
           </Link>
           <Link
-            href="/stats/dapps"
+            href="/explorer/mainnet/apps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -726,7 +726,7 @@ function NetworkBoard() {
 
         {/* the economic security headline, as on the homepage board */}
         <Link
-          href="/stats/validators"
+          href="/explorer/mainnet/validators"
           className="flex flex-col justify-center gap-3 px-5 py-8 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
         >
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -749,7 +749,7 @@ function NetworkBoard() {
 
         {/* board footer: the full instrument lives at /stats */}
         <Link
-          href="/stats/overview"
+          href="/explorer/mainnet"
           className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-4 md:px-6"
         >
           <span

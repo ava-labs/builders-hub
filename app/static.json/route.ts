@@ -7,13 +7,13 @@ export const revalidate = false;
 
 // Static stats pages
 const statsPages: DocumentRecord[] = [
-  { title: 'Network Overview', url: '/stats/overview', _id: '/stats/overview', structured: { headings: [], contents: [] }, description: 'Avalanche network overview stats', tag: 'stats' },
-  { title: 'AVAX Token', url: '/stats/avax-token', _id: '/stats/avax-token', structured: { headings: [], contents: [] }, description: 'AVAX token metrics', tag: 'stats' },
+  { title: 'Network Overview', url: '/explorer/mainnet', _id: '/explorer/mainnet', structured: { headings: [], contents: [] }, description: 'Avalanche network overview stats', tag: 'stats' },
+  { title: 'AVAX Token', url: '/explorer/mainnet/token', _id: '/explorer/mainnet/token', structured: { headings: [], contents: [] }, description: 'AVAX token metrics', tag: 'stats' },
   { title: 'Network Metrics', url: '/stats/network-metrics', _id: '/stats/network-metrics', structured: { headings: [], contents: [] }, description: 'Network-wide metrics', tag: 'stats' },
   { title: 'DApp Gas Usage', url: '/stats/dapps/treemap', _id: '/stats/dapps/treemap', structured: { headings: [], contents: [] }, description: 'DApp gas usage treemap', tag: 'stats' },
-  { title: 'Interchain Messaging', url: '/stats/interchain-messaging', _id: '/stats/interchain-messaging', structured: { headings: [], contents: [] }, description: 'ICM statistics', tag: 'stats' },
-  { title: 'Chain List', url: '/stats/chain-list', _id: '/stats/chain-list', structured: { headings: [], contents: [] }, description: 'All Avalanche L1 chains', tag: 'stats' },
-  { title: 'Validators', url: '/stats/validators', _id: '/stats/validators', structured: { headings: [], contents: [] }, description: 'Validator dashboard', tag: 'stats' },
+  { title: 'Interchain Messaging', url: '/explorer/mainnet/icm', _id: '/explorer/mainnet/icm', structured: { headings: [], contents: [] }, description: 'ICM statistics', tag: 'stats' },
+  { title: 'Chain List', url: '/explorer/mainnet/chains', _id: '/explorer/mainnet/chains', structured: { headings: [], contents: [] }, description: 'All Avalanche L1 chains', tag: 'stats' },
+  { title: 'Validators', url: '/explorer/mainnet/validators', _id: '/explorer/mainnet/validators', structured: { headings: [], contents: [] }, description: 'Validator dashboard', tag: 'stats' },
 ];
 
 // Generate per-L1 stats pages from chain registry

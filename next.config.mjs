@@ -1850,17 +1850,60 @@ const config = {
       },
       {
         source: "/stats/token",
-        destination: "/stats/avax-token",
+        destination: "/explorer/mainnet/token",
         permanent: true,
       },
       {
         source: "/stats/tokens",
-        destination: "/stats/avax-token",
+        destination: "/explorer/mainnet/token",
         permanent: true,
       },
       {
         source: "/stats/primary-network/validators",
-        destination: "/stats/validators",
+        destination: "/explorer/mainnet/validators",
+        permanent: true,
+      },
+      // the stats section's network-scope pages moved into the explorer's
+      // All Networks scope (exact-path sources: /stats/validators/:slug,
+      // /stats/dapps/:slug etc. keep their chain/detail pages)
+      {
+        source: "/stats",
+        destination: "/explorer/mainnet",
+        permanent: true,
+      },
+      {
+        source: "/stats/overview",
+        destination: "/explorer/mainnet",
+        permanent: true,
+      },
+      {
+        source: "/stats/chain-list",
+        destination: "/explorer/mainnet/chains",
+        permanent: true,
+      },
+      {
+        source: "/explorer/chains",
+        destination: "/explorer/mainnet/chains",
+        permanent: true,
+      },
+      {
+        source: "/stats/interchain-messaging",
+        destination: "/explorer/mainnet/icm",
+        permanent: true,
+      },
+      {
+        source: "/stats/validators",
+        destination: "/explorer/mainnet/validators",
+        permanent: true,
+      },
+      {
+        source: "/stats/dapps",
+        destination: "/explorer/mainnet/apps",
+        permanent: true,
+      },
+      {
+        source: "/stats/avax-token",
+        destination: "/explorer/mainnet/token",
         permanent: true,
       },
       {

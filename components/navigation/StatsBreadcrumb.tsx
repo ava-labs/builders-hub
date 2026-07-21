@@ -308,7 +308,7 @@ export function StatsBreadcrumb({
       <nav ref={navRef} className={`stats-breadcrumb flex items-center gap-1.5 text-xs sm:text-sm mb-3 sm:mb-4 pb-1 ${className}`}>
         {/* Ecosystem - always shown as first item */}
         <Link 
-          href="/stats/overview" 
+          href="/explorer/mainnet" 
           className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
         >
           <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />

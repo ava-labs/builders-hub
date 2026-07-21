@@ -75,7 +75,7 @@ const sections = [
         title: "Network Stats",
         description: "Live metrics",
         icon: ActivityIcon,
-        href: "/stats/overview"
+        href: "/explorer/mainnet"
       },
       {
         title: "Integrations",

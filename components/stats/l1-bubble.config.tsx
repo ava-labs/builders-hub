@@ -57,7 +57,7 @@ export function L1BubbleNav({
 
     // Add Token page link only for C-Chain
     if (isCChain) {
-      items.push({ id: "token", label: "Token", href: "/stats/avax-token", icon: Coins });
+      items.push({ id: "token", label: "Token", href: "/explorer/mainnet/token", icon: Coins });
     }
 
     return {

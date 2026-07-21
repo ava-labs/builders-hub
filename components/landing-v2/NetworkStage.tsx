@@ -109,7 +109,7 @@ export default function NetworkStage({ globeData }: { globeData: GlobeData }) {
           "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
         color: "#e84142",
         category: "Primary Network",
-        link: "/stats/overview",
+        link: "/explorer/mainnet",
         isPrimary: true,
         tps: totalTps,
         validatorCount:

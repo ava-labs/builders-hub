@@ -67,9 +67,9 @@ export const menuSections: NavSection[] = [
     items: [
       { text: 'Block Explorer', href: '/explorer' },
       { text: 'Playground', href: '/stats/playground' },
-      { text: 'Avalanche L1 Stats', href: '/stats/overview' },
+      { text: 'All Networks', href: '/explorer/mainnet' },
       { text: 'C-Chain Stats', href: '/stats/l1/c-chain' },
-      { text: 'Validators', href: '/stats/validators' },
+      { text: 'Validators', href: '/explorer/mainnet/validators' },
       { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },

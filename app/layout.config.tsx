@@ -153,7 +153,7 @@ export const explorerMenu: LinkItemType = {
     {
       icon: <Network />,
       text: "L1 Explorers",
-      url: "/explorer/chains",
+      url: "/explorer/mainnet/chains",
       description:
       "Blocks, transactions, and addresses on the C-Chain and every Avalanche L1.",
     },
@@ -166,10 +166,10 @@ export const explorerMenu: LinkItemType = {
     },
     {
       icon: <Logs />,
-      text: "Avalanche L1 Stats",
-      url: "/stats/overview",
+      text: "All Networks",
+      url: "/explorer/mainnet",
       description:
-      "The latest metrics for every Avalanche L1 in the network.",
+      "Live activity, ICM, validators, and AVAX across every Avalanche chain.",
     },
     {
       icon: <Network />,
