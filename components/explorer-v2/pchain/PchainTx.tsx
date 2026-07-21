@@ -692,8 +692,8 @@ function UtxoColumn({ base, title, utxos, side }: { base: string; title: string;
         {utxos.length === 0 && (
           <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 md:px-6">— none —</div>
         )}
-        {utxos.map((u) => (
-          <div key={u.utxoId} className="flex flex-col gap-1.5 px-5 py-3 md:px-6">
+        {utxos.map((u, i) => (
+          <div key={`${u.utxoId}-${i}`} className="flex flex-col gap-1.5 px-5 py-3 md:px-6">
             <div className="flex items-center justify-between gap-3">
               <span className="font-mono text-[13px] font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
                 {formatAvax(u.amount)}

@@ -132,8 +132,8 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
           <section className="flex flex-col gap-4">
             <SectionHeader label={`Unspent UTXOs · ${a.utxoCount}`} />
             <Board>
-              {a.utxos.map((u) => (
-                <div key={u.utxoId} className="flex items-center justify-between gap-4 px-5 py-3 md:px-6">
+              {a.utxos.map((u, i) => (
+                <div key={`${u.utxoId}-${i}`} className="flex items-center justify-between gap-4 px-5 py-3 md:px-6">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
                       {formatAvax(u.amount)}

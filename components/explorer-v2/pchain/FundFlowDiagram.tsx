@@ -46,7 +46,9 @@ interface Flow {
 
 function build(utxos: Utxo[], side: "in" | "out", reward: boolean): Flow[] {
   const flows: Flow[] = utxos.map((u, i) => ({
-    key: `${side}-${u.utxoId || i}`,
+    // the index rides along because the indexer can emit the same utxoId
+    // twice (unmerged ReplacingMergeTree rows) — keys must survive that
+    key: `${side}-${u.utxoId || "u"}-${i}`,
     amount: Number(u.amount || 0),
     addresses: u.addresses ?? [],
     kind: side === "in" ? "input" : u.staked ? "staked" : reward ? "reward" : "transfer",
