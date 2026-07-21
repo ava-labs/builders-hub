@@ -29,14 +29,21 @@ export interface SourcifyContract {
 }
 
 /* One promise per contract per session — every caller shares the same
-   in-flight request and the same answer, hit or miss. */
+   in-flight request and the same answer, hit or miss. Settled values also
+   land in a synchronous cache so render paths can read them without
+   waiting an effect tick (no hex → name swap on screen). */
 const inFlight = new Map<string, Promise<SourcifyContract | null>>();
+const resolved = new Map<string, SourcifyContract | null>();
+
+function contractKey(chainId: number | string, address: string) {
+  return `${chainId}:${address.toLowerCase()}`;
+}
 
 export function fetchVerifiedContract(
   chainId: number | string,
   address: string,
 ): Promise<SourcifyContract | null> {
-  const key = `${chainId}:${address.toLowerCase()}`;
+  const key = contractKey(chainId, address);
   const existing = inFlight.get(key);
   if (existing) return existing;
 
@@ -50,9 +57,34 @@ export function fetchVerifiedContract(
     } catch {
       return null;
     }
-  })();
+  })().then((value) => {
+    resolved.set(key, value);
+    return value;
+  });
   inFlight.set(key, promise);
   return promise;
+}
+
+/**
+ * Resolve a batch of contracts BEFORE committing fresh rows to state, so
+ * labelled rows paint labelled on their first frame. Capped: a slow
+ * Sourcify can only ever hold fresh data back by `capMs` — after that the
+ * rows land unlabelled and the names fade in when they arrive. Already-
+ * resolved contracts (the steady-state poll case) pass through instantly.
+ */
+export async function prewarmContractNames(
+  chainId: number | string,
+  addresses: Array<string | null | undefined>,
+  capMs = 400,
+): Promise<void> {
+  const pending = Array.from(new Set(addresses.filter(Boolean).map((a) => a!.toLowerCase())))
+    .filter((a) => !resolved.has(contractKey(chainId, a)))
+    .slice(0, 24);
+  if (pending.length === 0) return;
+  await Promise.race([
+    Promise.all(pending.map((a) => fetchVerifiedContract(chainId, a))),
+    new Promise<void>((r) => setTimeout(r, capMs)),
+  ]);
 }
 
 /**
@@ -66,32 +98,37 @@ export function useContractNames(
   chainId: number | string,
   addresses: Array<string | null | undefined>,
 ): Map<string, string> {
-  const [names, setNames] = useState<Map<string, string>>(new Map());
+  // Names are read SYNCHRONOUSLY from the resolved cache on every render:
+  // rows whose contracts were prewarmed (prewarmContractNames) paint
+  // labelled on their first frame, with no hex → name swap. State exists
+  // only to re-render when a straggler resolves after the cap.
+  const [, setTick] = useState(0);
+  const unique = Array.from(new Set(addresses.filter(Boolean).map((a) => a!.toLowerCase()))).sort();
   // the sorted unique set as a string key: polls that shuffle row order
   // without changing the visible contracts don't re-run the effect
-  const key = Array.from(new Set(addresses.filter(Boolean).map((a) => a!.toLowerCase())))
-    .sort()
-    .join(",");
+  const key = unique.join(",");
 
   useEffect(() => {
     if (!key) return;
+    const missing = key
+      .split(",")
+      .filter((a) => !resolved.has(contractKey(chainId, a)))
+      .slice(0, 24);
+    if (missing.length === 0) return;
     let cancelled = false;
-    const addrs = key.split(",").slice(0, 24);
-    Promise.all(addrs.map(async (a) => [a, await fetchVerifiedContract(chainId, a)] as const)).then(
-      (entries) => {
-        if (cancelled) return;
-        setNames((prev) => {
-          const next = new Map(prev);
-          for (const [a, c] of entries) if (c?.name) next.set(a, c.name);
-          return next;
-        });
-      },
-    );
+    Promise.all(missing.map((a) => fetchVerifiedContract(chainId, a))).then(() => {
+      if (!cancelled) setTick((t) => t + 1);
+    });
     return () => {
       cancelled = true;
     };
   }, [key, chainId]);
 
+  const names = new Map<string, string>();
+  for (const a of unique) {
+    const c = resolved.get(contractKey(chainId, a));
+    if (c?.name) names.set(a, c.name);
+  }
   return names;
 }
 

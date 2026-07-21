@@ -19,7 +19,7 @@ import { ChainChip, ChainInfo } from "@/components/stats/ChainChip";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainConverter";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
-import { useContractNames } from "@/lib/sourcify-client";
+import { useContractNames, prewarmContractNames } from "@/lib/sourcify-client";
 
 // Get chain info from hex blockchain ID (checks both static and custom chains)
 export function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
@@ -460,7 +460,16 @@ export default function L1ExplorerPage({
         throw new Error(errorData.error || "Failed to fetch data");
       }
       const result = await response.json();
-      
+
+      // Resolve verified-contract names BEFORE the rows land, so labelled
+      // rows paint labelled on their first frame instead of swapping
+      // hex → name a beat later. Steady-state polls hit the session cache
+      // and pass through instantly; a cold cache delays the batch ≤400ms.
+      await prewarmContractNames(
+        chainId,
+        (result.transactions || []).map((t: Transaction) => t.to),
+      );
+
       // Update last fetched block from the response
       if (result.blocks && result.blocks.length > 0) {
         // Get the highest block number from the response
@@ -1019,7 +1028,9 @@ export default function L1ExplorerPage({
                       {shortenAddress(tx.from)} →{" "}
                       {tx.to ? (
                         toContractNames.has(tx.to.toLowerCase()) ? (
-                          <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                          // fade covers the late-resolve path (prewarm cap
+                          // exceeded); prewarmed labels mount with the row
+                          <span className="font-medium text-zinc-600 animate-in fade-in duration-500 dark:text-zinc-300">
                             {toContractNames.get(tx.to.toLowerCase())}
                           </span>
                         ) : (

@@ -415,7 +415,7 @@ function ContractBadge({ contract }: { contract?: SourcifyContract }) {
   if (!contract) return null;
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
+      className="inline-flex shrink-0 items-center gap-1 bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 animate-in fade-in duration-300 dark:bg-green-900/30 dark:text-green-400"
       title={`Verified on Sourcify (${contract.match === 'exact_match' ? 'exact match' : 'match'})`}
     >
       <Check className="h-3 w-3" />
