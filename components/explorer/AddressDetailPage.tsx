@@ -442,7 +442,9 @@ export default function AddressDetailPage({
         const checkResponse = await fetch(`https://sourcify.dev/server/v2/contract/${chainId}/${address}`);
         if (checkResponse.ok) {
           const checkData = await checkResponse.json();
-          if (checkData.match === 'match') {
+          // v2 reports "exact_match" (bytecode + metadata hash) or "match"
+          // (runtime bytecode) — both are verified
+          if (checkData.match === 'match' || checkData.match === 'exact_match') {
             // Contract is verified, fetch full details
             const fullResponse = await fetch(`https://sourcify.dev/server/v2/contract/${chainId}/${address}?fields=all`);
             if (fullResponse.ok) {
@@ -695,7 +697,7 @@ export default function AddressDetailPage({
     );
   }
 
-  const isContractVerified = sourcifyData?.match === 'match';
+  const isContractVerified = sourcifyData?.match === 'match' || sourcifyData?.match === 'exact_match';
 
   const tabs = [
     { id: 'transactions', label: 'Transactions' },
