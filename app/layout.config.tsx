@@ -28,6 +28,7 @@ import {
   EyeOff,
   ShieldCheck,
   Landmark,
+  BriefcaseBusiness,
 } from 'lucide-react';
 import { UserButtonWrapper } from '@/components/login/user-button/UserButtonWrapper';
 import { DocsLearnCard } from '@/components/navigation/docs-learn-card';
@@ -111,7 +112,7 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Hands-on learning and real building, from hackathons to workshops and bootcamps.',
       url: '/events',
-      // marker: the popover CSS lays four-item menus out as a 2x2 grid
+      // marker: the popover CSS lays this menu out in a 2-column grid
       menu: { className: 'nav-grid-2' },
     },
     {
@@ -134,6 +135,13 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Research grants and the Blizzard Fund for your project.',
       url: '/grants',
+    },
+    {
+      icon: <BriefcaseBusiness />,
+      text: 'Careers',
+      description:
+        'Find your next role at leading projects and companies building on Avalanche.',
+      url: '/ecosystem/careers',
     },
   ],
 };

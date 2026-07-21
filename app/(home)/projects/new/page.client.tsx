@@ -152,7 +152,11 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       }
       const projectId = (payload as { project?: { id?: string } }).project?.id;
       toast.success('Project created.');
-      router.push('/profile');
+      router.push(
+        projectId
+          ? `/ecosystem/careers/submit?project=${encodeURIComponent(projectId)}`
+          : '/ecosystem/careers/submit',
+      );
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -192,7 +196,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
           <div>
             <h3>Project profile</h3>
             <div className="pr-desc">
-              Team-level info shown on your Builders Hub project profile.
+              Team-level info that powers your listings on Ecosystem Careers.
             </div>
           </div>
         </div>

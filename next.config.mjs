@@ -75,6 +75,18 @@ const config = {
     return [
       // ── Renamed/moved pages ──
       {
+        // Ecosystem Careers now lives under the Ecosystem tab:
+        // /ecosystem-careers → /ecosystem/careers (bare + all sub-routes)
+        source: '/ecosystem-careers',
+        destination: '/ecosystem/careers',
+        permanent: true,
+      },
+      {
+        source: '/ecosystem-careers/:path*',
+        destination: '/ecosystem/careers/:path*',
+        permanent: true,
+      },
+      {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):
         // "Continuous Staking" (236-continuous-staking) → "Auto-Renewed Staking" (236-auto-renewed-staking)
         source: '/docs/acps/236-continuous-staking',
