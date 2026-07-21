@@ -1,5 +1,6 @@
 import { getAuthSession } from '@/lib/auth/authSession';
 import ProfilePage from "@/components/profile/shell/ProfilePage";
+import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { getProfile } from "@/server/services/profile";
 import { redirect } from "next/navigation";
 import { formatTeamLabel } from "@/lib/referrals/team-labels";
@@ -35,7 +36,10 @@ export default async function ProfileWrapper({
 
   return (
     <main className='relative w-full px-4 sm:px-6 lg:px-8 py-2 lg:py-4'>
-      <ProfilePage teamLabel={teamLabel} />
+      <SheetBackdrop snowOnly />
+      <div className="relative">
+        <ProfilePage teamLabel={teamLabel} />
+      </div>
     </main>
   );
 }
