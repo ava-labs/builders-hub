@@ -51,10 +51,14 @@ export function ChainDetailsContent({
   network,
   id,
   base,
+  website,
+  socials,
 }: {
   network: string;
   id: string;
   base: string;
+  website?: string;
+  socials?: { twitter?: string; linkedin?: string };
 }) {
   // links arrive in either encoding (the catalog speaks hex, the P-Chain
   // speaks CB58) — normalize once and speak CB58 from here on
@@ -141,7 +145,7 @@ export function ChainDetailsContent({
               </SpecPlate>
             </Board>
           </section>
-          <CatalogStrip catalog={catalog} />
+          <CatalogStrip catalog={catalog} website={website} socials={socials} />
         </div>
       )}
       {tx && isChain && (
@@ -246,7 +250,7 @@ export function ChainDetailsContent({
           </div>
 
           {/* Known chain: identifiers, wallet hook, explorer hand-offs */}
-          {catalog && <CatalogStrip catalog={catalog} />}
+          {catalog && <CatalogStrip catalog={catalog} website={website} socials={socials} />}
 
           {/* Live validator set */}
           {validators && validators.length > 0 && (
@@ -299,7 +303,22 @@ export function ChainDetailsContent({
 /* The chain's practical identity: the encoded IDs (CB58/hex toggles), the
    wallet hook, EVM chain ID, and every explorer that can open it. This is
    the "details" strip the chain headers point at. */
-function CatalogStrip({ catalog }: { catalog: L1Chain }) {
+function CatalogStrip({
+  catalog,
+  website,
+  socials,
+}: {
+  catalog: L1Chain;
+  website?: string;
+  socials?: { twitter?: string; linkedin?: string };
+}) {
+  const socialExits = [
+    ...(website ? [{ label: "Website", href: website }] : []),
+    ...(socials?.twitter ? [{ label: "X", href: `https://x.com/${socials.twitter}` }] : []),
+    ...(socials?.linkedin
+      ? [{ label: "LinkedIn", href: `https://linkedin.com/company/${socials.linkedin}` }]
+      : []),
+  ];
   return (
     <Board divide={false} className="flex flex-col gap-4 px-5 py-4 md:px-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -313,6 +332,9 @@ function CatalogStrip({ catalog }: { catalog: L1Chain }) {
           </span>
         )}
         <span className="ml-auto flex flex-wrap items-center gap-x-5 gap-y-2">
+          {socialExits.map((e) => (
+            <ExitLink key={e.href} href={e.href} label={e.label} />
+          ))}
           {catalog.rpcUrl && catalog.isTestnet !== true && (
             <ExitLink href={`/explorer/mainnet/${catalog.slug}`} label="Explorer" internal />
           )}

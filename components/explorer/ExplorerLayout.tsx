@@ -49,6 +49,7 @@ interface ExplorerLayoutProps {
 export function ExplorerLayout({
   chainName,
   chainSlug,
+  themeColor,
   chainLogoURI,
   description,
   website,
@@ -59,6 +60,10 @@ export function ExplorerLayout({
   showSearch = false,
   latestBlock,
 }: ExplorerLayoutProps) {
+  // L1s wear their own brand color as the accent (live dots, tape cube,
+  // active tab bar) via --chain-accent; every consumer falls back to the
+  // Avalanche red, which is what the C-Chain and P-Chain keep.
+  const accent = chainSlug !== "c-chain" ? themeColor : undefined;
   const router = useRouter();
   const { glacierSupported, isTokenDataLoading } = useExplorer();
 
@@ -199,7 +204,10 @@ export function ExplorerLayout({
   };
 
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
+    <main
+      className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950"
+      style={accent ? ({ "--chain-accent": accent } as React.CSSProperties) : undefined}
+    >
       {/* the drafting-sheet triangle lattice, snowfall only — visible in the
           margins; the content column is an opaque sheet laid on top of it,
           bounded by the vertical rules */}
@@ -240,8 +248,8 @@ export function ExplorerLayout({
                   <div className="flex flex-col items-start gap-1.5 sm:items-end">
                     <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                       <span className="relative flex h-1.5 w-1.5">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
                       </span>
                       Tip Height
                     </span>

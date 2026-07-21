@@ -32,6 +32,8 @@ export function ChainDetailsPageClient({ chainSlug }: { chainSlug: string }) {
             network={pNetwork}
             id={catalog.blockchainId}
             base={`/explorer/${pNetwork}/p-chain`}
+            website={chain.website}
+            socials={chain.socials}
           />
         ) : (
           <p className="py-16 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">

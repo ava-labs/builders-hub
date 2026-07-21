@@ -21,7 +21,7 @@ import { convertL1ListItemToL1Chain } from "@/components/explorer/utils/chainCon
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
 
 // Get chain info from hex blockchain ID (checks both static and custom chains)
-function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
+export function getChainFromBlockchainId(hexBlockchainId: string): ChainInfo | null {
   const normalizedHex = hexBlockchainId.toLowerCase();
   
   // First, check static chains from l1ChainsData
@@ -168,8 +168,8 @@ function LedgerCell({
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
         {live && (
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
           </span>
         )}
         {label}
@@ -182,12 +182,12 @@ function LedgerCell({
   );
 }
 
-function LiveTag() {
+export function LiveTag() {
   return (
     <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
       <span className="relative flex h-1.5 w-1.5">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
       </span>
       Live
     </span>
@@ -201,7 +201,7 @@ function compactGas(gas: number): string {
   return String(gas);
 }
 
-function formatTimeAgo(timestamp: string): string {
+export function formatTimeAgo(timestamp: string): string {
   const now = new Date();
   const past = new Date(timestamp);
   const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000);
@@ -917,7 +917,7 @@ export default function L1ExplorerPage({
                           return (
                             <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
                               <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                              <p className="text-xs font-semibold text-[#E6212F]">
+                              <p className="text-xs font-semibold text-[var(--chain-accent,#E6212F)]">
                                 {payload[0].value?.toLocaleString()} txns
                               </p>
                             </div>
@@ -928,10 +928,10 @@ export default function L1ExplorerPage({
                     <Line
                       type="monotone"
                       dataKey="transactions"
-                      stroke={hasIndexedTransactionHistory ? "#E6212F" : "#9CA3AF"}
+                      stroke={hasIndexedTransactionHistory ? "var(--chain-accent, #E6212F)" : "#9CA3AF"}
                       strokeWidth={1.5}
                       dot={false}
-                      activeDot={hasIndexedTransactionHistory ? { r: 3, fill: "#E6212F" } : false}
+                      activeDot={hasIndexedTransactionHistory ? { r: 3, fill: "var(--chain-accent, #E6212F)" } : false}
                     />
                   </LineChart>
                 </ResponsiveContainer>

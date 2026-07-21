@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -35,25 +33,6 @@ interface ChainHeaderProps {
   className?: string;
 }
 
-function ExitLink({ label, href, internal = false }: ChainExit & { internal?: boolean }) {
-  const cls =
-    "group inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100";
-  if (internal) {
-    return (
-      <Link href={href} className={cls}>
-        {label}
-        <ArrowRight className="h-3.5 w-3.5 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-      </Link>
-    );
-  }
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
-      {label}
-      <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
-    </a>
-  );
-}
-
 /* The Primary Network's chains present like the P-Chain does: an eyebrow
    naming the network over the proper chain name — no "Avalanche" prefix,
    no logo bubble. Catalog data (and wallet metadata) keep the full name. */
@@ -74,17 +53,9 @@ export function ChainHeader({
   className,
 }: ChainHeaderProps) {
   const primary = PRIMARY_NETWORK_DISPLAY[chainName];
-  // identifiers and the wallet hook live on the chain's Details tab now
-  const socialExits: ChainExit[] = [
-    ...(website ? [{ label: "Website", href: website }] : []),
-    ...(socials?.twitter ? [{ label: "X", href: `https://x.com/${socials.twitter}` }] : []),
-    ...(socials?.linkedin
-      ? [{ label: "LinkedIn", href: `https://linkedin.com/company/${socials.linkedin}` }]
-      : []),
-  ];
-  // two short right-aligned rows (socials, then explorers) read as a deliberate
-  // cluster; one long row wraps into debris under the display title
-  const exitRows = [socialExits, exits].filter((row) => row.length > 0);
+  // identifiers, the wallet hook, socials, and external explorers all live
+  // on the chain's Details tab now — the header holds only the identity and
+  // its aside, so switching between the P-Chain and any L1 never shifts
 
   return (
     // pl-0!/pr-0! neutralize the global `header > div` navbar padding hack
@@ -121,18 +92,7 @@ export function ChainHeader({
             <span className="text-[#E6212F]">.</span>
           </h1>
         </div>
-        {(aside || exitRows.length > 0) && (
-          <div className="flex flex-col items-start gap-y-2.5 sm:items-end">
-            {aside}
-            {exitRows.map((row, i) => (
-              <div key={i} className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                {row.map((exit) => (
-                  <ExitLink key={exit.href} {...exit} />
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
+        {aside}
       </div>
     </div>
   );

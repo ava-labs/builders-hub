@@ -162,7 +162,7 @@ function ChainSwitcher({
           {entry.name}
         </span>
         {current ? (
-          <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[#E6212F]" />
+          <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[var(--chain-accent,#E6212F)]" />
         ) : (
           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-hover:text-[#E6212F] dark:text-zinc-600" />
         )}
@@ -285,13 +285,20 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
     {
       label: "Overview",
       href: base,
-      isActive: (p) => p.startsWith(base) && !p.startsWith(`${base}/details`),
+      isActive: (p) => p === base || p.startsWith(`${base}/address`),
     },
   ];
 
   // custom chains (localStorage imports) have no stats surfaces
   const catalogChain = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
   if (catalogChain) {
+    if (catalogChain.rpcUrl) {
+      // list tabs mirror the P-Chain's; detail pages light their list
+      tabs.push(
+        { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
+        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
+      );
+    }
     if (catalogChain.blockchainId) {
       tabs.push({
         label: "Details",
@@ -307,8 +314,16 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
     if (catalogChain.isTestnet !== true) {
       tabs.push({
         label: "Validators",
-        href: `/stats/validators/${chainSlug}`,
-        isActive: (p) => p.startsWith(`/stats/validators/${chainSlug}`),
+        // the C-Chain's validators ARE the Primary Network's — one page,
+        // shared with the P-Chain
+        href:
+          chainSlug === "c-chain"
+            ? `/explorer/mainnet/p-chain/validators`
+            : `/stats/validators/${chainSlug}`,
+        isActive: (p) =>
+          chainSlug === "c-chain"
+            ? p.startsWith("/explorer/mainnet/p-chain/validators")
+            : p.startsWith(`/stats/validators/${chainSlug}`),
       });
     }
     if (chainSlug === "c-chain") {
@@ -316,6 +331,14 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         label: "Token",
         href: "/stats/avax-token",
         isActive: (p) => p.startsWith("/stats/avax-token"),
+      });
+    }
+    // ICM activity needs an RPC to derive cross-chain txs from
+    if (catalogChain.rpcUrl) {
+      tabs.push({
+        label: "ICM",
+        href: `${base}/icm`,
+        isActive: (p) => p.startsWith(`${base}/icm`),
       });
     }
   }
@@ -466,7 +489,7 @@ export function ExplorerSubnav({
                   )}
                 >
                   {tab.label}
-                  {active && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[#E6212F]" />}
+                  {active && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--chain-accent,#E6212F)]" />}
                 </Link>
               );
             })}

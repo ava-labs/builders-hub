@@ -52,7 +52,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 className={cn(
                   "absolute -top-2 left-0 w-full origin-bottom-left skew-x-[-45deg]",
                   live
-                    ? "bg-[#FF394A]"
+                    ? "bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_75%,white)]"
                     : carries
                       ? "border border-b-0 border-zinc-200 bg-[#A2AFB2]/35 dark:border-zinc-800 dark:bg-[#A2AFB2]/25"
                       : "border border-b-0 border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800",
@@ -65,7 +65,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 className={cn(
                   "absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg]",
                   live
-                    ? "bg-[#B20F2A]"
+                    ? "bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_70%,black)]"
                     : carries
                       ? "border border-l-0 border-zinc-200 bg-[#A2AFB2]/50 dark:border-zinc-800 dark:bg-[#A2AFB2]/15"
                       : "border border-l-0 border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-900",
@@ -77,7 +77,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 className={cn(
                   "relative flex h-full flex-col gap-1 px-3 py-2.5 backdrop-blur-sm transition-colors",
                   live
-                    ? "bg-[#E6212F] hover:bg-[#B20F2A]"
+                    ? "bg-[var(--chain-accent,#E6212F)] hover:bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_80%,black)]"
                     : carries
                       ? "border border-zinc-200 bg-[#A2AFB2]/15 hover:bg-[#A2AFB2]/30 dark:border-zinc-800 dark:bg-[#A2AFB2]/10 dark:hover:bg-[#A2AFB2]/20"
                       : "border border-zinc-200 bg-white/80 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950/80 dark:hover:bg-zinc-900",
