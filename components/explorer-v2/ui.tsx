@@ -431,3 +431,49 @@ const TONE_TEXT = {
 export function txToneText(type: string): string {
   return TONE_TEXT[pillTone(type)];
 }
+
+/* TypeFilterRail — squared toggle chips in the segmented-control idiom.
+   Each type chip carries its family tone square, the same tone its pills
+   wear in the table below, so the filter and the results visibly speak
+   the same language. Shared by the tx and block list pages. */
+export function TypeFilterRail({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+        Filter
+      </span>
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            onClick={() => onChange(o.value)}
+            aria-pressed={active}
+            className={cn(
+              "inline-flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors",
+              active
+                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                : "border-zinc-200 bg-white/80 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100",
+            )}
+          >
+            {o.value && (
+              <span
+                className={cn("size-1 shrink-0 bg-current", !active && txToneText(o.value))}
+                aria-hidden
+              />
+            )}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
