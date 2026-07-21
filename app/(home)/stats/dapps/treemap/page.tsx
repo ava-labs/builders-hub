@@ -25,7 +25,7 @@ export default function TreemapPage() {
             </span>
             <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-zinc-300 dark:text-zinc-600" />
             <a
-              href="/stats/dapps"
+              href="/explorer/mainnet/apps"
               className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
             >
               <AppWindow className="w-3 h-3 sm:w-3.5 sm:h-3.5" />

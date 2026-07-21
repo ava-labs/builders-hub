@@ -2,23 +2,18 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CircleDotDashed, CircleFadingPlus, Lock, BadgeDollarSign, RefreshCw, Flame, Award, MessageSquareIcon, Server, Unlock, HandCoins, Info, ArrowUpRight } from "lucide-react";
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import Image from "next/image";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, Brush, LineChart, Line } from "recharts";
-import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
-import l1ChainsData from "@/constants/l1-chains.json";
-import { DatEtfSection } from "./_components/DatEtfSection";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { cn } from "@/lib/utils";
+import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { SectionHeader } from "@/components/explorer-v2/ui";
+import { DatEtfSection } from "@/app/(home)/stats/avax-token/_components/DatEtfSection";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { LiveBlockBurns } from "@/components/stats/LiveBlockBurns";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
-
-const cChainLogo = (l1ChainsData as { slug: string; chainLogoURI?: string }[]).find(
-  (c) => c.slug === "c-chain",
-)?.chainLogoURI;
 
 interface AvaxSupplyData {
   totalSupply: string;
@@ -61,7 +56,7 @@ interface ICMFeesResponse {
 
 type Period = "D" | "W" | "M";
 
-export default function AvaxTokenPage() {
+export function NetworkToken() {
   const [data, setData] = useState<AvaxSupplyData | null>(null);
   const [cChainFees, setCChainFees] = useState<FeeDataPoint[]>([]);
   const [icmFees, setICMFees] = useState<FeeDataPoint[]>([]);
@@ -431,184 +426,182 @@ export default function AvaxTokenPage() {
       ]
     : [];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950">
-        <div className="container mx-auto px-6 pt-10 pb-24 max-w-[90rem]">
-          <ExplorerSubnav
-            network="mainnet"
-            chainSlug="c-chain"
-            chainName="Avalanche C-Chain"
-            chainLogoURI={cChainLogo}
-            className="mb-10"
-          />
-
-          <div className="mb-8 space-y-8">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-muted animate-pulse" />
-              <div className="flex-1">
-                <div className="h-10 bg-muted rounded w-64 mb-3 animate-pulse" />
-                <div className="h-4 bg-muted rounded w-32 animate-pulse" />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700">
-                <div className="animate-pulse space-y-2 sm:space-y-3">
-                  <div className="h-4 bg-muted rounded w-24 mx-auto" />
-                  <div className="h-8 bg-muted rounded w-32 mx-auto" />
-                  <div className="h-3 bg-muted rounded w-28 mx-auto" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+  // Price + 24h change ride in the shell's title row — the one figure a
+  // reader wants before anything else. Only mounted once price is known.
+  const priceAside =
+    data && data.price > 0 ? (
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+          AVAX
+        </span>
+        <span className="font-mono text-xl tabular-nums text-zinc-900 sm:text-2xl dark:text-zinc-50">
+          ${data.price.toFixed(2)}
+        </span>
+        <span
+          className={cn(
+            "font-mono text-xs tabular-nums",
+            data.priceChange24h >= 0
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-[#E6212F]",
+          )}
+        >
+          {data.priceChange24h >= 0 ? "+" : ""}
+          {data.priceChange24h.toFixed(2)}% (24h)
+        </span>
       </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-white dark:bg-neutral-950">
-        <div className="container mx-auto px-6 pt-10 pb-24 max-w-[90rem]">
-          <ExplorerSubnav
-            network="mainnet"
-            chainSlug="c-chain"
-            chainName="Avalanche C-Chain"
-            chainLogoURI={cChainLogo}
-            className="mb-10"
-          />
-
-          <Card className="max-w-md mx-auto border-gray-200 dark:border-gray-700 rounded-md">
-            <CardContent className="p-4 text-center">
-              <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-              <Button onClick={fetchData}>Retry</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+    ) : undefined;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-neutral-950">
-      <div className="container mx-auto px-6 pt-10 pb-24 max-w-[90rem]">
-          <ExplorerSubnav
-        network="mainnet"
-        chainSlug="c-chain"
-        chainName="Avalanche C-Chain"
-        chainLogoURI={cChainLogo}
-        className="mb-10"
-      />
-
-        <div className="mb-8">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex items-center gap-5">
-              <div className="w-20 h-20 rounded-full bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center border border-neutral-200 dark:border-neutral-800 p-4">
-                <AvalancheLogo className="w-full h-full -mt-0.5" fill="currentColor"/>
-              </div>
-              <div>
-                <h1 className="v2-display text-[clamp(2rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50 mb-2">Avalanche (AVAX)<span className="text-[#E6212F]">.</span></h1>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <Badge variant="outline" className="bg-neutral-50 dark:bg-neutral-900">Native Token</Badge>
-                  <a
-                    href="https://subnets.avax.network/x-chain/tx/FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:opacity-80 transition-opacity"
-                  >
-                    <Badge variant="outline" className="bg-neutral-50 dark:bg-neutral-900 font-mono text-xs cursor-pointer flex items-center gap-1">
-                      FvwEAhm...DGCgxN5Z
-                      <ArrowUpRight className="w-3 h-3" />
-                    </Badge>
-                  </a>
-                  <a
-                    href="https://snowtrace.io/address/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:opacity-80 transition-opacity"
-                  >
-                    <Badge variant="outline" className="bg-neutral-50 dark:bg-neutral-900 font-mono text-xs cursor-pointer flex items-center gap-1">
-                      WAVAX: 0xB31f...66c7
-                      <ArrowUpRight className="w-3 h-3" />
-                    </Badge>
-                  </a>
-                </div>
-              </div>
+    <NetworkShell eyebrow="Avalanche Network Token" title="AVAX" aside={priceAside}>
+      {error ? (
+        // error lands inside the shell — chrome already rendered, only the
+        // data column reports the failure. Retry is a squared mono chip.
+        <div className="flex flex-col items-center gap-4 border border-zinc-200 bg-white/80 py-16 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
+          <p className="max-w-md px-6 text-center text-[13px] text-[#E6212F]">{error}</p>
+          <button
+            onClick={fetchData}
+            className="border border-zinc-300 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+          >
+            Retry
+          </button>
+        </div>
+      ) : loading || !data ? (
+        // the shell stands; the data slots pulse as squares
+        <div className="flex flex-col gap-10">
+          <div className="flex flex-wrap gap-2">
+            <div className="h-6 w-28 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+            <div className="h-6 w-44 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+            <div className="h-6 w-44 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+          </div>
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Supply, Staking & Burn" />
+            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-28 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+              ))}
             </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={fetchData} className="border-neutral-300 dark:border-neutral-700">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
-            </div>
+          </section>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="h-[480px] animate-pulse bg-zinc-100 lg:col-span-2 dark:bg-zinc-900" />
+            <div className="h-[480px] animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="h-64 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+            <div className="h-64 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           </div>
         </div>
+      ) : (
+        <div className="flex flex-col gap-10">
+          {/* Identity row — the shell carries the AVAX title, so this keeps
+              only the informative badges: the native-token marker and the
+              two on-chain addresses, restyled as squared mono chips. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="border border-zinc-200 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+              Native Token
+            </span>
+            <a
+              href="https://subnets.avax.network/x-chain/tx/FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-1 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+            >
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                X-Chain
+              </span>
+              <span className="font-mono text-[11px] text-[#0061E2] dark:text-[#5f9dff]">
+                FvwEAhm…DGCgxN5Z
+              </span>
+              <ArrowUpRight className="h-3 w-3 text-zinc-400 dark:text-zinc-500" />
+            </a>
+            <a
+              href="https://snowtrace.io/address/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-1 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+            >
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                WAVAX
+              </span>
+              <span className="font-mono text-[11px] text-[#0061E2] dark:text-[#5f9dff]">
+                0xB31f…66c7
+              </span>
+              <ArrowUpRight className="h-3 w-3 text-zinc-400 dark:text-zinc-500" />
+            </a>
+            <button
+              onClick={fetchData}
+              className="ml-auto inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:text-zinc-100"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Refresh
+            </button>
+          </div>
 
-        <div className="space-y-8">
-          <TooltipProvider>
-            <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {metrics.map((metric) => {
-                const Icon = metric.icon;
-                return (
-                  <div key={metric.label} className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700">
-                    <UITooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3 cursor-help">
-                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: metric.color }}/>
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                            {metric.label}
-                          </p>
-                          <Info className="h-3 w-3 text-muted-foreground/50" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-[250px] text-center">
-                        <p>{metric.tooltip}</p>
-                      </TooltipContent>
-                    </UITooltip>
-                    <p className="text-xl sm:text-3xl font-mono font-semibold break-all" title={metric.fullValue}>
-                      {metric.value}
-                    </p>
-                    {metric.subtextTooltip ? (
+          {/* Supply / staking / burn metrics — the page's core figures.
+              Framed with the drafting-sheet section header; tiles are
+              functionally the original grid (redesign lands later). */}
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Supply, Staking & Burn" />
+            <TooltipProvider>
+              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {metrics.map((metric) => {
+                  const Icon = metric.icon;
+                  return (
+                    <div key={metric.label} className="text-center p-4 sm:p-6 rounded-md bg-card border border-gray-200 dark:border-gray-700">
                       <UITooltip>
                         <TooltipTrigger asChild>
-                          <p
-                            className={`text-xs mt-1 cursor-help ${
-                              metric.label === "AVAX Price"
-                                ? metric.color === "#10B981"
-                                  ? "text-green-600 dark:text-green-400 font-semibold"
-                                  : "text-red-600 dark:text-red-400 font-semibold"
-                                : "text-muted-foreground"
-                            }`}
-                          >
-                            {metric.subtext}
-                          </p>
+                          <div className="flex items-center justify-center gap-2 mb-2 sm:mb-3 cursor-help">
+                            <Icon className="h-4 w-4 sm:h-5 sm:w-5" style={{ color: metric.color }}/>
+                            <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {metric.label}
+                            </p>
+                            <Info className="h-3 w-3 text-muted-foreground/50" />
+                          </div>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{metric.subtextTooltip}</p>
+                        <TooltipContent className="max-w-[250px] text-center">
+                          <p>{metric.tooltip}</p>
                         </TooltipContent>
                       </UITooltip>
-                    ) : (
-                      <p
-                        className={`text-xs mt-1 ${
-                          metric.label === "AVAX Price"
-                            ? metric.color === "#10B981"
-                              ? "text-green-600 dark:text-green-400 font-semibold"
-                              : "text-red-600 dark:text-red-400 font-semibold"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {metric.subtext}
+                      <p className="text-xl sm:text-3xl font-mono font-semibold break-all" title={metric.fullValue}>
+                        {metric.value}
                       </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </TooltipProvider>
+                      {metric.subtextTooltip ? (
+                        <UITooltip>
+                          <TooltipTrigger asChild>
+                            <p
+                              className={`text-xs mt-1 cursor-help ${
+                                metric.label === "AVAX Price"
+                                  ? metric.color === "#10B981"
+                                    ? "text-green-600 dark:text-green-400 font-semibold"
+                                    : "text-red-600 dark:text-red-400 font-semibold"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              {metric.subtext}
+                            </p>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{metric.subtextTooltip}</p>
+                          </TooltipContent>
+                        </UITooltip>
+                      ) : (
+                        <p
+                          className={`text-xs mt-1 ${
+                            metric.label === "AVAX Price"
+                              ? metric.color === "#10B981"
+                                ? "text-green-600 dark:text-green-400 font-semibold"
+                                : "text-red-600 dark:text-red-400 font-semibold"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {metric.subtext}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
+          </section>
 
           {/* Row 1: Chart (2/3) + Live Burns (1/3) */}
           <div className="grid gap-4 lg:grid-cols-3">
@@ -882,8 +875,7 @@ export default function AvaxTokenPage() {
             <DatEtfSection />
           </div>
         </div>
-      </div>
-
-    </div>
+      )}
+    </NetworkShell>
   );
 }
