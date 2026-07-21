@@ -264,68 +264,7 @@ function TokenDisplay({ symbol }: { symbol?: string }) {
   return <span>{symbol}</span>;
 }
 
-// Animated block number component - animates when value changes
-function AnimatedBlockNumber({ value }: { value: number }) {
-  const [displayValue, setDisplayValue] = useState(value);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const previousValue = useRef(value);
-  const animationRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    // Skip animation on initial render or if value hasn't changed
-    if (previousValue.current === value) {
-      setDisplayValue(value);
-      return;
-    }
-
-    const startValue = previousValue.current;
-    const endValue = value;
-    const duration = 600; // Animation duration in ms
-    let startTime: number | null = null;
-
-    setIsAnimating(true);
-
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      
-      // Easing function for smooth animation
-      const easeOut = 1 - Math.pow(1 - progress, 3);
-      const currentValue = Math.floor(startValue + (endValue - startValue) * easeOut);
-      
-      setDisplayValue(currentValue);
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        setDisplayValue(endValue);
-        setIsAnimating(false);
-        previousValue.current = endValue;
-      }
-    };
-
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [value]);
-
-  // Update previous value ref when value changes
-  useEffect(() => {
-    previousValue.current = value;
-  }, [value]);
-
-  return (
-    <span className={`transition-colors duration-300 ${isAnimating ? 'text-green-500' : ''}`}>
-      {displayValue.toLocaleString()}
-    </span>
-  );
-}
-
-// Animation styles for new items and loading dots
 const newItemStyles = `
   @keyframes slideInHighlight {
     0% {
@@ -373,17 +312,6 @@ const newItemStyles = `
     animation-delay: 0s;
   }
 `;
-
-// Jumping dots component for loading state
-function JumpingDots({ className = "" }: { className?: string }) {
-  return (
-    <span className={`inline-flex items-center ${className}`}>
-      <span className="jumping-dot" />
-      <span className="jumping-dot" />
-      <span className="jumping-dot" />
-    </span>
-  );
-}
 
 export default function L1ExplorerPage({
   chainId,
@@ -685,6 +613,14 @@ export default function L1ExplorerPage({
            data.transactionHistory.some(point => point.transactions > 0);
   }, [data?.transactionHistory]);
 
+  // fees burned across the live block window — the strip's economics cell
+  // (chain height moved to the header, freeing this slot)
+  const recentBurn = useMemo(() => {
+    if (accumulatedBlocks.length === 0) return null;
+    const sum = accumulatedBlocks.reduce((acc, b) => acc + (b.gasFee ? parseFloat(b.gasFee) : 0), 0);
+    return Number.isFinite(sum) && sum > 0 ? sum : null;
+  }, [accumulatedBlocks]);
+
   // C-Chain only: 14-day activity split by on-chain behavior (DeFi swaps /
   // NFT transfers / token transfers / other), classified from the log
   // archive — no contract labels needed. Other chains keep the tx line.
@@ -731,32 +667,6 @@ export default function L1ExplorerPage({
 
   // Calculate blocks per second using timestampMilliseconds
   // Wait for 2x initial blocks before showing the calculation
-  const INITIAL_BLOCKS_COUNT = 10;
-  const MIN_BLOCKS_FOR_BPS = INITIAL_BLOCKS_COUNT * 2;
-  
-  const avalancheBlocksPerSecond = useMemo(() => {
-    // Need at least MIN_BLOCKS_FOR_BPS blocks with timestampMilliseconds for accurate calculation
-    const blocksWithTime = accumulatedBlocks.filter(b => b.timestampMilliseconds !== undefined);
-    if (blocksWithTime.length < MIN_BLOCKS_FOR_BPS) return null;
-    
-    // Get timestampMilliseconds (blocks are sorted descending - newest first)
-    const timestamps = blocksWithTime.map(b => b.timestampMilliseconds!);
-    const newestTime = timestamps[0];
-    const oldestTime = timestamps[timestamps.length - 1];
-    
-    // Calculate time span in seconds
-    const timeSpanMs = newestTime - oldestTime;
-    if (timeSpanMs <= 0) return null;
-    
-    const timeSpanSec = timeSpanMs / 1000;
-    
-    // blocks/sec = (number of blocks - 1) / time span
-    // We use (length - 1) because the time span covers the intervals between blocks
-    const bps = (blocksWithTime.length - 1) / timeSpanSec;
-    
-    return Math.round(bps * 100) / 100;
-  }, [chainId, accumulatedBlocks]);
-
   if (loading) {
     return (
       <>
@@ -888,29 +798,27 @@ export default function L1ExplorerPage({
 
             <LedgerCell label="Med gas price">{data?.stats.gasPrice ?? "—"}</LedgerCell>
 
+            {/* chain height already lives top-right in the header — this
+                slot carries the burn instead of repeating it */}
             <LedgerCell
-              label="Last block"
+              label="Fees burned"
               live
               sub={
-                avalancheBlocksPerSecond !== null ? (
+                recentBurn !== null ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="cursor-help border-b border-dashed border-zinc-300 dark:border-zinc-600">
-                        {avalancheBlocksPerSecond} blks/s
+                        last {accumulatedBlocks.length} blocks
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Calculated from {accumulatedBlocks.filter((b) => b.timestampMilliseconds).length} blocks using timestampMilliseconds</p>
+                      <p>Sum of fees burned across the {accumulatedBlocks.length} most recent blocks</p>
                     </TooltipContent>
                   </Tooltip>
-                ) : (
-                  <span>
-                    <JumpingDots /> blks/s
-                  </span>
-                )
+                ) : undefined
               }
             >
-              <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
+              {recentBurn !== null ? `${formatTokenValue(recentBurn.toString())} ${tokenSymbol ?? ""}` : "—"}
             </LedgerCell>
 
             <LedgerCell

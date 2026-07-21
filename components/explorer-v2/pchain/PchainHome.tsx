@@ -140,7 +140,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
           <Link href={`${base}/blocks`} className="group flex flex-col items-end gap-1.5">
             <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
               <LiveDot />
-              Tip Height
+              Chain Height
             </span>
             <StatFigure
               value={s.tipHeight}

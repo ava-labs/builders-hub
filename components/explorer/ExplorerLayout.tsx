@@ -272,7 +272,7 @@ export function ExplorerLayout({
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--chain-accent,#E6212F)] opacity-60" />
                         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--chain-accent,#E6212F)]" />
                       </span>
-                      Tip Height
+                      Chain Height
                     </span>
                     <StatFigure value={tipHeight} className="text-3xl md:text-[2.5rem]" />
                   </div>
