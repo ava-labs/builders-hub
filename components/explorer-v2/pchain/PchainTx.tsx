@@ -31,8 +31,13 @@ import type { AssetAmount, Tx, Utxo } from "@/lib/pchain-explorer";
 
 export function PchainTx({ chain, network, txHash }: { chain: string; network: string; txHash: string }) {
   const base = `/explorer/${network}/${chain}`;
-  const { data: tx, loading, error } = usePchainData<Tx>(network, `tx/${txHash}`);
+  // a fresh tx exists on-chain seconds before the indexer has it: keep
+  // re-checking a 404 for two minutes instead of declaring it missing
+  const { data: tx, loading, error } = usePchainData<Tx>(network, `tx/${txHash}`, undefined, {
+    retry404Ms: 120_000,
+  });
   const [flowView, setFlowView] = useState<"diagram" | "table">("diagram");
+  const notFound = error === "not found";
 
   // which context sections this tx type carries — they lay out two-up
   const hasStaking = !!(tx && (tx.nodeId || tx.details?.weight || tx.rewardAddresses?.length));
@@ -46,13 +51,22 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   const hasContext = hasStaking || hasL1Validation || hasCreation || hasCrossChain || isConvert || isWarpOp;
 
   // node-decoded inputs for platform ops (shared by the right-rail panels
-  // and the full-width initial-validator-set table)
-  const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp);
+  // and the full-width initial-validator-set table); on a 404 it doubles
+  // as the authoritative "does this tx exist on-chain at all?" check
+  const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || notFound);
 
   return (
     <ExplorerShell chain={chain} network={network}>
       {loading && <DetailSkeleton label="Transaction" />}
-      {error && <NotFound label="Transaction not found" id={txHash} />}
+      {error && !notFound && <NotFound label="Transaction not found" id={txHash} />}
+      {notFound &&
+        (platformOp.data ? (
+          <IndexingWait txHash={txHash} />
+        ) : platformOp.loading ? (
+          <DetailSkeleton label="Transaction" />
+        ) : (
+          <NotFound label="Transaction not found" id={txHash} />
+        ))}
       {tx && (
         <div className="flex flex-col gap-10">
           {/* identity on the left, type-specific context on the right;
@@ -321,6 +335,30 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
         </div>
       )}
     </ExplorerShell>
+  );
+}
+
+/* The tx is on-chain (the node confirms it) but the indexer hasn't
+   ingested it yet — the page keeps re-checking and swaps in the full
+   view the moment it lands. */
+function IndexingWait({ txHash }: { txHash: string }) {
+  return (
+    <Board divide={false} className="px-6 py-14 text-center">
+      <div className="flex flex-col items-center gap-4">
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E6212F]" />
+        </span>
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+          Accepted on-chain — indexing
+        </p>
+        <p className="max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+          The P-Chain has this transaction; the explorer index is a few blocks behind it. This page
+          refreshes itself until it lands.
+        </p>
+        <HashChip value={txHash} len={40} />
+      </div>
+    </Board>
   );
 }
 

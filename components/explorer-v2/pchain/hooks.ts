@@ -12,10 +12,16 @@ export function usePchainData<T>(
   network: string,
   resource: string,
   query?: Record<string, string | number | undefined>,
-  opts?: { pollMs?: number },
+  opts?: {
+    pollMs?: number;
+    /** keep re-checking a 404 for this long — fresh txs/blocks exist
+     *  on-chain seconds before the indexer has ingested them */
+    retry404Ms?: number;
+  },
 ): { data: T | null; loading: boolean; error: string | null } {
   const key = pchainApiPath(network, resource, query);
   const pollMs = opts?.pollMs ?? 0;
+  const retry404Ms = opts?.retry404Ms ?? 0;
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,10 +54,32 @@ export function usePchainData<T>(
       }, pollMs);
     };
 
+    // a 404 with retry404Ms is usually the indexer trailing the chain by
+    // seconds on a fresh tx — keep re-asking until the window closes. The
+    // "not found" error stays set while retrying (the page can show an
+    // "indexing" state); a hit clears it and hands over to normal polling.
+    const retry404Until = (deadline: number) => {
+      timer = setTimeout(async () => {
+        if (controller.signal.aborted) return;
+        try {
+          const res = await fetch(key, { signal: controller.signal });
+          if (res.ok) {
+            setData((await res.json()) as T);
+            setError(null);
+            if (pollMs > 0) schedule();
+            return;
+          }
+        } catch {
+          /* fall through to the next attempt */
+        }
+        if (!controller.signal.aborted && Date.now() < deadline) retry404Until(deadline);
+      }, 4000);
+    };
+
     (async () => {
       // the upstream explorer API times out intermittently under load
       // (504 through the proxy); one spaced retry absorbs almost all of it.
-      // 404s are real answers and never retried.
+      let notFound = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
           const res = await fetch(key, { signal: controller.signal });
@@ -69,20 +97,22 @@ export function usePchainData<T>(
             if (controller.signal.aborted) return;
             continue;
           }
+          notFound = message === "not found";
           setError(message);
           setData(null);
         }
       }
       if (controller.signal.aborted) return;
       setLoading(false);
-      if (pollMs > 0) schedule();
+      if (notFound && retry404Ms > 0) retry404Until(Date.now() + retry404Ms);
+      else if (pollMs > 0) schedule();
     })();
 
     return () => {
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [key, pollMs]);
+  }, [key, pollMs, retry404Ms]);
 
   return { data, loading, error };
 }
