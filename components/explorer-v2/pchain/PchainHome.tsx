@@ -17,13 +17,9 @@ import {
   txToneText,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { usePchainData } from "./hooks";
+import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { Stats, TxSummary, BlockSummary } from "@/lib/pchain-explorer";
-
-/* The overview polls: the page is an instrument panel, not a report. The
-   upstream API caches these hot endpoints, so this is cheap for it. */
-const POLL_MS = 15_000;
 
 /* "BanffCommitBlock" → "Commit": the Banff prefix is a protocol-upgrade
    implementation detail; Commit/Proposal/Standard is what the reader needs. */
@@ -46,14 +42,17 @@ function LiveDot({ onRed = false, className }: { onRed?: boolean; className?: st
 
 export function PchainHome({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
-  const stats = usePchainData<Stats>(network, "stats", undefined, { pollMs: POLL_MS * 2 });
-  const txs = usePchainData<TxSummary[]>(network, "txs", { limit: 8 }, { pollMs: POLL_MS });
+  // the page is an instrument panel, not a report — txs/blocks poll live;
+  // stats move slowly so they poll at half the cadence
+  const live = { refreshMs: LIVE_REFRESH_MS };
+  const stats = usePchainData<Stats>(network, "stats", undefined, { refreshMs: LIVE_REFRESH_MS * 2 });
+  const txs = usePchainData<TxSummary[]>(network, "txs", { limit: 8 }, live);
   // one blocks fetch feeds both the tape (all 20) and the list (first 8)
   const blocks = usePchainData<{ blocks: BlockSummary[] }>(
     network,
     "blocks",
     { limit: 20 },
-    { pollMs: POLL_MS },
+    live,
   );
 
   const s = stats.data;

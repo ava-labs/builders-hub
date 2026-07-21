@@ -6,6 +6,7 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { pchainApiPath, type BlocksList, type BlockSummary } from "@/lib/pchain-explorer";
+import { LIVE_REFRESH_MS } from "./hooks";
 
 export function PchainBlocksList({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
@@ -37,6 +38,30 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
     setDone(false);
     load();
   }, [network, load]);
+
+  // Auto-refresh: poll the newest page and prepend blocks we don't have yet,
+  // leaving the already-loaded "load more" history (and scroll) untouched.
+  useEffect(() => {
+    const tick = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      try {
+        const res = await fetch(pchainApiPath(network, "blocks", { limit: 25 }));
+        const data: BlocksList = await res.json();
+        const fresh = data.blocks ?? [];
+        if (!fresh.length) return;
+        setBlocks((prev) => {
+          if (!prev.length) return prev; // initial load owns the empty state
+          const top = prev[0].blockNumber;
+          const newer = fresh.filter((b) => b.blockNumber > top);
+          return newer.length ? [...newer, ...prev] : prev;
+        });
+      } catch {
+        /* transient — keep last-good blocks on screen */
+      }
+    };
+    const id = setInterval(tick, LIVE_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [network]);
 
   return (
     <ExplorerShell chain={chain} network={network}>

@@ -3,24 +3,35 @@
 import { useEffect, useState } from "react";
 import { pchainApiPath } from "@/lib/pchain-explorer";
 
+// Default client poll interval for "live" views (home, tx/block lists). Sits
+// just above the proxy's ~10s edge cache so most polls coalesce on it while
+// still surfacing new blocks/txs within ~10–20s. Detail pages (a specific
+// tx/block) are immutable and opt out by omitting refreshMs.
+export const LIVE_REFRESH_MS = 12_000;
+
 /**
- * Generic client fetch for the same-origin P-chain proxy. Plain
- * fetch + AbortController (matches the builders-hub stats convention;
- * react-query is scoped to the toolbox only).
+ * Generic client fetch for the same-origin P-chain proxy. Plain fetch +
+ * AbortController (matches the builders-hub stats convention; react-query is
+ * scoped to the toolbox only).
+ *
+ * Pass `opts.refreshMs` to poll: the initial fetch shows the loading state;
+ * each subsequent poll refetches silently and only swaps in data on success —
+ * a failed background poll keeps the last-good data on screen. Polling pauses
+ * while the tab is hidden.
  */
 export function usePchainData<T>(
   network: string,
   resource: string,
   query?: Record<string, string | number | undefined>,
   opts?: {
-    pollMs?: number;
+    refreshMs?: number;
     /** keep re-checking a 404 for this long — fresh txs/blocks exist
      *  on-chain seconds before the indexer has ingested them */
     retry404Ms?: number;
   },
 ): { data: T | null; loading: boolean; error: string | null } {
   const key = pchainApiPath(network, resource, query);
-  const pollMs = opts?.pollMs ?? 0;
+  const refreshMs = opts?.refreshMs ?? 0;
   const retry404Ms = opts?.retry404Ms ?? 0;
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,13 +56,13 @@ export function usePchainData<T>(
       } catch {
         /* keep showing the last good payload */
       }
-      if (!controller.signal.aborted && pollMs > 0) schedule();
+      if (!controller.signal.aborted && refreshMs > 0) schedule();
     };
     const schedule = () => {
       timer = setTimeout(() => {
         if (document.visibilityState === "hidden") schedule();
         else void refresh();
-      }, pollMs);
+      }, refreshMs);
     };
 
     // a 404 with retry404Ms is usually the indexer trailing the chain by
@@ -66,7 +77,7 @@ export function usePchainData<T>(
           if (res.ok) {
             setData((await res.json()) as T);
             setError(null);
-            if (pollMs > 0) schedule();
+            if (refreshMs > 0) schedule();
             return;
           }
         } catch {
@@ -105,14 +116,14 @@ export function usePchainData<T>(
       if (controller.signal.aborted) return;
       setLoading(false);
       if (notFound && retry404Ms > 0) retry404Until(Date.now() + retry404Ms);
-      else if (pollMs > 0) schedule();
+      else if (refreshMs > 0) schedule();
     })();
 
     return () => {
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [key, pollMs, retry404Ms]);
+  }, [key, refreshMs, retry404Ms]);
 
   return { data, loading, error };
 }

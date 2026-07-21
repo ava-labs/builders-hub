@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill, txToneText } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { usePchainData } from "./hooks";
+import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import type { TxSummary } from "@/lib/pchain-explorer";
 
 const TYPE_OPTIONS: { value: string; label: string }[] = [
@@ -64,7 +64,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
   const base = `/explorer/${network}/${chain}`;
   const [limit, setLimit] = useState(50);
   const [type, setType] = useState("");
-  const { data, loading } = usePchainData<TxSummary[]>(network, "txs", { limit, type: type || undefined });
+  const { data, loading } = usePchainData<TxSummary[]>(network, "txs", { limit, type: type || undefined }, { refreshMs: LIVE_REFRESH_MS });
   const txs = data ?? [];
   const activeLabel = TYPE_OPTIONS.find((o) => o.value === type)?.label ?? "All types";
 
