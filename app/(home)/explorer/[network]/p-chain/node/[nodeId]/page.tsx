@@ -4,11 +4,21 @@ import { PchainNode } from "@/components/explorer-v2/pchain/PchainNode";
 
 export default async function NodePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ network: string; nodeId: string }>;
+  searchParams: Promise<{ subnet?: string }>;
 }) {
   const { network, nodeId } = await params;
+  const { subnet } = await searchParams;
   const c = getExplorerChain("p-chain");
   if (!c || !c.networks.includes(network)) notFound();
-  return <PchainNode chain={c.slug} network={network} nodeId={decodeURIComponent(nodeId)} />;
+  return (
+    <PchainNode
+      chain={c.slug}
+      network={network}
+      nodeId={decodeURIComponent(nodeId)}
+      subnetHint={subnet}
+    />
+  );
 }

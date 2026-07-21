@@ -1,21 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
+import { getCurrentValidators, type CurrentValidator } from "@/lib/pchain-node";
 import type { NodeResponse } from "@/lib/pchain-explorer";
 
-export function PchainNode({ chain, network, nodeId }: { chain: string; network: string; nodeId: string }) {
+export function PchainNode({
+  chain,
+  network,
+  nodeId,
+  subnetHint,
+}: {
+  chain: string;
+  network: string;
+  nodeId: string;
+  /** subnet the caller knows this node validates — lets us ask the P-Chain
+   *  directly when the indexer (Primary Network only) has never seen it */
+  subnetHint?: string;
+}) {
   const base = `/explorer/${network}/${chain}`;
   const { data: n, loading, error } = usePchainData<NodeResponse>(network, `node/${nodeId}`);
 
+  // L1-only validators never stake on the Primary Network, so the indexer
+  // 404s on them. With a subnet hint we go straight to the node:
+  // platform.getCurrentValidators({subnetID, nodeIDs}).
+  const [l1, setL1] = useState<CurrentValidator | null>(null);
+  const [l1Checked, setL1Checked] = useState(false);
+  useEffect(() => {
+    if (!error || !subnetHint) return;
+    let cancelled = false;
+    getCurrentValidators(network, subnetHint, [nodeId]).then((vs) => {
+      if (cancelled) return;
+      setL1(vs?.[0] ?? null);
+      setL1Checked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [error, subnetHint, network, nodeId]);
+
   return (
     <ExplorerShell chain={chain} network={network}>
-      {loading && <div className="h-40 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />}
-      {error && <NotFound label="Node not found" id={nodeId} />}
+      {loading && <DetailSkeleton label="Validator" />}
+      {error && subnetHint && !l1Checked && <DetailSkeleton label="Validator" />}
+      {error && (!subnetHint || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
+      {error && l1 && <L1ValidatorView nodeId={nodeId} subnetId={subnetHint!} v={l1} base={base} />}
       {n && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
@@ -207,6 +241,85 @@ export function PchainNode({ chain, network, nodeId }: { chain: string; network:
         </div>
       )}
     </ExplorerShell>
+  );
+}
+
+/* The L1 validator's live record, straight from the P-Chain. Slimmer than
+   the indexer view (no uptime history or delegators — L1 validators have
+   neither on the Primary Network), but authoritative. */
+function L1ValidatorView({
+  nodeId,
+  subnetId,
+  v,
+  base,
+}: {
+  nodeId: string;
+  subnetId: string;
+  v: CurrentValidator;
+  base: string;
+}) {
+  return (
+    <div className="flex flex-col gap-10">
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label="Node"
+          action={
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              L1 validator · live from P-Chain
+            </span>
+          }
+        />
+        <div className="px-1">
+          <HashChip value={nodeId} len={64} />
+        </div>
+      </section>
+
+      <div className="grid items-start gap-8 lg:grid-cols-2">
+        <section className="flex flex-col gap-4">
+          <SectionHeader label="L1 Validation" />
+          <Board divide={false} className="px-5 py-4 md:px-6">
+            <SpecPlate>
+              <SpecRow label="Subnet">
+                <HashChip value={subnetId} href={`${base}/tx/${subnetId}`} len={24} />
+              </SpecRow>
+              {v.validationID && (
+                <SpecRow label="Validation ID">
+                  <HashChip value={v.validationID} len={24} />
+                </SpecRow>
+              )}
+              <SpecRow label="Weight">{formatNumber(Number(v.weight))}</SpecRow>
+              {v.balance !== undefined && <SpecRow label="Balance">{formatAvax(v.balance)}</SpecRow>}
+              {v.startTime && <SpecRow label="Start">{formatTime(Number(v.startTime))}</SpecRow>}
+              {v.publicKey && (
+                <SpecRow label="BLS Public Key">
+                  <HashChip value={v.publicKey} len={24} />
+                </SpecRow>
+              )}
+            </SpecPlate>
+          </Board>
+        </section>
+
+        {(v.remainingBalanceOwner || v.deactivationOwner) && (
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Owners" />
+            <Board divide={false} className="px-5 py-4 md:px-6">
+              <SpecPlate>
+                {v.remainingBalanceOwner?.addresses?.map((a) => (
+                  <SpecRow key={a} label="Remaining Balance">
+                    <HashChip value={a} len={24} />
+                  </SpecRow>
+                ))}
+                {v.deactivationOwner?.addresses?.map((a) => (
+                  <SpecRow key={a} label="Deactivation">
+                    <HashChip value={a} len={24} />
+                  </SpecRow>
+                ))}
+              </SpecPlate>
+            </Board>
+          </section>
+        )}
+      </div>
+    </div>
   );
 }
 
