@@ -43,6 +43,13 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
           // with a fill level the level IS the tint — a flat carries-tint
           // underneath would double-shade the face
           const carries = !hasFill && b.txCount > 0;
+          // the liquid wraps the solid: same level on front and right faces
+          // (right a shade deeper, matching the face shading); the top face
+          // only tints once the block is effectively sealed
+          const fillPct = hasFill
+            ? Math.min(100, Math.max(b.fill! > 0 ? 4 : 0, Math.round(b.fill! * 100)))
+            : 0;
+          const sealed = hasFill && fillPct >= 98;
           return (
             <motion.div
               key={b.key}
@@ -52,24 +59,26 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="relative w-[96px] shrink-0"
             >
-              {/* top face */}
+              {/* top face — tints only when the block is sealed full */}
               <span
                 aria-hidden
                 className={cn(
                   "absolute -top-2 left-0 w-full origin-bottom-left skew-x-[-45deg]",
                   live
                     ? "bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_75%,white)]"
-                    : carries
-                      ? "border border-b-0 border-zinc-200 bg-[#A2AFB2]/35 dark:border-zinc-800 dark:bg-[#A2AFB2]/25"
-                      : "border border-b-0 border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800",
+                    : sealed
+                      ? "border border-b-0 border-zinc-200 bg-[#A2AFB2]/60 dark:border-zinc-800 dark:bg-[#A2AFB2]/40"
+                      : carries
+                        ? "border border-b-0 border-zinc-200 bg-[#A2AFB2]/35 dark:border-zinc-800 dark:bg-[#A2AFB2]/25"
+                        : "border border-b-0 border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-800",
                 )}
                 style={{ height: DEPTH }}
               />
-              {/* right face */}
+              {/* right face — carries the same liquid level, a shade deeper */}
               <span
                 aria-hidden
                 className={cn(
-                  "absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg]",
+                  "absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] overflow-hidden",
                   live
                     ? "bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_70%,black)]"
                     : carries
@@ -77,7 +86,20 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                       : "border border-l-0 border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-900",
                 )}
                 style={{ width: DEPTH }}
-              />
+              >
+                {hasFill && (
+                  <span
+                    aria-hidden
+                    // inherits the parent's skew, so the level stays a clean
+                    // parallelogram slice meeting the front face's waterline
+                    className={cn(
+                      "absolute inset-x-0 bottom-0 block",
+                      live ? "bg-black/30" : "bg-[#A2AFB2]/60 dark:bg-[#A2AFB2]/40",
+                    )}
+                    style={{ height: `${fillPct}%` }}
+                  />
+                )}
+              </span>
               <Link
                 href={b.href}
                 className={cn(
@@ -98,7 +120,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                       "absolute inset-x-0 bottom-0",
                       live ? "bg-black/20" : "bg-[#A2AFB2]/40 dark:bg-[#A2AFB2]/25",
                     )}
-                    style={{ height: `${Math.min(100, Math.max(b.fill! > 0 ? 4 : 0, Math.round(b.fill! * 100)))}%` }}
+                    style={{ height: `${fillPct}%` }}
                   />
                 )}
                 <span
