@@ -87,8 +87,8 @@ function formatTimeAgo(timestamp: string): string {
 
 function shortenAddress(address: string | null): string {
   if (!address) return '';
-  if (address.length < 12) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  if (address.length < 18) return address;
+  return `${address.slice(0, 10)}…${address.slice(-6)}`;
 }
 
 function formatNumber(num: number): string {

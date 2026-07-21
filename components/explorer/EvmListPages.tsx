@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
-import { LiveTag, formatTimeAgo } from "@/components/explorer/L1ExplorerPage";
+import { LiveTag, formatTimeAgo, useNowTick } from "@/components/explorer/L1ExplorerPage";
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
+import { useContractNames, prewarmContractNames } from "@/lib/sourcify-client";
 
 /* Full-width Blocks / Transactions list tabs for EVM chains, mirroring the
    P-Chain's. The feed is the explorer API's recent window (the same one
@@ -31,7 +32,14 @@ interface EvmTx {
 
 const POLL_MS = 15_000;
 
-function useExplorerFeed<T>(chainId: string, pick: (data: Record<string, unknown>) => T) {
+function useExplorerFeed<T>(
+  chainId: string,
+  pick: (data: Record<string, unknown>) => T,
+  /** Resolve row decorations (e.g. Sourcify names) BEFORE the rows commit,
+   *  so they paint decorated on their first frame. Must be internally
+   *  time-capped — it sits between fetch and setState. */
+  prewarm?: (items: T) => Promise<void>,
+) {
   const { buildApiUrl } = useExplorer();
   const [items, setItems] = useState<T | null>(null);
 
@@ -43,7 +51,9 @@ function useExplorerFeed<T>(chainId: string, pick: (data: Record<string, unknown
         const res = await fetch(buildApiUrl(`/api/explorer/${chainId}`, { initialLoad: "true" }));
         if (!res.ok) return;
         const data = await res.json();
-        if (!cancelled) setItems(pick(data));
+        const picked = pick(data);
+        if (prewarm) await prewarm(picked);
+        if (!cancelled) setItems(picked);
       } catch {
         /* stale list stands */
       }
@@ -84,6 +94,8 @@ export function EvmBlocksPage({
 }) {
   const blocks = useExplorerFeed<EvmBlock[]>(chainId, (d) => (d.blocks as EvmBlock[]) ?? []);
   const base = `/explorer/mainnet/${chainSlug}`;
+  // keep relative ages flowing between polls
+  useNowTick();
 
   return (
     <div className="mx-auto w-full max-w-[90rem] px-5 pb-16 pt-2 md:px-6">
@@ -146,8 +158,16 @@ export function EvmTxsPage({
   tokenSymbol?: string;
 }) {
   const router = useRouter();
-  const txs = useExplorerFeed<EvmTx[]>(chainId, (d) => (d.transactions as EvmTx[]) ?? []);
+  const txs = useExplorerFeed<EvmTx[]>(
+    chainId,
+    (d) => (d.transactions as EvmTx[]) ?? [],
+    // names resolve before rows land — labelled rows paint labelled
+    (items) => prewarmContractNames(chainId, items.map((t) => t.to)),
+  );
   const base = `/explorer/mainnet/${chainSlug}`;
+  // keep relative ages flowing between polls
+  useNowTick();
+  const toNames = useContractNames(chainId, (txs ?? []).map((t) => t.to));
 
   return (
     <div className="mx-auto w-full max-w-[90rem] px-5 pb-16 pt-2 md:px-6">
@@ -170,8 +190,10 @@ export function EvmTxsPage({
                 onClick={() => router.push(buildTxUrl(base, tx.hash))}
                 className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.6fr_1fr_1fr_0.8fr_0.6fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
               >
+                {/* full hash, width-aware: CSS truncation shows as many
+                    chars as the column actually has room for */}
                 <span className="truncate font-mono text-[13px] text-zinc-900 dark:text-zinc-100">
-                  {tx.hash.slice(0, 18)}…
+                  {tx.hash}
                 </span>
                 <div className="min-w-0">
                   <CellLabel>From</CellLabel>
@@ -180,7 +202,7 @@ export function EvmTxsPage({
                     onClick={(e) => e.stopPropagation()}
                     className="block truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
                   >
-                    {tx.from.slice(0, 10)}…{tx.from.slice(-4)}
+                    {tx.from.slice(0, 18)}…{tx.from.slice(-8)}
                   </Link>
                 </div>
                 <div className="min-w-0">
@@ -191,7 +213,13 @@ export function EvmTxsPage({
                       onClick={(e) => e.stopPropagation()}
                       className="block truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
                     >
-                      {tx.to.slice(0, 10)}…{tx.to.slice(-4)}
+                      {toNames.has(tx.to.toLowerCase()) ? (
+                        <span className="font-medium animate-in fade-in duration-500">
+                          {toNames.get(tx.to.toLowerCase())}
+                        </span>
+                      ) : (
+                        <>{tx.to.slice(0, 18)}…{tx.to.slice(-8)}</>
+                      )}
                     </Link>
                   ) : (
                     <span className="font-mono text-[12px] text-zinc-400">contract creation</span>

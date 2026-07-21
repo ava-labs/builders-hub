@@ -202,6 +202,16 @@ function compactGas(gas: number): string {
   return String(gas);
 }
 
+/* Re-render on a 1s heartbeat so relative ages ("5s ago") flow between
+   data polls instead of freezing for the whole poll interval. */
+export function useNowTick(ms = 1_000) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), ms);
+    return () => clearInterval(timer);
+  }, [ms]);
+}
+
 export function formatTimeAgo(timestamp: string): string {
   const now = new Date();
   const past = new Date(timestamp);
@@ -215,8 +225,8 @@ export function formatTimeAgo(timestamp: string): string {
 
 function shortenAddress(address: string | null): string {
   if (!address) return '';
-  if (address.length < 12) return address;
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  if (address.length < 18) return address;
+  return `${address.slice(0, 10)}…${address.slice(-6)}`;
 }
 
 function formatNumber(num: number): string {
@@ -383,6 +393,8 @@ export default function L1ExplorerPage({
   const [newTxHashes, setNewTxHashes] = useState<Set<string>>(new Set());
   const [accumulatedBlocks, setAccumulatedBlocks] = useState<Block[]>([]); // Accumulated blocks
   const [accumulatedTransactions, setAccumulatedTransactions] = useState<Transaction[]>([]); // Accumulated transactions
+  // keep relative ages flowing between polls
+  useNowTick();
   // Sourcify names for the visible stream's `to` contracts — "→ WAVAX"
   // reads; "→ 0xB31f…66c7" doesn't
   const toContractNames = useContractNames(
@@ -1016,8 +1028,10 @@ export default function L1ExplorerPage({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
+                    {/* full hash, width-aware: CSS truncation shows as many
+                        chars as the row actually has room for */}
                     <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
-                      {tx.hash.slice(0, 16)}…
+                      {tx.hash}
                     </span>
                     <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
