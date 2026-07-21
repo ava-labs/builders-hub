@@ -11,6 +11,7 @@ import { L1Chain } from "@/types/stats";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Rise, StatFigure } from "@/components/explorer-v2/ui";
+import { classifyLocally, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
@@ -194,8 +195,25 @@ export function ExplorerLayout({
         }
       }
 
+      // One search, whole platform: P-Chain shapes (NodeID-, P-avax1…)
+      // route straight to the P-Chain explorer…
+      const pchain = classifyLocally(query);
+      if (pchain && pchain.type !== "block") {
+        router.push(`/explorer/mainnet/p-chain/${pchain.type}/${pchain.id}`);
+        return;
+      }
+
+      // …and ambiguous identifiers (CB58 tx/block/subnet ids) ask the
+      // P-Chain search API before we give up
+      const res = await fetch(pchainApiPath("mainnet", "search", { q: query }));
+      const r: SearchResult = res.ok ? await res.json() : { type: "none", id: query };
+      if (r.type !== "none") {
+        router.push(`/explorer/mainnet/p-chain/${r.type}/${r.id}`);
+        return;
+      }
+
       // Show error for unrecognized format
-      setSearchError("Not a block number, tx hash, or 0x address");
+      setSearchError("Nothing on Avalanche matched that identifier");
     } catch {
       setSearchError("Search failed, try again");
     } finally {
@@ -231,7 +249,7 @@ export function ExplorerLayout({
               <div className="h-10 w-10 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
               <div className="h-10 w-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
             </div>
-            {showSearch && <div className="h-14 w-full animate-pulse bg-zinc-100 pl-0! pr-0! dark:bg-zinc-900" />}
+            <div className="h-14 w-full animate-pulse bg-zinc-100 pl-0! pr-0! dark:bg-zinc-900" />
           </header>
         ) : (
           // Rise wraps the <header> from OUTSIDE so its div never becomes a
@@ -272,9 +290,10 @@ export function ExplorerLayout({
             />
 
             {/* search — identical grammar to the P-Chain shell's SearchBox:
-                hairline field, icon left, "/" affordance, Enter to submit */}
-            {showSearch && (
-              <div className="w-full pl-0! pr-0!">
+                hairline field, icon left, "/" affordance, Enter to submit.
+                Rendered on EVERY tab; only the tip-height aside and the
+                colophon are overview-only. */}
+            <div className="w-full pl-0! pr-0!">
                 <form onSubmit={handleSearch} className="relative">
                   <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
                   <input
@@ -284,7 +303,7 @@ export function ExplorerLayout({
                       setSearchQuery(e.target.value);
                       setSearchError(null);
                     }}
-                    placeholder="Search by address, tx hash, or block number"
+                    placeholder="Search by block, tx hash, address, or any P-Chain ID"
                     spellCheck={false}
                     className={cn(
                       "w-full border bg-white/80 py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
@@ -302,7 +321,6 @@ export function ExplorerLayout({
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">{searchError}</p>
                 )}
               </div>
-            )}
           </header>
           </Rise>
         )}

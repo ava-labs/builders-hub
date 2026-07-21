@@ -15,6 +15,8 @@ import {
 } from "@/lib/pchain-explorer";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Rise } from "@/components/explorer-v2/ui";
+import { buildAddressUrl, buildTxUrl } from "@/utils/eip3091";
+import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node";
@@ -96,13 +98,27 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
 
     setBusy(true);
     try {
+      // EVM shapes route across the platform: an 0x address is a C-Chain
+      // portfolio; an 0x hash could be a P-Chain tx (hex id) OR an EVM tx,
+      // so ask the P-Chain first and race the EVM chains on a miss.
+      if (/^0x[a-fA-F0-9]{40}$/.test(query)) {
+        router.push(buildAddressUrl(`/explorer/${network}/c-chain`, query));
+        return;
+      }
       const res = await fetch(pchainApiPath(network, "search", { q: query }));
       const r: SearchResult = res.ok ? await res.json() : { type: "none", id: query };
       if (r.type !== "none") {
         go(r.type, r.id);
-      } else {
-        setNotFound(true);
+        return;
       }
+      if (network === "mainnet" && /^0x[a-fA-F0-9]{64}$/.test(query)) {
+        const result = await lookupTransactionAcrossChains(query);
+        if (result.found && result.chain) {
+          router.push(buildTxUrl(`/explorer/mainnet/${result.chain.slug}`, query));
+          return;
+        }
+      }
+      setNotFound(true);
     } catch {
       setNotFound(true);
     } finally {
@@ -129,7 +145,7 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Search by block height, tx hash, NodeID, or address"
+          placeholder="Search by block height, tx hash, NodeID, or any Avalanche address"
           spellCheck={false}
           className={cn(
             "w-full border bg-white/80 py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
