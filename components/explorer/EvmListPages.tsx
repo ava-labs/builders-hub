@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { LiveTag, formatTimeAgo } from "@/components/explorer/L1ExplorerPage";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 
@@ -109,20 +109,24 @@ export function EvmBlocksPage({
                 <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
                   #{Number(b.number).toLocaleString("en-US")}
                 </span>
-                <span className="font-mono text-[12px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
+                <div className="font-mono text-[12px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
+                  <CellLabel>Txns</CellLabel>
                   {b.transactionCount}
-                </span>
-                <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                </div>
+                <div className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Gas Used</CellLabel>
                   {b.gasUsed}
-                </span>
-                <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                </div>
+                <div className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Fees Burned</CellLabel>
                   {b.gasFee && parseFloat(b.gasFee) > 0
                     ? `${formatTokenValue(b.gasFee)} ${tokenSymbol ?? ""}`
                     : "—"}
-                </span>
-                <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                </div>
+                <div className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Age</CellLabel>
                   {formatTimeAgo(b.timestamp)}
-                </span>
+                </div>
               </Link>
             ))}
           </Board>
@@ -169,30 +173,38 @@ export function EvmTxsPage({
                 <span className="truncate font-mono text-[13px] text-zinc-900 dark:text-zinc-100">
                   {tx.hash.slice(0, 18)}…
                 </span>
-                <Link
-                  href={buildAddressUrl(base, tx.from)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
-                >
-                  {tx.from.slice(0, 10)}…{tx.from.slice(-4)}
-                </Link>
-                {tx.to ? (
+                <div className="min-w-0">
+                  <CellLabel>From</CellLabel>
                   <Link
-                    href={buildAddressUrl(base, tx.to)}
+                    href={buildAddressUrl(base, tx.from)}
                     onClick={(e) => e.stopPropagation()}
-                    className="truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
+                    className="block truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
                   >
-                    {tx.to.slice(0, 10)}…{tx.to.slice(-4)}
+                    {tx.from.slice(0, 10)}…{tx.from.slice(-4)}
                   </Link>
-                ) : (
-                  <span className="font-mono text-[12px] text-zinc-400">contract creation</span>
-                )}
-                <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                </div>
+                <div className="min-w-0">
+                  <CellLabel>To</CellLabel>
+                  {tx.to ? (
+                    <Link
+                      href={buildAddressUrl(base, tx.to)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="block truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
+                    >
+                      {tx.to.slice(0, 10)}…{tx.to.slice(-4)}
+                    </Link>
+                  ) : (
+                    <span className="font-mono text-[12px] text-zinc-400">contract creation</span>
+                  )}
+                </div>
+                <div className="min-w-0 truncate font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Value</CellLabel>
                   {formatTokenValue(tx.value)} {tokenSymbol ?? ""}
-                </span>
-                <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                </div>
+                <div className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Age</CellLabel>
                   {formatTimeAgo(tx.timestamp)}
-                </span>
+                </div>
               </div>
             ))}
           </Board>

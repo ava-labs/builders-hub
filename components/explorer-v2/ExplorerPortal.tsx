@@ -772,7 +772,7 @@ export default function ExplorerPortal() {
       {/* the drafting-sheet triangle lattice, snowfall only — as on /solutions */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-24 pt-14 md:px-6">
-        <header className="flex flex-col gap-6 pb-12">
+        <header className="flex flex-col gap-9 pb-16 md:gap-10 md:pb-20">
           <h1 className="v2-display mt-4 text-center text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
             Every chain, observed<span className="text-[#E6212F]">.</span>
           </h1>

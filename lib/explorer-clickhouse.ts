@@ -312,6 +312,69 @@ export async function getDailyTxsByChain(): Promise<
   return fresh.data;
 }
 
+// --- P-Chain daily txs ----------------------------------------------------
+// Same 14-day series as the EVM chains but from `raw_p_txs`, keyed by the
+// Avalanche network id (`chain_id` column: 1 mainnet, 5 fuji, 0 devnet).
+
+const PCHAIN_NETWORK_IDS: Record<string, number> = {
+  mainnet: 1,
+  fuji: 5,
+  devnet: 0,
+};
+
+function sqlPchainDailyTxs(networkId: number): string {
+  return `
+    SELECT
+      toDate(block_time) AS day,
+      toString(count()) AS tx_count
+    FROM raw_p_txs
+    WHERE chain_id = ${networkId}
+      AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
+    GROUP BY day
+    ORDER BY day
+    FORMAT JSONEachRow
+  `;
+}
+
+const pchainDailyCache = new Map<
+  string,
+  { data: TransactionHistoryPoint[]; fetchedAt: number }
+>();
+
+/**
+ * Last-14-day daily P-Chain transaction counts for one network, padded to
+ * exactly 14 points. Returns null for unknown networks or when ClickHouse
+ * is unreachable with no cached series to fall back on.
+ */
+export async function getPchainDailyTxs(
+  network: string,
+): Promise<TransactionHistoryPoint[] | null> {
+  const networkId = PCHAIN_NETWORK_IDS[network];
+  if (networkId === undefined) return null;
+
+  const cached = pchainDailyCache.get(network);
+  if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
+    return cached.data;
+  }
+
+  try {
+    const rows = await clickhouseFetch<{ day: string; tx_count: string }>(
+      sqlPchainDailyTxs(networkId),
+      QUERY_TIMEOUT_MS,
+    );
+    const counts = new Map(rows.map((r) => [r.day, Number(r.tx_count) || 0]));
+    const data = buildLast14Dates().map((iso) => ({
+      date: formatDayLabel(iso),
+      transactions: counts.get(iso) ?? 0,
+    }));
+    pchainDailyCache.set(network, { data, fetchedAt: Date.now() });
+    return data;
+  } catch (err) {
+    console.error('[explorer-clickhouse] pchain daily-txs query failed:', err);
+    return cached?.data ?? null;
+  }
+}
+
 export const __internal = {
   sqlCumulativeTxs,
   sqlDailyTxs,

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import {
   VersionBarChart,
@@ -126,19 +126,25 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
                   href={`${base}/node/${v.nodeId}`}
                   className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.6fr_1fr_0.7fr_0.6fr_0.7fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <span className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{truncate(v.nodeId, 18)}</span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
+                  <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    {truncate(v.nodeId, 18)}
+                  </span>
+                  <div className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
+                    <CellLabel>Total Stake</CellLabel>
                     {formatAvax(v.totalStake, { compact: true })}
-                  </span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  </div>
+                  <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    <CellLabel>Delegators</CellLabel>
                     {formatNumber(v.delegatorCount)}
-                  </span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  </div>
+                  <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    <CellLabel>Fee</CellLabel>
                     {v.delegationFeePercent}%
-                  </span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  </div>
+                  <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    <CellLabel>Uptime</CellLabel>
                     {v.uptimePercent.toFixed(1)}%
-                  </span>
+                  </div>
                   <span
                     className={`font-mono text-[10px] uppercase tracking-[0.1em] md:text-right ${
                       v.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"

@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
   Board,
+  CellLabel,
   DetailSkeleton,
   HashChip,
   SectionHeader,
@@ -269,18 +270,21 @@ export function ChainDetailsContent({
                     href={`${base}/node/${v.nodeID}${subnetId ? `?subnet=${subnetId}` : ""}`}
                     className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.6fr_0.8fr_0.8fr_1fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
                       {truncate(v.nodeID, 18)}
                     </span>
-                    <span className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
+                    <div className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
+                      <CellLabel>Weight</CellLabel>
                       {formatNumber(Number(v.weight))}
-                    </span>
-                    <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    </div>
+                    <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                      <CellLabel>Balance</CellLabel>
                       {v.balance !== undefined ? formatAvax(v.balance) : "—"}
-                    </span>
-                    <span className="font-mono text-[11px] text-zinc-500 md:text-right dark:text-zinc-400">
+                    </div>
+                    <div className="min-w-0 truncate font-mono text-[11px] text-zinc-500 md:text-right dark:text-zinc-400">
+                      <CellLabel>Validation ID</CellLabel>
                       {v.validationID ? truncate(v.validationID, 12) : "—"}
-                    </span>
+                    </div>
                   </Link>
                 ))}
               </Board>

@@ -61,7 +61,9 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
                   href={`${base}/tx/${t.txHash}`}
                   className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{t.txHash}</span>
+                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    {t.txHash}
+                  </span>
                   <TxTypePill type={t.txType.replace(/Tx$/, "")} />
                 </Link>
               ))}

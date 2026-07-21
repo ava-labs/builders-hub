@@ -22,7 +22,7 @@ export function SectionHeader({
     // min-h keeps headers the same height whether or not they carry an
     // action chip, so side-by-side boards always start at the same y
     <div className={cn("flex min-h-6 items-center gap-4", className)}>
-      <p className="shrink-0 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+      <p className="min-w-0 truncate font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
         {label}
       </p>
       <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
@@ -135,7 +135,7 @@ export function StatFigure({
     <span
       ref={ref}
       className={cn(
-        "font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50",
+        "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50",
         className,
       )}
     >
@@ -262,6 +262,18 @@ export function DetailSkeleton({ label }: { label: string }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* CellLabel — inline column label for list-board cells on mobile,
+   where the md:grid header row is hidden and a bare grid-cols-2 of
+   values would be unreadable. Renders nothing at md and up.           */
+export function CellLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 md:hidden dark:text-zinc-500">
+      {children}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* HashChip — mono truncated hash/address with copy                    */
 export function HashChip({
   value,
@@ -289,9 +301,12 @@ export function HashChip({
     }
   };
   const text = truncate(value, len);
-  const textCls = cn(mono && "font-mono", "text-[13px] font-medium tracking-tight");
+  // break-all lets a full-length hash wrap on narrow viewports instead of
+  // dragging the whole row past the sheet edge — char-count truncation is
+  // not width-aware, so the chip must be able to shrink on its own.
+  const textCls = cn(mono && "font-mono", "min-w-0 break-all text-[13px] font-medium tracking-tight");
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
+    <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5", className)}>
       {href ? (
         <Link
           href={href}
@@ -307,7 +322,7 @@ export function HashChip({
       )}
       <button
         onClick={copy}
-        className="text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        className="-m-1.5 shrink-0 p-1.5 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
         aria-label="Copy"
       >
         {copied ? <Check className="h-3 w-3 text-[#E6212F]" /> : <Copy className="h-3 w-3" />}

@@ -112,7 +112,9 @@ function SearchBox({ chain, network }: { chain: string; network: string }) {
   const showRecents = focused && !q && recents.length > 0;
 
   return (
-    <div className="relative w-full">
+    // pl-0!/pr-0!: this div is a direct child of <header>, so the global
+    // `header > div` navbar padding hack (global.css) would indent it by 3rem
+    <div className="relative w-full pl-0! pr-0!">
       <form onSubmit={submit} className="relative">
         {/* z-10: the input's backdrop-blur forms a stacking context that
             otherwise paints over this icon, leaving a blurred smudge */}

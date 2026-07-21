@@ -189,7 +189,7 @@ function ChainSwitcher({
             className="h-5 w-5 shrink-0 rounded-full object-contain"
           />
         )}
-        <span className="max-w-40 truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 md:max-w-56 dark:text-zinc-100">
+        <span className="max-w-28 truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:max-w-40 md:max-w-56 dark:text-zinc-100">
           {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All chains"}
         </span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
@@ -197,7 +197,7 @@ function ChainSwitcher({
 
       {open && (
         // z-50: must clear the stats pages' sticky section bar (z-40)
-        <div className="absolute left-0 top-full z-50 w-80 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="relative border-b border-zinc-100 dark:border-zinc-900">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -405,7 +405,7 @@ function NetworkControl({
               key={n}
               href={pchainNetworkTarget(n, chainSlug, pathname)}
               className={cn(
-                "px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+                "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-3",
                 active
                   ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                   : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
@@ -437,7 +437,7 @@ function NetworkControl({
             key={seg.label}
             href={counterpartTarget(seg.slug, pathname)}
             className={cn(
-              "px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+              "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-3",
               seg.active
                 ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                 : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",

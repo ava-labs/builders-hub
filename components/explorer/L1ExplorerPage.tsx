@@ -174,7 +174,7 @@ function LedgerCell({
         )}
         {label}
       </span>
-      <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 md:text-2xl dark:text-zinc-50">
+      <span className="min-w-0 truncate font-mono text-lg tabular-nums tracking-tight text-zinc-900 sm:text-xl md:text-2xl dark:text-zinc-50">
         {children}
       </span>
       {sub && <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{sub}</span>}
@@ -1000,7 +1000,7 @@ export default function L1ExplorerPage({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
                       {tx.hash.slice(0, 16)}…
                     </span>
                     <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
@@ -1008,7 +1008,7 @@ export default function L1ExplorerPage({
                     </span>
                   </div>
                   <div className="mt-1 flex items-center justify-between gap-3 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
-                    <span className="truncate">
+                    <span className="min-w-0 truncate">
                       {shortenAddress(tx.from)} → {tx.to ? shortenAddress(tx.to) : "contract creation"}
                     </span>
                     <span className="shrink-0 tabular-nums">{formatTimeAgo(tx.timestamp)}</span>

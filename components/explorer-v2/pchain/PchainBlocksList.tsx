@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, SectionHeader, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { pchainApiPath, type BlocksList, type BlockSummary } from "@/lib/pchain-explorer";
 
@@ -63,18 +63,22 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
               <span className="justify-self-start">
                 <TxTypePill type={b.blockType.replace(/Block$/, "")} />
               </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+              <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                <CellLabel>Txns</CellLabel>
                 {b.txCount}
-              </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+              </div>
+              <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                <CellLabel>Size</CellLabel>
                 {formatBytes(b.blockSizeBytes)}
-              </span>
-              <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+              </div>
+              <div className="min-w-0 truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                <CellLabel>Proposer</CellLabel>
                 {b.proposerNodeId ? truncate(b.proposerNodeId, 12) : "—"}
-              </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+              </div>
+              <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                <CellLabel>Age</CellLabel>
                 {timeAgo(b.blockTimestamp)}
-              </span>
+              </div>
             </Link>
           ))}
           {loading && <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>}
