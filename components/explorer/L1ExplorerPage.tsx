@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { ArrowRightLeft, ArrowRight, Clock, Fuel, Box, Layers, DollarSign, Globe, Circle, Link2, Info } from "lucide-react";
+
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
+import { BlockTape, type TapeBlock } from "@/components/explorer-v2/BlockTape";
+import { Board, SectionHeader } from "@/components/explorer-v2/ui";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
@@ -147,6 +149,56 @@ interface L1ExplorerPageProps {
     linkedin?: string;
   };
   rpcUrl?: string;
+}
+
+/* Ledger-strip cell + live tag — the P-Chain overview's stat grammar. */
+function LedgerCell({
+  label,
+  live = false,
+  sub,
+  children,
+}: {
+  label: React.ReactNode;
+  live?: boolean;
+  sub?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">
+      <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
+        {live && (
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+          </span>
+        )}
+        {label}
+      </span>
+      <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 md:text-2xl dark:text-zinc-50">
+        {children}
+      </span>
+      {sub && <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{sub}</span>}
+    </div>
+  );
+}
+
+function LiveTag() {
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+      </span>
+      Live
+    </span>
+  );
+}
+
+/** 6676356 → "6.7M" — gas figures at tape-cell size */
+function compactGas(gas: number): string {
+  if (gas >= 1_000_000) return `${(gas / 1_000_000).toFixed(1)}M`;
+  if (gas >= 1_000) return `${(gas / 1_000).toFixed(0)}K`;
+  return String(gas);
 }
 
 function formatTimeAgo(timestamp: string): string {
@@ -667,7 +719,7 @@ export default function L1ExplorerPage({
         <style>{newItemStyles}</style>
 
         {/* Stats skeleton */}
-        <div className="max-w-7xl mx-auto px-5 md:px-6 pt-4">
+        <div className="max-w-[90rem] mx-auto px-5 md:px-6 pt-4">
           <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -681,7 +733,7 @@ export default function L1ExplorerPage({
         </div>
 
         {/* Tables skeleton */}
-        <div className="max-w-7xl mx-auto px-5 md:px-6 py-4">
+        <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {[1, 2].map((i) => (
               <div key={i} className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
@@ -708,7 +760,7 @@ export default function L1ExplorerPage({
     return (
       <>
         <style>{newItemStyles}</style>
-        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12">
+        <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={fetchData}>Retry</Button>
@@ -718,479 +770,304 @@ export default function L1ExplorerPage({
     );
   }
 
+  const tapeBlocks: TapeBlock[] = accumulatedBlocks.slice(0, 20).map((b) => {
+    const gas = Number(String(b.gasUsed).replace(/,/g, ""));
+    return {
+      key: b.number,
+      number: Number(b.number).toLocaleString("en-US"),
+      txCount: b.transactionCount,
+      label: Number.isFinite(gas) && gas > 0 ? `${compactGas(gas)} gas` : undefined,
+      ago: formatTimeAgo(b.timestamp),
+      href: buildBlockUrl(`/explorer/mainnet/${chainSlug}`, b.number),
+    };
+  });
+
   return (
     <>
       <style>{newItemStyles}</style>
 
-      {/* Stats Card - Left stats, Right transaction history */}
-      <div className="max-w-7xl mx-auto px-5 md:px-6 py-5">
-        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-5">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Left: Stats Grid */}
-            <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-x-5 gap-y-4">
-              {/* Token Price */}
-              <div className="flex items-center gap-2.5">
-                <div 
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                >
-                  {chainLogoURI ? (
-                    <img src={chainLogoURI} alt="" className="w-5 h-5 rounded" />
-                  ) : (
-                    <DollarSign className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 tracking-wide">
-                    <TokenDisplay symbol={tokenSymbol} /> Price
-                  </div>
-                  {data?.price ? (
-                    <div className="flex items-baseline gap-1 flex-wrap">
-                      <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                        {formatPrice(data.price.price)}
-                      </span>
-                      {data.price.priceInAvax && (
-                        <span className="text-[11px] text-zinc-500">
-                          @ {formatAvaxPrice(data.price.priceInAvax)} AVAX
-                        </span>
-                      )}
-                      <span className={`text-[11px] ${data.price.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        ({data.price.change24h >= 0 ? '+' : ''}{data.price.change24h.toFixed(2)}%)
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="font-mono text-[15px] text-zinc-400">N/A</span>
-                  )}
-                </div>
-              </div>
+      {/* the live block tape — same instrument as the P-Chain overview */}
+      {tapeBlocks.length > 0 && (
+        <div className="max-w-[90rem] mx-auto px-5 md:px-6 pt-2">
+          <BlockTape blocks={tapeBlocks} />
+        </div>
+      )}
 
-              {/* Market Cap */}
-              <div className="flex items-center gap-2.5">
-                <div 
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                >
-                  <Globe className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                </div>
-                <div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Market Cap
-                  </div>
-                  <div className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {data?.price?.marketCap ? formatMarketCap(data.price.marketCap) : 'N/A'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Transactions */}
-              <div className="flex items-center gap-2.5">
-                <div 
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                >
-                  <ArrowRightLeft className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                </div>
-                <div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Transactions
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                      {formatNumber(data?.stats.totalTransactions || 0)}
+      {/* ledger strip — the P-Chain overview's grammar: mono labels, big
+          mono figures, hairline dividers. C-Chain simply carries more
+          instruments (price, gas, ICM) on the same sheet. */}
+      <div className="max-w-[90rem] mx-auto px-5 md:px-6 pt-4 pb-2">
+        <Board divide={false}>
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0 dark:divide-zinc-800">
+            <LedgerCell
+              label={<><TokenDisplay symbol={tokenSymbol} /> price</>}
+              sub={
+                data?.price ? (
+                  <>
+                    {data.price.priceInAvax ? `@ ${formatAvaxPrice(data.price.priceInAvax)} AVAX ` : ""}
+                    <span className={data.price.change24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
+                      {data.price.change24h >= 0 ? "+" : ""}
+                      {data.price.change24h.toFixed(2)}%
                     </span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span 
-                          className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500"
-                        >
-                          ({calculatedTps} TPS)
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Calculated from last {accumulatedBlocks.length} block{accumulatedBlocks.length !== 1 ? 's' : ''}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </div>
+                  </>
+                ) : undefined
+              }
+            >
+              {data?.price ? formatPrice(data.price.price) : "—"}
+            </LedgerCell>
 
-              {/* Gas Price */}
-              <div className="flex items-center gap-2.5">
-                <div 
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                >
-                  <Fuel className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                </div>
-                <div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Med Gas Price
-                  </div>
-                  <div className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                    {data?.stats.gasPrice}
-                  </div>
-                </div>
-              </div>
+            <LedgerCell label="Market cap">
+              {data?.price?.marketCap ? formatMarketCap(data.price.marketCap) : "—"}
+            </LedgerCell>
 
-              {/* Last Block */}
-              <div className="flex items-center gap-2.5">
-                <div 
-                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                >
-                  <Layers className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                </div>
-                <div>
-                  <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                    Last Block
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                      <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
+            <LedgerCell
+              label="Transactions"
+              live
+              sub={
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-help border-b border-dashed border-zinc-300 dark:border-zinc-600">
+                      {calculatedTps} TPS
                     </span>
-                    {/* Show blocks/sec for Avalanche C-Chain */}
-                    {(
-                      avalancheBlocksPerSecond !== null ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-zinc-500 cursor-help border-b border-dashed border-zinc-400 dark:border-zinc-500">
-                              ({avalancheBlocksPerSecond} blks/s)
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Calculated from {accumulatedBlocks.filter(b => b.timestampMilliseconds).length} blocks using timestampMilliseconds</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-[11px] text-zinc-500 cursor-help">
-                              (<JumpingDots /> blks/s)
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Warming up: {accumulatedBlocks.filter(b => b.timestampMilliseconds).length} / {MIN_BLOCKS_FOR_BPS} blocks</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Calculated from last {accumulatedBlocks.length} block{accumulatedBlocks.length !== 1 ? "s" : ""}</p>
+                  </TooltipContent>
+                </Tooltip>
+              }
+            >
+              {formatNumber(data?.stats.totalTransactions || 0)}
+            </LedgerCell>
 
-              {/* Average Block Time */}
-              {data?.stats.avgBlockTime !== undefined && (
-                <div className="flex items-center gap-2.5">
-                  <div 
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                  >
-                    <Clock className="w-5 h-5 text-zinc-400 dark:text-zinc-500" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-1">
-                      Avg Block Time
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-help">
-                            <Info className="w-3 h-3" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Calculated from the last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || '5,000'} blocks</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                    <div className="font-mono text-[15px] tabular-nums text-zinc-900 dark:text-zinc-50">
-                      {data.stats.avgBlockTimeMs !== undefined ? (
-                        // Show millisecond precision for Avalanche
-                        `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
-                      ) : (
-                        // Show second precision for other chains
-                        `${data.stats.avgBlockTime.toFixed(3)} s`
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <LedgerCell label="Med gas price">{data?.stats.gasPrice ?? "—"}</LedgerCell>
 
-            {/* Right: Transaction History Chart */}
-            <div className="lg:col-span-1 border-l-0 lg:border-l border-zinc-100 dark:border-zinc-800 pl-0 lg:pl-5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">
-                  Transaction History (14 Days)
-                </span>
-              </div>
-              <div className="relative">
-                <div className={`h-14 ${!hasIndexedTransactionHistory ? 'blur-[2px] opacity-50' : ''}`}>
+            <LedgerCell
+              label="Last block"
+              live
+              sub={
+                avalancheBlocksPerSecond !== null ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help border-b border-dashed border-zinc-300 dark:border-zinc-600">
+                        {avalancheBlocksPerSecond} blks/s
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Calculated from {accumulatedBlocks.filter((b) => b.timestampMilliseconds).length} blocks using timestampMilliseconds</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span>
+                    <JumpingDots /> blks/s
+                  </span>
+                )
+              }
+            >
+              <AnimatedBlockNumber value={data?.stats.latestBlock || 0} />
+            </LedgerCell>
+
+            <LedgerCell
+              label="Avg block time"
+              sub={
+                data?.stats.avgBlockTime !== undefined ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help border-b border-dashed border-zinc-300 dark:border-zinc-600">
+                        last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || "5,000"} blocks
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Calculated from the last {data.stats.avgBlockTimeBlockSpan?.toLocaleString() || "5,000"} blocks</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : undefined
+              }
+            >
+              {data?.stats.avgBlockTime !== undefined
+                ? data.stats.avgBlockTimeMs !== undefined
+                  ? `${data.stats.avgBlockTimeMs.toFixed(2)} ms`
+                  : `${data.stats.avgBlockTime.toFixed(3)} s`
+                : "—"}
+            </LedgerCell>
+          </div>
+        </Board>
+      </div>
+
+      {/* transaction history — its own instrument, sheet red */}
+      <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-4">
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            label="Transactions · 14 days"
+            action={
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {transactionHistory[0]?.date} — {transactionHistory[transactionHistory.length - 1]?.date}
+              </span>
+            }
+          />
+          <Board divide={false} className="px-5 py-5 md:px-6">
+            <div className="relative">
+              <div className={`h-20 ${!hasIndexedTransactionHistory ? "blur-[2px] opacity-50" : ""}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={transactionHistory}>
-                      <YAxis hide domain={hasIndexedTransactionHistory ? ['dataMin', 'dataMax'] : [0, 100]} />
-                      {hasIndexedTransactionHistory && (
-                    <RechartsTooltip
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        return (
-                          <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
-                            <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                            <p className="text-xs font-semibold text-[#E6212F]">
-                              {payload[0].value?.toLocaleString()} txns
-                            </p>
-                          </div>
-                        );
-                      }}
-                    />
-                      )}
+                    <YAxis hide domain={hasIndexedTransactionHistory ? ["dataMin", "dataMax"] : [0, 100]} />
+                    {hasIndexedTransactionHistory && (
+                      <RechartsTooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.[0]) return null;
+                          return (
+                            <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
+                              <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
+                              <p className="text-xs font-semibold text-[#E6212F]">
+                                {payload[0].value?.toLocaleString()} txns
+                              </p>
+                            </div>
+                          );
+                        }}
+                      />
+                    )}
                     <Line
                       type="monotone"
                       dataKey="transactions"
-                        stroke={hasIndexedTransactionHistory ? themeColor : '#9CA3AF'}
+                      stroke={hasIndexedTransactionHistory ? "#E6212F" : "#9CA3AF"}
                       strokeWidth={1.5}
                       dot={false}
-                        activeDot={hasIndexedTransactionHistory ? { r: 3, fill: themeColor } : false}
+                      activeDot={hasIndexedTransactionHistory ? { r: 3, fill: "#E6212F" } : false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-                {/* Overlay for non-indexed chains */}
-                {!hasIndexedTransactionHistory && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 px-2 py-1 rounded">
-                      No indexed data
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className={`flex justify-between text-[11px] text-zinc-400 mt-1.5 ${!hasIndexedTransactionHistory ? 'opacity-50' : ''}`}>
-                <span>{transactionHistory[0]?.date}</span>
-                <span>{transactionHistory[transactionHistory.length - 1]?.date}</span>
-              </div>
+              {!hasIndexedTransactionHistory && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400 bg-white/80 dark:bg-zinc-900/80 px-2 py-1">
+                    No indexed data
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          </Board>
+        </section>
       </div>
 
-      {/* Blocks, Transactions, and ICM Messages Tables */}
-      {(() => {
-        const hasIcmMessages = icmMessages.length > 0;
-        
-        return (
-      <div className="max-w-7xl mx-auto px-5 md:px-6 py-4">
-            <div className={`grid grid-cols-1 gap-6 ${hasIcmMessages ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
-          {/* Latest Blocks */}
-          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <Box className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                Latest Blocks
-              </h2>
-              <div className="flex items-center gap-1.5">
-                <Circle className="w-2 h-2 fill-[#E6212F] text-[#E6212F] animate-pulse" />
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Live</span>
-              </div>
-            </div>
-            <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+      {/* live boards: blocks | transactions | ICM — same two-up grammar as
+          the P-Chain overview, third column when the chain speaks ICM */}
+      <div className="max-w-[90rem] mx-auto px-5 md:px-6 py-4 pb-16">
+        <div className={`grid grid-cols-1 gap-8 ${icmMessages.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+          {/* Latest blocks */}
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Latest Blocks" action={<LiveTag />} />
+            <Board className="max-h-[420px] overflow-y-auto">
               {accumulatedBlocks.slice(0, 10).map((block) => (
-                <Link 
+                <Link
                   key={block.number}
                   href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, block.number)}
-                  className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                    newBlockNumbers.has(block.number) ? 'new-item' : ''
+                  className={`flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900 ${
+                    newBlockNumbers.has(block.number) ? "new-item" : ""
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                      >
-                        <Box className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm text-zinc-900 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-100">
-                            {block.number}
-                          </span>
-                          <span className="text-xs text-zinc-400">
-                            {formatTimeAgo(block.timestamp)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          <span className="text-zinc-500 dark:text-zinc-400">{block.transactionCount} txns</span>
-                          <span className="text-zinc-400"> • {block.gasUsed} gas</span>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                      #{Number(block.number).toLocaleString("en-US")}
+                    </span>
+                    <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                      {block.transactionCount} tx · {block.gasUsed} gas
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5">
+                    <span className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {formatTimeAgo(block.timestamp)}
+                    </span>
                     {block.gasFee && parseFloat(block.gasFee) > 0 && (
-                      <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex-shrink-0">
-                        {chainId === "43114" && <span className="mr-1">🔥</span>}
-                            {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} />
-                      </div>
+                      <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                        {formatTokenValue(block.gasFee)} <TokenDisplay symbol={tokenSymbol} /> burned
+                      </span>
                     )}
                   </div>
                 </Link>
               ))}
-            </div>
-          </div>
+            </Board>
+          </section>
 
-          {/* Latest Transactions */}
-          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-              <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                <ArrowRightLeft className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                Latest Transactions
-              </h2>
-              <div className="flex items-center gap-1.5">
-                <Circle className="w-2 h-2 fill-[#E6212F] text-[#E6212F] animate-pulse" />
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Live</span>
-              </div>
-            </div>
-            <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
+          {/* Latest transactions */}
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Latest Transactions" action={<LiveTag />} />
+            <Board className="max-h-[420px] overflow-y-auto">
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
-                <div 
+                <div
                   key={`${tx.hash}-${index}`}
                   onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
-                  className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                    newTxHashes.has(tx.hash) ? 'new-item' : ''
+                  className={`cursor-pointer px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900 ${
+                    newTxHashes.has(tx.hash) ? "new-item" : ""
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                      >
-                        <ArrowRightLeft className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-xs text-zinc-900 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-100">
-                            {tx.hash.slice(0, 16)}...
-                          </span>
-                          <span className="text-xs text-zinc-400">
-                            {formatTimeAgo(tx.timestamp)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-zinc-500 mt-0.5">
-                          <span className="text-zinc-400">From </span>
-                          <Link 
-                            href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)} 
-                                className="font-mono text-zinc-700 transition-colors hover:text-[#E6212F] hover:underline cursor-pointer dark:text-zinc-300"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {shortenAddress(tx.from)}
-                          </Link>
-                        </div>
-                        <div className="text-xs text-zinc-500">
-                          <span className="text-zinc-400">To </span>
-                          {tx.to ? (
-                            <Link 
-                              href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)} 
-                                  className="font-mono text-zinc-700 transition-colors hover:text-[#E6212F] hover:underline cursor-pointer dark:text-zinc-300"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {shortenAddress(tx.to)}
-                            </Link>
-                          ) : (
-                            <span className="font-mono text-zinc-400">Contract Creation</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                          {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
-                    </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                      {tx.hash.slice(0, 16)}…
+                    </span>
+                    <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-3 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                    <span className="truncate">
+                      {shortenAddress(tx.from)} → {tx.to ? shortenAddress(tx.to) : "contract creation"}
+                    </span>
+                    <span className="shrink-0 tabular-nums">{formatTimeAgo(tx.timestamp)}</span>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
+            </Board>
+          </section>
 
-              {/* ICM Messages - Only show if there are cross-chain transactions */}
-              {hasIcmMessages && (
-                <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
-                    <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                      <Link2 className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                      ICM Messages
-                    </h2>
-                    <div className="flex items-center gap-1.5">
-                      <Circle className="w-2 h-2 fill-[#E6212F] text-[#E6212F] animate-pulse" />
-                      <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">Live</span>
+          {/* ICM messages — only when the chain is actually talking cross-chain */}
+          {icmMessages.length > 0 && (
+            <section className="flex flex-col gap-4">
+              <SectionHeader label="ICM Messages" action={<LiveTag />} />
+              <Board className="max-h-[420px] overflow-y-auto">
+                {icmMessages.map((tx, index) => {
+                  const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
+                  const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
+                  return (
+                    <div
+                      key={`icm-${tx.hash}-${index}`}
+                      onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
+                      className={`cursor-pointer px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900 ${
+                        newTxHashes.has(tx.hash) ? "new-item" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                          {tx.hash.slice(0, 16)}…
+                        </span>
+                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                          {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
+                        </span>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          {sourceChain ? (
+                            <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/mainnet/${sourceChain.chainSlug}`)} />
+                          ) : (
+                            <span className="font-mono text-[10px] text-zinc-400">unknown</span>
+                          )}
+                          <span className="text-zinc-400">→</span>
+                          {destChain ? (
+                            <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/mainnet/${destChain.chainSlug}`)} />
+                          ) : (
+                            <span className="font-mono text-[10px] text-zinc-400">unknown</span>
+                          )}
+                        </span>
+                        <span className="shrink-0 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                          {formatTimeAgo(tx.timestamp)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </Board>
+            </section>
+          )}
         </div>
       </div>
-                  <div className="divide-y divide-zinc-200 dark:divide-zinc-800 max-h-[400px] overflow-y-auto">
-                    {icmMessages.map((tx, index) => (
-                      <div 
-                        key={`icm-${tx.hash}-${index}`}
-                        onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
-                        className={`block px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer ${
-                          newTxHashes.has(tx.hash) ? 'new-item' : ''
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center border border-zinc-200 dark:border-zinc-800"
-                            >
-                              <Link2 className="w-4 h-4 text-zinc-400 dark:text-zinc-500" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-xs text-zinc-900 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-100">
-                                  {tx.hash.slice(0, 16)}...
-                                </span>
-                                <span className="text-xs text-zinc-400">
-                                  {formatTimeAgo(tx.timestamp)}
-                                </span>
-                              </div>
-                              {/* Cross-chain transfer chips */}
-                              {(() => {
-                                const sourceChain = tx.sourceBlockchainId ? getChainFromBlockchainId(tx.sourceBlockchainId) : null;
-                                const destChain = tx.destinationBlockchainId ? getChainFromBlockchainId(tx.destinationBlockchainId) : null;
-                                
-                                return (
-                                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                                    {/* Source Chain Chip */}
-                                    {sourceChain ? (
-                                      <ChainChip 
-                                        chain={sourceChain} 
-                                        size="xs" 
-                                        onClick={() => router.push(`/explorer/mainnet/${sourceChain.chainSlug}`)} 
-                                      />
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
-                                        <span className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-                                        Unknown
-                                      </span>
-                                    )}
-                                    
-                                    <span className="text-zinc-400">→</span>
-                                    
-                                    {/* Destination Chain Chip */}
-                                    {destChain ? (
-                                      <ChainChip 
-                                        chain={destChain} 
-                                        size="xs" 
-                                        onClick={() => router.push(`/explorer/mainnet/${destChain.chainSlug}`)} 
-                                      />
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-700/50 text-zinc-500 dark:text-zinc-400">
-                                        <span className="w-3 h-3 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-                                        Unknown
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                          <div className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 flex-shrink-0">
-                            {formatTokenValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-    </div>
-        );
-      })()}
     </>
   );
 }

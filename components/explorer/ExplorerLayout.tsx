@@ -1,7 +1,7 @@
 "use client";
 
-import { ReactNode, useState, FormEvent, useMemo, useEffect } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import { ReactNode, useState, FormEvent, useMemo, useEffect, useRef } from "react";
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
@@ -10,6 +10,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { StatFigure } from "@/components/explorer-v2/ui";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
@@ -98,6 +99,49 @@ export function ExplorerLayout({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // "/" focuses the search from anywhere on the page (matches the P-Chain shell)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // live tip height straight from the chain's RPC — the same instrument the
+  // P-Chain overview wears top-right. Overview only (like the P-Chain), and
+  // the poll pauses while the tab is hidden.
+  const [tipHeight, setTipHeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (!rpcUrl || !showSearch) return;
+    let cancelled = false;
+    const poll = async () => {
+      if (document.visibilityState === "hidden") return;
+      try {
+        const res = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_blockNumber", params: [] }),
+        });
+        const json = await res.json();
+        if (!cancelled && json?.result) setTipHeight(parseInt(json.result, 16));
+      } catch {
+        /* the hero is additive — the header stands without it */
+      }
+    };
+    void poll();
+    const timer = setInterval(() => void poll(), 10_000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [rpcUrl, showSearch]);
 
   const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
@@ -174,11 +218,12 @@ export function ExplorerLayout({
         {loading ? (
           // skeleton header, square pulses in the sheet's rhythm
           <header className="flex flex-col gap-6 pb-6">
-            <div className="flex items-center gap-4">
+            {/* pl-0!/pr-0! fight the global `header > div` padding hack */}
+            <div className="flex items-center gap-4 pl-0! pr-0!">
               <div className="h-10 w-10 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
               <div className="h-10 w-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
             </div>
-            {showSearch && <div className="h-14 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />}
+            {showSearch && <div className="h-14 w-full animate-pulse bg-zinc-100 pl-0! pr-0! dark:bg-zinc-900" />}
           </header>
         ) : (
           <header className="flex flex-col gap-6 pb-6">
@@ -190,6 +235,20 @@ export function ExplorerLayout({
               socials={socials}
               subnetId={currentChain?.subnetId}
               blockchainId={currentChain?.blockchainId}
+              aside={
+                showSearch && tipHeight !== null ? (
+                  <div className="flex flex-col items-start gap-1.5 sm:items-end">
+                    <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+                      </span>
+                      Tip Height
+                    </span>
+                    <StatFigure value={tipHeight} className="text-3xl md:text-[2.5rem]" />
+                  </div>
+                ) : undefined
+              }
               wallet={
                 rpcUrl
                   ? {
@@ -201,12 +260,14 @@ export function ExplorerLayout({
               }
             />
 
-            {/* search — the portal's grammar: filled field, brand-sweep CTA */}
+            {/* search — identical grammar to the P-Chain shell's SearchBox:
+                hairline field, icon left, "/" affordance, Enter to submit */}
             {showSearch && (
-              <div className="w-full">
+              <div className="w-full pl-0! pr-0!">
                 <form onSubmit={handleSearch} className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
+                  <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
                   <input
+                    ref={searchInputRef}
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
@@ -215,30 +276,16 @@ export function ExplorerLayout({
                     placeholder="Search by address, tx hash, or block number"
                     spellCheck={false}
                     className={cn(
-                      "w-full border bg-zinc-50/80 py-4 pl-12 pr-32 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white md:pr-36 md:text-sm dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100 dark:focus:bg-zinc-950",
-                      searchError ? "border-[#E6212F]" : "border-zinc-300 dark:border-zinc-700",
+                      "w-full border bg-white/80 py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
+                      searchError ? "border-[#E6212F]" : "border-zinc-200 dark:border-zinc-800",
+                      isSearching && "opacity-60",
                     )}
                   />
-                  <button
-                    type="submit"
-                    disabled={isSearching}
-                    className="group/search absolute right-2 top-1/2 -translate-y-1/2 overflow-hidden bg-[#E6212F] px-4 py-2.5 disabled:opacity-70 md:px-6"
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover/search:scale-x-100"
-                    />
-                    <span className="relative z-10 flex items-center gap-2 text-sm font-semibold text-white transition-colors duration-300 group-hover/search:text-[#1F1F1F]">
-                      {isSearching ? (
-                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                      ) : (
-                        <>
-                          Search
-                          <ArrowRight className="h-4 w-4 text-[#1F1F1F] transition-colors duration-300 group-hover/search:text-[#E6212F]" />
-                        </>
-                      )}
-                    </span>
-                  </button>
+                  {!searchQuery && (
+                    <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 border border-zinc-200 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 md:block dark:border-zinc-800 dark:text-zinc-500">
+                      /
+                    </kbd>
+                  )}
                 </form>
                 {searchError && (
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">{searchError}</p>

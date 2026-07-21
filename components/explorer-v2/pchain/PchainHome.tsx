@@ -1,10 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
+import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import {
   Board,
   SectionHeader,
@@ -16,6 +17,7 @@ import {
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
+import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { Stats, TxSummary, BlockSummary } from "@/lib/pchain-explorer";
 
 /* The overview polls: the page is an instrument panel, not a report. The
@@ -38,103 +40,6 @@ function LiveDot({ onRed = false, className }: { onRed?: boolean; className?: st
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Block tape — the digital-blocks pattern doing real work: blocks fill
-   exact grid cells with 1px gutters; the live block is a solid red cell,
-   data-carrying blocks fill gray (#A2AFB2, the brand block gray), empty
-   blocks stay bare sheet. Newest enters left and pushes the cascade
-   rightward; the right edge fades off the sheet instead of hard-clipping. */
-function BlockTape({ blocks, base }: { blocks: BlockSummary[]; base: string }) {
-  return (
-    <div className="relative overflow-hidden border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-      <div className="flex divide-x divide-zinc-200 dark:divide-zinc-800">
-        {blocks.map((b, i) => {
-          const kind = blockKind(b.blockType);
-          const live = i === 0;
-          const carries = b.txCount > 0;
-          return (
-            <motion.div
-              key={b.blockNumber}
-              layout="position"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="w-[96px] shrink-0"
-            >
-              <Link
-                href={`${base}/block/${b.blockNumber}`}
-                className={cn(
-                  "flex h-full flex-col gap-1 px-3 py-2.5 transition-colors",
-                  live
-                    ? "bg-[#E6212F] hover:bg-[#B20F2A]"
-                    : carries
-                      ? "bg-[#A2AFB2]/15 hover:bg-[#A2AFB2]/30 dark:bg-[#A2AFB2]/10 dark:hover:bg-[#A2AFB2]/20"
-                      : "hover:bg-zinc-50 dark:hover:bg-zinc-900",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex items-center gap-1.5 font-mono text-[10px] tabular-nums tracking-tight",
-                    live ? "text-white/80" : "text-zinc-500 dark:text-zinc-400",
-                  )}
-                >
-                  {live && <LiveDot onRed />}
-                  {formatNumber(b.blockNumber)}
-                </span>
-                <span
-                  className={cn(
-                    "font-mono text-[15px] tabular-nums",
-                    live ? "text-white" : "text-zinc-900 dark:text-zinc-100",
-                  )}
-                >
-                  {b.txCount}
-                  <span className={cn("ml-1 text-[10px]", live ? "text-white/70" : "text-zinc-400 dark:text-zinc-500")}>
-                    tx
-                  </span>
-                </span>
-                <span
-                  className={cn(
-                    "truncate font-mono text-[9px] uppercase tracking-[0.12em]",
-                    live ? "text-white/90" : txToneText(kind),
-                  )}
-                >
-                  {kind}
-                </span>
-                <span
-                  className={cn(
-                    "font-mono text-[9px] tabular-nums",
-                    live ? "text-white/60" : "text-zinc-400 dark:text-zinc-600",
-                  )}
-                >
-                  {timeAgo(b.blockTimestamp)}
-                </span>
-              </Link>
-            </motion.div>
-          );
-        })}
-      </div>
-      {/* the tape runs off the sheet — fade instead of a hard clip */}
-      <div
-        className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-r from-transparent to-white dark:to-zinc-950"
-        aria-hidden
-      />
-    </div>
-  );
-}
-
-function TapeSkeleton() {
-  return (
-    <div className="flex divide-x divide-zinc-200 overflow-hidden border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-      {Array.from({ length: 14 }).map((_, i) => (
-        <div key={i} className="flex w-[96px] shrink-0 flex-col gap-2 px-3 py-3">
-          <div className="h-2 w-14 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-          <div className="h-4 w-8 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-          <div className="h-2 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-        </div>
-      ))}
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 
@@ -151,7 +56,41 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
   );
 
   const s = stats.data;
+
+  // total AVAX staked on the Primary Network — the strip is a staking
+  // dashboard, and the ratio against supply is its headline
+  const [totalStake, setTotalStake] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/validator-stats?network=${network}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((subnets: { id: string; totalStakeString?: string }[] | null) => {
+        if (cancelled || !subnets) return;
+        const primary = subnets.find((sub) => sub.id === PRIMARY_SUBNET_ID);
+        if (primary?.totalStakeString) setTotalStake(Number(primary.totalStakeString));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [network]);
+
+  const supply = s?.currentSupply ? Number(s.currentSupply) : null;
+  const stakingRatio = totalStake && supply ? (totalStake / supply) * 100 : null;
+
   const tape = blocks.data?.blocks ?? [];
+  const tapeBlocks: TapeBlock[] = tape.map((b) => {
+    const kind = blockKind(b.blockType);
+    return {
+      key: String(b.blockNumber),
+      number: formatNumber(b.blockNumber),
+      txCount: b.txCount,
+      label: kind,
+      labelClass: txToneText(kind),
+      ago: timeAgo(b.blockTimestamp),
+      href: `${base}/block/${b.blockNumber}`,
+    };
+  });
   const noData = !stats.loading && (stats.error === "not found" || (s && s.tipHeight === 0));
 
   return (
@@ -184,26 +123,45 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
           {/* instrument cluster: live block tape over the ledger strip */}
           <div className="flex flex-col gap-4">
             {blocks.loading && !tape.length ? (
-              <TapeSkeleton />
+              <BlockTapeSkeleton />
             ) : (
-              tape.length > 0 && <BlockTape blocks={tape} base={base} />
+              tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
             )}
 
+            {/* the strip is the P-Chain's actual job: staking. Activity
+                already lives in the tape above. */}
             <Board divide={false}>
-              <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0 dark:divide-zinc-800">
-                <StatCell label="TXNS · 24H" live href={`${base}/txs`}>
-                  {s ? <StatFigure value={s.txCount24h} /> : <StatDash />}
+              <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0 dark:divide-zinc-800">
+                <StatCell label="STAKING RATIO">
+                  {stakingRatio !== null ? (
+                    <span className="whitespace-nowrap font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
+                      {stakingRatio.toFixed(1)}
+                      <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
+                    </span>
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
-                <StatCell label="VALIDATORS" href={`${base}/validators`}>
+                <StatCell label="TOTAL STAKED">
+                  {totalStake ? (
+                    <span className="whitespace-nowrap font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
+                      {formatAvax(totalStake, { compact: true, symbol: false })}
+                      <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
+                    </span>
+                  ) : (
+                    <StatDash />
+                  )}
+                </StatCell>
+                <StatCell label="PRIMARY VALIDATORS" href={`${base}/validators`}>
                   {s ? <StatFigure value={s.validatorCount} /> : <StatDash />}
-                </StatCell>
-                <StatCell label="DELEGATORS">
-                  {s ? <StatFigure value={s.delegatorCount} /> : <StatDash />}
                 </StatCell>
                 <StatCell label="L1 VALIDATORS">
                   {s ? <StatFigure value={s.l1ValidatorCount} /> : <StatDash />}
                 </StatCell>
-                <StatCell label="CURRENT SUPPLY">
+                <StatCell label="DELEGATORS">
+                  {s ? <StatFigure value={s.delegatorCount} /> : <StatDash />}
+                </StatCell>
+                <StatCell label="TOTAL SUPPLY">
                   {s?.currentSupply ? (
                     <span className="whitespace-nowrap font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
                       {formatAvax(s.currentSupply, { compact: true, symbol: false })}
