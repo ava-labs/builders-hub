@@ -2,10 +2,35 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { animate, useInView } from "framer-motion";
+import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { truncate } from "./format";
+
+/* ------------------------------------------------------------------ */
+/* Rise — the landing/solutions load sequence: each block fades up in   */
+/* turn. Mount-only, so live repolls never re-trigger it.               */
+export function Rise({
+  delay = 0,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const reducedMotion = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Section header — mono label + hairline rule (the v2 eyebrow motif)  */

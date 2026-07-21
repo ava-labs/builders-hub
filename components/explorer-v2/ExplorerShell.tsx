@@ -14,6 +14,7 @@ import {
   type SearchResult,
 } from "@/lib/pchain-explorer";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { Rise } from "@/components/explorer-v2/ui";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node";
@@ -218,24 +219,29 @@ export function ExplorerShell({
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         {/* the app's spine: chain switcher, section tabs, network */}
         <ExplorerSubnav network={network} chainSlug={chain} chainName={c.name} className="mb-8" />
-        <header className="flex flex-col gap-6 pb-10">
-          {/* title row. pl-0!/pr-0! override the global `header > div` navbar
-              padding hack (global.css) that otherwise pushes it in by 3rem. */}
-          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
-            <div className="flex flex-col gap-2.5">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-                Avalanche Primary Network
-              </p>
-              <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
-                {c.title}<span className="text-[#E6212F]">.</span>
-              </h1>
+        {/* load sequence, as on the homepage/solutions: header rises first,
+            the page body follows. Rise wraps the <header> from OUTSIDE so its
+            div never becomes a `header > div` (the global navbar padding hack). */}
+        <Rise delay={0.05}>
+          <header className="flex flex-col gap-6 pb-10">
+            {/* title row. pl-0!/pr-0! override the global `header > div` navbar
+                padding hack (global.css) that otherwise pushes it in by 3rem. */}
+            <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
+              <div className="flex flex-col gap-2.5">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+                  Avalanche Primary Network
+                </p>
+                <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
+                  {c.title}<span className="text-[#E6212F]">.</span>
+                </h1>
+              </div>
+              {aside}
             </div>
-            {aside}
-          </div>
-          {/* search — its own full-width row */}
-          <SearchBox chain={chain} network={network} />
-        </header>
-        {children}
+            {/* search — its own full-width row */}
+            <SearchBox chain={chain} network={network} />
+          </header>
+        </Rise>
+        <Rise delay={0.14}>{children}</Rise>
       </div>
     </main>
   );

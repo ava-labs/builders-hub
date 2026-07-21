@@ -10,7 +10,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
-import { StatFigure } from "@/components/explorer-v2/ui";
+import { Rise, StatFigure } from "@/components/explorer-v2/ui";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
@@ -234,6 +234,9 @@ export function ExplorerLayout({
             {showSearch && <div className="h-14 w-full animate-pulse bg-zinc-100 pl-0! pr-0! dark:bg-zinc-900" />}
           </header>
         ) : (
+          // Rise wraps the <header> from OUTSIDE so its div never becomes a
+          // `header > div` (the global navbar padding hack)
+          <Rise delay={0.05}>
           <header className="flex flex-col gap-6 pb-6">
             {/* chain identity — shared with the stats surfaces */}
             <ChainHeader
@@ -301,6 +304,7 @@ export function ExplorerLayout({
               </div>
             )}
           </header>
+          </Rise>
         )}
       </div>
 
@@ -321,7 +325,7 @@ export function ExplorerLayout({
       )}
 
       {/* Page Content — relative so it paints above the fixed snow canvas */}
-      <div className="relative">{children}</div>
+      <Rise delay={0.14} className="relative">{children}</Rise>
 
       {/* the chain's story reads as a colophon, not a header blurb — only on
           the overview page, where someone might actually be meeting the chain */}

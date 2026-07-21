@@ -12,6 +12,7 @@ import { buildTxUrl } from "@/utils/eip3091";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { hasRealChainLogo } from "@/lib/pchain-explorer";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import { Rise } from "@/components/explorer-v2/ui";
 
 interface AllChainsExplorerLayoutProps {
   children: ReactNode;
@@ -73,6 +74,9 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
       <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-4 pt-10 md:px-6">
         {/* the app's spine — chain-agnostic here, so just the switcher */}
         <ExplorerSubnav className="mb-8" />
+        {/* Rise wraps the <header> from OUTSIDE so its div never becomes a
+            `header > div` (the global navbar padding hack) */}
+        <Rise delay={0.05}>
         <header className="flex flex-col gap-6 pb-6">
           {/* title + the ecosystem riding beside it */}
           <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
@@ -134,10 +138,11 @@ export function AllChainsExplorerLayout({ children }: AllChainsExplorerLayoutPro
             )}
           </div>
         </header>
+        </Rise>
       </div>
 
       {/* Page Content */}
-      {children}
+      <Rise delay={0.14}>{children}</Rise>
     </main>
   );
 }

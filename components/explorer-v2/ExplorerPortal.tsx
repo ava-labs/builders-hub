@@ -11,7 +11,7 @@ import type { L1Chain } from "@/types/stats";
 import { buildTxUrl } from "@/utils/eip3091";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { classifyLocally, hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
-import { Board, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+import { Board, Rise, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
@@ -772,36 +772,45 @@ export default function ExplorerPortal() {
       {/* the drafting-sheet triangle lattice, snowfall only — as on /solutions */}
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-24 pt-14 md:px-6">
+        {/* top-to-bottom load sequence, as on the homepage and /solutions */}
         <header className="flex flex-col gap-9 pb-16 md:gap-10 md:pb-20">
-          <h1 className="v2-display mt-4 text-center text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
-            Every chain, observed<span className="text-[#E6212F]">.</span>
-          </h1>
-          <div className="mx-auto w-full max-w-5xl">
+          <Rise delay={0.05}>
+            <h1 className="v2-display mt-4 text-center text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
+              Every chain, observed<span className="text-[#E6212F]">.</span>
+            </h1>
+          </Rise>
+          <Rise delay={0.12} className="mx-auto w-full max-w-5xl">
             <UniversalSearch />
-          </div>
+          </Rise>
         </header>
 
         {/* the Primary Network's two chains, with the network itself
             turning beside them */}
-        <section className="grid gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
-          <div className="flex flex-col gap-4">
-            <ContractChainBoard />
-            <PlatformChainBoard />
-          </div>
-          <NetworkGlobe
-            extended
-            className="pointer-events-none hidden items-center justify-center lg:flex"
-            sizeClassName="h-60 w-auto xl:h-72"
-          />
-        </section>
+        <Rise delay={0.18}>
+          <section className="grid gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
+            <div className="flex flex-col gap-4">
+              <ContractChainBoard />
+              <PlatformChainBoard />
+            </div>
+            <NetworkGlobe
+              extended
+              className="pointer-events-none hidden items-center justify-center lg:flex"
+              sizeClassName="h-60 w-auto xl:h-72"
+            />
+          </section>
+        </Rise>
 
         {/* the same numbers the homepage and /stats/overview report */}
-        <NetworkBoard />
+        <Rise delay={0.26}>
+          <NetworkBoard />
+        </Rise>
 
-        <section className="mt-14 flex flex-col gap-4">
-          <SectionHeader label="L1 Explorers" />
-          <ChainDoors />
-        </section>
+        <Rise delay={0.32}>
+          <section className="mt-14 flex flex-col gap-4">
+            <SectionHeader label="L1 Explorers" />
+            <ChainDoors />
+          </section>
+        </Rise>
       </div>
     </main>
   );
