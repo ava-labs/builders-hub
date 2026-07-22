@@ -14,6 +14,7 @@ import {
   StatFigure,
 } from "@/components/explorer-v2/ui";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
+import { CopyButton } from "@/components/explorer/DetailRow";
 import type { L1Chain } from "@/types/stats";
 
 /* The chain's Details tab, as one instrument: identity on the left (what
@@ -98,77 +99,25 @@ export function EvmChainDetails({
   /** genesis chains (the C-Chain) have no P-Chain creation record — this
    *  board carries their full identity, and the page renders nothing else */
   genesis = false,
-  /** where the vendored genesis JSON view lives, when one exists */
-  genesisHref,
+  /** the chain's vendored genesis JSON, embedded in full below the boards */
+  genesisJson,
+  /** upstream source of the vendored genesis (avalanchego) */
+  genesisSourceUrl,
 }: {
   catalog: L1Chain;
   genesis?: boolean;
-  genesisHref?: string;
+  genesisJson?: object;
+  genesisSourceUrl?: string;
 }) {
   const snap = useRpcSnapshot(catalog.rpcUrl);
   const evmChainId = Number(catalog.chainId);
   const token = catalog.networkToken;
   const explorers = catalog.explorers ?? [];
+  const genesisRaw = genesisJson ? JSON.stringify(genesisJson, null, 2) : null;
 
   return (
+    <>
     <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[1.05fr_1fr]">
-      {/* what the chain IS */}
-      <section className="flex flex-col gap-4">
-        <SectionHeader
-          label={`Identity · ${catalog.chainName}`}
-          action={
-            genesis ? (
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                Genesis chain
-              </span>
-            ) : undefined
-          }
-        />
-        <Board divide={false} className="px-5 py-4 md:px-6">
-          <SpecPlate>
-            <SpecRow label="EVM Chain ID">
-              <span className="inline-flex items-baseline gap-2">
-                <span className="font-mono">{evmChainId}</span>
-                <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                  0x{evmChainId.toString(16)}
-                </span>
-              </span>
-            </SpecRow>
-            {genesis && catalog.blockchainId && (
-              <SpecRow label="Blockchain ID">
-                <HashChip value={catalog.blockchainId} len={30} />
-              </SpecRow>
-            )}
-            {genesis && catalog.subnetId && (
-              <SpecRow label="Subnet ID">
-                <HashChip value={catalog.subnetId} len={26} />
-              </SpecRow>
-            )}
-            {token && (
-              <SpecRow label="Native Token">
-                {token.symbol} · {token.decimals} decimals
-              </SpecRow>
-            )}
-            {catalog.sourcifySupport && <SpecRow label="Contract Verification">Sourcify</SpecRow>}
-            {genesis && (
-              <SpecRow label="Created">
-                <span className="inline-flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1">
-                  <span>Genesis — predates the P-Chain&apos;s transaction record</span>
-                  {genesisHref && (
-                    <Link
-                      href={genesisHref}
-                      className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
-                    >
-                      View genesis JSON
-                    </Link>
-                  )}
-                </span>
-              </SpecRow>
-            )}
-          </SpecPlate>
-        </Board>
-      </section>
-
       {/* what it's doing, and how to reach it */}
       <section className="flex flex-col gap-4">
         <SectionHeader
@@ -236,6 +185,85 @@ export function EvmChainDetails({
           </div>
         </Board>
       </section>
+
+      {/* what the chain IS */}
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label={catalog.chainName}
+          action={
+            genesis ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                Genesis chain
+              </span>
+            ) : undefined
+          }
+        />
+        <Board divide={false} className="px-5 py-4 md:px-6">
+          <SpecPlate>
+            <SpecRow label="EVM Chain ID">
+              <span className="inline-flex items-baseline gap-2">
+                <span className="font-mono">{evmChainId}</span>
+                <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+                  0x{evmChainId.toString(16)}
+                </span>
+              </span>
+            </SpecRow>
+            {genesis && catalog.blockchainId && (
+              <SpecRow label="Blockchain ID">
+                <HashChip value={catalog.blockchainId} len={30} />
+              </SpecRow>
+            )}
+            {genesis && catalog.subnetId && (
+              <SpecRow label="Subnet ID">
+                <HashChip value={catalog.subnetId} len={26} />
+              </SpecRow>
+            )}
+            {token && (
+              <SpecRow label="Native Token">
+                {token.symbol} · {token.decimals} decimals
+              </SpecRow>
+            )}
+            {catalog.sourcifySupport && <SpecRow label="Contract Verification">Sourcify</SpecRow>}
+          </SpecPlate>
+        </Board>
+      </section>
     </div>
+
+    {/* the founding document itself, verbatim — vendored from avalanchego's
+        embedded cChainGenesis, immutable since network launch */}
+    {genesisRaw && (
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label="Genesis JSON"
+          action={
+            <span className="flex shrink-0 items-center gap-5">
+              <span className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  Copy JSON
+                </span>
+                <CopyButton text={genesisRaw} />
+              </span>
+              {genesisSourceUrl && (
+                <Link
+                  href={genesisSourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  Source · avalanchego
+                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              )}
+            </span>
+          }
+        />
+        <Board divide={false}>
+          <pre className="whitespace-pre-wrap break-all px-5 py-4 font-mono text-[12px] leading-relaxed text-zinc-700 md:px-6 dark:text-zinc-300">
+            {genesisRaw}
+          </pre>
+        </Board>
+      </section>
+    )}
+    </>
   );
 }

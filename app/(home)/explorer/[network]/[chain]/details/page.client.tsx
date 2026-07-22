@@ -7,6 +7,14 @@ import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { useChainContext } from "../layout.client";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
+import mainnetGenesis from "@/constants/cchain-genesis/mainnet.json";
+import fujiGenesis from "@/constants/cchain-genesis/fuji.json";
+
+// both C-Chain catalog entries carry the vendored genesis for their network
+const CCHAIN_GENESIS: Record<string, object> = {
+  "43114": mainnetGenesis,
+  "43113": fujiGenesis,
+};
 
 /* The chain's Details tab: the same on-chain record the P-Chain serves at
    /p-chain/chain/{id}, mounted inside this chain's own chrome so the rail
@@ -38,11 +46,10 @@ export function ChainDetailsPageClient({ chainSlug }: { chainSlug: string }) {
           <EvmChainDetails
             catalog={catalog}
             genesis={isGenesis}
-            genesisHref={
-              // both C-Chain catalog entries (43114 mainnet / 43113 fuji)
-              // point at the vendored genesis for their own network
-              catalog.chainId === "43114" || catalog.chainId === "43113"
-                ? `/explorer/${pNetwork}/c-chain/genesis`
+            genesisJson={CCHAIN_GENESIS[catalog.chainId]}
+            genesisSourceUrl={
+              CCHAIN_GENESIS[catalog.chainId]
+                ? `https://github.com/ava-labs/avalanchego/blob/master/genesis/genesis_${pNetwork}.json`
                 : undefined
             }
           />
