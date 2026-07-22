@@ -6,7 +6,6 @@ import { ArrowRight } from "lucide-react";
 import {
   Area,
   Bar,
-  BarChart,
   ComposedChart,
   Line,
   ResponsiveContainer,
@@ -14,6 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { cn } from "@/lib/utils";
 import { Board, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import {
   ChartEmpty,
@@ -210,31 +210,49 @@ function ApyChart({ data }: { data: ApyPoint[] }) {
   );
 }
 
-/* daily minted rewards as bars */
-function RewardsBars({ data }: { data: { day: string; value: number }[] }) {
+interface RewardPoint {
+  day: string;
+  value: number;
+  /** 30-day moving average */
+  ma: number;
+}
+
+/* daily minted rewards as bars, the 30-day average riding over them */
+function RewardsBars({ data }: { data: RewardPoint[] }) {
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barCategoryGap="18%">
+        <ComposedChart data={data}>
           <XAxis dataKey="day" hide />
           <YAxis hide domain={[0, "dataMax"]} />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { day: string; value: number };
+              const d = payload[0].payload as RewardPoint;
               return (
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{fmtDay(d.day)}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                     {fmtCompact(d.value)} AVAX minted
                   </p>
+                  <p className="text-[10px] tabular-nums text-zinc-500">
+                    30d average {fmtCompact(d.ma)}
+                  </p>
                 </TipPlate>
               );
             }}
           />
           <Bar dataKey="value" fill={QUIET_BAR} minPointSize={1} isAnimationActive={false} />
-        </BarChart>
+          <Line
+            type="monotone"
+            dataKey="ma"
+            stroke={DELEGATED_COLOR}
+            strokeWidth={1.5}
+            dot={false}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   );
@@ -247,14 +265,47 @@ interface ConcentrationPoint {
   cumulativePct: number;
 }
 
-/* how evenly the stake spreads across the set */
-function ConcentrationChart({ data }: { data: ConcentrationPoint[] }) {
+const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
+
+/* how evenly the stake spreads across the set — per-rank bars against the
+   right axis, the cumulative share climbing the left one; the two shapes
+   read together (steep bars + fast climb = concentrated) */
+function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
+  const rankTicks = [];
+  for (let r = 100; r < setSize; r += 100) rankTicks.push(r);
   return (
-    <div className="h-40 text-zinc-900 dark:text-zinc-100">
+    <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="rank" hide />
-          <YAxis hide domain={[0, 100]} />
+        <ComposedChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <XAxis
+            dataKey="rank"
+            type="number"
+            domain={[1, setSize]}
+            ticks={rankTicks}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+          />
+          <YAxis
+            yAxisId="pct"
+            domain={[0, 100]}
+            ticks={[25, 50, 75, 100]}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => `${v}%`}
+            width={42}
+          />
+          <YAxis
+            yAxisId="weight"
+            orientation="right"
+            domain={[0, "dataMax"]}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => fmtCompact(v)}
+            width={48}
+          />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -262,24 +313,32 @@ function ConcentrationChart({ data }: { data: ConcentrationPoint[] }) {
               const d = payload[0].payload as ConcentrationPoint;
               return (
                 <TipPlate>
-                  <p className="text-[10px] text-zinc-500">top {d.rank} validators</p>
+                  <p className="text-[10px] text-zinc-500">rank #{d.rank}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.cumulativePct.toFixed(1)}% of all stake
+                    {fmtCompact(d.weight)} AVAX
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
-                    #{d.rank} weighs {fmtCompact(d.weight)} AVAX
+                    top {d.rank} together hold {d.cumulativePct.toFixed(1)}%
                   </p>
                 </TipPlate>
               );
             }}
           />
-          <Area
+          <Bar
+            yAxisId="weight"
+            dataKey="weight"
+            fill={QUIET_BAR}
+            fillOpacity={0.75}
+            minPointSize={1}
+            isAnimationActive={false}
+          />
+          <Line
+            yAxisId="pct"
             type="monotone"
             dataKey="cumulativePct"
-            stroke="currentColor"
+            stroke={DELEGATED_COLOR}
             strokeWidth={2}
-            fill="currentColor"
-            fillOpacity={0.08}
+            dot={false}
             isAnimationActive={false}
           />
         </ComposedChart>
@@ -295,18 +354,32 @@ interface FeeBucket {
   weight: number;
 }
 
-function FeeBars({ data }: { data: FeeBucket[] }) {
+/* what delegating costs — stake-weighted bars (where the capital sits)
+   with the validator count riding the right axis (where the nodes sit) */
+function FeeChart({ data }: { data: FeeBucket[] }) {
   return (
-    <div className="h-40">
+    <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barCategoryGap="18%">
-          <XAxis
-            dataKey="label"
+        <ComposedChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={AXIS_TICK} />
+          <YAxis
+            yAxisId="weight"
+            domain={[0, "dataMax"]}
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => fmtCompact(v)}
+            width={48}
           />
-          <YAxis hide domain={[0, "dataMax"]} />
+          <YAxis
+            yAxisId="count"
+            orientation="right"
+            domain={[0, "dataMax"]}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            width={40}
+          />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
@@ -316,18 +389,67 @@ function FeeBars({ data }: { data: FeeBucket[] }) {
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{d.label} delegation fee</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.count.toLocaleString()} validators
+                    {fmtCompact(d.weight)} AVAX own stake
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
-                    {fmtCompact(d.weight)} AVAX own stake
+                    {d.count.toLocaleString()} validator{d.count === 1 ? "" : "s"}
                   </p>
                 </TipPlate>
               );
             }}
           />
-          <Bar dataKey="count" fill={QUIET_BAR} minPointSize={1} isAnimationActive={false} />
-        </BarChart>
+          <Bar
+            yAxisId="weight"
+            dataKey="weight"
+            fill={DELEGATED_COLOR}
+            fillOpacity={0.8}
+            minPointSize={1}
+            isAnimationActive={false}
+          />
+          <Line
+            yAxisId="count"
+            type="monotone"
+            dataKey="count"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+            dot={{ r: 2, strokeWidth: 0, fill: "currentColor" }}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+type Lens = "weight" | "own" | "delegated";
+
+const LENS_LABEL: Record<Lens, string> = {
+  weight: "Weight",
+  own: "Own stake",
+  delegated: "Delegated",
+};
+
+/* the three old distribution charts folded into one instrument — same
+   segmented-control idiom as the range toggle */
+function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
+  return (
+    <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
+      {(Object.keys(LENS_LABEL) as Lens[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => onChange(l)}
+          className={cn(
+            "px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+            l === value
+              ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+              : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
+          )}
+        >
+          {LENS_LABEL[l]}
+        </button>
+      ))}
     </div>
   );
 }
@@ -398,10 +520,18 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
     return thin(windowSeries(sorted, range));
   }, [apy, range]);
 
-  const dailyRewardSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.daily_rewards), range), 180),
-    [metrics, range],
-  );
+  const dailyRewardSeries = useMemo<RewardPoint[]>(() => {
+    // the moving average runs over the FULL series so the window's left
+    // edge doesn't start artificially low, then the window slices
+    const full = toSeries(metrics?.daily_rewards);
+    let rolling = 0;
+    const withMa = full.map((p, i) => {
+      rolling += p.value;
+      if (i >= 30) rolling -= full[i - 30].value;
+      return { ...p, ma: rolling / Math.min(i + 1, 30) };
+    });
+    return thin(windowSeries(withMa, range), 180);
+  }, [metrics, range]);
 
   const cumulativeRewardSeries = useMemo(
     () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), range)),
@@ -412,11 +542,15 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
   /* the current set, sliced two ways                                */
   /* -------------------------------------------------------------- */
 
+  const [lens, setLens] = useState<Lens>("weight");
   const concentration = useMemo<ConcentrationPoint[]>(() => {
     if (!sdkValidators?.length) return [];
-    const weights = sdkValidators
-      .map((v) => ((num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0)) / NANO)
-      .sort((a, b) => b - a);
+    const pick = (v: (typeof sdkValidators)[number]): number => {
+      const own = num(v.amountStaked) ?? 0;
+      const delegated = num(v.amountDelegated) ?? 0;
+      return lens === "own" ? own : lens === "delegated" ? delegated : own + delegated;
+    };
+    const weights = sdkValidators.map((v) => pick(v) / NANO).sort((a, b) => b - a);
     const total = weights.reduce((s, w) => s + w, 0);
     if (total <= 0) return [];
     let cumulative = 0;
@@ -424,9 +558,9 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       cumulative += weight;
       return { rank: i + 1, weight, cumulativePct: (cumulative / total) * 100 };
     });
-  }, [sdkValidators]);
+  }, [sdkValidators, lens]);
 
-  // the smallest club of validators that already controls half the stake
+  // the smallest club of validators that already controls half of the lens
   const halfClub = useMemo(() => {
     const hit = concentration.find((p) => p.cumulativePct >= 50);
     return hit?.rank ?? null;
@@ -592,7 +726,14 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       {/* what securing the network mints */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <section className="flex flex-col gap-4">
-          <SectionHeader label={`Daily Rewards · ${rangeLabel}`} />
+          <SectionHeader
+            label={`Daily Rewards · ${rangeLabel}`}
+            action={
+              <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                <span className="h-0.5 w-4 bg-[#E6212F]" /> 30d avg
+              </span>
+            }
+          />
           <Board divide={false} className="px-5 py-5 md:px-6">
             {dailyRewardSeries.length ? (
               <RewardsBars data={dailyRewardSeries} />
@@ -620,31 +761,32 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
             <SectionHeader
-              label="Concentration"
-              action={
-                halfClub !== null ? (
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                    {halfClub} validators hold half the stake
-                  </span>
-                ) : undefined
-              }
+              label={`Concentration by Rank · ${LENS_LABEL[lens].toLowerCase()}`}
+              action={<LensToggle value={lens} onChange={setLens} />}
             />
             <Board divide={false} className="px-5 py-5 md:px-6">
               {concentration.length ? (
-                <ConcentrationChart data={thin(concentration, 240)} />
+                <ConcentrationChart
+                  data={thin(concentration, 300)}
+                  setSize={concentration.length}
+                />
               ) : (
                 <ChartEmpty failed={sdkFailed} />
               )}
             </Board>
-            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              Cumulative share of total stake (own + delegated) by validator rank. The flatter the
-              curve, the more evenly the network&apos;s security is spread.
+            <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+              Bars: each validator&apos;s {LENS_LABEL[lens].toLowerCase()} by rank (right axis). Red
+              line: the cumulative share the top N hold (left axis)
+              {halfClub !== null && (
+                <> — the top {halfClub} together control half of it</>
+              )}
+              . The flatter the climb, the more evenly the network&apos;s security is spread.
             </p>
           </div>
 
           <div className="flex flex-col gap-4">
             <SectionHeader
-              label="Delegation Fees"
+              label="Delegation Fees · Weighted by Stake"
               action={
                 medianFee !== null ? (
                   <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
@@ -654,11 +796,12 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
               }
             />
             <Board divide={false} className="px-5 py-5 md:px-6">
-              {feeBuckets.length ? <FeeBars data={feeBuckets} /> : <ChartEmpty failed={sdkFailed} />}
+              {feeBuckets.length ? <FeeChart data={feeBuckets} /> : <ChartEmpty failed={sdkFailed} />}
             </Board>
             <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              The cut each validator takes from its delegators&apos; rewards. Where the bars pile up
-              is what delegating actually costs.
+              Red bars: own stake sitting at each fee (left axis) — where the capital actually
+              lives. Dashed line: validator count at that fee (right axis). The cut is what
+              delegating there costs.
             </p>
           </div>
         </div>
