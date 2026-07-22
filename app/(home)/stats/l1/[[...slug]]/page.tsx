@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
+import { EvmStats } from "@/components/explorer-v2/evm/EvmStats";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { Metadata } from "next";
 import { L1Chain } from "@/types/stats";
@@ -95,20 +95,11 @@ export default async function L1Page({
   // L1 Metrics page: /stats/l1/{chainSlug} (also handle legacy /stats/l1/{chainSlug}/stats)
   if (slugArray.length === 1 || secondSegment === "stats") {
     return (
-      <ChainMetricsPage
+      <EvmStats
         chainId={currentChain.chainId}
         chainName={currentChain.chainName}
         chainSlug={currentChain.slug}
-        description={
-          currentChain.description ||
-          `Real-time insights into ${currentChain.chainName} L1 activity and network usage`
-        }
-        themeColor={currentChain.color || "#E57373"}
-        chainLogoURI={currentChain.chainLogoURI}
-        website={currentChain.website}
-        socials={currentChain.socials}
-        rpcUrl={currentChain.rpcUrl}
-        baasProviders={currentChain.baasProviders}
+        tokenSymbol={currentChain.networkToken?.symbol ?? "AVAX"}
       />
     );
   }

@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { Suspense } from "react";
-import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
+import { EvmStats } from "@/components/explorer-v2/evm/EvmStats";
 
 export const metadata: Metadata = {
   title: "Stats | Avalanche Explorer",
@@ -15,13 +15,7 @@ export const metadata: Metadata = {
 export default function AllChainsStatsPage() {
   return (
     <Suspense fallback={<div className="min-h-screen" />}>
-      <ChainMetricsPage
-        chainId="all"
-        chainName="All Chains"
-        chainSlug="network-metrics"
-        description="Aggregated metrics and analytics across all Avalanche L1 chains"
-        themeColor="#E84142"
-      />
+      <EvmStats chainId="all" chainName="All Chains" />
     </Suspense>
   );
 }
