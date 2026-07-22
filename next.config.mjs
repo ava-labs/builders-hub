@@ -82,6 +82,25 @@ const config = {
         permanent: true,
       },
       {
+        // ACP-194 was renamed upstream (avalanche-foundation/ACPs#295):
+        // "Streaming Asynchronous Execution" (194-streaming-asynchronous-execution) → "Continuous Execution" (194-continuous-execution)
+        source: '/docs/acps/194-streaming-asynchronous-execution',
+        destination: '/docs/acps/194-continuous-execution',
+        permanent: true,
+      },
+      {
+        // Renamed alongside the ACP-194 rebrand to "Continuous Execution"
+        source: '/docs/primary-network/streaming-async-execution',
+        destination: '/docs/primary-network/continuous-execution',
+        permanent: true,
+      },
+      {
+        // Renamed alongside the ACP-194 rebrand to "Continuous Execution"
+        source: '/docs/nodes/architecture/execution/streaming-async-execution',
+        destination: '/docs/nodes/architecture/execution/continuous-execution',
+        permanent: true,
+      },
+      {
         // "Build a Custom VM" landing now lives in the Custom Virtual Machines section
         source: '/docs/avalanche-l1s/build-custom-vm',
         destination: '/docs/avalanche-l1s/virtual-machines-index',

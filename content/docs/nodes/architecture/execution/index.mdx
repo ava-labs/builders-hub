@@ -1,19 +1,19 @@
 ---
 title: Execution
-description: Understand how AvalancheGo executes transactions efficiently, including streaming async execution and optimized state storage.
+description: Understand how AvalancheGo executes transactions efficiently, including Continuous Execution and optimized state storage.
 ---
 
 AvalancheGo is evolving its execution model to achieve higher throughput and lower latency. This section covers the advanced execution concepts being developed for Avalanche, including decoupled consensus and execution, and optimized state storage.
 
 <Callout type="info">
-**Active Development**: The concepts described here (Streaming Asynchronous Execution and Firewood) are under active development. Some features may be experimental or not yet deployed to mainnet.
+**Active Development**: The concepts described here (Continuous Execution and Firewood) are under active development. Some features may be experimental or not yet deployed to mainnet.
 </Callout>
 
 ## Execution at a Glance
 
 | Concept | Description |
 |---------|-------------|
-| **Streaming Async Execution** | Decouples consensus from execution, allowing both to proceed concurrently |
+| **Continuous Execution** | Decouples consensus from execution, allowing both to proceed concurrently |
 | **Firewood** | Compaction-less database optimized for Merkleized blockchain state |
 | **Optimistic Parallelism** | Execute multiple transactions concurrently with conflict detection |
 
@@ -21,7 +21,7 @@ AvalancheGo is evolving its execution model to achieve higher throughput and low
 
 ### Decoupled Consensus and Execution
 
-Traditional blockchain execution is synchronous—transactions are executed and their results computed before the block is accepted by consensus. AvalancheGo's Streaming Asynchronous Execution (SAE) breaks this tight coupling:
+Traditional blockchain execution is synchronous—transactions are executed and their results computed before the block is accepted by consensus. AvalancheGo's Continuous Execution (formerly Streaming Asynchronous Execution) breaks this tight coupling:
 
 <Mermaid chart="
 flowchart LR
@@ -29,7 +29,7 @@ flowchart LR
         P1[Proposed] --> E1[Executed] --> A1[Accepted]
     end
 
-    subgraph SAE [Streaming Async Execution]
+    subgraph CE [Continuous Execution]
         P2[Proposed] --> A2[Accepted]
         A2 -->|async| E2[Executed]
         E2 -->|delay| S2[Settled]
@@ -68,8 +68,8 @@ For **the network**:
 ## Explore Further
 
 <Cards>
-  <Card title="Streaming Async Execution" href="/docs/nodes/architecture/execution/streaming-async-execution">
-    Learn how SAE decouples consensus from execution for higher throughput
+  <Card title="Continuous Execution" href="/docs/nodes/architecture/execution/continuous-execution">
+    Learn how Continuous Execution decouples consensus from execution for higher throughput
   </Card>
   <Card title="Firewood Database" href="/docs/nodes/architecture/execution/firewood">
     Discover the compaction-less database optimized for Merkleized state
@@ -78,6 +78,6 @@ For **the network**:
 
 ## Related Resources
 
-- [ACP-194: Streaming Asynchronous Execution](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution) - Formal specification
-- [StreVM Repository](https://github.com/ava-labs/strevm) - Reference SAE implementation
+- [ACP-194: Continuous Execution](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution) - Formal specification
+- [StreVM Repository](https://github.com/ava-labs/strevm) - Reference Continuous Execution implementation
 - [Firewood Repository](https://github.com/ava-labs/firewood) - Database implementation

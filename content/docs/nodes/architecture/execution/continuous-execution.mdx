@@ -1,17 +1,17 @@
 ---
-title: Streaming Asynchronous Execution
-description: Learn how Streaming Asynchronous Execution (SAE) decouples consensus from execution to achieve higher throughput and lower latency.
+title: Continuous Execution
+description: Learn how Continuous Execution (ACP-194) decouples consensus from execution to achieve higher throughput and lower latency.
 ---
 
-Streaming Asynchronous Execution (SAE) is a fundamental architectural change that decouples consensus from execution. By allowing these two critical processes to run concurrently, AvalancheGo can achieve significantly higher throughput without sacrificing security guarantees.
+Continuous Execution (formerly known as Streaming Asynchronous Execution, or SAE) is a fundamental architectural change that decouples consensus from execution. By allowing these two critical processes to run concurrently, AvalancheGo can achieve significantly higher throughput without sacrificing security guarantees.
 
 <Callout>
-**Specification**: SAE is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution). The reference implementation is [StreVM](https://github.com/ava-labs/strevm).
+**Specification**: Continuous Execution is defined in [ACP-194](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution). The reference implementation is [StreVM](https://github.com/ava-labs/strevm).
 </Callout>
 
 ## Summary
 
-In traditional synchronous execution, a block must be fully executed before it can be accepted by consensus. SAE introduces a queue upon which consensus is performed, with a concurrent execution stream responsible for clearing the queue and reporting state roots to later consensus rounds.
+In traditional synchronous execution, a block must be fully executed before it can be accepted by consensus. Continuous Execution introduces a queue upon which consensus is performed, with a concurrent execution stream responsible for clearing the queue and reporting state roots to later consensus rounds.
 
 Key benefits:
 - **Concurrent processing**: Consensus and execution no longer block each other
@@ -43,9 +43,9 @@ This creates several bottlenecks:
 3. **Resource contention**: CPU-intensive execution competes with network-intensive consensus
 4. **Stop-the-world events**: Database compaction or GC pauses affect both consensus and execution
 
-## How SAE Works
+## How Continuous Execution Works
 
-SAE separates the block lifecycle into distinct phases:
+Continuous Execution separates the block lifecycle into distinct phases:
 
 <Mermaid chart="
 flowchart LR
@@ -114,7 +114,7 @@ A constant time delay ($\tau$ seconds) ensures that sporadic execution slowdowns
 
 ### Gas Charging
 
-SAE introduces a new gas charging formula that accounts for the gas limit:
+Continuous Execution introduces a new gas charging formula that accounts for the gas limit:
 
 $$
 g_C := \max(g_U, g_L / \lambda)
@@ -158,7 +158,7 @@ Blocks that would exceed this queue size are considered invalid.
 
 The primary benefit is that "VM time" more closely aligns with wall time:
 
-| Time | Synchronous | SAE |
+| Time | Synchronous | Continuous Execution |
 |------|-------------|-----|
 | 0-2s | Consensus | Consensus |
 | 1-5s | - | Execution (overlapping) |
@@ -167,11 +167,11 @@ The primary benefit is that "VM time" more closely aligns with wall time:
 | 4-6s | Consensus | - |
 | 6-8s | Execution | - |
 
-In synchronous mode, consensus and execution alternate. In SAE, they overlap, increasing throughput.
+In synchronous mode, consensus and execution alternate. In Continuous Execution, they overlap, increasing throughput.
 
 ### Lean Execution Clients
 
-SAE enables specialized execution-only clients that can:
+Continuous Execution enables specialized execution-only clients that can:
 
 - Rapidly execute the agreed-upon queue
 - Skip expensive Merkle data structure computation
@@ -188,7 +188,7 @@ Irregular events like database compaction are spread across multiple blocks inst
 
 ## Future Features
 
-SAE provides a foundation for additional optimizations:
+Continuous Execution provides a foundation for additional optimizations:
 
 ### Encrypted Mempools
 
@@ -207,14 +207,14 @@ Consensus artifacts become available during execution, enabling:
 - Gaming and lottery applications
 
 <Callout type="warn">
-These features are not yet implemented but require SAE as a prerequisite.
+These features are not yet implemented but require Continuous Execution as a prerequisite.
 </Callout>
 
 ## Implementation
 
 ### StreVM
 
-[StreVM](https://github.com/ava-labs/strevm) is the reference implementation of SAE for EVM blocks:
+[StreVM](https://github.com/ava-labs/strevm) is the reference implementation of Continuous Execution for EVM blocks:
 
 ```bash
 # StreVM is under active development
@@ -227,7 +227,7 @@ StreVM is under active development. There are currently no guarantees about the 
 
 ### Integration with AvalancheGo
 
-SAE integrates with AvalancheGo's existing architecture:
+Continuous Execution integrates with AvalancheGo's existing architecture:
 
 <Mermaid chart="
 flowchart TB
@@ -252,15 +252,15 @@ flowchart TB
 
 <Cards>
   <Card title="Firewood Database" href="/docs/nodes/architecture/execution/firewood">
-    The optimized database designed to work with SAE
+    The optimized database designed to work with Continuous Execution
   </Card>
   <Card title="Consensus Protocols" href="/docs/nodes/architecture/consensus">
-    How Snowman consensus works with SAE
+    How Snowman consensus works with Continuous Execution
   </Card>
 </Cards>
 
 ### External Links
 
-- [ACP-194 Specification](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-streaming-asynchronous-execution)
+- [ACP-194 Specification](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/194-continuous-execution)
 - [StreVM Repository](https://github.com/ava-labs/strevm)
 - [ACP-194 Discussion](https://github.com/avalanche-foundation/ACPs/discussions/196)

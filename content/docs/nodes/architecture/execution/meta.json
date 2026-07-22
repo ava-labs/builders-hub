@@ -1,9 +1,9 @@
 {
   "title": "Execution",
-  "description": "Advanced execution concepts including streaming async execution and optimized state storage",
+  "description": "Advanced execution concepts including Continuous Execution and optimized state storage",
   "pages": [
     "index",
-    "streaming-async-execution",
+    "continuous-execution",
     "firewood"
   ]
 }

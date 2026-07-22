@@ -174,7 +174,7 @@ export const PILLARS: Pillar[] = [
         heading: "DOCUMENTATION",
         links: [
           { text: "Avalanche consensus", href: "/docs/primary-network/avalanche-consensus" },
-          { text: "Streaming async execution", href: "/docs/primary-network/streaming-async-execution" },
+          { text: "Continuous execution", href: "/docs/primary-network/continuous-execution" },
           { text: "The Primary Network", href: "/docs/primary-network" },
           { text: "Customize your EVM", href: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1" },
         ],
