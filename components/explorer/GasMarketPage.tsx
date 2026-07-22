@@ -176,8 +176,9 @@ function shortAddr(addr: string): string {
   return `${addr.slice(0, 8)}…${addr.slice(-4)}`;
 }
 
-/* canonical 4-byte selectors — enough to name the classics; app-specific
-   selectors stay as hex and still rank */
+/* offline fallback for the classics — the API decodes selectors through
+   Sourcify's signature database, but these paint even when that lookup
+   fails, and "native"/0x00000000 need pinning it can't provide */
 const SELECTOR_NAMES: Record<string, string> = {
   native: "Native transfer",
   "0xa9059cbb": "transfer",
@@ -421,12 +422,16 @@ function SelectorBars({ selectors }: { selectors: GasMarket["selectors"] }) {
   return (
     <div className="flex flex-col gap-2.5">
       {selectors.map((s) => {
-        const name = SELECTOR_NAMES[s.selector];
+        // local pins win (native, the spam-collided 0x00000000), then the
+        // Sourcify-decoded signature; bare name in the column, full
+        // signature in the tooltip
+        const sig = SELECTOR_NAMES[s.selector] ?? s.name;
+        const name = sig?.split("(")[0];
         return (
           <div key={s.selector} className="grid grid-cols-[11rem_minmax(0,1fr)_7rem] items-center gap-3">
             <span
               className="truncate font-mono text-[11px] text-zinc-700 dark:text-zinc-300"
-              title={name ? `${name} (${s.selector})` : s.selector}
+              title={sig ? `${sig} · ${s.selector}` : s.selector}
             >
               {name ?? s.selector}
             </span>

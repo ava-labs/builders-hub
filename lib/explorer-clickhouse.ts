@@ -665,6 +665,9 @@ export interface GasUtilBucket {
 export interface GasSelector {
   /** 0x-prefixed 4-byte selector, or "native" for plain transfers */
   selector: string;
+  /** full signature from Sourcify's signature database, e.g.
+   *  "transfer(address,uint256)" — null when the selector is unknown */
+  name: string | null;
   gas: number;
   txs: number;
 }
@@ -803,6 +806,56 @@ function sqlGasSelectors(chainId: number, hours: number): string {
     LIMIT 10
     FORMAT JSONEachRow
   `;
+}
+
+// Selector → signature via Sourcify's signature database (the openchain
+// dataset Sourcify took over). One batched lookup per gas-market build;
+// a selector's decoding never changes, so answers cache for the process
+// lifetime — including definitive misses, but not transport failures.
+const SIGNATURE_LOOKUP_URL = "https://api.4byte.sourcify.dev/signature-database/v1/lookup";
+const SIGNATURE_LOOKUP_TIMEOUT_MS = 5_000;
+const selectorNameCache = new Map<string, string | null>();
+
+async function decodeSelectorNames(selectors: string[]): Promise<Map<string, string>> {
+  const pending = selectors.filter(
+    (s) => /^0x[0-9a-f]{8}$/.test(s) && !selectorNameCache.has(s),
+  );
+  if (pending.length > 0) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SIGNATURE_LOOKUP_TIMEOUT_MS);
+    try {
+      const response = await fetch(
+        `${SIGNATURE_LOOKUP_URL}?function=${pending.join(",")}&filter=true`,
+        { signal: controller.signal },
+      );
+      if (response.ok) {
+        const body = (await response.json()) as {
+          result?: {
+            function?: Record<string, { name: string; hasVerifiedContract?: boolean }[] | null>;
+          };
+        };
+        const fns = body.result?.function ?? {};
+        for (const sel of pending) {
+          const candidates = fns[sel] ?? [];
+          // collisions are real (mint, 0x00000000 spam) — trust a signature
+          // seen in a verified contract over a merely-submitted one
+          const best =
+            candidates.find((c) => c.hasVerifiedContract) ?? candidates[0];
+          selectorNameCache.set(sel, best?.name ?? null);
+        }
+      }
+    } catch {
+      // decoding is decorative — undecoded selectors render as hex
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+  const names = new Map<string, string>();
+  for (const s of selectors) {
+    const name = selectorNameCache.get(s);
+    if (name) names.set(s, name);
+  }
+  return names;
 }
 
 function sqlGasReverted(chainId: number, hours: number): string {
@@ -1021,6 +1074,7 @@ export async function getGasMarket(
 
       if (dailyRows.length === 0 && hourlyRows.length === 0) return null;
 
+      const selectorNames = await decodeSelectorNames(selectorRows.map((r) => r.selector));
       const rev = revertedRows[0];
       const rangeTotalGas = rev ? Number(rev.gas) || 0 : 0;
       const data: GasMarket = {
@@ -1060,6 +1114,7 @@ export async function getGasMarket(
         })),
         selectors: selectorRows.map((r) => ({
           selector: r.selector,
+          name: selectorNames.get(r.selector) ?? null,
           gas: Number(r.gas) || 0,
           txs: Number(r.txs) || 0,
         })),
