@@ -39,8 +39,26 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   const [flowView, setFlowView] = useState<"diagram" | "table">("diagram");
   const notFound = error === "not found";
 
-  // which context sections this tx type carries — they lay out two-up
-  const hasStaking = !!(tx && (tx.nodeId || tx.details?.weight || tx.rewardAddresses?.length));
+  // which context sections this tx type carries — they lay out two-up.
+  // A reward or auto-renew config tx points at its staking tx without
+  // carrying a node/weight of its own — that link still earns the panel.
+  const hasStaking = !!(
+    tx &&
+    (tx.nodeId ||
+      tx.details?.weight ||
+      tx.rewardAddresses?.length ||
+      tx.details?.stakingTxId ||
+      tx.details?.rewardPaid !== undefined)
+  );
+  // continuous staking (Granite): the stake renews itself on a period,
+  // optionally compounding rewards back in
+  const hasContinuous = !!(
+    tx &&
+    ((tx.period ?? 0) > 0 ||
+      tx.autoCompoundRewardShares !== undefined ||
+      tx.autoCompoundPercent !== undefined ||
+      tx.validatorAuthority?.length)
+  );
   const hasL1Validation = !!(
     tx && (tx.details?.validationId || tx.details?.l1Balance !== undefined || tx.details?.blsPublicKey)
   );
@@ -48,7 +66,8 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   const hasCrossChain = !!(tx && (tx.details?.sourceChain || tx.details?.destinationChain || tx.importedFrom));
   const isConvert = tx?.txType === "ConvertSubnetToL1Tx";
   const isWarpOp = tx?.txType === "RegisterL1ValidatorTx" || tx?.txType === "SetL1ValidatorWeightTx";
-  const hasContext = hasStaking || hasL1Validation || hasCreation || hasCrossChain || isConvert || isWarpOp;
+  const hasContext =
+    hasStaking || hasContinuous || hasL1Validation || hasCreation || hasCrossChain || isConvert || isWarpOp;
 
   // node-decoded inputs for platform ops (shared by the right-rail panels
   // and the full-width initial-validator-set table); on a 404 it doubles
@@ -166,6 +185,32 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 {tx.rewardAddresses?.length ? (
                   <SpecRow label="Reward Owners" align="start">
                     <AddrList base={base} addrs={tx.rewardAddresses} />
+                  </SpecRow>
+                ) : null}
+              </SpecPlate>
+            </Section>
+          )}
+
+          {/* Continuous staking (Granite auto-renew family) */}
+          {hasContinuous && (
+            <Section label="Continuous Staking">
+              <SpecPlate>
+                {(tx.period ?? 0) > 0 && (
+                  <SpecRow label="Renews Every">
+                    {tx.periodHuman ?? humanPeriod(tx.period!)}
+                    <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                      {tx.period!.toLocaleString("en-US")}s
+                    </span>
+                  </SpecRow>
+                )}
+                {autoCompoundPct(tx) !== null && (
+                  <SpecRow label="Auto-Compound">
+                    {autoCompoundPct(tx)}% of each reward restakes
+                  </SpecRow>
+                )}
+                {tx.validatorAuthority?.length ? (
+                  <SpecRow label="Config Authority" align="start">
+                    <AddrList base={base} addrs={tx.validatorAuthority} />
                   </SpecRow>
                 ) : null}
               </SpecPlate>
@@ -678,6 +723,34 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 
 function sumAmounts(arr: AssetAmount[]): number {
   return arr.reduce((t, a) => t + Number(a.amount || 0), 0);
+}
+
+/* fallback when the API sends only raw seconds — largest unit that
+   divides the period evenly, mirroring the API's periodHuman */
+function humanPeriod(secs: number): string {
+  const units: [number, string][] = [
+    [604800, "week"],
+    [86400, "day"],
+    [3600, "hour"],
+    [60, "minute"],
+  ];
+  for (const [size, name] of units) {
+    if (secs >= size && secs % size === 0) {
+      const n = secs / size;
+      return `${n} ${name}${n === 1 ? "" : "s"}`;
+    }
+  }
+  return `${secs}s`;
+}
+
+/* auto-compound share of each reward, whichever encoding the API sent —
+   percent directly, or raw shares in parts-per-million (1,000,000 = 100%) */
+function autoCompoundPct(tx: Tx): string | null {
+  const pct =
+    tx.autoCompoundPercent ??
+    (tx.autoCompoundRewardShares !== undefined ? tx.autoCompoundRewardShares / 10_000 : undefined);
+  if (pct === undefined) return null;
+  return Number.isInteger(pct) ? String(pct) : pct.toFixed(2);
 }
 
 function UtxoColumn({ base, title, utxos, side }: { base: string; title: string; utxos: Utxo[]; side: "in" | "out" }) {
