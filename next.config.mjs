@@ -30,6 +30,11 @@ const config = {
         hostname: 'avatars.githubusercontent.com',
       },
       {
+        // DeFiLlama protocol icons (apps facet / dapp analytics)
+        protocol: 'https',
+        hostname: 'icons.llamao.fi',
+      },
+      {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
@@ -1894,6 +1899,18 @@ const config = {
       {
         source: "/stats/validators",
         destination: "/explorer/mainnet/validators",
+        permanent: true,
+      },
+      {
+        // Primary Network staking lives on the C-Chain's Validators tab
+        source: "/stats/validators/c-chain",
+        destination: "/explorer/mainnet/c-chain/validators",
+        permanent: true,
+      },
+      {
+        // node detail folded into the P-Chain explorer's node page
+        source: "/stats/validators/node/:nodeId",
+        destination: "/explorer/mainnet/p-chain/node/:nodeId",
         permanent: true,
       },
       {
