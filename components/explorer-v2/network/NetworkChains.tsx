@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, Check, Copy, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader } from "@/components/explorer-v2/ui";
@@ -44,14 +44,69 @@ function RpcChip({ rpcUrl }: { rpcUrl: string }) {
 const TH = "px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-6";
 const TD = "px-5 py-3.5 text-[13px] md:px-6";
 
+/* Logo with a monogram fallback: 167 catalog chains ship no logo URI, and a
+   few ship dead URLs — both get the chain's initial instead of an empty ring. */
+function ChainLogo({ uri, name }: { uri?: string | null; name: string }) {
+  const [broken, setBroken] = useState(false);
+  if (!uri || broken) {
+    return (
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-200 font-mono text-[9px] font-bold uppercase text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+        {name.charAt(0)}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={uri}
+      alt=""
+      onError={() => setBroken(true)}
+      className="h-5 w-5 shrink-0 rounded-full object-contain"
+    />
+  );
+}
+
+/* The liveness gate, same rule as the chain switcher: a mainnet chain earns
+   a default row only if its subnet has stake-backed validators right now.
+   The feed failing open (show everything) beats an empty directory. */
+function useLiveValidators() {
+  const [live, setLive] = useState<Map<string, number> | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/validator-stats?network=mainnet", { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((subnets: { id: string; byClientVersion?: Record<string, { nodes: number }> }[]) => {
+        const map = new Map<string, number>();
+        for (const s of subnets) {
+          const nodes = Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0);
+          if (nodes > 0) map.set(s.id, nodes);
+        }
+        setLive(map);
+      })
+      .catch(() => setFailed(true));
+    return () => controller.abort();
+  }, []);
+  return { live, failed };
+}
+
 export function NetworkChains() {
   const [q, setQ] = useState("");
   const [net, setNet] = useState<NetFilter>("mainnet");
+  const [showInactive, setShowInactive] = useState(false);
+  const { live, failed } = useLiveValidators();
 
   const chains = useMemo(() => {
     const query = q.trim().toLowerCase();
+    const validators = (c: L1Chain) => (c.subnetId && live?.get(c.subnetId)) || 0;
     return (l1ChainsData as L1Chain[])
       .filter((c) => (net === "testnet" ? c.isTestnet === true : c.isTestnet !== true))
+      .filter((c) => {
+        // liveness applies to the mainnet view only — Fuji sets aren't in
+        // the feed, so testnet rows just need a reachable RPC
+        if (showInactive || failed || !live) return true;
+        if (net === "testnet") return Boolean(c.rpcUrl);
+        return validators(c) > 0;
+      })
       .filter(
         (c) =>
           !query ||
@@ -60,20 +115,32 @@ export function NetworkChains() {
           String(c.chainId).includes(query) ||
           (c.category ?? "").toLowerCase().includes(query),
       )
-      .sort((a, b) => a.chainName.localeCompare(b.chainName));
-  }, [q, net]);
+      .sort((a, b) => validators(b) - validators(a) || a.chainName.localeCompare(b.chainName));
+  }, [q, net, live, failed, showInactive]);
 
   return (
     <NetworkShell
       eyebrow="Avalanche Ecosystem"
       title="Chains"
-      intro="Every chain in the catalog — explorers, public RPCs, and one-click wallet setup."
+      intro="Every chain running right now — explorers, public RPCs, live validator sets, and one-click wallet setup."
     >
       <section className="flex flex-col gap-4">
         <SectionHeader
-          label={`Directory · ${chains.length}`}
+          label={`Directory · ${!live && !failed && !showInactive ? "…" : chains.length}`}
           action={
             <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setShowInactive((v) => !v)}
+                className={cn(
+                  "shrink-0 border px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+                  showInactive
+                    ? "border-zinc-900 bg-zinc-900 text-zinc-50 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+                    : "border-zinc-200 text-zinc-500 hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900",
+                )}
+              >
+                {showInactive ? "Hiding nothing" : "Include inactive"}
+              </button>
               <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
                 {(["mainnet", "testnet"] as const).map((n) => (
                   <button
@@ -116,30 +183,49 @@ export function NetworkChains() {
         </div>
 
         <Board divide={false} className="overflow-x-auto">
-          <table className="w-full min-w-[52rem] border-collapse">
+          {/* fixed layout: the data columns get exactly the width their
+              content needs and the Chain column absorbs the slack — auto
+              layout was smearing the extra width across every column and
+              letting the Connect cell push past the container */}
+          <table className="w-full min-w-[66rem] table-fixed border-collapse">
             <thead>
               <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
-                <th className={TH}>Chain</th>
-                <th className={TH}>Chain ID</th>
-                <th className={TH}>Token</th>
+                {/* Chain and the data columns hug their content; the RPC
+                    column (the only widthless one) absorbs the slack, so the
+                    leftover space sits between the last datum and the
+                    right-aligned actions instead of splitting the row */}
+                <th className={cn(TH, "w-[21rem]")}>Chain</th>
+                <th className={cn(TH, "w-28")}>Chain ID</th>
+                <th className={cn(TH, "w-20")}>Token</th>
+                <th className={cn(TH, "w-28 text-right")}>Validators</th>
                 <th className={TH}>Public RPC</th>
-                <th className={cn(TH, "text-right")}>Connect</th>
+                <th className={cn(TH, "w-[17rem] text-right")}>Connect</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {chains.map((c) => {
+              {/* validating against the P-Chain: skeleton rows, never a
+                  flash of dead chains that then snap away */}
+              {!live && !failed && !showInactive &&
+                Array.from({ length: 10 }, (_, i) => (
+                  <tr key={`skeleton-${i}`}>
+                    <td className={TD} colSpan={6}>
+                      <span className="flex items-center gap-2.5">
+                        <span className="h-5 w-5 shrink-0 animate-pulse rounded-full bg-zinc-100 dark:bg-zinc-900" />
+                        <span className="h-4 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              {(live || failed || showInactive) && chains.map((c) => {
+                const liveCount = (c.subnetId && live?.get(c.subnetId)) || 0;
                 const explorerHref = c.rpcUrl
                   ? `/explorer/${c.isTestnet ? "fuji" : "mainnet"}/${c.slug}`
                   : null;
                 return (
                   <tr key={`${c.slug}-${c.chainId}`} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                    <td className={cn(TD, "max-w-72")}>
+                    <td className={TD}>
                       <span className="flex items-center gap-2.5">
-                        {c.chainLogoURI ? (
-                          <img src={c.chainLogoURI} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
-                        ) : (
-                          <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
-                        )}
+                        <ChainLogo uri={c.chainLogoURI} name={c.chainName} />
                         {explorerHref ? (
                           <Link
                             href={explorerHref}
@@ -157,15 +243,36 @@ export function NetworkChains() {
                         )}
                       </span>
                     </td>
-                    <td className={cn(TD, "font-mono tabular-nums text-zinc-700 dark:text-zinc-300")}>{c.chainId}</td>
+                    <td className={cn(TD, "font-mono tabular-nums text-zinc-700 dark:text-zinc-300")}>
+                      {/* ~145 catalog rows carry a base58 blockchain ID here
+                          instead of an EVM number — shown clipped, full value
+                          on hover, never smeared across the neighbors */}
+                      {/^\d+$/.test(String(c.chainId)) ? (
+                        c.chainId
+                      ) : (
+                        <span
+                          title={String(c.chainId)}
+                          className="text-[11px] text-zinc-400 dark:text-zinc-500"
+                        >
+                          {String(c.chainId).slice(0, 6)}…{String(c.chainId).slice(-4)}
+                        </span>
+                      )}
+                    </td>
                     <td className={cn(TD, "font-mono text-zinc-700 dark:text-zinc-300")}>
                       {c.networkToken?.symbol ?? "—"}
                     </td>
-                    <td className={cn(TD, "max-w-72")}>
+                    <td className={cn(TD, "text-right font-mono tabular-nums")}>
+                      {liveCount > 0 ? (
+                        <span className="text-zinc-900 dark:text-zinc-100">{liveCount.toLocaleString("en-US")}</span>
+                      ) : (
+                        <span className="text-zinc-300 dark:text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className={TD}>
                       {c.rpcUrl ? <RpcChip rpcUrl={c.rpcUrl} /> : <span className="text-zinc-300 dark:text-zinc-600">—</span>}
                     </td>
                     <td className={cn(TD, "text-right")}>
-                      <span className="inline-flex items-center justify-end gap-4">
+                      <span className="inline-flex items-center justify-end gap-3 whitespace-nowrap">
                         <Link
                           href={`/stats/l1/${c.slug}`}
                           className="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 md:inline dark:text-zinc-500 dark:hover:text-zinc-100"
@@ -193,7 +300,7 @@ export function NetworkChains() {
               })}
               {chains.length === 0 && (
                 <tr>
-                  <td className={TD} colSpan={5}>
+                  <td className={TD} colSpan={6}>
                     <p className="py-6 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
                       No chains match
                     </p>
