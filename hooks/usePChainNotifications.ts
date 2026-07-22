@@ -17,6 +17,7 @@ export type PChainAction =
   | 'createChain'
   | 'convertToL1'
   | 'addPermissionlessValidator'
+  | 'addAutoRenewedValidator'
   | 'registerL1Validator'
   | 'setL1ValidatorWeight'
   | 'increaseL1ValidatorBalance'
@@ -29,6 +30,7 @@ export const PChainActionList = [
   'createChain',
   'convertToL1',
   'addPermissionlessValidator',
+  'addAutoRenewedValidator',
   'registerL1Validator',
   'setL1ValidatorWeight',
   'increaseL1ValidatorBalance',
@@ -69,6 +71,12 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
     successMessage: 'Validator added successfully',
     errorMessagePrefix: 'Failed to add validator: ',
     eventType: 'validator_added',
+  },
+  addAutoRenewedValidator: {
+    loadingMessage: 'Signing AddAutoRenewedValidatorTx with Core...',
+    successMessage: 'Auto-renewed validator added successfully',
+    errorMessagePrefix: 'Failed to add auto-renewed validator: ',
+    eventType: 'auto_renewed_validator_added',
   },
   registerL1Validator: {
     loadingMessage: 'Signing RegisterL1ValidatorTx with Core...',

@@ -41,7 +41,7 @@
     "@avalabs/avacloud-sdk": "^0.13.2",
     "@avalabs/avalanchejs": "^5.0.0",
     "@avalanche-sdk/chainkit": "^0.3.0-alpha.9",
-    "@avalanche-sdk/client": "^0.0.4-alpha.14",
+    "@avalanche-sdk/client": "^0.1.2",
     "@avalanche-sdk/interchain": "^0.2.0-alpha.3",
     "@dicebear/collection": "^9.2.4",
     "@dicebear/core": "^9.4.1",
