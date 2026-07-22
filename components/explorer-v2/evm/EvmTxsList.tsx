@@ -5,11 +5,21 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
+import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
+import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
+import {
+  ChartSection,
+  DualChart,
+  OverlayKey,
+  fmtCompact,
+  metricSeries,
+  useChainMetrics,
+} from "./metric-charts";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxListResponse } from "@/lib/evm-explorer";
 
@@ -18,6 +28,9 @@ import type { TxListResponse } from "@/lib/evm-explorer";
 const PAGE = 25;
 const MAX = 100;
 
+// the history charts under the feed — absorbed from the old Stats tab
+const METRICS = ["txCount", "avgTps", "cumulativeTxCount"].join(",");
+
 export function EvmTxsList({ network }: { network: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
@@ -25,6 +38,14 @@ export function EvmTxsList({ network }: { network: string }) {
   const [limit, setLimit] = useState(PAGE);
   const { data, loading } = useEvmData<TxListResponse>(c.chainId, "txs", { limit }, { refreshMs: LIVE_REFRESH_MS });
   const txs = data?.transactions ?? [];
+
+  // the feed is the page's live half; the charts below give it its shape,
+  // on the page clock
+  const clock = useExplorerTimeRange();
+  const range = RANGE_DAYS[clock];
+  const rangeLabel = RANGE_LABEL[clock];
+  const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
+  const m = metrics ?? {};
 
   return (
     <EvmShell network={network}>
@@ -87,6 +108,41 @@ export function EvmTxsList({ network }: { network: string }) {
           </button>
         )}
       </section>
+
+      {/* the shape of the feed over time — absorbed from the old Stats tab */}
+      <div className="mt-10 grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartSection
+          label={`Transactions · ${rangeLabel}`}
+          action={<OverlayKey label="avg tps" dashed />}
+        >
+          {metricSeries(m, range, "txCount", "avgTps").length ? (
+            <DualChart
+              data={metricSeries(m, range, "txCount", "avgTps")}
+              kind="bars"
+              fmt={fmtCompact}
+              aLabel="txs"
+              bLabel="avg TPS"
+              bFmt={(v) => v.toFixed(1)}
+              bOwnAxis
+            />
+          ) : (
+            <ChartEmpty failed={!!metrics || failed} />
+          )}
+        </ChartSection>
+
+        <ChartSection label={`Total Transactions · ${rangeLabel}`}>
+          {metricSeries(m, range, "cumulativeTxCount").length ? (
+            <DualChart
+              data={metricSeries(m, range, "cumulativeTxCount")}
+              kind="area"
+              fmt={fmtCompact}
+              aLabel="txs all-time"
+            />
+          ) : (
+            <ChartEmpty failed={!!metrics || failed} />
+          )}
+        </ChartSection>
+      </div>
     </EvmShell>
   );
 }
