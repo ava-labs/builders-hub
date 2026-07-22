@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
 import { isValidRpcUrl } from "@/lib/rpcUrlValidator";
-
-// Initialize Avalanche SDK
-const avalanche = new Avalanche({
-  network: "mainnet",
-});
 
 interface Block {
   number: string;
@@ -791,18 +785,14 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   };
 }
 
-// Check if Glacier supports this chain
-async function checkGlacierSupport(chainId: string): Promise<boolean> {
-  try {
-    const result = await avalanche.data.evm.chains.get({
-      chainId: chainId,
-    });
-    // If we get a result with a chainId, the chain is supported
-    return !!result?.chainId;
-  } catch (error) {
-    // Chain not supported by Glacier
-    return false;
-  }
+// Glacier dependency removed: the explorer is now served entirely by the
+// self-hosted ClickHouse-backed APIs (/api/evm for EVM chains, /v1 + /api for
+// P-chain), so an external "is this chain Glacier-indexed?" probe is obsolete.
+// Kept as a no-op returning true so existing call sites (the `isIndexed` gate
+// and ExplorerContext) resolve without any external round-trip. Real coverage
+// is still gated by checkChainIndexed()/hasMetricsActivity.
+async function checkGlacierSupport(_chainId: string): Promise<boolean> {
+  return true;
 }
 
 // Probe metrics API for any non-zero activity over the last ~30 days.
