@@ -287,10 +287,14 @@ export function IcmMessagesPage({
     return { received, sent, latest, avg: received / days.length };
   }, [days]);
 
-  const share =
-    totals && networkTotal > 0
-      ? ((totals.received + totals.sent) / networkTotal) * 100
-      : null;
+  // share must come from ONE counting basis: the flow table counts each
+  // routed message once, so both sides of the ratio use it — mixing in the
+  // event-based daily series (send + receive both count) overshoots 100%
+  const share = useMemo(() => {
+    if (!routes?.length || networkTotal <= 0) return null;
+    const involved = routes.reduce((s, r) => s + r.sent + r.received, 0);
+    return Math.min(100, (involved / networkTotal) * 100);
+  }, [routes, networkTotal]);
 
   const partnerSlug = (id: string): string | null =>
     (l1ChainsData as L1Chain[]).find((c) => String(c.chainId) === id && c.isTestnet !== true)
