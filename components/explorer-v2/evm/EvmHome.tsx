@@ -1,0 +1,196 @@
+"use client";
+
+import Link from "next/link";
+import { EvmShell } from "@/components/explorer-v2/EvmShell";
+import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
+import { Board, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { formatGwei } from "./format";
+import { StatusPill } from "./EvmTx";
+import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
+import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
+import type { StatsResponse, TxListResponse, BlockListResponse } from "@/lib/evm-explorer";
+
+function LiveDot() {
+  return (
+    <span className="relative flex h-1.5 w-1.5">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+    </span>
+  );
+}
+
+function RowSkeleton({ n }: { n: number }) {
+  return (
+    <>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="flex items-center justify-between px-5 py-3 md:px-6">
+          <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+          <div className="h-3 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+        </div>
+      ))}
+    </>
+  );
+}
+
+export function EvmHome({ network }: { network: string }) {
+  const c = useChainContext();
+  const base = `/explorer/${network}/${c.chainSlug}`;
+  const sym = c.nativeToken;
+  const live = { refreshMs: LIVE_REFRESH_MS };
+
+  const stats = useEvmData<StatsResponse>(c.chainId, "stats", undefined, { refreshMs: LIVE_REFRESH_MS * 2 });
+  const txs = useEvmData<TxListResponse>(c.chainId, "txs", { limit: 8 }, live);
+  const blocks = useEvmData<BlockListResponse>(c.chainId, "blocks", { limit: 20 }, live);
+
+  const s = stats.data;
+  const blockList = blocks.data?.blocks ?? [];
+  const txList = txs.data?.transactions ?? [];
+
+  const tapeBlocks: TapeBlock[] = blockList.map((b) => ({
+    key: String(b.number),
+    number: formatNumber(b.number),
+    txCount: b.txCount,
+    ago: timeAgo(b.timestamp),
+    fill: b.gasLimit > 0 ? Math.min(1, b.gasUsed / b.gasLimit) : 0,
+    href: `${base}/block/${b.number}`,
+  }));
+
+  const noData = !stats.loading && (stats.error === "not found" || (s != null && s.tipHeight === 0));
+
+  return (
+    <EvmShell
+      network={network}
+      aside={
+        s && !noData ? (
+          <Link href={`${base}/blocks`} className="group flex flex-col items-end gap-1.5">
+            <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+              <LiveDot />
+              Chain Height
+            </span>
+            <StatFigure
+              value={s.tipHeight}
+              className="text-3xl transition-colors group-hover:text-[#E6212F] md:text-[2.5rem]"
+            />
+          </Link>
+        ) : undefined
+      }
+    >
+      {noData ? (
+        <Board divide={false} className="px-6 py-16 text-center">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
+            No data indexed yet for this chain
+          </p>
+        </Board>
+      ) : (
+        <div className="flex flex-col gap-12">
+          <div className="flex flex-col gap-4">
+            {blocks.loading && !blockList.length ? (
+              <BlockTapeSkeleton />
+            ) : (
+              tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
+            )}
+
+            <Board divide={false}>
+              <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
+                <StatCell label="TRANSACTIONS · 24H">
+                  {s ? <StatFigure value={s.txCount24h} /> : <StatDash />}
+                </StatCell>
+                <StatCell label="GAS PRICE">
+                  {s ? (
+                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                      {formatGwei(s.gasPriceWei)}
+                    </span>
+                  ) : (
+                    <StatDash />
+                  )}
+                </StatCell>
+                <StatCell label="LATEST BLOCK" href={`${base}/blocks`}>
+                  {blockList[0] ? (
+                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                      {timeAgo(blockList[0].timestamp)}
+                    </span>
+                  ) : (
+                    <StatDash />
+                  )}
+                </StatCell>
+              </div>
+            </Board>
+          </div>
+
+          <div className="grid gap-12 lg:grid-cols-2">
+            {/* Latest blocks */}
+            <section className="flex flex-col gap-4">
+              <SectionHeader
+                label="Latest Blocks"
+                action={
+                  <Link
+                    href={`${base}/blocks`}
+                    className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
+                  >
+                    View all →
+                  </Link>
+                }
+              />
+              <Board>
+                {blocks.loading && !blockList.length && <RowSkeleton n={8} />}
+                {blockList.slice(0, 8).map((b) => (
+                  <Link
+                    key={b.number}
+                    href={`${base}/block/${b.number}`}
+                    className="grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                  >
+                    <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                      #{formatNumber(b.number)}
+                    </span>
+                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {formatNumber(b.txCount)} tx
+                    </span>
+                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {timeAgo(b.timestamp)}
+                    </span>
+                  </Link>
+                ))}
+              </Board>
+            </section>
+
+            {/* Latest transactions */}
+            <section className="flex flex-col gap-4">
+              <SectionHeader
+                label="Latest Transactions"
+                action={
+                  <Link
+                    href={`${base}/txs`}
+                    className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
+                  >
+                    View all →
+                  </Link>
+                }
+              />
+              <Board>
+                {txs.loading && !txList.length && <RowSkeleton n={8} />}
+                {txList.map((t) => (
+                  <Link
+                    key={t.hash}
+                    href={`${base}/tx/${t.hash}`}
+                    className="grid grid-cols-[minmax(0,1fr)_auto_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                  >
+                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                      {truncate(t.hash, 20)}
+                    </span>
+                    <span className="justify-self-start">
+                      <StatusPill success={t.success} />
+                    </span>
+                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {timeAgo(t.timestamp)}
+                    </span>
+                  </Link>
+                ))}
+              </Board>
+            </section>
+          </div>
+        </div>
+      )}
+    </EvmShell>
+  );
+}
