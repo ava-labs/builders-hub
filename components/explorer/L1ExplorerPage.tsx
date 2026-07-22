@@ -942,7 +942,7 @@ export default function L1ExplorerPage({
               label="Transactions · 14 days"
               action={
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  {data.transactionHistory[0]?.date} — {data.transactionHistory[data.transactionHistory.length - 1]?.date}
+                  {data.transactionHistory[0]?.date} → {data.transactionHistory[data.transactionHistory.length - 1]?.date}
                 </span>
               }
             />

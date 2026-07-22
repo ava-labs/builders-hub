@@ -383,8 +383,8 @@ function FeeHeatmap({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string
                     key={h}
                     title={
                       v === undefined
-                        ? `${label} ${String(h).padStart(2, "0")}:00 UTC — no data`
-                        : `${label} ${String(h).padStart(2, "0")}:00 UTC — median ${v} ${unit}`
+                        ? `${label} ${String(h).padStart(2, "0")}:00 UTC · no data`
+                        : `${label} ${String(h).padStart(2, "0")}:00 UTC · median ${v} ${unit}`
                     }
                     className="aspect-square min-h-3"
                     style={{
@@ -564,7 +564,7 @@ function ProtocolsTreemap({
         const label = protocolLabel(p, names);
         const href = protocolHref(p, base);
         const showText = w > 90 && h > 44;
-        const title = `${label}${p.category ? ` · ${p.category}` : ""} — ${fmtGas(p.gas)} gas (${p.sharePct.toFixed(1)}%) · ${p.txs.toLocaleString()} txs`;
+        const title = `${label}${p.category ? ` · ${p.category}` : ""} · ${fmtGas(p.gas)} gas (${p.sharePct.toFixed(1)}%) · ${p.txs.toLocaleString()} txs`;
         const style = {
           left: x,
           top: y,
