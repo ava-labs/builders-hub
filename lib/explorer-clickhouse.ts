@@ -15,6 +15,7 @@
 // reflect that frozen state until upstream indexing resumes.
 
 import l1ChainsData from '@/constants/l1-chains.json';
+import { getContractInfo, PROTOCOL_SLUGS } from '@/lib/contracts';
 
 export interface TransactionHistoryPoint {
   date: string;
@@ -581,6 +582,508 @@ export async function getCchainDailyActivity(): Promise<CchainActivityPoint[] | 
     console.error('[explorer-clickhouse] cchain activity query failed:', err);
     return cchainActivityCache?.data ?? null;
   }
+}
+
+// --- Gas market (per-chain fee history + top consumers) -------------------
+//
+// Backs /api/gas-market/[chainId] → the explorer's Gas page. All three
+// queries ride the raw_blocks/raw_txs sort key (chain_id, …) with the
+// monthly partition pruned by block_time, so each runs in ~0.1s (verified
+// 2026-07-21 against 43114).
+
+export interface GasHourPoint {
+  /** ISO hour, e.g. "2026-07-21T14:00" */
+  t: string;
+  /** base fee percentiles, nAVAX (= gwei of the native token) */
+  p25: number;
+  p50: number;
+  p75: number;
+  p95: number;
+  /** total gas used in the hour */
+  gas: number;
+}
+
+export interface GasDayPoint {
+  /** ISO date */
+  d: string;
+  p25: number;
+  p50: number;
+  p75: number;
+  p95: number;
+  gas: number;
+  /** mean per-block gas_used/gas_limit, percent */
+  utilPct: number;
+  blocks: number;
+}
+
+export interface GasConsumer {
+  address: string;
+  gas: number;
+  txs: number;
+  senders: number;
+  /** total fees paid to this contract's txs, AVAX */
+  feesAvax: number;
+}
+
+/** A blockspace buyer, aggregated to protocol level via the contract
+ *  registry; unregistered contracts stay as single-address entries. */
+export interface GasProtocol {
+  /** registry protocol name, or the contract address for unknowns */
+  key: string;
+  name: string;
+  /** registry category; null for unregistered contracts */
+  category: string | null;
+  /** dapp-page slug when the registry has one */
+  slug: string | null;
+  /** the contract address when the entry is a single unregistered contract */
+  address: string | null;
+  gas: number;
+  txs: number;
+  senders: number;
+  feesAvax: number;
+  /** share of the window's total gas, percent */
+  sharePct: number;
+  /** gas change vs the previous window, percent; null when it wasn't seen there */
+  deltaPct: number | null;
+}
+
+export interface GasHeatCell {
+  /** 1 = Monday … 7 = Sunday (ClickHouse toDayOfWeek) */
+  dow: number;
+  /** 0-23, UTC */
+  hour: number;
+  /** median base fee in the cell, nAVAX */
+  p50: number;
+}
+
+export interface GasUtilBucket {
+  /** bucket label, e.g. "5-10%" */
+  bucket: string;
+  blocks: number;
+}
+
+export interface GasSelector {
+  /** 0x-prefixed 4-byte selector, or "native" for plain transfers */
+  selector: string;
+  gas: number;
+  txs: number;
+}
+
+export interface GasReverted {
+  /** last-24h totals across all txs */
+  gas: number;
+  txs: number;
+  revertedGas: number;
+  revertedTxs: number;
+}
+
+export type GasRangeDays = 1 | 7 | 30;
+
+export interface GasMarket {
+  /** the window (days) the demand sections below are computed over */
+  rangeDays: GasRangeDays;
+  hourly: GasHourPoint[];
+  daily: GasDayPoint[];
+  /** blockspace buyers over the range, protocol-attributed */
+  protocols: GasProtocol[];
+  /** total gas across ALL txs in the range (denominator for shares) */
+  rangeTotalGas: number;
+  /** hour-of-week fee seasonality, 30 days (range-independent) */
+  heatmap: GasHeatCell[];
+  /** block-fullness distribution over the range */
+  histogram: GasUtilBucket[];
+  /** demand by 4-byte method selector over the range */
+  selectors: GasSelector[];
+  reverted: GasReverted | null;
+}
+
+const GAS_MARKET_TTL_MS = 5 * 60 * 1000;
+const GAS_DAILY_WINDOW_DAYS = 60;
+const GAS_HOURLY_WINDOW_HOURS = 48;
+// deep enough that registry protocols aggregate meaningfully before the cut
+const GAS_CONSUMERS_LIMIT = 60;
+// protocol entries surfaced to the page; the rest fold into "Long tail"
+const GAS_PROTOCOLS_SHOWN = 13;
+
+function sqlGasHourly(chainId: number): string {
+  return `
+    SELECT
+      formatDateTime(toStartOfHour(block_time), '%FT%R') AS t,
+      round(quantile(0.25)(base_fee_per_gas) / 1e9, 4) AS p25,
+      round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50,
+      round(quantile(0.75)(base_fee_per_gas) / 1e9, 4) AS p75,
+      round(quantile(0.95)(base_fee_per_gas) / 1e9, 4) AS p95,
+      toString(sum(toUInt64(gas_used))) AS gas
+    FROM raw_blocks
+    WHERE chain_id = ${chainId}
+      AND block_time >= now() - INTERVAL ${GAS_HOURLY_WINDOW_HOURS} HOUR
+    GROUP BY t
+    ORDER BY t
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlGasDaily(chainId: number): string {
+  return `
+    SELECT
+      toString(toDate(block_time)) AS d,
+      round(quantile(0.25)(base_fee_per_gas) / 1e9, 4) AS p25,
+      round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50,
+      round(quantile(0.75)(base_fee_per_gas) / 1e9, 4) AS p75,
+      round(quantile(0.95)(base_fee_per_gas) / 1e9, 4) AS p95,
+      toString(sum(toUInt64(gas_used))) AS gas,
+      round(avg(gas_used / gas_limit) * 100, 2) AS utilPct,
+      toString(count()) AS blocks
+    FROM raw_blocks
+    WHERE chain_id = ${chainId}
+      AND block_time >= toDate(now() - INTERVAL ${GAS_DAILY_WINDOW_DAYS} DAY)
+    GROUP BY d
+    ORDER BY d
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlGasHeatmap(chainId: number): string {
+  return `
+    SELECT
+      toDayOfWeek(block_time) AS dow,
+      toHour(block_time) AS hour,
+      round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50
+    FROM raw_blocks
+    WHERE chain_id = ${chainId}
+      AND block_time >= now() - INTERVAL 30 DAY
+    GROUP BY dow, hour
+    ORDER BY dow, hour
+    FORMAT JSONEachRow
+  `;
+}
+
+// Post-Etna the C-Chain idles near 10% full, so the buckets are dense at
+// the low end where the signal lives.
+const UTIL_BUCKETS = "['0-2%','2-5%','5-10%','10-15%','15-25%','25-50%','50-100%']";
+
+function sqlGasHistogram(chainId: number, hours: number): string {
+  return `
+    SELECT
+      multiIf(
+        u < 0.02, '0-2%',
+        u < 0.05, '2-5%',
+        u < 0.10, '5-10%',
+        u < 0.15, '10-15%',
+        u < 0.25, '15-25%',
+        u < 0.50, '25-50%',
+        '50-100%'
+      ) AS bucket,
+      toString(count()) AS blocks
+    FROM (
+      SELECT gas_used / gas_limit AS u
+      FROM raw_blocks
+      WHERE chain_id = ${chainId}
+        AND block_time >= now() - INTERVAL ${hours} HOUR
+    )
+    GROUP BY bucket
+    ORDER BY indexOf(${UTIL_BUCKETS}, bucket)
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlGasSelectors(chainId: number, hours: number): string {
+  // plain value transfers carry no calldata — fold them into one
+  // "native" row so the decomposition covers all gas, not just contracts
+  return `
+    SELECT
+      if(length(input) >= 4, concat('0x', lower(hex(substring(input, 1, 4)))), 'native') AS selector,
+      toString(sum(toUInt64(gas_used))) AS gas,
+      toString(count()) AS txs
+    FROM raw_txs
+    WHERE chain_id = ${chainId}
+      AND block_time >= now() - INTERVAL ${hours} HOUR
+    GROUP BY selector
+    ORDER BY sum(toUInt64(gas_used)) DESC
+    LIMIT 10
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlGasReverted(chainId: number, hours: number): string {
+  return `
+    SELECT
+      toString(sum(toUInt64(gas_used))) AS gas,
+      toString(count()) AS txs,
+      toString(sumIf(toUInt64(gas_used), success = 0)) AS revertedGas,
+      toString(countIf(success = 0)) AS revertedTxs
+    FROM raw_txs
+    WHERE chain_id = ${chainId}
+      AND block_time >= now() - INTERVAL ${hours} HOUR
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlGasConsumers(chainId: number, fromHoursAgo: number, toHoursAgo: number): string {
+  // effective price (gas_price) × gas_used = what senders actually paid;
+  // on the C-Chain all of it burns. Windowed [from, to) hours ago so the
+  // same builder serves the current window and the delta baseline.
+  return `
+    SELECT
+      concat('0x', lower(hex(\`to\`))) AS address,
+      toString(sum(toUInt64(gas_used))) AS gas,
+      toString(count()) AS txs,
+      toString(uniq(\`from\`)) AS senders,
+      round(sum(toUInt64(gas_used) * gas_price) / 1e18, 4) AS feesAvax
+    FROM raw_txs
+    WHERE chain_id = ${chainId}
+      AND block_time >= now() - INTERVAL ${fromHoursAgo} HOUR
+      AND block_time < now() - INTERVAL ${toHoursAgo} HOUR
+      AND \`to\` IS NOT NULL
+    GROUP BY \`to\`
+    ORDER BY sum(toUInt64(gas_used)) DESC
+    LIMIT ${GAS_CONSUMERS_LIMIT}
+    FORMAT JSONEachRow
+  `;
+}
+
+/* Fold the address-level consumer rows into protocol groups via the
+   contract registry (the same attribution the retired /stats/dapps/treemap
+   used, minus its full-history scans). Unregistered contracts stay as
+   single-address entries so sourcify names can label them client-side.
+   Caveats, deliberate: a protocol's senders are summed across its
+   contracts (a wallet touching router + pool counts twice), and deltas
+   compare top-${GAS_CONSUMERS_LIMIT} windows, so tail entries can miss a
+   baseline — those show as null, not 0. */
+function aggregateProtocols(
+  current: GasConsumer[],
+  previous: GasConsumer[],
+  rangeTotalGas: number,
+): GasProtocol[] {
+  const groupKey = (address: string) => getContractInfo(address)?.protocol ?? address;
+
+  const prevGas = new Map<string, number>();
+  for (const c of previous) {
+    const k = groupKey(c.address);
+    prevGas.set(k, (prevGas.get(k) ?? 0) + c.gas);
+  }
+
+  const groups = new Map<string, GasProtocol>();
+  for (const c of current) {
+    const info = getContractInfo(c.address);
+    const key = info?.protocol ?? c.address;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.gas += c.gas;
+      existing.txs += c.txs;
+      existing.senders += c.senders;
+      existing.feesAvax += c.feesAvax;
+    } else {
+      groups.set(key, {
+        key,
+        name: info?.protocol ?? c.address,
+        category: info?.category ?? null,
+        slug: info ? (PROTOCOL_SLUGS[info.protocol] ?? null) : null,
+        address: info ? null : c.address,
+        gas: c.gas,
+        txs: c.txs,
+        senders: c.senders,
+        feesAvax: c.feesAvax,
+        sharePct: 0,
+        deltaPct: null,
+      });
+    }
+  }
+
+  const ranked = Array.from(groups.values()).sort((a, b) => b.gas - a.gas);
+  const shown = ranked.slice(0, GAS_PROTOCOLS_SHOWN);
+  const tail = ranked.slice(GAS_PROTOCOLS_SHOWN);
+  if (tail.length) {
+    shown.push({
+      key: '__longtail',
+      name: `Long tail · ${tail.length} contracts`,
+      category: null,
+      slug: null,
+      address: null,
+      gas: tail.reduce((s, p) => s + p.gas, 0),
+      txs: tail.reduce((s, p) => s + p.txs, 0),
+      senders: tail.reduce((s, p) => s + p.senders, 0),
+      feesAvax: tail.reduce((s, p) => s + p.feesAvax, 0),
+      sharePct: 0,
+      deltaPct: null,
+    });
+  }
+
+  for (const p of shown) {
+    p.sharePct = rangeTotalGas > 0 ? (p.gas / rangeTotalGas) * 100 : 0;
+    p.feesAvax = Math.round(p.feesAvax * 10000) / 10000;
+    if (p.key !== '__longtail') {
+      const prev = prevGas.get(p.key);
+      p.deltaPct = prev ? ((p.gas - prev) / prev) * 100 : null;
+    }
+  }
+  return shown;
+}
+
+const gasMarketCache = new Map<string, { data: GasMarket; fetchedAt: number }>();
+const gasMarketInFlight = new Map<string, Promise<GasMarket | null>>();
+
+// The box caps the readonly user at 4 concurrent queries with instant
+// rejection (TOO_MANY_SIMULTANEOUS_QUERIES) — same reason
+// lib/clickhouse/client.ts gates at 3. Run the gas-market batch through a
+// 3-slot pool, leaving headroom for other routes on the shared user.
+async function allLimited<T>(limit: number, tasks: (() => Promise<T>)[]): Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < tasks.length) {
+      const i = next++;
+      results[i] = await tasks[i]();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+  return results;
+}
+
+interface RawConsumerRow {
+  address: string;
+  gas: string;
+  txs: string;
+  senders: string;
+  feesAvax: number;
+}
+
+function parseConsumers(rows: RawConsumerRow[]): GasConsumer[] {
+  return rows.map((r) => ({
+    address: r.address,
+    gas: Number(r.gas) || 0,
+    txs: Number(r.txs) || 0,
+    senders: Number(r.senders) || 0,
+    feesAvax: Number(r.feesAvax) || 0,
+  }));
+}
+
+/**
+ * Gas market snapshot for one EVM chain. The fee time-series (48h hourly,
+ * 60d daily) and seasonality heatmap are range-independent; the demand
+ * sections (protocols, selectors, histogram, reverted) are computed over
+ * `rangeDays`, with protocol deltas against the preceding window of the
+ * same length. Returns null when the chain has no rows in raw_blocks.
+ */
+export async function getGasMarket(
+  evmChainId: number,
+  rangeDays: GasRangeDays = 1,
+): Promise<GasMarket | null> {
+  const cacheKey = `${evmChainId}:${rangeDays}`;
+  const cached = gasMarketCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < GAS_MARKET_TTL_MS) {
+    return cached.data;
+  }
+  const inFlight = gasMarketInFlight.get(cacheKey);
+  if (inFlight) return inFlight;
+
+  const hours = rangeDays * 24;
+
+  const fetchPromise = (async (): Promise<GasMarket | null> => {
+    try {
+      const [
+        hourlyRows,
+        dailyRows,
+        consumerRows,
+        prevConsumerRows,
+        heatRows,
+        histRows,
+        selectorRows,
+        revertedRows,
+      ] = (await allLimited(3, [
+        () => clickhouseFetch(sqlGasHourly(evmChainId), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasDaily(evmChainId), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasConsumers(evmChainId, hours, 0), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasConsumers(evmChainId, hours * 2, hours), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasHeatmap(evmChainId), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasHistogram(evmChainId, hours), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasSelectors(evmChainId, hours), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasReverted(evmChainId, hours), QUERY_TIMEOUT_MS),
+      ] as (() => Promise<unknown>)[])) as [
+        { t: string; p25: number; p50: number; p75: number; p95: number; gas: string }[],
+        {
+          d: string;
+          p25: number;
+          p50: number;
+          p75: number;
+          p95: number;
+          gas: string;
+          utilPct: number;
+          blocks: string;
+        }[],
+        RawConsumerRow[],
+        RawConsumerRow[],
+        { dow: number; hour: number; p50: number }[],
+        { bucket: string; blocks: string }[],
+        { selector: string; gas: string; txs: string }[],
+        { gas: string; txs: string; revertedGas: string; revertedTxs: string }[],
+      ];
+
+      if (dailyRows.length === 0 && hourlyRows.length === 0) return null;
+
+      const rev = revertedRows[0];
+      const rangeTotalGas = rev ? Number(rev.gas) || 0 : 0;
+      const data: GasMarket = {
+        rangeDays,
+        rangeTotalGas,
+        hourly: hourlyRows.map((r) => ({
+          t: r.t,
+          p25: Number(r.p25) || 0,
+          p50: Number(r.p50) || 0,
+          p75: Number(r.p75) || 0,
+          p95: Number(r.p95) || 0,
+          gas: Number(r.gas) || 0,
+        })),
+        daily: dailyRows.map((r) => ({
+          d: r.d,
+          p25: Number(r.p25) || 0,
+          p50: Number(r.p50) || 0,
+          p75: Number(r.p75) || 0,
+          p95: Number(r.p95) || 0,
+          gas: Number(r.gas) || 0,
+          utilPct: Number(r.utilPct) || 0,
+          blocks: Number(r.blocks) || 0,
+        })),
+        protocols: aggregateProtocols(
+          parseConsumers(consumerRows),
+          parseConsumers(prevConsumerRows),
+          rangeTotalGas,
+        ),
+        heatmap: heatRows.map((r) => ({
+          dow: Number(r.dow) || 0,
+          hour: Number(r.hour) || 0,
+          p50: Number(r.p50) || 0,
+        })),
+        histogram: histRows.map((r) => ({
+          bucket: r.bucket,
+          blocks: Number(r.blocks) || 0,
+        })),
+        selectors: selectorRows.map((r) => ({
+          selector: r.selector,
+          gas: Number(r.gas) || 0,
+          txs: Number(r.txs) || 0,
+        })),
+        reverted: rev
+          ? {
+              gas: rangeTotalGas,
+              txs: Number(rev.txs) || 0,
+              revertedGas: Number(rev.revertedGas) || 0,
+              revertedTxs: Number(rev.revertedTxs) || 0,
+            }
+          : null,
+      };
+      gasMarketCache.set(cacheKey, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (err) {
+      console.error(`[explorer-clickhouse] gas market query failed for ${evmChainId}:`, err);
+      return gasMarketCache.get(cacheKey)?.data ?? null;
+    } finally {
+      gasMarketInFlight.delete(cacheKey);
+    }
+  })();
+
+  gasMarketInFlight.set(cacheKey, fetchPromise);
+  return fetchPromise;
 }
 
 export const __internal = {

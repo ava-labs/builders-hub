@@ -859,7 +859,7 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - [Network Overview](/explorer/mainnet) — active addresses, TPS, validators, market cap
 - [AVAX Token](/explorer/mainnet/token) — token metrics
 - [Network Metrics](/stats/network-metrics) — network-wide metrics
-- [DApp Gas Usage](/stats/dapps/treemap) — gas treemap by DApp
+- [C-Chain Gas Market](/explorer/mainnet/c-chain/gas) — live fees, fee history, gas usage by protocol
 - [Interchain Messaging](/explorer/mainnet/icm) — ICM stats
 - [Chain List](/explorer/mainnet/chains) — all Avalanche L1 chains
 - [Validators](/explorer/mainnet/validators) — validator dashboard

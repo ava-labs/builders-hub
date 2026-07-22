@@ -138,7 +138,10 @@ export function EvmChainDetails({
             <StatCell label="Latest Block">
               {snap.blockNumber !== null ? <StatFigure value={snap.blockNumber} /> : <StatDash />}
             </StatCell>
-            <StatCell label="Gas Price">
+            <StatCell
+              label="Gas Price"
+              href={`/explorer/${catalog.isTestnet === true ? "fuji" : "mainnet"}/${catalog.slug}/gas`}
+            >
               {snap.gasPriceWei !== null ? (
                 <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
                   {formatGwei(snap.gasPriceWei, token?.symbol)}

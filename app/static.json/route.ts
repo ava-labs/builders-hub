@@ -10,7 +10,7 @@ const statsPages: DocumentRecord[] = [
   { title: 'Network Overview', url: '/explorer/mainnet', _id: '/explorer/mainnet', structured: { headings: [], contents: [] }, description: 'Avalanche network overview stats', tag: 'stats' },
   { title: 'AVAX Token', url: '/explorer/mainnet/token', _id: '/explorer/mainnet/token', structured: { headings: [], contents: [] }, description: 'AVAX token metrics', tag: 'stats' },
   { title: 'Network Metrics', url: '/stats/network-metrics', _id: '/stats/network-metrics', structured: { headings: [], contents: [] }, description: 'Network-wide metrics', tag: 'stats' },
-  { title: 'DApp Gas Usage', url: '/stats/dapps/treemap', _id: '/stats/dapps/treemap', structured: { headings: [], contents: [] }, description: 'DApp gas usage treemap', tag: 'stats' },
+  { title: 'C-Chain Gas Market', url: '/explorer/mainnet/c-chain/gas', _id: '/explorer/mainnet/c-chain/gas', structured: { headings: [], contents: [] }, description: 'Live gas market, fee history, and gas usage by protocol', tag: 'stats' },
   { title: 'Interchain Messaging', url: '/explorer/mainnet/icm', _id: '/explorer/mainnet/icm', structured: { headings: [], contents: [] }, description: 'ICM statistics', tag: 'stats' },
   { title: 'Chain List', url: '/explorer/mainnet/chains', _id: '/explorer/mainnet/chains', structured: { headings: [], contents: [] }, description: 'All Avalanche L1 chains', tag: 'stats' },
   { title: 'Validators', url: '/explorer/mainnet/validators', _id: '/explorer/mainnet/validators', structured: { headings: [], contents: [] }, description: 'Validator dashboard', tag: 'stats' },

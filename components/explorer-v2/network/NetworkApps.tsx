@@ -61,10 +61,10 @@ export function NetworkApps() {
               label="Leaderboard"
               action={
                 <Link
-                  href="/stats/dapps/treemap"
+                  href="/explorer/mainnet/c-chain/gas"
                   className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#0061E2] transition-colors hover:text-[#E6212F] dark:text-[#5f9dff]"
                 >
-                  AVAX burners →
+                  Gas market →
                 </Link>
               }
             />

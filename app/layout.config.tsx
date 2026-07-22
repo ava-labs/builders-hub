@@ -187,10 +187,10 @@ export const explorerMenu: LinkItemType = {
     },
     {
       icon: <Flame />,
-      text: <span className="inline-flex items-center gap-2">AVAX Burners<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
-      url: "/stats/dapps/treemap",
+      text: <span className="inline-flex items-center gap-2">Gas Market<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
+      url: "/explorer/mainnet/c-chain/gas",
       description:
-      "Which protocols burn the most AVAX on the C-Chain.",
+      "The C-Chain gas market: live fees, history, and who burns the most.",
     },
     {
       icon: <Bell />,

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Area, AreaChart, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
+import { cn } from "@/lib/utils";
 import { BlockTape, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { Board, SectionHeader } from "@/components/explorer-v2/ui";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
@@ -157,15 +158,18 @@ function LedgerCell({
   label,
   live = false,
   sub,
+  href,
   children,
 }: {
   label: React.ReactNode;
   live?: boolean;
   sub?: React.ReactNode;
+  /** makes the whole cell a link — the figure reddens on hover */
+  href?: string;
   children: React.ReactNode;
 }) {
-  return (
-    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">
+  const body = (
+    <>
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
         {live && (
           <span className="relative flex h-1.5 w-1.5">
@@ -175,12 +179,25 @@ function LedgerCell({
         )}
         {label}
       </span>
-      <span className="min-w-0 truncate font-mono text-lg tabular-nums tracking-tight text-zinc-900 sm:text-xl md:text-2xl dark:text-zinc-50">
+      <span
+        className={cn(
+          "min-w-0 truncate font-mono text-lg tabular-nums tracking-tight text-zinc-900 sm:text-xl md:text-2xl dark:text-zinc-50",
+          href && "transition-colors group-hover/cell:text-[var(--chain-accent,#E6212F)]",
+        )}
+      >
         {children}
       </span>
       {sub && <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{sub}</span>}
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className="group/cell flex flex-col gap-1.5 px-5 py-5 md:px-6">
+        {body}
+      </Link>
+    );
+  }
+  return <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">{body}</div>;
 }
 
 export function LiveTag() {
@@ -796,7 +813,13 @@ export default function L1ExplorerPage({
               {formatNumber(data?.stats.totalTransactions || 0)}
             </LedgerCell>
 
-            <LedgerCell label="Med gas price">{data?.stats.gasPrice ?? "—"}</LedgerCell>
+            <LedgerCell
+              label="Med gas price"
+              href={`/explorer/mainnet/${chainSlug}/gas`}
+              sub="gas market →"
+            >
+              {data?.stats.gasPrice ?? "—"}
+            </LedgerCell>
 
             {/* chain height already lives top-right in the header — this
                 slot carries the burn instead of repeating it */}
