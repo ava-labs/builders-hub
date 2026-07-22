@@ -476,7 +476,7 @@ export function NetworkOverview() {
 
         {/* the chains, ranked by who's actually being used — with the
             ecosystem's biggest apps standing beside them */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
         <section className="flex min-w-0 flex-col gap-4">
           <SectionHeader
             label={`Top chains · ${RANGES.find((r) => r.key === range)?.label}`}
