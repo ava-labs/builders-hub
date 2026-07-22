@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
-import { gasUsedPct } from "./format";
+import { GasFill } from "./bits";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
@@ -45,9 +45,9 @@ export function EvmBlocksList({ network }: { network: string }) {
                 <CellLabel>Txns</CellLabel>
                 {formatNumber(b.txCount)}
               </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+              <span className="md:justify-self-end">
                 <CellLabel>Gas Used</CellLabel>
-                {gasUsedPct(b.gasUsed, b.gasLimit)}
+                <GasFill used={b.gasUsed} limit={b.gasLimit} />
               </span>
               <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>

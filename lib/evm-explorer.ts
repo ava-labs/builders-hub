@@ -65,6 +65,8 @@ export interface TxSummary {
   gasUsed: number;
   success: boolean;
   timestamp: number; // unix seconds
+  /** 4-byte calldata selector; absent/"" for plain value transfers */
+  methodId?: string;
 }
 
 export interface TxListResponse {

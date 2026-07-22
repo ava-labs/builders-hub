@@ -7,6 +7,7 @@ import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
+import { MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -30,8 +31,9 @@ export function EvmTxsList({ network }: { network: string }) {
       <section className="flex flex-col gap-4">
         <SectionHeader label="Transactions" />
         <Board className={cn(loading && txs.length > 0 && "opacity-60 transition-opacity")}>
-          <div className="hidden grid-cols-[1.7fr_1.5fr_0.9fr_0.7fr_5rem] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+          <div className="hidden grid-cols-[1.4fr_8rem_1.5fr_0.9fr_0.7fr_5rem] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
             <span>Hash</span>
+            <span>Method</span>
             <span>From → To</span>
             <span className="text-right">Value</span>
             <span className="text-right">Age</span>
@@ -41,10 +43,14 @@ export function EvmTxsList({ network }: { network: string }) {
             <Link
               key={t.hash}
               href={`${base}/tx/${t.hash}`}
-              className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.7fr_1.5fr_0.9fr_0.7fr_5rem] md:items-center md:px-6 dark:hover:bg-zinc-900"
+              className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.4fr_8rem_1.5fr_0.9fr_0.7fr_5rem] md:items-center md:px-6 dark:hover:bg-zinc-900"
             >
               <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
                 {truncate(t.hash, 18)}
+              </span>
+              <span className="min-w-0">
+                <CellLabel>Method</CellLabel>
+                <MethodChip t={t} />
               </span>
               <span className="min-w-0 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
                 <CellLabel>From → To</CellLabel>

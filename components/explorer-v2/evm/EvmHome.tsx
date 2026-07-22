@@ -7,6 +7,7 @@ import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explo
 import { Board, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
+import { GasFill, MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
@@ -247,13 +248,16 @@ export function EvmHome({ network }: { network: string }) {
                   <Link
                     key={b.number}
                     href={`${base}/block/${b.number}`}
-                    className="grid grid-cols-[minmax(0,1fr)_3.5rem_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
                     <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
                       #{formatNumber(b.number)}
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {formatNumber(b.txCount)} tx
+                    </span>
+                    <span className="justify-self-end">
+                      <GasFill used={b.gasUsed} limit={b.gasLimit} />
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {timeAgo(b.timestamp)}
@@ -282,13 +286,16 @@ export function EvmHome({ network }: { network: string }) {
                   <Link
                     key={t.hash}
                     href={`${base}/tx/${t.hash}`}
-                    className="grid grid-cols-[minmax(0,1fr)_auto_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className="grid grid-cols-[6.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
-                      {truncate(t.hash, 20)}
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {/* failures are rare enough that the pill only appears
+                          when it has something to say */}
+                      {!t.success && <StatusPill success={false} />}
+                      <MethodChip t={t} />
                     </span>
-                    <span className="justify-self-start">
-                      <StatusPill success={t.success} />
+                    <span className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                      {truncate(t.from, 8)} → {t.to ? truncate(t.to, 8) : "contract"}
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {timeAgo(t.timestamp)}
