@@ -55,12 +55,10 @@ const METRICS = [
 
 export function EvmStats({
   chainId,
-  chainSlug,
   tokenSymbol = "AVAX",
 }: {
   /** EVM chain id, or "all" for the network-wide aggregate */
   chainId: string;
-  chainSlug?: string;
   tokenSymbol?: string;
 }) {
   // the page clock in the subnav — every chart and label below rides it
@@ -282,23 +280,13 @@ export function EvmStats({
           <ChartSection
             label={`Interchain Messages · ${rangeLabel}`}
             action={
-              chainSlug ? (
-                <Link
-                  href={`/explorer/mainnet/${chainSlug}/icm`}
-                  className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-                >
-                  Routes and live feed
-                  <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-                </Link>
-              ) : (
-                <Link
-                  href="/explorer/mainnet/icm"
-                  className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-                >
-                  ICM observatory
-                  <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-                </Link>
-              )
+              <Link
+                href="/explorer/mainnet/icm"
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                ICM observatory
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
             }
           >
             {icmSeries.length ? (

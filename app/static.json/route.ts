@@ -16,13 +16,15 @@ const statsPages: DocumentRecord[] = [
   { title: 'Validators', url: '/explorer/mainnet/validators', _id: '/explorer/mainnet/validators', structured: { headings: [], contents: [] }, description: 'Validator dashboard', tag: 'stats' },
 ];
 
-// Generate per-L1 stats pages from chain registry
+// Generate per-L1 accounts pages from chain registry (the old per-chain
+// stats sheet dissolved into the explorer's subject tabs; accounts is
+// the one that exists for every catalog chain)
 const l1StatsPages: DocumentRecord[] = l1Chains.map((chain: any) => ({
-  title: `${chain.chainName} Stats`,
-  url: `/explorer/mainnet/${chain.slug}/stats`,
-  _id: `/explorer/mainnet/${chain.slug}/stats`,
+  title: `${chain.chainName} Accounts`,
+  url: `/explorer/mainnet/${chain.slug}/accounts`,
+  _id: `/explorer/mainnet/${chain.slug}/accounts`,
   structured: { headings: [], contents: [] },
-  description: `Real-time metrics for ${chain.chainName}${chain.category ? ` (${chain.category})` : ''}`,
+  description: `Active addresses, contracts deployed, and top accounts for ${chain.chainName}${chain.category ? ` (${chain.category})` : ''}`,
   tag: 'stats',
 }));
 

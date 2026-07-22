@@ -363,11 +363,6 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         isActive: (p) => p.startsWith(`${base}/details`),
       });
     }
-    tabs.push({
-      label: "Stats",
-      href: `${base}/stats`,
-      isActive: (p) => p.startsWith(`${base}/stats`),
-    });
     if (catalogChain.isTestnet !== true) {
       // the C-Chain's validators ARE the Primary Network's, so it alone
       // also carries the staking-economics instrument as a sibling tab
@@ -410,11 +405,11 @@ const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
   Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
 );
 
-/* Crossing networks keeps the section when the counterpart has it: a stats
-   page lands on the counterpart's stats, everything else lands on its
-   explorer overview. */
+/* Crossing networks keeps the section when the counterpart has it: an
+   accounts page lands on the counterpart's accounts, everything else
+   lands on its explorer overview. */
 function counterpartTarget(slug: string, pathname: string): string {
-  if (pathname.endsWith("/stats")) return `/explorer/mainnet/${slug}/stats`;
+  if (pathname.endsWith("/accounts")) return `/explorer/mainnet/${slug}/accounts`;
   return `/explorer/mainnet/${slug}`;
 }
 

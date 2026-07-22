@@ -254,10 +254,10 @@ export function NetworkChains() {
                     <td className={cn(TD, "text-right")}>
                       <span className="inline-flex items-center justify-end gap-3 whitespace-nowrap">
                         <Link
-                          href={`/explorer/mainnet/${c.slug}/stats`}
+                          href={`/explorer/mainnet/${c.slug}/accounts`}
                           className="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 md:inline dark:text-zinc-500 dark:hover:text-zinc-100"
                         >
-                          Stats
+                          Accounts
                         </Link>
                         {c.rpcUrl && (
                           <AddToWalletButton

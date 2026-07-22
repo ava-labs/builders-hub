@@ -175,7 +175,7 @@ const catalogByChainId = new Map(
 function chainHref(chainId: string): string | null {
   const c = catalogByChainId.get(String(chainId));
   if (!c) return null;
-  return c.rpcUrl ? `/explorer/mainnet/${c.slug}` : `/explorer/mainnet/${c.slug}/stats`;
+  return c.rpcUrl ? `/explorer/mainnet/${c.slug}` : `/explorer/mainnet/${c.slug}/accounts`;
 }
 
 function BoardLink({ href, children }: { href: string; children: React.ReactNode }) {

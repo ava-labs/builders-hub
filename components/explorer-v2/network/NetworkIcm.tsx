@@ -78,7 +78,7 @@ const catalogByName = new Map(
 function chainIcmHref(chainName: string): string | null {
   const c = catalogByName.get(chainName);
   if (!c) return null;
-  return c.rpcUrl ? `/explorer/mainnet/${c.slug}/icm` : `/explorer/mainnet/${c.slug}/stats`;
+  return c.rpcUrl ? `/explorer/mainnet/${c.slug}/icm` : `/explorer/mainnet/${c.slug}/accounts`;
 }
 
 /* logo with a monogram fallback — same rule as the chain directory */

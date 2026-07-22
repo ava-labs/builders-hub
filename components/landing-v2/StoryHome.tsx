@@ -777,12 +777,12 @@ function resolveChainLogo(chain: { chainId?: string; chainName: string; chainLog
 
 function resolveChainStatsHref(chain: { chainId?: string; chainName: string }): string | null {
   if (chain.chainId === "43114" || chain.chainName.toLowerCase().includes("c-chain")) {
-    return "/explorer/mainnet/c-chain/stats";
+    return "/explorer/mainnet/c-chain/accounts";
   }
   const curated = (l1ChainsData as any[]).find(
     (c) => c.chainId === chain.chainId || c.chainName?.toLowerCase() === chain.chainName.toLowerCase(),
   );
-  return curated?.slug ? `/explorer/mainnet/${curated.slug}/stats` : null;
+  return curated?.slug ? `/explorer/mainnet/${curated.slug}/accounts` : null;
 }
 
 function ChainMark({ chain }: { chain: { chainId?: string; chainName: string; chainLogoURI?: string } }) {

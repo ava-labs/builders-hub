@@ -68,7 +68,7 @@ export const menuSections: NavSection[] = [
       { text: 'Block Explorer', href: '/explorer' },
       { text: 'Playground', href: '/stats/playground' },
       { text: 'All Networks', href: '/explorer/mainnet' },
-      { text: 'C-Chain Stats', href: '/explorer/mainnet/c-chain/stats' },
+      { text: 'C-Chain Explorer', href: '/explorer/mainnet/c-chain' },
       { text: 'Validators', href: '/explorer/mainnet/validators' },
       { text: 'Validator Alerts', href: '/validator-alerts' },
     ],

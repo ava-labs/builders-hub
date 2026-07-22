@@ -97,15 +97,21 @@ const config = {
         destination: '/explorer/mainnet/:slug/address/:address',
         permanent: true,
       },
-      // ── Chain stats absorbed into the explorer's Stats tab ──
+      // ── Chain stats dissolved into the explorer's subject tabs; the
+      //    Accounts tab is the piece that exists for every catalog chain ──
       {
         source: '/stats/l1/:slug/stats',
-        destination: '/explorer/mainnet/:slug/stats',
+        destination: '/explorer/mainnet/:slug/accounts',
         permanent: true,
       },
       {
         source: '/stats/l1/:slug',
-        destination: '/explorer/mainnet/:slug/stats',
+        destination: '/explorer/mainnet/:slug/accounts',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/stats',
+        destination: '/explorer/:network/:chain/accounts',
         permanent: true,
       },
       // ── Renamed/moved pages ──
