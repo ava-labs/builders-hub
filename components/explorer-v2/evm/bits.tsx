@@ -74,7 +74,9 @@ export function GasFill({ used, limit }: { used: number; limit: number }) {
           style={{ width: `${pct.toFixed(1)}%` }}
         />
       </span>
-      <span className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+      {/* fixed slot up to "100%", right-aligned — the bars stay registered
+          whether the number is one digit or three */}
+      <span className="w-9 text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
         {pct.toFixed(0)}%
       </span>
     </span>
