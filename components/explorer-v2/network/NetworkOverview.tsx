@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
@@ -14,6 +14,7 @@ import {
   StatFigure,
 } from "@/components/explorer-v2/ui";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { NetworkBlockTape, type TapeFeedChain } from "@/components/explorer-v2/network/NetworkBlockTape";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
@@ -40,6 +41,40 @@ interface ChainRow {
   validatorCount: number | string;
 }
 
+/* compact dollar figures: $2.8B, $78.4M */
+function fmtUsd(v: number | null | undefined): string {
+  return typeof v === "number" && v > 0 ? `$${compact.format(v)}` : "—";
+}
+
+interface AppRow {
+  slug: string;
+  name: string;
+  logo: string | null;
+  tvl: number | null;
+  change_1d: number | null;
+}
+
+/* the ecosystem's biggest apps by TVL — the same DefiLlama feed the Apps
+   facet runs on, sliced to a leaderboard */
+function useTopApps(limit: number) {
+  const [apps, setApps] = useState<AppRow[] | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/dapps", { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((d: { dapps?: AppRow[] }) => {
+        const top = (d.dapps ?? [])
+          .filter((a) => typeof a.tvl === "number" && a.tvl > 0)
+          .sort((a, b) => (b.tvl ?? 0) - (a.tvl ?? 0))
+          .slice(0, limit);
+        setApps(top);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [limit]);
+  return apps;
+}
+
 interface OverviewData {
   chains: ChainRow[];
   aggregated: {
@@ -64,20 +99,25 @@ interface SupplyData {
 
 function useOverviewStats(timeRange: TimeRange) {
   const [data, setData] = useState<OverviewData | null>(null);
+  // when the figures landed — the anchor the live tx counter counts from
+  const [fetchedAt, setFetchedAt] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     setRefreshing(true);
     fetch(`/api/overview-stats?timeRange=${timeRange}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: OverviewData) => setData(d))
+      .then((d: OverviewData) => {
+        setData(d);
+        setFetchedAt(Date.now());
+      })
       .catch(() => {
         /* the previous range's data stands */
       })
       .finally(() => setRefreshing(false));
     return () => controller.abort();
   }, [timeRange]);
-  return { data, refreshing };
+  return { data, fetchedAt, refreshing };
 }
 
 /* the cosmos map — a 1.6k-line canvas, so it only loads on the client
@@ -177,21 +217,112 @@ function BoardLink({ href, children }: { href: string; children: React.ReactNode
   );
 }
 
+/* a facet door in the homepage pillar panels' color scheme: brand-dark
+   #1F1F1F board, EBF0FA lead over the #E6212F punch, steel spec rows,
+   red arrow chip. The figure IS the headline. */
+function DoorPanel({
+  href,
+  lead,
+  punch,
+  specs,
+}: {
+  href: string;
+  lead: string | null;
+  punch: string;
+  specs: { label: string; value: string | null }[];
+}) {
+  return (
+    <Link
+      href={href}
+      className="group flex flex-1 flex-col justify-between gap-10 bg-[#1F1F1F] p-6 transition-colors hover:bg-[#262626] md:p-8"
+    >
+      <div className="flex items-start justify-between gap-6">
+        <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
+          {lead ? (
+            <span className="block text-[#EBF0FA]">{lead}</span>
+          ) : (
+            <span className="block h-8 w-48 animate-pulse bg-white/10 md:h-9" />
+          )}
+          <span className="block text-[#E6212F]">{punch}</span>
+        </h3>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E6212F] transition-transform group-hover:translate-x-0.5">
+          <ArrowRight className="h-4 w-4 text-white" />
+        </span>
+      </div>
+      <dl className="divide-y divide-white/10 border-t border-white/10">
+        {specs.map((s) => (
+          <div key={s.label} className="flex items-baseline justify-between gap-4 py-2.5">
+            <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#A2AFB2]">
+              {s.label}
+            </dt>
+            <dd className="font-mono text-sm tabular-nums text-[#EBF0FA]">{s.value ?? "—"}</dd>
+          </div>
+        ))}
+      </dl>
+    </Link>
+  );
+}
+
 const TH = "px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-6";
-const TD = "px-5 py-3 text-[13px] tabular-nums md:px-6";
+const TD = "px-5 py-3 text-[13px] leading-5 tabular-nums md:px-6";
 
 export function NetworkOverview() {
   const [range, setRange] = useState<TimeRange>("day");
-  const { data, refreshing } = useOverviewStats(range);
+  const { data, fetchedAt, refreshing } = useOverviewStats(range);
   const supply = useAvaxSupply();
 
   const agg = data?.aggregated;
+
+  /* the tx counter runs forward from its fetch anchor at the window's own
+     rate — the count IS rising at ~tps/s, the API just snapshots it. A 2s
+     tick re-renders; StatFigure tweens each step, so it reads as a
+     continuous count-up. */
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((t) => t + 1), 2_000);
+    return () => clearInterval(id);
+  }, []);
+  const liveTxCount =
+    agg && fetchedAt
+      ? Math.round(agg.totalTxCount + (agg.totalTps * (Date.now() - fetchedAt)) / 1000)
+      : null;
+
+  /* real throughput measured off the block tape's stream — moves as the
+     network does, instead of a 24h average sitting still */
+  const [liveTps, setLiveTps] = useState<number | null>(null);
+
+  const topApps = useTopApps(12);
   const rows = useMemo(
     () => (data?.chains ?? []).slice().sort((a, b) => b.activeAddresses - a.activeAddresses).slice(0, 12),
     [data],
   );
 
   const { flows, failedChainIds } = useIcmFlowRoutes();
+
+  /* the tape's roster: the busiest RPC-backed chains, latched to the first
+     load so flipping the range chips doesn't reset a live feed */
+  const tapeChainsRef = useRef<TapeFeedChain[]>([]);
+  const tapeChains = useMemo<TapeFeedChain[]>(() => {
+    if (tapeChainsRef.current.length > 0) return tapeChainsRef.current;
+    const roster = (data?.chains ?? [])
+      .slice()
+      .sort((a, b) => b.txCount - a.txCount)
+      .flatMap((c) => {
+        const catalog = catalogByChainId.get(String(c.chainId));
+        if (!catalog?.rpcUrl) return [];
+        return [
+          {
+            chainId: String(c.chainId),
+            slug: catalog.slug,
+            name: c.chainName,
+            logo: c.chainLogoURI || catalog.chainLogoURI || "",
+          },
+        ];
+      })
+      .slice(0, 8);
+    if (roster.length > 0) tapeChainsRef.current = roster;
+    return roster;
+  }, [data]);
 
   /* the diagram's node list: validator-backed chains only (zero-validator
      chains render as orphan dots), largest sets first to anchor the layout */
@@ -219,6 +350,14 @@ export function NetworkOverview() {
       .filter((c): c is ChainCosmosData => c !== null)
       .sort((a, b) => b.validatorCount - a.validatorCount);
   }, [data]);
+
+  const stakingRatio = useMemo(() => {
+    const staked = parseFloat(supply?.totalStaked ?? "");
+    const circ = parseFloat(supply?.circulatingSupply ?? "");
+    return Number.isFinite(staked) && Number.isFinite(circ) && circ > 0
+      ? `${((staked / circ) * 100).toFixed(1)}%`
+      : null;
+  }, [supply]);
 
   const feesBurned = useMemo(() => {
     if (!supply) return null;
@@ -259,6 +398,11 @@ export function NetworkOverview() {
       aside={priceAside}
     >
       <div className="flex flex-col gap-10">
+        {/* the live tape — the same instrument every chain page runs, here
+            merged across the busiest chains, each block wearing the logo of
+            the chain that sealed it */}
+        <NetworkBlockTape chains={tapeChains} onTps={setLiveTps} />
+
         {/* the ecosystem's ledger strip */}
         <section className="flex flex-col gap-4">
           <SectionHeader label="Network pulse" action={<RangeChips value={range} onChange={setRange} />} />
@@ -271,14 +415,17 @@ export function NetworkOverview() {
             <div className="-ml-px -mt-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 [&>div]:border-l [&>div]:border-t [&>div]:border-zinc-200 dark:[&>div]:border-zinc-800">
               <div>
                 <StatCell label="Transactions" live>
-                  {agg ? <StatFigure value={agg.totalTxCount} /> : <StatDash />}
+                  {liveTxCount !== null ? <StatFigure value={liveTxCount} /> : <StatDash />}
                 </StatCell>
               </div>
               <div>
-                <StatCell label="Avg TPS">
-                  {agg ? (
+                <StatCell label={liveTps !== null ? "TPS" : "Avg TPS"} live={liveTps !== null}>
+                  {liveTps !== null || agg ? (
                     <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {agg.totalTps >= 100 ? Math.round(agg.totalTps).toLocaleString("en-US") : agg.totalTps.toFixed(1)}
+                      {(() => {
+                        const tps = liveTps ?? agg!.totalTps;
+                        return tps >= 100 ? Math.round(tps).toLocaleString("en-US") : tps.toFixed(1);
+                      })()}
                     </span>
                   ) : (
                     <StatDash />
@@ -327,20 +474,21 @@ export function NetworkOverview() {
           </Board>
         </section>
 
-        {/* the chains, ranked by who's actually being used */}
-        <section className="flex flex-col gap-4">
+        {/* the chains, ranked by who's actually being used — with the
+            ecosystem's biggest apps standing beside them */}
+        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+        <section className="flex min-w-0 flex-col gap-4">
           <SectionHeader
             label={`Top chains · ${RANGES.find((r) => r.key === range)?.label}`}
             action={<BoardLink href="/explorer/mainnet/chains">All chains</BoardLink>}
           />
           <Board divide={false} className="overflow-x-auto">
-            <table className="w-full min-w-[44rem] border-collapse">
+            <table className="w-full min-w-[40rem] border-collapse">
               <thead>
                 <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
                   <th className={TH}>Chain</th>
                   <th className={cn(TH, "text-right")}>Active addresses</th>
                   <th className={cn(TH, "text-right")}>Transactions</th>
-                  <th className={cn(TH, "text-right")}>TPS</th>
                   <th className={cn(TH, "text-right")}>ICM</th>
                   <th className={cn(TH, "text-right")}>Validators</th>
                 </tr>
@@ -349,7 +497,7 @@ export function NetworkOverview() {
                 {rows.length === 0 &&
                   Array.from({ length: 8 }, (_, i) => (
                     <tr key={i}>
-                      <td className={TD} colSpan={6}>
+                      <td className={TD} colSpan={5}>
                         <span className="block h-4 w-2/5 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
                       </td>
                     </tr>
@@ -396,9 +544,6 @@ export function NetworkOverview() {
                         {compact.format(c.txCount)}
                       </td>
                       <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
-                        {c.tps >= 100 ? Math.round(c.tps).toLocaleString("en-US") : c.tps.toFixed(2)}
-                      </td>
-                      <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
                         {c.icmMessages > 0 ? compact.format(c.icmMessages) : "—"}
                       </td>
                       <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
@@ -412,51 +557,107 @@ export function NetworkOverview() {
           </Board>
         </section>
 
-        {/* the two network-level instruments, as teasers into their facets */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-          <section className="flex flex-col gap-4">
-            <SectionHeader label="Staking" action={<BoardLink href="/explorer/mainnet/validators">Validators</BoardLink>} />
-            <Board divide={false}>
-              <div className="grid grid-cols-2 divide-x divide-zinc-200 dark:divide-zinc-800">
-                <StatCell label="Total staked">
-                  {fmtAvax(supply?.totalStaked) ? (
-                    <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">
-                      {fmtAvax(supply?.totalStaked)}
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-                <StatCell label="Validators">
-                  {agg ? <StatFigure value={agg.totalValidators} className="sm:text-2xl md:text-2xl" /> : <StatDash />}
-                </StatCell>
+        {/* the app leaderboard: DefiLlama TVL, same feed as the Apps facet */}
+        <section className="flex min-w-0 flex-col gap-4">
+          <SectionHeader
+            label="Top apps · TVL"
+            action={<BoardLink href="/explorer/mainnet/apps">Apps</BoardLink>}
+          />
+          <Board divide={false}>
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {/* header strip matching the table's thead metrics, so the two
+                  boards' hairlines register row for row */}
+              <div className="flex items-center gap-3 px-5 py-3">
+                <span className="min-w-0 flex-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                  App
+                </span>
+                <span className="w-12 text-right font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                  24h
+                </span>
+                <span className="w-16 text-right font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                  TVL
+                </span>
               </div>
-            </Board>
+              {topApps === null &&
+                Array.from({ length: 12 }, (_, i) => (
+                  <div key={i} className="flex items-center px-5 py-3">
+                    <span className="block h-5 w-3/4 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                  </div>
+                ))}
+              {topApps?.map((a, i) => (
+                <Link
+                  key={a.slug}
+                  href={`/stats/dapps/${a.slug}`}
+                  className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
+                >
+                  <span className="w-5 shrink-0 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {a.logo ? (
+                    <img src={a.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
+                  ) : (
+                    <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 text-[#0061E2] group-hover:underline dark:text-[#5f9dff]">
+                    {a.name}
+                  </span>
+                  <span
+                    className={cn(
+                      "w-12 shrink-0 text-right font-mono text-[11px] tabular-nums",
+                      typeof a.change_1d !== "number"
+                        ? "text-zinc-400 dark:text-zinc-600"
+                        : a.change_1d >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-[#E6212F]",
+                    )}
+                  >
+                    {typeof a.change_1d === "number"
+                      ? `${a.change_1d >= 0 ? "+" : ""}${a.change_1d.toFixed(1)}%`
+                      : "—"}
+                  </span>
+                  <span className="w-16 shrink-0 text-right font-mono text-[12px] tabular-nums text-zinc-700 dark:text-zinc-300">
+                    {fmtUsd(a.tvl)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </Board>
+        </section>
+        </div>
+
+        {/* the two network-level instruments as doors into their facets —
+            brand-dark panels in the homepage pillars' grammar: steel
+            eyebrow, EBF0FA lead with the red punch, red arrow chip */}
+        <div className="grid items-stretch gap-x-8 gap-y-10 lg:grid-cols-2">
+          <section className="flex flex-col">
+            <DoorPanel
+              href="/explorer/mainnet/validators"
+              lead={fmtAvax(supply?.totalStaked)}
+              punch="at stake."
+              specs={[
+                {
+                  label: "Validators",
+                  value: agg ? agg.totalValidators.toLocaleString("en-US") : null,
+                },
+                { label: "Staked · of circulating", value: stakingRatio },
+              ]}
+            />
           </section>
-          <section className="flex flex-col gap-4">
-            <SectionHeader label="AVAX" action={<BoardLink href="/explorer/mainnet/token">Token</BoardLink>} />
-            <Board divide={false}>
-              <div className="grid grid-cols-2 divide-x divide-zinc-200 dark:divide-zinc-800">
-                <StatCell label="Circulating supply">
-                  {fmtAvax(supply?.circulatingSupply) ? (
-                    <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">
-                      {fmtAvax(supply?.circulatingSupply)}
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-                <StatCell label="Fees burned · all time">
-                  {feesBurned ? (
-                    <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">
-                      {compact.format(feesBurned)} AVAX
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-              </div>
-            </Board>
+          <section className="flex flex-col">
+            <DoorPanel
+              href="/explorer/mainnet/token"
+              lead={feesBurned ? `${compact.format(feesBurned)} AVAX` : null}
+              punch="burned forever."
+              specs={[
+                { label: "Circulating supply", value: fmtAvax(supply?.circulatingSupply) },
+                {
+                  label: "Price",
+                  value: supply?.price
+                    ? `$${supply.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : null,
+                },
+              ]}
+            />
           </section>
         </div>
       </div>

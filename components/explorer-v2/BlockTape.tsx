@@ -21,6 +21,10 @@ export interface TapeBlock {
   txCount: number;
   /** small third line: block kind (COMMIT) or gas figure */
   label?: string;
+  /** merged tapes: the chain that sealed the block. Takes over the header
+   *  row (logo + name) and pushes the block number down to the label line —
+   *  on a cross-chain cascade the chain is the identity, not the height */
+  chain?: { name: string; logo: string };
   /** tone class for the label (defaults to quiet zinc) */
   labelClass?: string;
   /** preformatted age ("1m ago") */
@@ -54,9 +58,11 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
             <motion.div
               key={b.key}
               layout="position"
-              initial={{ opacity: 0, x: -10 }}
+              initial={{ opacity: 0, x: -14 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              // momentum curve: sharp attack, long decay — stretched so a
+              // single arriving block glides rather than snaps
+              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
               className="relative w-[96px] shrink-0"
             >
               {/* top face — tints only when the block is sealed full */}
@@ -125,17 +131,35 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 )}
                 <span
                   className={cn(
-                    "relative flex items-center gap-1.5 font-mono text-[10px] tabular-nums tracking-tight",
+                    "relative flex min-w-0 items-center gap-1.5 font-mono text-[10px] tabular-nums tracking-tight",
                     live ? "text-white/80" : "text-zinc-500 dark:text-zinc-400",
                   )}
                 >
                   {live && (
-                    <span className="relative flex h-1.5 w-1.5">
+                    <span className="relative flex h-1.5 w-1.5 shrink-0">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
                       <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
                     </span>
                   )}
-                  {b.number}
+                  {b.chain ? (
+                    <>
+                      <img
+                        src={b.chain.logo}
+                        alt=""
+                        className="h-3.5 w-3.5 shrink-0 rounded-full object-contain"
+                      />
+                      <span
+                        className={cn(
+                          "truncate font-medium",
+                          live ? "text-white" : "text-zinc-700 dark:text-zinc-300",
+                        )}
+                      >
+                        {b.chain.name}
+                      </span>
+                    </>
+                  ) : (
+                    b.number
+                  )}
                 </span>
                 <span
                   className={cn(
@@ -150,11 +174,13 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
                 </span>
                 <span
                   className={cn(
-                    "relative truncate font-mono text-[9px] uppercase tracking-[0.12em]",
+                    "relative flex min-w-0 items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.12em]",
                     live ? "text-white/90" : (b.labelClass ?? "text-zinc-500 dark:text-zinc-400"),
                   )}
                 >
-                  {b.label ?? " "}
+                  <span className={cn("truncate", b.chain && "tabular-nums")}>
+                    {b.chain ? b.number : (b.label ?? " ")}
+                  </span>
                 </span>
                 <span
                   className={cn(

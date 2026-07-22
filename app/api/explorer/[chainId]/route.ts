@@ -104,6 +104,9 @@ interface Transaction {
   timestamp: string;
   gasPrice: string;
   gas: string;
+  // 4-byte function selector ("0x" for plain transfers) — enough for the
+  // lists to name the method without shipping full calldata for 100 txs
+  input?: string;
   isCrossChain?: boolean;
   // Cross-chain info (for ICM messages) - blockchain IDs in hex format
   sourceBlockchainId?: string;
@@ -389,6 +392,7 @@ async function fetchHistoricalIcmMessages(
         timestamp: formatTimestamp(block?.timestamp || '0x0'),
         gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
         gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+        input: tx.input && tx.input.length >= 10 ? tx.input.slice(0, 10) : "0x",
         isCrossChain: true,
         sourceBlockchainId,
         destinationBlockchainId,
@@ -638,6 +642,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       timestamp: formatTimestamp(tx.blockTimestamp),
       gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
       gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+      input: tx.input && tx.input.length >= 10 ? tx.input.slice(0, 10) : "0x",
       isCrossChain,
     };
 
@@ -845,6 +850,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const initialLoad = searchParams.get('initialLoad') === 'true';
     const priceOnly = searchParams.get('priceOnly') === 'true';
+    const blocksOnly = searchParams.get('blocksOnly') === 'true';
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
 
@@ -899,6 +905,46 @@ export async function GET(
 
     if (!rpcUrl) {
       return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
+    }
+
+    // If blocksOnly, return just the newest block headers (tx hashes, no
+    // bodies) — the network tape's polling diet: no receipts, no ICM scan
+    if (blocksOnly) {
+      const blocksOnlyStart = Date.now();
+      const latest = hexToNumber(await fetchFromRPC(rpcUrl, "eth_blockNumber"));
+      if (lastFetchedBlock !== undefined && lastFetchedBlock >= latest) {
+        return NextResponse.json({ blocks: [], latestBlock: latest });
+      }
+      const count =
+        lastFetchedBlock !== undefined && lastFetchedBlock > 0
+          ? Math.min(latest - lastFetchedBlock, 10)
+          : 6;
+      const headers = await Promise.all(
+        Array.from({ length: count }, (_, i) => latest - i)
+          .filter((n) => n >= 0)
+          .map(
+            (n) =>
+              fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${n.toString(16)}`, false]).catch(
+                () => null
+              ) as Promise<RpcBlock | null>
+          )
+      );
+      const blocks = headers
+        .filter((b): b is RpcBlock => b !== null)
+        .map((block) => ({
+          number: hexToNumber(block.number).toString(),
+          hash: block.hash,
+          timestamp: formatTimestamp(block.timestamp),
+          transactionCount: block.transactions?.length || 0,
+          gasUsed: hexToNumber(block.gasUsed).toLocaleString(),
+          gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
+          timestampMilliseconds: block.timestampMilliseconds
+            ? parseInt(block.timestampMilliseconds, 16)
+            : undefined,
+        }));
+      requestTiming.blocksOnly = Date.now() - blocksOnlyStart;
+      requestTiming.total = Date.now() - requestStart;
+      return NextResponse.json({ blocks, latestBlock: latest });
     }
 
     // Fetch fresh data and check Glacier support in parallel

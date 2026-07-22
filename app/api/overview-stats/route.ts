@@ -30,6 +30,7 @@ interface ChainOverviewMetrics {
   activeAddresses: number;
   icmMessages: number;
   marketCap: number | null;
+  volume24h: number | null;
   validatorCount: number | string;
 }
 
@@ -197,9 +198,10 @@ async function getValidatorCount(subnetId: string): Promise<number | string> {
 }
 
 const MARKET_CAP_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-let marketCapCache: { data: Record<string, number>; timestamp: number } | null = null;
+interface TokenMarketData { mcap: number; vol: number | null }
+let marketCapCache: { data: Record<string, TokenMarketData>; timestamp: number } | null = null;
 
-async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, number>> {
+async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, TokenMarketData>> {
   if (marketCapCache && Date.now() - marketCapCache.timestamp < MARKET_CAP_CACHE_DURATION) {
     return marketCapCache.data;
   }
@@ -213,7 +215,7 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
   try {
     const ids = coingeckoIds.join(',');
     const response = await fetchWithTimeout(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true`,
       { headers: { 'Accept': 'application/json' } },
       10000
     );
@@ -221,12 +223,13 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
     if (!response.ok) return marketCapCache?.data ?? {};
 
     const data = await response.json();
-    const result: Record<string, number> = {};
+    const result: Record<string, TokenMarketData> = {};
 
     for (const [coingeckoId, values] of Object.entries(data)) {
       const mcap = (values as any)?.usd_market_cap;
+      const vol = (values as any)?.usd_24h_vol;
       if (typeof mcap === 'number' && mcap > 0) {
-        result[coingeckoId] = mcap;
+        result[coingeckoId] = { mcap, vol: typeof vol === 'number' && vol > 0 ? vol : null };
       }
     }
 
@@ -263,6 +266,7 @@ async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Pro
       activeAddresses,
       icmMessages,
       marketCap: null,
+      volume24h: null,
       validatorCount,
     };
 
@@ -294,12 +298,13 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
         coingeckoToChainId.set(chain.coingeckoId, chain.chainId);
       }
     }
-    for (const [coingeckoId, mcap] of Object.entries(marketCaps)) {
+    for (const [coingeckoId, market] of Object.entries(marketCaps)) {
       const chainId = coingeckoToChainId.get(coingeckoId);
       if (chainId) {
         const chainMetric = chainMetrics.find(c => c.chainId === chainId);
         if (chainMetric) {
-          chainMetric.marketCap = mcap;
+          chainMetric.marketCap = market.mcap;
+          chainMetric.volume24h = market.vol;
         }
       }
     }
