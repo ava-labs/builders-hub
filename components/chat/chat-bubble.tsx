@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
-import { MessageSquare, X, Loader2, Minus, Sparkles, Maximize2 } from 'lucide-react';
+import { MessageSquare, X, Loader2, Minus, Maximize2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -15,14 +15,6 @@ const bubbleTransport = new DefaultChatTransport({
   api: '/api/chat',
   body: { source: 'bubble' },
 });
-
-const PROMPTS = [
-  "Ask me anything... really anything",
-  "Need help? I'm here for you",
-  "Got questions? Let's chat",
-  "Curious about something?",
-  "I can help with that",
-];
 
 function getMessageText(message: UIMessage): string {
   if (message.parts && message.parts.length > 0) {
@@ -42,13 +34,10 @@ export function ChatBubble() {
   const router = useRouter();
   const [state, setState] = useState<BubbleState>('collapsed');
   const [inputValue, setInputValue] = useState('');
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState(0);
   const [shouldPulse, setShouldPulse] = useState(false);
   const [mounted, setMounted] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pulseIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const { messages, sendMessage, status, setMessages } = useChat({
@@ -87,27 +76,6 @@ export function ChatBubble() {
     };
   }, [state, mounted]);
 
-  // Show prompt tooltip periodically when collapsed
-  useEffect(() => {
-    if (state !== 'collapsed' || !mounted) return;
-
-    const showPromptCycle = () => {
-      setShowPrompt(true);
-      setCurrentPrompt(prev => (prev + 1) % PROMPTS.length);
-
-      promptTimeoutRef.current = setTimeout(() => {
-        setShowPrompt(false);
-        promptTimeoutRef.current = setTimeout(showPromptCycle, 10000 + Math.random() * 5000);
-      }, 4000);
-    };
-
-    promptTimeoutRef.current = setTimeout(showPromptCycle, 5000);
-
-    return () => {
-      if (promptTimeoutRef.current) clearTimeout(promptTimeoutRef.current);
-    };
-  }, [state, mounted]);
-
   // Focus input when transitioning to input state
   useEffect(() => {
     if (state === 'input') {
@@ -133,7 +101,6 @@ export function ChatBubble() {
 
   const handleBubbleClick = () => {
     if (state === 'collapsed') {
-      setShowPrompt(false);
       setState('input');
     }
   };
@@ -180,27 +147,6 @@ export function ChatBubble() {
       )}
       data-chatbot
     >
-      {/* Prompt tooltip */}
-      {mounted && (
-        <div
-          className={cn(
-            "transform transition-all duration-500 ease-out",
-            showPrompt && state === 'collapsed'
-              ? "translate-y-0 opacity-100 scale-100"
-              : "translate-y-2 opacity-0 scale-95 pointer-events-none"
-          )}
-        >
-          <div className="relative bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white px-4 py-2.5 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 max-w-[220px]">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 shrink-0" />
-              <p className="text-sm font-medium leading-snug">{PROMPTS[currentPrompt]}</p>
-            </div>
-            {/* Arrow pointing to bubble */}
-            <div className="absolute -bottom-2 right-6 w-4 h-4 bg-white dark:bg-zinc-900 border-r border-b border-zinc-200 dark:border-zinc-800 transform rotate-45" />
-          </div>
-        </div>
-      )}
-
       {/* Collapsed bubble */}
       {state === 'collapsed' && (
         <button

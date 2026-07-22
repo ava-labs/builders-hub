@@ -19,7 +19,10 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import AllowList from '@/components/toolbox/components/genesis/AllowList';
 import { JsonPreviewPanel } from '@/components/toolbox/components/genesis/JsonPreviewPanel';
 import { SectionWrapper } from '@/components/toolbox/components/genesis/SectionWrapper';
-import { PrecompileToggleList, type PrecompileItem } from '@/components/toolbox/components/genesis/PrecompileToggleList';
+import {
+  PrecompileToggleList,
+  type PrecompileItem,
+} from '@/components/toolbox/components/genesis/PrecompileToggleList';
 import { PRECOMPILE_INFO, PREDEPLOY_INFO } from '@/components/toolbox/components/genesis/precompileInfo';
 import {
   GenesisHighlightProvider,
@@ -64,7 +67,10 @@ const metadata: ConsoleToolMetadata = {
         precompile upgrades
       </Link>{' '}
       and state upgrades for a running L1 via <code className="text-xs">upgrade.json</code>. Unlike{' '}
-      <Link href="/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1" className="text-primary hover:underline">
+      <Link
+        href="/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1"
+        className="text-primary hover:underline"
+      >
         genesis configuration
       </Link>
       , these activate at a scheduled timestamp once every validator node loads the file and restarts.
@@ -435,11 +441,7 @@ function UpgradeJsonBuilderInner() {
   // already-activated entries, so the node would refuse to restart. Block it.
   const managedBaseUnavailable = Boolean(managedInfo?.serviceError) && baseSource === 'empty';
   const canApplyManaged =
-    managedCheckState === 'ok' &&
-    isManagedVerified &&
-    validation.valid &&
-    !parsedBase.error &&
-    !managedBaseUnavailable;
+    managedCheckState === 'ok' && isManagedVerified && validation.valid && !parsedBase.error && !managedBaseUnavailable;
   const timestampError = validation.errors.find((error) => error.includes('Activation timestamp')) ?? null;
 
   const handleImportFile = async (file: File | null) => {
@@ -567,12 +569,11 @@ function UpgradeJsonBuilderInner() {
                         )}
                         spellCheck={false}
                       />
-                      {parsedBase.error && (
-                        <p className="text-xs text-red-600 dark:text-red-400">{parsedBase.error}</p>
-                      )}
+                      {parsedBase.error && <p className="text-xs text-red-600 dark:text-red-400">{parsedBase.error}</p>}
                       {latestExistingTimestamp > 0 && (
                         <p className="text-xs text-muted-foreground">
-                          Latest existing upgrade timestamp: <span className="font-mono">{latestExistingTimestamp}</span>
+                          Latest existing upgrade timestamp:{' '}
+                          <span className="font-mono">{latestExistingTimestamp}</span>
                         </p>
                       )}
                     </div>
@@ -681,8 +682,8 @@ function UpgradeJsonBuilderInner() {
                 <div className="mt-4 space-y-2">
                   {managedBaseUnavailable && (
                     <p className="text-xs text-red-700 dark:text-red-400">
-                      Couldn&apos;t read the current upgrade.json from your managed node, so applying now
-                      could overwrite existing upgrades. Refresh once the node is reachable before applying.
+                      Couldn&apos;t read the current upgrade.json from your managed node, so applying now could
+                      overwrite existing upgrades. Refresh once the node is reachable before applying.
                     </p>
                   )}
                   <Button
@@ -710,8 +711,8 @@ function UpgradeJsonBuilderInner() {
                   Running validators outside Builder Hub? Show manual steps
                 </summary>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Any validator not provisioned by Builder Hub must load upgrade.json and restart manually
-                  before the activation timestamp, or it will fork from the upgraded nodes.
+                  Any validator not provisioned by Builder Hub must load upgrade.json and restart manually before the
+                  activation timestamp, or it will fork from the upgraded nodes.
                 </p>
                 <div className="mt-3">
                   <SelfHostedInstructions
@@ -805,13 +806,7 @@ function HeaderPanel({
   );
 }
 
-function StatusBadge({
-  isActive,
-  schedule,
-}: {
-  isActive: boolean;
-  schedule?: ExistingPrecompileSchedule;
-}) {
+function StatusBadge({ isActive, schedule }: { isActive: boolean; schedule?: ExistingPrecompileSchedule }) {
   if (isActive) {
     return (
       <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-400">
@@ -888,11 +883,7 @@ function PrecompileUpgradesSection({
     const existingSchedule = existingSchedules[definition.key];
     const baseTargetEnabled = existingSchedule ? existingSchedule.mode === 'enable' : isActive;
     const targetEnabled =
-      value.mode === 'enable' || value.mode === 'update'
-        ? true
-        : value.mode === 'disable'
-          ? false
-          : baseTargetEnabled;
+      value.mode === 'enable' || value.mode === 'update' ? true : value.mode === 'disable' ? false : baseTargetEnabled;
     const rowErrors = validationErrors.filter((error) => error.includes(definition.key));
 
     let expandedContent: ReactNode;
@@ -902,8 +893,8 @@ function PrecompileUpgradesSection({
           {value.mode === 'update' && (
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                Schedules a disable entry followed by a re-enable with this allowlist — the sequence required to
-                change an active precompile&apos;s configuration.
+                Schedules a disable entry followed by a re-enable with this allowlist — the sequence required to change
+                an active precompile&apos;s configuration.
               </p>
               <button
                 type="button"
@@ -1050,7 +1041,14 @@ function StateUpgradesSection({
   const addCode = () => {
     setCodeChanges((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), address: '', code: '', sourceRpcUrl: DEFAULT_SOURCE_RPC_URL, sourceAddress: '', sourcePreset: 'custom' },
+      {
+        id: crypto.randomUUID(),
+        address: '',
+        code: '',
+        sourceRpcUrl: DEFAULT_SOURCE_RPC_URL,
+        sourceAddress: '',
+        sourcePreset: 'custom',
+      },
     ]);
     onAddHighlight();
   };
@@ -1331,10 +1329,10 @@ curl --location --request POST '${rpcUrl || '<RPC_URL>'}' \\
         <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-500 mt-0.5" />
         <p className="text-xs text-amber-800 dark:text-amber-300">
           Running more than one validator? Run these on <strong>each</strong> node. Every validator must load the{' '}
-          <strong>same</strong> <code>upgrade.json</code> before the activation timestamp; a node left on a different
-          or missing file will fork off and stop finalizing. If you run multiple nodes on one machine, each has its own
-          data directory (for example <code>~/.avalanchego-node2</code>) and container (<code>docker restart avago-node2</code>),
-          so repeat the write and restart for every node.
+          <strong>same</strong> <code>upgrade.json</code> before the activation timestamp; a node left on a different or
+          missing file will fork off and stop finalizing. If you run multiple nodes on one machine, each has its own
+          data directory (for example <code>~/.avalanchego-node2</code>) and container (
+          <code>docker restart avago-node2</code>), so repeat the write and restart for every node.
         </p>
       </div>
     </div>

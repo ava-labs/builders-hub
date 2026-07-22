@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
+import { isPchainNetwork } from "@/lib/pchain-explorer";
 import { ChainExplorerLayoutClient } from "./layout.client";
 
 interface ChainExplorerLayoutProps {
@@ -9,13 +10,21 @@ interface ChainExplorerLayoutProps {
   params: Promise<{ chainSlug: string }>;
 }
 
-export default async function ChainExplorerLayout({ 
-  children, 
-  params 
+export default async function ChainExplorerLayout({
+  children,
+  params
 }: ChainExplorerLayoutProps) {
   const resolvedParams = await params;
   const { chainSlug } = resolvedParams;
-  
+
+  // Native (non-EVM) explorers — e.g. P-Chain — live under the finalized
+  // /explorer/{network}/{chain}/… scheme (the [chainSlug] segment carries the
+  // network) and bring their own landing-v2 shell (ExplorerShell). Bypass the
+  // EVM chain layout entirely for them.
+  if (isPchainNetwork(chainSlug)) {
+    return <>{children}</>;
+  }
+
   // Find chain in static data
   const chain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain | undefined;
   

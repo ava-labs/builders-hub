@@ -27,30 +27,28 @@ export interface NavSection {
  */
 export const menuSections: NavSection[] = [
   {
-    title: 'Academy',
-    href: '/academy',
+    title: 'Solutions',
+    href: '/solutions',
     items: [
-      { text: 'Avalanche L1 Academy', href: '/academy/avalanche-l1' },
-      { text: 'Entrepreneur Academy', href: '/academy/entrepreneur' },
-      { text: 'Blockchain Academy', href: '/academy/blockchain' },
+      { text: 'Why Avalanche', href: '/solutions' },
+      { text: 'Performance', href: '/solutions/performance' },
+      { text: 'Interoperability', href: '/solutions/interoperability' },
+      { text: 'Privacy', href: '/solutions/privacy' },
+      { text: 'Compliance', href: '/solutions/compliance' },
     ],
   },
-  {
+    {
     title: 'Documentation',
     href: '/docs/primary-network',
     items: [
+      { text: 'Academy', href: '/academy' },
       { text: 'Primary Network', href: '/docs/primary-network' },
+      { text: 'Avalanche L1s', href: '/docs/avalanche-l1s' },
       { text: 'Nodes & Validators', href: '/docs/nodes' },
       { text: 'Data APIs', href: '/docs/api-reference/data-api' },
       { text: 'ACPs', href: '/docs/acps' },
       { text: 'Developer Tools', href: '/docs/tooling' },
-    ],
-  },
-  {
-    title: 'Chat',
-    href: '/chat',
-    items: [
-      { text: 'Ask AI', href: '/chat' },
+      { text: 'Integrations', href: '/integrations' },
     ],
   },
   {
@@ -64,53 +62,26 @@ export const menuSections: NavSection[] = [
     ],
   },
   {
-    title: 'Events',
-    href: '/events',
+    title: 'Explorer',
+    href: '/explorer',
     items: [
-      { text: 'Hackathons', href: '/events' },
-      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true  },
-      { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
-      { text: 'Campus Connect', href: '/university' },
-    ],
-  },
-  {
-    title: 'Grants',
-    href: '/grants',
-    items: [
-{ text: 'Retro9000', href: 'https://retro9000.avax.network', external: true },
-      { text: 'Call for Research Proposals', href: '/grants/avalanche-research-proposals' },
-      { text: 'Blizzard Fund', href: 'https://www.blizzard.fund/', external: true },
-    ],
-  },
-  {
-    title: 'Blog',
-    href: '/guides',
-    items: [
-      { text: 'Latest Articles', href: '/guides' },
-      { text: 'Browse All Posts', href: '/guides' },
-    ],
-  },
-  {
-    title: 'Stats',
-    href: '/stats/overview',
-    items: [
+      { text: 'Block Explorer', href: '/explorer' },
       { text: 'Playground', href: '/stats/playground' },
-      { text: 'Avalanche L1s', href: '/stats/overview' },
-      { text: 'C-Chain', href: '/stats/l1/c-chain' },
+      { text: 'Avalanche L1 Stats', href: '/stats/overview' },
+      { text: 'C-Chain Stats', href: '/stats/l1/c-chain' },
       { text: 'Validators', href: '/stats/validators' },
       { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },
   {
-    title: 'Integrations',
-    href: '/integrations',
+    title: 'Ecosystem',
+    href: '/events',
     items: [
-      { text: 'Wallet SDKs', href: '/integrations#Wallet%20SDKs' },
-      { text: 'Block Explorers', href: '/integrations#Block%20Explorers' },
-      { text: 'Blockchain-as-a-Service', href: '/integrations#Blockchain%20as%20a%20Service' },
-      { text: 'Data Feeds', href: '/integrations#Data%20Feeds' },
-      { text: 'Indexers', href: '/integrations#Indexers' },
-      { text: 'Browse All Integrations', href: '/integrations' },
+      { text: 'Hackathons & Events', href: '/events' },
+      { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true },
+      { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
+      { text: 'Campus Connect', href: '/university' },
+      { text: 'Grants & Funding', href: '/grants' },
     ],
   },
 ];
@@ -119,6 +90,4 @@ export const menuSections: NavSection[] = [
  * Single navigation items (no dropdown)
  * These appear as simple links in both mobile and desktop navigation
  */
-export const singleItems: NavItem[] = [
-  { text: 'Explorer', href: '/explorer' },
-];
+export const singleItems: NavItem[] = [];

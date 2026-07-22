@@ -49,7 +49,8 @@ export default function EthereumAddressList({
   const inputRef = useRef<HTMLInputElement>(null);
   const newAddresses = parseAddresses(newAddress);
   const hasDuplicateInInput = newAddresses.some(
-    (address, index) => newAddresses.findIndex((candidate) => candidate.toLowerCase() === address.toLowerCase()) !== index,
+    (address, index) =>
+      newAddresses.findIndex((candidate) => candidate.toLowerCase() === address.toLowerCase()) !== index,
   );
   const hasExistingDuplicate = newAddresses.some((address) => checkDuplicate?.(address));
   const canAddAddress = isValidInput(newAddress) && !hasDuplicateInInput && !hasExistingDuplicate;
@@ -94,7 +95,10 @@ export default function EthereumAddressList({
               <TooltipTrigger className="inline-flex">
                 <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300" />
               </TooltipTrigger>
-              <TooltipContent sideOffset={6} className="max-w-[320px] whitespace-normal break-words text-left leading-relaxed">
+              <TooltipContent
+                sideOffset={6}
+                className="max-w-[320px] whitespace-normal break-words text-left leading-relaxed"
+              >
                 <p className="text-xs">{getRoleDescription(role, precompileAction)}</p>
               </TooltipContent>
             </Tooltip>

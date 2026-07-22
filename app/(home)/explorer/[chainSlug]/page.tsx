@@ -1,7 +1,8 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
+import { isPchainNetwork } from "@/lib/pchain-explorer";
 import { ChainExplorerPageClient } from "./page.client";
 
 interface ChainExplorerPageProps {
@@ -48,7 +49,13 @@ export async function generateMetadata({ params }: ChainExplorerPageProps): Prom
 export default async function ChainExplorerPage({ params }: ChainExplorerPageProps) {
   const resolvedParams = await params;
   const { chainSlug } = resolvedParams;
-  
+
+  // Native explorers under the new scheme: /explorer/{network} → that network's
+  // default-chain home /explorer/{network}/p-chain.
+  if (isPchainNetwork(chainSlug)) {
+    redirect(`/explorer/${chainSlug}/p-chain`);
+  }
+
   // Just render the client component - layout handles chain lookup
   return <ChainExplorerPageClient chainSlug={chainSlug} />;
 }

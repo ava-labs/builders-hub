@@ -65,7 +65,7 @@ export function DocsSubNav() {
 
   return (
     <div
-      className="fixed z-[30] w-full border-b border-border bg-background"
+      className="fixed z-[30] w-full border-b border-zinc-200 bg-white/85 backdrop-blur-[12px] dark:border-zinc-800 dark:bg-zinc-950/85"
       id="docs-subnav"
       style={{ top: "calc(var(--fd-banner-height, 0px) + 3.5rem)" }}
     >
@@ -93,8 +93,10 @@ export function DocsSubNav() {
               data-active={isActive ? "true" : undefined}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "text-sm font-medium whitespace-nowrap rounded-md px-3 py-2 transition-all docs-subnav-link group",
-                isActive ? "text-foreground" : "text-muted-foreground"
+                "text-sm font-medium whitespace-nowrap px-3 py-2 transition-all docs-subnav-link group",
+                isActive
+                  ? "text-zinc-900 dark:text-zinc-50"
+                  : "text-zinc-600 dark:text-zinc-300"
               )}
             >
               {LinkContent}
@@ -106,13 +108,16 @@ export function DocsSubNav() {
             return (
               <HoverCard key={tab.href} openDelay={100} closeDelay={200}>
                 <HoverCardTrigger asChild>{LinkElement}</HoverCardTrigger>
-                <HoverCardContent className="w-80" align="start">
+                <HoverCardContent
+                  className="w-80 rounded-none border-zinc-200 bg-white shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] dark:border-zinc-800 dark:bg-zinc-950"
+                  align="start"
+                >
                   <div className="grid gap-2">
                     {tab.items?.map((item) => (
                       <Link
                         key={item.url}
                         href={item.url}
-                        className="flex items-start gap-2 rounded-md p-2 hover:bg-accent hover:text-accent-foreground transition-colors"
+                        className="flex items-start gap-2 rounded-none p-2 transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900"
                       >
                         <div className="mt-0.5 text-muted-foreground">
                           {item.icon}

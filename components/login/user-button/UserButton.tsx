@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { CircleUserRound } from 'lucide-react';
+import { UserRound } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,17 +20,17 @@ import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
 import { canAccessBuilderInsights } from '@/lib/auth/permissions';
 
-const AVATAR_PX = 36;
+const AVATAR_PX = 30;
 
-// No outlined box — the avatar sits on the navbar at toggle height (~36px)
-// so a profile picture, initials, and placeholder all line up with the
-// ThemeToggle next to it. Hover lifts +20%; the dropdown opens on hover
-// so the user can sign out without clicking through the pill itself.
+// v2 design language: a squared hairline box at the same 2rem height as
+// the search field and theme toggle. Hover inks the border rather than
+// scaling; the dropdown opens on hover so the user can sign out without
+// clicking through the box itself.
 const WRAPPER_CLASS =
-  'inline-flex items-center justify-center rounded-full no-underline hover:no-underline focus:outline-none transition-transform duration-150 hover:scale-[1.2]';
-const SLOT_CLASS = 'size-9 rounded-full flex items-center justify-center';
-const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-zinc-400 dark:text-zinc-600`;
-const INITIALS_CLASS = `${SLOT_CLASS} text-sm font-bold tracking-tight text-[#b8b8c0] dark:text-zinc-600`;
+  'inline-flex h-8 w-8 items-center justify-center overflow-hidden border border-zinc-200 dark:border-zinc-800 no-underline hover:no-underline focus:outline-none transition-colors hover:border-zinc-400 dark:hover:border-zinc-500';
+const SLOT_CLASS = 'h-full w-full flex items-center justify-center';
+const ICON_CLASS = `${SLOT_CLASS} p-1.5 text-zinc-500 dark:text-zinc-400`;
+const INITIALS_CLASS = `${SLOT_CLASS} font-mono text-[10px] tracking-[0.1em] text-zinc-600 dark:text-zinc-300`;
 
 function initialsFromName(name?: string | null): string {
   if (!name) return '';
@@ -116,7 +116,7 @@ export function UserButton() {
 
   const renderAvatar = () => {
     if (!isAuthenticated || !session?.user) {
-      return <CircleUserRound className={ICON_CLASS} strokeWidth={0.85} />;
+      return <UserRound className={ICON_CLASS} strokeWidth={1.25} />;
     }
     const nameInitials = initialsFromName(session.user.name);
     if (nounAvatarEnabled && nounAvatarSeed) {
@@ -138,7 +138,7 @@ export function UserButton() {
             alt="User Avatar"
             width={AVATAR_PX}
             height={AVATAR_PX}
-            className="rounded-full"
+            className="h-full w-full object-cover"
           />
         </span>
       );
@@ -146,7 +146,7 @@ export function UserButton() {
     if (nameInitials) {
       return <span className={INITIALS_CLASS}>{nameInitials}</span>;
     }
-    return <CircleUserRound className={ICON_CLASS} strokeWidth={0.85} />;
+    return <UserRound className={ICON_CLASS} strokeWidth={1.25} />;
   };
 
   // Unauthenticated — clicking the avatar still opens the login modal,
@@ -192,17 +192,17 @@ export function UserButton() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="bg-white text-black dark:bg-zinc-900 dark:text-white border border-zinc-200 dark:border-zinc-700 shadow-lg p-1 rounded-md w-40"
+            className="w-44 rounded-none border border-zinc-200 bg-white p-0 text-zinc-700 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300"
             onMouseEnter={() => setMenuOpen(true)}
             onMouseLeave={() => setMenuOpen(false)}
           >
-            <DropdownMenuItem asChild className="cursor-pointer">
+            <DropdownMenuItem asChild className="cursor-pointer rounded-none px-3 py-2 text-sm focus:bg-zinc-100 focus:text-zinc-950 dark:focus:bg-zinc-900 dark:focus:text-zinc-50">
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-700" />
+            <DropdownMenuSeparator className="my-0 bg-zinc-200 dark:bg-zinc-800" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}
-              className="cursor-pointer"
+              className="cursor-pointer rounded-none px-3 py-2 text-sm focus:bg-zinc-100 focus:text-zinc-950 dark:focus:bg-zinc-900 dark:focus:text-zinc-50"
             >
               Sign out
             </DropdownMenuItem>

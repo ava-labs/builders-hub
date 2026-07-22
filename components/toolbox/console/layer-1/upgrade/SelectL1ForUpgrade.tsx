@@ -32,8 +32,7 @@ const metadata: ConsoleToolMetadata = {
       <Link href="/docs/avalanche-l1s/upgrade/precompile-upgrades" className="text-primary hover:underline">
         precompile and state upgrades
       </Link>{' '}
-      are configured per chain via an <code className="text-xs">upgrade.json</code> file loaded by every validator
-      node.
+      are configured per chain via an <code className="text-xs">upgrade.json</code> file loaded by every validator node.
     </>
   ),
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
