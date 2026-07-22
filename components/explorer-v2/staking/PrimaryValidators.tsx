@@ -17,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import {
   VersionBarChart,
   VersionBreakdownInline,
@@ -404,19 +404,19 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
     <div className="flex flex-col gap-10">
       {/* the set at a glance */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Primary Network Validators"
-          action={
-            <Link
-              href={stakingHref}
-              className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-            >
-              Staking economics
-              <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-            </Link>
-          }
-        />
         <Board divide={false}>
+          <BoardHeader
+            label="Primary Network Validators"
+            action={
+              <Link
+                href={stakingHref}
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                Staking economics
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
+            }
+          />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <Stat label="Validators">
               {sdkValidators ? sdkValidators.length.toLocaleString("en-US") : <StatDash />}

@@ -56,6 +56,28 @@ export function SectionHeader({
   );
 }
 
+/* A title bar INSIDE a Board — for stat strips, where a free-floating
+   SectionHeader above the box stacks three full-width rules (header rule,
+   board top, board bottom) and the readings float between lines. Fusing
+   the label into the plate makes one contained instrument panel: title
+   block on a quiet tint, readings below. */
+export function BoardHeader({
+  label,
+  action,
+}: {
+  label: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40">
+      <p className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+        {label}
+      </p>
+      {action}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Board — the translucent hairline content surface                    */
 export function Board({

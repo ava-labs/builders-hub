@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import { squarify, type SquarifyItem } from "@/components/stats/squarify";
 import { useContractNames } from "@/lib/sourcify-client";
 import type { GasMarket, GasProtocol, GasRangeDays } from "@/lib/explorer-clickhouse";
@@ -761,19 +761,19 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
     <div className="flex flex-col gap-10">
       {/* the market right now — straight off the RPC */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Gas Market"
-          action={
-            <span className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
-              </span>
-              Live
-            </span>
-          }
-        />
         <Board divide={false}>
+          <BoardHeader
+            label="Gas Market"
+            action={
+              <span className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+                </span>
+                Live
+              </span>
+            }
+          />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <GasStat label="Base Fee" live>
               {fee.baseFeeWei !== null ? (
@@ -828,17 +828,17 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
 
       {/* what that means in money — priced at base + median tip */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="What a Transaction Costs Right Now"
-          action={
-            usd !== null ? (
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {symbol} at ${usd.toFixed(2)}
-              </span>
-            ) : undefined
-          }
-        />
         <Board divide={false}>
+          <BoardHeader
+            label="What a Transaction Costs Right Now"
+            action={
+              usd !== null ? (
+                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  {symbol} at ${usd.toFixed(2)}
+                </span>
+              ) : undefined
+            }
+          />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             {ACTIONS.map((a) => {
               const costWei = effectiveWei !== null ? effectiveWei * a.gas : null;

@@ -19,7 +19,7 @@ import {
   formatTimeAgo,
   getChainFromBlockchainId,
 } from "@/components/explorer/L1ExplorerPage";
-import { Board, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import { ChainChip } from "@/components/stats/ChainChip";
 import { buildTxUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
@@ -306,19 +306,19 @@ export function IcmMessagesPage({
     <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-10 px-5 pb-16 pt-2 md:px-6">
       {/* the chain's ICM ledger, 30 complete days */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Interchain Messaging"
-          action={
-            <Link
-              href="/explorer/mainnet/icm"
-              className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-            >
-              Network-wide observatory
-              <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-            </Link>
-          }
-        />
         <Board divide={false}>
+          <BoardHeader
+            label="Interchain Messaging"
+            action={
+              <Link
+                href="/explorer/mainnet/icm"
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                Network-wide observatory
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
+            }
+          />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <StripCell
               label="Messages · 30d"

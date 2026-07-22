@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
-import { Board, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import {
   ChartEmpty,
   RANGE_LABEL,
@@ -353,6 +353,7 @@ export function EvmStats({
         <div className="flex flex-col gap-10">
           {/* the chain right now — latest full day */}
           <Board divide={false}>
+            <BoardHeader label="Latest Day" />
             <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
               {strip.map((s) => (
                 <Stat key={s.label} label={s.label} sub={s.sub}>

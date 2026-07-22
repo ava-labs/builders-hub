@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import {
   ChartEmpty,
   RANGE_LABEL,
@@ -596,19 +596,19 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
     <div className="flex flex-col gap-10">
       {/* the capital securing the network, right now */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Primary Network Staking"
-          action={
-            <Link
-              href={validatorsHref}
-              className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-            >
-              The validator set
-              <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-            </Link>
-          }
-        />
         <Board divide={false}>
+          <BoardHeader
+            label="Primary Network Staking"
+            action={
+              <Link
+                href={validatorsHref}
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                The validator set
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
+            }
+          />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <Stat
               label="Total Staked"
