@@ -740,7 +740,7 @@ export default function NetworkDiagram({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // Reset transform and apply DPR scale
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
-      ctx.fillStyle = '#020208';
+      ctx.fillStyle = '#030407';
       ctx.fillRect(0, 0, dimensions.width, dimensions.height);
 
       // Apply zoom and pan transform for everything (background moves with content)
@@ -761,41 +761,113 @@ export default function NetworkDiagram({
         dimensions.width / 2, dimensions.height / 2, 0,
         dimensions.width / 2, dimensions.height / 2, Math.max(bgWidth, bgHeight)
       );
-      bgGradient.addColorStop(0, '#12122a');
-      bgGradient.addColorStop(0.5, '#0a0a18');
-      bgGradient.addColorStop(1, '#020208');
+      bgGradient.addColorStop(0, '#0d1017');
+      bgGradient.addColorStop(0.5, '#070910');
+      bgGradient.addColorStop(1, '#030407');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
-      // Nebulas (expanded to cover pan area)
-      const nebula1 = ctx.createRadialGradient(
-        dimensions.width * 0.2, dimensions.height * 0.3, 0,
-        dimensions.width * 0.2, dimensions.height * 0.3, dimensions.width * 0.8
+      // === DRAFTING LATTICE (world-space) — the page's triangular sheet
+      // passing through the board: identical TRI_H/TRI_S geometry to
+      // SheetBackdrop (horizontals + two ±60° diagonal families), so the
+      // map reads as printed on the same paper, not on rival graph paper ===
+      const TRI_H = 48;
+      const TRI_S = TRI_H / Math.sin(Math.PI / 3); // ≈ 55.426
+      const gridRight = offsetX + bgWidth;
+      const gridBottom = offsetY + bgHeight;
+      const spanX = (gridBottom - offsetY) / ((2 * TRI_H) / TRI_S); // diagonal run over the box height
+      ctx.lineWidth = 1 / zoom; // hairline at any zoom
+      ctx.beginPath();
+      for (let y = Math.floor(offsetY / TRI_H) * TRI_H; y <= gridBottom; y += TRI_H) {
+        ctx.moveTo(offsetX, y);
+        ctx.lineTo(gridRight, y);
+      }
+      for (let x = Math.floor((offsetX - spanX) / TRI_S) * TRI_S; x <= gridRight; x += TRI_S) {
+        ctx.moveTo(x, offsetY);
+        ctx.lineTo(x + spanX, gridBottom);
+      }
+      for (let x = Math.floor(offsetX / TRI_S) * TRI_S; x <= gridRight + spanX; x += TRI_S) {
+        ctx.moveTo(x, offsetY);
+        ctx.lineTo(x - spanX, gridBottom);
+      }
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.045)';
+      ctx.stroke();
+
+      // registration crosses on the lattice's own vertices, sparsely
+      const CROSS = 4;
+      ctx.beginPath();
+      for (let row = Math.floor(offsetY / (TRI_H * 4)) * 4; row * TRI_H <= gridBottom; row += 4) {
+        const y = row * TRI_H;
+        const off = row % 2 === 0 ? 0 : TRI_S / 2;
+        for (
+          let x = Math.floor((offsetX - off) / (TRI_S * 4)) * (TRI_S * 4) + off;
+          x <= gridRight;
+          x += TRI_S * 4
+        ) {
+          ctx.moveTo(x - CROSS, y);
+          ctx.lineTo(x + CROSS, y);
+          ctx.moveTo(x, y - CROSS);
+          ctx.lineTo(x, y + CROSS);
+        }
+      }
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+      ctx.stroke();
+
+      // sparse cell blips — the sheet's constellation quoted inside the
+      // board: lattice triangles blooming and fading on slow offset beats,
+      // in the same brand fills SheetBackdrop uses
+      const BLIP_CELLS: [number, number, boolean, string, number][] = [
+        [3, 2, true, '230,33,47', 0],
+        [14, 5, false, '0,97,226', 1.3],
+        [7, 8, true, '162,175,178', 2.7],
+        [20, 3, false, '162,175,178', 4.1],
+        [11, 10, true, '230,33,47', 5.6],
+        [24, 7, false, '0,97,226', 7.2],
+      ];
+      for (const [bn, brow, bup, rgb, ph] of BLIP_CELLS) {
+        const pulse = Math.pow(Math.max(0, Math.sin(time * 0.6 + ph)), 4);
+        if (pulse < 0.02) continue;
+        const off = brow % 2 === 0 ? 0 : TRI_S / 2;
+        const offNext = (brow + 1) % 2 === 0 ? 0 : TRI_S / 2;
+        ctx.beginPath();
+        if (bup) {
+          const ax = off + bn * TRI_S;
+          const ay = brow * TRI_H;
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(ax - TRI_S / 2, ay + TRI_H);
+          ctx.lineTo(ax + TRI_S / 2, ay + TRI_H);
+        } else {
+          const ax = offNext + bn * TRI_S;
+          const ay = (brow + 1) * TRI_H;
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(ax - TRI_S / 2, ay - TRI_H);
+          ctx.lineTo(ax + TRI_S / 2, ay - TRI_H);
+        }
+        ctx.closePath();
+        ctx.fillStyle = `rgba(${rgb}, ${(0.16 * pulse).toFixed(3)})`;
+        ctx.fill();
+      }
+
+      // Two glows in the brand's own temperature range: frost (elemental
+      // cool) and one restrained ember of Avalanche red — no rainbow nebulas
+      const frost = ctx.createRadialGradient(
+        dimensions.width * 0.78, dimensions.height * 0.22, 0,
+        dimensions.width * 0.78, dimensions.height * 0.22, dimensions.width * 0.7
       );
-      nebula1.addColorStop(0, 'rgba(139, 92, 246, 0.25)');
-      nebula1.addColorStop(0.4, 'rgba(139, 92, 246, 0.1)');
-      nebula1.addColorStop(1, 'transparent');
-      ctx.fillStyle = nebula1;
+      frost.addColorStop(0, 'rgba(96, 165, 250, 0.10)');
+      frost.addColorStop(0.5, 'rgba(96, 165, 250, 0.04)');
+      frost.addColorStop(1, 'transparent');
+      ctx.fillStyle = frost;
       ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
-      const nebula2 = ctx.createRadialGradient(
-        dimensions.width * 0.8, dimensions.height * 0.6, 0,
-        dimensions.width * 0.8, dimensions.height * 0.6, dimensions.width * 0.7
+      const ember = ctx.createRadialGradient(
+        dimensions.width * 0.18, dimensions.height * 0.85, 0,
+        dimensions.width * 0.18, dimensions.height * 0.85, dimensions.width * 0.6
       );
-      nebula2.addColorStop(0, 'rgba(6, 182, 212, 0.22)');
-      nebula2.addColorStop(0.4, 'rgba(6, 182, 212, 0.08)');
-      nebula2.addColorStop(1, 'transparent');
-      ctx.fillStyle = nebula2;
-      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
-
-      const nebula3 = ctx.createRadialGradient(
-        dimensions.width * 0.5, dimensions.height * 0.9, 0,
-        dimensions.width * 0.5, dimensions.height * 0.9, dimensions.width * 0.6
-      );
-      nebula3.addColorStop(0, 'rgba(236, 72, 153, 0.18)');
-      nebula3.addColorStop(0.4, 'rgba(236, 72, 153, 0.06)');
-      nebula3.addColorStop(1, 'transparent');
-      ctx.fillStyle = nebula3;
+      ember.addColorStop(0, 'rgba(230, 33, 47, 0.09)');
+      ember.addColorStop(0.5, 'rgba(230, 33, 47, 0.03)');
+      ember.addColorStop(1, 'transparent');
+      ctx.fillStyle = ember;
       ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
 
       // Stars (now move with pan)
@@ -1016,11 +1088,22 @@ export default function NetworkDiagram({
       // Restore transform
       ctx.restore();
 
+      // Vignette (screen-space) — seats the sheet in its board and pulls
+      // the eye toward the constellation
+      const vignette = ctx.createRadialGradient(
+        dimensions.width / 2, dimensions.height / 2, Math.min(dimensions.width, dimensions.height) * 0.45,
+        dimensions.width / 2, dimensions.height / 2, Math.max(dimensions.width, dimensions.height) * 0.75
+      );
+      vignette.addColorStop(0, 'rgba(3, 4, 7, 0)');
+      vignette.addColorStop(1, 'rgba(3, 4, 7, 0.55)');
+      ctx.fillStyle = vignette;
+      ctx.fillRect(0, 0, dimensions.width, dimensions.height);
+
       // Watermark (drawn after restore so it stays fixed) - use rounded coordinates
-      ctx.font = 'bold 11px Inter, system-ui, sans-serif';
+      ctx.font = 'bold 10px ui-monospace, SFMono-Regular, Menlo, monospace';
       ctx.textAlign = 'center';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fillText('AVALANCHE NETWORK', Math.round(dimensions.width / 2), Math.round(dimensions.height - 20));
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+      ctx.fillText('A V A L A N C H E   N E T W O R K', Math.round(dimensions.width / 2), Math.round(dimensions.height - 20));
 
       // Zoom indicator - use rounded coordinates
       if (zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) {
