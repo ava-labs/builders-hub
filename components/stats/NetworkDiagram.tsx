@@ -151,7 +151,6 @@ export default function NetworkDiagram({
   const nodesRef = useRef<ChainNode[]>([]);
   const linksRef = useRef<ChainLink[]>([]);
   const particlesRef = useRef<MessageParticle[]>([]);
-  const starsRef = useRef<{ x: number; y: number; size: number; brightness: number }[]>([]);
   const hoveredChainRef = useRef<string | null>(null);
   const logoImagesRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const { resolvedTheme } = useTheme();
@@ -622,49 +621,6 @@ export default function NetworkDiagram({
     };
   }, []);
 
-  // Initialize stars - expanded area with higher density at center
-  useEffect(() => {
-    const stars: { x: number; y: number; size: number; brightness: number }[] = [];
-    const expandFactor = 3;
-    const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-    const maxRadius = Math.max(dimensions.width, dimensions.height) * expandFactor / 2;
-    
-    // Gaussian-like distribution for center density
-    const gaussianRandom = () => {
-      // Box-Muller transform for normal distribution
-      const u1 = Math.random();
-      const u2 = Math.random();
-      return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-    };
-    
-    for (let i = 0; i < 800; i++) {
-      let x, y;
-      
-      if (i < 500) {
-        // 60% of stars use gaussian distribution (concentrated at center)
-        const spreadX = dimensions.width * 0.8;
-        const spreadY = dimensions.height * 0.8;
-        x = centerX + gaussianRandom() * spreadX;
-        y = centerY + gaussianRandom() * spreadY;
-      } else {
-        // 40% of stars spread uniformly across the full area
-        const angle = Math.random() * Math.PI * 2;
-        const radius = Math.random() * maxRadius;
-        x = centerX + Math.cos(angle) * radius;
-        y = centerY + Math.sin(angle) * radius;
-      }
-      
-      stars.push({
-        x,
-        y,
-        size: Math.random() * 2 + 0.3,
-        brightness: Math.random() * 0.6 + 0.2,
-      });
-    }
-    starsRef.current = stars;
-  }, [dimensions.width, dimensions.height]);
-
   // Initialize nodes and links
   useEffect(() => {
     nodesRef.current = initializeLayout(dimensions.width, dimensions.height, data);
@@ -848,52 +804,15 @@ export default function NetworkDiagram({
         ctx.fill();
       }
 
-      // Two glows in the brand's own temperature range: frost (elemental
-      // cool) and one restrained ember of Avalanche red — no rainbow nebulas
-      const frost = ctx.createRadialGradient(
-        dimensions.width * 0.78, dimensions.height * 0.22, 0,
-        dimensions.width * 0.78, dimensions.height * 0.22, dimensions.width * 0.7
-      );
-      frost.addColorStop(0, 'rgba(96, 165, 250, 0.10)');
-      frost.addColorStop(0.5, 'rgba(96, 165, 250, 0.04)');
-      frost.addColorStop(1, 'transparent');
-      ctx.fillStyle = frost;
-      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
-
-      const ember = ctx.createRadialGradient(
-        dimensions.width * 0.18, dimensions.height * 0.85, 0,
-        dimensions.width * 0.18, dimensions.height * 0.85, dimensions.width * 0.6
-      );
-      ember.addColorStop(0, 'rgba(230, 33, 47, 0.09)');
-      ember.addColorStop(0.5, 'rgba(230, 33, 47, 0.03)');
-      ember.addColorStop(1, 'transparent');
-      ctx.fillStyle = ember;
-      ctx.fillRect(offsetX, offsetY, bgWidth, bgHeight);
-
-      // Stars (now move with pan)
-      starsRef.current.forEach((star) => {
-        const twinkle = star.brightness + 0.2 * Math.sin(time * 1.5 + star.x * 0.01);
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, Math.max(0.3, star.size), 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, twinkle)})`;
-        ctx.fill();
-      });
-
-      // === ICM LINKS (straight lines) ===
+      // === ICM LINKS — hairline steel routes on the sheet, breathing
+      // faintly; the traveling blips carry the color, not the wire ===
       linksRef.current.forEach((link, i) => {
-        const pulse = 0.5 + 0.15 * Math.sin(time * 1.5 + i * 0.3);
-        
+        const breath = 0.10 + 0.05 * Math.sin(time * 1.2 + i * 0.4);
         ctx.beginPath();
         ctx.moveTo(link.fromX, link.fromY);
         ctx.lineTo(link.toX, link.toY);
-        
-        const linkGradient = ctx.createLinearGradient(link.fromX, link.fromY, link.toX, link.toY);
-        linkGradient.addColorStop(0, colorToRgba(link.fromColor, 0.15 * pulse));
-        linkGradient.addColorStop(0.5, `rgba(150, 220, 255, ${0.12 * pulse})`);
-        linkGradient.addColorStop(1, colorToRgba(link.toColor, 0.15 * pulse));
-        
-        ctx.strokeStyle = linkGradient;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(162, 175, 178, ${breath.toFixed(3)})`;
+        ctx.lineWidth = 1 / zoom;
         ctx.stroke();
       });
 
@@ -923,23 +842,13 @@ export default function NetworkDiagram({
         const g = Math.round(g1 + (g2 - g1) * colorProgress);
         const b = Math.round(b1 + (b2 - b1) * colorProgress);
         
-        // Outer glow
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.15)`;
-        ctx.fill();
-        
-        // Particle body
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
-        ctx.fill();
-        
-        // Bright center
-        ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 1, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.fill();
+        // a square data blip — the digital-blocks grammar in transit;
+        // it fades in off the source and out into the destination
+        const edgeFade = Math.min(particle.progress, 1 - particle.progress) * 6;
+        const alpha = 0.9 * Math.min(1, edgeFade);
+        const half = 1.75;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+        ctx.fillRect(pos.x - half, pos.y - half, half * 2, half * 2);
       });
 
       // === CHAIN CIRCLES ===
@@ -954,70 +863,71 @@ export default function NetworkDiagram({
         const isHovered = currentHoveredId === node.id;
         const scale = isSelected ? 1.12 : (isHovered ? 1.08 : 1);
         
-        // TPS-based pulse wave effect (expanding rings)
+        // Activity, drawn as an instrument rather than a sonar glow:
+        // a dashed dial that spins with throughput, plus one crisp
+        // hairline ring sweeping outward on a slow beat.
         const tpsRatio = Math.sqrt((node.tps || 0) / maxTps); // sqrt for non-linear mapping
-        
-        // Draw pulse waves for ANY chain with TPS > 0 (normalized relative to others)
+        const r0 = node.radius * scale;
+
         if ((node.tps || 0) > 0) {
-          const pulseSpeed = 0.6 + tpsRatio * 2.0; // 0.6 for lowest, up to 2.6 for highest
-          // Dynamic wave count: min 3, max 10, scaled by TPS ratio
-          const minWaves = 3;
-          const maxWaves = 10;
-          const minDistance = 20;
-          const maxDistance = 35;
-          const fadeCurve = 1.5;
-          const numWaves = Math.round(minWaves + tpsRatio * (maxWaves - minWaves));
-          
-          for (let w = 0; w < numWaves; w++) {
-            // Each wave is offset in phase (evenly distributed)
-            const wavePhase = (time * pulseSpeed + w * (Math.PI * 2 / numWaves)) % (Math.PI * 2);
-            const waveProgress = wavePhase / (Math.PI * 2); // 0 to 1
-            
-            // Wave expands from chain edge outward
-            const waveRadius = node.radius * scale + waveProgress * (maxDistance + tpsRatio * (maxDistance - minDistance));
-            // Wave fades out as it expands
-            const waveAlpha = Math.pow(1 - waveProgress, fadeCurve) * (0.35 + tpsRatio * 0.25);
-            
-            if (waveAlpha > 0.02) {
-              ctx.beginPath();
-              ctx.arc(node.x, node.y, waveRadius, 0, Math.PI * 2);
-              ctx.strokeStyle = colorToRgba(node.color, waveAlpha);
-              ctx.lineWidth = 1.5 + (1 - waveProgress) * 1.5; // Thicker at start, thinner as it expands
-              ctx.stroke();
-            }
+          // the dial: rotation speed IS the reading — busy chains spin
+          const dialR = r0 + 6;
+          const circumference = Math.PI * 2 * dialR;
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, dialR, 0, Math.PI * 2);
+          ctx.setLineDash([4, 7]);
+          ctx.lineDashOffset = -time * (6 + tpsRatio * 40) % circumference;
+          ctx.strokeStyle = colorToRgba(node.color, 0.30 + tpsRatio * 0.20);
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.lineDashOffset = 0;
+
+          // one sweep, hairline, linear fade — cadence carries the rest
+          const period = 5.5 - tpsRatio * 3.5; // busy chains beat faster
+          const t = (time % period) / period;
+          const sweepAlpha = (1 - t) * 0.22;
+          if (sweepAlpha > 0.02) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, r0 + 4 + t * 26, 0, Math.PI * 2);
+            ctx.strokeStyle = colorToRgba(node.color, sweepAlpha);
+            ctx.lineWidth = 1;
+            ctx.stroke();
           }
         }
 
-        // Outer glow for hovered/selected
+        // hover / selection — registration marks, not glow: a crisp ring,
+        // and for the selected chain four compass ticks in brand red
         if (isHovered || isSelected) {
-          const glowRadius = node.radius * scale + (isSelected ? 30 : 25);
-          const glowGradient = ctx.createRadialGradient(
-            node.x, node.y, node.radius * scale,
-            node.x, node.y, glowRadius
-          );
-          glowGradient.addColorStop(0, colorToRgba(node.color, isSelected ? 0.8 : 0.6));
-          glowGradient.addColorStop(1, 'transparent');
+          const markR = r0 + (isSelected ? 7 : 5);
           ctx.beginPath();
-          ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
-          ctx.fillStyle = glowGradient;
-          ctx.fill();
+          ctx.arc(node.x, node.y, markR, 0, Math.PI * 2);
+          ctx.strokeStyle = isSelected ? 'rgba(230, 33, 47, 0.95)' : 'rgba(255, 255, 255, 0.55)';
+          ctx.lineWidth = isSelected ? 1.5 : 1;
+          ctx.stroke();
+          if (isSelected) {
+            ctx.beginPath();
+            for (let q = 0; q < 4; q++) {
+              const a = (q * Math.PI) / 2;
+              const cx = Math.cos(a);
+              const cy = Math.sin(a);
+              ctx.moveTo(node.x + cx * (markR + 3), node.y + cy * (markR + 3));
+              ctx.lineTo(node.x + cx * (markR + 8), node.y + cy * (markR + 8));
+            }
+            ctx.strokeStyle = 'rgba(230, 33, 47, 0.95)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
         }
 
-        // Simple filled circle - NO material/glass effect, fixed size
+        // the node itself: a flat plate with a hairline border — the color
+        // identifies, the border defines, nothing glows
         ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius * scale, 0, Math.PI * 2);
-        ctx.fillStyle = colorToRgba(node.color, isSelected ? 0.45 : (isHovered ? 0.35 : 0.25));
+        ctx.arc(node.x, node.y, r0, 0, Math.PI * 2);
+        ctx.fillStyle = colorToRgba(node.color, isSelected ? 0.30 : (isHovered ? 0.24 : 0.16));
         ctx.fill();
-
-        // Border
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius * scale, 0, Math.PI * 2);
-        ctx.strokeStyle = isSelected
-          ? 'rgba(255, 255, 255, 1)'
-          : (isHovered 
-            ? 'rgba(255, 255, 255, 0.9)' 
-            : colorToRgba(node.color, 0.7));
-        ctx.lineWidth = isSelected ? 4 : (isHovered ? 3 : 2);
+        ctx.strokeStyle = colorToRgba(node.color, isSelected || isHovered ? 0.95 : 0.75);
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // Validators (solid white dots) - showing actual count
@@ -1042,8 +952,9 @@ export default function NetworkDiagram({
         const logoImg = logoImagesRef.current.get(node.id);
         const hasLogo = logoImg && logoImg.complete && logoImg.naturalWidth > 0;
 
-        ctx.font = `${isHovered ? 'bold ' : ''}${labelFontSize}px Inter, system-ui, sans-serif`;
-        const textWidth = ctx.measureText(node.name).width;
+        const labelText = node.name.toUpperCase();
+        ctx.font = `${isHovered ? '700 ' : '500 '}${labelFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        const textWidth = ctx.measureText(labelText).width;
         const totalWidth = hasLogo ? logoSize + 4 + textWidth : textWidth;
         // Round starting X position to integer
         const startX = Math.round(node.x - totalWidth / 2);
@@ -1076,13 +987,13 @@ export default function NetworkDiagram({
         ctx.textAlign = hasLogo ? 'left' : 'center';
         ctx.textBaseline = 'middle';
 
-        // Text shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-        ctx.fillText(node.name, textX + 1, labelY + 1);
+        // Text shadow — just enough to hold over the lattice
+        ctx.fillStyle = 'rgba(3, 4, 7, 0.75)';
+        ctx.fillText(labelText, textX + 1, labelY + 1);
 
         // Text
-        ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(255, 255, 255, 0.9)';
-        ctx.fillText(node.name, textX, labelY);
+        ctx.fillStyle = isHovered ? '#ffffff' : 'rgba(235, 240, 250, 0.85)';
+        ctx.fillText(labelText, textX, labelY);
       });
 
       // Restore transform
@@ -1107,8 +1018,8 @@ export default function NetworkDiagram({
 
       // Zoom indicator - use rounded coordinates
       if (zoom !== 1 || panOffset.x !== 0 || panOffset.y !== 0) {
-        ctx.font = '10px Inter, system-ui, sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace';
+        ctx.fillStyle = 'rgba(162, 175, 178, 0.6)';
         ctx.textAlign = 'right';
         ctx.fillText(`${Math.round(zoom * 100)}%`, Math.round(dimensions.width - 15), 25);
       }
