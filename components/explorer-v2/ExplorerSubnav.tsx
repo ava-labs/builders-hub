@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
+import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -66,32 +67,10 @@ function ChainSwitcher({
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
-  const [liveValidators, setLiveValidators] = useState<Map<string, number> | null>(null);
-  const [feedFailed, setFeedFailed] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // validate lazily, once, on first open
-  useEffect(() => {
-    if (!open || liveValidators || feedFailed) return;
-    let cancelled = false;
-    fetch("/api/validator-stats?network=mainnet")
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((subnets: { id: string; byClientVersion?: Record<string, { nodes: number }> }[]) => {
-        if (cancelled) return;
-        const live = new Map<string, number>();
-        for (const s of subnets) {
-          const nodes = Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0);
-          if (nodes > 0) live.set(s.id, nodes);
-        }
-        setLiveValidators(live);
-      })
-      .catch(() => {
-        if (!cancelled) setFeedFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, liveValidators, feedFailed]);
+  // validate lazily, on first open (the shared feed dedupes the request)
+  const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts("mainnet", open);
 
   // close on outside click or Escape
   useEffect(() => {
@@ -355,6 +334,9 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
         { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
+        // the gas market: live half is pure RPC, so any chain with an RPC
+        // earns the tab; history fills in where ClickHouse ingests the chain
+        { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
       );
     }
     if (catalogChain.blockchainId) {
@@ -372,14 +354,10 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
     if (catalogChain.isTestnet !== true) {
       tabs.push({
         label: "Validators",
-        // the C-Chain's validators ARE the Primary Network's, but the tab
-        // stays in this chain's chrome — no context switch to the P-Chain
-        href:
-          chainSlug === "c-chain" ? `${base}/validators` : `/stats/validators/${chainSlug}`,
-        isActive: (p) =>
-          chainSlug === "c-chain"
-            ? p.startsWith(`${base}/validators`)
-            : p.startsWith(`/stats/validators/${chainSlug}`),
+        // every chain's set lives in its own chrome — the C-Chain mounts
+        // the Primary Network observatory, L1s their own weight table
+        href: `${base}/validators`,
+        isActive: (p) => p.startsWith(`${base}/validators`),
       });
     }
     // ICM activity needs an RPC to derive cross-chain txs from

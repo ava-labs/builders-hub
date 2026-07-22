@@ -12,6 +12,11 @@ import { buildTxUrl } from "@/utils/eip3091";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { classifyLocally, hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
 import { Board, Rise, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+import {
+  PRIMARY_NETWORK_ID,
+  fetchValidatorStats,
+  useLiveValidatorCounts,
+} from "@/components/explorer-v2/validator-stats";
 import { BrandButton } from "@/components/landing-v2/BrandButton";
 import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
@@ -114,7 +119,6 @@ function UniversalSearch() {
   const [error, setError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
   const [sel, setSel] = useState(-1);
-  const [liveValidators, setLiveValidators] = useState<Map<string, number> | null>(null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -129,26 +133,8 @@ function UniversalSearch() {
   }, []);
 
   // P-Chain liveness for ranking + the validator figure on each row,
-  // fetched once when name search first becomes possible
-  useEffect(() => {
-    if (q.trim().length < 2 || liveValidators !== null) return;
-    let cancelled = false;
-    fetch("/api/validator-stats?network=mainnet")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((subnets: { id: string; byClientVersion?: Record<string, { nodes: number }> }[] | null) => {
-        if (cancelled || !subnets) return;
-        const live = new Map<string, number>();
-        for (const s of subnets) {
-          const nodes = Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0);
-          if (nodes > 0) live.set(s.id, nodes);
-        }
-        setLiveValidators(live);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [q, liveValidators]);
+  // fetched (via the shared feed) when name search first becomes possible
+  const { live: liveValidators } = useLiveValidatorCounts("mainnet", q.trim().length >= 2);
 
   const hits = useMemo(
     () => (looksLikeIdentifier(q.trim()) ? [] : matchChains(q, liveValidators)),
@@ -421,29 +407,7 @@ function ContractChainBoard() {
    now, and the doors rank by validator count. If the feed fails, fall back
    to the unvalidated catalog rather than an empty grid. */
 function ChainDoors() {
-  const [liveValidators, setLiveValidators] = useState<Map<string, number> | null>(null);
-  const [feedFailed, setFeedFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/validator-stats?network=mainnet")
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((subnets: { id: string; byClientVersion?: Record<string, { nodes: number }> }[]) => {
-        if (cancelled) return;
-        const live = new Map<string, number>();
-        for (const s of subnets) {
-          const nodes = Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0);
-          if (nodes > 0) live.set(s.id, nodes);
-        }
-        setLiveValidators(live);
-      })
-      .catch(() => {
-        if (!cancelled) setFeedFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts();
 
   const chains = useMemo(() => {
     // the C-Chain has its own featured board above; the grid is for L1s
@@ -513,8 +477,6 @@ function ChainDoors() {
    60s repoll), so the portal can never disagree with the front door.
    The stake headline follows the homepage recipe exactly: Primary Network
    stake from validator-stats, spot price for USD, supply for the share. */
-
-const PRIMARY_NETWORK_ID = "11111111111111111111111111111111LpoYY";
 
 // money is set to the cent, always — a ledger doesn't round its own entries
 const fmtUsd = (n: number) =>
@@ -588,7 +550,7 @@ function NetworkBoard() {
     let cancelled = false;
     (async () => {
       const [vres, pres, sres] = await Promise.allSettled([
-        fetch("/api/validator-stats?network=mainnet").then((r) => (r.ok ? r.json() : null)),
+        fetchValidatorStats(),
         fetch("https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd").then((r) =>
           r.ok ? r.json() : null,
         ),

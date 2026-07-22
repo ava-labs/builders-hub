@@ -23,6 +23,7 @@ import {
   VersionBreakdownInline,
 } from "@/components/stats/VersionBreakdown";
 import { type SubnetStats } from "@/types/validator-stats";
+import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import type { L1Chain } from "@/types/stats";
 import l1ChainsData from "@/constants/l1-chains.json";
 
@@ -31,9 +32,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
    each set has caught up to a target client version. Lifted wholesale from
    the old /stats/validators page; the gradient hero is gone, its headline
    metrics survive as the stat strip and the table wears the v2 grammar.
-   Per-chain detail still lives at /stats/validators/{c-chain,slug}. */
-
-const PRIMARY_NETWORK_ID = "11111111111111111111111111111111LpoYY";
+   Rows link into each chain's own Validators tab. */
 
 type SortColumn = "name" | "nodeCount" | "nodes" | "stake";
 type SortDirection = "asc" | "desc";
@@ -45,11 +44,7 @@ const TD = "px-5 py-3.5 text-[13px] md:px-6";
 export function NetworkValidators() {
   const { resolvedTheme } = useTheme();
   const [isMounted, setIsMounted] = useState(false);
-  const [data, setData] = useState<SubnetStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [minVersion, setMinVersion] = useState<string>("");
-  const [availableVersions, setAvailableVersions] = useState<string[]>([]);
   const [sortColumn, setSortColumn] = useState<SortColumn>("nodeCount");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,47 +75,34 @@ export function NetworkValidators() {
     if (subnet.id === PRIMARY_NETWORK_ID) return "/explorer/mainnet/c-chain/validators";
     if (subnet.isL1) {
       const slug = getSlugForSubnetId(subnet.id);
-      if (slug) return `/stats/validators/${slug}`;
+      if (slug) return `/explorer/mainnet/${slug}/validators`;
     }
     return null;
   };
 
   // network scope is mainnet-only (the aggregate source doesn't cover Fuji)
+  const { subnets, error: feedError, loading } = useValidatorStats();
+  const data = subnets ?? [];
+  const error = feedError ? "Failed to load validator stats" : null;
+
+  const availableVersions = useMemo(() => {
+    const versions = new Set<string>();
+    data.forEach((subnet) => {
+      Object.keys(subnet.byClientVersion).forEach((v) => versions.add(v));
+    });
+    return Array.from(versions)
+      .filter((v) => v !== "Unknown")
+      .sort()
+      .reverse();
+  }, [data]);
+
+  // default the filter to the newest version once the feed lands
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(`/api/validator-stats?network=mainnet`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch validator stats: ${response.status}`);
-        }
-        const stats: SubnetStats[] = await response.json();
-        setData(stats);
-
-        const versions = new Set<string>();
-        stats.forEach((subnet) => {
-          Object.keys(subnet.byClientVersion).forEach((v) => versions.add(v));
-        });
-        const sortedVersions = Array.from(versions)
-          .filter((v) => v !== "Unknown")
-          .sort()
-          .reverse();
-        setAvailableVersions(sortedVersions);
-
-        if (!minVersion && sortedVersions.length > 0) {
-          setMinVersion(sortedVersions[0]);
-        }
-      } catch (err: any) {
-        console.error("Error fetching validator stats:", err);
-        setError(err?.message || "Failed to load validator stats");
-      }
-      setLoading(false);
-    };
-
-    fetchData();
+    if (!minVersion && availableVersions.length > 0) {
+      setMinVersion(availableVersions[0]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [availableVersions]);
 
   const calculateStats = (subnet: SubnetStats) => {
     const totalStake = BigInt(subnet.totalStakeString);
@@ -577,7 +559,7 @@ export function NetworkValidators() {
     <NetworkShell
       eyebrow="Avalanche Ecosystem"
       title="Validators"
-      intro="Every validator set on the network — stake, nodes, and client versions, from the Primary Network down to each L1."
+      intro="Every validator set on the network: stake, nodes, and client versions, from the Primary Network down to each L1."
     >
       {content}
     </NetworkShell>

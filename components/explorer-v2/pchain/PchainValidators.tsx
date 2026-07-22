@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
@@ -15,6 +15,7 @@ import {
   type VersionBreakdownData,
 } from "@/components/stats/VersionBreakdown";
 import { usePchainData } from "./hooks";
+import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { NotFound } from "./PchainTx";
 import type { ValidatorsResponse, ValidatorSummary } from "@/lib/pchain-explorer";
 import { cn } from "@/lib/utils";
@@ -22,35 +23,18 @@ import { cn } from "@/lib/utils";
 /* Numeric columns the table can order by — all present on every row. */
 type SortKey = "totalStake" | "delegatorCount" | "delegationFeePercent" | "uptimePercent";
 
-const PRIMARY_NETWORK_ID = "11111111111111111111111111111111LpoYY";
-
 /* Network health — the stats surface folded into the explorer: client
    version breakdown for the Primary Network (per network) and the
    hand-off to the full staking dashboard (which owns the world map). */
 function NetworkHealth({ network }: { network: string }) {
-  const [versions, setVersions] = useState<VersionBreakdownData | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/validator-stats?network=${network}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((subnets: { id: string; byClientVersion?: VersionBreakdownData["byClientVersion"]; totalStakeString?: string }[]) => {
-        if (cancelled) return;
-        const primary = subnets.find((s) => s.id === PRIMARY_NETWORK_ID);
-        if (primary?.byClientVersion) {
-          setVersions({
-            byClientVersion: primary.byClientVersion,
-            totalStakeString: primary.totalStakeString,
-          });
-        }
-      })
-      .catch(() => {
-        /* the health strip is additive; the validator table stands alone */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [network]);
+  // additive: if the shared feed fails, the validator table stands alone
+  const { subnets } = useValidatorStats(network);
+  const versions = useMemo<VersionBreakdownData | null>(() => {
+    const primary = subnets?.find((s) => s.id === PRIMARY_NETWORK_ID);
+    return primary?.byClientVersion
+      ? { byClientVersion: primary.byClientVersion, totalStakeString: primary.totalStakeString }
+      : null;
+  }, [subnets]);
 
   const latest = versions
     ? Object.keys(versions.byClientVersion).sort((a, b) => compareVersions(b, a))[0]

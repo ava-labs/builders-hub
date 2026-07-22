@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowRight, Check, Copy, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -65,35 +66,14 @@ function ChainLogo({ uri, name }: { uri?: string | null; name: string }) {
   );
 }
 
-/* The liveness gate, same rule as the chain switcher: a mainnet chain earns
-   a default row only if its subnet has stake-backed validators right now.
-   The feed failing open (show everything) beats an empty directory. */
-function useLiveValidators() {
-  const [live, setLive] = useState<Map<string, number> | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/validator-stats?network=mainnet", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((subnets: { id: string; byClientVersion?: Record<string, { nodes: number }> }[]) => {
-        const map = new Map<string, number>();
-        for (const s of subnets) {
-          const nodes = Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0);
-          if (nodes > 0) map.set(s.id, nodes);
-        }
-        setLive(map);
-      })
-      .catch(() => setFailed(true));
-    return () => controller.abort();
-  }, []);
-  return { live, failed };
-}
-
 export function NetworkChains() {
   const [q, setQ] = useState("");
   const [net, setNet] = useState<NetFilter>("mainnet");
   const [showInactive, setShowInactive] = useState(false);
-  const { live, failed } = useLiveValidators();
+  // the liveness gate, same rule (and same request) as the chain switcher:
+  // a mainnet chain earns a default row only if its subnet has stake-backed
+  // validators right now. The feed failing open beats an empty directory.
+  const { live, failed } = useLiveValidatorCounts();
 
   const chains = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -122,7 +102,7 @@ export function NetworkChains() {
     <NetworkShell
       eyebrow="Avalanche Ecosystem"
       title="Chains"
-      intro="Every chain running right now — explorers, public RPCs, live validator sets, and one-click wallet setup."
+      intro="Every chain running right now: explorers, public RPCs, live validator sets, and one-click wallet setup."
     >
       <section className="flex flex-col gap-4">
         <SectionHeader

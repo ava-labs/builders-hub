@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Bar, BarChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
@@ -19,6 +19,7 @@ import {
 import { formatAvax, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import type { Stats, TxSummary, BlockSummary } from "@/lib/pchain-explorer";
 
 /* The /api/pchain-activity contract: staking money-flow, not tx counts.
@@ -80,21 +81,11 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
 
   // total AVAX staked on the Primary Network — the strip is a staking
   // dashboard, and the ratio against supply is its headline
-  const [totalStake, setTotalStake] = useState<number | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/validator-stats?network=${network}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((subnets: { id: string; totalStakeString?: string }[] | null) => {
-        if (cancelled || !subnets) return;
-        const primary = subnets.find((sub) => sub.id === PRIMARY_SUBNET_ID);
-        if (primary?.totalStakeString) setTotalStake(Number(primary.totalStakeString));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [network]);
+  const { subnets } = useValidatorStats(network);
+  const totalStake = useMemo(() => {
+    const primary = subnets?.find((sub) => sub.id === PRIMARY_SUBNET_ID);
+    return primary?.totalStakeString ? Number(primary.totalStakeString) : null;
+  }, [subnets]);
 
   const supply = s?.currentSupply ? Number(s.currentSupply) : null;
   const stakingRatio = totalStake && supply ? (totalStake / supply) * 100 : null;
@@ -214,8 +205,8 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
           </div>
 
           {/* staking money-flow: the 30 days behind us in rewards paid out
-              (red — stake moving) beside the 30 days ahead in stake coming
-              unlocked (block gray — value at rest, waiting). Past | future
+              (red: stake moving) beside the 30 days ahead in stake coming
+              unlocked (block gray: value at rest, waiting). Past | future
               across one rule. */}
           {staking && (
             <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
