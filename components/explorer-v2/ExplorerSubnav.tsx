@@ -357,8 +357,8 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
     }
     tabs.push({
       label: "Stats",
-      href: `/stats/l1/${chainSlug}`,
-      isActive: (p) => p.startsWith(`/stats/l1/${chainSlug}`),
+      href: `${base}/stats`,
+      isActive: (p) => p.startsWith(`${base}/stats`),
     });
     if (catalogChain.isTestnet !== true) {
       // the C-Chain's validators ARE the Primary Network's, so it alone
@@ -406,7 +406,7 @@ const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
    page lands on the counterpart's stats, everything else lands on its
    explorer overview. */
 function counterpartTarget(slug: string, pathname: string): string {
-  if (pathname.startsWith("/stats/l1/")) return `/stats/l1/${slug}`;
+  if (pathname.endsWith("/stats")) return `/explorer/mainnet/${slug}/stats`;
   return `/explorer/mainnet/${slug}`;
 }
 

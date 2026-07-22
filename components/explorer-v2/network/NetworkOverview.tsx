@@ -180,7 +180,7 @@ const catalogByChainId = new Map(
 function chainHref(chainId: string): string | null {
   const c = catalogByChainId.get(String(chainId));
   if (!c) return null;
-  return c.rpcUrl ? `/explorer/mainnet/${c.slug}` : `/stats/l1/${c.slug}`;
+  return c.rpcUrl ? `/explorer/mainnet/${c.slug}` : `/explorer/mainnet/${c.slug}/stats`;
 }
 
 function RangeChips({ value, onChange }: { value: TimeRange; onChange: (r: TimeRange) => void }) {

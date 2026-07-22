@@ -97,6 +97,17 @@ const config = {
         destination: '/explorer/mainnet/:slug/address/:address',
         permanent: true,
       },
+      // ── Chain stats absorbed into the explorer's Stats tab ──
+      {
+        source: '/stats/l1/:slug/stats',
+        destination: '/explorer/mainnet/:slug/stats',
+        permanent: true,
+      },
+      {
+        source: '/stats/l1/:slug',
+        destination: '/explorer/mainnet/:slug/stats',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):

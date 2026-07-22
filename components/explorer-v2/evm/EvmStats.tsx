@@ -13,7 +13,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
 import {
   ChartEmpty,
@@ -230,23 +229,18 @@ function ChartSection({
 
 export function EvmStats({
   chainId,
-  chainName,
   chainSlug,
   tokenSymbol = "AVAX",
-  intro,
 }: {
+  /** EVM chain id, or "all" for the network-wide aggregate */
   chainId: string;
-  chainName: string;
-  /** omit for the network-wide aggregate */
   chainSlug?: string;
   tokenSymbol?: string;
-  intro?: string;
 }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [failed, setFailed] = useState(false);
   const [range, setRange] = useState<RangeDays>(90);
   const rangeLabel = RANGE_LABEL[range];
-  const isAggregate = chainId === "all";
 
   useEffect(() => {
     let cancelled = false;
@@ -317,31 +311,11 @@ export function EvmStats({
   ];
 
   return (
-    <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-16 pt-10 md:px-6">
-      <ExplorerSubnav
-        network="mainnet"
-        chainSlug={chainSlug}
-        chainName={chainName}
-        className="mb-8"
-      />
-
-      <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
-        <div className="flex flex-col gap-3">
-          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
-            {isAggregate ? "Avalanche Ecosystem" : chainName}
-          </p>
-          <h1 className="v2-display text-4xl tracking-tight text-zinc-900 md:text-5xl dark:text-zinc-50">
-            Stats
-          </h1>
-          <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            {intro ??
-              (isAggregate
-                ? "Aggregated activity across every indexed Avalanche chain: addresses, transactions, contracts, gas, and fees."
-                : `${chainName} by the numbers: who's using it, what it costs, and how hard it's working.`)}
-          </p>
-        </div>
+    <div className="flex flex-col gap-10">
+      {/* one clock for every chart on the sheet */}
+      <div className="-mb-4 flex justify-end">
         <RangeToggle value={range} onChange={setRange} />
-      </header>
+      </div>
 
       {failed ? (
         <div className="flex min-h-[40vh] items-center justify-center">

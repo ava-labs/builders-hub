@@ -254,7 +254,7 @@ export function NetworkChains() {
                     <td className={cn(TD, "text-right")}>
                       <span className="inline-flex items-center justify-end gap-3 whitespace-nowrap">
                         <Link
-                          href={`/stats/l1/${c.slug}`}
+                          href={`/explorer/mainnet/${c.slug}/stats`}
                           className="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 md:inline dark:text-zinc-500 dark:hover:text-zinc-100"
                         >
                           Stats

@@ -19,8 +19,8 @@ const statsPages: DocumentRecord[] = [
 // Generate per-L1 stats pages from chain registry
 const l1StatsPages: DocumentRecord[] = l1Chains.map((chain: any) => ({
   title: `${chain.chainName} Stats`,
-  url: `/stats/l1/${chain.slug}`,
-  _id: `/stats/l1/${chain.slug}`,
+  url: `/explorer/mainnet/${chain.slug}/stats`,
+  _id: `/explorer/mainnet/${chain.slug}/stats`,
   structured: { headings: [], contents: [] },
   description: `Real-time metrics for ${chain.chainName}${chain.category ? ` (${chain.category})` : ''}`,
   tag: 'stats',

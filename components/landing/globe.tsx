@@ -155,7 +155,7 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 				logo,
 				color: l1Chain?.color || getCategoryColor(category) || stringToColor(chain.chainName),
 				category,
-				link: slug ? `/stats/l1/${slug}` : undefined,
+				link: slug ? `/explorer/mainnet/${slug}/stats` : undefined,
 				isPrimary: false,
 				validatorCount: typeof chain.validatorCount === 'number' ? chain.validatorCount : undefined,
 				tps: chain.tps || 0,
