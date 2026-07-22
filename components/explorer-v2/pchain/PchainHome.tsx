@@ -213,15 +213,15 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
             </Board>
           </div>
 
-          {/* staking money-flow: the 14 days behind us in rewards paid out
-              (red — stake moving) beside the 14 days ahead in stake coming
+          {/* staking money-flow: the 30 days behind us in rewards paid out
+              (red — stake moving) beside the 30 days ahead in stake coming
               unlocked (block gray — value at rest, waiting). Past | future
               across one rule. */}
           {staking && (
             <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
               <section className="flex flex-col gap-4">
                 <SectionHeader
-                  label="Rewards Paid · last 14 days"
+                  label="Rewards Paid · last 30 days"
                   action={
                     <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                       {fmtAvaxShort(staking.rewards.reduce((s, d) => s + d.avax, 0))} AVAX
@@ -260,7 +260,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
 
               <section className="flex flex-col gap-4">
                 <SectionHeader
-                  label="Stake Expiring · next 14 days"
+                  label="Stake Expiring · next 30 days"
                   action={
                     <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                       {fmtAvaxShort(staking.unlocks.reduce((s, d) => s + d.avax, 0))} AVAX

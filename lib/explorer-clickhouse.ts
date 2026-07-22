@@ -25,6 +25,9 @@ const QUERY_TIMEOUT_MS = 30_000;
 const CUMULATIVE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const DAILY_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const DAILY_WINDOW_DAYS = 14;
+// The staking money-flow charts read better with a wider window: 30 bars
+// of rewards behind, 30 of unlocks ahead.
+const STAKING_WINDOW_DAYS = 30;
 
 type L1ChainEntry = {
   chainId: string;
@@ -188,14 +191,14 @@ function sqlDailyTxs(): string {
   `;
 }
 
-function buildLast14Dates(): string[] {
-  // YYYY-MM-DD entries for the last DAILY_WINDOW_DAYS days, oldest first,
-  // ending today (UTC). Used to pad chains that have zero-tx days so every
-  // chart always renders exactly 14 points.
+function buildPastDates(days: number = DAILY_WINDOW_DAYS): string[] {
+  // YYYY-MM-DD entries for the last `days` days, oldest first, ending
+  // today (UTC). Used to pad zero-activity days so every chart always
+  // renders exactly its window's point count.
   const out: string[] = [];
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
-  for (let i = DAILY_WINDOW_DAYS - 1; i >= 0; i--) {
+  for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setUTCDate(d.getUTCDate() - i);
     out.push(d.toISOString().slice(0, 10));
@@ -234,7 +237,7 @@ async function fetchDailyFromCh(): Promise<DailyCache> {
     byChain.set(chainKey, inner);
   }
 
-  const last14 = buildLast14Dates();
+  const last14 = buildPastDates();
   const result = new Map<string, TransactionHistoryPoint[]>();
 
   for (const evmId of trackedEvmChainIds) {
@@ -316,7 +319,7 @@ export async function getDailyTxsByChain(): Promise<
 // The P-Chain's real story is money, not tx counts: AVAX paid out to
 // stakers (RewardValidatorTx mints, read from the reward-UTXO archive) and
 // AVAX about to unlock (validator/delegator end_times from the snapshot
-// tables). Past 14 days on one side, next 14 days on the other.
+// tables). The past STAKING_WINDOW_DAYS on one side, the next on the other.
 
 const PCHAIN_NETWORK_IDS: Record<string, number> = {
   mainnet: 1,
@@ -360,7 +363,7 @@ function sqlPchainDailyRewards(networkId: number): string {
       toString(round(sum(${REWARD_AMOUNT_EXPR}) / 1e9, 2)) AS avax
     FROM raw_p_reward_utxos
     WHERE chain_id = ${networkId}
-      AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
+      AND block_time >= toDate(now() - INTERVAL ${STAKING_WINDOW_DAYS} DAY)
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -384,17 +387,17 @@ function sqlPchainUnlocks(networkId: number, table: string, amountCol: string): 
       AND snapshot_time = (SELECT max(snapshot_time) FROM ${table} WHERE chain_id = ${networkId})
       ${subnetFilter}
       AND end_time >= now()
-      AND end_time < now() + INTERVAL ${DAILY_WINDOW_DAYS} DAY
+      AND end_time < now() + INTERVAL ${STAKING_WINDOW_DAYS} DAY
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
   `;
 }
 
-function buildNext14Dates(): string[] {
+function buildFutureDates(days: number): string[] {
   const dates: string[] = [];
   const today = new Date();
-  for (let i = 0; i < DAILY_WINDOW_DAYS; i++) {
+  for (let i = 0; i < days; i++) {
     const d = new Date(today);
     d.setUTCDate(d.getUTCDate() + i);
     dates.push(d.toISOString().slice(0, 10));
@@ -409,9 +412,9 @@ const pchainStakingCache = new Map<
 
 /**
  * Staking money-flow series for one network: AVAX rewards paid per day
- * (last 14 days) and stake unlocking per day (next 14 days), each padded
- * to exactly 14 points. Returns null for unknown networks or when
- * ClickHouse is unreachable with no cached series to fall back on.
+ * (the past STAKING_WINDOW_DAYS) and stake unlocking per day (the next),
+ * each padded to exactly that many points. Returns null for unknown
+ * networks or when ClickHouse is unreachable with no cache to fall on.
  */
 export async function getPchainStakingSeries(
   network: string,
@@ -439,7 +442,7 @@ export async function getPchainStakingSeries(
     ]);
 
     const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
-    const rewards = buildLast14Dates().map((iso) => ({
+    const rewards = buildPastDates(STAKING_WINDOW_DAYS).map((iso) => ({
       date: formatDayLabel(iso),
       avax: Number(rewardsByDay.get(iso)?.avax) || 0,
       payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
@@ -452,7 +455,7 @@ export async function getPchainStakingSeries(
       day.stakers += Number(r.n) || 0;
       unlocksByDay.set(r.day, day);
     }
-    const unlocks = buildNext14Dates().map((iso) => ({
+    const unlocks = buildFutureDates(STAKING_WINDOW_DAYS).map((iso) => ({
       date: formatDayLabel(iso),
       avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
       stakers: unlocksByDay.get(iso)?.stakers ?? 0,
@@ -558,7 +561,7 @@ export async function getCchainDailyActivity(): Promise<CchainActivityPoint[] | 
     ]);
     const classifiedByDay = new Map(classified.map((r) => [r.day, r]));
     const totalsByDay = new Map(totals.map((r) => [r.day, Number(r.total) || 0]));
-    const data = buildLast14Dates().map((iso) => {
+    const data = buildPastDates().map((iso) => {
       const c = classifiedByDay.get(iso);
       const defi = Number(c?.defi) || 0;
       const nft = Number(c?.nft) || 0;
@@ -583,7 +586,7 @@ export async function getCchainDailyActivity(): Promise<CchainActivityPoint[] | 
 export const __internal = {
   sqlCumulativeTxs,
   sqlDailyTxs,
-  buildLast14Dates,
+  buildPastDates,
   formatDayLabel,
   trackedEvmChainIds,
 };

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPchainStakingSeries } from "@/lib/explorer-clickhouse";
 
 // Staking money-flow for the P-Chain overview: AVAX rewards paid per day
-// (last 14 days, parsed from the reward-UTXO archive) and stake unlocking
-// per day (next 14 days, from the validator/delegator snapshots). The
+// (last 30 days, parsed from the reward-UTXO archive) and stake unlocking
+// per day (next 30 days, from the validator/delegator snapshots). The
 // indexer API doesn't expose aggregates yet, so this reads the same
 // ClickHouse box directly — read-only user, cached 15 minutes.
 
