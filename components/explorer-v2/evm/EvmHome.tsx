@@ -1,15 +1,47 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { Board, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
 import { StatusPill } from "./EvmTx";
+import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { StatsResponse, TxListResponse, BlockListResponse } from "@/lib/evm-explorer";
+import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
+import { formatMarketCap } from "@/lib/utils/format-market-cap";
+
+/* Token market data — CoinGecko by way of the legacy explorer route's
+ * priceOnly mode (server-side cached). Chain data stays on the EVM explorer
+ * API; this is the one figure that isn't on-chain. */
+interface PriceData {
+  price: number;
+  priceInAvax?: number;
+  change24h: number;
+  marketCap: number;
+}
+
+function usePrice(chainId: string | number | undefined): PriceData | null {
+  const [price, setPrice] = useState<PriceData | null>(null);
+  useEffect(() => {
+    if (chainId == null) return;
+    let cancelled = false;
+    fetch(`/api/explorer/${chainId}?priceOnly=true`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { price?: PriceData } | null) => {
+        if (!cancelled && data?.price) setPrice(data.price);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId]);
+  return price;
+}
 
 function LiveDot() {
   return (
@@ -46,6 +78,16 @@ export function EvmHome({ network }: { network: string }) {
   const s = stats.data;
   const blockList = blocks.data?.blocks ?? [];
   const txList = txs.data?.transactions ?? [];
+  const price = usePrice(c.chainId);
+  const isCchain = String(c.chainId) === "43114";
+
+  // Cadence figures from the freshest slice of Ash's blocks feed: the list
+  // arrives tip-first, so span = newest − oldest timestamp.
+  const span =
+    blockList.length >= 2 ? blockList[0].timestamp - blockList[blockList.length - 1].timestamp : 0;
+  const recentTps =
+    span > 0 ? blockList.reduce((acc, b) => acc + b.txCount, 0) / span : null;
+  const avgBlockTime = span > 0 ? span / (blockList.length - 1) : null;
 
   const tapeBlocks: TapeBlock[] = blockList.map((b) => ({
     key: String(b.number),
@@ -91,12 +133,60 @@ export function EvmHome({ network }: { network: string }) {
               tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
             )}
 
-            <Board divide={false}>
-              <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
-                <StatCell label="TRANSACTIONS · 24H">
+            {/* the ledger — chain figures from the EVM explorer API, market
+                figures (price, cap) from CoinGecko when the token is listed.
+                Two 3-up rows when market data exists, one 4-up row when not. */}
+            <Board>
+              {price && (
+                <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
+                  <StatCell
+                    label="PRICE"
+                    sub={
+                      <>
+                        {price.priceInAvax ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX ` : ""}
+                        <span className={price.change24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
+                          {price.change24h >= 0 ? "+" : ""}
+                          {price.change24h.toFixed(2)}%
+                        </span>
+                      </>
+                    }
+                  >
+                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                      {formatPrice(price.price)}
+                    </span>
+                  </StatCell>
+                  <StatCell label="MARKET CAP">
+                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                      {price.marketCap ? formatMarketCap(price.marketCap) : "—"}
+                    </span>
+                  </StatCell>
+                  <StatCell
+                    label="AVG BLOCK TIME"
+                    sub={avgBlockTime != null ? `last ${blockList.length} blocks` : undefined}
+                  >
+                    {avgBlockTime != null ? (
+                      <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                        {avgBlockTime.toFixed(2)} s
+                      </span>
+                    ) : (
+                      <StatDash />
+                    )}
+                  </StatCell>
+                </div>
+              )}
+              <div
+                className={`grid grid-cols-1 divide-y divide-zinc-200 sm:divide-x sm:divide-y-0 dark:divide-zinc-800 ${
+                  price ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"
+                }`}
+              >
+                <StatCell
+                  label="TRANSACTIONS · 24H"
+                  live
+                  sub={recentTps != null ? `${recentTps.toFixed(1)} TPS · last ${blockList.length} blocks` : undefined}
+                >
                   {s ? <StatFigure value={s.txCount24h} /> : <StatDash />}
                 </StatCell>
-                <StatCell label="GAS PRICE">
+                <StatCell label="GAS PRICE" href={`${base}/gas`} sub="gas market →">
                   {s ? (
                     <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
                       {formatGwei(s.gasPriceWei)}
@@ -114,9 +204,28 @@ export function EvmHome({ network }: { network: string }) {
                     <StatDash />
                   )}
                 </StatCell>
+                {!price && (
+                  <StatCell
+                    label="AVG BLOCK TIME"
+                    sub={avgBlockTime != null ? `last ${blockList.length} blocks` : undefined}
+                  >
+                    {avgBlockTime != null ? (
+                      <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                        {avgBlockTime.toFixed(2)} s
+                      </span>
+                    ) : (
+                      <StatDash />
+                    )}
+                  </StatCell>
+                )}
               </div>
             </Board>
           </div>
+
+          {/* what the chain is FOR — the activity breakdown the pre-EvmHome
+              overview carried: stacked behavior bands for the C-Chain, the
+              accent-colored tx line for everyone else. */}
+          {isCchain ? <CchainActivityChart /> : <TxHistoryChart chainId={c.chainId} />}
 
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Latest blocks */}

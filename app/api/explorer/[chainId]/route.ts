@@ -841,6 +841,14 @@ export async function GET(
     const initialLoad = searchParams.get('initialLoad') === 'true';
     const priceOnly = searchParams.get('priceOnly') === 'true';
     const blocksOnly = searchParams.get('blocksOnly') === 'true';
+    const historyOnly = searchParams.get('historyOnly') === 'true';
+
+    // 14-day daily tx counts straight from ClickHouse — no RPC, no price
+    // probes. The overview's line chart polls this; keep it feather-light.
+    if (historyOnly) {
+      const dailyTxsData = await getDailyTxsByChain();
+      return NextResponse.json({ transactionHistory: dailyTxsData.get(chainId) || [] });
+    }
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
 

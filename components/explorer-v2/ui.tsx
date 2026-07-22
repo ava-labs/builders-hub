@@ -178,11 +178,14 @@ export function StatCell({
   label,
   live = false,
   href,
+  sub,
   children,
 }: {
   label: string;
   live?: boolean;
   href?: string;
+  /** Optional muted line under the figure — a qualifier or an affordance hint. */
+  sub?: React.ReactNode;
   children: React.ReactNode;
 }) {
   const cls = "flex flex-col gap-1.5 px-5 py-5 md:px-6";
@@ -198,6 +201,11 @@ export function StatCell({
         {label}
       </span>
       {children}
+      {sub != null && (
+        <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+          {sub}
+        </span>
+      )}
     </>
   );
   return href ? (
