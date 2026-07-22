@@ -1869,8 +1869,8 @@ const config = {
         permanent: true,
       },
       // the stats section's network-scope pages moved into the explorer's
-      // All Networks scope (exact-path sources: /stats/validators/:slug,
-      // /stats/dapps/:slug etc. keep their chain/detail pages)
+      // All Networks scope (exact-path sources: /stats/dapps/:slug etc.
+      // keep their detail pages; validators moved wholesale)
       {
         source: "/stats",
         destination: "/explorer/mainnet",
@@ -1911,6 +1911,13 @@ const config = {
         // node detail folded into the P-Chain explorer's node page
         source: "/stats/validators/node/:nodeId",
         destination: "/explorer/mainnet/p-chain/node/:nodeId",
+        permanent: true,
+      },
+      {
+        // per-L1 sets moved into each chain's own Validators tab (the
+        // exact c-chain and two-segment node rules above match first)
+        source: "/stats/validators/:slug",
+        destination: "/explorer/mainnet/:slug/validators",
         permanent: true,
       },
       {

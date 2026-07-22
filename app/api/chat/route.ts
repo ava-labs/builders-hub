@@ -862,7 +862,7 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - [DApp Gas Usage](/stats/dapps/treemap) — gas treemap by DApp
 - [Interchain Messaging](/explorer/mainnet/icm) — ICM stats
 - [Chain List](/explorer/mainnet/chains) — all Avalanche L1 chains
-- [Validators](/stats/validators) — validator dashboard
+- [Validators](/explorer/mainnet/validators) — validator dashboard
 - Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
 
 ## URL Rules
