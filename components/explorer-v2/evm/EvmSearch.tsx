@@ -74,7 +74,9 @@ export function EvmSearchBox({
   };
 
   return (
-    <div ref={wrapRef} className="relative w-full">
+    // pl-0!/pr-0!: this div is a direct child of <header>, so the global
+    // `header > div` navbar padding hack (global.css) would indent it by 3rem
+    <div ref={wrapRef} className="relative w-full pl-0! pr-0!">
       <div className="flex items-center gap-3 border border-zinc-200 bg-white/80 px-4 py-3 backdrop-blur-sm transition-colors focus-within:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:focus-within:border-zinc-100">
         <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
         <input
