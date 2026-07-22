@@ -1,9 +1,9 @@
 ---
-title: "Helicon: Improved Staking Economics and Streaming Asynchronous Execution"
+title: "Helicon: Improved Staking Economics and Continuous Execution"
 description: The Avalanche Helicon upgrade activates ACP-236, ACP-273, ACP-194, and ACP-283, bringing auto-renewing validator staking, shorter minimum staking durations, decoupled C-Chain execution, and a dynamic minimum gas price to the network, and recalibrating the staking reward curve in a progressive rollout afterward.
 date: 2026-07-16
 authors: [AvaxDevelopers]
-topics: [Network Updates, Helicon Upgrade, Staking, P-Chain, C-Chain, ACP-236, ACP-273, ACP-194, ACP-283, ACP-285]
+topics: [Network Updates, Helicon Upgrade, Staking, P-Chain, C-Chain, ACP-236, ACP-267, ACP-273, ACP-194, ACP-283, ACP-285]
 comments: true
 ---
 
@@ -14,15 +14,17 @@ import { StakingRewardCurveChart } from "@/components/content-design/staking-rew
 
 Helicon is coming to the Fuji Testnet. Building on [Octane](https://build.avax.network/blog/octane-optimizing-c-chain-gas-fees) and [Granite](https://build.avax.network/blog/granite-upgrade), this upgrade brings Streaming Asynchronous Execution (SAE) to the C-Chain, along with changes to Avalanche's staking economics.
 
-The upgrade is driven by five Avalanche Community Proposals:
+The upgrade is driven by six Avalanche Community Proposals:
 
 - [ACP-194: Streaming Asynchronous Execution](/docs/acps/194-streaming-asynchronous-execution)
 - [ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking)
+- [ACP-267: Increase Validator Uptime Requirement](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase)
 - [ACP-273: Reduce Minimum Staking Duration](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration)
 - [ACP-283: Dynamic Minimum Gas Price](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/283-dynamic-minimum-gas-price)
 - [ACP-285: Reduce Minimum Consumption Rate](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate) (progressive rollout post-Helicon activation)
 
-Activation times and the required AvalancheGo version will be confirmed with the Fuji Testnet pre-release. This post covers what each change does and why it matters, not when it activates.
+
+The [Fuji Testnet pre-release](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji?utm_campaign=47348274-Helicon%20Upgrade&utm_source=helicon_blog) is out with the ACPs going into effect at 11 AM on July 28, 2026 on the Fuji TestNet. After Fuji is updated and verified, a mainnet-compatible release will be published. This post covers what each change does and why it matters, not when it activates.
 
 ---
 
@@ -55,6 +57,20 @@ Uptime is measured separately for each cycle, and the outcome at each cycle end 
 The validator may update the auto-renew config at any time during a cycle; such updates take effect only at the end of the current cycle. To stop validating, the validator signals intent by updating the next cycle's period to 0, triggering a graceful exit at the end of the current cycle and unlocking staked funds.
 
 Delegations do not auto-renew. Only the validator's own stake renews, and a delegation must fit inside a single cycle, since continuation beyond the current cycle isn't guaranteed for any individual validator.
+
+---
+
+### Higher Uptime Requirement (ACP-267)
+
+<Callout type="info">
+A single non-responsive validator in a consensus sample forces the protocol to retry, adding latency for everyone.
+
+**ACP-267 raises the minimum uptime threshold from 80% to 90%.**
+</Callout>
+
+When the Snowman consensus protocol queries validators about a block, hitting too many offline nodes causes the query to fail and be reissued, adding latency and reducing throughput for the whole network. The 80% floor allowed too much slack. ACP-267 closes that gap by requiring 90% uptime for rewards, keeping the existing all-or-nothing model with no partial payouts.
+
+The higher threshold applies to validations that started on or after April 1, 2026 and are still active when the upgrade activates. Validators that began their period before that date continue to be evaluated against the 80% threshold, so no one is penalized retroactively.
 
 ---
 
@@ -136,6 +152,7 @@ The concrete changes for developers and node operators, ordered by ACP.
 
 - **ACP-194** — transaction effects are final at settlement, shortly after a block is accepted. When reading receipts or querying state, account for the brief gap between block acceptance and settlement.
 - **ACP-236** — new P-Chain transactions `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx` (owner-signed; `period 0` exits), and `RewardAutoRenewedValidatorTx` (consensus-issued). `platform.getCurrentValidators` adds `period`, `autoCompoundRewardShares` (ppm), and `validatorAuthority`.
+- **ACP-267** — uptime requirement raised to 90% for validations started on or after April 1, 2026; validations started earlier remain at the 80% threshold.
 - **ACP-273** — minimum staking duration reduced to 48 hours.
 - **ACP-283** — new `min-price-target` (wei) for the validator-voted minimum gas price; fetch fee parameters from the network instead of assuming a fixed floor.
 - **ACP-285** — mean consumption rate ramps from 10% to 7.5% over 90 days from activation.
@@ -147,6 +164,7 @@ The concrete changes for developers and node operators, ordered by ACP.
 - [Join the discussion on GitHub](https://github.com/avalanche-foundation/ACPs/discussions)
 - [ACP-194: Streaming Asynchronous Execution](/docs/acps/194-streaming-asynchronous-execution)
 - [ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking)
+- [ACP-267: Increase Validator Uptime Requirement](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase)
 - [ACP-273: Reduce Minimum Staking Duration](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration)
 - [ACP-283: Dynamic Minimum Gas Price](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/283-dynamic-minimum-gas-price)
 - [ACP-285: Reduce Minimum Consumption Rate](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate)
