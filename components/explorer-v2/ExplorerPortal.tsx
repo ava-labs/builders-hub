@@ -443,35 +443,52 @@ function NetworkBoard() {
   }, []);
 
   // stake headline: each source degrades independently (AVAX-only if the
-  // price is missing, no share line if supply is)
+  // price is missing, no share line if supply is), and each retries on the
+  // board's 60s clock until it lands — a tab opened during an API hiccup
+  // heals itself instead of holding the dash until a reload
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const landed = { stake: false, price: false, supply: false };
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const load = async () => {
       const [vres, pres, sres] = await Promise.allSettled([
-        fetchValidatorStats(),
-        fetch("https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd").then((r) =>
-          r.ok ? r.json() : null,
-        ),
-        fetch("/api/avax-supply").then((r) => (r.ok ? r.json() : null)),
+        landed.stake ? null : fetchValidatorStats(),
+        landed.price
+          ? null
+          : fetch("https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd").then((r) =>
+              r.ok ? r.json() : null,
+            ),
+        landed.supply ? null : fetch("/api/avax-supply").then((r) => (r.ok ? r.json() : null)),
       ]);
       if (cancelled) return;
-      if (vres.status === "fulfilled" && Array.isArray(vres.value)) {
+      if (!landed.stake && vres.status === "fulfilled" && Array.isArray(vres.value)) {
         const primary = vres.value.find((s: { id: string }) => s.id === PRIMARY_NETWORK_ID);
         if (primary?.totalStakeString) {
           setStakeAvax(Math.round(Number(BigInt(primary.totalStakeString) / 1_000_000_000n)));
+          landed.stake = true;
         }
       }
-      if (pres.status === "fulfilled") {
+      if (!landed.price && pres.status === "fulfilled") {
         const price = pres.value?.["avalanche-2"]?.usd;
-        if (typeof price === "number" && price > 0) setAvaxUsd(price);
+        if (typeof price === "number" && price > 0) {
+          setAvaxUsd(price);
+          landed.price = true;
+        }
       }
-      if (sres.status === "fulfilled") {
+      if (!landed.supply && sres.status === "fulfilled") {
         const circ = Number(sres.value?.circulatingSupply);
-        if (Number.isFinite(circ) && circ > 0) setSupply(circ);
+        if (Number.isFinite(circ) && circ > 0) {
+          setSupply(circ);
+          landed.supply = true;
+        }
       }
-    })();
+      if (landed.stake && landed.price && landed.supply && timer) clearInterval(timer);
+    };
+    load();
+    timer = setInterval(load, 60_000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 

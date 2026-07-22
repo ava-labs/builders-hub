@@ -52,6 +52,9 @@ interface ExplorerLayoutProps {
   loading?: boolean;
   // Show search bar in header (only for explorer home)
   showSearch?: boolean;
+  // Drop the chain-identity header (ChainHeader + search) entirely — for
+  // detail subpages that carry their own title and breadcrumb back up
+  hideHeader?: boolean;
   // Latest block for validation (optional)
   latestBlock?: number;
 }
@@ -68,6 +71,7 @@ export function ExplorerLayout({
   children,
   loading = false,
   showSearch = false,
+  hideHeader = false,
   latestBlock,
 }: ExplorerLayoutProps) {
   // L1s wear their own brand color as the accent (live dots, tape cube,
@@ -295,17 +299,24 @@ export function ExplorerLayout({
           margins; the content column is an opaque sheet laid on top of it,
           bounded by the vertical rules */}
       <SheetBackdrop snowOnly />
-      <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
-      <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-4 pt-10 md:px-6">
-        {/* the app's spine: chain switcher, section tabs, network. Rendered
-            during loading too — the chain identity comes in via props. */}
-        <ExplorerSubnav
-          network={network}
-          chainSlug={chainSlug}
-          chainName={chainName}
-          chainLogoURI={chainLogoURI}
-          className="mb-8"
-        />
+      <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white pt-10 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
+      {/* the app's spine: chain switcher, section tabs, network. Rendered
+          during loading too — the chain identity comes in via props. Hoisted
+          out of the header box below: a sticky element only pins while its
+          parent is on screen, so its parent must be this full-height column,
+          not a box that ends with the header. */}
+      <div className="sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[45]">
+        <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6">
+          <ExplorerSubnav
+            network={network}
+            chainSlug={chainSlug}
+            chainName={chainName}
+            chainLogoURI={chainLogoURI}
+          />
+        </div>
+      </div>
+      {!hideHeader && (
+      <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-4 pt-8 md:px-6">
         {loading ? (
           // skeleton header, square pulses in the sheet's rhythm
           <header className="flex flex-col gap-6 pb-6">
@@ -411,6 +422,7 @@ export function ExplorerLayout({
           </Rise>
         )}
       </div>
+      )}
 
       {/* Glacier Support Warning - the sheet's voice: square, mono, edge bar */}
       {!loading && !isTokenDataLoading && glacierSupported === false && (

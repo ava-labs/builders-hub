@@ -677,7 +677,7 @@ export interface GasReverted {
   revertedTxs: number;
 }
 
-export type GasRangeDays = 1 | 7 | 30;
+export type GasRangeDays = 1 | 7 | 30 | 90;
 
 export interface GasMarket {
   /** the window (days) the demand sections below are computed over */
@@ -723,7 +723,7 @@ function sqlGasHourly(chainId: number): string {
   `;
 }
 
-function sqlGasDaily(chainId: number): string {
+function sqlGasDaily(chainId: number, days: number = GAS_DAILY_WINDOW_DAYS): string {
   return `
     SELECT
       toString(toDate(block_time)) AS d,
@@ -736,7 +736,7 @@ function sqlGasDaily(chainId: number): string {
       toString(count()) AS blocks
     FROM raw_blocks
     WHERE chain_id = ${chainId}
-      AND block_time >= toDate(now() - INTERVAL ${GAS_DAILY_WINDOW_DAYS} DAY)
+      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
     GROUP BY d
     ORDER BY d
     FORMAT JSONEachRow
@@ -1083,6 +1083,65 @@ export async function getGasMarket(
   })();
 
   gasMarketInFlight.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
+/* ---------------------------------------------------------------- */
+/* per-metric deep history — the gas detail sheets' long spine        */
+/* ---------------------------------------------------------------- */
+
+export type GasHistoryDays = 7 | 30 | 90 | 365;
+
+// daily buckets close once a day; an hour of staleness is invisible
+const GAS_HISTORY_TTL_MS = 60 * 60 * 1000;
+const gasHistoryCache = new Map<string, { data: GasDayPoint[]; fetchedAt: number }>();
+const gasHistoryInFlight = new Map<string, Promise<GasDayPoint[]>>();
+
+/**
+ * Daily fee percentiles + utilization over up to a year. Blocks-only —
+ * raw_blocks stays cheap even at 365d, unlike the raw_txs demand
+ * aggregations that cap the market snapshot at 90d.
+ */
+export async function getGasHistory(evmChainId: number, days: GasHistoryDays): Promise<GasDayPoint[]> {
+  const key = `${evmChainId}:${days}`;
+  const cached = gasHistoryCache.get(key);
+  if (cached && Date.now() - cached.fetchedAt < GAS_HISTORY_TTL_MS) return cached.data;
+  const inFlight = gasHistoryInFlight.get(key);
+  if (inFlight) return inFlight;
+
+  const fetchPromise = (async (): Promise<GasDayPoint[]> => {
+    try {
+      const rows = (await clickhouseFetch(sqlGasDaily(evmChainId, days), QUERY_TIMEOUT_MS)) as {
+        d: string;
+        p25: number;
+        p50: number;
+        p75: number;
+        p95: number;
+        gas: string;
+        utilPct: number;
+        blocks: string;
+      }[];
+      const data: GasDayPoint[] = rows.map((r) => ({
+        d: r.d,
+        p25: Number(r.p25) || 0,
+        p50: Number(r.p50) || 0,
+        p75: Number(r.p75) || 0,
+        p95: Number(r.p95) || 0,
+        gas: Number(r.gas) || 0,
+        utilPct: Number(r.utilPct) || 0,
+        blocks: Number(r.blocks) || 0,
+      }));
+      gasHistoryCache.set(key, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (err) {
+      console.error(`[explorer-clickhouse] gas history query failed for ${evmChainId}:`, err);
+      return gasHistoryCache.get(key)?.data ?? [];
+    } finally {
+      gasHistoryInFlight.delete(key);
+    }
+  })();
+
+  gasHistoryInFlight.set(key, fetchPromise);
   return fetchPromise;
 }
 

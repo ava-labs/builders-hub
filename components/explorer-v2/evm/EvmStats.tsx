@@ -14,15 +14,9 @@ import {
   YAxis,
 } from "recharts";
 import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
-import {
-  ChartEmpty,
-  RANGE_LABEL,
-  RangeToggle,
-  Stat,
-  TipPlate,
-  type RangeDays,
-} from "@/components/explorer-v2/staking/bits";
+import { ChartEmpty, Stat, TipPlate } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
+import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 
 /* The chain's Stats surface, rebuilt in the drafting grammar — the old
    Card-and-sticky-nav observatory folded into Boards on one shared clock.
@@ -239,15 +233,18 @@ export function EvmStats({
 }) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [failed, setFailed] = useState(false);
-  const [range, setRange] = useState<RangeDays>(90);
-  const rangeLabel = RANGE_LABEL[range];
+  // the page clock in the subnav — every chart and label below rides it
+  const clock = useExplorerTimeRange();
+  const range = RANGE_DAYS[clock];
+  const rangeLabel = RANGE_LABEL[clock];
 
   useEffect(() => {
     let cancelled = false;
     setMetrics(null);
     setFailed(false);
-    // one fetch per window: the API caches per timeRange server-side
-    const timeRange = range === 90 ? "90d" : range === 365 ? "1y" : "all";
+    // one fetch per window (the API caches per timeRange server-side);
+    // sub-month windows fetch the 30d payload and slice client-side
+    const timeRange = range <= 30 ? "30d" : range <= 90 ? "90d" : "1y";
     fetch(`/api/chain-stats/${chainId}?metrics=${METRICS}&timeRange=${timeRange}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data: Metrics) => {
@@ -312,11 +309,6 @@ export function EvmStats({
 
   return (
     <div className="flex flex-col gap-10">
-      {/* one clock for every chart on the sheet */}
-      <div className="-mb-4 flex justify-end">
-        <RangeToggle value={range} onChange={setRange} />
-      </div>
-
       {failed ? (
         <div className="flex min-h-[40vh] items-center justify-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#E6212F]">

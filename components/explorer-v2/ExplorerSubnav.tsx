@@ -9,6 +9,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
+import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -520,7 +521,17 @@ export function ExplorerSubnav({
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
 
   return (
-    <div className={cn("flex items-stretch justify-between gap-x-6 border-b border-zinc-200 dark:border-zinc-800", className)}>
+    // sticky just below the global navbar (h-14 + banner), riding every
+    // shell: only this rail pins — the page header below scrolls away.
+    // Negative margins bleed the surface across the shells' px-5/px-6 so
+    // content never peeks past its edges; z-[45] keeps it (and the chain
+    // switcher's dropdown) above the stats pages' sticky bars (z-40).
+    <div
+      className={cn(
+        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[45] -mx-5 flex items-stretch justify-between gap-x-6 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
+        className,
+      )}
+    >
       <div className="flex min-w-0 items-stretch gap-x-5 md:gap-x-6">
         <ChainSwitcher network={network} chainSlug={chainSlug} chainName={chainName} chainLogoURI={chainLogoURI} />
         {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
@@ -548,7 +559,12 @@ export function ExplorerSubnav({
           </nav>
         )}
       </div>
-      <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />
+      <div className="flex shrink-0 items-stretch gap-x-2 sm:gap-x-3">
+        {/* the page clock: appears only when something below actually
+            listens to it, and then drives every stat on the page at once */}
+        <ExplorerRangeControl />
+        <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />
+      </div>
     </div>
   );
 }

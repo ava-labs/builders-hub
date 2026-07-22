@@ -5,7 +5,8 @@ import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@
 import l1ChainsData from "@/constants/l1-chains.json";
 
 // Minimal subnet shape consumed from our /v1 subnets endpoint (Glacier-shape).
-type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainName: string }[] };
+// blockchains is null (Go nil slice) for subnets that never created a chain.
+type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainName: string }[] | null };
 
 export const dynamic = 'force-dynamic';
 // The cold aggregate paginates all L1 validators + subnets (pageSize capped at
@@ -22,7 +23,10 @@ const PAGE_SIZE = 100;
 // headroom so a cold window doesn't abort and blank the whole aggregate. The
 // warmer keeps them hot, so the steady-state path is sub-second.
 const FETCH_TIMEOUT = 60000;
-const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
+// max-age=0: the CDN holds the day-long copy (s-maxage); browsers must
+// revalidate every time, so one bad response cached during an outage can't
+// pin a client's dashboards to a dash for 24 hours
+const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=172800';
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
 const subnetsCached: Partial<Record<string, { data: SubnetInfo[]; timestamp: number; promise?: Promise<SubnetInfo[]> }>> = {};
@@ -242,7 +246,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     subnetIsL1Map.set(subnet.subnetId, subnet.isL1);
     if (subnetAccumulators[subnet.subnetId]) continue;
     subnetAccumulators[subnet.subnetId] = {
-      name: subnet.blockchains.map(blockchain => blockchain.blockchainName).join('/'),
+      name: (subnet.blockchains ?? []).map(blockchain => blockchain.blockchainName).join('/') || `Subnet (${subnet.subnetId.slice(0, 8)}…)`,
       id: subnet.subnetId,
       byClientVersion: {},
       totalStake: 0n,

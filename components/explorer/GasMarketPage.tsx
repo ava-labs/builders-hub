@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
@@ -14,6 +15,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL } from "@/components/explorer-v2/time-range";
 import { squarify, type SquarifyItem } from "@/components/stats/squarify";
 import { useContractNames } from "@/lib/sourcify-client";
 import type { GasMarket, GasProtocol, GasRangeDays } from "@/lib/explorer-clickhouse";
@@ -26,7 +28,7 @@ import type { L1Chain } from "@/types/stats";
    The homepage's single "gas price" figure clicks through to here. */
 
 const POLL_MS = 12_000;
-const FEE_HISTORY_BLOCKS = 60;
+export const FEE_HISTORY_BLOCKS = 60;
 
 /* ---------------------------------------------------------------- */
 /* live market: eth_feeHistory straight off the chain's public RPC   */
@@ -60,7 +62,7 @@ function median(sortedAsc: number[]): number | null {
   return sortedAsc[Math.floor(sortedAsc.length / 2)];
 }
 
-function useFeeHistory(rpcUrl: string | undefined): FeeSnapshot {
+export function useFeeHistory(rpcUrl: string | undefined): FeeSnapshot {
   const [snap, setSnap] = useState<FeeSnapshot>({
     baseFeeWei: null,
     utilization: [],
@@ -115,7 +117,7 @@ function useFeeHistory(rpcUrl: string | undefined): FeeSnapshot {
 }
 
 /* native token USD price, one fetch — the explorer route caches CoinGecko */
-function useTokenUsd(evmChainId: number): number | null {
+export function useTokenUsd(evmChainId: number): number | null {
   const [usd, setUsd] = useState<number | null>(null);
   useEffect(() => {
     if (!Number.isFinite(evmChainId)) return;
@@ -138,18 +140,18 @@ function useTokenUsd(evmChainId: number): number | null {
 /* ---------------------------------------------------------------- */
 
 /** wei → the chain's gwei-equivalent, adaptive precision */
-function fmtNano(wei: number): string {
+export function fmtNano(wei: number): string {
   const nano = wei / 1e9;
   if (nano >= 100) return Math.round(nano).toLocaleString("en-US");
   if (nano >= 1) return nano.toFixed(2);
   return nano.toFixed(3);
 }
 
-function nanoUnit(symbol?: string): string {
+export function nanoUnit(symbol?: string): string {
   return symbol === "AVAX" ? "nAVAX" : "gwei";
 }
 
-function fmtGas(gas: number): string {
+export function fmtGas(gas: number): string {
   if (gas >= 1e12) return `${(gas / 1e12).toFixed(2)}T`;
   if (gas >= 1e9) return `${(gas / 1e9).toFixed(2)}B`;
   if (gas >= 1e6) return `${(gas / 1e6).toFixed(1)}M`;
@@ -205,44 +207,8 @@ const ACTIONS: { label: string; gas: number }[] = [
   { label: "NFT Mint", gas: 120_000 },
 ];
 
-const RANGE_LABEL: Record<GasRangeDays, string> = {
-  1: "24 hours",
-  7: "7 days",
-  30: "30 days",
-};
-
-/* the demand window switch — same segmented-control idiom as the
-   Mainnet/Fuji toggle on the chains directory */
-function RangeToggle({
-  value,
-  onChange,
-}: {
-  value: GasRangeDays;
-  onChange: (v: GasRangeDays) => void;
-}) {
-  return (
-    <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
-      {([1, 7, 30] as GasRangeDays[]).map((r) => (
-        <button
-          key={r}
-          type="button"
-          onClick={() => onChange(r)}
-          className={cn(
-            "px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-            r === value
-              ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-              : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
-          )}
-        >
-          {r === 1 ? "24H" : `${r}D`}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 /* the shared tooltip chrome — same plate PchainHome's charts wear */
-function TipPlate({ children }: { children: React.ReactNode }) {
+export function TipPlate({ children }: { children: React.ReactNode }) {
   return (
     <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
       {children}
@@ -250,14 +216,17 @@ function TipPlate({ children }: { children: React.ReactNode }) {
   );
 }
 
-function GasStat({ label, live = false, children, sub }: {
+export function GasStat({ label, live = false, children, sub, href }: {
   label: string;
   live?: boolean;
   children: React.ReactNode;
   sub?: React.ReactNode;
+  /** the stat's detail sheet — makes the cell a door, with the shared
+   *  hover affordance every clickable figure on the explorer wears */
+  href?: string;
 }) {
-  return (
-    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">
+  const body = (
+    <>
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         {live && (
           <span className="relative flex h-1.5 w-1.5">
@@ -266,19 +235,33 @@ function GasStat({ label, live = false, children, sub }: {
           </span>
         )}
         {label}
+        {href && (
+          <ArrowRight className="h-3 w-3 -translate-x-0.5 text-[#E6212F] opacity-0 transition-all group-hover/door:translate-x-0 group-hover/door:opacity-100" />
+        )}
       </span>
       <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
         {children}
       </span>
       {sub && <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{sub}</span>}
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="group/door flex flex-col gap-1.5 px-5 py-5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+      >
+        {body}
+      </Link>
+    );
+  }
+  return <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">{body}</div>;
 }
 
 /* percentile band + median line, shared by the 48h and 60d fee charts.
    The band is drawn as a transparent p25 floor with (p75−p25) stacked on
    it — recharts' way of shading between two series. */
-function FeeBandChart<T extends { p25: number; p50: number; p75: number; p95: number }>({
+export function FeeBandChart<T extends { p25: number; p50: number; p75: number; p95: number }>({
   data,
   unit,
   labelFor,
@@ -349,9 +332,9 @@ function FeeBandChart<T extends { p25: number; p50: number; p75: number; p95: nu
 /* hour-of-week seasonality heatmap — when is blockspace cheap?      */
 /* ---------------------------------------------------------------- */
 
-const DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function FeeHeatmap({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
+export function FeeHeatmap({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
   const byKey = new Map(cells.map((c) => [`${c.dow}-${c.hour}`, c.p50]));
   const values = cells.map((c) => c.p50).filter((v) => v > 0);
   const min = Math.min(...values);
@@ -463,7 +446,7 @@ function SelectorBars({ selectors }: { selectors: GasMarket["selectors"] }) {
   );
 }
 
-function UtilHistogram({ histogram }: { histogram: GasMarket["histogram"] }) {
+export function UtilHistogram({ histogram }: { histogram: GasMarket["histogram"] }) {
   const totalBlocks = histogram.reduce((s, b) => s + b.blocks, 0);
   return (
     <div className="h-40">
@@ -709,13 +692,22 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const fee = useFeeHistory(catalog.rpcUrl);
   const usd = useTokenUsd(evmChainId);
 
-  const [range, setRange] = useState<GasRangeDays>(1);
+  // the page-level clock in the subnav drives the demand window; calling
+  // the hook unconditionally registers this page as a consumer, which is
+  // what makes the subnav's range control appear
+  const range = useExplorerTimeRange();
+  // the clock offers up to a year, but 90d is the longest gas window the
+  // route computes reliably (a full 365d raw_txs scan blows the query
+  // budget) — clamp the year view to 90d and label it honestly below
+  const rangeDays = Math.min(RANGE_DAYS[range], 90) as GasRangeDays;
+  const rangeClamped = RANGE_DAYS[range] > 90;
+
   const [market, setMarket] = useState<GasMarket | null>(null);
   const [marketMissing, setMarketMissing] = useState(false);
   useEffect(() => {
     if (!Number.isFinite(evmChainId)) return;
     let cancelled = false;
-    fetch(`/api/gas-market/${evmChainId}?range=${range}`)
+    fetch(`/api/gas-market/${evmChainId}?range=${rangeDays}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data: GasMarket) => {
         if (!cancelled) setMarket(data);
@@ -726,12 +718,14 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
     return () => {
       cancelled = true;
     };
-  }, [evmChainId, range]);
+  }, [evmChainId, rangeDays]);
 
   // a range switch keeps the last payload on screen, dimmed, until the
   // new one lands — same idiom as the P-Chain tx list
-  const rangeStale = market !== null && market.rangeDays !== range;
-  const rangeLabel = RANGE_LABEL[range];
+  const rangeStale = market !== null && market.rangeDays !== rangeDays;
+  // the effective window spelled out; the year view clamps to 90d, so say so
+  const windowLabel = rangeClamped ? RANGE_LABEL.quarter : RANGE_LABEL[range];
+  const rangeLabel = rangeClamped ? `${windowLabel} · longest window` : windowLabel;
 
   const unknownAddresses = useMemo(
     () => market?.protocols.flatMap((p) => (p.address ? [p.address] : [])) ?? [],
@@ -783,7 +777,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
             }
           />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-            <GasStat label="Base Fee" live>
+            <GasStat label="Base Fee" live href={`${base}/gas/base-fee`}>
               {fee.baseFeeWei !== null ? (
                 <>
                   {fmtNano(fee.baseFeeWei)}
@@ -810,7 +804,11 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
                 <StatDash />
               )}
             </GasStat>
-            <GasStat label="Utilization" sub={`last ${FEE_HISTORY_BLOCKS} blocks`}>
+            <GasStat
+              label="Utilization"
+              sub={`last ${FEE_HISTORY_BLOCKS} blocks`}
+              href={`${base}/gas/utilization`}
+            >
               {avgUtil !== null ? (
                 <>
                   {avgUtil.toFixed(1)}
@@ -823,7 +821,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
             <GasStat
               label="Gas Used · 24h"
               sub={
-                range === 1 && revertedPct !== null
+                range === "day" && revertedPct !== null
                   ? `${revertedPct.toFixed(1)}% spent by reverted txs`
                   : undefined
               }
@@ -998,7 +996,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
 
       {/* demand: who and what buys the blockspace, over a chosen window */}
       <section className="flex flex-col gap-4">
-        <SectionHeader label={`Demand · last ${rangeLabel}`} action={<RangeToggle value={range} onChange={setRange} />} />
+        <SectionHeader label={`Demand · last ${rangeLabel}`} />
         <div
           className={cn(
             "grid items-start gap-x-8 gap-y-10 lg:grid-cols-2",
@@ -1050,6 +1048,15 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
         <section className="flex flex-col gap-4">
           <SectionHeader
             label="Fee Seasonality · median base fee by hour, 30 days"
+            action={
+              <Link
+                href={`${base}/gas/fee-seasonality`}
+                className="group flex shrink-0 items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                Full sheet
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            }
           />
           <Board divide={false} className="px-5 py-5 md:px-6">
             <FeeHeatmap cells={market.heatmap} unit={unit} />
@@ -1082,7 +1089,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           </Board>
           <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
             Registry-attributed protocols plus the largest unlabelled contracts. Tile area = gas
-            share; Δ compares against the preceding {rangeLabel}. Protocols link to their dapp
+            share; Δ compares against the preceding {windowLabel}. Protocols link to their dapp
             page, unlabelled contracts to the address.
           </p>
         </section>
@@ -1092,7 +1099,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
 }
 
 /* legend chip for the band charts — the one place identity needs naming */
-function BandKey({ unit }: { unit: string }) {
+export function BandKey({ unit }: { unit: string }) {
   return (
     <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
       <span className="flex items-center gap-1.5">
@@ -1106,7 +1113,7 @@ function BandKey({ unit }: { unit: string }) {
   );
 }
 
-function HistoryEmpty({ missing }: { missing: boolean }) {
+export function HistoryEmpty({ missing }: { missing: boolean }) {
   return (
     <p className="flex h-40 items-center justify-center text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
       {missing ? "No gas history indexed for this chain yet" : "Loading history…"}

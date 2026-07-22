@@ -15,20 +15,15 @@ import {
 } from "@/components/explorer-v2/ui";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { NetworkBlockTape, type TapeFeedChain } from "@/components/explorer-v2/network/NetworkBlockTape";
+import { useExplorerTimeRange, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
 /* The All Networks overview — the explorer's widest lens. One ledger strip
    of ecosystem aggregates, the chains ranked by live activity, and the two
    network-level instruments (staking, the token) as teaser boards that
-   link into their own facets. */
-
-type TimeRange = "day" | "week" | "month";
-const RANGES: { key: TimeRange; label: string }[] = [
-  { key: "day", label: "24H" },
-  { key: "week", label: "7D" },
-  { key: "month", label: "30D" },
-];
+   link into their own facets. The page-level time range comes from the
+   explorer's shared clock — picked in the subnav, not on this sheet. */
 
 interface ChainRow {
   chainId: string;
@@ -97,7 +92,7 @@ interface SupplyData {
   priceChange24h: number;
 }
 
-function useOverviewStats(timeRange: TimeRange) {
+function useOverviewStats(timeRange: ExplorerRange) {
   const [data, setData] = useState<OverviewData | null>(null);
   // when the figures landed — the anchor the live tx counter counts from
   const [fetchedAt, setFetchedAt] = useState(0);
@@ -183,28 +178,6 @@ function chainHref(chainId: string): string | null {
   return c.rpcUrl ? `/explorer/mainnet/${c.slug}` : `/explorer/mainnet/${c.slug}/stats`;
 }
 
-function RangeChips({ value, onChange }: { value: TimeRange; onChange: (r: TimeRange) => void }) {
-  return (
-    <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
-      {RANGES.map((r) => (
-        <button
-          key={r.key}
-          type="button"
-          onClick={() => onChange(r.key)}
-          className={cn(
-            "px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-            r.key === value
-              ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-              : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
-          )}
-        >
-          {r.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function BoardLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
@@ -267,7 +240,9 @@ const TH = "px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em
 const TD = "px-5 py-3 text-[13px] leading-5 tabular-nums md:px-6";
 
 export function NetworkOverview() {
-  const [range, setRange] = useState<TimeRange>("day");
+  // the shared clock: registers this page as a consumer, so the subnav
+  // surfaces its range control and every reading below tracks the one pick
+  const range = useExplorerTimeRange();
   const { data, fetchedAt, refreshing } = useOverviewStats(range);
   const supply = useAvaxSupply();
 
@@ -300,7 +275,7 @@ export function NetworkOverview() {
   const { flows, failedChainIds } = useIcmFlowRoutes();
 
   /* the tape's roster: the busiest RPC-backed chains, latched to the first
-     load so flipping the range chips doesn't reset a live feed */
+     load so flipping the range doesn't reset a live feed */
   const tapeChainsRef = useRef<TapeFeedChain[]>([]);
   const tapeChains = useMemo<TapeFeedChain[]>(() => {
     if (tapeChainsRef.current.length > 0) return tapeChainsRef.current;
@@ -405,7 +380,7 @@ export function NetworkOverview() {
 
         {/* the ecosystem's ledger strip */}
         <section className="flex flex-col gap-4">
-          <SectionHeader label="Network pulse" action={<RangeChips value={range} onChange={setRange} />} />
+          <SectionHeader label={`Network pulse · ${RANGE_LABEL[range]}`} />
           <Board
             divide={false}
             className={cn("overflow-hidden transition-opacity", refreshing && data && "opacity-60")}
@@ -479,7 +454,7 @@ export function NetworkOverview() {
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
         <section className="flex min-w-0 flex-col gap-4">
           <SectionHeader
-            label={`Top chains · ${RANGES.find((r) => r.key === range)?.label}`}
+            label={`Top chains · ${RANGE_LABEL[range]}`}
             action={<BoardLink href="/explorer/mainnet/chains">All chains</BoardLink>}
           />
           <Board divide={false} className="overflow-x-auto">

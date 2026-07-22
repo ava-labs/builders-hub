@@ -15,14 +15,8 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
-import {
-  ChartEmpty,
-  RANGE_LABEL,
-  RangeToggle,
-  Stat,
-  TipPlate,
-  type RangeDays,
-} from "./bits";
+import { ChartEmpty, Stat, TipPlate } from "./bits";
+import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   NANO,
   fmtCompact,
@@ -473,8 +467,10 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
   const { data: apy, failed: apyFailed } = useStakingApy();
   const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
 
-  const [range, setRange] = useState<RangeDays>(365);
-  const rangeLabel = RANGE_LABEL[range];
+  // the page clock in the subnav — one window for every trend below
+  const clock = useExplorerTimeRange();
+  const range = RANGE_DAYS[clock];
+  const rangeLabel = RANGE_LABEL[clock];
 
   /* -------------------------------------------------------------- */
   /* headline figures                                                */
@@ -669,11 +665,8 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
         <SectionHeader
           label={`Total Stake · ${rangeLabel}`}
           action={
-            <span className="flex items-center gap-4">
-              <span className="hidden sm:block">
-                <StakeKey />
-              </span>
-              <RangeToggle value={range} onChange={setRange} />
+            <span className="hidden sm:block">
+              <StakeKey />
             </span>
           }
         />

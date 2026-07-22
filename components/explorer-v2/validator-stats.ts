@@ -18,7 +18,10 @@ const inflight = new Map<string, Promise<SubnetStats[]>>();
 export function fetchValidatorStats(network = "mainnet"): Promise<SubnetStats[]> {
   let p = inflight.get(network);
   if (!p) {
-    p = fetch(`/api/validator-stats?network=${network}`).then((res) => {
+    // no-store: the route sends max-age=86400 for the CDN, but letting the
+    // browser hold it a day means one cached bad response (an outage's 500,
+    // a stale 206) pins every consumer to a dash until the entry expires
+    p = fetch(`/api/validator-stats?network=${network}`, { cache: "no-store" }).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json() as Promise<SubnetStats[]>;
     });

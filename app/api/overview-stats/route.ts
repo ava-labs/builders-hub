@@ -12,10 +12,16 @@ const MAX_CONCURRENT_CHAINS = 10;
 // Same default as total-ecosystem-validators — dev works without the env.
 const METRICS_API_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
 
+// days = daily buckets to pull from metrics-api (window + a 2-day buffer so
+// the newest complete bucket is never the edge one). secondsInRange divides
+// the summed txCount into tps and, over SECONDS_PER_DAY, gives the number of
+// daily buckets to sum — one source of truth per range.
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
   week: { days: 9, secondsInRange: 7 * SECONDS_PER_DAY },
-  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY }
+  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY },
+  quarter: { days: 92, secondsInRange: 90 * SECONDS_PER_DAY },
+  year: { days: 367, secondsInRange: 365 * SECONDS_PER_DAY }
 } as const;
 
 type TimeRangeKey = keyof typeof TIME_RANGE_CONFIG;
@@ -132,7 +138,7 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     if (sorted.length === 0) return 0;
     if (sorted.length === 1) return sorted[0]?.value || 0;
     if (timeRange === 'day') return sorted[1]?.value || 0;
-    return sumValues(sorted, timeRange === 'week' ? 7 : 30);
+    return sumValues(sorted, config.secondsInRange / SECONDS_PER_DAY);
   } catch (error) {
     console.error(`[getTxCountData] Failed for chain ${chainId}:`, error);
     return 0;
@@ -144,8 +150,13 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
 
+    // active addresses is a distinct count, not a sum — the metrics-api only
+    // buckets it by day/week/month, so quarter and year (no wider bucket
+    // exists) read the monthly figure rather than an unsupported interval.
+    const interval = timeRange === 'quarter' || timeRange === 'year' ? 'month' : timeRange;
+
     const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
-    url.searchParams.set('timeInterval', timeRange);
+    url.searchParams.set('timeInterval', interval);
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', '2');
@@ -166,7 +177,7 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
 
 async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
-    const daysToSum = timeRange === 'day' ? 1 : timeRange === 'week' ? 7 : 30;
+    const daysToSum = TIME_RANGE_CONFIG[timeRange].secondsInRange / SECONDS_PER_DAY;
     return await getChainICMCount(chainId, daysToSum);
   } catch (error) {
     console.error(`[getICMData] Failed for chain ${chainId}:`, error);

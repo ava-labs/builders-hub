@@ -9,10 +9,11 @@ interface UseIcmStatsResult {
   retry: () => void;
 }
 
-// Fetches the 1-year ICM message volume series. Cancels in-flight requests
-// when the component unmounts or retry is invoked, so a stale response can't
-// overwrite fresh state.
-export function useIcmStats(): UseIcmStatsResult {
+// Fetches the ICM message volume series for the given window (the /api/icm-stats
+// route accepts 1d/7d/30d/90d/1y). Defaults to "1y" so existing callers behave
+// as before. Cancels in-flight requests when the component unmounts, retry is
+// invoked, or timeRange changes, so a stale response can't overwrite fresh state.
+export function useIcmStats(timeRange: string = "1y"): UseIcmStatsResult {
   const [data, setData] = useState<ICMStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,7 @@ export function useIcmStats(): UseIcmStatsResult {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/icm-stats?timeRange=1y", {
+      const response = await fetch(`/api/icm-stats?timeRange=${timeRange}`, {
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -40,7 +41,7 @@ export function useIcmStats(): UseIcmStatsResult {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     fetchStats();

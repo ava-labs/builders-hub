@@ -23,7 +23,9 @@ interface ICMOverviewSectionProps {
   metrics: ICMStats | null;
   chartData: ChartDataPoint[];
   chartPeriod: ChartPeriod;
-  onChartPeriodChange: (period: ChartPeriod) => void;
+  // Omit when the period is driven by a page-level clock; the chart's own
+  // period toggle is then hidden (see ChartCard).
+  onChartPeriodChange?: (period: ChartPeriod) => void;
 }
 
 export function ICMOverviewSection({

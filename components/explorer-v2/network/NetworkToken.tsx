@@ -10,6 +10,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContaine
 import { cn } from "@/lib/utils";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { SectionHeader } from "@/components/explorer-v2/ui";
+import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { DatEtfSection } from "@/app/(home)/stats/avax-token/_components/DatEtfSection";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { LiveBlockBurns } from "@/components/stats/LiveBlockBurns";
@@ -62,7 +63,11 @@ export function NetworkToken() {
   const [icmFees, setICMFees] = useState<FeeDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<Period>("D");
+  // the page clock in the subnav windows the fee history; bucket width
+  // follows it (daily bars up to a month, weekly for a quarter, monthly
+  // for a year) so the chart stays readable at every window
+  const clock = useExplorerTimeRange();
+  const period: Period = clock === "year" ? "M" : clock === "quarter" ? "W" : "D";
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -199,7 +204,9 @@ export function NetworkToken() {
         cChainFees: cChainMap.get(date) || 0,
         icmFees: icmMap.get(date) || 0,
       }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+      .sort((a, b) => a.date.localeCompare(b.date))
+      // the fetch stays at the full year; the page clock slices the window
+      .slice(-RANGE_DAYS[clock]);
 
     if (period === "D") return mergedData;
 
@@ -239,24 +246,18 @@ export function NetworkToken() {
         icmFees: group.icmSum,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
-  }, [cChainFees, icmFees, period]);
+  }, [cChainFees, icmFees, period, clock]);
 
   useEffect(() => {
     if (aggregatedFeeData.length === 0) return;
 
-    if (period === "D") {
-      const daysToShow = 90;
-      setBrushIndexes({
-        startIndex: Math.max(0, aggregatedFeeData.length - daysToShow),
-        endIndex: aggregatedFeeData.length - 1,
-      });
-    } else {
-      setBrushIndexes({
-        startIndex: 0,
-        endIndex: aggregatedFeeData.length - 1,
-      });
-    }
-  }, [period, aggregatedFeeData.length]);
+    // the clock already windowed the data; the brush opens on all of it
+    // and stays available for zooming within the window
+    setBrushIndexes({
+      startIndex: 0,
+      endIndex: aggregatedFeeData.length - 1,
+    });
+  }, [clock, aggregatedFeeData.length]);
 
   const displayData = brushIndexes ? aggregatedFeeData.slice(brushIndexes.startIndex, brushIndexes.endIndex + 1) : aggregatedFeeData;
 
@@ -612,23 +613,8 @@ export function NetworkToken() {
                     <div>
                       <h2 className="text-lg font-medium text-black dark:text-white">Network Fees Paid</h2>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        C-Chain and ICM contract fees over time
+                        C-Chain and ICM contract fees · {RANGE_LABEL[clock]}
                       </p>
-                    </div>
-                    <div className="flex gap-1">
-                      {(["D", "W", "M"] as const).map((p) => (
-                        <button
-                          key={p}
-                          onClick={() => setPeriod(p)}
-                          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                            period === p
-                              ? "bg-blue-600 text-white"
-                              : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
                     </div>
                   </div>
                 </div>
