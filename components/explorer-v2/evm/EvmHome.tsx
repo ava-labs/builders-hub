@@ -183,6 +183,7 @@ export function EvmHome({ network }: { network: string }) {
                 <StatCell
                   label="TRANSACTIONS · 24H"
                   live
+                  href={`${base}/txs`}
                   sub={recentTps != null ? `${recentTps.toFixed(1)} TPS · last ${blockList.length} blocks` : undefined}
                 >
                   {s ? <StatFigure value={s.txCount24h} /> : <StatDash />}
