@@ -9,8 +9,16 @@ import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { buildTxUrl } from "@/utils/eip3091";
-import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import { classifyLocally, hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
+import {
+  ChainHitRow,
+  EntityHitRow,
+  matchChains,
+  looksLikeIdentifier,
+  lookupTxAcrossChainsCached,
+  useSearchEntity,
+  type ChainHit,
+} from "@/components/explorer-v2/chain-search";
 import { Board, Rise, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
 import {
   PRIMARY_NETWORK_ID,
@@ -27,90 +35,10 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 /* into every L1's own explorer. The front page of one cohesive app.   */
 /* ------------------------------------------------------------------ */
 
-/* The chain index behind name search: every catalog chain plus the
-   Platform Chain, each carrying whether it has a block explorer here
-   (an RPC we can drive) and its subnet for P-Chain liveness. */
-interface ChainHit {
-  slug: string;
-  name: string;
-  logo?: string;
-  subnetId?: string;
-  isTestnet: boolean;
-  hasExplorer: boolean;
-  href: string;
-  aliases: string[];
-}
-
-const CHAIN_INDEX: ChainHit[] = [
-  {
-    slug: "p-chain",
-    name: "Platform Chain",
-    logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
-    subnetId: undefined,
-    isTestnet: false,
-    hasExplorer: true,
-    href: "/explorer/mainnet/p-chain",
-    aliases: ["p-chain", "pchain", "platform chain", "platform"],
-  },
-  ...(l1ChainsData as L1Chain[]).map((c) => {
-    const hasExplorer = !!c.rpcUrl;
-    return {
-      slug: c.slug,
-      name: c.chainName || c.slug,
-      logo: hasRealChainLogo(c.chainLogoURI) ? c.chainLogoURI : undefined,
-      subnetId: c.subnetId,
-      isTestnet: c.isTestnet === true,
-      hasExplorer,
-      // no RPC → no explorer to drive; the stats page still knows the chain
-      href: hasExplorer ? `/explorer/mainnet/${c.slug}` : `/stats/l1/${c.slug}`,
-      aliases: [
-        (c.chainName || "").toLowerCase(),
-        c.slug.toLowerCase(),
-        ...(c.slug === "c-chain" ? ["contract chain", "cchain", "avax"] : []),
-      ].filter(Boolean),
-    };
-  }),
-];
-
-/* Name → chains, scored: exact beats prefix beats substring; mainnet beats
-   testnet; live P-Chain validator weight breaks ties. */
-function matchChains(query: string, live: Map<string, number> | null): ChainHit[] {
-  const q = query.trim().toLowerCase();
-  if (q.length < 2) return [];
-  const scored = CHAIN_INDEX.map((c) => {
-    let score = 0;
-    for (const a of c.aliases) {
-      if (a === q) score = Math.max(score, 3);
-      else if (a.startsWith(q)) score = Math.max(score, 2);
-      else if (a.includes(q)) score = Math.max(score, 1);
-    }
-    return { c, score };
-  })
-    .filter((s) => s.score > 0)
-    .sort((a, b) => {
-      if (a.score !== b.score) return b.score - a.score;
-      if (a.c.isTestnet !== b.c.isTestnet) return a.c.isTestnet ? 1 : -1;
-      const av = live?.get(a.c.subnetId ?? "") ?? 0;
-      const bv = live?.get(b.c.subnetId ?? "") ?? 0;
-      if (av !== bv) return bv - av;
-      return a.c.name.localeCompare(b.c.name);
-    });
-  // testnet entries earn a seat only when they can actually be explored
-  return scored
-    .filter((s) => !s.c.isTestnet || s.c.hasExplorer)
-    .slice(0, 7)
-    .map((s) => s.c);
-}
-
-// identifiers stay identifiers: never treat these shapes as chain names
-const looksLikeIdentifier = (q: string) =>
-  /^\d+$/.test(q) || /^0x[a-fA-F0-9]+$/.test(q) || /^NodeID-/.test(q) ||
-  /^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q) ||
-  /^[1-9A-HJ-NP-Za-km-z]{40,}$/.test(q);
-
-/* One bar, anything: chain names suggest live as you type (validated
-   against the P-Chain), P-Chain shapes route locally, 0x hashes race
-   every EVM chain's RPC, ambiguous CB58 hashes ask the search API. */
+/* One bar, anything: chains suggest live as you type — by name, chain ID,
+   subnet ID, or blockchain ID (the shared chain-search engine) — P-Chain
+   shapes route locally, 0x hashes race every EVM chain's RPC, ambiguous
+   CB58 hashes ask the search API. */
 function UniversalSearch() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,18 +64,27 @@ function UniversalSearch() {
   // fetched (via the shared feed) when name search first becomes possible
   const { live: liveValidators } = useLiveValidatorCounts("mainnet", q.trim().length >= 2);
 
-  const hits = useMemo(
-    () => (looksLikeIdentifier(q.trim()) ? [] : matchChains(q, liveValidators)),
-    [q, liveValidators],
-  );
-  const showHits = focused && hits.length > 0;
+  const hits = useMemo(() => matchChains(q, liveValidators), [q, liveValidators]);
 
-  const goToChain = (hit: ChainHit) => {
+  // what the identifier in the box resolves to — tx hashes race every
+  // chain live, so the dropdown names the chain before Enter is pressed
+  const entity = useSearchEntity(q, {
+    network: "mainnet",
+    blockBase: "/explorer/mainnet/p-chain",
+    blockChainName: "P-Chain",
+    evmAddressBase: "/explorer/mainnet/c-chain",
+    evmAddressChainName: "C-Chain",
+  });
+  const showHits = focused && (hits.length > 0 || entity !== null);
+
+  const goToHref = (href: string) => {
     setQ("");
     setSel(-1);
     inputRef.current?.blur();
-    router.push(hit.href);
+    router.push(href);
   };
+
+  const goToChain = (hit: ChainHit) => goToHref(hit.href);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,9 +92,11 @@ function UniversalSearch() {
     if (!query) return;
     setError(null);
 
-    // a highlighted (or sole-match) chain name wins the Enter key
-    if (hits.length > 0) {
-      goToChain(hits[Math.max(0, sel)]);
+    // a highlighted chain wins the Enter key; a name-like query's top hit
+    // wins too — but identifier shapes (heights, hashes, IDs) keep their
+    // plain-Enter search even while chain rows are on offer
+    if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
+      goToChain(hits[Math.max(0, sel)].chain);
       return;
     }
 
@@ -170,9 +109,10 @@ function UniversalSearch() {
 
     setBusy(true);
     try {
-      // EVM tx hashes race every chain's RPC
+      // EVM tx hashes race every chain's RPC (the dropdown's entity row
+      // fills the same cache, so this is usually instant)
       if (/^0x[a-fA-F0-9]{64}$/.test(query)) {
-        const result = await lookupTransactionAcrossChains(query);
+        const result = await lookupTxAcrossChainsCached(query);
         if (result.found && result.chain) {
           router.push(buildTxUrl(`/explorer/mainnet/${result.chain.slug}`, query));
         } else {
@@ -259,63 +199,21 @@ function UniversalSearch() {
         </button>
       </form>
 
-      {/* chain suggestions — mousedown beats blur so rows stay clickable */}
+      {/* live suggestions: the entity the identifier resolves to, then the
+          shared chain rows every explorer search uses */}
       {showHits && (
         <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-          {hits.map((hit, i) => {
-            const validators = hit.subnetId ? liveValidators?.get(hit.subnetId) : undefined;
-            return (
-              <button
-                key={hit.slug}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  goToChain(hit);
-                }}
-                onMouseEnter={() => setSel(i)}
-                className={cn(
-                  "group/hit flex w-full items-center gap-3 px-4 py-3 text-left transition-colors",
-                  i === sel ? "bg-zinc-50 dark:bg-zinc-900" : "hover:bg-zinc-50 dark:hover:bg-zinc-900",
-                )}
-              >
-                {hit.logo ? (
-                  <img src={hit.logo} alt="" className="h-6 w-6 shrink-0 rounded-full object-contain" />
-                ) : (
-                  <span className="h-6 w-6 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
-                )}
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {hit.name}
-                </span>
-                {hit.isTestnet && (
-                  <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                    Testnet
-                  </span>
-                )}
-                {typeof validators === "number" && (
-                  <span className="hidden shrink-0 font-mono text-[10px] tabular-nums uppercase tracking-[0.12em] text-zinc-400 sm:block dark:text-zinc-500">
-                    {validators} validators
-                  </span>
-                )}
-                <span
-                  className={cn(
-                    "flex shrink-0 items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em]",
-                    hit.hasExplorer
-                      ? "text-zinc-900 dark:text-zinc-100"
-                      : "text-zinc-400 dark:text-zinc-500",
-                  )}
-                >
-                  {hit.hasExplorer ? "Explorer" : "No explorer · stats"}
-                  <ArrowRight
-                    className={cn(
-                      "h-3.5 w-3.5 transition-transform",
-                      i === sel && "translate-x-0.5",
-                      hit.hasExplorer ? "text-[#E6212F]" : "text-zinc-300 dark:text-zinc-600",
-                    )}
-                  />
-                </span>
-              </button>
-            );
-          })}
+          {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+          {hits.map((hit, i) => (
+            <ChainHitRow
+              key={hit.chain.href}
+              match={hit}
+              selected={i === sel}
+              validators={hit.chain.subnetId ? liveValidators?.get(hit.chain.subnetId) : undefined}
+              onSelect={() => goToChain(hit.chain)}
+              onHover={() => setSel(i)}
+            />
+          ))}
         </div>
       )}
 

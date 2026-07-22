@@ -12,6 +12,15 @@ import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Rise, StatFigure } from "@/components/explorer-v2/ui";
 import { classifyLocally, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
+import {
+  ChainHitRow,
+  EntityHitRow,
+  matchChains,
+  looksLikeIdentifier,
+  useSearchEntity,
+  type ChainHit,
+} from "@/components/explorer-v2/chain-search";
+import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { getL1ListStore, L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { convertL1ListItemToL1Chain, findCustomChainBySlug } from "@/components/explorer/utils/chainConverter";
@@ -105,7 +114,50 @@ export function ExplorerLayout({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchError, setSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [sel, setSel] = useState(-1);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // chain suggestions — same engine and rows as the portal and P-Chain
+  // shell, so a name, chain ID, subnet ID, or blockchain ID finds its
+  // chain from any page. Liveness (ranking + validators) loads on demand.
+  const { live: liveValidators } = useLiveValidatorCounts("mainnet", searchQuery.trim().length >= 2);
+  const hits = useMemo(() => matchChains(searchQuery, liveValidators), [searchQuery, liveValidators]);
+
+  // what the identifier in the box resolves to — tx hashes race every
+  // chain live, so the dropdown names the chain before Enter is pressed
+  const entity = useSearchEntity(searchQuery, {
+    network: "mainnet",
+    blockBase: `/explorer/mainnet/${chainSlug}`,
+    blockChainName: chainName,
+    evmAddressBase: `/explorer/mainnet/${chainSlug}`,
+    evmAddressChainName: chainName,
+  });
+  const showHits = searchFocused && !!searchQuery.trim() && (hits.length > 0 || entity !== null);
+
+  const goToHref = (href: string) => {
+    setSearchQuery("");
+    setSel(-1);
+    setSearchError(null);
+    searchInputRef.current?.blur();
+    router.push(href);
+  };
+
+  const goToChain = (hit: ChainHit) => goToHref(hit.href);
+
+  const onSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (!showHits) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSel((s) => (s + 1) % hits.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSel((s) => (s <= 0 ? hits.length - 1 : s - 1));
+    } else if (e.key === "Escape") {
+      setSel(-1);
+      searchInputRef.current?.blur();
+    }
+  };
 
   // "/" focuses the search from anywhere on the page (matches the P-Chain shell)
   useEffect(() => {
@@ -159,6 +211,15 @@ export function ExplorerLayout({
     }
 
     setSearchError(null);
+
+    // a highlighted chain wins the Enter key; a name-like query's top hit
+    // wins too — but identifier shapes (heights, hashes, IDs) keep their
+    // plain-Enter classification even while chain rows are on offer
+    if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
+      goToChain(hits[Math.max(0, sel)].chain);
+      return;
+    }
+
     setIsSearching(true);
 
     try {
@@ -293,7 +354,7 @@ export function ExplorerLayout({
                 hairline field, icon left, "/" affordance, Enter to submit.
                 Rendered on EVERY tab; only the tip-height aside and the
                 colophon are overview-only. */}
-            <div className="w-full pl-0! pr-0!">
+            <div className="relative w-full pl-0! pr-0!">
                 <form onSubmit={handleSearch} className="relative">
                   <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
                   <input
@@ -302,8 +363,12 @@ export function ExplorerLayout({
                     onChange={(e) => {
                       setSearchQuery(e.target.value);
                       setSearchError(null);
+                      setSel(-1);
                     }}
-                    placeholder="Search by block, tx hash, address, or any P-Chain ID"
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setSearchFocused(false)}
+                    onKeyDown={onSearchKeyDown}
+                    placeholder="Search chains by name or ID, block, tx hash, address, or any P-Chain ID"
                     spellCheck={false}
                     className={cn(
                       "w-full border bg-white/80 py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
@@ -317,6 +382,23 @@ export function ExplorerLayout({
                     </kbd>
                   )}
                 </form>
+                {/* live suggestions: the entity the identifier resolves to,
+                    then the shared chain rows every explorer search uses */}
+                {showHits && (
+                  <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+                    {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+                    {hits.map((hit, i) => (
+                      <ChainHitRow
+                        key={hit.chain.href}
+                        match={hit}
+                        selected={i === sel}
+                        validators={hit.chain.subnetId ? liveValidators?.get(hit.chain.subnetId) : undefined}
+                        onSelect={() => goToChain(hit.chain)}
+                        onHover={() => setSel(i)}
+                      />
+                    ))}
+                  </div>
+                )}
                 {searchError && (
                   <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">{searchError}</p>
                 )}

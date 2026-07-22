@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clock, Search, X } from "lucide-react";
@@ -14,9 +14,18 @@ import {
   type SearchResult,
 } from "@/lib/pchain-explorer";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
+import {
+  ChainHitRow,
+  EntityHitRow,
+  matchChains,
+  looksLikeIdentifier,
+  lookupTxAcrossChainsCached,
+  useSearchEntity,
+  type ChainHit,
+} from "@/components/explorer-v2/chain-search";
+import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
 import { Rise } from "@/components/explorer-v2/ui";
 import { buildAddressUrl, buildTxUrl } from "@/utils/eip3091";
-import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 type EntityType = "block" | "tx" | "address" | "node";
@@ -60,12 +69,45 @@ export function SearchBox({ chain, network }: { chain: string; network: string }
   const [notFound, setNotFound] = useState(false);
   const [focused, setFocused] = useState(false);
   const [recents, setRecents] = useState<Recent[]>([]);
+  const [sel, setSel] = useState(-1);
 
   const base = `/explorer/${network}/${chain}`;
 
   useEffect(() => {
     setRecents(loadRecents(network));
   }, [network]);
+
+  // chain suggestions — same engine and rows as the portal's search, so a
+  // name, chain ID, subnet ID, or blockchain ID finds its chain from any
+  // page. Liveness (for ranking + the validators figure) loads on demand.
+  const { live: liveValidators } = useLiveValidatorCounts("mainnet", q.trim().length >= 2);
+  const hits = useMemo(() => matchChains(q, liveValidators), [q, liveValidators]);
+
+  // what the identifier in the box resolves to — tx hashes race every
+  // chain live, so the dropdown names the chain before Enter is pressed
+  const entity = useSearchEntity(q, {
+    network,
+    blockBase: base,
+    blockChainName: "P-Chain",
+    evmAddressBase: `/explorer/${network}/c-chain`,
+    evmAddressChainName: "C-Chain",
+  });
+
+  const goToHref = (href: string) => {
+    setQ("");
+    setSel(-1);
+    setNotFound(false);
+    inputRef.current?.blur();
+    router.push(href);
+  };
+
+  const goToChain = (hit: ChainHit) => {
+    setQ("");
+    setSel(-1);
+    setNotFound(false);
+    inputRef.current?.blur();
+    router.push(hit.href);
+  };
 
   // "/" focuses the search from anywhere on the page (unless already typing)
   useEffect(() => {
@@ -93,6 +135,14 @@ export function SearchBox({ chain, network }: { chain: string; network: string }
     if (!query || !isPchainNetwork(network)) return;
     setNotFound(false);
 
+    // a highlighted chain wins the Enter key; a name-like query's top hit
+    // wins too — but identifier shapes (heights, hashes, IDs) keep their
+    // plain-Enter classification even while chain rows are on offer
+    if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
+      goToChain(hits[Math.max(0, sel)].chain);
+      return;
+    }
+
     const local = classifyLocally(query);
     if (local) {
       go(local.type, local.id);
@@ -115,7 +165,8 @@ export function SearchBox({ chain, network }: { chain: string; network: string }
         return;
       }
       if (network === "mainnet" && /^0x[a-fA-F0-9]{64}$/.test(query)) {
-        const result = await lookupTransactionAcrossChains(query);
+        // same cache the dropdown's entity row fills — usually instant
+        const result = await lookupTxAcrossChainsCached(query);
         if (result.found && result.chain) {
           router.push(buildTxUrl(`/explorer/mainnet/${result.chain.slug}`, query));
           return;
@@ -130,6 +181,21 @@ export function SearchBox({ chain, network }: { chain: string; network: string }
   };
 
   const showRecents = focused && !q && recents.length > 0;
+  const showHits = focused && !!q.trim() && (hits.length > 0 || entity !== null);
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!showHits) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSel((s) => (s + 1) % hits.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSel((s) => (s <= 0 ? hits.length - 1 : s - 1));
+    } else if (e.key === "Escape") {
+      setSel(-1);
+      inputRef.current?.blur();
+    }
+  };
 
   return (
     // pl-0!/pr-0!: this div is a direct child of <header>, so the global
@@ -145,10 +211,12 @@ export function SearchBox({ chain, network }: { chain: string; network: string }
           onChange={(e) => {
             setQ(e.target.value);
             setNotFound(false);
+            setSel(-1);
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          placeholder="Search by block height, tx hash, NodeID, or any Avalanche address"
+          onKeyDown={onKeyDown}
+          placeholder="Search chains by name or ID, block height, tx hash, NodeID, or any address"
           spellCheck={false}
           className={cn(
             "w-full border bg-white/80 py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
@@ -178,6 +246,24 @@ export function SearchBox({ chain, network }: { chain: string; network: string }
           </button>
         )}
       </form>
+
+      {/* live suggestions: the entity the identifier resolves to, then the
+          shared chain rows every explorer search uses */}
+      {showHits && (
+        <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+          {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
+          {hits.map((hit, i) => (
+            <ChainHitRow
+              key={hit.chain.href}
+              match={hit}
+              selected={i === sel}
+              validators={hit.chain.subnetId ? liveValidators?.get(hit.chain.subnetId) : undefined}
+              onSelect={() => goToChain(hit.chain)}
+              onHover={() => setSel(i)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* recents — mousedown beats blur, so rows stay clickable */}
       {showRecents && (
