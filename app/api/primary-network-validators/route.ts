@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
+import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 
 export const dynamic = 'force-dynamic';
 
@@ -28,24 +28,22 @@ let pendingRequest: Promise<ValidatorData[]> | null = null;
 let isRevalidating = false;
 
 async function fetchAllValidators(): Promise<ValidatorData[]> {
-  const avalanche = new Avalanche({ network: "mainnet" });
+  // Primary-network active validators from our P-chain read API (Glacier-shape,
+  // served from ClickHouse). Server-side → plain-HTTP EXPLORER_API_BASE is fine.
   const validators: ValidatorData[] = [];
-  
-  const result = await avalanche.data.primaryNetwork.listValidators({
-    pageSize: PAGE_SIZE,
-    validationStatus: "active",
-    subnetId: "11111111111111111111111111111111LpoYY",
-    network: "mainnet",
-  });
-
-  let pageCount = 0;
   const maxPages = 50;
-  
-  for await (const page of result) {
-    pageCount++;
-    const pageData = page.result.validators || [];
-    if (!Array.isArray(pageData)) { continue; }
-    
+  let pageToken: string | undefined;
+
+  for (let pageCount = 0; pageCount < maxPages; pageCount++) {
+    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const res = await fetch(
+      `${EXPLORER_API_BASE}/v1/networks/mainnet/validators?pageSize=${PAGE_SIZE}&validationStatus=active${tok}`,
+      { headers: { Accept: "application/json" } },
+    );
+    if (!res.ok) throw new Error(`validators upstream ${res.status}`);
+    const page = await res.json();
+    const pageData: any[] = Array.isArray(page?.validators) ? page.validators : [];
+
     const pageValidators = pageData.map((v: any) => ({
       nodeId: v.nodeId,
       amountStaked: v.amountStaked,
@@ -54,10 +52,10 @@ async function fetchAllValidators(): Promise<ValidatorData[]> {
       delegatorCount: v.delegatorCount || 0,
       amountDelegated: v.amountDelegated || "0",
     }));
-    
-    validators.push(...pageValidators);     
-    if (pageCount >= maxPages) { break; }   
-    if (pageValidators.length < PAGE_SIZE) { break; }
+
+    validators.push(...pageValidators);
+    pageToken = page?.nextPageToken;
+    if (!pageToken || pageValidators.length < PAGE_SIZE) break;
   }
   return validators;
 }

@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
-import { type ActiveValidatorDetails } from '@avalanche-sdk/chainkit/models/components/activevalidatordetails.js';
-import { type Subnet } from '@avalanche-sdk/chainkit/models/components/subnet.js';
+import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { type SimpleValidator, type ValidatorVersion, type SubnetStats } from '@/types/validator-stats';
 import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@/constants/validator-discovery';
 import l1ChainsData from "@/constants/l1-chains.json";
+
+// Minimal subnet shape consumed from our /v1 subnets endpoint (Glacier-shape).
+type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainName: string }[] };
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ const FETCH_TIMEOUT = 10000;
 const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
-const subnetsCached: Partial<Record<string, { data: Subnet[]; timestamp: number; promise?: Promise<Subnet[]> }>> = {};
+const subnetsCached: Partial<Record<string, { data: SubnetInfo[]; timestamp: number; promise?: Promise<SubnetInfo[]> }>> = {};
 const validatorVersionsCached: Partial<Record<string, { data: Map<string, string>; timestamp: number }>> = {};
 const statsCached: Partial<Record<string, { data: SubnetStats[]; timestamp: number }>> = {};
 const revalidatingKeys = new Set<string>();
@@ -35,49 +36,46 @@ async function fetchWithTimeout(url: string, timeout: number = FETCH_TIMEOUT): P
   }
 }
 
-async function listClassicValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
-  const avalancheSDK = new Avalanche({ network });
-  const validators: SimpleValidator[] = [];
-  
-  const result = await avalancheSDK.data.primaryNetwork.listValidators({
-    pageSize: PAGE_SIZE,
-    network,
-    validationStatus: "active",
-  });
-
-  for await (const page of result) {
-    const activeValidators = page.result.validators as ActiveValidatorDetails[];
-    validators.push(...activeValidators.map(v => ({
-      nodeId: v.nodeId,
-      subnetId: v.subnetId,
-      weight: Number(v.amountStaked)
-    })));
+// Fetch every page of a /v1 list endpoint (pageToken pagination), collecting the
+// named array field. Server-side, so it hits the plain-HTTP EXPLORER_API_BASE
+// directly. Replaces the Glacier SDK's async pager.
+async function fetchAllPages<T>(path: string, field: string): Promise<T[]> {
+  const out: T[] = [];
+  let pageToken: string | undefined;
+  for (let i = 0; i < 200; i++) {
+    const sep = path.includes("?") ? "&" : "?";
+    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const res = await fetchWithTimeout(`${EXPLORER_API_BASE}${path}${sep}pageSize=${PAGE_SIZE}${tok}`);
+    if (!res.ok) throw new Error(`validators upstream ${res.status} for ${path}`);
+    const page = await res.json();
+    const arr: T[] = Array.isArray(page?.[field]) ? page[field] : [];
+    out.push(...arr);
+    pageToken = page?.nextPageToken;
+    if (!pageToken || arr.length < PAGE_SIZE) break;
   }
+  return out;
+}
 
-  return validators;
+async function listClassicValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
+  // Primary-network active validators from our P-chain read API (Glacier-shape).
+  const vs = await fetchAllPages<any>(`/v1/networks/${network}/validators?validationStatus=active`, "validators");
+  return vs.map(v => ({
+    nodeId: v.nodeId,
+    subnetId: v.subnetId,
+    weight: Number(v.amountStaked),
+  }));
 }
 
 async function listL1Validators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
-  const avalancheSDK = new Avalanche({ network });
-  const validators: SimpleValidator[] = [];
-  
-  const result = await avalancheSDK.data.primaryNetwork.listL1Validators({
-    pageSize: PAGE_SIZE,
-    includeInactiveL1Validators: false,
-    network,
-  });
-
-  for await (const page of result) {
-    validators.push(...page.result.validators
-      .filter(v => v.remainingBalance > 0)
-      .map(v => ({
-        nodeId: v.nodeId,
-        subnetId: v.subnetId,
-        weight: v.weight
-      })));
-  }
-
-  return validators;
+  // Active L1 validators across all subnets from our P-chain read API.
+  const vs = await fetchAllPages<any>(`/v1/networks/${network}/l1Validators?includeInactive=false`, "validators");
+  return vs
+    .filter(v => Number(v.remainingBalance) > 0)
+    .map(v => ({
+      nodeId: v.nodeId,
+      subnetId: v.subnetId,
+      weight: Number(v.weight),
+    }));
 }
 
 async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
@@ -127,7 +125,7 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
   return promise;
 }
 
-async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
+async function getAllSubnets(network: "mainnet" | "fuji"): Promise<SubnetInfo[]> {
   const now = Date.now();
   const cache = subnetsCached[network];
 
@@ -141,17 +139,8 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
 
   // Start new fetch
   const promise = (async () => {
-    const avalancheSDK = new Avalanche({ network });
-    const allSubnets: Subnet[] = [];
-    
-    const result = await avalancheSDK.data.primaryNetwork.listSubnets({
-      pageSize: PAGE_SIZE,
-      network,
-    });
-
-    for await (const page of result) {
-      allSubnets.push(...page.result.subnets);
-    }
+    // Subnet list (subnetId, isL1, blockchain names) from our P-chain read API.
+    const allSubnets = await fetchAllPages<SubnetInfo>(`/v1/networks/${network}/subnets`, "subnets");
 
     subnetsCached[network] = {
       data: allSubnets,
