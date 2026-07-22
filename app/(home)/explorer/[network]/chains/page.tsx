@@ -5,7 +5,7 @@ import { NetworkChains } from "@/components/explorer-v2/network/NetworkChains";
 export const metadata: Metadata = {
   title: "Chains | Avalanche Explorer",
   description:
-    "The Avalanche chain directory — every L1's explorer, public RPC, chain ID, and one-click wallet setup.",
+    "The Avalanche chain directory: every L1's explorer, public RPC, chain ID, and one-click wallet setup.",
   openGraph: {
     title: "Avalanche Chains",
     description: "Every Avalanche chain: explorers, public RPCs, and wallet setup.",

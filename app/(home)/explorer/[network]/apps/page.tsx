@@ -5,7 +5,7 @@ import { NetworkApps } from "@/components/explorer-v2/network/NetworkApps";
 export const metadata: Metadata = {
   title: "Apps | Avalanche Explorer",
   description:
-    "The applications driving Avalanche — protocol rankings, on-chain usage, gas burned, and per-app analytics.",
+    "The applications driving Avalanche: protocol rankings, on-chain usage, gas burned, and per-app analytics.",
   openGraph: {
     title: "Avalanche Apps",
     description: "Protocol rankings and on-chain usage across Avalanche.",

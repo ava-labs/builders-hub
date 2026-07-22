@@ -255,7 +255,7 @@ export function NetworkOverview() {
     <NetworkShell
       eyebrow="Avalanche Ecosystem · Mainnet"
       title="All Networks"
-      intro="Every Avalanche chain on one sheet — live activity, interchain traffic, validators, and the token that secures it all."
+      intro="Every Avalanche chain on one sheet: live activity, interchain traffic, validators, and the token that secures it all."
       aside={priceAside}
     >
       <div className="flex flex-col gap-10">

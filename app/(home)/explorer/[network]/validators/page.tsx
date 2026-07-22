@@ -5,7 +5,7 @@ import { NetworkValidators } from "@/components/explorer-v2/network/NetworkValid
 export const metadata: Metadata = {
   title: "Validators | Avalanche Explorer",
   description:
-    "Every validator set on Avalanche — stake, node counts, client versions, and health across the Primary Network and every L1.",
+    "Every validator set on Avalanche: stake, node counts, client versions, and health across the Primary Network and every L1.",
   openGraph: {
     title: "Avalanche Validators",
     description: "Stake, node counts, and client versions across every Avalanche validator set.",

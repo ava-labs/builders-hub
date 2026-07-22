@@ -89,7 +89,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
           {loading && <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>}
           {!loading && txs.length === 0 && (
             <div className="flex items-baseline gap-3 px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-              {type ? `No recent ${activeLabel} transactions` : "— no transactions —"}
+              {type ? `No recent ${activeLabel} transactions` : "no transactions"}
               {type && (
                 <button
                   onClick={() => {

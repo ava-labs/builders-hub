@@ -5,7 +5,7 @@ import { NetworkIcm } from "@/components/explorer-v2/network/NetworkIcm";
 export const metadata: Metadata = {
   title: "Interchain Messaging | Avalanche Explorer",
   description:
-    "ICM across the whole Avalanche network — message volume, the busiest chains and routes, and token transfer (ICTT) analytics.",
+    "ICM across the whole Avalanche network: message volume, the busiest chains and routes, and token transfer (ICTT) analytics.",
   openGraph: {
     title: "Avalanche Interchain Messaging",
     description: "Network-wide ICM volume, top chains, and ICTT analytics.",

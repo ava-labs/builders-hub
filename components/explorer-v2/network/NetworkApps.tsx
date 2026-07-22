@@ -33,7 +33,7 @@ export function NetworkApps() {
     <NetworkShell
       eyebrow="Avalanche Ecosystem"
       title="Apps"
-      intro="The applications driving on-chain activity across Avalanche — ranked by real usage."
+      intro="The applications driving on-chain activity across Avalanche, ranked by real usage."
     >
       {loading ? (
         <AppsLoading />

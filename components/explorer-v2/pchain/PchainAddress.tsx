@@ -155,7 +155,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                 ))}
                 {a.utxos.length === 0 && (
                   <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                    — no unspent UTXOs —
+                    no unspent UTXOs
                   </div>
                 )}
               </Board>
@@ -213,7 +213,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
               })}
               {history && history.txs.length === 0 && (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  — no transactions —
+                  no transactions
                 </div>
               )}
             </Board>

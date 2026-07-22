@@ -350,7 +350,7 @@ function IndexingWait({ txHash }: { txHash: string }) {
           <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E6212F]" />
         </span>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-          Accepted on-chain — indexing
+          Accepted on-chain · indexing
         </p>
         <p className="max-w-md text-sm text-zinc-500 dark:text-zinc-400">
           The P-Chain has this transaction; the explorer index is a few blocks behind it. This page
@@ -690,7 +690,7 @@ function UtxoColumn({ base, title, utxos, side }: { base: string; title: string;
       </p>
       <Board>
         {utxos.length === 0 && (
-          <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 md:px-6">— none —</div>
+          <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 md:px-6">none</div>
         )}
         {utxos.map((u, i) => (
           <div key={`${u.utxoId}-${i}`} className="flex flex-col gap-1.5 px-5 py-3 md:px-6">

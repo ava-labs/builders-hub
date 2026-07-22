@@ -5,9 +5,9 @@ import { NetworkOverview } from "@/components/explorer-v2/network/NetworkOvervie
 export const metadata: Metadata = {
   title: "All Networks | Avalanche Explorer",
   description:
-    "Every Avalanche chain on one sheet — live activity, interchain messaging, validators, and AVAX, with search across the whole network.",
+    "Every Avalanche chain on one sheet: live activity, interchain messaging, validators, and AVAX, with search across the whole network.",
   openGraph: {
-    title: "Avalanche Explorer — All Networks",
+    title: "All Networks | Avalanche Explorer",
     description:
       "Live activity, interchain messaging, validators, and AVAX across every Avalanche chain.",
   },

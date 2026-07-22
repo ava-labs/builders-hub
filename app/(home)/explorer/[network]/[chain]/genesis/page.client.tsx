@@ -71,7 +71,7 @@ export function ChainGenesisPageClient({ network }: { network: string }) {
             }
           />
           <p className="max-w-3xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            The block the chain began from — vendored verbatim from avalanchego&apos;s embedded{" "}
+            The block the chain began from, vendored verbatim from avalanchego&apos;s embedded{" "}
             <span className="font-mono text-[12px]">cChainGenesis</span>. Genesis is immutable:
             this document is the same today as at network launch.
           </p>

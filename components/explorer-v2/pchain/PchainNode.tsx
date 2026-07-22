@@ -150,7 +150,7 @@ export function PchainNode({
             <NodeIdHeadline nodeId={n.nodeId} />
             {!n.hasSnapshot && (
               <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                Not in the latest validator snapshot — showing on-chain history.
+                Not in the latest validator snapshot. Showing on-chain history.
               </p>
             )}
           </section>

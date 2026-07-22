@@ -142,7 +142,7 @@ export function ChainDetailsContent({
                     />
                   </SpecRow>
                 )}
-                <SpecRow label="Created">Genesis — predates the P-Chain's transaction record</SpecRow>
+                <SpecRow label="Created">Genesis (predates the P-Chain's transaction record)</SpecRow>
               </SpecPlate>
             </Board>
           </section>

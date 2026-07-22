@@ -52,7 +52,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
             <Board>
               {b.transactions.length === 0 && (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 md:px-6">
-                  — no transactions —
+                  no transactions
                 </div>
               )}
               {b.transactions.map((t) => (

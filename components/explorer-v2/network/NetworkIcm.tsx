@@ -21,7 +21,7 @@ import { useIcmFlows } from "@/app/(home)/stats/interchain-messaging/_hooks/useI
 import { useFilteredIcmData } from "@/app/(home)/stats/interchain-messaging/_hooks/useFilteredIcmData";
 
 const SHELL_INTRO =
-  "Every ICM message and token transfer across the network — volume, routes, and the chains doing the talking. Per-chain message feeds live on each chain's own ICM tab.";
+  "Every ICM message and token transfer across the network: volume, routes, and the chains doing the talking. Per-chain message feeds live on each chain's own ICM tab.";
 
 /* The network-scope ICM facet. The four data sections are ported verbatim
    from /stats/interchain-messaging; the page's hero, sticky nav, bubble nav
