@@ -8,11 +8,20 @@ import l1ChainsData from "@/constants/l1-chains.json";
 type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainName: string }[] };
 
 export const dynamic = 'force-dynamic';
+// The cold aggregate paginates all L1 validators + subnets (pageSize capped at
+// 100 upstream). Result is cached 24h with stale-while-revalidate, so only the
+// first request after expiry is slow — give it headroom so it can't 504 and
+// leave the cache empty.
+export const maxDuration = 60;
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 const VERSION_CACHE_DURATION = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 100;
-const FETCH_TIMEOUT = 10000;
+// Our /v1 validator/subnet endpoints have a heavy cold-start (validators ~10s,
+// subnets ~60s) before their state cache warms; give each page fetch generous
+// headroom so a cold window doesn't abort and blank the whole aggregate. The
+// warmer keeps them hot, so the steady-state path is sub-second.
+const FETCH_TIMEOUT = 60000;
 const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
@@ -57,12 +66,18 @@ async function fetchAllPages<T>(path: string, field: string): Promise<T[]> {
 }
 
 async function listClassicValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
-  // Primary-network active validators from our P-chain read API (Glacier-shape).
-  const vs = await fetchAllPages<any>(`/v1/networks/${network}/validators?validationStatus=active`, "validators");
+  // Primary-network validators from the explorer-shape snapshot — ONE fast
+  // response (the whole current set), instead of paginating ~30 pages of the
+  // heavy /v1 validators endpoint (~3s/page → ~90s → 504). Same source the
+  // P-chain /validators page uses, so counts stay consistent.
+  const res = await fetchWithTimeout(`${EXPLORER_API_BASE}/api/${network}/validators`);
+  if (!res.ok) throw new Error(`validators upstream ${res.status}`);
+  const j = await res.json();
+  const vs: any[] = Array.isArray(j?.validators) ? j.validators : [];
   return vs.map(v => ({
     nodeId: v.nodeId,
     subnetId: v.subnetId,
-    weight: Number(v.amountStaked),
+    weight: Number(v.weight),
   }));
 }
 

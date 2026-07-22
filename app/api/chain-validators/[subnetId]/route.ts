@@ -7,7 +7,9 @@ import {
 
 const PAGE_SIZE = 100;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 25000;
+// Generous timeout for our /v1 validators/l1Validators cold-start before their
+// state cache warms (warmer keeps them hot in steady state).
+const FETCH_TIMEOUT = 60000;
 const VERSION_FETCH_TIMEOUT = 10000;
 
 interface ValidatorData {
