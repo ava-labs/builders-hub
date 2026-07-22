@@ -349,6 +349,13 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
       );
     }
+    // who's on the chain: population charts for every catalog chain,
+    // leaderboards where ClickHouse ingests it
+    tabs.push({
+      label: "Accounts",
+      href: `${base}/accounts`,
+      isActive: (p) => p.startsWith(`${base}/accounts`),
+    });
     if (catalogChain.blockchainId) {
       tabs.push({
         label: "Details",

@@ -1200,6 +1200,128 @@ export async function getGasHistory(evmChainId: number, days: GasHistoryDays): P
   return fetchPromise;
 }
 
+// --- Accounts leaderboards -----------------------------------------------
+
+export interface AccountLeader {
+  /** 0x-prefixed EVM address */
+  address: string;
+  txs: number;
+  gas: number;
+  /** distinct counterparties over the range: senders for a called
+   *  address, destinations for a sender */
+  counterparties: number;
+  /** native value moved through the address over the range, whole tokens */
+  native: number;
+  /** fees the traffic paid, whole native tokens */
+  feesNative: number;
+}
+
+export interface AccountsActivity {
+  rangeDays: GasRangeDays;
+  /** most-called addresses (contracts and hot receivers) over the range */
+  called: AccountLeader[];
+  /** busiest senders over the range */
+  senders: AccountLeader[];
+}
+
+const ACCOUNTS_TTL_MS = 5 * 60 * 1000;
+const ACCOUNTS_LIMIT = 15;
+
+interface RawLeaderRow {
+  address: string;
+  txs: string;
+  gas: string;
+  counterparties: string;
+  native: number;
+  feesNative: number;
+}
+
+// The two sides of every transaction, each ranked by how often it appears.
+// Same shape either way; `col` picks the perspective and `other` counts the
+// far side. Grouping `to` includes EOAs that just receive a lot — that's
+// signal too (bridges, exchange deposits), so they rank rather than filter.
+function sqlAccountLeaders(chainId: number, hours: number, col: "to" | "from"): string {
+  const other = col === "to" ? "from" : "to";
+  return `
+    SELECT
+      concat('0x', lower(hex(\`${col}\`))) AS address,
+      toString(count()) AS txs,
+      toString(sum(toUInt64(gas_used))) AS gas,
+      toString(uniq(\`${other}\`)) AS counterparties,
+      round(sum(value) / 1e18, 4) AS native,
+      round(sum(toUInt64(gas_used) * gas_price) / 1e18, 4) AS feesNative
+    FROM raw_txs
+    WHERE chain_id = ${chainId}
+      AND block_time >= now() - INTERVAL ${hours} HOUR
+      AND \`${col}\` IS NOT NULL
+    GROUP BY \`${col}\`
+    ORDER BY count() DESC
+    LIMIT ${ACCOUNTS_LIMIT}
+    FORMAT JSONEachRow
+  `;
+}
+
+function parseLeaders(rows: RawLeaderRow[]): AccountLeader[] {
+  return rows.map((r) => ({
+    address: r.address,
+    txs: Number(r.txs) || 0,
+    gas: Number(r.gas) || 0,
+    counterparties: Number(r.counterparties) || 0,
+    native: Number(r.native) || 0,
+    feesNative: Number(r.feesNative) || 0,
+  }));
+}
+
+const accountsCache = new Map<string, { data: AccountsActivity; fetchedAt: number }>();
+const accountsInFlight = new Map<string, Promise<AccountsActivity | null>>();
+
+/**
+ * Who the chain's traffic actually is, over `rangeDays`: the most-called
+ * addresses and the busiest senders. Returns null when the chain has no
+ * rows in raw_txs (not ingested), so the route can 404 and the page can
+ * say so honestly.
+ */
+export async function getAccountsActivity(
+  evmChainId: number,
+  rangeDays: GasRangeDays = 1,
+): Promise<AccountsActivity | null> {
+  const cacheKey = `${evmChainId}:${rangeDays}`;
+  const cached = accountsCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < ACCOUNTS_TTL_MS) {
+    return cached.data;
+  }
+  const inFlight = accountsInFlight.get(cacheKey);
+  if (inFlight) return inFlight;
+
+  const hours = rangeDays * 24;
+  const fetchPromise = (async (): Promise<AccountsActivity | null> => {
+    try {
+      const [calledRows, senderRows] = (await allLimited(2, [
+        () => clickhouseFetch(sqlAccountLeaders(evmChainId, hours, "to"), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlAccountLeaders(evmChainId, hours, "from"), QUERY_TIMEOUT_MS),
+      ] as (() => Promise<unknown>)[])) as [RawLeaderRow[], RawLeaderRow[]];
+
+      if (calledRows.length === 0 && senderRows.length === 0) return null;
+
+      const data: AccountsActivity = {
+        rangeDays,
+        called: parseLeaders(calledRows),
+        senders: parseLeaders(senderRows),
+      };
+      accountsCache.set(cacheKey, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (err) {
+      console.error(`[explorer-clickhouse] accounts query failed for ${evmChainId}:`, err);
+      return accountsCache.get(cacheKey)?.data ?? null;
+    } finally {
+      accountsInFlight.delete(cacheKey);
+    }
+  })();
+
+  accountsInFlight.set(cacheKey, fetchPromise);
+  return fetchPromise;
+}
+
 export const __internal = {
   sqlCumulativeTxs,
   sqlDailyTxs,
