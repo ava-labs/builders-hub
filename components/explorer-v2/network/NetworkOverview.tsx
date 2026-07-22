@@ -489,7 +489,6 @@ export function NetworkOverview() {
                   <th className={TH}>Chain</th>
                   <th className={cn(TH, "text-right")}>Active addresses</th>
                   <th className={cn(TH, "text-right")}>Transactions</th>
-                  <th className={cn(TH, "text-right")}>ICM</th>
                   <th className={cn(TH, "text-right")}>Validators</th>
                 </tr>
               </thead>
@@ -497,7 +496,7 @@ export function NetworkOverview() {
                 {rows.length === 0 &&
                   Array.from({ length: 8 }, (_, i) => (
                     <tr key={i}>
-                      <td className={TD} colSpan={5}>
+                      <td className={TD} colSpan={4}>
                         <span className="block h-4 w-2/5 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
                       </td>
                     </tr>
@@ -542,9 +541,6 @@ export function NetworkOverview() {
                       </td>
                       <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
                         {compact.format(c.txCount)}
-                      </td>
-                      <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
-                        {c.icmMessages > 0 ? compact.format(c.icmMessages) : "—"}
                       </td>
                       <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
                         {typeof c.validatorCount === "number" ? c.validatorCount.toLocaleString("en-US") : c.validatorCount}
