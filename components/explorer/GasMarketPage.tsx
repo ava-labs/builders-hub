@@ -563,7 +563,11 @@ function ProtocolsTreemap({
         const p = item.p;
         const label = protocolLabel(p, names);
         const href = protocolHref(p, base);
+        // text tiers by what actually fits: name at 44px, +share at 60px,
+        // +gas caption at 76px — a tile never guillotines its own caption
         const showText = w > 90 && h > 44;
+        const showShare = h > 60;
+        const showGas = h > 76;
         const title = `${label}${p.category ? ` · ${p.category}` : ""} · ${fmtGas(p.gas)} gas (${p.sharePct.toFixed(1)}%) · ${p.txs.toLocaleString()} txs`;
         const style = {
           left: x,
@@ -580,13 +584,17 @@ function ProtocolsTreemap({
               <span className="block truncate font-mono text-[11px] font-semibold text-zinc-900 dark:text-zinc-100">
                 {label}
               </span>
-              <span className="block truncate font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                {p.sharePct.toFixed(1)}%{p.category ? ` · ${p.category}` : ""}
+              {showShare && (
+                <span className="block truncate font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                  {p.sharePct.toFixed(1)}%{p.category ? ` · ${p.category}` : ""}
+                </span>
+              )}
+            </span>
+            {showGas && (
+              <span className="font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                {fmtGas(p.gas)} gas
               </span>
-            </span>
-            <span className="font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {fmtGas(p.gas)} gas
-            </span>
+            )}
           </span>
         );
         const tileClass =
