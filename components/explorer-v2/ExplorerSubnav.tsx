@@ -301,7 +301,7 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
 
   if (getExplorerChain(chainSlug)?.kind === "pchain") {
     const base = `/explorer/${network}/${chainSlug}`;
-    return [
+    const tabs: Tab[] = [
       {
         label: "Overview",
         href: base,
@@ -309,12 +309,21 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       },
       { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
       { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
-      {
-        label: "Validators",
-        href: `${base}/validators`,
-        isActive: (p) => p.startsWith(`${base}/validators`) || p.startsWith(`${base}/node`),
-      },
     ];
+    // the staking observatory's feeds are mainnet-only
+    if (network === "mainnet") {
+      tabs.push({
+        label: "Staking",
+        href: `${base}/staking`,
+        isActive: (p) => p.startsWith(`${base}/staking`),
+      });
+    }
+    tabs.push({
+      label: "Validators",
+      href: `${base}/validators`,
+      isActive: (p) => p.startsWith(`${base}/validators`) || p.startsWith(`${base}/node`),
+    });
+    return tabs;
   }
 
   const base = `/explorer/${network}/${chainSlug}`;
@@ -352,10 +361,19 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       isActive: (p) => p.startsWith(`/stats/l1/${chainSlug}`),
     });
     if (catalogChain.isTestnet !== true) {
+      // the C-Chain's validators ARE the Primary Network's, so it alone
+      // also carries the staking-economics instrument as a sibling tab
+      if (chainSlug === "c-chain") {
+        tabs.push({
+          label: "Staking",
+          href: `${base}/staking`,
+          isActive: (p) => p.startsWith(`${base}/staking`),
+        });
+      }
       tabs.push({
         label: "Validators",
         // every chain's set lives in its own chrome — the C-Chain mounts
-        // the Primary Network observatory, L1s their own weight table
+        // the Primary Network roster, L1s their own weight table
         href: `${base}/validators`,
         isActive: (p) => p.startsWith(`${base}/validators`),
       });

@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { PrimaryNetworkStaking } from "@/components/stats/PrimaryNetworkStaking";
+import { PrimaryStakingContent } from "@/components/explorer-v2/staking/PrimaryStaking";
+import { PrimaryValidatorsContent } from "@/components/explorer-v2/staking/PrimaryValidators";
 import { Board, CellLabel, SectionHeader, TypeFilterRail } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import {
@@ -80,13 +81,24 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
   return (
     <ExplorerShell chain={chain} network={network}>
       {/* the Primary Network's set secures P, C, and X alike — mainnet gets
-          the same staking observatory the C-Chain tab mounts; Fuji keeps
-          the plain set list (the observatory's feeds are mainnet-only) */}
+          the list-first roster the C-Chain tab also mounts; Fuji keeps the
+          plain set list (the roster's p2p feeds are mainnet-only) */}
       {network === "mainnet" ? (
-        <PrimaryNetworkStaking />
+        <PrimaryValidatorsContent stakingHref={`/explorer/${network}/${chain}/staking`} />
       ) : (
         <ValidatorsContent network={network} base={`/explorer/${network}/${chain}`} />
       )}
+    </ExplorerShell>
+  );
+}
+
+/* The P-Chain's Staking tab — the economics half of the old observatory,
+   split out so the validator roster stands alone above. Mainnet only;
+   the route redirects Fuji to the validators list. */
+export function PchainStaking({ chain, network }: { chain: string; network: string }) {
+  return (
+    <ExplorerShell chain={chain} network={network}>
+      <PrimaryStakingContent validatorsHref={`/explorer/${network}/${chain}/validators`} />
     </ExplorerShell>
   );
 }
