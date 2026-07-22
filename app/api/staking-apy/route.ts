@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createPChainClient } from '@avalanche-sdk/client';
-import { avalanche } from '@avalanche-sdk/client/chains';
+import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,15 +22,9 @@ const CONFIG = {
   },
 
   endpoints: {
-    dataApi: 'https://data-api.avax.network/v1/avax/supply',
     metabase: 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D',
   },
 } as const;
-
-const pChainClient = createPChainClient({
-  chain: avalanche,
-  transport: { type: 'http' },
-});
 
 interface APYDataPoint {
   date: string;
@@ -96,27 +89,17 @@ function calculateAPY(supply: number, stakingDays: number): number {
 
 async function fetchPChainSupply(): Promise<number | null> {
   try {
-    // Get Primary Network supply (no subnetId needed for default)
-    const result = await pChainClient.getCurrentSupply({});
-    // Supply is returned as bigint in nanoAVAX, convert to AVAX
-    return Number(result.supply) / 1_000_000_000;
-  } catch (error) {
-    console.error('[fetchPChainSupply] SDK error:', error);
-    return null;
-  }
-}
-
-async function fetchDataApiDetails(): Promise<{ totalBurned: number } | null> {
-  try {
-    const response = await fetchWithTimeout(CONFIG.endpoints.dataApi, {
+    // Primary Network current supply from our own P-chain read API (served from
+    // ClickHouse) — replaces the @avalanche-sdk/client RPC call. currentSupply
+    // is nAVAX; the APY math works in AVAX.
+    const response = await fetchWithTimeout(`${EXPLORER_API_BASE}/api/mainnet/stats`, {
       headers: { Accept: 'application/json' },
     });
-
     if (!response.ok) return null;
     const data = await response.json();
-    const totalBurned = (parseFloat(data.totalPBurned) || 0) + (parseFloat(data.totalCBurned) || 0) + (parseFloat(data.totalXBurned) || 0);
-    return { totalBurned };
-  } catch {
+    return data?.currentSupply ? Number(data.currentSupply) / 1_000_000_000 : null;
+  } catch (error) {
+    console.error('[fetchPChainSupply] error:', error);
     return null;
   }
 }
@@ -151,9 +134,8 @@ async function fetchHistoricalData(): Promise<MetabaseRow[]> {
 
 export async function GET() {
   try {
-    const [pChainSupply, dataApiDetails, historicalData] = await Promise.all([
+    const [pChainSupply, historicalData] = await Promise.all([
       fetchPChainSupply(),
-      fetchDataApiDetails(),
       fetchHistoricalData(),
     ]);
 
@@ -167,7 +149,10 @@ export async function GET() {
     const currentSupply = pChainSupply ?? CONFIG.network.genesisSupply;
     const current: CurrentData = {
       supply: currentSupply,
-      totalBurned: dataApiDetails?.totalBurned ?? 0,
+      // Total-burned came from Glacier (data-api /v1/avax/supply), now removed.
+      // Not currently served by our own data; 0 until we surface it (display-only,
+      // not used in the APY calculation).
+      totalBurned: 0,
       maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays),
       minAPY: calculateAPY(currentSupply, CONFIG.network.minStakingDays),
     };

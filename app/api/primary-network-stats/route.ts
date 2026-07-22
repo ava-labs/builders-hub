@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
+import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { TimeSeriesDataPoint, TimeSeriesMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric } from "@/types/stats";
 
 export const dynamic = 'force-dynamic';
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 10000;
 
-const avalanche = new Avalanche({ network: "mainnet" });
+// Time-series come from the metrics gateway (metrics.avax.network) via direct
+// HTTP — the P-chain validator/delegator series aren't in our own ClickHouse.
+// The Glacier chainkit SDK is gone; the version distribution now comes from our
+// own /v1 network overview.
+const METRICS_API_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
 
 interface PrimaryNetworkMetrics {
   validator_count: TimeSeriesMetric;
@@ -48,24 +52,21 @@ async function getTimeSeriesData(
     let allResults: any[] = [];
 
     const rlToken = getRlToken();
-    const params: any = {
-      metric: metricType as any,
-      startTimestamp,
-      endTimestamp,
-      pageSize,
-    };
-
-    if (rlToken) params.rltoken = rlToken;
-    
-    const result = await avalanche.metrics.networks.getStakingMetrics(params);
-
-    for await (const page of result) {
-      if (!page?.result?.results || !Array.isArray(page.result.results)) {
-        continue;
-      }
-      allResults = allResults.concat(page.result.results);
-      if (!fetchAllPages) break;
-    }
+    let pageToken: string | undefined;
+    do {
+      const qs = new URLSearchParams({
+        startTimestamp: String(startTimestamp),
+        endTimestamp: String(endTimestamp),
+        pageSize: String(pageSize),
+      });
+      if (rlToken) qs.set('rltoken', rlToken);
+      if (pageToken) qs.set('pageToken', pageToken);
+      const res = await fetchWithTimeout(`${METRICS_API_URL}/v2/networks/mainnet/metrics/${metricType}?${qs.toString()}`);
+      if (!res.ok) break;
+      const page = await res.json();
+      if (Array.isArray(page?.results)) allResults = allResults.concat(page.results);
+      pageToken = fetchAllPages ? page?.nextPageToken : undefined;
+    } while (pageToken);
 
     return allResults
       .sort((a: any, b: any) => b.timestamp - a.timestamp)
@@ -82,8 +83,12 @@ async function getTimeSeriesData(
 
 async function fetchValidatorVersions() {
   try {
-    const result = await avalanche.data.primaryNetwork.getNetworkDetails({});
-    
+    // Version distribution from our own P-chain read API (network overview),
+    // not Glacier's data.primaryNetwork.getNetworkDetails.
+    const detailsRes = await fetchWithTimeout(`${EXPLORER_API_BASE}/v1/networks/mainnet`);
+    if (!detailsRes.ok) return {};
+    const result = await detailsRes.json();
+
     if (!result?.validatorDetails?.stakingDistributionByVersion) {
       console.warn('[fetchValidatorVersions] No stakingDistributionByVersion found');
       return {};
