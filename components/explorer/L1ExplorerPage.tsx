@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { BlockTape, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { Board, SectionHeader } from "@/components/explorer-v2/ui";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -343,6 +344,7 @@ export default function L1ExplorerPage({
   rpcUrl,
 }: L1ExplorerPageProps) {
   const router = useRouter();
+  const network = useExplorerNetwork();
   // Get token data from shared context (avoids duplicate fetches across explorer pages)
   const { tokenSymbol: contextTokenSymbol, priceData: contextPriceData, glacierSupported, buildApiUrl } = useExplorer();
   
@@ -752,7 +754,7 @@ export default function L1ExplorerPage({
       ago: formatTimeAgo(b.timestamp),
       // each block fills like a vessel: level = gas consumed / gas limit
       fill: Number.isFinite(gas) && gasLimit > 0 ? gas / gasLimit : undefined,
-      href: buildBlockUrl(`/explorer/mainnet/${chainSlug}`, b.number),
+      href: buildBlockUrl(`/explorer/${network}/${chainSlug}`, b.number),
     };
   });
 
@@ -815,7 +817,7 @@ export default function L1ExplorerPage({
 
             <LedgerCell
               label="Med gas price"
-              href={`/explorer/mainnet/${chainSlug}/gas`}
+              href={`/explorer/${network}/${chainSlug}/gas`}
               sub="gas market →"
             >
               {data?.stats.gasPrice ?? "—"}
@@ -991,7 +993,7 @@ export default function L1ExplorerPage({
               {accumulatedBlocks.slice(0, 10).map((block) => (
                 <Link
                   key={block.number}
-                  href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, block.number)}
+                  href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, block.number)}
                   className={`flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900 ${
                     newBlockNumbers.has(block.number) ? "new-item" : ""
                   }`}
@@ -1026,7 +1028,7 @@ export default function L1ExplorerPage({
               {accumulatedTransactions.slice(0, 10).map((tx, index) => (
                 <div
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
+                  onClick={() => router.push(buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash))}
                   className={`cursor-pointer px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900 ${
                     newTxHashes.has(tx.hash) ? "new-item" : ""
                   }`}
@@ -1074,7 +1076,7 @@ export default function L1ExplorerPage({
                   return (
                     <div
                       key={`icm-${tx.hash}-${index}`}
-                      onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
+                      onClick={() => router.push(buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash))}
                       className={`cursor-pointer px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900 ${
                         newTxHashes.has(tx.hash) ? "new-item" : ""
                       }`}
@@ -1090,13 +1092,13 @@ export default function L1ExplorerPage({
                       <div className="mt-1.5 flex items-center justify-between gap-2">
                         <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                           {sourceChain ? (
-                            <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/mainnet/${sourceChain.chainSlug}`)} />
+                            <ChainChip chain={sourceChain} size="xs" onClick={() => router.push(`/explorer/${network}/${sourceChain.chainSlug}`)} />
                           ) : (
                             <span className="font-mono text-[10px] text-zinc-400">unknown</span>
                           )}
                           <span className="text-zinc-400">→</span>
                           {destChain ? (
-                            <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/mainnet/${destChain.chainSlug}`)} />
+                            <ChainChip chain={destChain} size="xs" onClick={() => router.push(`/explorer/${network}/${destChain.chainSlug}`)} />
                           ) : (
                             <span className="font-mono text-[10px] text-zinc-400">unknown</span>
                           )}

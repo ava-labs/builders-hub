@@ -14,10 +14,15 @@ export default async function ChainExplorerLayout({
   params
 }: ChainExplorerLayoutProps) {
   const resolvedParams = await params;
-  const { chain: chainSlug } = resolvedParams;
+  const { network, chain: chainSlug } = resolvedParams;
 
-  // Find chain in static data
-  const chain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain | undefined;
+  // Find chain in static data — network-aware: the catalog holds same-slug
+  // pairs (mainnet + Fuji deployments of one chain), and the URL's network
+  // segment picks between them. A chain with a single entry answers under
+  // either segment, so old links keep working.
+  const wantTestnet = network === "fuji" || network === "testnet";
+  const candidates = l1ChainsData.filter((c) => c.slug === chainSlug) as L1Chain[];
+  const chain = candidates.find((c) => (c.isTestnet === true) === wantTestnet) ?? candidates[0];
   
   // If chain found in static data, render with server-known props
   if (chain) {

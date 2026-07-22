@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import {
   LiveTag,
   formatTimeAgo,
@@ -39,6 +40,7 @@ export function IcmMessagesPage({
   tokenSymbol?: string;
 }) {
   const router = useRouter();
+  const network = useExplorerNetwork();
   const { buildApiUrl } = useExplorer();
   const [messages, setMessages] = useState<IcmTx[] | null>(null);
 
@@ -99,7 +101,7 @@ export function IcmMessagesPage({
               return (
                 <div
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash))}
+                  onClick={() => router.push(buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash))}
                   className="cursor-pointer px-5 py-3.5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -116,7 +118,7 @@ export function IcmMessagesPage({
                         <ChainChip
                           chain={sourceChain}
                           size="xs"
-                          onClick={() => router.push(`/explorer/mainnet/${sourceChain.chainSlug}`)}
+                          onClick={() => router.push(`/explorer/${network}/${sourceChain.chainSlug}`)}
                         />
                       ) : (
                         <span className="font-mono text-[10px] text-zinc-400">unknown</span>
@@ -126,7 +128,7 @@ export function IcmMessagesPage({
                         <ChainChip
                           chain={destChain}
                           size="xs"
-                          onClick={() => router.push(`/explorer/mainnet/${destChain.chainSlug}`)}
+                          onClick={() => router.push(`/explorer/${network}/${destChain.chainSlug}`)}
                         />
                       ) : (
                         <span className="font-mono text-[10px] text-zinc-400">unknown</span>

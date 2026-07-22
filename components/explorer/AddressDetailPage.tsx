@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { buildTxUrl, buildBlockUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -309,6 +310,7 @@ export default function AddressDetailPage({
   rpcUrl,
   sourcifySupport = false,
 }: AddressDetailPageProps) {
+  const network = useExplorerNetwork();
   // Get Glacier support status and API helper from context
   const { glacierSupported, buildApiUrl } = useExplorer();
   
@@ -984,7 +986,7 @@ export default function AddressDetailPage({
                 </div>
                 <div className="flex items-center gap-2 text-sm flex-wrap">
                   <Link 
-                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, data.contractMetadata.deploymentDetails.deployerAddress)}
+                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, data.contractMetadata.deploymentDetails.deployerAddress)}
                     className="hover:underline cursor-pointer"
                   >
                     {formatAddressShort(data.contractMetadata.deploymentDetails.deployerAddress)}
@@ -994,7 +996,7 @@ export default function AddressDetailPage({
                     <>
                       <span className="text-zinc-400">at txn</span>
                       <Link 
-                        href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, data.contractMetadata.deploymentDetails.txHash)}
+                        href={buildTxUrl(`/explorer/${network}/${chainSlug}`, data.contractMetadata.deploymentDetails.txHash)}
                         className="hover:underline font-mono cursor-pointer"
                       >
                         {formatAddressShort(data.contractMetadata.deploymentDetails.txHash)}
@@ -1109,7 +1111,7 @@ export default function AddressDetailPage({
                     
                     // Construct explorer URL if rpcUrl is provided (indicates explorer support)
                     const explorerUrl = chainInfo?.rpcUrl && chainSlug
-                      ? `/explorer/mainnet/${chainSlug}/address/${address}`
+                      ? `/explorer/${network}/${chainSlug}/address/${address}`
                       : undefined;
                     
                     return explorerUrl ? (
@@ -1238,7 +1240,7 @@ export default function AddressDetailPage({
                         <tr key={tx.hash || index} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <div className="flex items-center gap-1.5">
-                              <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(tx.hash)}</Link>
+                              <Link href={buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(tx.hash)}</Link>
                               <CopyButton text={tx.hash} />
                             </div>
                           </td>
@@ -1246,12 +1248,12 @@ export default function AddressDetailPage({
                             <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={tooltipText}>{truncatedMethod}</span>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                            <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, tx.blockNumber)} className="text-sm hover:underline cursor-pointer">{tx.blockNumber}</Link>
+                            <Link href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, tx.blockNumber)} className="text-sm hover:underline cursor-pointer">{tx.blockNumber}</Link>
                           </td>
                           <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                             <div className="flex items-center gap-1.5">
                               <Link 
-                                href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)} 
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.from)} 
                                 className={`font-mono text-sm hover:underline cursor-pointer px-1 py-0.5 rounded transition-all ${
                                   hoveredAddress && hoveredAddress.toLowerCase() === tx.from.toLowerCase() 
                                     ? 'border border-dashed' 
@@ -1274,7 +1276,7 @@ export default function AddressDetailPage({
                               {tx.to ? (
                                 <>
                                   <Link 
-                                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)} 
+                                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.to)} 
                                     className={`font-mono text-sm hover:underline cursor-pointer px-1 py-0.5 rounded transition-all ${
                                       hoveredAddress && hoveredAddress.toLowerCase() === tx.to.toLowerCase() 
                                         ? 'border border-dashed' 
@@ -1330,22 +1332,22 @@ export default function AddressDetailPage({
                       <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/${network}/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.txHash)}</Link>
                             <CopyButton text={transfer.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer">{transfer.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer">{transfer.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.from)}</Link>
                             <CopyButton text={transfer.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.to)}</Link>
                             <CopyButton text={transfer.to} />
                           </div>
                         </td>
@@ -1355,7 +1357,7 @@ export default function AddressDetailPage({
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-2">
                             {transfer.tokenLogo && <img src={transfer.tokenLogo} alt="" className="w-4 h-4 rounded-full" />}
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenSymbol}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenSymbol}</Link>
                           </div>
                         </td>
                         <td className="px-4 py-2 text-right text-sm text-neutral-500 dark:text-neutral-400">{formatTimestamp(transfer.timestamp)}</td>
@@ -1390,27 +1392,27 @@ export default function AddressDetailPage({
                       <tr key={`${transfer.txHash}-${transfer.logIndex}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/${network}/${chainSlug}`, transfer.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.txHash)}</Link>
                             <CopyButton text={transfer.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer">{transfer.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, transfer.blockNumber)} className="text-sm hover:underline cursor-pointer">{transfer.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.from)}</Link>
                             <CopyButton text={transfer.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(transfer.to)}</Link>
                             <CopyButton text={transfer.to} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenName || transfer.tokenSymbol || 'Unknown'}</Link>
+                          <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.tokenAddress)} className="text-sm hover:underline cursor-pointer text-neutral-900 dark:text-neutral-100">{transfer.tokenName || transfer.tokenSymbol || 'Unknown'}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <span className="text-sm font-mono text-neutral-600 dark:text-neutral-400">#{transfer.tokenId.length > 10 ? transfer.tokenId.slice(0, 10) + '...' : transfer.tokenId}</span>
@@ -1450,22 +1452,22 @@ export default function AddressDetailPage({
                       <tr key={`${itx.txHash}-${index}`} className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50">
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, itx.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.txHash)}</Link>
+                            <Link href={buildTxUrl(`/explorer/${network}/${chainSlug}`, itx.txHash)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.txHash)}</Link>
                             <CopyButton text={itx.txHash} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
-                          <Link href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, itx.blockNumber)} className="text-sm hover:underline cursor-pointer">{itx.blockNumber}</Link>
+                          <Link href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, itx.blockNumber)} className="text-sm hover:underline cursor-pointer">{itx.blockNumber}</Link>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, itx.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.from)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, itx.from)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.from)}</Link>
                             <CopyButton text={itx.from} />
                           </div>
                         </td>
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
                           <div className="flex items-center gap-1.5">
-                            <Link href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, itx.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.to)}</Link>
+                            <Link href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, itx.to)} className="font-mono text-sm hover:underline cursor-pointer">{formatAddressShort(itx.to)}</Link>
                             <CopyButton text={itx.to} />
                           </div>
                         </td>
@@ -1668,7 +1670,7 @@ export default function AddressDetailPage({
                               <div className="flex-1">
                                 {impl.name && <div className="text-sm font-medium text-zinc-900 dark:text-white">{impl.name}</div>}
                                 <Link 
-                                  href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, impl.address)} 
+                                  href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, impl.address)} 
                                   className="text-sm font-mono hover:underline cursor-pointer"
                                 >
                                   {impl.address}
@@ -1748,7 +1750,7 @@ export default function AddressDetailPage({
                                 <span className="block mt-1">
                                   Implementation: 
                                   <Link
-                                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
+                                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
                                     className="font-mono ml-1 hover:underline cursor-pointer"
                                   >
                                     {sourcifyData.proxyResolution.implementations[0].name || formatAddressShort(sourcifyData.proxyResolution.implementations[0].address)}
@@ -1784,7 +1786,7 @@ export default function AddressDetailPage({
                                 {sourcifyData.proxyResolution.implementations?.map((impl, idx) => (
                                   <Link
                                     key={idx}
-                                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, impl.address)}
+                                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, impl.address)}
                                     className="inline-flex items-center gap-1 text-sm font-mono mt-2 hover:underline cursor-pointer"
                                   >
                                     {impl.name || formatAddressShort(impl.address)}
@@ -1811,7 +1813,7 @@ export default function AddressDetailPage({
                                 <span className="block mt-1">
                                   Implementation: 
                                   <Link
-                                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
+                                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, sourcifyData.proxyResolution.implementations[0].address)}
                                     className="font-mono ml-1 hover:underline cursor-pointer"
                                   >
                                     {sourcifyData.proxyResolution.implementations[0].name || formatAddressShort(sourcifyData.proxyResolution.implementations[0].address)}
@@ -1849,7 +1851,7 @@ export default function AddressDetailPage({
                                 {sourcifyData.proxyResolution.implementations?.map((impl, idx) => (
                                   <Link
                                     key={idx}
-                                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, impl.address)}
+                                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, impl.address)}
                                     className="inline-flex items-center gap-1 text-sm font-mono mt-2 hover:underline cursor-pointer"
                                   >
                                     {impl.name || formatAddressShort(impl.address)}

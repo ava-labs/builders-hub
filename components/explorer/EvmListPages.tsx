@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { LiveTag, formatTimeAgo, useNowTick } from "@/components/explorer/L1ExplorerPage";
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
@@ -127,8 +128,9 @@ export function EvmBlocksPage({
   chainSlug: string;
   tokenSymbol?: string;
 }) {
+  const network = useExplorerNetwork();
   const blocks = useExplorerFeed<EvmBlock[]>(chainId, (d) => (d.blocks as EvmBlock[]) ?? []);
-  const base = `/explorer/mainnet/${chainSlug}`;
+  const base = `/explorer/${network}/${chainSlug}`;
   // keep relative ages flowing between polls
   useNowTick();
 
@@ -196,13 +198,14 @@ export function EvmTxsPage({
   tokenSymbol?: string;
 }) {
   const router = useRouter();
+  const network = useExplorerNetwork();
   const txs = useExplorerFeed<EvmTx[]>(
     chainId,
     (d) => (d.transactions as EvmTx[]) ?? [],
     // names resolve before rows land — labelled rows paint labelled
     (items) => prewarmContractNames(chainId, items.map((t) => t.to)),
   );
-  const base = `/explorer/mainnet/${chainSlug}`;
+  const base = `/explorer/${network}/${chainSlug}`;
   // keep relative ages flowing between polls
   useNowTick();
   // full verified records: names label the To column, ABIs name method

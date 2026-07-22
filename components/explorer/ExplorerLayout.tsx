@@ -2,7 +2,7 @@
 
 import { ReactNode, useState, FormEvent, useMemo, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
@@ -75,6 +75,10 @@ export function ExplorerLayout({
   // Avalanche red, which is what the C-Chain and P-Chain keep.
   const accent = chainSlug !== "c-chain" ? themeColor : undefined;
   const router = useRouter();
+  // the URL's network segment scopes every link this page builds — a Fuji
+  // deployment's explorer must not leak back to its mainnet twin
+  const params = useParams();
+  const network = typeof params?.network === "string" ? params.network : "mainnet";
   const { glacierSupported, isTokenDataLoading } = useExplorer();
 
   // State for custom chain (loaded from localStorage on client)
@@ -127,10 +131,10 @@ export function ExplorerLayout({
   // what the identifier in the box resolves to — tx hashes race every
   // chain live, so the dropdown names the chain before Enter is pressed
   const entity = useSearchEntity(searchQuery, {
-    network: "mainnet",
-    blockBase: `/explorer/mainnet/${chainSlug}`,
+    network,
+    blockBase: `/explorer/${network}/${chainSlug}`,
     blockChainName: chainName,
-    evmAddressBase: `/explorer/mainnet/${chainSlug}`,
+    evmAddressBase: `/explorer/${network}/${chainSlug}`,
     evmAddressChainName: chainName,
   });
   const showHits = searchFocused && !!searchQuery.trim() && (hits.length > 0 || entity !== null);
@@ -227,7 +231,7 @@ export function ExplorerLayout({
       if (/^\d+$/.test(query)) {
         const blockNum = parseInt(query);
         if (blockNum >= 0 && blockNum <= (latestBlock || Infinity)) {
-          router.push(buildBlockUrl(`/explorer/mainnet/${chainSlug}`, query));
+          router.push(buildBlockUrl(`/explorer/${network}/${chainSlug}`, query));
           return;
         } else {
           setSearchError("Block number not found");
@@ -237,13 +241,13 @@ export function ExplorerLayout({
 
       // Check if it's a transaction hash (0x + 64 hex chars = 66 total)
       if (/^0x[a-fA-F0-9]{64}$/.test(query)) {
-        router.push(buildTxUrl(`/explorer/mainnet/${chainSlug}`, query));
+        router.push(buildTxUrl(`/explorer/${network}/${chainSlug}`, query));
         return;
       }
 
       // Check if it's an address (0x + 40 hex chars = 42 total)
       if (/^0x[a-fA-F0-9]{40}$/.test(query)) {
-        router.push(buildAddressUrl(`/explorer/mainnet/${chainSlug}`, query));
+        router.push(buildAddressUrl(`/explorer/${network}/${chainSlug}`, query));
         return;
       }
 
@@ -251,7 +255,7 @@ export function ExplorerLayout({
       if (/^0x[a-fA-F0-9]+$/.test(query) && query.length < 42) {
         const blockNum = parseInt(query, 16);
         if (!isNaN(blockNum) && blockNum >= 0) {
-          router.push(buildBlockUrl(`/explorer/mainnet/${chainSlug}`, blockNum.toString()));
+          router.push(buildBlockUrl(`/explorer/${network}/${chainSlug}`, blockNum.toString()));
           return;
         }
       }
@@ -260,7 +264,7 @@ export function ExplorerLayout({
       // route straight to the P-Chain explorer…
       const pchain = classifyLocally(query);
       if (pchain && pchain.type !== "block") {
-        router.push(`/explorer/mainnet/p-chain/${pchain.type}/${pchain.id}`);
+        router.push(`/explorer/${network}/p-chain/${pchain.type}/${pchain.id}`);
         return;
       }
 
@@ -269,7 +273,7 @@ export function ExplorerLayout({
       const res = await fetch(pchainApiPath("mainnet", "search", { q: query }));
       const r: SearchResult = res.ok ? await res.json() : { type: "none", id: query };
       if (r.type !== "none") {
-        router.push(`/explorer/mainnet/p-chain/${r.type}/${r.id}`);
+        router.push(`/explorer/${network}/p-chain/${r.type}/${r.id}`);
         return;
       }
 
@@ -296,7 +300,7 @@ export function ExplorerLayout({
         {/* the app's spine: chain switcher, section tabs, network. Rendered
             during loading too — the chain identity comes in via props. */}
         <ExplorerSubnav
-          network="mainnet"
+          network={network}
           chainSlug={chainSlug}
           chainName={chainName}
           chainLogoURI={chainLogoURI}

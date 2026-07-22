@@ -9,9 +9,12 @@ interface ChainExplorerPageProps {
 
 export async function generateMetadata({ params }: ChainExplorerPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const { chain: chainSlug } = resolvedParams;
-  
-  const chain = l1ChainsData.find((c) => c.slug === chainSlug) as L1Chain | undefined;
+  const { network, chain: chainSlug } = resolvedParams;
+
+  // network-aware, mirroring the layout's resolution (same-slug pairs)
+  const wantTestnet = network === "fuji" || network === "testnet";
+  const candidates = l1ChainsData.filter((c) => c.slug === chainSlug) as L1Chain[];
+  const chain = candidates.find((c) => (c.isTestnet === true) === wantTestnet) ?? candidates[0];
   
   // For custom chains, return generic metadata (actual name resolved client-side)
   if (!chain) {

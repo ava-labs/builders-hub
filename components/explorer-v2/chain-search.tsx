@@ -48,6 +48,9 @@ export const CHAIN_INDEX: ChainHit[] = [
   },
   ...(l1ChainsData as L1Chain[]).map((c) => {
     const hasExplorer = !!c.rpcUrl;
+    // testnet deployments live under the fuji network segment — the chain
+    // layout resolves same-slug pairs by that segment
+    const net = c.isTestnet === true ? "fuji" : "mainnet";
     return {
       slug: c.slug,
       name: c.chainName || c.slug,
@@ -58,7 +61,7 @@ export const CHAIN_INDEX: ChainHit[] = [
       isTestnet: c.isTestnet === true,
       hasExplorer,
       // no RPC → no explorer to drive; the stats page still knows the chain
-      href: hasExplorer ? `/explorer/mainnet/${c.slug}` : `/stats/l1/${c.slug}`,
+      href: hasExplorer ? `/explorer/${net}/${c.slug}` : `/stats/l1/${c.slug}`,
       aliases: [
         (c.chainName || "").toLowerCase(),
         c.slug.toLowerCase(),

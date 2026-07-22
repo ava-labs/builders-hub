@@ -8,6 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/event-signatures.generated";
 import {
   fetchVerifiedContract,
@@ -462,6 +463,7 @@ export default function TransactionDetailPage({
   socials,
   rpcUrl,
 }: TransactionDetailPageProps) {
+  const network = useExplorerNetwork();
   // Get token data from shared context
   const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
   
@@ -707,7 +709,7 @@ export default function TransactionDetailPage({
                 tx?.blockNumber ? (
                   <div className="flex items-center gap-2">
                     <Link
-                      href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, tx.blockNumber)}
+                      href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, tx.blockNumber)}
                       className="text-sm font-medium hover:underline cursor-pointer"
                     >
                       {parseInt(tx.blockNumber).toLocaleString()}
@@ -742,7 +744,7 @@ export default function TransactionDetailPage({
               value={
                 tx?.from ? (
                   <Link
-                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)}
+                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.from)}
                     className="text-sm font-mono break-all hover:underline cursor-pointer"
                   >
                     {tx.from}
@@ -763,7 +765,7 @@ export default function TransactionDetailPage({
                 tx?.to ? (
                   <div className="flex items-center gap-2">
                   <Link
-                    href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)}
+                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.to)}
                       className="text-sm font-mono break-all hover:underline cursor-pointer"
                   >
                     {tx.to}
@@ -774,7 +776,7 @@ export default function TransactionDetailPage({
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-500">[Contract Created]</span>
                     <Link
-                      href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.contractAddress)}
+                      href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.contractAddress)}
                       className="text-sm font-mono hover:underline cursor-pointer"
                     >
                       {tx.contractAddress}
@@ -826,7 +828,7 @@ export default function TransactionDetailPage({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-zinc-500">From</span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.from)}
+                            href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.from)}
                             className="font-mono text-xs hover:underline cursor-pointer"
                           >
                             {formatAddress(transfer.from)}
@@ -834,7 +836,7 @@ export default function TransactionDetailPage({
                           <span className="text-zinc-400">→</span>
                           <span className="text-zinc-500">To</span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.to)}
+                            href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.to)}
                             className="font-mono text-xs hover:underline cursor-pointer"
                           >
                             {formatAddress(transfer.to)}
@@ -846,7 +848,7 @@ export default function TransactionDetailPage({
                             {formatTokenAmountFromWei(transfer.value, transfer.decimals)}
                           </span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.tokenAddress)}
+                            href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.tokenAddress)}
                             className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                           >
                             {transfer.logoUri && (
@@ -898,7 +900,7 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2 flex-wrap">
                               {/* Source Chain */}
                               <Link 
-                                href={`/explorer/mainnet/${chainSlug}`}
+                                href={`/explorer/${network}/${chainSlug}`}
                                 className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                               >
                                 {chainLogoURI && (
@@ -918,7 +920,7 @@ export default function TransactionDetailPage({
                               {/* Destination Chain */}
                               {destChain ? (
                                 <Link 
-                                  href={`/explorer/mainnet/${destChain.slug}`}
+                                  href={`/explorer/${network}/${destChain.slug}`}
                                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                   style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
                                 >
@@ -945,7 +947,7 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-zinc-500">From</span>
                               <Link 
-                                href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.sender)}
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.sender)}
                                 className="font-mono text-xs hover:underline cursor-pointer"
                               >
                                 {formatAddress(transfer.sender)}
@@ -954,7 +956,7 @@ export default function TransactionDetailPage({
                               <span className="text-zinc-500">To</span>
                               {destChain ? (
                                 <Link 
-                                  href={buildAddressUrl(`/explorer/mainnet/${destChain.slug}`, transfer.recipient)}
+                                  href={buildAddressUrl(`/explorer/${network}/${destChain.slug}`, transfer.recipient)}
                                   className="font-mono text-xs hover:underline cursor-pointer" 
                                   style={{ color: destChain.color }}
                                 >
@@ -970,7 +972,7 @@ export default function TransactionDetailPage({
                                 {formattedAmount}
                               </span>
                               <Link 
-                                href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, transfer.contractAddress)}
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.contractAddress)}
                                 className="inline-flex items-center border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                               >
                                 {transferTokenSymbol}
@@ -1153,7 +1155,7 @@ export default function TransactionDetailPage({
                                           <div className="flex-1 min-w-0">
                                             {isAddress ? (
                                               <Link
-                                                href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, param.value)}
+                                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, param.value)}
                                                 className="font-mono text-xs hover:underline cursor-pointer break-all"
                                               >
                                                 {param.value}
@@ -1174,7 +1176,7 @@ export default function TransactionDetailPage({
                                                       </span>
                                                       {compIsAddress ? (
                                                         <Link
-                                                          href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, comp.value)}
+                                                          href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, comp.value)}
                                                           className="font-mono hover:underline cursor-pointer break-all"
                                                         >
                                                           {comp.value}
@@ -1263,7 +1265,7 @@ export default function TransactionDetailPage({
                                 <ContractBadge contract={emitter} />
                                 <CopyButton text={log.address} />
                                 <Link
-                                  href={`/explorer/mainnet/${chainSlug}`}
+                                  href={`/explorer/${network}/${chainSlug}`}
                                   className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
                                   title="View contract"
                                 >

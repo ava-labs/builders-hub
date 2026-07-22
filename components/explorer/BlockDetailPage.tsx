@@ -8,6 +8,7 @@ import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
 import Link from "next/link";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { decodeFunctionInput } from "@/abi/event-signatures.generated";
 import {
   useVerifiedContracts,
@@ -171,6 +172,7 @@ export default function BlockDetailPage({
   socials,
   rpcUrl,
 }: BlockDetailPageProps) {
+  const network = useExplorerNetwork();
   // Get token data from shared context
   const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
   
@@ -370,13 +372,13 @@ export default function BlockDetailPage({
                     </span>
                     <div className="flex items-center gap-1">
                       <Link
-                        href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, prevBlock)}
+                        href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, prevBlock)}
                         className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowLeft className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                       </Link>
                       <Link
-                        href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, nextBlock)}
+                        href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, nextBlock)}
                         className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowRight className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
@@ -619,7 +621,7 @@ export default function BlockDetailPage({
                     themeColor={themeColor}
                     value={
                       <Link
-                        href={buildBlockUrl(`/explorer/mainnet/${chainSlug}`, prevBlock)}
+                        href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, prevBlock)}
                         className="text-sm font-mono break-all hover:underline cursor-pointer"
                       >
                         {block?.parentHash || '-'}
@@ -636,7 +638,7 @@ export default function BlockDetailPage({
                     value={
                       block?.miner ? (
                         <Link
-                          href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, block.miner)}
+                          href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, block.miner)}
                           className="text-sm font-mono break-all hover:underline cursor-pointer"
                         >
                           {block.miner}
@@ -759,7 +761,7 @@ export default function BlockDetailPage({
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             <Link
-                              href={buildTxUrl(`/explorer/mainnet/${chainSlug}`, tx.hash)}
+                              href={buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash)}
                               className="font-mono text-sm hover:underline cursor-pointer"
                             >
                               {formatAddress(tx.hash)}
@@ -773,7 +775,7 @@ export default function BlockDetailPage({
                         <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             <Link
-                              href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.from)}
+                              href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.from)}
                                 className="font-mono text-sm hover:underline cursor-pointer"
                             >
                               {formatAddress(tx.from)}
@@ -788,7 +790,7 @@ export default function BlockDetailPage({
                           <div className="flex items-center gap-1.5">
                             {tx.to ? (
                               <Link
-                                href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)}
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.to)}
                                   className="font-mono text-sm hover:underline cursor-pointer"
                                   title={tx.to}
                               >
