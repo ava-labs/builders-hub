@@ -26,6 +26,9 @@ export interface SourcifyContract {
   language: string | null;
   verifiedAt: string | null;
   abi: Abi | null;
+  /** Present when the address is a proxy — the server merged the
+   *  implementation's ABI into `abi` already. */
+  proxy?: { implementation: string; implementationName: string | null };
 }
 
 /* One promise per contract per session — every caller shares the same
@@ -130,6 +133,74 @@ export function useContractNames(
     if (c?.name) names.set(a, c.name);
   }
   return names;
+}
+
+/**
+ * Full verified-contract records (name + ABI) for a set of addresses — the
+ * same resolution path and session cache as useContractNames, but hands
+ * back the whole record so callers can also decode calldata against the
+ * verified ABI (method pills in tx tables).
+ */
+export function useVerifiedContracts(
+  chainId: number | string,
+  addresses: Array<string | null | undefined>,
+): Map<string, SourcifyContract> {
+  const [, setTick] = useState(0);
+  const unique = Array.from(new Set(addresses.filter(Boolean).map((a) => a!.toLowerCase()))).sort();
+  const key = unique.join(",");
+
+  useEffect(() => {
+    if (!key) return;
+    const missing = key
+      .split(",")
+      .filter((a) => !resolved.has(contractKey(chainId, a)))
+      .slice(0, 24);
+    if (missing.length === 0) return;
+    let cancelled = false;
+    Promise.all(missing.map((a) => fetchVerifiedContract(chainId, a))).then(() => {
+      if (!cancelled) setTick((t) => t + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, chainId]);
+
+  const contracts = new Map<string, SourcifyContract>();
+  for (const a of unique) {
+    const c = resolved.get(contractKey(chainId, a));
+    if (c) contracts.set(a, c);
+  }
+  return contracts;
+}
+
+/* Selector → function-name maps, memoized per ABI object: the tx lists
+   re-render every second (ticking ages), and toFunctionSelector hashes —
+   compute each ABI's map once, not per row per frame. */
+const abiSelectorNames = new WeakMap<Abi, Map<string, string>>();
+
+/** Function name for a 4-byte selector from a verified ABI — name lookup
+ *  only, no arg decode, so it works when the feed carries just the
+ *  selector instead of full calldata. */
+export function functionNameFromAbi(
+  abi: Abi | null | undefined,
+  selector: string | null | undefined,
+): string | null {
+  if (!abi || !selector || selector.length < 10) return null;
+  let map = abiSelectorNames.get(abi);
+  if (!map) {
+    map = new Map();
+    for (const item of abi) {
+      if (item.type === "function") {
+        try {
+          map.set(toFunctionSelector(item as AbiFunction), item.name);
+        } catch {
+          /* malformed entry — skip */
+        }
+      }
+    }
+    abiSelectorNames.set(abi, map);
+  }
+  return map.get(selector.slice(0, 10).toLowerCase()) ?? null;
 }
 
 /* ---- value formatting: match the generated registry's plain-string

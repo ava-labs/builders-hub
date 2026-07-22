@@ -9,6 +9,11 @@ import Link from "next/link";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { decodeFunctionInput } from "@/abi/event-signatures.generated";
+import {
+  useVerifiedContracts,
+  decodeFunctionWithAbi,
+  prewarmContractNames,
+} from "@/lib/sourcify-client";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
 
@@ -186,6 +191,10 @@ export default function BlockDetailPage({
   };
   
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>(getInitialTab);
+
+  // Sourcify verification for the block's `to` contracts: names label the
+  // To column, verified ABIs decode methods the generated registry misses
+  const toContracts = useVerifiedContracts(chainId, transactions.map((t) => t.to));
   
   // Update URL hash when tab changes
   const handleTabChange = (tab: 'overview' | 'transactions') => {
@@ -239,7 +248,11 @@ export default function BlockDetailPage({
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setTransactions(data.transactions || []);
+        const txs: TransactionDetail[] = data.transactions || [];
+        // resolve verified names/ABIs before the rows land, so labelled
+        // rows paint labelled on their first frame (time-capped inside)
+        await prewarmContractNames(chainId, txs.map((t) => t.to));
+        setTransactions(txs);
       }
     } catch (err) {
       console.error("Error fetching transactions:", err);
@@ -731,7 +744,11 @@ export default function BlockDetailPage({
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-950">
                     {transactions.map((tx, index) => {
-                      const decoded = tx.input ? decodeFunctionInput(tx.input) : null;
+                      const toContract = tx.to ? toContracts.get(tx.to.toLowerCase()) : undefined;
+                      // local generated registry first, verified Sourcify ABI second
+                      const decoded = tx.input
+                        ? decodeFunctionInput(tx.input) ?? decodeFunctionWithAbi(toContract?.abi, tx.input)
+                        : null;
                       const methodName = decoded?.name || (tx.input === '0x' || !tx.input ? 'Transfer' : tx.input.slice(0, 10));
                       const truncatedMethod = methodName.length > 12 ? methodName.slice(0, 12) + '...' : methodName;
                       return (
@@ -773,8 +790,13 @@ export default function BlockDetailPage({
                               <Link
                                 href={buildAddressUrl(`/explorer/mainnet/${chainSlug}`, tx.to)}
                                   className="font-mono text-sm hover:underline cursor-pointer"
+                                  title={tx.to}
                               >
-                                {formatAddress(tx.to)}
+                                {toContract?.name ? (
+                                  <span className="font-medium">{toContract.name}</span>
+                                ) : (
+                                  formatAddress(tx.to)
+                                )}
                               </Link>
                             ) : (
                               <span className="font-mono text-sm text-neutral-400">Contract Creation</span>

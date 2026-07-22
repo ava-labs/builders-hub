@@ -8,7 +8,8 @@ import { LiveTag, formatTimeAgo, useNowTick } from "@/components/explorer/L1Expl
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
-import { useContractNames, prewarmContractNames } from "@/lib/sourcify-client";
+import { useVerifiedContracts, functionNameFromAbi, prewarmContractNames } from "@/lib/sourcify-client";
+import { getFunctionBySelector } from "@/abi/event-signatures.generated";
 
 /* Full-width Blocks / Transactions list tabs for EVM chains, mirroring the
    P-Chain's. The feed is the explorer API's recent window (the same one
@@ -29,6 +30,8 @@ interface EvmTx {
   to: string | null;
   value: string;
   timestamp: string;
+  /** 4-byte function selector from the feed ("0x" for plain transfers) */
+  input?: string;
 }
 
 const POLL_MS = 15_000;
@@ -202,7 +205,21 @@ export function EvmTxsPage({
   const base = `/explorer/mainnet/${chainSlug}`;
   // keep relative ages flowing between polls
   useNowTick();
-  const toNames = useContractNames(chainId, (txs ?? []).map((t) => t.to));
+  // full verified records: names label the To column, ABIs name method
+  // selectors the local generated registry doesn't know
+  const toContracts = useVerifiedContracts(chainId, (txs ?? []).map((t) => t.to));
+
+  // Method label from the 4-byte selector: local registry first, then the
+  // verified ABI of the called contract, then the raw selector.
+  const methodLabel = (tx: EvmTx): string => {
+    if (!tx.input || tx.input === "0x") return "Transfer";
+    const selector = tx.input.slice(0, 10).toLowerCase();
+    return (
+      getFunctionBySelector(selector)?.name ??
+      functionNameFromAbi(tx.to ? toContracts.get(tx.to.toLowerCase())?.abi : null, selector) ??
+      selector
+    );
+  };
 
   return (
     <div className="mx-auto w-full max-w-[90rem] px-5 pb-16 pt-2 md:px-6">
@@ -212,8 +229,9 @@ export function EvmTxsPage({
           <ListSkeleton />
         ) : (
           <Board>
-            <div className="hidden grid-cols-[1.6fr_1fr_1fr_0.8fr_0.6fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+            <div className="hidden grid-cols-[1.4fr_0.8fr_1fr_1fr_0.8fr_0.6fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
               <span>Hash</span>
+              <span>Method</span>
               <span>From</span>
               <span>To</span>
               <span className="text-right">Value</span>
@@ -223,13 +241,22 @@ export function EvmTxsPage({
               <div
                 key={`${tx.hash}-${i}`}
                 onClick={() => router.push(buildTxUrl(base, tx.hash))}
-                className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.6fr_1fr_1fr_0.8fr_0.6fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+                className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.4fr_0.8fr_1fr_1fr_0.8fr_0.6fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
               >
                 {/* full hash, width-aware: CSS truncation shows as many
                     chars as the column actually has room for */}
                 <span className="truncate font-mono text-[13px] text-zinc-900 dark:text-zinc-100">
                   {tx.hash}
                 </span>
+                <div className="min-w-0">
+                  <CellLabel>Method</CellLabel>
+                  <span
+                    className="inline-block max-w-full truncate border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 align-middle font-mono text-[11px] text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+                    title={tx.input && tx.input !== "0x" ? tx.input.slice(0, 10) : undefined}
+                  >
+                    {methodLabel(tx)}
+                  </span>
+                </div>
                 <div className="min-w-0">
                   <CellLabel>From</CellLabel>
                   <Link
@@ -248,9 +275,9 @@ export function EvmTxsPage({
                       onClick={(e) => e.stopPropagation()}
                       className="block truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
                     >
-                      {toNames.has(tx.to.toLowerCase()) ? (
+                      {toContracts.get(tx.to.toLowerCase())?.name ? (
                         <span className="font-medium animate-in fade-in duration-500">
-                          {toNames.get(tx.to.toLowerCase())}
+                          {toContracts.get(tx.to.toLowerCase())!.name}
                         </span>
                       ) : (
                         <>{tx.to.slice(0, 18)}…{tx.to.slice(-8)}</>
