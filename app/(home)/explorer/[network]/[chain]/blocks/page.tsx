@@ -14,6 +14,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function BlocksPage({ params }: PageProps) {
-  const { chain } = await params;
-  return <BlocksPageClient chainSlug={chain} />;
+  const { network } = await params;
+  return <BlocksPageClient network={network} />;
 }

@@ -51,6 +51,6 @@ export default async function AddressPage({ params }: AddressPageProps) {
   // Get sourcifySupport from chain data
   const chain = l1ChainsData.find((c) => c.slug === chainSlug) as (L1Chain & { sourcifySupport?: boolean }) | undefined;
   
-  return <AddressDetailPageClient address={address} sourcifySupport={chain?.sourcifySupport} />;
+  return <AddressDetailPageClient network={resolvedParams.network} address={address} sourcifySupport={chain?.sourcifySupport} />;
 }
 

@@ -48,10 +48,9 @@ export async function generateMetadata({ params }: ChainExplorerPageProps): Prom
 }
 
 export default async function ChainExplorerPage({ params }: ChainExplorerPageProps) {
-  const resolvedParams = await params;
-  const { chain: chainSlug } = resolvedParams;
+  const { network } = await params;
 
   // Just render the client component - layout handles chain lookup
-  return <ChainExplorerPageClient chainSlug={chainSlug} />;
+  return <ChainExplorerPageClient network={network} />;
 }
 

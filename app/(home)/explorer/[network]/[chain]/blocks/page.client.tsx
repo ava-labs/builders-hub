@@ -1,23 +1,7 @@
 "use client";
 
-import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
-import { EvmBlocksPage } from "@/components/explorer/EvmListPages";
-import { useChainContext } from "../layout.client";
+import { EvmBlocksList } from "@/components/explorer-v2/evm/EvmBlocksList";
 
-export function BlocksPageClient({ chainSlug }: { chainSlug: string }) {
-  const chain = useChainContext();
-  return (
-    <ExplorerLayout
-      chainId={chain.chainId}
-      chainName={chain.chainName}
-      chainSlug={chain.chainSlug}
-      themeColor={chain.themeColor}
-      chainLogoURI={chain.chainLogoURI}
-      website={chain.website}
-      socials={chain.socials}
-      rpcUrl={chain.rpcUrl}
-    >
-      <EvmBlocksPage chainId={chain.chainId} chainSlug={chainSlug} tokenSymbol={chain.nativeToken} />
-    </ExplorerLayout>
-  );
+export function BlocksPageClient({ network }: { network: string }) {
+  return <EvmBlocksList network={network} />;
 }

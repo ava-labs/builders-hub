@@ -44,9 +44,8 @@ export async function generateMetadata({ params }: BlockPageProps): Promise<Meta
 }
 
 export default async function BlockPage({ params }: BlockPageProps) {
-  const resolvedParams = await params;
-  const { blockNumber } = resolvedParams;
-  
-  return <BlockDetailPageClient blockNumber={blockNumber} />;
+  const { network, blockNumber } = await params;
+
+  return <BlockDetailPageClient network={network} blockNumber={blockNumber} />;
 }
 

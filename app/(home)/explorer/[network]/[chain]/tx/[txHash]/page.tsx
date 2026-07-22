@@ -45,9 +45,8 @@ export async function generateMetadata({ params }: TxPageProps): Promise<Metadat
 }
 
 export default async function TxPage({ params }: TxPageProps) {
-  const resolvedParams = await params;
-  const { txHash } = resolvedParams;
-  
-  return <TransactionDetailPageClient txHash={txHash} />;
+  const { network, txHash } = await params;
+
+  return <TransactionDetailPageClient network={network} txHash={txHash} />;
 }
 

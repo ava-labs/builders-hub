@@ -14,6 +14,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TxsPage({ params }: PageProps) {
-  const { chain } = await params;
-  return <TxsPageClient chainSlug={chain} />;
+  const { network } = await params;
+  return <TxsPageClient network={network} />;
 }
