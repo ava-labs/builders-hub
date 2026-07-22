@@ -57,7 +57,7 @@ function RowSkeleton({ n }: { n: number }) {
   return (
     <>
       {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between px-5 py-3 md:px-6">
+        <div key={i} className="flex h-11 items-center justify-between px-5 md:px-6">
           <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           <div className="h-3 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
         </div>
@@ -249,7 +249,7 @@ export function EvmHome({ network }: { network: string }) {
                   <Link
                     key={b.number}
                     href={`${base}/block/${b.number}`}
-                    className="grid grid-cols-[minmax(0,1fr)_3.5rem_5.5rem_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className="grid h-11 grid-cols-[minmax(0,1fr)_3.5rem_5.5rem_3.5rem] items-center gap-3 px-5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
                     <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
                       #{formatNumber(b.number)}
@@ -287,7 +287,7 @@ export function EvmHome({ network }: { network: string }) {
                   <Link
                     key={t.hash}
                     href={`${base}/tx/${t.hash}`}
-                    className="grid grid-cols-[6.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className="grid h-11 grid-cols-[6.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 px-5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
                     <span className="flex min-w-0 items-center gap-1.5">
                       {/* failures are rare enough that the pill only appears
