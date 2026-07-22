@@ -29,7 +29,6 @@ import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { PeriodSelector } from "@/components/stats/PeriodSelector";
 import { MobileSocialLinks } from "@/components/stats/MobileSocialLinks";
 import { LinkableHeading } from "@/components/stats/LinkableHeading";
-import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { ChartWatermark } from "@/components/stats/ChartWatermark";
 import { calculateDateRangeDays, formatXAxisLabel, generateXAxisTicks } from "@/components/stats/chart-axis-utils";
 import { ChainCategoryFilter, allChains } from "@/components/stats/ChainCategoryFilter";
@@ -1381,32 +1380,11 @@ export default function ChainMetricsPage({
           <div className="flex flex-col sm:flex-row items-start justify-between gap-6 sm:gap-8">
             <div className="space-y-4 sm:space-y-6 flex-1">
               <div>
-                <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                  <AvalancheLogo
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="#E84142"
-                  />
-                  <p className="text-xs sm:text-sm font-medium text-red-600 dark:text-red-500 tracking-wide uppercase">
-                    Avalanche Ecosystem
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4">
-                  {chainLogoURI && (
-                    <img
-                      src={chainLogoURI}
-                      alt={`${chainName} logo`}
-                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain rounded-xl"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  )}
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 dark:text-white">
-                    {chainName.includes("C-Chain")
-                      ? "C-Chain Metrics"
-                      : `${chainName} Metrics`}
-                  </h1>
-                </div>
+                {/* the facet header in the shell's grammar — no logo, no
+                    ecosystem eyebrow; the spine above already says where we are */}
+                <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
+                  Stats<span className="text-[#E6212F]">.</span>
+                </h1>
                 {/* Blockchain ID and Subnet ID chips + Add to Wallet */}
                 {(subnetId || blockchainId || rpcUrl || chainData?.rpcUrl) && (
                   <div className="mt-3 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -1431,7 +1409,7 @@ export default function ChainMetricsPage({
                   </div>
                 )}
                 <div className="flex items-center gap-3 mt-3">
-                  <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-400 max-w-2xl">
+                  <p className="max-w-2xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
                     {description}
                   </p>
                 </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
+import { PrimaryNetworkStaking } from "@/components/stats/PrimaryNetworkStaking";
 import { Board, CellLabel, SectionHeader, TypeFilterRail } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import {
@@ -79,7 +80,7 @@ function NetworkHealth({ network }: { network: string }) {
             </p>
             {network === "mainnet" && (
               <Link
-                href="/stats/validators/c-chain"
+                href="/explorer/mainnet/c-chain/validators"
                 className="group mt-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
               >
                 Full staking dashboard
@@ -94,7 +95,14 @@ function NetworkHealth({ network }: { network: string }) {
 export function PchainValidators({ chain, network }: { chain: string; network: string }) {
   return (
     <ExplorerShell chain={chain} network={network}>
-      <ValidatorsContent network={network} base={`/explorer/${network}/${chain}`} />
+      {/* the Primary Network's set secures P, C, and X alike — mainnet gets
+          the same staking observatory the C-Chain tab mounts; Fuji keeps
+          the plain set list (the observatory's feeds are mainnet-only) */}
+      {network === "mainnet" ? (
+        <PrimaryNetworkStaking />
+      ) : (
+        <ValidatorsContent network={network} base={`/explorer/${network}/${chain}`} />
+      )}
     </ExplorerShell>
   );
 }

@@ -310,30 +310,27 @@ export function ValidatorChartCard({
     });
   };
 
-  const Icon = config.icon;
-
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+    /* the drafting-sheet chart card: square hairline board, mono-uppercase
+       title, no icon bubble — the figure and the chart carry the weight */
+    <Card
+      className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80"
+      ref={chartContainerRef}
+    >
       <CardContent className="p-0">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${config.color}20` }}
-            >
-              <Icon className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: config.color }} />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-normal">{config.title}</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-                {config.description}
+        <div className="flex items-center justify-between gap-4 px-4 sm:px-5 py-3 border-b border-zinc-200 dark:border-zinc-800">
+          <div className="min-w-0">
+            <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
+              {config.title}
+            </h3>
+            <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
+              {config.description}
+            </p>
+            {descriptionNote && isReferenceInRange && (
+              <p className="mt-1 text-[11px] text-zinc-400 dark:text-zinc-500 hidden sm:block max-w-2xl">
+                {descriptionNote}
               </p>
-              {descriptionNote && isReferenceInRange && (
-                <p className="mt-1 text-xs text-muted-foreground/80 italic hidden sm:block max-w-2xl">
-                  {descriptionNote}
-                </p>
-              )}
-            </div>
+            )}
           </div>
           <div className="flex items-center gap-1">
             <Select
@@ -355,14 +352,14 @@ export function ValidatorChartCard({
             </Select>
             <button
               onClick={handleScreenshot}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              className="p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
               title="Download chart as image"
             >
               <Camera className="h-4 w-4" />
             </button>
             <button
               onClick={downloadCSV}
-              className="p-1.5 sm:p-2 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
+              className="p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
               title="Download CSV"
             >
               <Download className="h-4 w-4" />
@@ -372,7 +369,7 @@ export function ValidatorChartCard({
 
         <div className="px-5 pt-6 pb-6">
           <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4 pl-2 sm:pl-4">
-            <div className="text-md sm:text-xl font-mono break-all">
+            <div className="font-mono text-lg sm:text-xl font-bold tabular-nums tracking-tight break-all text-zinc-900 dark:text-zinc-50">
               {formatTooltipValue(
                 typeof currentValue === "string" ? parseFloat(currentValue) : currentValue,
               )}
@@ -380,7 +377,7 @@ export function ValidatorChartCard({
             {dynamicChange.change > 0 && (
               <div
                 className={`flex items-center gap-1 text-xs sm:text-sm ${
-                  dynamicChange.isPositive ? "text-green-600" : "text-red-600"
+                  dynamicChange.isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"
                 }`}
                 title="Change over selected time range"
               >
@@ -416,26 +413,26 @@ export function ValidatorChartCard({
           )}
 
           <ChartWatermark className="mb-6">
-            <ResponsiveContainer width="100%" height={350}>
+            <ResponsiveContainer width="100%" height={240}>
               {config.chartType === "bar" ? (
                 <ComposedChart data={displayData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
+                    className="stroke-zinc-200 dark:stroke-zinc-800"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="day"
                     tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                     ticks={xAxisTicks}
                     interval={0}
                   />
                   <YAxis
                     tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                   />
                   <Tooltip
                     cursor={{ fill: `${config.color}20` }}
@@ -448,7 +445,7 @@ export function ValidatorChartCard({
                       );
                       const formattedDate = formatTooltipDate(barPoint.payload.day);
                       return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                        <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                           <div className="grid gap-1.5">
                             <div className="font-medium text-sm">{formattedDate}</div>
                             {hasOverlay ? (
@@ -494,7 +491,7 @@ export function ValidatorChartCard({
                       isAnimationActive={false}
                     />
                   ) : (
-                    <Bar dataKey="value" fill={config.color} radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="value" fill={config.color} radius={[0, 0, 0, 0]} />
                   )}
                   {hasOverlay && (
                     <Line
@@ -540,21 +537,21 @@ export function ValidatorChartCard({
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
+                    className="stroke-zinc-200 dark:stroke-zinc-800"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="day"
                     tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                     ticks={xAxisTicks}
                     interval={0}
                   />
                   <YAxis
                     tickFormatter={formatYAxisValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                   />
                   <Tooltip
                     cursor={{ fill: `${config.color}20` }}
@@ -562,7 +559,7 @@ export function ValidatorChartCard({
                       if (!active || !payload?.[0]) return null;
                       const formattedDate = formatTooltipDate(payload[0].payload.day);
                       return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                        <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                           <div className="grid gap-2">
                             <div className="font-medium text-sm">{formattedDate}</div>
                             <div className="text-sm">
@@ -585,12 +582,12 @@ export function ValidatorChartCard({
             </ResponsiveContainer>
           </ChartWatermark>
 
-          <div className="mt-4 bg-white dark:bg-black pl-[60px]">
-            <ResponsiveContainer width="100%" height={80}>
+          <div className="mt-3 pl-[60px]">
+            <ResponsiveContainer width="100%" height={48}>
               <LineChart data={mergedAggregated} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                 <Brush
                   dataKey="day"
-                  height={80}
+                  height={48}
                   stroke={config.color}
                   fill={`${config.color}20`}
                   alwaysShowText={false}

@@ -74,9 +74,10 @@ export function NetworkValidators() {
     return chain?.slug || null;
   };
 
-  // the row's per-chain detail target, or null when there's nowhere to go
+  // the row's per-chain detail target, or null when there's nowhere to go.
+  // Primary Network staking lives on the C-Chain's Validators tab.
   const rowHref = (subnet: SubnetStats): string | null => {
-    if (subnet.id === PRIMARY_NETWORK_ID) return "/stats/validators/c-chain";
+    if (subnet.id === PRIMARY_NETWORK_ID) return "/explorer/mainnet/c-chain/validators";
     if (subnet.isL1) {
       const slug = getSlugForSubnetId(subnet.id);
       if (slug) return `/stats/validators/${slug}`;
@@ -352,10 +353,17 @@ export function NetworkValidators() {
           </div>
         </Board>
 
-        {/* client-version spread across the whole network */}
+        {/* client-version spread across the whole network: the stacked
+            distribution bar carries the picture, the labels name it */}
         <section className="flex flex-col gap-4">
           <SectionHeader label="Client versions" />
-          <Board divide={false} className="px-5 py-5 md:px-6">
+          <Board divide={false} className="flex flex-col gap-4 px-5 py-5 md:px-6">
+            <VersionBarChart
+              versionBreakdown={{ byClientVersion: totalVersionBreakdown }}
+              minVersion={minVersion}
+              totalNodes={aggregatedStats.totalNodes}
+              height="h-8"
+            />
             <VersionBreakdownInline
               versions={totalVersionBreakdown}
               minVersion={minVersion}

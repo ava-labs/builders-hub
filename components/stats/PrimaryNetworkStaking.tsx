@@ -6,8 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { type ChartConfig, ChartLegendContent, ChartStyle, ChartContainer, ChartTooltip, ChartLegend } from "@/components/ui/chart";
 import { Landmark, Shield, TrendingUp, Monitor, HandCoins, Users, Percent, Coins, Download, Camera } from "lucide-react";
 import Link from "next/link";
-import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
-import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { StickyNavBar } from "@/components/stats/StickyNavBar";
 import { PeriodSelector, type Period } from "@/components/stats/PeriodSelector";
 import { SearchInputWithClear } from "@/components/stats/SearchInputWithClear";
@@ -60,7 +58,7 @@ interface MergedValidator extends ValidatorData {
 }
 
 
-export default function CChainValidatorMetrics() {
+export function PrimaryNetworkStaking() {
   const [metrics, setMetrics] = useState<PrimaryNetworkMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -530,7 +528,7 @@ export default function CChainValidatorMetrics() {
   const versionStats = calculateVersionStats(versionBreakdown, minVersion);
 
   const getHealthColor = (percent: number): string => {
-    if (percent === 0) return "text-red-600 dark:text-red-400";
+    if (percent === 0) return "text-[#E6212F]";
     if (percent < 80) return "text-orange-600 dark:text-orange-400";
     return "text-green-600 dark:text-green-400";
   };
@@ -718,35 +716,24 @@ export default function CChainValidatorMetrics() {
   // Toggle validator expansion and fetch details
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950">
-        {/* header skeleton — the rail renders for real; the identity block
-            pulses in square, in the sheet's rhythm */}
-        <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
-          <ExplorerSubnav
-            network="mainnet"
-            chainSlug="c-chain"
-            chainName="Avalanche C-Chain"
-            className="mb-8"
-          />
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 animate-pulse rounded-full bg-zinc-100 md:h-11 md:w-11 dark:bg-zinc-900" />
-            <div className="h-10 w-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-          </div>
-          <div className="mt-6 h-6 w-96 max-w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+      <div>
+        {/* skeleton in the shell's rhythm: metrics row, section-nav bar,
+            then the chart grid — the facet chrome is already on screen */}
+        <div className="flex items-center gap-4 pb-8">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-9 w-32 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+          ))}
         </div>
-        {/* Navbar Skeleton */}
-        <div className="sticky top-14 z-30 w-full bg-zinc-50/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-t border-zinc-200 dark:border-zinc-800">
-          <div className="flex items-center gap-2 py-3 px-4 sm:px-6 max-w-[90rem] mx-auto">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-8 w-24 sm:w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse"
-              />
-            ))}
-          </div>
+        <div className="flex items-center gap-2 border-b border-t border-zinc-200 py-3 dark:border-zinc-800">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-8 w-24 sm:w-32 bg-zinc-100 dark:bg-zinc-900 animate-pulse"
+            />
+          ))}
         </div>
         {/* Content Skeleton */}
-        <div className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+        <div className="py-8 sm:py-12 space-y-8">
           {/* Section header skeleton */}
           <div className="space-y-2 animate-pulse">
             <div className="h-6 w-48 bg-zinc-200 dark:bg-zinc-800 rounded" />
@@ -796,13 +783,13 @@ export default function CChainValidatorMetrics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-zinc-950 flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="text-center space-y-4">
-          <Monitor className="h-12 w-12 text-red-500 mx-auto" />
-          <p className="text-red-600 dark:text-red-400">{error}</p>
+          <Monitor className="h-12 w-12 text-[#E6212F] mx-auto" />
+          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#E6212F]">{error}</p>
           <button
             onClick={fetchData}
-            className="px-4 py-2 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-md hover:opacity-90"
+            className="border border-zinc-900 bg-zinc-900 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-50 transition-opacity hover:opacity-90 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
           >
             Retry
           </button>
@@ -812,37 +799,12 @@ export default function CChainValidatorMetrics() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950">
-      {/* the shared spine + identity block, same as the explorer */}
-      <div className="relative mx-auto w-full max-w-[90rem] px-5 pt-10 pb-8 md:px-6">
-        <ExplorerSubnav
-          network="mainnet"
-          chainSlug="c-chain"
-          chainName="Avalanche C-Chain"
-          chainLogoURI={chainConfig.chainLogoURI}
-          className="mb-8"
-        />
-        <ChainHeader
-          chainName="Avalanche C-Chain"
-          chainLogoURI={chainConfig.chainLogoURI}
-          website={chainConfig.website}
-          socials={chainConfig.socials}
-          exits={(chainConfig.explorers || [])
-            .filter((e: { link: string }) => !e.link.startsWith("/"))
-            .map((e: { name: string; link: string }) => ({ label: e.name, href: e.link }))}
-          subnetId={chainConfig.subnetId}
-          blockchainId={chainConfig.blockchainId}
-          wallet={
-            chainConfig.rpcUrl
-              ? { rpcUrl: chainConfig.rpcUrl, chainId: 43114, tokenSymbol: "AVAX" }
-              : undefined
-          }
-        />
-
-        {/* Key metrics - inline */}
-        <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pt-6 mt-8 border-t border-zinc-200 dark:border-zinc-800">
+    <>
+      {/* Key metrics - inline. This component mounts inside the Validators
+          facet's shell, which already carries the page chrome. */}
+      <div className="grid grid-cols-2 sm:flex sm:items-baseline gap-3 sm:gap-6 md:gap-12 pb-8">
                   <div>
-                    <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    <span className="font-mono text-2xl sm:text-3xl md:text-4xl font-bold tabular-nums tracking-tight text-zinc-900 dark:text-white">
                       {validators.length}
                     </span>
                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
@@ -851,7 +813,7 @@ export default function CChainValidatorMetrics() {
                   </div>
                   <div>
                     <span
-                      className={`text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums ${getHealthColor(
+                      className={`font-mono text-2xl sm:text-3xl md:text-4xl font-bold tabular-nums tracking-tight ${getHealthColor(
                         versionStats.nodesPercentAbove
                       )}`}
                     >
@@ -863,7 +825,7 @@ export default function CChainValidatorMetrics() {
                   </div>
                   <div>
                     <span
-                      className={`text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums ${getHealthColor(
+                      className={`font-mono text-2xl sm:text-3xl md:text-4xl font-bold tabular-nums tracking-tight ${getHealthColor(
                         versionStats.stakePercentAbove
                       )}`}
                     >
@@ -874,7 +836,7 @@ export default function CChainValidatorMetrics() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-2xl sm:text-3xl md:text-4xl font-semibold tabular-nums text-zinc-900 dark:text-white">
+                    <span className="font-mono text-2xl sm:text-3xl md:text-4xl font-bold tabular-nums tracking-tight text-zinc-900 dark:text-white">
                       {getTotalWeight()}
                     </span>
                     <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 ml-1 sm:ml-2">
@@ -882,10 +844,10 @@ export default function CChainValidatorMetrics() {
                     </span>
                   </div>
         </div>
-      </div>
 
       {/* Sticky Navigation Bar */}
       <StickyNavBar
+        inset={false}
         categories={navCategories}
         activeSection={activeSection}
         onNavigate={scrollToSection}
@@ -896,15 +858,13 @@ export default function CChainValidatorMetrics() {
         />
       </StickyNavBar>
 
-      <main className="max-w-[90rem] mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-12">
+      {/* the facet's shell column already pads horizontally */}
+      <main className="py-8 sm:py-12 space-y-8 sm:space-y-12">
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <LinkableHeading as="h2" id="trends" className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="trends" className="text-xl sm:text-2xl font-bold tracking-tight text-left">
               Historical Trends
             </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Track network growth and validator activity over time
-            </p>
           </div>
 
           {/* Primary Network Total Stake - Stacked Area Chart */}
@@ -976,12 +936,9 @@ export default function CChainValidatorMetrics() {
         {/* Network Health Section */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <LinkableHeading as="h2" id="health" className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="health" className="text-xl sm:text-2xl font-bold tracking-tight text-left">
               Network Health
             </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Block production reliability and validator lifecycle across the Primary Network (14d)
-            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -989,23 +946,20 @@ export default function CChainValidatorMetrics() {
             {loading || !missRateDistribution.length ? (
               <ChartSkeletonLoader />
             ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
-                        <Shield className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
-                      </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">Block Miss Rate Distribution</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Block Miss Rate Distribution</h3>
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                           How validators are distributed by their 14-day miss rate
                         </p>
                       </div>
                     </div>
                   </div>
                   <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={missRateDistribution} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Miss Rate Bucket", position: "insideBottom", offset: -10 }} />
@@ -1022,7 +976,7 @@ export default function CChainValidatorMetrics() {
                             );
                           }}
                         />
-                        <Bar dataKey="count" fill={chainConfig.color} radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="count" fill={chainConfig.color} radius={[0, 0, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartWatermark>
@@ -1034,23 +988,20 @@ export default function CChainValidatorMetrics() {
             {loading || !daysLeftDistribution.length ? (
               <ChartSkeletonLoader />
             ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
-                        <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
-                      </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">Validators by Remaining Time</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Validators by Remaining Time</h3>
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                           Distribution of validators by days left until validation ends
                         </p>
                       </div>
                     </div>
                   </div>
                   <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={daysLeftDistribution} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                         <XAxis dataKey="label" tick={{ fontSize: 11 }} label={{ value: "Time Remaining", position: "insideBottom", offset: -10 }} />
@@ -1067,7 +1018,7 @@ export default function CChainValidatorMetrics() {
                             );
                           }}
                         />
-                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                        <Bar dataKey="count" radius={[0, 0, 0, 0]}>
                           {daysLeftDistribution.map((entry, index) => (
                             <Cell key={index} fill={entry.max <= 7 ? "#ef4444" : entry.max <= 30 ? "#eab308" : chainConfig.color} />
                           ))}
@@ -1082,16 +1033,13 @@ export default function CChainValidatorMetrics() {
 
           {/* Top Block Producers */}
           {!loading && topBlockProducers.length > 0 && (
-            <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+            <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
               <CardContent className="p-0">
-                <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="rounded-full p-2 sm:p-3 flex items-center justify-center" style={{ backgroundColor: `${chainConfig.color}20` }}>
-                      <Monitor className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: chainConfig.color }} />
-                    </div>
                     <div>
-                      <h3 className="text-base sm:text-lg font-normal">Top Block Producers (14d)</h3>
-                      <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                      <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Top Block Producers (14d)</h3>
+                      <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                         Top 20 validators by blocks produced in the last 14 days
                       </p>
                     </div>
@@ -1128,12 +1076,9 @@ export default function CChainValidatorMetrics() {
         {/* Rewards Distribution Section */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <LinkableHeading as="h2" id="rewards" className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="rewards" className="text-xl sm:text-2xl font-bold tracking-tight text-left">
               Rewards Distribution
             </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Track staking rewards for the Primary Network
-            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -1184,37 +1129,24 @@ export default function CChainValidatorMetrics() {
 
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <LinkableHeading as="h2" id="distribution" className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="distribution" className="text-xl sm:text-2xl font-bold tracking-tight text-left">
               Stake Distribution Analysis
             </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Analyze how stake is distributed across validators and delegation
-              patterns
-            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             {loading ? (
               <ChartSkeletonLoader />
             ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div
-                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: `${chainConfig.color}20` }}
-                      >
-                        <Landmark
-                          className="h-5 w-5 sm:h-6 sm:w-6"
-                          style={{ color: chainConfig.color }}
-                        />
-                      </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">
+                        <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
                           Current Validator Weight Distribution
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                           Total weight (stake + delegations) by rank
                         </p>
                       </div>
@@ -1239,7 +1171,7 @@ export default function CChainValidatorMetrics() {
                         <span>Validator Weight</span>
                       </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={260}>
                       <ComposedChart
                         data={validatorWeightDistribution}
                         margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
@@ -1338,24 +1270,15 @@ export default function CChainValidatorMetrics() {
             {loading ? (
               <ChartSkeletonLoader />
             ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div
-                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: `${chainConfig.color}20` }}
-                      >
-                        <Landmark
-                          className="h-5 w-5 sm:h-6 sm:w-6"
-                          style={{ color: chainConfig.color }}
-                        />
-                      </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">
+                        <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
                           Validator Stake Distribution
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                           Own stake only (excluding delegations)
                         </p>
                       </div>
@@ -1378,7 +1301,7 @@ export default function CChainValidatorMetrics() {
                         <span>Validator Stake</span>
                       </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={260}>
                       <ComposedChart
                         data={validatorStakeDistribution}
                         margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
@@ -1479,24 +1402,15 @@ export default function CChainValidatorMetrics() {
             {loading ? (
               <ChartSkeletonLoader />
             ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div
-                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: "#E8414220" }}
-                      >
-                        <Users
-                          className="h-5 w-5 sm:h-6 sm:w-6"
-                          style={{ color: "#E84142" }}
-                        />
-                      </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">
+                        <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
                           Delegator Stake Distribution
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                           Delegated stake across validator nodes
                         </p>
                       </div>
@@ -1521,7 +1435,7 @@ export default function CChainValidatorMetrics() {
                         <span>Delegator Stake</span>
                       </div>
                     </div>
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={260}>
                       <ComposedChart
                         data={delegatorStakeDistribution}
                         margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
@@ -1620,31 +1534,22 @@ export default function CChainValidatorMetrics() {
             {loading ? (
               <ChartSkeletonLoader />
             ) : (
-              <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700">
+              <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <CardContent className="p-0">
-                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div
-                        className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-                        style={{ backgroundColor: "#E8414220" }}
-                      >
-                        <Percent
-                          className="h-5 w-5 sm:h-6 sm:w-6"
-                          style={{ color: "#E84142" }}
-                        />
-                      </div>
                       <div>
-                        <h3 className="text-base sm:text-lg font-normal">
+                        <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
                           Delegation Fee Distribution
                         </h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                        <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                           Distribution of fees weighted by stake
                         </p>
                       </div>
                     </div>
                   </div>
                   <ChartWatermark className="px-4 sm:px-5 py-4 sm:py-5">
-                    <ResponsiveContainer width="100%" height={350}>
+                    <ResponsiveContainer width="100%" height={260}>
                       <BarChart
                         data={feeDistribution}
                         margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
@@ -1719,7 +1624,7 @@ export default function CChainValidatorMetrics() {
                           dataKey="totalWeight"
                           fill="#e84142"
                           barSize={6}
-                          radius={[4, 4, 0, 0]}
+                          radius={[0, 0, 0, 0]}
                         />
                       </BarChart>
                     </ResponsiveContainer>
@@ -1732,12 +1637,9 @@ export default function CChainValidatorMetrics() {
 
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <LinkableHeading as="h2" id="versions" className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="versions" className="text-xl sm:text-2xl font-bold tracking-tight text-left">
               Software Versions
             </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Distribution of AvalancheGo versions across validators
-            </p>
           </div>
 
           {/* Version Distribution Charts */}
@@ -1771,7 +1673,7 @@ export default function CChainValidatorMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                              <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
@@ -1831,7 +1733,7 @@ export default function CChainValidatorMetrics() {
                           if (active && payload && payload.length) {
                             const data = payload[0].payload;
                             return (
-                              <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                              <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                                 <div className="grid gap-2">
                                   <div className="flex flex-col">
                                     <span className="text-[0.70rem] uppercase text-muted-foreground">
@@ -1889,12 +1791,9 @@ export default function CChainValidatorMetrics() {
         {/* All Validators Table */}
         <section className="space-y-4 sm:space-y-6">
           <div className="space-y-2">
-            <LinkableHeading as="h2" id="validators" className="text-lg sm:text-2xl font-medium text-left">
+            <LinkableHeading as="h2" id="validators" className="text-xl sm:text-2xl font-bold tracking-tight text-left">
               Validator List
             </LinkableHeading>
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base text-left">
-              Complete list of all validators on the Primary Network
-            </p>
           </div>
 
           {/* Search Input */}
@@ -1912,29 +1811,29 @@ export default function CChainValidatorMetrics() {
 
           {/* Validators Table */}
           {loading ? (
-            <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+            <Card className="overflow-hidden py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse">
-                  <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                  <thead className="border-b border-zinc-200 dark:border-zinc-800">
                     <tr>
-                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">#</span></th>
-                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Node ID</span></th>
-                      <th className="px-4 py-4 text-left"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Version</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Total Staked</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Uptime</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Days Left</span></th>
-                      <th className="px-4 py-4 text-right"><span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Miss Rate</span></th>
+                      <th className="px-4 py-3 text-left"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">#</span></th>
+                      <th className="px-4 py-3 text-left"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Node ID</span></th>
+                      <th className="px-4 py-3 text-left"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Version</span></th>
+                      <th className="px-4 py-3 text-right"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Total Staked</span></th>
+                      <th className="px-4 py-3 text-right"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Uptime</span></th>
+                      <th className="px-4 py-3 text-right"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Days Left</span></th>
+                      <th className="px-4 py-3 text-right"><span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Miss Rate</span></th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white dark:bg-neutral-950">
+                  <tbody>
                     {[...Array(10)].map((_, rowIndex) => (
-                      <tr key={rowIndex} className="border-b border-slate-100 dark:border-neutral-800 animate-pulse">
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-6 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3"><div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                      <tr key={rowIndex} className="border-b border-zinc-200 dark:border-zinc-800 animate-pulse">
+                        <td className="px-4 py-3"><div className="h-4 w-6 bg-zinc-100 dark:bg-zinc-900" /></td>
+                        <td className="px-4 py-3"><div className="h-4 w-40 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
+                        <td className="px-4 py-3"><div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded" /></td>
+                        <td className="px-4 py-3"><div className="h-4 w-20 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                        <td className="px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
+                        <td className="px-4 py-3"><div className="h-4 w-12 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
                         <td className="px-4 py-3"><div className="h-4 w-16 bg-zinc-200 dark:bg-zinc-800 rounded ml-auto" /></td>
                       </tr>
                     ))}
@@ -1944,39 +1843,39 @@ export default function CChainValidatorMetrics() {
             </Card>
           ) : (
             <>
-              <Card className="overflow-hidden py-0 border-0 shadow-none rounded-lg">
+              <Card className="overflow-hidden py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
-                    <thead className="bg-[#fcfcfd] dark:bg-neutral-900">
+                    <thead className="border-b border-zinc-200 dark:border-zinc-800">
                       <tr>
-                        <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">#</span>
+                        <th className="px-4 py-3 text-left">
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">#</span>
                         </th>
-                        <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Node ID</span>
+                        <th className="px-4 py-3 text-left">
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Node ID</span>
                         </th>
-                        <th className="px-4 py-4 text-left">
-                          <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">Version</span>
+                        <th className="px-4 py-3 text-left">
+                          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">Version</span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("totalStake")}>
+                        <th className="px-4 py-3 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("totalStake")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Total Staked
                             <SortIcon column="totalStake" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("uptime")}>
+                        <th className="px-4 py-3 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("uptime")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Uptime
                             <SortIcon column="uptime" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("daysLeft")}>
+                        <th className="px-4 py-3 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("daysLeft")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Days Left
                             <SortIcon column="daysLeft" sortColumn={sortColumn} sortDirection={sortDirection} />
                           </span>
                         </th>
-                        <th className="px-4 py-4 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("missRate")}>
+                        <th className="px-4 py-3 text-right cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors" onClick={() => handleSort("missRate")}>
                           <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300 inline-flex items-center justify-end">
                             Miss Rate (14d)
                             <SortIcon column="missRate" sortColumn={sortColumn} sortDirection={sortDirection} />
@@ -1984,12 +1883,12 @@ export default function CChainValidatorMetrics() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white dark:bg-neutral-950">
+                    <tbody>
                       {displayedValidators.length === 0 ? (
                         <tr>
                           <td
                             colSpan={7}
-                            className="text-center py-8 text-neutral-600 dark:text-neutral-400"
+                            className="py-10 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500"
                           >
                             {searchTerm
                               ? "No validators match your search"
@@ -2001,58 +1900,58 @@ export default function CChainValidatorMetrics() {
                           return (
                             <tr
                               key={validator.nodeId}
-                              className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
+                              className="border-b border-zinc-200 dark:border-zinc-800 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
                             >
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4">
+                              <td className="px-4 py-3">
                                 <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                                   {index + 1}
                                 </span>
                               </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 font-mono text-xs">
+                              <td className="px-4 py-3 font-mono text-xs">
                                 <Link
-                                  href={`/stats/validators/node/${encodeURIComponent(validator.nodeId)}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                                  href={`/explorer/mainnet/p-chain/node/${encodeURIComponent(validator.nodeId)}`}
+                                  className="text-[#0061E2] dark:text-[#5f9dff] hover:underline"
                                 >
                                   {`${validator.nodeId.slice(0, 12)}...${validator.nodeId.slice(-8)}`}
                                 </Link>
                               </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-xs text-zinc-600 dark:text-zinc-400">
+                              <td className="px-4 py-3 text-xs text-zinc-600 dark:text-zinc-400">
                                 {validator.p2p?.version?.replace("avalanchego/", "") ?? validator.version ?? "—"}
                               </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right font-mono text-sm">
+                              <td className="px-4 py-3 text-right font-mono text-sm">
                                 {validator.p2p
                                   ? formatValidatorStake(String(validator.p2p.total_stake))
                                   : formatValidatorStake(validator.amountStaked)}{" "}
                                 AVAX
                               </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
+                              <td className="px-4 py-3 text-right text-sm">
                                 {validator.p2p ? (
                                   <span className={
                                     validator.p2p.p50_uptime >= 99 ? "text-emerald-600 dark:text-emerald-400" :
-                                    validator.p2p.p50_uptime >= 90 ? "text-yellow-600 dark:text-yellow-400" :
-                                    "text-red-600 dark:text-red-400"
+                                    validator.p2p.p50_uptime >= 90 ? "text-amber-600 dark:text-amber-400" :
+                                    "text-[#E6212F]"
                                   }>
                                     {validator.p2p.p50_uptime.toFixed(2)}%
                                   </span>
                                 ) : "—"}
                               </td>
-                              <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-4 text-right text-sm">
+                              <td className="px-4 py-3 text-right text-sm">
                                 {validator.p2p ? (
                                   <span className={
-                                    validator.p2p.days_left < 7 ? "text-red-600 dark:text-red-400 font-medium" :
-                                    validator.p2p.days_left < 30 ? "text-yellow-600 dark:text-yellow-400" :
+                                    validator.p2p.days_left < 7 ? "text-[#E6212F] font-medium" :
+                                    validator.p2p.days_left < 30 ? "text-amber-600 dark:text-amber-400" :
                                     "text-zinc-700 dark:text-zinc-300"
                                   }>
                                     {validator.p2p.days_left}
                                   </span>
                                 ) : "—"}
                               </td>
-                              <td className="px-4 py-4 text-right text-sm">
+                              <td className="px-4 py-3 text-right text-sm">
                                 {validator.p2p ? (
                                   <span className={
                                     validator.p2p.miss_rate_14d === 0 ? "text-emerald-600 dark:text-emerald-400" :
-                                    validator.p2p.miss_rate_14d < 5 ? "text-yellow-600 dark:text-yellow-400" :
-                                    "text-red-600 dark:text-red-400"
+                                    validator.p2p.miss_rate_14d < 5 ? "text-amber-600 dark:text-amber-400" :
+                                    "text-[#E6212F]"
                                   }>
                                     {validator.p2p.miss_rate_14d.toFixed(1)}%
                                   </span>
@@ -2072,7 +1971,7 @@ export default function CChainValidatorMetrics() {
                 <div className="flex justify-center pt-2 pb-16">
                   <button
                     onClick={loadMoreValidators}
-                    className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium text-sm"
+                    className="border border-zinc-900 bg-zinc-900 px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-50 transition-opacity hover:opacity-90 dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                   >
                     Load More ({sortedValidators.length - displayCount}{" "}
                     remaining)
@@ -2083,9 +1982,7 @@ export default function CChainValidatorMetrics() {
           )}
         </section>
       </main>
-
-      {/* Bubble Navigation */}
-    </div>
+    </>
   );
 }
 
@@ -2326,20 +2223,14 @@ function DailyRewardsChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+    <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${color}20` }}
-            >
-              <Coins className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
-            </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">Daily Rewards</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Daily Rewards</h3>
+              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                 Daily staking and delegation rewards with 30-day moving average
               </p>
             </div>
@@ -2421,33 +2312,33 @@ function DailyRewardsChartCard({
           {/* Chart */}
           <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={260}>
                 <ComposedChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
+                    className="stroke-zinc-200 dark:stroke-zinc-800"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="day"
                     tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                     ticks={xAxisTicks}
                     interval={0}
                   />
                   <YAxis
                     yAxisId="left"
                     tickFormatter={formatValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                   />
                   <Tooltip
                     cursor={{ fill: `${color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
                       return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                        <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                           <div className="grid gap-2">
                             <div className="font-medium text-sm">
                               {formatTooltipDate(payload[0].payload.day)}
@@ -2467,7 +2358,7 @@ function DailyRewardsChartCard({
                   <Bar
                     dataKey="value"
                     fill={color}
-                    radius={[4, 4, 0, 0]}
+                    radius={[0, 0, 0, 0]}
                     yAxisId="left"
                     name="Daily Rewards"
                   />
@@ -2494,11 +2385,11 @@ function DailyRewardsChartCard({
            !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
            brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
             <div className="bg-white dark:bg-black pl-[60px]">
-              <ResponsiveContainer width="100%" height={80}>
+              <ResponsiveContainer width="100%" height={48}>
                 <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                   <Brush
                     dataKey="day"
-                    height={80}
+                    height={48}
                     stroke={color}
                     fill={`${color}20`}
                     alwaysShowText={false}
@@ -2701,20 +2592,14 @@ function StakingAPYChartCard({
   const minAPYColor = "#3B82F6"; // Blue for min APY (2 weeks)
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+    <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${maxAPYColor}20` }}
-            >
-              <Percent className="h-5 w-5 sm:h-6 sm:w-6" style={{ color: maxAPYColor }} />
-            </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">Historical Staking APY</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Historical Staking APY</h3>
+              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                 Estimated APY based on staking duration and current supply
               </p>
             </div>
@@ -2808,14 +2693,14 @@ function StakingAPYChartCard({
                 </div>
               </div>
             ) : displayData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted" />
                   <XAxis
                     dataKey="day"
                     tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                     ticks={xAxisTicks}
                     interval={0}
                   />
@@ -2882,11 +2767,11 @@ function StakingAPYChartCard({
            brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length &&
            brushIndexes.startIndex <= brushIndexes.endIndex && (
             <div className="bg-white dark:bg-black pl-[60px]">
-              <ResponsiveContainer width="100%" height={80}>
+              <ResponsiveContainer width="100%" height={48}>
                 <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                   <Brush
                     dataKey="day"
-                    height={80}
+                    height={48}
                     stroke={maxAPYColor}
                     fill={`${maxAPYColor}20`}
                     alwaysShowText={false}
@@ -3165,20 +3050,14 @@ function TotalWeightStackedChartCard({
   const delegatedColor = "#60a5fa";
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+    <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${color}20` }}
-            >
-              <Landmark className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
-            </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">Primary Network Total Stake</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Primary Network Total Stake</h3>
+              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                 Combined validator stake and delegated amounts
               </p>
             </div>
@@ -3252,7 +3131,7 @@ function TotalWeightStackedChartCard({
           {/* Chart */}
           <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradient-total-weight" x1="0" y1="0" x2="0" y2="1">
@@ -3262,21 +3141,21 @@ function TotalWeightStackedChartCard({
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
+                    className="stroke-zinc-200 dark:stroke-zinc-800"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="day"
                     tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                     ticks={xAxisTicks}
                     interval={0}
                   />
                   <YAxis
                     tickFormatter={formatWeight}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                   />
                   <Tooltip
                     cursor={{ fill: `${color}20` }}
@@ -3284,7 +3163,7 @@ function TotalWeightStackedChartCard({
                       if (!active || !payload?.[0]) return null;
                       const data = payload[0].payload;
                       return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                        <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                           <div className="grid gap-2">
                             <div className="font-medium text-sm">
                               {formatTooltipDate(data.day)}
@@ -3329,11 +3208,11 @@ function TotalWeightStackedChartCard({
            !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
            brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
             <div className="bg-white dark:bg-black pl-[60px]">
-              <ResponsiveContainer width="100%" height={80}>
+              <ResponsiveContainer width="100%" height={48}>
                 <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                   <Brush
                     dataKey="day"
-                    height={80}
+                    height={48}
                     stroke={color}
                     fill={`${color}20`}
                     alwaysShowText={false}
@@ -3527,20 +3406,14 @@ function CumulativeRewardsChartCard({
   };
 
   return (
-    <Card className="py-0 border-gray-200 rounded-md dark:border-gray-700" ref={chartContainerRef}>
+    <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80" ref={chartContainerRef}>
       <CardContent className="p-0">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="rounded-full p-2 sm:p-3 flex items-center justify-center"
-              style={{ backgroundColor: `${color}20` }}
-            >
-              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" style={{ color }} />
-            </div>
             <div>
-              <h3 className="text-base sm:text-lg font-normal">Cumulative Rewards</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+              <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">Cumulative Rewards</h3>
+              <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 hidden sm:block">
                 Total accumulated staking and delegation rewards over time
               </p>
             </div>
@@ -3593,7 +3466,7 @@ function CumulativeRewardsChartCard({
           {/* Chart */}
           <ChartWatermark className="mb-6">
             {displayData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={displayData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradient-cumulative-rewards" x1="0" y1="0" x2="0" y2="1">
@@ -3603,28 +3476,28 @@ function CumulativeRewardsChartCard({
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    className="stroke-gray-200 dark:stroke-gray-700"
+                    className="stroke-zinc-200 dark:stroke-zinc-800"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="day"
                     tickFormatter={formatXAxis}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                     ticks={xAxisTicks}
                     interval={0}
                   />
                   <YAxis
                     tickFormatter={formatValue}
-                    className="text-xs text-gray-600 dark:text-gray-400"
-                    tick={{ className: "fill-gray-600 dark:fill-gray-400" }}
+                    className="text-xs text-zinc-500 dark:text-zinc-400"
+                    tick={{ className: "fill-zinc-500 dark:fill-zinc-400" }}
                   />
                   <Tooltip
                     cursor={{ fill: `${color}20` }}
                     content={({ active, payload }) => {
                       if (!active || !payload?.[0]) return null;
                       return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm font-mono">
+                        <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm font-mono dark:border-zinc-700 dark:bg-zinc-800">
                           <div className="grid gap-2">
                             <div className="font-medium text-sm">
                               {formatTooltipDate(payload[0].payload.day)}
@@ -3658,11 +3531,11 @@ function CumulativeRewardsChartCard({
            !isNaN(brushIndexes.startIndex) && !isNaN(brushIndexes.endIndex) &&
            brushIndexes.startIndex >= 0 && brushIndexes.endIndex < aggregatedData.length && (
             <div className="bg-white dark:bg-black pl-[60px]">
-              <ResponsiveContainer width="100%" height={80}>
+              <ResponsiveContainer width="100%" height={48}>
                 <LineChart data={aggregatedData} margin={{ top: 0, right: 30, left: 0, bottom: 5 }}>
                   <Brush
                     dataKey="day"
-                    height={80}
+                    height={48}
                     stroke={color}
                     fill={`${color}20`}
                     alwaysShowText={false}

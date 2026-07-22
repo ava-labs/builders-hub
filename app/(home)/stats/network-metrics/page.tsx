@@ -3,10 +3,10 @@ import { Suspense } from "react";
 import ChainMetricsPage from "@/components/stats/ChainMetricsPage";
 
 export const metadata: Metadata = {
-  title: "All Chains Stats | Avalanche Ecosystem",
+  title: "Stats | Avalanche Explorer",
   description: "Track aggregated L1 activity across all Avalanche chains with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.",
   openGraph: {
-    title: "All Chains Stats | Avalanche Ecosystem",
+    title: "Avalanche Stats — All Networks",
     description: "Track aggregated L1 activity across all Avalanche chains with real-time metrics including active addresses, transactions, gas usage, fees, and network performance data.",
     url: "/stats/network-metrics",
   },

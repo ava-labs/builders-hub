@@ -164,7 +164,9 @@ function ChainSwitcher({
         className="group flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
       >
         {entry.slug === "all-networks" ? (
-          <AvalancheLogo className="h-5 w-5 shrink-0 text-[#E6212F]" />
+          /* the mark rides the theme, not the brand red — CSS fill beats the
+             SVG's hardcoded presentation attributes */
+          <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
         ) : entry.logo ? (
           <img src={entry.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
         ) : (
@@ -195,7 +197,7 @@ function ChainSwitcher({
         className="group flex items-center gap-2.5 pr-1 text-left"
       >
         {!chainSlug ? (
-          <AvalancheLogo className="h-5 w-5 shrink-0" />
+          <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
         ) : (
           (chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI) && (
             <img

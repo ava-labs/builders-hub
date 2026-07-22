@@ -181,7 +181,7 @@ export const explorerMenu: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/validators/c-chain",
+      url: "/explorer/mainnet/c-chain/validators",
       description:
       "The latest metrics for Primary Network validators.",
     },
