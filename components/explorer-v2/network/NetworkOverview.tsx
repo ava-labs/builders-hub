@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
 import {
   Board,
   SectionHeader,
@@ -76,6 +78,39 @@ function useOverviewStats(timeRange: TimeRange) {
     return () => controller.abort();
   }, [timeRange]);
   return { data, refreshing };
+}
+
+/* the cosmos map — a 1.6k-line canvas, so it only loads on the client
+   and never blocks the splash's first paint */
+const NetworkDiagram = dynamic(() => import("@/components/stats/NetworkDiagram"), {
+  ssr: false,
+  loading: () => <div className="h-full w-full animate-pulse bg-zinc-900 dark:bg-black" />,
+});
+
+/* 30-day ICM flows drawn as arcs between chains. Failure is non-fatal:
+   the diagram still renders its nodes, just without traffic. */
+function useIcmFlowRoutes() {
+  const [flows, setFlows] = useState<ICMFlowRoute[]>([]);
+  const [failedChainIds, setFailedChainIds] = useState<string[]>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/icm-flow?days=30", { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((d: { flows?: ICMFlowRoute[]; failedChainIds?: string[] }) => {
+        if (Array.isArray(d.flows)) setFlows(d.flows);
+        if (Array.isArray(d.failedChainIds)) setFailedChainIds(d.failedChainIds);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+  return { flows, failedChainIds };
+}
+
+/* deterministic fallback tint for catalog chains without a brand color */
+function colorFromName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return `hsl(${hash % 360}, 70%, 50%)`;
 }
 
 function useAvaxSupply() {
@@ -155,6 +190,35 @@ export function NetworkOverview() {
     () => (data?.chains ?? []).slice().sort((a, b) => b.activeAddresses - a.activeAddresses).slice(0, 12),
     [data],
   );
+
+  const { flows, failedChainIds } = useIcmFlowRoutes();
+
+  /* the diagram's node list: validator-backed chains only (zero-validator
+     chains render as orphan dots), largest sets first to anchor the layout */
+  const cosmos = useMemo<ChainCosmosData[]>(() => {
+    return (data?.chains ?? [])
+      .map((c) => {
+        const validatorCount = typeof c.validatorCount === "number" ? c.validatorCount : 0;
+        if (validatorCount === 0) return null;
+        const catalog = catalogByChainId.get(String(c.chainId));
+        return {
+          id: catalog?.subnetId || c.chainId,
+          chainId: c.chainId,
+          name: c.chainName,
+          logo: c.chainLogoURI,
+          color: catalog?.color || colorFromName(c.chainName),
+          validatorCount,
+          subnetId: catalog?.subnetId,
+          activeAddresses: c.activeAddresses > 0 ? c.activeAddresses : undefined,
+          txCount: c.txCount > 0 ? Math.round(c.txCount) : undefined,
+          icmMessages: c.icmMessages > 0 ? Math.round(c.icmMessages) : undefined,
+          tps: c.tps > 0 ? parseFloat(c.tps.toFixed(2)) : undefined,
+          category: catalog?.category || "General",
+        } as ChainCosmosData;
+      })
+      .filter((c): c is ChainCosmosData => c !== null)
+      .sort((a, b) => b.validatorCount - a.validatorCount);
+  }, [data]);
 
   const feesBurned = useMemo(() => {
     if (!supply) return null;
@@ -241,6 +305,24 @@ export function NetworkOverview() {
                   {agg ? <StatFigure value={agg.activeL1Count} /> : <StatDash />}
                 </StatCell>
               </div>
+            </div>
+          </Board>
+        </section>
+
+        {/* the network as a cosmos: every validator set a body, ICM traffic
+            as arcs between them — the one dark surface on the sheet */}
+        <section className="flex flex-col gap-4">
+          <SectionHeader
+            label="Network map"
+            action={<BoardLink href="/explorer/mainnet/icm">ICM flows</BoardLink>}
+          />
+          <Board divide={false} className="overflow-hidden bg-zinc-900 p-0 dark:bg-black">
+            <div className="h-[400px] sm:h-[500px] md:h-[560px]">
+              {cosmos.length > 0 ? (
+                <NetworkDiagram data={cosmos} icmFlows={flows} failedChainIds={failedChainIds} />
+              ) : (
+                <div className="h-full w-full animate-pulse bg-zinc-900 dark:bg-black" />
+              )}
             </div>
           </Board>
         </section>
