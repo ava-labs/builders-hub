@@ -24,9 +24,15 @@ export function EvmShell({
 }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
+  // L1s wear their own brand color as the accent via --chain-accent; every
+  // consumer falls back to the Avalanche red, which is what the C-Chain keeps.
+  const accent = c.chainSlug !== "c-chain" ? c.themeColor : undefined;
 
   return (
-    <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
+    <main
+      className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950"
+      style={accent ? ({ "--chain-accent": accent } as React.CSSProperties) : undefined}
+    >
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         <ExplorerSubnav
