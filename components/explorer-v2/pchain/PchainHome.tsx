@@ -161,16 +161,6 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                 already lives in the tape above. */}
             <Board divide={false}>
               <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 sm:grid-cols-3 lg:grid-cols-6 lg:divide-y-0 dark:divide-zinc-800">
-                <StatCell label="STAKING RATIO">
-                  {stakingRatio !== null ? (
-                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {stakingRatio.toFixed(1)}
-                      <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
                 <StatCell label="TOTAL STAKED">
                   {totalStake ? (
                     <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
@@ -181,14 +171,17 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                     <StatDash />
                   )}
                 </StatCell>
-                <StatCell label="PRIMARY VALIDATORS" href={`${base}/validators`}>
-                  {s ? <StatFigure value={s.validatorCount} /> : <StatDash />}
-                </StatCell>
-                <StatCell label="L1 VALIDATORS">
-                  {s ? <StatFigure value={s.l1ValidatorCount} /> : <StatDash />}
-                </StatCell>
-                <StatCell label="DELEGATORS">
-                  {s ? <StatFigure value={s.delegatorCount} /> : <StatDash />}
+                {/* denominator is the TOTAL SUPPLY cell beside it — the two
+                    read as one statement */}
+                <StatCell label="STAKED · OF TOTAL SUPPLY">
+                  {stakingRatio !== null ? (
+                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                      {stakingRatio.toFixed(1)}
+                      <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
+                    </span>
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
                 <StatCell label="TOTAL SUPPLY">
                   {s?.currentSupply ? (
@@ -199,6 +192,15 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                   ) : (
                     <StatDash />
                   )}
+                </StatCell>
+                <StatCell label="DELEGATORS">
+                  {s ? <StatFigure value={s.delegatorCount} /> : <StatDash />}
+                </StatCell>
+                <StatCell label="PRIMARY VALIDATORS" href={`${base}/validators`}>
+                  {s ? <StatFigure value={s.validatorCount} /> : <StatDash />}
+                </StatCell>
+                <StatCell label="L1 VALIDATORS">
+                  {s ? <StatFigure value={s.l1ValidatorCount} /> : <StatDash />}
                 </StatCell>
               </div>
             </Board>
