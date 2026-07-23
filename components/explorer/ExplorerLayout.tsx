@@ -305,7 +305,7 @@ export function ExplorerLayout({
           out of the header box below: a sticky element only pins while its
           parent is on screen, so its parent must be this full-height column,
           not a box that ends with the header. */}
-      <div className="sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[45]">
+      <div className="sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35]">
         <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6">
           <ExplorerSubnav
             network={network}
