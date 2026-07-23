@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { evmApiPath } from "@/lib/evm-explorer";
 
 // Default client poll interval for "live" views (home, tx/block lists). Sits
@@ -25,13 +25,17 @@ export function useEvmData<T>(
      *  on-chain seconds before the indexer has ingested them */
     retry404Ms?: number;
   },
-): { data: T | null; loading: boolean; error: string | null } {
+): { data: T | null; loading: boolean; error: string | null; retry: () => void } {
   const key = chainId != null ? evmApiPath(chainId, resource, query) : "";
   const refreshMs = opts?.refreshMs ?? 0;
   const retry404Ms = opts?.retry404Ms ?? 0;
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // bumping the nonce re-runs the whole fetch effect — the "Retry" button
+  // for feeds that died on an upstream outage rather than a 404
+  const [nonce, setNonce] = useState(0);
+  const retry = useCallback(() => setNonce((n) => n + 1), []);
 
   useEffect(() => {
     if (!key) {
@@ -121,7 +125,7 @@ export function useEvmData<T>(
       controller.abort();
       if (timer) clearTimeout(timer);
     };
-  }, [key, refreshMs, retry404Ms]);
+  }, [key, refreshMs, retry404Ms, nonce]);
 
-  return { data, loading, error };
+  return { data, loading, error, retry };
 }
