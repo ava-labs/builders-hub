@@ -132,22 +132,34 @@ export function useFeeHistory(rpcUrl: string | undefined): FeeSnapshot {
 }
 
 /* native token USD price, one fetch — the explorer route caches CoinGecko */
-export function useTokenUsd(evmChainId: number): number | null {
-  const [usd, setUsd] = useState<number | null>(null);
+/* the chain's USD price via the legacy explorer route's priceOnly mode
+   (server-cached, much lighter than the full payload). `settled` separates
+   "still loading" from "token isn't listed" — the cost panel holds its
+   figures on the former and only falls back to native units on the
+   latter, so a price that arrives late never flips an already-painted
+   number from AVAX to dollars. */
+export function useTokenUsd(evmChainId: number): { usd: number | null; settled: boolean } {
+  const [state, setState] = useState<{ usd: number | null; settled: boolean }>({
+    usd: null,
+    settled: false,
+  });
   useEffect(() => {
     if (!Number.isFinite(evmChainId)) return;
     let cancelled = false;
-    fetch(`/api/explorer/${evmChainId}`)
+    setState({ usd: null, settled: false });
+    fetch(`/api/explorer/${evmChainId}?priceOnly=true`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { price?: { price?: number } } | null) => {
-        if (!cancelled && data?.price?.price) setUsd(data.price.price);
+        if (!cancelled) setState({ usd: data?.price?.price ?? null, settled: true });
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setState({ usd: null, settled: true });
+      });
     return () => {
       cancelled = true;
     };
   }, [evmChainId]);
-  return usd;
+  return state;
 }
 
 /* the page clock's window, in the vocabulary the gas-history feed accepts —
@@ -797,7 +809,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   const symbol = catalog.networkToken?.symbol ?? "";
   const unit = nanoUnit(symbol);
   const fee = useFeeHistory(catalog.rpcUrl);
-  const usd = useTokenUsd(evmChainId);
+  const { usd, settled: usdSettled } = useTokenUsd(evmChainId);
 
   // the page-level clock in the subnav drives the demand window; calling
   // the hook unconditionally registers this page as a consumer, which is
@@ -899,8 +911,16 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
                     {a.label}
                   </span>
                   <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-[#EBF0FA] sm:text-2xl md:text-[1.75rem]">
+                    {/* hold the figure until the price feed settles — painting
+                        native and flipping to dollars a beat later reads as a
+                        glitch. Native is the fallback for unlisted tokens only. */}
                     {costWei !== null && usd !== null ? (
                       fmtUsd((costWei / 1e18) * usd)
+                    ) : costWei !== null && !usdSettled ? (
+                      <span
+                        className="inline-block h-[1.05em] w-24 animate-pulse bg-white/10 align-middle"
+                        aria-label="Loading price"
+                      />
                     ) : costWei !== null ? (
                       `${fmtNative(costWei)} ${symbol}`
                     ) : (
