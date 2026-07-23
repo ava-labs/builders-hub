@@ -43,7 +43,9 @@ export interface SubnetInfo {
 }
 
 /** platform.getCurrentValidators entry — L1 validators carry validationID
- *  and balance; legacy subnet validators carry txID/start/end instead. */
+ *  and balance; legacy subnet validators carry txID/start/end instead.
+ *  Primary Network validators additionally carry the reward plumbing the
+ *  indexer doesn't mirror: who gets paid, and the BLS identity. */
 export interface CurrentValidator {
   nodeID: string;
   weight: string;
@@ -53,6 +55,25 @@ export interface CurrentValidator {
   publicKey?: string;
   remainingBalanceOwner?: PchainOwner;
   deactivationOwner?: PchainOwner;
+  /** Primary Network: where the validator's own staking reward pays out */
+  validationRewardOwner?: PchainOwner;
+  /** Primary Network: where the delegation-fee cut pays out */
+  delegationRewardOwner?: PchainOwner;
+  /** pre-Banff validators carry a single rewardOwner instead of the split pair */
+  rewardOwner?: PchainOwner;
+  /** BLS public key + proof of possession */
+  signer?: { publicKey: string; proofOfPossession: string };
+}
+
+/** Total nAVAX staked on the Primary Network right now — the denominator
+ *  for a validator's network share. */
+export async function getPrimaryTotalStake(network: string): Promise<number | null> {
+  const r = await rpc<{ stake?: string; weight?: string }>(network, "platform.getTotalStake", {
+    subnetID: PRIMARY_SUBNET_ID,
+  });
+  const raw = r?.stake ?? r?.weight;
+  const n = raw !== undefined ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 async function rpc<T>(network: string, method: string, params: object): Promise<T | null> {

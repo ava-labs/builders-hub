@@ -15,6 +15,7 @@ import {
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
   Board,
+  BoardHeader,
   DetailSkeleton,
   HashChip,
   SectionHeader,
@@ -25,7 +26,12 @@ import {
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
-import { getCurrentValidators, type CurrentValidator } from "@/lib/pchain-node";
+import {
+  PRIMARY_SUBNET_ID,
+  getCurrentValidators,
+  getPrimaryTotalStake,
+  type CurrentValidator,
+} from "@/lib/pchain-node";
 import type { NodeResponse } from "@/lib/pchain-explorer";
 
 /* The node page as one instrument, not an endless scroll: a bold summary
@@ -60,6 +66,33 @@ function useP2PDetail(nodeId: string, enabled: boolean) {
   return data;
 }
 
+/* the money context the indexer doesn't mirror: the live validator entry
+   (payout owners, BLS identity) and the network's total stake — the
+   denominator that turns this validator's stake into a share */
+function useStakeContext(network: string, nodeId: string, enabled: boolean) {
+  const [identity, setIdentity] = useState<CurrentValidator | null>(null);
+  const [networkStake, setNetworkStake] = useState<number | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    getCurrentValidators(network, PRIMARY_SUBNET_ID, [nodeId]).then((vs) => {
+      if (!cancelled) setIdentity(vs?.[0] ?? null);
+    });
+    getPrimaryTotalStake(network).then((s) => {
+      if (!cancelled) setNetworkStake(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [network, nodeId, enabled]);
+  return { identity, networkStake };
+}
+
+/* Primary Network staking rules: a validator can carry delegations up to
+   5x its own stake, capped at 3M AVAX total. What's left of that headroom
+   is the number a would-be delegator actually cares about. */
+const MAX_TOTAL_STAKE_NAVAX = 3_000_000 * 1e9;
+
 const LIST_CAP = 8;
 
 export function PchainNode({
@@ -79,6 +112,28 @@ export function PchainNode({
   const { data: n, loading, error } = usePchainData<NodeResponse>(network, `node/${nodeId}`);
   // the P2P observatory only watches mainnet's Primary Network
   const p2p = useP2PDetail(nodeId, network === "mainnet" && Boolean(n?.hasSnapshot));
+  // payout owners + BLS identity + the network-share denominator, live
+  const { identity, networkStake } = useStakeContext(network, nodeId, Boolean(n?.hasSnapshot));
+
+  // the stake story, derived once: share of the network, delegation
+  // headroom, the validator's total take, how far through the term it is
+  const stake = useMemo(() => {
+    const v = n?.validator;
+    if (!v) return null;
+    const maxTotal = Math.min(5 * v.weight, MAX_TOTAL_STAKE_NAVAX);
+    const capacity = Math.max(0, maxTotal - v.totalStake);
+    const sharePct = networkStake ? (v.totalStake / networkStake) * 100 : null;
+    const feeTake = n.delegatorsPotentialReward * (v.delegationFeePercent / 100);
+    const totalTake = v.potentialReward + feeTake;
+    const now = Date.now() / 1000;
+    const span = v.endTimestamp - v.startTimestamp;
+    const progressPct =
+      span > 0 ? Math.min(100, Math.max(0, ((now - v.startTimestamp) / span) * 100)) : null;
+    return { maxTotal, capacity, sharePct, feeTake, totalTake, progressPct };
+  }, [n, networkStake]);
+  // pre-Banff validators carry one rewardOwner; later ones split the pair
+  const validationPayout = identity?.validationRewardOwner ?? identity?.rewardOwner;
+  const delegationPayout = identity?.delegationRewardOwner ?? identity?.rewardOwner;
 
   // L1-only validators never stake on the Primary Network, so the indexer
   // 404s on them. With a subnet hint we go straight to the node:
@@ -155,12 +210,35 @@ export function PchainNode({
             )}
           </section>
 
-          {/* the numbers that matter, bold, in one strip */}
+          {/* the numbers that matter, bold, in one strip: the stake story
+              on the first row, the operational story on the second */}
           {n.hasSnapshot && (
-            <Board divide={false}>
-              <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 sm:grid-cols-3 lg:grid-cols-6 sm:divide-y-0 dark:divide-zinc-800">
-                <Tile label="Total stake" value={formatAvax(n.validator.totalStake, { compact: true })} strong />
-                <Tile label="Delegators" value={formatNumber(n.validator.delegatorCount)} />
+            <Board divide={false} className="border">
+              <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 dark:divide-zinc-800">
+                <Tile
+                  label="Total stake"
+                  value={formatAvax(n.validator.totalStake, { compact: true })}
+                  strong
+                  sub={stake?.sharePct != null ? `${stake.sharePct.toFixed(2)}% of the network` : undefined}
+                />
+                <Tile label="Own stake" value={formatAvax(n.validator.weight, { compact: true })} />
+                <Tile
+                  label="Delegated"
+                  value={formatAvax(n.validator.delegatorWeight, { compact: true })}
+                  sub={`${formatNumber(n.validator.delegatorCount)} delegators`}
+                />
+                <Tile
+                  label="Open capacity"
+                  value={stake ? formatAvax(stake.capacity, { compact: true }) : "—"}
+                  tone={stake && stake.capacity === 0 ? "bad" : undefined}
+                  sub={
+                    stake
+                      ? stake.capacity === 0
+                        ? "full — no room to delegate"
+                        : `of ${formatAvax(stake.maxTotal, { compact: true })} max`
+                      : undefined
+                  }
+                />
                 <Tile
                   label="Uptime"
                   value={`${n.uptime.currentP50.toFixed(1)}%`}
@@ -174,9 +252,86 @@ export function PchainNode({
                   tone={p2p ? (p2p.miss_rate_14d === 0 ? "good" : p2p.miss_rate_14d < 5 ? "warn" : "bad") : undefined}
                 />
                 <Tile label="Proposed · 14d" value={formatNumber(p2p?.proposed_14d ?? n.proposedBlocks14d)} />
-                <Tile label="Days left" value={formatNumber(n.validator.daysLeft)} />
+                <Tile
+                  label="Days left"
+                  value={formatNumber(n.validator.daysLeft)}
+                  sub={stake?.progressPct != null ? `${stake.progressPct.toFixed(0)}% of term elapsed` : undefined}
+                />
               </div>
             </Board>
+          )}
+
+          {/* what validating pays: the validator's own reward, its cut of
+              the delegators' rewards, and the split between the two — the
+              money story the roster page can't carry per-node */}
+          {n.hasSnapshot && stake && (
+            <section className="flex flex-col gap-3">
+              <Board divide={false} className="border">
+                <BoardHeader
+                  label="Potential Rewards"
+                  display
+                  action={
+                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      at term end · if uptime holds
+                    </span>
+                  }
+                />
+                <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+                  <Tile
+                    label="Own stake reward"
+                    value={formatAvax(n.validator.potentialReward, { compact: true })}
+                  />
+                  <Tile
+                    label="Delegation fee take"
+                    value={formatAvax(stake.feeTake, { compact: true })}
+                    sub={`${n.validator.delegationFeePercent}% of ${formatAvax(n.delegatorsPotentialReward, { compact: true })} gross`}
+                  />
+                  <Tile
+                    label="Validator total"
+                    value={formatAvax(stake.totalTake, { compact: true })}
+                    strong
+                    tone="good"
+                  />
+                  <Tile
+                    label="Delegators net"
+                    value={formatAvax(Math.max(0, n.delegatorsPotentialReward - stake.feeTake), {
+                      compact: true,
+                    })}
+                    sub="gross minus the fee"
+                  />
+                </div>
+                {/* where the validator's take comes from, as one bar */}
+                {stake.totalTake > 0 && (
+                  <div className="flex flex-col gap-2 border-t border-zinc-200 px-5 py-4 md:px-6 dark:border-zinc-800">
+                    <div className="flex h-2 w-full overflow-hidden">
+                      <div
+                        className="bg-zinc-900 dark:bg-zinc-100"
+                        style={{ width: `${(n.validator.potentialReward / stake.totalTake) * 100}%` }}
+                      />
+                      <div className="flex-1 bg-[#E6212F]" />
+                    </div>
+                    <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      <span>
+                        ■ own stake{" "}
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                          {((n.validator.potentialReward / stake.totalTake) * 100).toFixed(1)}%
+                        </span>
+                      </span>
+                      <span>
+                        delegation fees{" "}
+                        <span className="font-bold text-[#E6212F]">
+                          {((stake.feeTake / stake.totalTake) * 100).toFixed(1)}%
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </Board>
+              <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                Projected payouts at the end of the term, assuming the validator keeps meeting the
+                uptime requirement. Delegator rewards are shown gross; the fee comes out at payout.
+              </p>
+            </section>
           )}
 
           {/* split view: what it IS | how it's PERFORMING */}
@@ -194,19 +349,38 @@ export function PchainNode({
                         <HashChip value={n.validator.validationId} len={24} />
                       </SpecRow>
                     )}
-                    <SpecRow label="Own stake">
-                      <strong className="font-semibold">{formatAvax(n.validator.weight)}</strong>
-                    </SpecRow>
-                    <SpecRow label="Delegated">{formatAvax(n.validator.delegatorWeight)}</SpecRow>
+                    {n.validator.txId && (
+                      <SpecRow label="Staking tx">
+                        <HashChip value={n.validator.txId} href={`${base}/tx/${n.validator.txId}`} len={24} />
+                      </SpecRow>
+                    )}
                     <SpecRow label="Delegation fee">{n.validator.delegationFeePercent}%</SpecRow>
-                    <SpecRow label="Potential reward">
-                      <span className="text-emerald-600 dark:text-emerald-400">
-                        {formatAvax(n.validator.potentialReward)}
-                      </span>
-                    </SpecRow>
-                    <SpecRow label="Term">
-                      {formatTime(n.validator.startTimestamp)} → {formatTime(n.validator.endTimestamp)}
-                    </SpecRow>
+                    {/* where the money lands — live from the P-Chain, since
+                        the indexer doesn't mirror reward owners */}
+                    {validationPayout?.addresses?.[0] && (
+                      <SpecRow label="Payout · validation">
+                        <HashChip
+                          value={validationPayout.addresses[0]}
+                          href={`${base}/address/${validationPayout.addresses[0]}`}
+                          len={22}
+                        />
+                      </SpecRow>
+                    )}
+                    {delegationPayout?.addresses?.[0] &&
+                      delegationPayout.addresses[0] !== validationPayout?.addresses?.[0] && (
+                        <SpecRow label="Payout · delegation">
+                          <HashChip
+                            value={delegationPayout.addresses[0]}
+                            href={`${base}/address/${delegationPayout.addresses[0]}`}
+                            len={22}
+                          />
+                        </SpecRow>
+                      )}
+                    {identity?.signer?.publicKey && (
+                      <SpecRow label="BLS public key">
+                        <HashChip value={identity.signer.publicKey} len={22} />
+                      </SpecRow>
+                    )}
                     {n.nodeInfo?.version && <SpecRow label="Version">{n.nodeInfo.version}</SpecRow>}
                     {n.nodeInfo?.publicIp && (
                       <SpecRow label="Public IP">
@@ -214,6 +388,24 @@ export function PchainNode({
                       </SpecRow>
                     )}
                   </SpecPlate>
+                  {/* the term as a bar: dates at the ends, progress in between */}
+                  <div className="flex flex-col gap-1.5 border-t border-zinc-200 py-3.5 dark:border-zinc-800">
+                    <div className="flex h-1.5 w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+                      <div
+                        className="bg-zinc-900 dark:bg-zinc-100"
+                        style={{ width: `${(stake?.progressPct ?? 0).toFixed(1)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-baseline justify-between gap-3 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                      <span>{formatTime(n.validator.startTimestamp)}</span>
+                      {stake?.progressPct != null && (
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                          {stake.progressPct.toFixed(1)}% · {formatNumber(n.validator.daysLeft)}d left
+                        </span>
+                      )}
+                      <span>{formatTime(n.validator.endTimestamp)}</span>
+                    </div>
+                  </div>
                 </Board>
               </section>
 
@@ -594,12 +786,15 @@ function Tile({
   value,
   strong = false,
   tone,
+  sub,
 }: {
   label: string;
   value: string;
   /** the figures eyes should land on first */
   strong?: boolean;
   tone?: "good" | "warn" | "bad";
+  /** muted qualifier under the figure — a share, a cap, a count */
+  sub?: string;
 }) {
   const toneCls =
     tone === "good"
@@ -621,6 +816,11 @@ function Tile({
       >
         {value}
       </span>
+      {sub && (
+        <span className="font-mono text-[10px] tabular-nums tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+          {sub}
+        </span>
+      )}
     </div>
   );
 }
