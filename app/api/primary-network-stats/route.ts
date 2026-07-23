@@ -6,11 +6,11 @@ export const dynamic = 'force-dynamic';
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 10000;
 
-// Time-series come from the metrics gateway (metrics.avax.network) via direct
-// HTTP — the P-chain validator/delegator series aren't in our own ClickHouse.
-// The Glacier chainkit SDK is gone; the version distribution now comes from our
-// own /v1 network overview.
-const METRICS_API_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
+// The staking time-series (validator/delegator count + weight) now come from
+// OUR OWN metrics-api — reconstructed over the full chain history from
+// decoded_p_txs and served gateway-shaped at /v2/networks/mainnet/metrics/* —
+// replacing metrics.avax.network (the explorer's last external data source).
+// Rewards series still ride the Metabase dashboard below.
 
 interface PrimaryNetworkMetrics {
   validator_count: TimeSeriesMetric;
@@ -34,7 +34,6 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
 
 // Cache storage with stale-while-revalidate pattern
 const cachedData = new Map<string, { data: PrimaryNetworkMetrics; timestamp: number }>();
@@ -51,7 +50,6 @@ async function getTimeSeriesData(
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
 
-    const rlToken = getRlToken();
     let pageToken: string | undefined;
     do {
       const qs = new URLSearchParams({
@@ -59,9 +57,8 @@ async function getTimeSeriesData(
         endTimestamp: String(endTimestamp),
         pageSize: String(pageSize),
       });
-      if (rlToken) qs.set('rltoken', rlToken);
       if (pageToken) qs.set('pageToken', pageToken);
-      const res = await fetchWithTimeout(`${METRICS_API_URL}/v2/networks/mainnet/metrics/${metricType}?${qs.toString()}`);
+      const res = await fetchWithTimeout(`${EXPLORER_API_BASE}/v2/networks/mainnet/metrics/${metricType}?${qs.toString()}`);
       if (!res.ok) break;
       const page = await res.json();
       if (Array.isArray(page?.results)) allResults = allResults.concat(page.results);
