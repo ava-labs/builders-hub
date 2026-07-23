@@ -215,8 +215,10 @@ export const docsMenu: LinkItemType = {
           icon={<Sprout />}
           title='Primary Network'
           description='Connect to Avalanche and start building dApps.'
-          docsHref='/docs/primary-network'
-          learnHref='/academy?path=blockchain'
+          links={[
+            { label: 'Docs', href: '/docs/primary-network' },
+            { label: 'Stake AVAX', href: '/console/primary-network/stake' },
+          ]}
         />
       ),
     },
@@ -229,7 +231,7 @@ export const docsMenu: LinkItemType = {
           title='Avalanche L1s'
           description='Launch and customize your own Avalanche L1 blockchain.'
           docsHref='/docs/avalanche-l1s'
-          learnHref='/academy?path=avalanche-l1'
+          learnHref='/academy/avalanche-l1'
         />
       ),
     },
@@ -254,8 +256,10 @@ export const docsMenu: LinkItemType = {
           icon={<Computer />}
           title='Nodes & Validators'
           description='Set up, configure, and maintain Avalanche nodes and validators.'
-          docsHref='/docs/nodes'
-          learnHref='/academy/avalanche-l1/permissionless-l1s'
+          links={[
+            { label: 'Docs', href: '/docs/nodes' },
+            { label: 'L1 Node Setup', href: '/console/layer-1/l1-node-setup' },
+          ]}
         />
       ),
     },
@@ -277,8 +281,10 @@ export const docsMenu: LinkItemType = {
           icon={<Code />}
           title='Developer Tools'
           description='Explore the Avalanche SDKs, CLI, and more.'
-          docsHref='/docs/tooling'
-          learnHref='/academy/blockchain/solidity-foundry'
+          links={[
+            { label: 'SDK', href: '/docs/tooling/avalanche-sdk' },
+            { label: 'Platform CLI', href: '/docs/tooling/platform-cli' },
+          ]}
         />
       ),
     },

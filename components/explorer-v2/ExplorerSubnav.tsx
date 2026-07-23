@@ -409,6 +409,15 @@ const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
   Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
 );
 
+/* Counterparts that exist but aren't explorable yet: the toggle stays
+   visible so the network is discoverable, but the segment is disabled and
+   says why. Move an entry up into TESTNET_COUNTERPART when its indexing
+   comes online. */
+const UNAVAILABLE_TESTNET: Record<string, string> = {
+  "c-chain":
+    "We're having trouble indexing the Fuji C-Chain right now — it'll be available later.",
+};
+
 /* Crossing networks keeps the section when the counterpart has it: an
    accounts page lands on the counterpart's accounts, everything else
    lands on its explorer overview. */
@@ -505,6 +514,28 @@ function NetworkControl({
             {seg.label}
           </Link>
         ))}
+      </div>
+    );
+  }
+
+  // Counterpart exists but isn't indexed yet: Mainnet stays live, Fuji shows
+  // as a disabled segment that explains itself instead of vanishing.
+  const unavailableNote = UNAVAILABLE_TESTNET[chainSlug];
+  if (unavailableNote) {
+    return (
+      <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
+        <span className="bg-zinc-900 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-50 sm:px-3 dark:bg-zinc-50 dark:text-zinc-900">
+          Mainnet
+        </span>
+        <span
+          role="link"
+          aria-disabled="true"
+          title={unavailableNote}
+          className="inline-flex cursor-not-allowed items-center gap-1.5 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-300 sm:px-3 dark:text-zinc-600"
+        >
+          Fuji
+          <span className="font-medium normal-case tracking-normal text-zinc-400 dark:text-zinc-500">soon</span>
+        </span>
       </div>
     );
   }
