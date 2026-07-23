@@ -215,8 +215,10 @@ export const docsMenu: LinkItemType = {
           icon={<Sprout />}
           title='Primary Network'
           description='Connect to Avalanche and start building dApps.'
-          docsHref='/docs/primary-network'
-          learnHref='/academy/avalanche-l1/avalanche-fundamentals'
+          links={[
+            { label: 'Docs', href: '/docs/primary-network' },
+            { label: 'Stake AVAX', href: '/console/primary-network/stake' },
+          ]}
         />
       ),
     },
@@ -254,8 +256,10 @@ export const docsMenu: LinkItemType = {
           icon={<Computer />}
           title='Nodes & Validators'
           description='Set up, configure, and maintain Avalanche nodes and validators.'
-          docsHref='/docs/nodes'
-          toolsHref='/console/layer-1/l1-node-setup'
+          links={[
+            { label: 'Docs', href: '/docs/nodes' },
+            { label: 'L1 Node Setup', href: '/console/layer-1/l1-node-setup' },
+          ]}
         />
       ),
     },
