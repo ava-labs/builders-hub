@@ -691,7 +691,8 @@ export interface GasMarket {
   protocols: GasProtocol[];
   /** total gas across ALL txs in the range (denominator for shares) */
   rangeTotalGas: number;
-  /** hour-of-week fee seasonality, 30 days (range-independent) */
+  /** hour-of-week fee seasonality over the range (min a week, so every
+   *  weekday cell has at least one sample) */
   heatmap: GasHeatCell[];
   /** block-fullness distribution over the range */
   histogram: GasUtilBucket[];
@@ -746,7 +747,7 @@ function sqlGasDaily(chainId: number, days: number = GAS_DAILY_WINDOW_DAYS): str
   `;
 }
 
-function sqlGasHeatmap(chainId: number): string {
+function sqlGasHeatmap(chainId: number, days: number): string {
   return `
     SELECT
       toDayOfWeek(block_time) AS dow,
@@ -754,7 +755,7 @@ function sqlGasHeatmap(chainId: number): string {
       round(quantile(0.5)(base_fee_per_gas) / 1e9, 4) AS p50
     FROM raw_blocks
     WHERE chain_id = ${chainId}
-      AND block_time >= now() - INTERVAL 30 DAY
+      AND block_time >= now() - INTERVAL ${days} DAY
     GROUP BY dow, hour
     ORDER BY dow, hour
     FORMAT JSONEachRow
@@ -1048,7 +1049,7 @@ export async function getGasMarket(
         () => clickhouseFetch(sqlGasDaily(evmChainId), QUERY_TIMEOUT_MS),
         () => clickhouseFetch(sqlGasConsumers(evmChainId, hours, 0), QUERY_TIMEOUT_MS),
         () => clickhouseFetch(sqlGasConsumers(evmChainId, hours * 2, hours), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasHeatmap(evmChainId), QUERY_TIMEOUT_MS),
+        () => clickhouseFetch(sqlGasHeatmap(evmChainId, Math.max(7, rangeDays)), QUERY_TIMEOUT_MS),
         () => clickhouseFetch(sqlGasHistogram(evmChainId, hours), QUERY_TIMEOUT_MS),
         () => clickhouseFetch(sqlGasSelectors(evmChainId, hours), QUERY_TIMEOUT_MS),
         () => clickhouseFetch(sqlGasReverted(evmChainId, hours), QUERY_TIMEOUT_MS),

@@ -7,18 +7,33 @@ import {
   Area,
   Bar,
   BarChart,
+  Brush,
+  CartesianGrid,
   ComposedChart,
   Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
+  XAxis,
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
-import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL } from "@/components/explorer-v2/time-range";
+import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
+import {
+  useExplorerTimeRange,
+  RANGE_DAYS,
+  RANGE_LABEL,
+  type ExplorerRange,
+} from "@/components/explorer-v2/time-range";
 import { squarify, type SquarifyItem } from "@/components/stats/squarify";
 import { useContractNames } from "@/lib/sourcify-client";
-import type { GasMarket, GasProtocol, GasRangeDays } from "@/lib/explorer-clickhouse";
+import type {
+  GasDayPoint,
+  GasHistoryDays,
+  GasMarket,
+  GasProtocol,
+  GasRangeDays,
+} from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
 
 /* The chain's gas market as one instrument, in depth: what a unit of
@@ -135,6 +150,38 @@ export function useTokenUsd(evmChainId: number): number | null {
   return usd;
 }
 
+/* the page clock's window, in the vocabulary the gas-history feed accepts —
+   smallest computed span (7/30/90/365) that covers it */
+function historyDays(range: ExplorerRange): GasHistoryDays {
+  const d = RANGE_DAYS[range];
+  return d <= 7 ? 7 : d <= 30 ? 30 : d <= 90 ? 90 : 365;
+}
+
+/* daily fee percentiles + gas volume over a window — the cheap gas-history
+   feed the detail sheets read; the top page's clock-driven bands slice it */
+export function useGasHistory(evmChainId: number, days: GasHistoryDays) {
+  const [daily, setDaily] = useState<GasDayPoint[] | null>(null);
+  const [missing, setMissing] = useState(false);
+  useEffect(() => {
+    if (!Number.isFinite(evmChainId)) return;
+    let cancelled = false;
+    setDaily(null);
+    setMissing(false);
+    fetch(`/api/gas-history/${evmChainId}?days=${days}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: { daily: GasDayPoint[] }) => {
+        if (!cancelled) setDaily(data.daily);
+      })
+      .catch(() => {
+        if (!cancelled) setMissing(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [evmChainId, days]);
+  return { daily, missing };
+}
+
 /* ---------------------------------------------------------------- */
 /* formatting + selector labels                                      */
 /* ---------------------------------------------------------------- */
@@ -167,9 +214,13 @@ function fmtNative(wei: number): string {
 }
 
 function fmtUsd(usd: number): string {
-  if (usd < 0.01) return "<$0.01";
-  if (usd < 1) return `$${usd.toFixed(3)}`;
-  return `$${usd.toFixed(2)}`;
+  if (usd >= 1) return `$${usd.toFixed(2)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(3)}`;
+  if (usd <= 0) return "$0.00";
+  // sub-cent is where these chains live: keep three significant digits,
+  // however many zeros that takes, instead of hiding behind "<$0.01"
+  const decimals = Math.min(12, Math.ceil(-Math.log10(usd)) + 2);
+  return `$${usd.toFixed(decimals).replace(/0$/, "")}`;
 }
 
 function shortAddr(addr: string): string {
@@ -243,7 +294,7 @@ export function GasStat({ label, live = false, children, sub, href }: {
       <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
         {children}
       </span>
-      {sub && <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{sub}</span>}
+      {sub && <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{sub}</span>}
     </>
   );
   if (href) {
@@ -261,25 +312,50 @@ export function GasStat({ label, live = false, children, sub, href }: {
 
 /* percentile band + median line, shared by the 48h and 60d fee charts.
    The band is drawn as a transparent p25 floor with (p75−p25) stacked on
-   it — recharts' way of shading between two series. */
+   it — recharts' way of shading between two series. The detail sheets set
+   `detailed` for the full instrument: taller plot, gridlines, real axes. */
 export function FeeBandChart<T extends { p25: number; p50: number; p75: number; p95: number }>({
   data,
   unit,
   labelFor,
+  detailed = false,
+  xTick,
 }: {
   data: T[];
   unit: string;
   labelFor: (d: T) => string;
+  detailed?: boolean;
+  /** detailed mode's x-axis label for a row (short form, e.g. "Jul 12") */
+  xTick?: (d: T) => string;
 }) {
   const shaped = useMemo(
-    () => data.map((d) => ({ ...d, band: Math.max(0, d.p75 - d.p25) })),
-    [data],
+    () => data.map((d) => ({ ...d, band: Math.max(0, d.p75 - d.p25), xLabel: xTick?.(d) ?? "" })),
+    [data, xTick],
   );
   return (
-    <div className="h-40 text-zinc-900 dark:text-zinc-100">
+    <div className={cn("text-zinc-900 dark:text-zinc-100", detailed ? "h-full" : "h-40")}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={shaped}>
-          <YAxis hide domain={[0, "dataMax"]} />
+          {detailed && (
+            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-zinc-200 dark:stroke-zinc-800" />
+          )}
+          {detailed && (
+            <XAxis
+              dataKey="xLabel"
+              tickLine={false}
+              axisLine={false}
+              minTickGap={48}
+              tick={{ fontSize: 10, fill: "currentColor", opacity: 0.45 }}
+            />
+          )}
+          <YAxis
+            hide={!detailed}
+            domain={[0, "dataMax"]}
+            width={detailed ? 48 : undefined}
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 10, fill: "currentColor", opacity: 0.45 }}
+          />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -323,6 +399,21 @@ export function FeeBandChart<T extends { p25: number; p50: number; p75: number; 
             dot={false}
             isAnimationActive={false}
           />
+          {/* detailed mode pans: drag the window, drag its edges */}
+          {detailed && (
+            <Brush
+              dataKey="xLabel"
+              height={26}
+              travellerWidth={8}
+              stroke="#A2AFB2"
+              fill="rgba(162, 175, 178, 0.06)"
+              tickFormatter={() => ""}
+            >
+              <LineChart>
+                <Line type="monotone" dataKey="p50" stroke="#E6212F" strokeWidth={1} dot={false} isAnimationActive={false} />
+              </LineChart>
+            </Brush>
+          )}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -416,7 +507,7 @@ function FragmentRow({ label, children }: { label: string; children: React.React
 /* demand decomposition + fullness distribution                      */
 /* ---------------------------------------------------------------- */
 
-function SelectorBars({ selectors }: { selectors: GasMarket["selectors"] }) {
+export function SelectorBars({ selectors }: { selectors: GasMarket["selectors"] }) {
   const total = selectors.reduce((s, x) => s + x.gas, 0);
   const max = selectors[0]?.gas ?? 1;
   return (
@@ -513,14 +604,18 @@ function protocolHref(p: GasProtocol, base: string): string | null {
   return null;
 }
 
-function ProtocolsTreemap({
+export function ProtocolsTreemap({
   protocols,
   names,
   base,
+  linkless = false,
 }: {
   protocols: GasProtocol[];
   names: Map<string, string>;
   base: string;
+  /** plain tiles — for when the treemap itself sits inside a door (a
+   *  link can't nest links); the demand sheet keeps the linked tiles */
+  linkless?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
@@ -550,7 +645,7 @@ function ProtocolsTreemap({
       {rects.map(({ item, x, y, w, h }) => {
         const p = item.p;
         const label = protocolLabel(p, names);
-        const href = protocolHref(p, base);
+        const href = linkless ? null : protocolHref(p, base);
         // text tiers by what actually fits: name at 44px, +share at 60px,
         // +gas caption at 76px — a tile never guillotines its own caption
         const showText = w > 90 && h > 44;
@@ -585,8 +680,12 @@ function ProtocolsTreemap({
             )}
           </span>
         );
-        const tileClass =
-          "group absolute overflow-hidden border border-white outline-none transition-[filter] hover:brightness-95 dark:border-zinc-950 dark:hover:brightness-125";
+        const tileClass = cn(
+          "group absolute overflow-hidden border border-white outline-none transition-[filter] dark:border-zinc-950",
+          // linkless tiles sit inside a door — the whole card is the click,
+          // so per-tile brightening would falsely imply per-tile links
+          !linkless && "hover:brightness-95 dark:hover:brightness-125",
+        );
         return href ? (
           <Link key={item.key} href={href} title={title} className={tileClass} style={style}>
             {body}
@@ -602,7 +701,7 @@ function ProtocolsTreemap({
 }
 
 /* the treemap's table twin — every figure the tiles can't fit */
-function ProtocolTable({
+export function ProtocolTable({
   protocols,
   names,
   base,
@@ -616,14 +715,17 @@ function ProtocolTable({
   return (
     <table className="w-full min-w-[46rem] table-fixed border-collapse">
       <thead>
+        {/* proportional widths: table-fixed would otherwise hand every
+            spare pixel to the one unsized column and strand the numbers
+            against the right edge */}
         <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
-          <th className={PTH}>Buyer</th>
-          <th className={cn(PTH, "w-28")}>Category</th>
-          <th className={cn(PTH, "w-24 text-right")}>Gas Share</th>
-          <th className={cn(PTH, "w-24 text-right")}>Txs</th>
-          <th className={cn(PTH, "w-24 text-right")}>Senders</th>
-          <th className={cn(PTH, "w-28 text-right")}>Fees ({symbol})</th>
-          <th className={cn(PTH, "w-24 text-right")}>Δ prev</th>
+          <th className={cn(PTH, "w-[30%]")}>Buyer</th>
+          <th className={cn(PTH, "w-[14%]")}>Category</th>
+          <th className={cn(PTH, "w-[10%] text-right")}>Gas Share</th>
+          <th className={cn(PTH, "w-[12%] text-right")}>Txs</th>
+          <th className={cn(PTH, "w-[10%] text-right")}>Senders</th>
+          <th className={cn(PTH, "w-[12%] text-right")}>Fees ({symbol})</th>
+          <th className={cn(PTH, "w-[12%] text-right")}>Δ prev</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -705,7 +807,6 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   // route computes reliably (a full 365d raw_txs scan blows the query
   // budget) — clamp the year view to 90d and label it honestly below
   const rangeDays = Math.min(RANGE_DAYS[range], 90) as GasRangeDays;
-  const rangeClamped = RANGE_DAYS[range] > 90;
 
   const [market, setMarket] = useState<GasMarket | null>(null);
   const [marketMissing, setMarketMissing] = useState(false);
@@ -728,9 +829,16 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   // a range switch keeps the last payload on screen, dimmed, until the
   // new one lands — same idiom as the P-Chain tx list
   const rangeStale = market !== null && market.rangeDays !== rangeDays;
-  // the effective window spelled out; the year view clamps to 90d, so say so
-  const windowLabel = rangeClamped ? RANGE_LABEL.quarter : RANGE_LABEL[range];
-  const rangeLabel = rangeClamped ? `${windowLabel} · longest window` : windowLabel;
+
+  // the clock-driven daily feed behind the base-fee band and gas bars — the
+  // top page's only fixed-window charts otherwise, now on the page clock
+  const { daily: history, missing: historyMissing } = useGasHistory(evmChainId, historyDays(range));
+  const isHourly = range === "day";
+  // the window's daily rows for every range but day, which keeps its live
+  // hourly band; the gas bars fall back to 7 days on day (a 1-bar chart says
+  // nothing) and label that exception
+  const windowedDaily = useMemo(() => (history ?? []).slice(-RANGE_DAYS[range]), [history, range]);
+  const gasBars = isHourly ? history ?? [] : windowedDaily;
 
   const unknownAddresses = useMemo(
     () => market?.protocols.flatMap((p) => (p.address ? [p.address] : [])) ?? [],
@@ -766,11 +874,61 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
 
   return (
     <div className="flex flex-col gap-10">
-      {/* the market right now — straight off the RPC */}
+      {/* the answer first: what a transaction costs, in money — in the
+          homepage pillar panels' voice (#1F1F1F board, EBF0FA lead over
+          the E6212F punch, steel spec labels) */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
+          <div className="flex items-start justify-between gap-6">
+            <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
+              <span className="block text-[#EBF0FA]">What a transaction</span>
+              <span className="block text-[#E6212F]">costs right now.</span>
+            </h3>
+            {usd !== null && (
+              <span className="shrink-0 pt-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#A2AFB2]">
+                {symbol} at ${usd.toFixed(2)}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0">
+            {ACTIONS.map((a) => {
+              const costWei = effectiveWei !== null ? effectiveWei * a.gas : null;
+              return (
+                <div key={a.label} className="flex flex-col gap-1.5 px-5 py-5 md:px-6 lg:first:pl-0">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+                    {a.label}
+                  </span>
+                  <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-[#EBF0FA] sm:text-2xl md:text-[1.75rem]">
+                    {costWei !== null && usd !== null ? (
+                      fmtUsd((costWei / 1e18) * usd)
+                    ) : costWei !== null ? (
+                      `${fmtNative(costWei)} ${symbol}`
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                  {costWei !== null && (
+                    <span className="text-xs tabular-nums text-[#A2AFB2]">
+                      {fmtNano(costWei)} {unit}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Priced at the live base fee plus the median priority tip, using typical gas for each
+          action. Actual usage varies by contract.
+        </p>
+      </section>
+
+      {/* the market underneath those prices — straight off the RPC */}
       <section className="flex flex-col gap-4">
-        <Board divide={false}>
+        <Board divide={false} className="border">
           <BoardHeader
             label="Gas Market"
+            display
             action={
               <span className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                 <span className="relative flex h-1.5 w-1.5">
@@ -781,28 +939,11 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
               </span>
             }
           />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+          <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-800">
             <GasStat label="Base Fee" live href={`${base}/gas/base-fee`}>
               {fee.baseFeeWei !== null ? (
                 <>
                   {fmtNano(fee.baseFeeWei)}
-                  <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </GasStat>
-            <GasStat
-              label="Priority Tip · median"
-              sub={
-                fee.tipLowWei !== null && fee.tipFastWei !== null
-                  ? `low ${fmtNano(fee.tipLowWei)} · fast ${fmtNano(fee.tipFastWei)}`
-                  : `last ${FEE_HISTORY_BLOCKS} blocks`
-              }
-            >
-              {fee.tipMidWei !== null ? (
-                <>
-                  {fmtNano(fee.tipMidWei)}
                   <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
                 </>
               ) : (
@@ -837,59 +978,20 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
         </Board>
       </section>
 
-      {/* what that means in money — priced at base + median tip */}
-      <section className="flex flex-col gap-4">
-        <Board divide={false}>
-          <BoardHeader
-            label="What a Transaction Costs Right Now"
-            action={
-              usd !== null ? (
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  {symbol} at ${usd.toFixed(2)}
-                </span>
-              ) : undefined
-            }
-          />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-            {ACTIONS.map((a) => {
-              const costWei = effectiveWei !== null ? effectiveWei * a.gas : null;
-              return (
-                <GasStat
-                  key={a.label}
-                  label={a.label}
-                  sub={
-                    costWei !== null
-                      ? `${fmtNative(costWei)} ${symbol} · ${fmtGas(a.gas)} gas`
-                      : `${fmtGas(a.gas)} gas typical`
-                  }
-                >
-                  {costWei !== null && usd !== null ? (
-                    fmtUsd((costWei / 1e18) * usd)
-                  ) : costWei !== null ? (
-                    `${fmtNative(costWei)} ${symbol}`
-                  ) : (
-                    <StatDash />
-                  )}
-                </GasStat>
-              );
-            })}
-          </div>
-        </Board>
-        <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-          Priced at the live base fee plus the median priority tip, using typical gas for each
-          action. Actual usage varies by contract.
-        </p>
-      </section>
-
-      {/* recent market: hourly base fee band beside block-by-block utilization */}
+      {/* recent market: hourly base fee band beside block-by-block
+          utilization. Every chart card is a door into its stat's detail
+          sheet — the outline and sliding arrow say so. */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label="Base Fee · last 48 hours"
-            action={<BandKey unit={unit} />}
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {market?.hourly.length ? (
+        <ChartBoard
+          // day keeps the live hourly band (the one thing that doesn't follow
+          // the clock, so it's labeled); every other range shows the daily
+          // percentile band windowed by the clock, unlabeled
+          label={isHourly ? "Base Fee · hourly" : "Base Fee"}
+          action={<BandKey unit={unit} />}
+          href={`${base}/gas/base-fee`}
+        >
+          {isHourly ? (
+            market?.hourly.length ? (
               <FeeBandChart
                 data={market.hourly}
                 unit={unit}
@@ -897,207 +999,153 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
               />
             ) : (
               <HistoryEmpty missing={marketMissing} />
-            )}
-          </Board>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label={`Block Utilization · last ${FEE_HISTORY_BLOCKS} blocks`}
-            action={
-              avgUtil !== null ? (
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  avg {avgUtil.toFixed(1)}%
-                </span>
-              ) : undefined
-            }
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {utilData.length ? (
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={utilData} barCategoryGap="12%">
-                    {/* percent axis pinned to 0–100: a quiet chain must look quiet */}
-                    <YAxis hide domain={[0, 100]} />
-                    <RechartsTooltip
-                      cursor={{ fill: "rgba(161,161,170,0.08)" }}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        const d = payload[0].payload as { i: number; pct: number };
-                        return (
-                          <TipPlate>
-                            <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                              {d.pct.toFixed(1)}% full
-                            </p>
-                            <p className="text-[10px] tabular-nums text-zinc-500">
-                              {d.i - utilData.length + 1 === 0 ? "latest block" : `${utilData.length - 1 - d.i} blocks ago`}
-                            </p>
-                          </TipPlate>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="pct" fill="#A2AFB2" minPointSize={1} isAnimationActive={false} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="flex h-40 items-center justify-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                Waiting for RPC…
-              </p>
-            )}
-          </Board>
-        </section>
-      </div>
-
-      {/* the longer record */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Base Fee · 60 days" action={<BandKey unit={unit} />} />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {market?.daily.length ? (
-              <FeeBandChart data={market.daily} unit={unit} labelFor={(d) => d.d} />
-            ) : (
-              <HistoryEmpty missing={marketMissing} />
-            )}
-          </Board>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Gas Used · 60 days" />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {market?.daily.length ? (
-              <div className="h-40">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={market.daily} barCategoryGap="18%">
-                    <YAxis hide domain={[0, "dataMax"]} />
-                    <RechartsTooltip
-                      cursor={{ fill: "rgba(161,161,170,0.08)" }}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        const d = payload[0].payload as GasMarket["daily"][number];
-                        return (
-                          <TipPlate>
-                            <p className="text-[10px] text-zinc-500">{d.d}</p>
-                            <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                              {fmtGas(d.gas)} gas
-                            </p>
-                            <p className="text-[10px] tabular-nums text-zinc-500">
-                              {d.utilPct.toFixed(1)}% avg utilization · {d.blocks.toLocaleString()} blocks
-                            </p>
-                          </TipPlate>
-                        );
-                      }}
-                    />
-                    <Bar dataKey="gas" fill="#A2AFB2" isAnimationActive={false} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <HistoryEmpty missing={marketMissing} />
-            )}
-          </Board>
-        </section>
-      </div>
-
-      {/* demand: who and what buys the blockspace, over a chosen window */}
-      <section className="flex flex-col gap-4">
-        <SectionHeader label={`Demand · last ${rangeLabel}`} />
-        <div
-          className={cn(
-            "grid items-start gap-x-8 gap-y-10 lg:grid-cols-2",
-            rangeStale && "opacity-60 transition-opacity",
+            )
+          ) : windowedDaily.length ? (
+            <FeeBandChart data={windowedDaily} unit={unit} labelFor={(d) => d.d} />
+          ) : (
+            <HistoryEmpty missing={historyMissing} />
           )}
-        >
-          <div className="flex flex-col gap-4">
-            <SectionHeader
-              label="By Method"
-              action={
-                market?.reverted ? (
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                    {market.reverted.txs.toLocaleString()} txs
-                  </span>
-                ) : undefined
-              }
-            />
-            <Board divide={false} className="px-5 py-5 md:px-6">
-              {market?.selectors.length ? (
-                <SelectorBars selectors={market.selectors} />
-              ) : (
-                <HistoryEmpty missing={marketMissing} />
-              )}
-            </Board>
-            {market?.reverted && revertedPct !== null && (
-              <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                Wasted gas: {fmtGas(market.reverted.revertedGas)} ({revertedPct.toFixed(1)}% of the
-                window&apos;s total) went to {market.reverted.revertedTxs.toLocaleString()} reverted
-                transactions — reverts still pay for the gas they consume.
-              </p>
-            )}
-          </div>
+        </ChartBoard>
 
-          <div className="flex flex-col gap-4">
-            <SectionHeader label="Block Fullness Distribution" />
-            <Board divide={false} className="px-5 py-5 md:px-6">
-              {market?.histogram.length ? (
-                <UtilHistogram histogram={market.histogram} />
-              ) : (
-                <HistoryEmpty missing={marketMissing} />
-              )}
-            </Board>
-          </div>
-        </div>
-      </section>
+        <ChartBoard
+          label={`Block Utilization · last ${FEE_HISTORY_BLOCKS} blocks`}
+          href={`${base}/gas/utilization`}
+          action={
+            avgUtil !== null ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                avg {avgUtil.toFixed(1)}%
+              </span>
+            ) : undefined
+          }
+        >
+          {utilData.length ? (
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={utilData} barCategoryGap="12%">
+                  {/* percent axis pinned to 0–100: a quiet chain must look quiet */}
+                  <YAxis hide domain={[0, 100]} />
+                  <RechartsTooltip
+                    cursor={{ fill: "rgba(161,161,170,0.08)" }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const d = payload[0].payload as { i: number; pct: number };
+                      return (
+                        <TipPlate>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                            {d.pct.toFixed(1)}% full
+                          </p>
+                          <p className="text-[10px] tabular-nums text-zinc-500">
+                            {d.i - utilData.length + 1 === 0 ? "latest block" : `${utilData.length - 1 - d.i} blocks ago`}
+                          </p>
+                        </TipPlate>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="pct" fill="#A2AFB2" minPointSize={1} isAnimationActive={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="flex h-40 items-center justify-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+              Waiting for RPC…
+            </p>
+          )}
+        </ChartBoard>
+      </div>
+
+      {/* the longer record beside the demand mix — one row, two doors.
+          The 60-day fee band lives on the base-fee sheet; repeating it
+          here said nothing the 48h band and the sheet don't. */}
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard
+          // gas bars follow the clock; day would be a single bar, so it shows
+          // the last 7 days and labels that one exception
+          label={isHourly ? "Gas Used · 7 days" : "Gas Used"}
+          href={`${base}/gas/utilization`}
+        >
+          {gasBars.length ? (
+            <div className="h-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={gasBars} barCategoryGap="18%">
+                  <YAxis hide domain={[0, "dataMax"]} />
+                  <RechartsTooltip
+                    cursor={{ fill: "rgba(161,161,170,0.08)" }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const d = payload[0].payload as GasDayPoint;
+                      return (
+                        <TipPlate>
+                          <p className="text-[10px] text-zinc-500">{d.d}</p>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                            {fmtGas(d.gas)} gas
+                          </p>
+                          <p className="text-[10px] tabular-nums text-zinc-500">
+                            {d.utilPct.toFixed(1)}% avg utilization · {d.blocks.toLocaleString()} blocks
+                          </p>
+                        </TipPlate>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="gas" fill="#A2AFB2" isAnimationActive={false} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <HistoryEmpty missing={historyMissing} />
+          )}
+        </ChartBoard>
+
+        {/* demand mix — doors into the demand sheet with the treemap;
+            the window is the page clock's, unlabeled */}
+        <ChartBoard
+          className={cn(rangeStale && "opacity-60 transition-opacity")}
+          label="By Method"
+          href={`${base}/gas/demand`}
+          action={
+            market?.reverted ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {market.reverted.txs.toLocaleString()} txs
+              </span>
+            ) : undefined
+          }
+        >
+          {market?.selectors.length ? (
+            <SelectorBars selectors={market.selectors} />
+          ) : (
+            <HistoryEmpty missing={marketMissing} />
+          )}
+        </ChartBoard>
+      </div>
 
       {/* seasonality: when is blockspace cheap? */}
       {market && market.heatmap.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label="Fee Seasonality · median base fee by hour, 30 days"
-            action={
-              <Link
-                href={`${base}/gas/fee-seasonality`}
-                className="group flex shrink-0 items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-              >
-                Full sheet
-                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            }
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            <FeeHeatmap cells={market.heatmap} unit={unit} />
-          </Board>
-        </section>
+        <ChartBoard
+          label="Fee Seasonality · median base fee by hour of week"
+          href={`${base}/gas/fee-seasonality`}
+        >
+          <FeeHeatmap cells={market.heatmap} unit={unit} />
+        </ChartBoard>
       )}
 
-      {/* who's buying the blockspace — the /stats/dapps/treemap successor:
-          protocol attribution via the contract registry over cheap
-          windowed queries instead of full-history scans */}
+      {/* who's buying the blockspace — the /stats/dapps/treemap successor.
+          The whole map doors into the demand sheet, where the tiles link
+          out individually and the table carries the figures. */}
       {market && market.protocols.length > 0 && (
-        <section
-          className={cn("flex flex-col gap-4", rangeStale && "opacity-60 transition-opacity")}
+        <ChartBoard
+          className={cn(rangeStale && "opacity-60 transition-opacity")}
+          label="Where the Gas Goes"
+          href={`${base}/gas/demand`}
+          bodyClassName="p-2"
+          action={
+            protocolsCoveragePct !== null ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {protocolsCoveragePct.toFixed(0)}% of {fmtGas(market.rangeTotalGas)} gas
+              </span>
+            ) : undefined
+          }
         >
-          <SectionHeader
-            label={`Where the Gas Goes · last ${rangeLabel}`}
-            action={
-              protocolsCoveragePct !== null ? (
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  {protocolsCoveragePct.toFixed(0)}% of {fmtGas(market.rangeTotalGas)} gas
-                </span>
-              ) : undefined
-            }
-          />
-          <Board divide={false} className="p-2">
-            <ProtocolsTreemap protocols={market.protocols} names={names} base={base} />
-          </Board>
-          <Board divide={false} className="overflow-x-auto">
-            <ProtocolTable protocols={market.protocols} names={names} base={base} symbol={symbol} />
-          </Board>
-          <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-            Registry-attributed protocols plus the largest unlabelled contracts. Tile area = gas
-            share; Δ compares against the preceding {windowLabel}. Protocols link to their dapp
-            page, unlabelled contracts to the address.
-          </p>
-        </section>
+          <ProtocolsTreemap protocols={market.protocols} names={names} base={base} linkless />
+        </ChartBoard>
       )}
     </div>
   );

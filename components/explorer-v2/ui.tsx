@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { animate, motion, useInView, useReducedMotion } from "framer-motion";
-import { Check, Copy } from "lucide-react";
+import { ArrowRight, Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { truncate } from "./format";
 
@@ -64,13 +64,25 @@ export function SectionHeader({
 export function BoardHeader({
   label,
   action,
+  display = false,
 }: {
   label: string;
   action?: React.ReactNode;
+  /** the lead-board treatment: the SectionHeader's full-ink mono voice,
+   *  a step up from the quiet gray label — for the one or two boards that
+   *  headline a page, not every strip */
+  display?: boolean;
 }) {
   return (
     <div className="flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40">
-      <p className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
+      <p
+        className={cn(
+          "min-w-0 truncate font-mono font-bold uppercase tracking-[0.22em]",
+          display
+            ? "text-[11px] text-zinc-900 dark:text-zinc-100"
+            : "text-[10px] text-zinc-500 dark:text-zinc-400",
+        )}
+      >
         {label}
       </p>
       {action}
@@ -100,6 +112,66 @@ export function Board({
       {children}
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* ChartBoard — a fully-outlined chart card: mono title bar fused       */
+/* inside the border, the instrument below. Give it an href and the     */
+/* whole card becomes a door to that stat's detail sheet — border       */
+/* darkens, title bar tints, the red arrow slides in. The one chart     */
+/* container every explorer surface should reach for.                   */
+export function ChartBoard({
+  label,
+  action,
+  href,
+  children,
+  className,
+  bodyClassName,
+}: {
+  label: string;
+  action?: React.ReactNode;
+  /** the stat's detail sheet — makes the whole card clickable */
+  href?: string;
+  children: React.ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  const inner = (
+    <>
+      <div
+        className={cn(
+          "flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 transition-colors md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40",
+          href && "group-hover/chart:bg-zinc-100 dark:group-hover/chart:bg-zinc-900",
+        )}
+      >
+        <p className="flex min-w-0 items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+          <span className="truncate">{label}</span>
+          {href && (
+            <ArrowRight className="h-3 w-3 shrink-0 -translate-x-0.5 text-[#E6212F] opacity-0 transition-all group-hover/chart:translate-x-0 group-hover/chart:opacity-100" />
+          )}
+        </p>
+        {action}
+      </div>
+      <div className={cn("px-5 py-5 md:px-6", bodyClassName)}>{children}</div>
+    </>
+  );
+  const frame =
+    "border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80";
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={cn(
+          frame,
+          "group/chart block transition-colors hover:border-zinc-400 dark:hover:border-zinc-600",
+          className,
+        )}
+      >
+        {inner}
+      </Link>
+    );
+  }
+  return <div className={cn(frame, className)}>{inner}</div>;
 }
 
 /* ------------------------------------------------------------------ */

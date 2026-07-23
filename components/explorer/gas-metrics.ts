@@ -5,7 +5,7 @@
    here plus a section composition in GasMetricPage is the whole cost of a
    new detail sheet. */
 
-export type GasMetricKey = "base-fee" | "utilization" | "fee-seasonality";
+export type GasMetricKey = "base-fee" | "utilization" | "fee-seasonality" | "demand";
 
 export interface GasMetricDef {
   /** page + tab title, e.g. "Base Fee" */
@@ -35,12 +35,21 @@ export const GAS_METRICS: Record<GasMetricKey, GasMetricDef> = {
       "Sustained utilization above the fee mechanism's target is what drives the base fee up; the two detail sheets are two views of the same market.",
     ],
   },
+  demand: {
+    title: "Blockspace Demand",
+    blurb:
+      "Who and what is buying the gas: protocols by share, methods by weight, and the transactions that paid for nothing.",
+    methodology: [
+      "Every transaction in the window is attributed twice: to the contract it called, aggregated to protocol level through the contract registry (unregistered contracts stay as single addresses), and to its 4-byte method selector, decoded through Sourcify's signature database where possible.",
+      "Tile area and bar length are shares of the window's total gas, not transaction counts: one protocol can dominate blockspace with few transactions, and reverted transactions still appear because reverts pay for the gas they consume.",
+    ],
+  },
   "fee-seasonality": {
     title: "Fee Seasonality",
     blurb:
-      "When blockspace is cheap: the median base fee for every hour of the week, over the last 30 days.",
+      "When blockspace is cheap: the median base fee for every hour of the week, over the selected window.",
     methodology: [
-      "Every block from the last 30 days lands in one of 168 hour-of-week cells (7 days × 24 UTC hours); each cell shows the median base fee of its blocks. Medians resist one-off spikes, so the pattern that remains is genuine weekly rhythm: market hours, bot schedules, bridge batch windows.",
+      "Every block in the window lands in one of 168 hour-of-week cells (7 days × 24 UTC hours); each cell shows the median base fee of its blocks. The window follows the page's time range, clamped to a week at minimum (every cell needs at least one sample) and a quarter at most. Medians resist one-off spikes, so the pattern that remains is genuine weekly rhythm: market hours, bot schedules, bridge batch windows.",
       "For non-urgent work (batch settlement, contract deploys, treasury moves), submitting inside the quiet cells pays materially less for identical execution.",
     ],
   },

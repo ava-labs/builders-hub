@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { toPng } from "html-to-image";
+import { ArrowLeft, ArrowRight, Camera, Maximize2, Minimize2 } from "lucide-react";
 import {
   Bar,
+  Brush,
+  CartesianGrid,
   ComposedChart,
   Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { cn } from "@/lib/utils";
+import { ChartWatermark } from "@/components/stats/ChartWatermark";
+import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import {
   RANGE_DAYS,
   RANGE_LABEL,
@@ -24,15 +30,21 @@ import {
   DOW_LABELS,
   FEE_HISTORY_BLOCKS,
   FeeBandChart,
+  FeeHeatmap,
   GasStat,
   HistoryEmpty,
+  ProtocolTable,
+  ProtocolsTreemap,
+  SelectorBars,
   TipPlate,
   UtilHistogram,
   fmtGas,
+  useGasHistory,
   fmtNano,
   nanoUnit,
   useFeeHistory,
 } from "@/components/explorer/GasMarketPage";
+import { useContractNames } from "@/lib/sourcify-client";
 import { GAS_METRICS, type GasMetricKey } from "@/components/explorer/gas-metrics";
 import type { GasDayPoint, GasHistoryDays, GasMarket } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
@@ -68,29 +80,6 @@ function useGasMarket(evmChainId: number, rangeDays: number) {
     };
   }, [evmChainId, rangeDays]);
   return { market, missing };
-}
-
-function useGasHistory(evmChainId: number, days: GasHistoryDays) {
-  const [daily, setDaily] = useState<GasDayPoint[] | null>(null);
-  const [missing, setMissing] = useState(false);
-  useEffect(() => {
-    if (!Number.isFinite(evmChainId)) return;
-    let cancelled = false;
-    setDaily(null);
-    setMissing(false);
-    fetch(`/api/gas-history/${evmChainId}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((data: { daily: GasDayPoint[] }) => {
-        if (!cancelled) setDaily(data.daily);
-      })
-      .catch(() => {
-        if (!cancelled) setMissing(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [evmChainId, days]);
-  return { daily, missing };
 }
 
 /* the clock's window, in the vocabularies this sheet's two feeds accept */
@@ -161,7 +150,7 @@ function SiblingDoor({ href, label, sub }: { href: string; label: string; sub: s
         <span className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 dark:text-zinc-100">
           {label}
         </span>
-        <span className="truncate font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{sub}</span>
+        <span className="truncate text-xs text-zinc-500 dark:text-zinc-400">{sub}</span>
       </span>
       <ArrowRight className="h-4 w-4 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] dark:text-zinc-600" />
     </Link>
@@ -170,6 +159,320 @@ function SiblingDoor({ href, label, sub }: { href: string; label: string; sub: s
 
 const dayLabel = (d: string) =>
   new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+/* ---------------------------------------------------------------- */
+/* shared instruments for the sheets                                 */
+/* ---------------------------------------------------------------- */
+
+/* the detail sheets' chart chrome: every plot here gets real axes, a
+   dashed grid, extra height, and the Builder Hub mark in the paper */
+const AXIS_TICK = { fontSize: 10, fill: "currentColor", opacity: 0.45 } as const;
+
+function SheetGrid() {
+  return (
+    <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-zinc-200 dark:stroke-zinc-800" />
+  );
+}
+
+/* the plate: watermark in the paper, and a hover toolbar every real
+   instrument carries — fullscreen (native API) and a PNG download that
+   captures the plate, watermark included */
+function ChartPlate({ children, name = "chart" }: { children: React.ReactNode; name?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [fs, setFs] = useState(false);
+
+  useEffect(() => {
+    const onChange = () => setFs(document.fullscreenElement === ref.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFs = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void ref.current?.requestFullscreen();
+  };
+
+  const download = async () => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      const dark = document.documentElement.classList.contains("dark");
+      const dataUrl = await toPng(el, {
+        quality: 1,
+        pixelRatio: 2,
+        backgroundColor: dark ? "#09090b" : "#ffffff",
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `${name}_${new Date().toISOString().split("T")[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      /* capture is best-effort */
+    }
+  };
+
+  const btn =
+    "flex h-6 w-6 items-center justify-center border border-zinc-200 bg-white/90 text-zinc-400 transition-colors hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/90 dark:hover:text-zinc-100";
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "group/plate relative bg-white dark:bg-zinc-950",
+        fs && "flex flex-col justify-center px-10",
+      )}
+    >
+      <div
+        className={cn(
+          // z-30: ChartWatermark lifts its chart layer to z-10, and the
+          // watermark itself can ride at z-20 — the toolbar tops both
+          "absolute right-0 z-30 flex gap-1 opacity-0 transition-opacity group-hover/plate:opacity-100",
+          fs ? "right-10 top-6" : "-top-1",
+        )}
+      >
+        <button type="button" title="Download as image" onClick={download} className={btn}>
+          <Camera className="h-3.5 w-3.5" />
+        </button>
+        <button type="button" title={fs ? "Exit fullscreen" : "Fullscreen"} onClick={toggleFs} className={btn}>
+          {fs ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+      <ChartWatermark>
+        <div className={cn("text-zinc-900 dark:text-zinc-100", fs ? "h-[78vh]" : "h-64")}>
+          {children}
+        </div>
+      </ChartWatermark>
+    </div>
+  );
+}
+
+/* the pan strip under a time series — drag the window, drag its edges.
+   Shared styling for every sheet chart's Brush. */
+const BRUSH_PROPS = {
+  height: 26,
+  travellerWidth: 8,
+  stroke: "#A2AFB2",
+  fill: "rgba(162, 175, 178, 0.06)",
+  tickFormatter: () => "",
+} as const;
+
+/* spike premium: how far p95 rides above the median, per bucket — the
+   volatility a single fee line hides. Works on hourly and daily rows. */
+function SpikePremiumChart<T extends { p50: number; p95: number }>({
+  data,
+  unit,
+  labelFor,
+  xTick,
+}: {
+  data: T[];
+  unit: string;
+  labelFor: (d: T) => string;
+  xTick: (d: T) => string;
+}) {
+  const shaped = useMemo(
+    () =>
+      data.map((d) => ({
+        ...d,
+        premiumPct: d.p50 > 0 ? ((d.p95 - d.p50) / d.p50) * 100 : 0,
+        xLabel: xTick(d),
+      })),
+    [data, xTick],
+  );
+  return (
+    <ChartPlate name="spike-premium">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={shaped}>
+          <SheetGrid />
+          <XAxis dataKey="xLabel" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} />
+          <YAxis
+            domain={[0, "dataMax"]}
+            width={48}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => `+${Math.round(v)}%`}
+          />
+          <RechartsTooltip
+            cursor={{ stroke: "rgba(161,161,170,0.35)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const d = payload[0].payload as T & { premiumPct: number };
+              return (
+                <TipPlate>
+                  <p className="text-[10px] text-zinc-500">{labelFor(d)}</p>
+                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                    +{d.premiumPct.toFixed(0)}% spike premium
+                  </p>
+                  <p className="text-[10px] tabular-nums text-zinc-500">
+                    p95 {d.p95} vs median {d.p50} {unit}
+                  </p>
+                </TipPlate>
+              );
+            }}
+          />
+          <Bar dataKey="premiumPct" fill="#E6212F" fillOpacity={0.55} isAnimationActive={false} />
+          <Brush
+            dataKey="xLabel"
+            height={26}
+            travellerWidth={8}
+            stroke="#A2AFB2"
+            fill="rgba(162, 175, 178, 0.06)"
+            tickFormatter={() => ""}
+          >
+            <LineChart>
+              <Line type="monotone" dataKey="premiumPct" stroke="#E6212F" strokeWidth={1} dot={false} isAnimationActive={false} />
+            </LineChart>
+          </Brush>
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartPlate>
+  );
+}
+
+/* daily gas volume over the window — demand in absolute units */
+function GasVolumeChart({ data }: { data: GasDayPoint[] }) {
+  return (
+    <ChartPlate name="gas-volume">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} barCategoryGap="18%">
+          <SheetGrid />
+          <XAxis dataKey="d" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dayLabel} />
+          <YAxis
+            domain={[0, "dataMax"]}
+            width={48}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => fmtGas(v)}
+          />
+          <RechartsTooltip
+            cursor={{ fill: "rgba(161,161,170,0.08)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const d = payload[0].payload as GasDayPoint;
+              return (
+                <TipPlate>
+                  <p className="text-[10px] text-zinc-500">{d.d}</p>
+                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                    {fmtGas(d.gas)} gas
+                  </p>
+                  <p className="text-[10px] tabular-nums text-zinc-500">
+                    {d.blocks.toLocaleString("en-US")} blocks
+                  </p>
+                </TipPlate>
+              );
+            }}
+          />
+          <Bar dataKey="gas" fill="#A2AFB2" isAnimationActive={false} />
+          <Brush
+            dataKey="d"
+            height={26}
+            travellerWidth={8}
+            stroke="#A2AFB2"
+            fill="rgba(162, 175, 178, 0.06)"
+            tickFormatter={() => ""}
+          >
+            <LineChart>
+              <Line type="monotone" dataKey="gas" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
+            </LineChart>
+          </Brush>
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartPlate>
+  );
+}
+
+/* median fee per weekday, the week grid's rows collapsed to seven bars */
+function DowProfileChart({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
+  const data = useMemo(() => {
+    return DOW_LABELS.map((label, i) => {
+      const vals = cells
+        .filter((c) => c.dow === i + 1 && c.p50 > 0)
+        .map((c) => c.p50)
+        .sort((a, b) => a - b);
+      return { label, p50: vals.length ? vals[Math.floor(vals.length / 2)] : 0 };
+    });
+  }, [cells]);
+  return (
+    <ChartPlate name="weekday-profile">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data} barCategoryGap="24%">
+          <SheetGrid />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={AXIS_TICK} />
+          <YAxis domain={[0, "dataMax"]} width={48} tickLine={false} axisLine={false} tick={AXIS_TICK} />
+          <RechartsTooltip
+            cursor={{ fill: "rgba(161,161,170,0.08)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const d = payload[0].payload as { label: string; p50: number };
+              return (
+                <TipPlate>
+                  <p className="text-[10px] text-zinc-500">{d.label} · all hours</p>
+                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                    {d.p50} {unit} median
+                  </p>
+                </TipPlate>
+              );
+            }}
+          />
+          <Bar dataKey="p50" fill="#A2AFB2" isAnimationActive={false} />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </ChartPlate>
+  );
+}
+
+/* the actionable extract of the heatmap: the five cheapest and five
+   priciest hour-of-week cells, as rows someone can schedule against */
+function BestHoursList({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
+  const { cheapest, priciest, weekMedian } = useMemo(() => {
+    const live = cells.filter((c) => c.p50 > 0);
+    const sorted = [...live].sort((a, b) => a.p50 - b.p50);
+    const medians = live.map((c) => c.p50).sort((a, b) => a - b);
+    return {
+      cheapest: sorted.slice(0, 5),
+      priciest: sorted.slice(-5).reverse(),
+      weekMedian: medians[Math.floor(medians.length / 2)] ?? 0,
+    };
+  }, [cells]);
+
+  const row = (c: GasMarket["heatmap"][number]) => {
+    const vsPct = weekMedian > 0 ? ((c.p50 - weekMedian) / weekMedian) * 100 : 0;
+    return (
+      <div
+        key={`${c.dow}-${c.hour}`}
+        className="flex items-center justify-between gap-4 px-5 py-2.5 md:px-6"
+      >
+        <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
+          {DOW_LABELS[c.dow - 1]} {String(c.hour).padStart(2, "0")}:00 UTC
+        </span>
+        <span className="flex items-center gap-3 font-mono text-[12px] tabular-nums">
+          <span className="text-zinc-500 dark:text-zinc-400">
+            {c.p50} {unit}
+          </span>
+          <span className={vsPct > 0 ? "text-[#E6212F]" : "text-zinc-400 dark:text-zinc-500"}>
+            {vsPct > 0 ? "+" : ""}
+            {vsPct.toFixed(0)}%
+          </span>
+        </span>
+      </div>
+    );
+  };
+
+  return (
+    <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <Board className="border">
+        <BoardHeader label="Cheapest Hours · vs week median" />
+        {cheapest.map(row)}
+      </Board>
+      <Board className="border">
+        <BoardHeader label="Priciest Hours · vs week median" />
+        {priciest.map(row)}
+      </Board>
+    </div>
+  );
+}
 
 /* ---------------------------------------------------------------- */
 /* Base Fee                                                          */
@@ -183,9 +486,9 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
 
   const days = historyDays(range);
   const { daily, missing } = useGasHistory(evmChainId, days);
-  // the day view reads the 48h hourly series; the market payload's demand
-  // range is irrelevant here, so pin it to the cheapest window
-  const { market, missing: marketMissing } = useGasMarket(evmChainId, 1);
+  // the market payload feeds the hourly series (range-independent) and
+  // the seasonality teaser, which follows the clock like everything else
+  const { market, missing: marketMissing } = useGasMarket(evmChainId, Math.min(RANGE_DAYS[range], 90));
 
   const windowed = useMemo(() => (daily ?? []).slice(-RANGE_DAYS[range]), [daily, range]);
   const isHourly = range === "day";
@@ -208,7 +511,7 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="base-fee">
-      <Board divide={false}>
+      <Board divide={false} className="border">
         <BoardHeader label={`The Fee · ${windowLabel}`} />
         <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
           <GasStat label="Right Now" live>
@@ -254,31 +557,106 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
         </div>
       </Board>
 
-      <section className="flex flex-col gap-4">
-        <SectionHeader label={`Base Fee · ${windowLabel}`} action={<BandKey unit={unit} />} />
-        <Board divide={false} className="px-5 py-5 md:px-6">
+      <ChartBoard label={`Base Fee · ${windowLabel}`} action={<BandKey unit={unit} />}>
+        <ChartPlate name="base-fee">
           {isHourly ? (
             market?.hourly.length ? (
               <FeeBandChart
                 data={market.hourly}
                 unit={unit}
                 labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
+                detailed
+                xTick={(d) => d.t.slice(11)}
               />
             ) : (
               <HistoryEmpty missing={marketMissing} />
             )
           ) : windowed.length ? (
-            <FeeBandChart data={windowed} unit={unit} labelFor={(d) => d.d} />
+            <FeeBandChart
+              data={windowed}
+              unit={unit}
+              labelFor={(d) => d.d}
+              detailed
+              xTick={(d) => dayLabel(d.d)}
+            />
           ) : (
             <HistoryEmpty missing={missing} />
           )}
-        </Board>
-      </section>
+        </ChartPlate>
+      </ChartBoard>
+
+      {/* the complementary time scale beside the volatility it smooths over */}
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard
+          label={isHourly ? "Base Fee · last 7 days, daily" : "Base Fee · last 48 hours, hourly"}
+          action={<BandKey unit={unit} />}
+        >
+          <ChartPlate name="base-fee">
+            {isHourly ? (
+              daily?.length ? (
+                <FeeBandChart
+                  data={daily}
+                  unit={unit}
+                  labelFor={(d) => d.d}
+                  detailed
+                  xTick={(d) => dayLabel(d.d)}
+                />
+              ) : (
+                <HistoryEmpty missing={missing} />
+              )
+            ) : market?.hourly.length ? (
+              <FeeBandChart
+                data={market.hourly}
+                unit={unit}
+                labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
+                detailed
+                xTick={(d) => d.t.slice(11)}
+              />
+            ) : (
+              <HistoryEmpty missing={marketMissing} />
+            )}
+          </ChartPlate>
+        </ChartBoard>
+
+        <ChartBoard label={`Spike Premium · p95 over median, ${windowLabel}`}>
+          {isHourly ? (
+            market?.hourly.length ? (
+              <SpikePremiumChart
+                data={market.hourly}
+                unit={unit}
+                labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
+                xTick={(d) => d.t.slice(11)}
+              />
+            ) : (
+              <HistoryEmpty missing={marketMissing} />
+            )
+          ) : windowed.length ? (
+            <SpikePremiumChart
+              data={windowed}
+              unit={unit}
+              labelFor={(d) => d.d}
+              xTick={(d) => dayLabel(d.d)}
+            />
+          ) : (
+            <HistoryEmpty missing={missing} />
+          )}
+        </ChartBoard>
+      </div>
+
+      {/* the fee's weekly rhythm, inline — the card doors to the full sheet */}
+      {market && market.heatmap.length > 0 && (
+        <ChartBoard
+          label="Fee Seasonality · median by hour of week"
+          href={`${base}/gas/fee-seasonality`}
+        >
+          <FeeHeatmap cells={market.heatmap} unit={unit} />
+        </ChartBoard>
+      )}
 
       <SiblingDoor
-        href={`${base}/gas/fee-seasonality`}
-        label="Fee Seasonality"
-        sub="when blockspace is cheap, hour by hour across the week"
+        href={`${base}/gas/utilization`}
+        label="Utilization"
+        sub="the demand these prices respond to, block by block"
       />
     </MetricFrame>
   );
@@ -290,11 +668,19 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
 
 function UtilTrendChart({ data }: { data: GasDayPoint[] }) {
   return (
-    <div className="h-40 text-zinc-900 dark:text-zinc-100">
+    <ChartPlate name="daily-utilization">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data}>
-          <XAxis dataKey="d" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
+          <SheetGrid />
+          <XAxis dataKey="d" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dayLabel} />
+          <YAxis
+            domain={[0, "dataMax"]}
+            width={40}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => `${Math.round(v)}%`}
+          />
           <YAxis yAxisId="gas" hide domain={[0, "dataMax"]} />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
@@ -317,19 +703,39 @@ function UtilTrendChart({ data }: { data: GasDayPoint[] }) {
           {/* gas volume rides under the utilization line — same demand, two units */}
           <Bar yAxisId="gas" dataKey="gas" fill="currentColor" fillOpacity={0.1} isAnimationActive={false} />
           <Line type="monotone" dataKey="utilPct" stroke="currentColor" strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Brush
+            dataKey="d"
+            height={26}
+            travellerWidth={8}
+            stroke="#A2AFB2"
+            fill="rgba(162, 175, 178, 0.06)"
+            tickFormatter={() => ""}
+          >
+            <LineChart>
+              <Line type="monotone" dataKey="utilPct" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
+            </LineChart>
+          </Brush>
         </ComposedChart>
       </ResponsiveContainer>
-    </div>
+    </ChartPlate>
   );
 }
 
 function LiveUtilBars({ utilization }: { utilization: number[] }) {
   const data = utilization.map((u, i) => ({ i, pct: u * 100 }));
   return (
-    <div className="h-40 text-zinc-900 dark:text-zinc-100">
+    <ChartPlate name="live-utilization">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} barCategoryGap="18%">
-          <YAxis hide domain={[0, 100]} />
+          <SheetGrid />
+          <YAxis
+            domain={[0, 100]}
+            width={40}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => `${v}%`}
+          />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
@@ -348,7 +754,7 @@ function LiveUtilBars({ utilization }: { utilization: number[] }) {
           <Bar dataKey="pct" fill="currentColor" fillOpacity={0.55} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
-    </div>
+    </ChartPlate>
   );
 }
 
@@ -367,6 +773,10 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
   const windowed = useMemo(() => (daily ?? []).slice(-RANGE_DAYS[range]), [daily, range]);
   const windowLabel = RANGE_LABEL[range];
   const histLabel = RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter} · longest computed` : windowLabel;
+  // a one-point daily chart says nothing: the day view keeps its 7-day
+  // fetch as the trend, labeled as such
+  const trendData = range === "day" ? (daily ?? []) : windowed;
+  const trendLabel = range === "day" ? RANGE_LABEL.week : windowLabel;
 
   const liveUtil = fee.utilization.length
     ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100
@@ -383,7 +793,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="utilization">
-      <Board divide={false}>
+      <Board divide={false} className="border">
         <BoardHeader label={`Blockspace · ${windowLabel}`} />
         <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
           <GasStat label="Right Now" live sub={`last ${FEE_HISTORY_BLOCKS} blocks`}>
@@ -420,40 +830,42 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
         </div>
       </Board>
 
+      {/* the live pulse beside its longer record */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label={
-              range === "day"
-                ? `Block by Block · last ${FEE_HISTORY_BLOCKS} blocks`
-                : `Daily Utilization · ${windowLabel}`
-            }
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {range === "day" ? (
-              fee.utilization.length ? (
-                <LiveUtilBars utilization={fee.utilization} />
-              ) : (
-                <HistoryEmpty missing={false} />
-              )
-            ) : windowed.length ? (
-              <UtilTrendChart data={windowed} />
-            ) : (
-              <HistoryEmpty missing={missing} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard label={`Block by Block · last ${FEE_HISTORY_BLOCKS} blocks, live`}>
+          {fee.utilization.length ? (
+            <LiveUtilBars utilization={fee.utilization} />
+          ) : (
+            <HistoryEmpty missing={false} />
+          )}
+        </ChartBoard>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeader label={`Block Fullness Distribution · ${histLabel}`} />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {market?.histogram.length ? (
-              <UtilHistogram histogram={market.histogram} />
-            ) : (
-              <HistoryEmpty missing={marketMissing} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard label={`Daily Utilization · ${trendLabel}`}>
+          {trendData.length ? (
+            <UtilTrendChart data={trendData} />
+          ) : (
+            <HistoryEmpty missing={missing} />
+          )}
+        </ChartBoard>
+      </div>
+
+      {/* the shape of demand, then its absolute size */}
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard label={`Block Fullness Distribution · ${histLabel}`}>
+          {market?.histogram.length ? (
+            <UtilHistogram histogram={market.histogram} />
+          ) : (
+            <HistoryEmpty missing={marketMissing} />
+          )}
+        </ChartBoard>
+
+        <ChartBoard label={`Gas Volume · ${trendLabel}, daily`}>
+          {trendData.length ? (
+            <GasVolumeChart data={trendData} />
+          ) : (
+            <HistoryEmpty missing={missing} />
+          )}
+        </ChartBoard>
       </div>
 
       <SiblingDoor
@@ -590,17 +1002,12 @@ function HourProfileChart({ cells, unit }: { cells: GasMarket["heatmap"]; unit: 
     });
   }, [cells]);
   return (
-    <div className="h-40 text-zinc-900 dark:text-zinc-100">
+    <ChartPlate name="hour-profile">
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data}>
-          <XAxis
-            dataKey="h"
-            tickLine={false}
-            axisLine={false}
-            interval={5}
-            tick={{ fontSize: 9, fill: "currentColor", opacity: 0.5 }}
-          />
-          <YAxis hide domain={[0, "dataMax"]} />
+          <SheetGrid />
+          <XAxis dataKey="h" tickLine={false} axisLine={false} interval={5} tick={AXIS_TICK} />
+          <YAxis domain={[0, "dataMax"]} width={48} tickLine={false} axisLine={false} tick={AXIS_TICK} />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -621,16 +1028,25 @@ function HourProfileChart({ cells, unit }: { cells: GasMarket["heatmap"]; unit: 
           <Line type="monotone" dataKey="p50" stroke="currentColor" strokeWidth={2} dot={false} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
-    </div>
+    </ChartPlate>
   );
 }
 
 function SeasonalitySheet({ catalog, base }: { catalog: L1Chain; base: string }) {
   const evmChainId = Number(catalog.chainId);
   const unit = nanoUnit(catalog.networkToken?.symbol);
-  // the pattern is a fixed 30-day median — deliberately NOT on the page
-  // clock, so the subnav control stays hidden here rather than lying
-  const { market, missing } = useGasMarket(evmChainId, 1);
+  // on the page clock like every sheet. The heatmap needs a full week
+  // for its 168 cells and the market fetch caps at a quarter, so the
+  // effective window clamps both ways and the label says so.
+  const range = useExplorerTimeRange();
+  const rangeDays = Math.min(RANGE_DAYS[range], 90);
+  const { market, missing } = useGasMarket(evmChainId, rangeDays);
+  const heatLabel =
+    RANGE_DAYS[range] < 7
+      ? `${RANGE_LABEL.week} · shortest weekly window`
+      : RANGE_DAYS[range] > 90
+        ? `${RANGE_LABEL.quarter} · longest computed`
+        : RANGE_LABEL[range];
 
   const stats = useMemo(() => {
     const cells = (market?.heatmap ?? []).filter((c) => c.p50 > 0);
@@ -656,8 +1072,8 @@ function SeasonalitySheet({ catalog, base }: { catalog: L1Chain; base: string })
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="fee-seasonality">
-      <Board divide={false}>
-        <BoardHeader label="The Weekly Rhythm · 30 days" />
+      <Board divide={false} className="border">
+        <BoardHeader label={`The Weekly Rhythm · ${heatLabel}`} />
         <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-3 lg:divide-y-0 dark:divide-zinc-800">
           <GasStat label="Cheapest Hour" sub={stats ? `${cellLabel(stats.cheapest)} UTC` : undefined}>
             {stats ? (
@@ -693,32 +1109,151 @@ function SeasonalitySheet({ catalog, base }: { catalog: L1Chain; base: string })
         </div>
       </Board>
 
-      <section className="flex flex-col gap-4">
-        <SectionHeader label="Hour of Week · median base fee" />
-        <Board divide={false} className="px-5 py-5 md:px-6">
-          {market?.heatmap.length ? (
-            <HeatmapReader cells={market.heatmap} unit={unit} />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </Board>
-      </section>
+      <ChartBoard label="Hour of Week · median base fee">
+        {market?.heatmap.length ? (
+          <HeatmapReader cells={market.heatmap} unit={unit} />
+        ) : (
+          <HistoryEmpty missing={missing} />
+        )}
+      </ChartBoard>
 
-      <section className="flex flex-col gap-4">
-        <SectionHeader label="Hour of Day Profile · all days collapsed" />
-        <Board divide={false} className="px-5 py-5 md:px-6">
+      {/* the grid collapsed both ways: by hour, then by weekday */}
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard label="Hour of Day Profile · all days collapsed">
           {market?.heatmap.length ? (
             <HourProfileChart cells={market.heatmap} unit={unit} />
           ) : (
             <HistoryEmpty missing={missing} />
           )}
-        </Board>
-      </section>
+        </ChartBoard>
+
+        <ChartBoard label="Day of Week Profile · all hours collapsed">
+          {market?.heatmap.length ? (
+            <DowProfileChart cells={market.heatmap} unit={unit} />
+          ) : (
+            <HistoryEmpty missing={missing} />
+          )}
+        </ChartBoard>
+      </div>
+
+      {/* the schedule someone actually acts on */}
+      {market && market.heatmap.length > 0 && <BestHoursList cells={market.heatmap} unit={unit} />}
 
       <SiblingDoor
         href={`${base}/gas/base-fee`}
         label="Base Fee"
         sub="the price this rhythm plays out in, hour by hour"
+      />
+    </MetricFrame>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/* Blockspace Demand                                                 */
+/* ---------------------------------------------------------------- */
+
+function DemandSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
+  const evmChainId = Number(catalog.chainId);
+  const symbol = catalog.networkToken?.symbol ?? "AVAX";
+  const range = useExplorerTimeRange();
+  // the demand aggregations scan raw_txs, which caps the window at 90d
+  const rangeDays = Math.min(RANGE_DAYS[range], 90);
+  const clamped = RANGE_DAYS[range] > 90;
+  const windowLabel = clamped ? `${RANGE_LABEL.quarter} · longest computed` : RANGE_LABEL[range];
+  const { market, missing } = useGasMarket(evmChainId, rangeDays);
+
+  const unknownAddresses = useMemo(
+    () => market?.protocols.flatMap((p) => (p.address ? [p.address] : [])) ?? [],
+    [market],
+  );
+  const names = useContractNames(evmChainId, unknownAddresses);
+
+  const top = market?.protocols[0];
+  const revertedPct =
+    market?.reverted && market.reverted.gas > 0
+      ? (market.reverted.revertedGas / market.reverted.gas) * 100
+      : null;
+
+  return (
+    <MetricFrame base={base} chainName={catalog.chainName} metric="demand">
+      <Board divide={false} className="border">
+        <BoardHeader label={`The Buyers · ${windowLabel}`} />
+        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+          <GasStat label="Total Gas">
+            {market ? fmtGas(market.rangeTotalGas) : <StatDash />}
+          </GasStat>
+          <GasStat label="Transactions">
+            {market?.reverted ? market.reverted.txs.toLocaleString("en-US") : <StatDash />}
+          </GasStat>
+          <GasStat
+            label="Top Buyer"
+            sub={top ? `${top.sharePct.toFixed(1)}% of the window's gas` : undefined}
+          >
+            {top ? (
+              <span className="min-w-0 truncate">{top.name}</span>
+            ) : (
+              <StatDash />
+            )}
+          </GasStat>
+          <GasStat
+            label="Reverted"
+            sub={
+              market?.reverted
+                ? `${market.reverted.revertedTxs.toLocaleString("en-US")} txs paid for nothing`
+                : undefined
+            }
+          >
+            {revertedPct !== null ? (
+              <>
+                {revertedPct.toFixed(1)}
+                <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
+              </>
+            ) : (
+              <StatDash />
+            )}
+          </GasStat>
+        </div>
+      </Board>
+
+      {/* the map: tile area = gas share, tiles link to dapp pages/addresses */}
+      <ChartBoard label="Where the Gas Goes · by protocol" bodyClassName="p-2">
+        {market?.protocols.length ? (
+          <ProtocolsTreemap protocols={market.protocols} names={names} base={base} />
+        ) : (
+          <HistoryEmpty missing={missing} />
+        )}
+      </ChartBoard>
+
+      {/* the figures the tiles can't fit */}
+      <Board divide={false} className="border overflow-x-auto">
+        {market?.protocols.length ? (
+          <ProtocolTable protocols={market.protocols} names={names} base={base} symbol={symbol} />
+        ) : (
+          <HistoryEmpty missing={missing} />
+        )}
+      </Board>
+
+      <ChartBoard
+        label="By Method"
+        action={
+          market?.reverted ? (
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              {market.reverted.txs.toLocaleString("en-US")} txs
+            </span>
+          ) : undefined
+        }
+      >
+        {market?.selectors.length ? (
+          <SelectorBars selectors={market.selectors} />
+        ) : (
+          <HistoryEmpty missing={missing} />
+        )}
+      </ChartBoard>
+
+      <SiblingDoor
+        href={`${base}/gas/utilization`}
+        label="Utilization"
+        sub="how full this demand actually runs the blocks"
       />
     </MetricFrame>
   );
@@ -739,5 +1274,6 @@ export function GasMetricContent({
 }) {
   if (metric === "base-fee") return <BaseFeeSheet catalog={catalog} base={base} />;
   if (metric === "utilization") return <UtilizationSheet catalog={catalog} base={base} />;
+  if (metric === "demand") return <DemandSheet catalog={catalog} base={base} />;
   return <SeasonalitySheet catalog={catalog} base={base} />;
 }
