@@ -130,7 +130,7 @@ export function ExplorerRangeControl({ className }: { className?: string }) {
             title={title}
             onClick={() => setExplorerRange(value)}
             className={cn(
-              "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
+              "px-1.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2",
               active
                 ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                 : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
