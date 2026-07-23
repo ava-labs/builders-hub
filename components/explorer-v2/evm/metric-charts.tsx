@@ -11,7 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { ChartBoard } from "@/components/explorer-v2/ui";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 
@@ -62,6 +62,50 @@ export function num(v: number | string | undefined): number | null {
   if (v === undefined) return null;
   const n = typeof v === "string" ? Number.parseFloat(v) : v;
   return Number.isFinite(n) ? n : null;
+}
+
+export interface WindowPair {
+  cur: number;
+  /** null when the series is too short to hold the previous window */
+  prev: number | null;
+}
+
+/* the clock's window vs the window before it — sums for volumes,
+   means for rates. Needs 2N points for a delta; degrades to cur-only. */
+export function windowPair(
+  points: { timestamp: number; value: number | string }[] | undefined,
+  n: number,
+  mode: "sum" | "avg",
+): WindowPair | null {
+  if (!points || points.length < Math.min(n, 2)) return null;
+  const sorted = [...points].sort((a, b) => a.timestamp - b.timestamp);
+  const vals = sorted.map((p) => num(p.value) ?? 0);
+  const take = (arr: number[]) =>
+    mode === "sum" ? arr.reduce((s, v) => s + v, 0) : arr.reduce((s, v) => s + v, 0) / arr.length;
+  const curSlice = vals.slice(-n);
+  if (!curSlice.length) return null;
+  const prevSlice = vals.slice(-2 * n, -n);
+  return {
+    cur: take(curSlice),
+    prev: prevSlice.length === n ? take(prevSlice) : null,
+  };
+}
+
+export function pctOf(p: WindowPair | null): number | null {
+  if (!p || p.prev === null || p.prev === 0) return null;
+  return ((p.cur - p.prev) / p.prev) * 100;
+}
+
+/* the move against the previous window, Etherscan's parenthetical */
+export function Delta({ value }: { value: number | null }) {
+  if (value === null) return null;
+  const up = value >= 0;
+  return (
+    <span className={up ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
+      {up ? "+" : ""}
+      {Math.abs(value) >= 100 ? value.toFixed(0) : value.toFixed(1)}% vs prev
+    </span>
+  );
 }
 
 /* one day on the chart: the headline series plus an optional overlay */
@@ -226,19 +270,23 @@ export function ChartSection({
   action,
   children,
   note,
+  href,
 }: {
   label: string;
   action?: React.ReactNode;
   children: React.ReactNode;
   note?: string;
+  /** the stat's detail page — the whole card becomes a door */
+  href?: string;
 }) {
   return (
-    <section className="flex flex-col gap-4">
-      <SectionHeader label={label} action={action} />
-      <Board divide={false} className="px-5 py-5 md:px-6">
+    <section className="flex min-w-0 flex-col gap-3">
+      <ChartBoard label={label} action={action} href={href}>
         {children}
-      </Board>
-      {note && <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{note}</p>}
+      </ChartBoard>
+      {note && (
+        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">{note}</p>
+      )}
     </section>
   );
 }
