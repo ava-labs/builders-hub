@@ -1,7 +1,9 @@
 import { User } from "@prisma/client";
 
 export enum MemberStatus {
-  PENDING = "Pending confirmation",
+  // Must match the literal the invite flow writes (inviteProjectMember.ts), or
+  // any comparison against this member silently never matches a DB row.
+  PENDING = "Pending Confirmation",
   CONFIRMED = "Confirmed",
   REJECTED = "Rejected",
   REMOVED = "Removed",

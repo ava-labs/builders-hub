@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Briefcase, ExternalLink, Trophy } from "lucide-react";
+import { ExternalLink, Trophy } from "lucide-react";
 import { PuzzleIcon, GitHubIcon } from "./icons";
 import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_KEY } from "@/lib/grants/programs";
 
@@ -76,48 +76,6 @@ export function ProjectsCard({ projects, loading = false }: Props) {
                 ? "No projects yet — submit one via Hackathons or the Showcase."
                 : "Things you've built or shipped."}
           </div>
-        </div>
-        {/* Discoverability for Ecosystem Careers from the Projects card. */}
-        <div
-          style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}
-        >
-          <Link
-            href="/ecosystem-careers/my-listings"
-            className="pr-btn pr-btn-ghost"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 13,
-              padding: "6px 10px",
-              borderRadius: 8,
-              border: "1px solid var(--pr-g-300)",
-              color: "inherit",
-              textDecoration: "none",
-            }}
-          >
-            <Briefcase size={14} />
-            My job listings
-          </Link>
-          <Link
-            href="/ecosystem-careers/submit"
-            className="pr-btn pr-btn-primary"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 13,
-              fontWeight: 600,
-              padding: "6px 12px",
-              borderRadius: 8,
-              background:
-                "linear-gradient(90deg,#dc2626,#ef4444)",
-              color: "#fff",
-              textDecoration: "none",
-            }}
-          >
-            Post a role
-          </Link>
         </div>
       </div>
       <div className="pr-body" style={{ gap: 12 }}>

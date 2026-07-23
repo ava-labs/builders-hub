@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronDown, CircleUserRound, Moon, Sun } from 'lucide-react';
+import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
 import { menuSections, singleItems } from './nav-config';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
@@ -67,13 +67,13 @@ export function NavbarDropdown() {
 
       {isOpen && (
         <>
-          {/* Dropdown menu */}
-          <div 
-            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-background border border-border rounded-lg shadow-lg z-[100] max-h-[70vh] overflow-y-auto"
+          {/* Dropdown menu — v2 sheet: squared, hairline-ruled ledger */}
+          <div
+            className="absolute right-0 top-full mt-2 w-[90vw] max-w-md bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-[0_12px_24px_-12px_rgb(0_0_0_/_0.15)] z-[100] max-h-[70vh] overflow-y-auto"
           >
-            <div className="flex flex-col p-4 gap-4">
+            <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {/* Controls row: theme + login */}
-              <div className="flex items-center justify-between pb-2 border-b border-border">
+              <div className="flex items-center justify-between px-4 py-3">
                 {/* Theme toggle */}
                 <button
                   onClick={(e) => {
@@ -87,44 +87,44 @@ export function NavbarDropdown() {
                     html.style.colorScheme = newTheme;
                     localStorage.setItem('theme', newTheme);
                   }}
-                  className="inline-flex items-center rounded-full border p-1 hover:bg-accent"
+                  className="inline-flex h-8 items-center border border-zinc-200 dark:border-zinc-800 px-1 hover:border-zinc-400 dark:hover:border-zinc-500 transition-colors"
                   aria-label="Toggle Theme"
                   type="button"
                 >
-                  <Sun fill="currentColor" className="size-6.5 rounded-full p-1.5 text-muted-foreground" />
-                  <Moon fill="currentColor" className="size-6.5 rounded-full p-1.5 text-muted-foreground" />
+                  <Sun fill="currentColor" className="size-6.5 p-1.5 text-zinc-500 dark:text-zinc-400" />
+                  <Moon fill="currentColor" className="size-6.5 p-1.5 text-zinc-500 dark:text-zinc-400" />
                 </button>
                 {isAuthenticated ? (
                   <Link
                     href="/profile"
                     aria-label="Profile"
                     title="Profile"
-                    className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
+                    className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
-                    <CircleUserRound className="size-5" />
+                    <UserRound className="size-4.5" strokeWidth={1.25} />
                   </Link>
                 ) : (
                   <button
                     type="button"
                     aria-label="Login"
                     title="Login"
-                    className="inline-flex items-center justify-center rounded-md p-1.5 hover:bg-accent"
+                    className="inline-flex h-8 w-8 items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-50 transition-colors"
                     onClick={() => {
                       setIsOpen(false);
                       openLoginModal(window.location.href);
                     }}
                   >
-                    <CircleUserRound className="size-5" />
+                    <UserRound className="size-4.5" strokeWidth={1.25} />
                   </button>
                 )}
               </div>
               {/* Menu sections */}
               {visibleMenuSections.map((section) => (
-                <div key={section.title} className="flex flex-col">
-                  <Link 
+                <div key={section.title} className="flex flex-col px-4 py-3">
+                  <Link
                     href={section.href}
-                    className="mb-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="mb-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors"
                   >
                     {section.title}
                   </Link>
@@ -132,7 +132,7 @@ export function NavbarDropdown() {
                     <Link
                       key={item.href}
                       href={item.href}
-                      className="inline-flex items-center gap-2 py-1.5 text-sm transition-colors hover:text-accent-foreground"
+                      className="inline-flex items-center gap-2 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
                       {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
                     >
                       {item.text}
@@ -146,7 +146,7 @@ export function NavbarDropdown() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="inline-flex items-center gap-2 py-1.5 text-sm transition-colors hover:text-accent-foreground"
+                  className="inline-flex items-center gap-2 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50"
                 >
                   {item.text}
                 </Link>

@@ -43,7 +43,9 @@ interface ChartCardProps {
   rawData: ChartDataPoint[];
   period: ChartPeriod;
   currentValue: number | string;
-  onPeriodChange: (period: ChartPeriod) => void;
+  // Omit to hide the per-chart period toggle (e.g. when a page-level clock
+  // drives the period). When present, the Select is rendered as before.
+  onPeriodChange?: (period: ChartPeriod) => void;
   formatTooltipValue: (value: number) => string;
   formatYAxisValue: (value: number) => string;
 }
@@ -213,21 +215,23 @@ export function ChartCard({
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <Select
-              value={period}
-              onValueChange={(value) => onPeriodChange(value as ChartPeriod)}
-            >
-              <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:ring-0 shadow-none">
-                <SelectValue>{periodLabel(period)}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {PERIODS.map((p) => (
-                  <SelectItem key={p} value={p}>
-                    {periodLabel(p)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {onPeriodChange && (
+              <Select
+                value={period}
+                onValueChange={(value) => onPeriodChange(value as ChartPeriod)}
+              >
+                <SelectTrigger className="h-7 w-auto px-2 gap-1 text-xs sm:text-sm border-0 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:ring-0 shadow-none">
+                  <SelectValue>{periodLabel(period)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {PERIODS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {periodLabel(p)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <button
               onClick={handleScreenshot}
               className="p-1.5 sm:p-2 rounded-md text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"

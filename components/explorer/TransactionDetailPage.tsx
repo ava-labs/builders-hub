@@ -8,7 +8,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { decodeEventLog, getEventByTopic, decodeFunctionInput } from "@/abi/event-signatures.generated";
+import {
+  fetchVerifiedContract,
+  decodeEventWithAbi,
+  decodeFunctionWithAbi,
+  type SourcifyContract,
+} from "@/lib/sourcify-client";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -402,6 +409,22 @@ function TokenDisplay({ symbol }: { symbol?: string }) {
   return <span>{symbol}</span>;
 }
 
+/* Verified-contract label: the Sourcify name beside the raw address turns
+   "0xB31f…66c7" into "0xB31f…66c7 [✓ WAVAX]". Name may be absent (older
+   verifications) — the check alone still says "this bytecode is known". */
+function ContractBadge({ contract }: { contract?: SourcifyContract }) {
+  if (!contract) return null;
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700 animate-in fade-in duration-300 dark:bg-green-900/30 dark:text-green-400"
+      title={`Verified on Sourcify (${contract.match === 'exact_match' ? 'exact match' : 'match'})`}
+    >
+      <Check className="h-3 w-3" />
+      {contract.name}
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
   if (status === 'success') {
     return (
@@ -440,6 +463,7 @@ export default function TransactionDetailPage({
   socials,
   rpcUrl,
 }: TransactionDetailPageProps) {
+  const network = useExplorerNetwork();
   // Get token data from shared context
   const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
   
@@ -449,29 +473,30 @@ export default function TransactionDetailPage({
   const [showMore, setShowMore] = useState(false);
   const [showRawInput, setShowRawInput] = useState(false);
   const [erc20Transfers, setErc20Transfers] = useState<Array<ERC20Transfer & { symbol: string; decimals: number; logoUri?: string }>>([]);
-  const [verifiedAddresses, setVerifiedAddresses] = useState<Set<string>>(new Set());
-  
-  // Check Sourcify verification for to/contract addresses
+  // Verified contracts (name + ABI) from Sourcify, keyed by lowercased
+  // address: the tx target plus every log-emitting contract. Names label
+  // the addresses; ABIs decode calldata and events the local signature
+  // registry doesn't know.
+  const [verifiedContracts, setVerifiedContracts] = useState<Map<string, SourcifyContract>>(new Map());
   useEffect(() => {
-    const addressesToCheck = [tx?.to, tx?.contractAddress].filter(Boolean) as string[];
-    if (addressesToCheck.length === 0) return;
-    
-    const checkVerification = async (address: string) => {
-      try {
-        const response = await fetch(`https://sourcify.dev/server/v2/contract/${chainId}/${address}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.match === 'match') {
-            setVerifiedAddresses(prev => new Set(prev).add(address.toLowerCase()));
-          }
-        }
-      } catch {
-        // Ignore errors
-      }
+    const targets = new Set<string>();
+    for (const a of [tx?.to, tx?.contractAddress]) if (a) targets.add(a.toLowerCase());
+    for (const log of tx?.logs ?? []) if (log.address) targets.add(log.address.toLowerCase());
+    // cap the fan-out — a mega-tx with 100 logs shouldn't fire 100 lookups
+    const list = Array.from(targets).slice(0, 16);
+    if (list.length === 0) return;
+
+    let cancelled = false;
+    Promise.all(list.map(async (addr) => [addr, await fetchVerifiedContract(chainId, addr)] as const)).then(
+      (entries) => {
+        if (cancelled) return;
+        setVerifiedContracts(new Map(entries.filter(([, c]) => c !== null) as [string, SourcifyContract][]));
+      },
+    );
+    return () => {
+      cancelled = true;
     };
-    
-    addressesToCheck.forEach(addr => checkVerification(addr));
-  }, [tx?.to, tx?.contractAddress, chainId]);
+  }, [tx, chainId]);
   
   // Extract ERC20 transfers and fetch token info
   useEffect(() => {
@@ -580,8 +605,8 @@ export default function TransactionDetailPage({
 
   if (loading) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-6">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-6">
             <div className="space-y-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="flex items-start gap-4">
@@ -597,7 +622,7 @@ export default function TransactionDetailPage({
 
   if (error) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="max-w-7xl mx-auto px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
             <Button onClick={fetchTransaction}>Retry</Button>
@@ -609,14 +634,14 @@ export default function TransactionDetailPage({
   return (
     <>
       {/* Transaction Details Title */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pt-6 pb-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
           Transaction Details
         </h2>
       </div>
 
       {/* Tabs - Outside Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto px-5 md:px-6">
         <div className="flex items-center gap-2 mb-4">
           <Link
             href={`#overview`}
@@ -624,7 +649,7 @@ export default function TransactionDetailPage({
               e.preventDefault();
               handleTabChange('overview');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm font-medium  transition-colors cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -638,7 +663,7 @@ export default function TransactionDetailPage({
               e.preventDefault();
               handleTabChange('logs');
             }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+            className={`px-4 py-2 text-sm font-medium  transition-colors cursor-pointer ${
               activeTab === 'logs'
                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                 : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -650,8 +675,8 @@ export default function TransactionDetailPage({
       </div>
 
       {/* Transaction Details */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      <div className="max-w-7xl mx-auto px-5 md:px-6 pb-6">
+        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
           {activeTab === 'overview' ? (
             <div className="p-4 sm:p-6 space-y-5">
             {/* Transaction Hash */}
@@ -684,9 +709,8 @@ export default function TransactionDetailPage({
                 tx?.blockNumber ? (
                   <div className="flex items-center gap-2">
                     <Link
-                      href={buildBlockUrl(`/explorer/${chainSlug}`, tx.blockNumber)}
+                      href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, tx.blockNumber)}
                       className="text-sm font-medium hover:underline cursor-pointer"
-                      style={{ color: themeColor }}
                     >
                       {parseInt(tx.blockNumber).toLocaleString()}
                     </Link>
@@ -720,9 +744,8 @@ export default function TransactionDetailPage({
               value={
                 tx?.from ? (
                   <Link
-                    href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
+                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.from)}
                     className="text-sm font-mono break-all hover:underline cursor-pointer"
-                    style={{ color: themeColor }}
                   >
                     {tx.from}
                   </Link>
@@ -742,39 +765,23 @@ export default function TransactionDetailPage({
                 tx?.to ? (
                   <div className="flex items-center gap-2">
                   <Link
-                    href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
+                    href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.to)}
                       className="text-sm font-mono break-all hover:underline cursor-pointer"
-                    style={{ color: themeColor }}
                   >
                     {tx.to}
                   </Link>
-                    {verifiedAddresses.has(tx.to.toLowerCase()) && (
-                      <span 
-                        className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500"
-                        title="Verified on Sourcify"
-                      >
-                        <Check className="w-3 h-3 text-white" />
-                      </span>
-                    )}
+                    <ContractBadge contract={verifiedContracts.get(tx.to.toLowerCase())} />
                   </div>
                 ) : tx?.contractAddress ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-zinc-500">[Contract Created]</span>
                     <Link
-                      href={buildAddressUrl(`/explorer/${chainSlug}`, tx.contractAddress)}
+                      href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.contractAddress)}
                       className="text-sm font-mono hover:underline cursor-pointer"
-                      style={{ color: themeColor }}
                     >
                       {tx.contractAddress}
                     </Link>
-                    {verifiedAddresses.has(tx.contractAddress.toLowerCase()) && (
-                      <span 
-                        className="flex items-center justify-center w-4 h-4 rounded-full bg-green-500"
-                        title="Verified on Sourcify"
-                      >
-                        <Check className="w-3 h-3 text-white" />
-                      </span>
-                    )}
+                    <ContractBadge contract={verifiedContracts.get(tx.contractAddress.toLowerCase())} />
                   </div>
                 ) : (
                   <span className="text-sm text-zinc-500">-</span>
@@ -783,9 +790,16 @@ export default function TransactionDetailPage({
               copyValue={tx?.to || tx?.contractAddress || undefined}
             />
 
-            {/* Decoded Method */}
+            {/* Decoded Method — local signature registry first, then the
+                target contract's verified Sourcify ABI */}
             {(() => {
-              const decoded = tx?.input ? decodeFunctionInput(tx.input) : null;
+              const decoded = tx?.input
+                ? decodeFunctionInput(tx.input) ??
+                  decodeFunctionWithAbi(
+                    tx.to ? verifiedContracts.get(tx.to.toLowerCase())?.abi : null,
+                    tx.input,
+                  )
+                : null;
               if (!decoded) return null;
               return (
               <DetailRow
@@ -793,7 +807,7 @@ export default function TransactionDetailPage({
                 label="Method"
                 themeColor={themeColor}
                 value={
-                  <span className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
+                  <span className="inline-flex items-center px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-sm font-mono">
                       {decoded.name}
                   </span>
                 }
@@ -810,22 +824,20 @@ export default function TransactionDetailPage({
                 value={
                   <div className="space-y-3">
                     {erc20Transfers.map((transfer, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm p-2  bg-zinc-50 dark:bg-zinc-800/50">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-zinc-500">From</span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.from)}
-                            className="font-mono text-xs hover:underline cursor-pointer" 
-                            style={{ color: themeColor }}
+                            href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.from)}
+                            className="font-mono text-xs hover:underline cursor-pointer"
                           >
                             {formatAddress(transfer.from)}
                           </Link>
                           <span className="text-zinc-400">→</span>
                           <span className="text-zinc-500">To</span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.to)}
-                            className="font-mono text-xs hover:underline cursor-pointer" 
-                            style={{ color: themeColor }}
+                            href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.to)}
+                            className="font-mono text-xs hover:underline cursor-pointer"
                           >
                             {formatAddress(transfer.to)}
                           </Link>
@@ -836,9 +848,8 @@ export default function TransactionDetailPage({
                             {formatTokenAmountFromWei(transfer.value, transfer.decimals)}
                           </span>
                           <Link 
-                            href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.tokenAddress)}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
-                            style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                            href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.tokenAddress)}
+                            className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                           >
                             {transfer.logoUri && (
                               <Image
@@ -883,15 +894,14 @@ export default function TransactionDetailPage({
                         return (
                           <div 
                             key={idx} 
-                            className="flex flex-col gap-2 text-sm p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50"
+                            className="flex flex-col gap-2 text-sm p-2  bg-zinc-50 dark:bg-zinc-800/50"
                           >
                             {/* Line 1: Source Chain → Destination Chain */}
                             <div className="flex items-center gap-2 flex-wrap">
                               {/* Source Chain */}
                               <Link 
-                                href={`/explorer/${chainSlug}`}
-                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
-                                style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                                href={`/explorer/${network}/${chainSlug}`}
+                                className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                               >
                                 {chainLogoURI && (
                                   <Image
@@ -910,7 +920,7 @@ export default function TransactionDetailPage({
                               {/* Destination Chain */}
                               {destChain ? (
                                 <Link 
-                                  href={`/explorer/${destChain.slug}`}
+                                  href={`/explorer/${network}/${destChain.slug}`}
                                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
                                   style={{ backgroundColor: `${destChain.color}20`, color: destChain.color }}
                                 >
@@ -937,9 +947,8 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-zinc-500">From</span>
                               <Link 
-                                href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.sender)}
-                                className="font-mono text-xs hover:underline cursor-pointer" 
-                                style={{ color: themeColor }}
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.sender)}
+                                className="font-mono text-xs hover:underline cursor-pointer"
                               >
                                 {formatAddress(transfer.sender)}
                               </Link>
@@ -947,7 +956,7 @@ export default function TransactionDetailPage({
                               <span className="text-zinc-500">To</span>
                               {destChain ? (
                                 <Link 
-                                  href={buildAddressUrl(`/explorer/${destChain.slug}`, transfer.recipient)}
+                                  href={buildAddressUrl(`/explorer/${network}/${destChain.slug}`, transfer.recipient)}
                                   className="font-mono text-xs hover:underline cursor-pointer" 
                                   style={{ color: destChain.color }}
                                 >
@@ -963,9 +972,8 @@ export default function TransactionDetailPage({
                                 {formattedAmount}
                               </span>
                               <Link 
-                                href={buildAddressUrl(`/explorer/${chainSlug}`, transfer.contractAddress)}
-                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium hover:underline cursor-pointer"
-                                style={{ backgroundColor: `${themeColor}20`, color: themeColor }}
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, transfer.contractAddress)}
+                                className="inline-flex items-center border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-700 transition-colors hover:border-[#E6212F] hover:text-[#E6212F] cursor-pointer dark:border-zinc-800 dark:text-zinc-300"
                               >
                                 {transferTokenSymbol}
                               </Link>
@@ -1033,7 +1041,6 @@ export default function TransactionDetailPage({
             <button
               onClick={() => setShowMore(!showMore)}
               className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
-              style={{ color: themeColor }}
             >
               {showMore ? 'Click to see Less' : 'Click to see More'}
               {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -1092,7 +1099,7 @@ export default function TransactionDetailPage({
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => setShowRawInput(false)}
-                                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                className={`px-3 py-1 text-xs font-medium  transition-colors cursor-pointer ${
                                   !showRawInput
                                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -1102,7 +1109,7 @@ export default function TransactionDetailPage({
                               </button>
                               <button
                                 onClick={() => setShowRawInput(true)}
-                                className={`px-3 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                                className={`px-3 py-1 text-xs font-medium  transition-colors cursor-pointer ${
                                   showRawInput
                                     ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
                                     : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
@@ -1115,7 +1122,7 @@ export default function TransactionDetailPage({
                           
                           {/* Decoded View */}
                           {decodedInput && !showRawInput ? (
-                            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-3">
+                            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800  p-4 space-y-3">
                               {/* Method Signature */}
                               <div>
                                 <div className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Function</div>
@@ -1148,9 +1155,8 @@ export default function TransactionDetailPage({
                                           <div className="flex-1 min-w-0">
                                             {isAddress ? (
                                               <Link
-                                                href={buildAddressUrl(`/explorer/${chainSlug}`, param.value)}
+                                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, param.value)}
                                                 className="font-mono text-xs hover:underline cursor-pointer break-all"
-                                                style={{ color: themeColor }}
                                               >
                                                 {param.value}
                                               </Link>
@@ -1170,9 +1176,8 @@ export default function TransactionDetailPage({
                                                       </span>
                                                       {compIsAddress ? (
                                                         <Link
-                                                          href={buildAddressUrl(`/explorer/${chainSlug}`, comp.value)}
+                                                          href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, comp.value)}
                                                           className="font-mono hover:underline cursor-pointer break-all"
-                                                          style={{ color: themeColor }}
                                                         >
                                                           {comp.value}
                                                         </Link>
@@ -1205,7 +1210,7 @@ export default function TransactionDetailPage({
                           ) : (
                             /* Raw View */
                     <div className="w-full">
-                              <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3 rounded-lg overflow-x-auto max-h-64 text-zinc-700 dark:text-zinc-300">
+                              <pre className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-3  overflow-x-auto max-h-64 text-zinc-700 dark:text-zinc-300">
                         {tx?.input || '0x'}
                       </pre>
                             </div>
@@ -1225,12 +1230,15 @@ export default function TransactionDetailPage({
                 <div className="space-y-4">
                   {tx.logs.map((log, index) => {
                     const logIndex = parseInt(log.logIndex || '0', 16);
-                    const decodedEvent = decodeEventLog(log);
-                    
+                    const emitter = log.address ? verifiedContracts.get(log.address.toLowerCase()) : undefined;
+                    // local signature registry first, then the emitting
+                    // contract's verified Sourcify ABI
+                    const decodedEvent = decodeEventLog(log) ?? decodeEventWithAbi(emitter?.abi, log);
+
                     return (
                       <div
                         key={index}
-                        className="border border-zinc-200 dark:border-zinc-800 rounded-lg p-4 space-y-4"
+                        className="border border-zinc-200 dark:border-zinc-800  p-4 space-y-4"
                       >
                         {/* Header with Index Badge */}
                         <div className="flex items-start gap-4">
@@ -1251,12 +1259,13 @@ export default function TransactionDetailPage({
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm break-all" style={{ color: themeColor }}>
+                                <span className="font-mono text-sm break-all">
                                   {log.address}
                                 </span>
+                                <ContractBadge contract={emitter} />
                                 <CopyButton text={log.address} />
                                 <Link
-                                  href={`/explorer/${chainSlug}`}
+                                  href={`/explorer/${network}/${chainSlug}`}
                                   className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
                                   title="View contract"
                                 >

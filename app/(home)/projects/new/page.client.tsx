@@ -14,6 +14,7 @@ import {
   UserSearchPicker,
   type SearchUser,
 } from '@/components/common/UserSearchPicker';
+import { MemberStatus } from "@/types/project";
 
 interface Props {
   userId: string;
@@ -106,7 +107,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       .map((m) => ({
         user_id: m.id,
         role: 'Member',
-        status: 'Pending Confirmation',
+        status: MemberStatus.PENDING,
       }));
 
     const fullDesc = values.full_description.trim();
@@ -129,7 +130,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       origin: 'builders-hub',
       hackaton_id: null,
       members: [
-        { user_id: userId, role: 'Member', status: 'Confirmed' },
+        { user_id: userId, role: 'Member', status: MemberStatus.CONFIRMED },
         ...additionalMembers,
       ],
     };
@@ -152,11 +153,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       }
       const projectId = (payload as { project?: { id?: string } }).project?.id;
       toast.success('Project created.');
-      router.push(
-        projectId
-          ? `/ecosystem-careers/submit?project=${encodeURIComponent(projectId)}`
-          : '/ecosystem-careers/submit',
-      );
+      router.push('/profile');
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -196,7 +193,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
           <div>
             <h3>Project profile</h3>
             <div className="pr-desc">
-              Team-level info that powers your listings on Ecosystem Careers.
+              Team-level info shown on your Builders Hub project profile.
             </div>
           </div>
         </div>

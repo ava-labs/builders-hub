@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { Prisma } from "@prisma/client";
+import { MemberStatus } from "@/types/project";
 
 /**
  * GET /api/build-games/stage-data?project_id=<id>
@@ -25,7 +26,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
     const project = await prisma.project.findFirst({
       where: {
         id: project_id,
-        members: { some: { user_id: session.user.id, status: "Confirmed" } },
+        members: { some: { user_id: session.user.id, status: MemberStatus.CONFIRMED } },
       },
     });
 
@@ -85,7 +86,7 @@ export const POST = withAuth(
       const project = await prisma.project.findFirst({
         where: {
           id: project_id,
-          members: { some: { user_id: session.user.id, status: "Confirmed" } },
+          members: { some: { user_id: session.user.id, status: MemberStatus.CONFIRMED } },
         },
       });
 

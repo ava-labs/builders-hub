@@ -8,7 +8,13 @@ import { DetailRow, CopyButton } from "@/components/explorer/DetailRow";
 import Link from "next/link";
 import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { decodeFunctionInput } from "@/abi/event-signatures.generated";
+import {
+  useVerifiedContracts,
+  decodeFunctionWithAbi,
+  prewarmContractNames,
+} from "@/lib/sourcify-client";
 import { formatTokenValue, formatUsdValue } from "@/utils/formatTokenValue";
 import { formatPrice } from "@/utils/formatPrice";
 
@@ -166,6 +172,7 @@ export default function BlockDetailPage({
   socials,
   rpcUrl,
 }: BlockDetailPageProps) {
+  const network = useExplorerNetwork();
   // Get token data from shared context
   const { tokenSymbol, tokenPrice, glacierSupported, buildApiUrl } = useExplorer();
   
@@ -186,6 +193,10 @@ export default function BlockDetailPage({
   };
   
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>(getInitialTab);
+
+  // Sourcify verification for the block's `to` contracts: names label the
+  // To column, verified ABIs decode methods the generated registry misses
+  const toContracts = useVerifiedContracts(chainId, transactions.map((t) => t.to));
   
   // Update URL hash when tab changes
   const handleTabChange = (tab: 'overview' | 'transactions') => {
@@ -239,7 +250,11 @@ export default function BlockDetailPage({
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setTransactions(data.transactions || []);
+        const txs: TransactionDetail[] = data.transactions || [];
+        // resolve verified names/ABIs before the rows land, so labelled
+        // rows paint labelled on their first frame (time-capped inside)
+        await prewarmContractNames(chainId, txs.map((t) => t.to));
+        setTransactions(txs);
       }
     } catch (err) {
       console.error("Error fetching transactions:", err);
@@ -265,14 +280,14 @@ export default function BlockDetailPage({
     return (
       <>
         {/* Tabs skeleton */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6">
+        <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6 pt-2">
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-10 w-24 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
-            <div className="h-10 w-32 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse" />
+            <div className="h-10 w-24 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
+            <div className="h-10 w-32 bg-zinc-200 dark:bg-zinc-800 animate-pulse" />
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+        <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6">
+          <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 p-6">
             <div className="space-y-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                 <div key={i} className="flex items-start gap-4">
@@ -289,7 +304,7 @@ export default function BlockDetailPage({
 
   if (error) {
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6 py-12">
           <div className="text-center">
             <p className="text-red-500 mb-4">{error}</p>
           <Button onClick={fetchBlock} className="cursor-pointer">Retry</Button>
@@ -300,50 +315,49 @@ export default function BlockDetailPage({
 
   return (
     <>
-      {/* Block Title */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-4">
-        <h2 className="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-white">
-          Block #{blockNumber}
-        </h2>
-      </div>
-
-      {/* Tabs - Outside Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Link
-            href={`#overview`}
-            onClick={(e) => {
-              e.preventDefault();
-              handleTabChange('overview');
-            }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-            }`}
-          >
-            Overview
-          </Link>
-          <Link
-            href={`#transactions`}
-            onClick={(e) => {
-              e.preventDefault();
-              handleTabChange('transactions');
-            }}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-              activeTab === 'transactions'
-                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-            }`}
-          >
-            Transactions ({block?.transactionCount || 0})
-          </Link>
+      {/* Block title row: identity left, section tabs right on the same
+          baseline — one compact rule instead of three stacked bands */}
+      <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6 pt-2 pb-5">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <h2 className="text-2xl font-bold tabular-nums text-zinc-900 sm:text-3xl dark:text-white">
+            Block #{Number(blockNumber).toLocaleString("en-US")}
+          </h2>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`#overview`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleTabChange('overview');
+              }}
+              className={`border px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors cursor-pointer ${
+                activeTab === 'overview'
+                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-white dark:text-zinc-900'
+                  : 'border-zinc-200 text-zinc-500 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100'
+              }`}
+            >
+              Overview
+            </Link>
+            <Link
+              href={`#transactions`}
+              onClick={(e) => {
+                e.preventDefault();
+                handleTabChange('transactions');
+              }}
+              className={`border px-3.5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] tabular-nums transition-colors cursor-pointer ${
+                activeTab === 'transactions'
+                  ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-white dark:text-zinc-900'
+                  : 'border-zinc-200 text-zinc-500 hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100'
+              }`}
+            >
+              Transactions · {block?.transactionCount || 0}
+            </Link>
+          </div>
         </div>
       </div>
 
       {/* Block Details */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-6">
-        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6 pb-16">
+        <div className="border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80 overflow-hidden">
           {activeTab === 'overview' ? (
             <div className="p-4 sm:p-6 space-y-5">
               {/* Block Height */}
@@ -358,13 +372,13 @@ export default function BlockDetailPage({
                     </span>
                     <div className="flex items-center gap-1">
                       <Link
-                        href={buildBlockUrl(`/explorer/${chainSlug}`, prevBlock)}
+                        href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, prevBlock)}
                         className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowLeft className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
                       </Link>
                       <Link
-                        href={buildBlockUrl(`/explorer/${chainSlug}`, nextBlock)}
+                        href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, nextBlock)}
                         className="p-1 rounded bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                       >
                         <ArrowRight className="w-3 h-3 text-zinc-600 dark:text-zinc-400" />
@@ -426,8 +440,7 @@ export default function BlockDetailPage({
                 value={
                   <button
                     onClick={() => handleTabChange('transactions')}
-                    className="inline-flex items-center px-3 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
-                    style={{ color: themeColor }}
+                    className="inline-flex items-center px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
                   >
                     {block?.transactionCount || 0} transaction{(block?.transactionCount || 0) !== 1 ? 's' : ''}
                   </button>
@@ -581,7 +594,6 @@ export default function BlockDetailPage({
               <button
                 onClick={() => setShowMore(!showMore)}
                 className="flex items-center gap-1 text-sm font-medium transition-colors cursor-pointer"
-                style={{ color: themeColor }}
               >
                 {showMore ? 'Click to see Less' : 'Click to see More'}
                 {showMore ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -609,9 +621,8 @@ export default function BlockDetailPage({
                     themeColor={themeColor}
                     value={
                       <Link
-                        href={buildBlockUrl(`/explorer/${chainSlug}`, prevBlock)}
+                        href={buildBlockUrl(`/explorer/${network}/${chainSlug}`, prevBlock)}
                         className="text-sm font-mono break-all hover:underline cursor-pointer"
-                        style={{ color: themeColor }}
                       >
                         {block?.parentHash || '-'}
                       </Link>
@@ -627,9 +638,8 @@ export default function BlockDetailPage({
                     value={
                       block?.miner ? (
                         <Link
-                          href={buildAddressUrl(`/explorer/${chainSlug}`, block.miner)}
+                          href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, block.miner)}
                           className="text-sm font-mono break-all hover:underline cursor-pointer"
-                          style={{ color: themeColor }}
                         >
                           {block.miner}
                         </Link>
@@ -690,44 +700,44 @@ export default function BlockDetailPage({
             <div className="overflow-x-auto">
               {txLoading ? (
                 <div className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto" style={{ borderColor: themeColor }}></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto"></div>
                   <p className="text-zinc-500 dark:text-zinc-400 mt-4">Loading transactions...</p>
                 </div>
               ) : transactions.length > 0 ? (
                 <table className="w-full">
                   <thead className="bg-[#fcfcfd] dark:bg-neutral-900 border-b border-zinc-100 dark:border-zinc-800">
                     <tr>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-3 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Txn Hash
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-3 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Method
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-3 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           From
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-center">
+                      <th className="px-4 py-3 text-center">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-left">
+                      <th className="px-4 py-3 text-left">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           To
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-3 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Value
                         </span>
                       </th>
-                      <th className="px-4 py-2 text-right">
+                      <th className="px-4 py-3 text-right">
                         <span className="text-xs font-normal text-neutral-700 dark:text-neutral-300">
                           Txn Fee
                         </span>
@@ -736,7 +746,11 @@ export default function BlockDetailPage({
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-950">
                     {transactions.map((tx, index) => {
-                      const decoded = tx.input ? decodeFunctionInput(tx.input) : null;
+                      const toContract = tx.to ? toContracts.get(tx.to.toLowerCase()) : undefined;
+                      // local generated registry first, verified Sourcify ABI second
+                      const decoded = tx.input
+                        ? decodeFunctionInput(tx.input) ?? decodeFunctionWithAbi(toContract?.abi, tx.input)
+                        : null;
                       const methodName = decoded?.name || (tx.input === '0x' || !tx.input ? 'Transfer' : tx.input.slice(0, 10));
                       const truncatedMethod = methodName.length > 12 ? methodName.slice(0, 12) + '...' : methodName;
                       return (
@@ -744,45 +758,47 @@ export default function BlockDetailPage({
                         key={tx.hash || index}
                         className="border-b border-slate-100 dark:border-neutral-800 transition-colors hover:bg-blue-50/50 dark:hover:bg-neutral-800/50"
                       >
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             <Link
-                              href={buildTxUrl(`/explorer/${chainSlug}`, tx.hash)}
+                              href={buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash)}
                               className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
                             >
                               {formatAddress(tx.hash)}
                             </Link>
                             <CopyButton text={tx.hash} />
                           </div>
                         </td>
-                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                          <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                             <span className="px-2 py-1 text-xs font-mono rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700" title={decoded?.signature || methodName}>{truncatedMethod}</span>
                         </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             <Link
-                              href={buildAddressUrl(`/explorer/${chainSlug}`, tx.from)}
+                              href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.from)}
                                 className="font-mono text-sm hover:underline cursor-pointer"
-                              style={{ color: themeColor }}
                             >
                               {formatAddress(tx.from)}
                             </Link>
                             <CopyButton text={tx.from} />
                           </div>
                         </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-center">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3 text-center">
                           <ArrowRightLeft className="w-4 h-4 text-neutral-400 dark:text-neutral-500 inline-block" />
                         </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3">
                           <div className="flex items-center gap-1.5">
                             {tx.to ? (
                               <Link
-                                href={buildAddressUrl(`/explorer/${chainSlug}`, tx.to)}
+                                href={buildAddressUrl(`/explorer/${network}/${chainSlug}`, tx.to)}
                                   className="font-mono text-sm hover:underline cursor-pointer"
-                                style={{ color: themeColor }}
+                                  title={tx.to}
                               >
-                                {formatAddress(tx.to)}
+                                {toContract?.name ? (
+                                  <span className="font-medium">{toContract.name}</span>
+                                ) : (
+                                  formatAddress(tx.to)
+                                )}
                               </Link>
                             ) : (
                               <span className="font-mono text-sm text-neutral-400">Contract Creation</span>
@@ -790,12 +806,12 @@ export default function BlockDetailPage({
                             {tx.to && <CopyButton text={tx.to} />}
                           </div>
                         </td>
-                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-2 text-right">
+                        <td className="border-r border-slate-100 dark:border-neutral-800 px-4 py-3 text-right">
                           <span className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                             {formatValue(tx.value)} <TokenDisplay symbol={tokenSymbol} />
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right">
+                        <td className="px-4 py-3 text-right">
                           <span className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
                             {formatValue(
                               (BigInt(tx.gasPrice || '0') * BigInt(tx.gas || '0')).toString()

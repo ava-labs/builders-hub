@@ -1,5 +1,4 @@
 import {
-  hasAtLeastOne,
   requiredField,
   validateEntity,
   Validation,
@@ -12,11 +11,15 @@ import { RegistrationForm } from "@/types/registrationForm";
 import { sendMail } from "./mail";
 import { recordReferralAttributionFromRequest } from "./referrals";
 import { normalizeEventsLang, t } from "@/lib/events/i18n";
+import he from "he";
+import { isValidEmail } from "@/lib/email";
 import { isHubSpotEnabled, skipHubSpot } from "./hubspot";
 import { COUNTRY_LOCKED_MESSAGE, isCountryChange } from "@/lib/profile/countryLock";
 import { getTeamSizeRange } from "@/lib/hackathons/teamSizeDefaults";
 import { isCountryAllowed } from "@/lib/hackathons/countryTargetDefaults";
 import { generateInvitation } from "./inviteProjectMember";
+
+const escapeHtml = he.escape.bind(he);
 
 export const registerValidations: Validation[] = [
   {
@@ -29,8 +32,7 @@ export const registerValidations: Validation[] = [
     field: "email",
     message: "A valid email is required.",
     validation: (registerForm: RegistrationForm) =>
-      requiredField(registerForm, "email") &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(registerForm.email || ""),
+      requiredField(registerForm, "email") && isValidEmail(registerForm.email || ""),
   },
   {
     field: "city",
@@ -228,7 +230,6 @@ export async function createRegisterForm(
     team_size_max: (hackathon?.content as any)?.team_size_max,
   });
   const inviterEmail = (registerData.email ?? "").trim().toLowerCase();
-  const teammateEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const dedupedTeammates: string[] = [];
   const invalidTeammates: string[] = [];
   for (const raw of rawTeammates) {
@@ -237,7 +238,7 @@ export async function createRegisterForm(
     if (!e) continue;
     // Reject malformed addresses server-side (the client validates too, but a
     // crafted request must not slip an unsendable email into the invite flow).
-    if (!teammateEmailPattern.test(e)) {
+    if (!isValidEmail(e)) {
       invalidTeammates.push(e);
       continue;
     }
@@ -493,7 +494,7 @@ export async function sendConfirmationMail(
 
       <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.yourRegFor")}</p>
-        <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${hackathon?.title}</p>
+        <p style="font-size: 20px; font-weight: bold; color: #EF4444; margin: 8px 0;">${escapeHtml(hackathon?.title ?? "")}</p>
         <p style="font-size: 20px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.hasBeenApproved")} <a href="https://t.me/avalancheacademy" style="color: #3B82F6; text-decoration: underline;">${t(lang, "reg.email.chatLinkText")}</a>.</p>
         <p style="font-size: 10px; font-weight: bold; color: #ffffff; margin: 8px 0;">${t(lang, "reg.email.automated")}</p>
       </div>
@@ -532,7 +533,7 @@ export async function sendSubmissionConfirmationMail(
       <div style="background-color: #27272A; border: 1px solid #EF4444; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
         <p style="font-size: 22px; font-weight: bold; color: #EF4444; margin: 8px 0;">${t(lang, "submission.email.congrats")}</p>
         <p style="font-size: 16px; color: #ffffff; margin: 8px 0;">
-          ${t(lang, "submission.email.body")} <strong style="color: #EF4444;">${projectName}</strong> ${t(lang, "submission.email.body2")} <strong>${hackathon?.title ?? ""}</strong>.
+          ${t(lang, "submission.email.body")} <strong style="color: #EF4444;">${escapeHtml(projectName)}</strong> ${t(lang, "submission.email.body2")} <strong>${escapeHtml(hackathon?.title ?? "")}</strong>.
         </p>
         <p style="font-size: 14px; color: #A1A1AA; margin: 12px 0;">${t(lang, "submission.email.body3")}</p>
         <p style="font-size: 10px; font-weight: bold; color: #A1A1AA; margin: 8px 0;">${t(lang, "submission.email.automated")}</p>
