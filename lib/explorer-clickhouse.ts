@@ -29,6 +29,8 @@ const DAILY_WINDOW_DAYS = 14;
 // The staking money-flow charts read better with a wider window: 30 bars
 // of rewards behind, 30 of unlocks ahead.
 const STAKING_WINDOW_DAYS = 30;
+/** windows the staking money-flow feed serves (past rewards / future unlocks) */
+export type PchainStakingDays = 30 | 90 | 365;
 
 type L1ChainEntry = {
   chainId: string;
@@ -356,7 +358,7 @@ export interface PchainStakingSeries {
 const REWARD_AMOUNT_EXPR =
   "reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8)))";
 
-function sqlPchainDailyRewards(networkId: number): string {
+function sqlPchainDailyRewards(networkId: number, days: PchainStakingDays): string {
   return `
     SELECT
       toDate(block_time) AS day,
@@ -364,7 +366,7 @@ function sqlPchainDailyRewards(networkId: number): string {
       toString(round(sum(${REWARD_AMOUNT_EXPR}) / 1e9, 2)) AS avax
     FROM raw_p_reward_utxos
     WHERE chain_id = ${networkId}
-      AND block_time >= toDate(now() - INTERVAL ${STAKING_WINDOW_DAYS} DAY)
+      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -373,7 +375,7 @@ function sqlPchainDailyRewards(networkId: number): string {
 
 // Primary Network subnet id is 32 zero bytes; L1/subnet validators don't
 // carry meaningful end_times, so unlocks are primary-only by construction.
-function sqlPchainUnlocks(networkId: number, table: string, amountCol: string): string {
+function sqlPchainUnlocks(networkId: number, table: string, amountCol: string, days: PchainStakingDays): string {
   const subnetFilter =
     table === "p_validator_snapshots"
       ? "AND subnet_id = toFixedString(unhex(repeat('00', 32)), 32)"
@@ -388,7 +390,7 @@ function sqlPchainUnlocks(networkId: number, table: string, amountCol: string): 
       AND snapshot_time = (SELECT max(snapshot_time) FROM ${table} WHERE chain_id = ${networkId})
       ${subnetFilter}
       AND end_time >= now()
-      AND end_time < now() + INTERVAL ${STAKING_WINDOW_DAYS} DAY
+      AND end_time < now() + INTERVAL ${days} DAY
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -419,11 +421,13 @@ const pchainStakingCache = new Map<
  */
 export async function getPchainStakingSeries(
   network: string,
+  days: PchainStakingDays = STAKING_WINDOW_DAYS,
 ): Promise<PchainStakingSeries | null> {
   const networkId = PCHAIN_NETWORK_IDS[network];
   if (networkId === undefined) return null;
 
-  const cached = pchainStakingCache.get(network);
+  const cacheKey = `${network}:${days}`;
+  const cached = pchainStakingCache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
     return cached.data;
   }
@@ -431,19 +435,19 @@ export async function getPchainStakingSeries(
   try {
     type Row = { day: string; avax: string; n?: string; payouts?: string };
     const [rewardRows, validatorRows, delegatorRows] = await Promise.all([
-      clickhouseFetch<Row>(sqlPchainDailyRewards(networkId), QUERY_TIMEOUT_MS),
+      clickhouseFetch<Row>(sqlPchainDailyRewards(networkId, days), QUERY_TIMEOUT_MS),
       clickhouseFetch<Row>(
-        sqlPchainUnlocks(networkId, "p_validator_snapshots", "weight"),
+        sqlPchainUnlocks(networkId, "p_validator_snapshots", "weight", days),
         QUERY_TIMEOUT_MS,
       ),
       clickhouseFetch<Row>(
-        sqlPchainUnlocks(networkId, "p_delegator_snapshots", "stake_amount"),
+        sqlPchainUnlocks(networkId, "p_delegator_snapshots", "stake_amount", days),
         QUERY_TIMEOUT_MS,
       ),
     ]);
 
     const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
-    const rewards = buildPastDates(STAKING_WINDOW_DAYS).map((iso) => ({
+    const rewards = buildPastDates(days).map((iso) => ({
       date: formatDayLabel(iso),
       avax: Number(rewardsByDay.get(iso)?.avax) || 0,
       payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
@@ -456,14 +460,14 @@ export async function getPchainStakingSeries(
       day.stakers += Number(r.n) || 0;
       unlocksByDay.set(r.day, day);
     }
-    const unlocks = buildFutureDates(STAKING_WINDOW_DAYS).map((iso) => ({
+    const unlocks = buildFutureDates(days).map((iso) => ({
       date: formatDayLabel(iso),
       avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
       stakers: unlocksByDay.get(iso)?.stakers ?? 0,
     }));
 
     const data = { rewards, unlocks };
-    pchainStakingCache.set(network, { data, fetchedAt: Date.now() });
+    pchainStakingCache.set(cacheKey, { data, fetchedAt: Date.now() });
     return data;
   } catch (err) {
     console.error('[explorer-clickhouse] pchain staking-series query failed:', err);

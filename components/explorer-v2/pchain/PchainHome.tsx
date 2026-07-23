@@ -9,6 +9,7 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import {
   Board,
+  ChartBoard,
   SectionHeader,
   StatCell,
   StatDash,
@@ -209,86 +210,85 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
           {/* staking money-flow: the 30 days behind us in rewards paid out
               (red: stake moving) beside the 30 days ahead in stake coming
               unlocked (block gray: value at rest, waiting). Past | future
-              across one rule. */}
+              across one rule; each card doors into its staking sheet.
+              Fixed windows from the feed — the labels say so. */}
           {staking && (
             <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-              <section className="flex flex-col gap-4">
-                <SectionHeader
-                  label="Rewards Paid · last 30 days"
-                  action={
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      {fmtAvaxShort(staking.rewards.reduce((s, d) => s + d.avax, 0))} AVAX
-                    </span>
-                  }
-                />
-                <Board divide={false} className="px-5 py-5 md:px-6">
-                  <div className="h-24">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={staking.rewards} barCategoryGap="18%">
-                        <YAxis hide domain={[0, "dataMax"]} />
-                        <RechartsTooltip
-                          cursor={{ fill: "rgba(161,161,170,0.08)" }}
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.[0]) return null;
-                            const d = payload[0].payload as RewardDay;
-                            return (
-                              <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                                <p className="text-[10px] text-zinc-500">{d.date}</p>
-                                <p className="text-xs font-semibold tabular-nums text-[#E6212F]">
-                                  {Math.round(d.avax).toLocaleString()} AVAX
-                                </p>
-                                <p className="text-[10px] tabular-nums text-zinc-500">
-                                  {d.payouts.toLocaleString()} payouts
-                                </p>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar dataKey="avax" fill="#E6212F" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Board>
-              </section>
+              <ChartBoard
+                label="Rewards Paid · last 30 days"
+                href={`${base}/staking/rewards`}
+                className="min-w-0"
+                action={
+                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                    {fmtAvaxShort(staking.rewards.reduce((s, d) => s + d.avax, 0))} AVAX
+                  </span>
+                }
+              >
+                <div className="h-24">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={staking.rewards} barCategoryGap="18%">
+                      <YAxis hide domain={[0, "dataMax"]} />
+                      <RechartsTooltip
+                        cursor={{ fill: "rgba(161,161,170,0.08)" }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.[0]) return null;
+                          const d = payload[0].payload as RewardDay;
+                          return (
+                            <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+                              <p className="text-[10px] text-zinc-500">{d.date}</p>
+                              <p className="text-xs font-semibold tabular-nums text-[#E6212F]">
+                                {Math.round(d.avax).toLocaleString()} AVAX
+                              </p>
+                              <p className="text-[10px] tabular-nums text-zinc-500">
+                                {d.payouts.toLocaleString()} payouts
+                              </p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="avax" fill="#E6212F" isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </ChartBoard>
 
-              <section className="flex flex-col gap-4">
-                <SectionHeader
-                  label="Stake Expiring · next 30 days"
-                  action={
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      {fmtAvaxShort(staking.unlocks.reduce((s, d) => s + d.avax, 0))} AVAX
-                    </span>
-                  }
-                />
-                <Board divide={false} className="px-5 py-5 md:px-6">
-                  <div className="h-24">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={staking.unlocks} barCategoryGap="18%">
-                        <YAxis hide domain={[0, "dataMax"]} />
-                        <RechartsTooltip
-                          cursor={{ fill: "rgba(161,161,170,0.08)" }}
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.[0]) return null;
-                            const d = payload[0].payload as UnlockDay;
-                            return (
-                              <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                                <p className="text-[10px] text-zinc-500">{d.date}</p>
-                                <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                  {d.avax.toLocaleString()} AVAX
-                                </p>
-                                <p className="text-[10px] tabular-nums text-zinc-500">
-                                  {d.stakers.toLocaleString()} stake entries end
-                                </p>
-                              </div>
-                            );
-                          }}
-                        />
-                        <Bar dataKey="avax" fill="#A2AFB2" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Board>
-              </section>
+              <ChartBoard
+                label="Stake Expiring · next 30 days"
+                href={`${base}/staking/expiry`}
+                className="min-w-0"
+                action={
+                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                    {fmtAvaxShort(staking.unlocks.reduce((s, d) => s + d.avax, 0))} AVAX
+                  </span>
+                }
+              >
+                <div className="h-24">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={staking.unlocks} barCategoryGap="18%">
+                      <YAxis hide domain={[0, "dataMax"]} />
+                      <RechartsTooltip
+                        cursor={{ fill: "rgba(161,161,170,0.08)" }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.[0]) return null;
+                          const d = payload[0].payload as UnlockDay;
+                          return (
+                            <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
+                              <p className="text-[10px] text-zinc-500">{d.date}</p>
+                              <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                                {d.avax.toLocaleString()} AVAX
+                              </p>
+                              <p className="text-[10px] tabular-nums text-zinc-500">
+                                {d.stakers.toLocaleString()} stake entries end
+                              </p>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Bar dataKey="avax" fill="#A2AFB2" isAnimationActive={false} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </ChartBoard>
             </div>
           )}
 

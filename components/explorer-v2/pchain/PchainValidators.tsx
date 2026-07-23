@@ -98,7 +98,10 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
 export function PchainStaking({ chain, network }: { chain: string; network: string }) {
   return (
     <ExplorerShell chain={chain} network={network}>
-      <PrimaryStakingContent validatorsHref={`/explorer/${network}/${chain}/validators`} />
+      <PrimaryStakingContent
+        validatorsHref={`/explorer/${network}/${chain}/validators`}
+        base={`/explorer/${network}/${chain}/staking`}
+      />
     </ExplorerShell>
   );
 }

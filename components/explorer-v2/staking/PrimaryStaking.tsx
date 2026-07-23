@@ -254,7 +254,7 @@ function RewardsBars({ data }: { data: RewardPoint[] }) {
   );
 }
 
-interface ConcentrationPoint {
+export interface ConcentrationPoint {
   rank: number;
   /** AVAX */
   weight: number;
@@ -266,7 +266,7 @@ const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as 
 /* how evenly the stake spreads across the set — per-rank bars against the
    right axis, the cumulative share climbing the left one; the two shapes
    read together (steep bars + fast climb = concentrated) */
-function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
+export function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
   const rankTicks = [];
   for (let r = 100; r < setSize; r += 100) rankTicks.push(r);
   return (
@@ -343,7 +343,7 @@ function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; set
   );
 }
 
-interface FeeBucket {
+export interface FeeBucket {
   label: string;
   count: number;
   /** AVAX */
@@ -352,7 +352,7 @@ interface FeeBucket {
 
 /* what delegating costs — stake-weighted bars (where the capital sits)
    with the validator count riding the right axis (where the nodes sit) */
-function FeeChart({ data }: { data: FeeBucket[] }) {
+export function FeeChart({ data }: { data: FeeBucket[] }) {
   return (
     <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
@@ -418,9 +418,9 @@ function FeeChart({ data }: { data: FeeBucket[] }) {
   );
 }
 
-type Lens = "weight" | "own" | "delegated";
+export type Lens = "weight" | "own" | "delegated";
 
-const LENS_LABEL: Record<Lens, string> = {
+export const LENS_LABEL: Record<Lens, string> = {
   weight: "Weight",
   own: "Own stake",
   delegated: "Delegated",
@@ -428,7 +428,7 @@ const LENS_LABEL: Record<Lens, string> = {
 
 /* the three old distribution charts folded into one instrument — same
    segmented-control idiom as the range toggle */
-function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
+export function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
   return (
     <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
       {(Object.keys(LENS_LABEL) as Lens[]).map((l) => (
@@ -488,7 +488,16 @@ function StakeKey() {
   );
 }
 
-export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: string }) {
+export function PrimaryStakingContent({
+  validatorsHref,
+  base,
+}: {
+  validatorsHref: string;
+  /** the staking tab's own path — every ChartBoard doors into its metric
+   *  sheet under it (base/total-stake, base/apy, …) */
+  base?: string;
+}) {
+  const door = (metric: string) => (base ? `${base}/${metric}` : undefined);
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: apy, failed: apyFailed } = useStakingApy();
   const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
@@ -744,6 +753,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       {/* the centerpiece: how the stake got here */}
       <ChartBoard
         label="Total Stake"
+        href={door("total-stake")}
         action={
           <span className="hidden sm:block">
             <StakeKey />
@@ -759,7 +769,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
 
       {/* who delegates, and what staking pays */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label="Delegators">
+        <ChartBoard label="Delegators" href={door("total-stake")}>
           {delegatorSeries.length ? (
             <AreaTrend
               data={delegatorSeries}
@@ -773,6 +783,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
 
         <ChartBoard
           label="Staking APY"
+          href={door("apy")}
           action={
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="flex items-center gap-1.5">
@@ -792,6 +803,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label="Daily Rewards"
+          href={door("rewards")}
           action={
             <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="h-0.5 w-4 bg-[#E6212F]" /> 30d avg
@@ -805,7 +817,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
           )}
         </ChartBoard>
 
-        <ChartBoard label="Cumulative Rewards">
+        <ChartBoard label="Cumulative Rewards" href={door("rewards")}>
           {cumulativeRewardSeries.length ? (
             <AreaTrend data={cumulativeRewardSeries} format={fmtCompact} unit="AVAX" />
           ) : (
@@ -819,6 +831,9 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
           qualifier: these don't follow the page clock) */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
+          {/* no door here: the lens toggle in the title bar is interactive,
+              and a card-wide Link would swallow its clicks — the fees card
+              and the sheet siblings carry the way in */}
           <ChartBoard
             label="Concentration by Rank · current set"
             action={<LensToggle value={lens} onChange={setLens} />}
@@ -840,6 +855,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
         <div className="flex flex-col gap-4">
           <ChartBoard
             label="Delegation Fees · current set"
+            href={door("distribution")}
             action={
               medianFee !== null ? (
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
