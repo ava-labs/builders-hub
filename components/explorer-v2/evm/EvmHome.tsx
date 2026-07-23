@@ -9,6 +9,7 @@ import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format
 import { formatGwei } from "./format";
 import { GasFill, MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
+import { EvmOverviewStats } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -42,6 +43,16 @@ function usePrice(chainId: string | number | undefined): PriceData | null {
     };
   }, [chainId]);
   return price;
+}
+
+/* wei (decimal string) → the tx list's value column, adaptive precision */
+function fmtValue(wei: string): string {
+  const v = Number(wei) / 1e18;
+  if (!Number.isFinite(v) || v === 0) return "0";
+  if (v >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (v >= 1) return v.toFixed(2);
+  if (v >= 0.0001) return v.toFixed(4);
+  return "<0.0001";
 }
 
 function LiveDot() {
@@ -134,94 +145,56 @@ export function EvmHome({ network }: { network: string }) {
               tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
             )}
 
-            {/* the ledger — chain figures from the EVM explorer API, market
-                figures (price, cap) from CoinGecko when the token is listed.
-                Two 3-up rows when market data exists, one 4-up row when not. */}
-            <Board>
-              {price && (
-                <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
-                  <StatCell
-                    label="PRICE"
-                    sub={
-                      <>
-                        {price.priceInAvax ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX ` : ""}
-                        <span className={price.change24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
-                          {price.change24h >= 0 ? "+" : ""}
-                          {price.change24h.toFixed(2)}%
-                        </span>
-                      </>
-                    }
-                  >
-                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {formatPrice(price.price)}
-                    </span>
-                  </StatCell>
-                  <StatCell label="MARKET CAP">
-                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {price.marketCap ? formatMarketCap(price.marketCap) : "—"}
-                    </span>
-                  </StatCell>
-                  <StatCell
-                    label="AVG BLOCK TIME"
-                    sub={avgBlockTime != null ? `last ${blockList.length} blocks` : undefined}
-                  >
-                    {avgBlockTime != null ? (
-                      <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                        {avgBlockTime.toFixed(2)} s
-                      </span>
-                    ) : (
-                      <StatDash />
-                    )}
-                  </StatCell>
-                </div>
-              )}
-              <div
-                className={`grid grid-cols-1 divide-y divide-zinc-200 sm:divide-x sm:divide-y-0 dark:divide-zinc-800 ${
-                  price ? "sm:grid-cols-3" : "sm:grid-cols-2 lg:grid-cols-4"
-                }`}
-              >
-                <StatCell
-                  label="TRANSACTIONS · 24H"
-                  live
-                  href={`${base}/txs`}
-                  sub={recentTps != null ? `${recentTps.toFixed(1)} TPS · last ${blockList.length} blocks` : undefined}
-                >
-                  {s ? <StatFigure value={s.txCount24h} /> : <StatDash />}
-                </StatCell>
-                <StatCell label="GAS PRICE" href={`${base}/gas`} sub="gas market →">
-                  {s ? (
-                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {formatGwei(s.gasPriceWei)}
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-                <StatCell label="LATEST BLOCK" href={`${base}/blocks`}>
-                  {blockList[0] ? (
-                    <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {timeAgo(blockList[0].timestamp)}
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-                {!price && (
-                  <StatCell
-                    label="AVG BLOCK TIME"
-                    sub={avgBlockTime != null ? `last ${blockList.length} blocks` : undefined}
-                  >
-                    {avgBlockTime != null ? (
-                      <span className="whitespace-nowrap font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                        {avgBlockTime.toFixed(2)} s
-                      </span>
-                    ) : (
-                      <StatDash />
-                    )}
-                  </StatCell>
-                )}
-              </div>
-            </Board>
+            {/* the ledger — live figures (EVM explorer API + CoinGecko)
+                riding as the first rows of the Etherscan-grade readings
+                board: totals, the last day with its day-over-day move,
+                and what it cost. Every cell doors into its tab. */}
+            <EvmOverviewStats
+              chainId={c.chainId}
+              base={base}
+              symbol={sym}
+              usdPrice={price?.price ?? null}
+              liveCells={[
+                ...(price
+                  ? [
+                      {
+                        label: "Price",
+                        live: true,
+                        value: formatPrice(price.price),
+                        sub: (
+                          <>
+                            {price.priceInAvax ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX ` : ""}
+                            <span className={price.change24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
+                              {price.change24h >= 0 ? "+" : ""}
+                              {price.change24h.toFixed(2)}%
+                            </span>
+                          </>
+                        ),
+                      },
+                      {
+                        label: "Market Cap",
+                        live: true,
+                        value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
+                      },
+                    ]
+                  : []),
+                {
+                  label: "Avg Block Time",
+                  live: true,
+                  value: avgBlockTime != null ? `${avgBlockTime.toFixed(2)} s` : "—",
+                  sub:
+                    recentTps != null
+                      ? `${recentTps.toFixed(1)} TPS · last ${blockList.length} blocks`
+                      : undefined,
+                },
+                {
+                  label: "Latest Block",
+                  value: blockList[0] ? timeAgo(blockList[0].timestamp) : "—",
+                  href: `${base}/blocks`,
+                  live: true,
+                },
+              ]}
+            />
           </div>
 
           {/* what the chain is FOR — the activity breakdown the pre-EvmHome
@@ -249,19 +222,22 @@ export function EvmHome({ network }: { network: string }) {
                   <Link
                     key={b.number}
                     href={`${base}/block/${b.number}`}
-                    className="grid h-11 grid-cols-[minmax(0,1fr)_3.5rem_5.5rem_3.5rem] items-center gap-3 px-5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-5 py-2 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                      #{formatNumber(b.number)}
-                    </span>
-                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {formatNumber(b.txCount)} tx
+                    {/* the identity column: height over its age, like the tx rows */}
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="truncate font-mono text-[12px] tabular-nums text-[#0061E2] dark:text-[#5f9dff]">
+                        #{formatNumber(b.number)}
+                      </span>
+                      <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                        {timeAgo(b.timestamp)}
+                      </span>
                     </span>
                     <span className="justify-self-end">
                       <GasFill used={b.gasUsed} limit={b.gasLimit} />
                     </span>
-                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {timeAgo(b.timestamp)}
+                    <span className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {formatNumber(b.txCount)} tx
                     </span>
                   </Link>
                 ))}
@@ -287,19 +263,35 @@ export function EvmHome({ network }: { network: string }) {
                   <Link
                     key={t.hash}
                     href={`${base}/tx/${t.hash}`}
-                    className="grid h-11 grid-cols-[6.5rem_minmax(0,1fr)_3.5rem] items-center gap-3 px-5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,6.5rem)_auto] items-center gap-3 px-5 py-2 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="flex min-w-0 items-center gap-1.5">
-                      {/* failures are rare enough that the pill only appears
-                          when it has something to say */}
-                      {!t.success && <StatusPill success={false} />}
+                    {/* the identity column: hash over its age */}
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="truncate font-mono text-[12px] text-[#0061E2] dark:text-[#5f9dff]">
+                        {truncate(t.hash, 10)}
+                      </span>
+                      <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                        {timeAgo(t.timestamp)}
+                      </span>
+                    </span>
+                    {/* the parties, stacked */}
+                    <span className="flex min-w-0 flex-col gap-0.5 font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                      <span className="truncate">
+                        <span className="text-zinc-400 dark:text-zinc-500">from </span>
+                        {truncate(t.from, 8)}
+                      </span>
+                      <span className="truncate">
+                        <span className="text-zinc-400 dark:text-zinc-500">to </span>
+                        {t.to ? truncate(t.to, 8) : "contract creation"}
+                      </span>
+                    </span>
+                    {/* what it did — and whether it worked */}
+                    <span className="flex min-w-0 flex-col items-start gap-1">
                       <MethodChip t={t} />
+                      {!t.success && <StatusPill success={false} />}
                     </span>
-                    <span className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-                      {truncate(t.from, 8)} → {t.to ? truncate(t.to, 8) : "contract"}
-                    </span>
-                    <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {timeAgo(t.timestamp)}
+                    <span className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {fmtValue(t.value)} {sym}
                     </span>
                   </Link>
                 ))}
