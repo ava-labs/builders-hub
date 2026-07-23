@@ -506,6 +506,10 @@ export function PrimaryStakingContent({
   // subnav states the window once, so chart titles drop the range suffix.
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
+  // the trend charts floor at a week — a one-point day chart renders as
+  // a lone dot (same rule as the sheets); labels state the exception
+  const chartDays = Math.max(7, range);
+  const weekFloor = range < 7 ? " · 7 days" : "";
 
   /* -------------------------------------------------------------- */
   /* headline figures                                                */
@@ -535,12 +539,12 @@ export function PrimaryStakingContent({
       own: p.value / NANO,
       delegated: (delegated.get(p.day) ?? 0) / NANO,
     }));
-    return thin(windowSeries(joined, range));
-  }, [metrics, range]);
+    return thin(windowSeries(joined, chartDays));
+  }, [metrics, chartDays]);
 
   const delegatorSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.delegator_count), range)),
-    [metrics, range],
+    () => thin(windowSeries(toSeries(metrics?.delegator_count), chartDays)),
+    [metrics, chartDays],
   );
 
   const apySeries = useMemo<ApyPoint[]>(() => {
@@ -548,8 +552,8 @@ export function PrimaryStakingContent({
     const sorted = [...apy.data]
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((p) => ({ day: p.date, maxAPY: p.maxAPY, minAPY: p.minAPY }));
-    return thin(windowSeries(sorted, range));
-  }, [apy, range]);
+    return thin(windowSeries(sorted, chartDays));
+  }, [apy, chartDays]);
 
   const dailyRewardSeries = useMemo<RewardPoint[]>(() => {
     // the moving average runs over the FULL series so the window's left
@@ -561,12 +565,12 @@ export function PrimaryStakingContent({
       if (i >= 30) rolling -= full[i - 30].value;
       return { ...p, ma: rolling / Math.min(i + 1, 30) };
     });
-    return thin(windowSeries(withMa, range), 180);
-  }, [metrics, range]);
+    return thin(windowSeries(withMa, chartDays), 180);
+  }, [metrics, chartDays]);
 
   const cumulativeRewardSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), range)),
-    [metrics, range],
+    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), chartDays)),
+    [metrics, chartDays],
   );
 
   /* -------------------------------------------------------------- */
@@ -752,7 +756,7 @@ export function PrimaryStakingContent({
 
       {/* the centerpiece: how the stake got here */}
       <ChartBoard
-        label="Total Stake"
+        label={`Total Stake${weekFloor}`}
         href={door("total-stake")}
         action={
           <span className="hidden sm:block">
@@ -769,7 +773,7 @@ export function PrimaryStakingContent({
 
       {/* who delegates, and what staking pays */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label="Delegators" href={door("total-stake")}>
+        <ChartBoard label={`Delegators${weekFloor}`} href={door("total-stake")}>
           {delegatorSeries.length ? (
             <AreaTrend
               data={delegatorSeries}
@@ -782,7 +786,7 @@ export function PrimaryStakingContent({
         </ChartBoard>
 
         <ChartBoard
-          label="Staking APY"
+          label={`Staking APY${weekFloor}`}
           href={door("apy")}
           action={
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
@@ -802,7 +806,7 @@ export function PrimaryStakingContent({
       {/* what securing the network mints */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
-          label="Daily Rewards"
+          label={`Daily Rewards${weekFloor}`}
           href={door("rewards")}
           action={
             <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
@@ -817,7 +821,7 @@ export function PrimaryStakingContent({
           )}
         </ChartBoard>
 
-        <ChartBoard label="Cumulative Rewards" href={door("rewards")}>
+        <ChartBoard label={`Cumulative Rewards${weekFloor}`} href={door("rewards")}>
           {cumulativeRewardSeries.length ? (
             <AreaTrend data={cumulativeRewardSeries} format={fmtCompact} unit="AVAX" />
           ) : (
