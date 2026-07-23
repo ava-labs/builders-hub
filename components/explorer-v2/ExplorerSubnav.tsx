@@ -397,9 +397,13 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
    testnet slugs are too inconsistent to derive). Chains without a pair keep
    the static network label. */
 const TESTNET_COUNTERPART: Record<string, string> = {
-  "c-chain": "avalanche-c-chain", // 43114 ↔ 43113
-  beam: "beam-l1", // 4337 ↔ 13337
-  dexalot: "dexalot-l1", // 432204 ↔ 432201
+  // Intentionally empty: every previous pair pointed at a chain the explorer
+  // doesn't index, so the toggle only led to empty pages. (Fuji P-chain is
+  // unaffected — the P-chain switcher is a separate code path.) Re-add pairs
+  // here as their testnet indexing comes online:
+  //   "c-chain": "avalanche-c-chain", // 43114 ↔ 43113 — Fuji EVM indexer stopped
+  //   beam: "beam-l1",                // 4337 ↔ 13337 — Fuji side not indexed
+  //   dexalot: "dexalot-l1",          // 432204 ↔ 432201 — neither side indexed
 };
 const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
   Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
