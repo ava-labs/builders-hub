@@ -14,7 +14,9 @@ export function PchainStakingMetricPageClient({
   metric: StakingMetricKey;
 }) {
   return (
-    <ExplorerShell chain="p-chain" network={network}>
+    // the sheet carries its own title and breadcrumb — the chain identity
+    // header and search stay off, per the metric-sheet doctrine
+    <ExplorerShell chain="p-chain" network={network} hideHeader>
       <StakingMetricContent
         base={`/explorer/${network}/p-chain/staking`}
         network={network}
