@@ -197,10 +197,14 @@ export function EvmHome({ network }: { network: string }) {
             />
           </div>
 
-          {/* what the chain is FOR — the activity breakdown the pre-EvmHome
-              overview carried: stacked behavior bands for the C-Chain, the
-              accent-colored tx line for everyone else. */}
-          {isCchain ? <CchainActivityChart /> : <TxHistoryChart chainId={c.chainId} />}
+          {/* what the chain is FOR — the activity breakdown on the page
+              clock: stacked behavior bands for the C-Chain, the accent
+              area for everyone else. Both door into the Transactions tab. */}
+          {isCchain ? (
+            <CchainActivityChart href={`${base}/txs`} />
+          ) : (
+            <TxHistoryChart chainId={c.chainId} href={`${base}/txs`} />
+          )}
 
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Latest blocks */}
