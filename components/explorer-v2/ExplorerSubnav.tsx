@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
@@ -467,7 +467,7 @@ function NetworkControl({
               key={n}
               href={pchainNetworkTarget(n, chainSlug, pathname)}
               className={cn(
-                "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-3",
+                "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
                 active
                   ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                   : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
@@ -506,7 +506,7 @@ function NetworkControl({
             key={seg.label}
             href={counterpartTarget(seg.slug, pathname)}
             className={cn(
-              "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-3",
+              "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
               seg.active
                 ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
                 : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
@@ -525,14 +525,14 @@ function NetworkControl({
   if (unavailableNote) {
     return (
       <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
-        <span className="bg-zinc-900 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-50 sm:px-3 dark:bg-zinc-50 dark:text-zinc-900">
+        <span className="bg-zinc-900 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-50 sm:px-2.5 dark:bg-zinc-50 dark:text-zinc-900">
           Mainnet
         </span>
         <span
           role="link"
           aria-disabled="true"
           title={unavailableNote}
-          className="inline-flex cursor-not-allowed items-center gap-1.5 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-300 sm:px-3 dark:text-zinc-600"
+          className="inline-flex cursor-not-allowed items-center gap-1.5 px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-300 sm:px-2.5 dark:text-zinc-600"
         >
           Fuji
           <span className="font-medium normal-case tracking-normal text-zinc-400 dark:text-zinc-500">soon</span>
@@ -558,6 +558,40 @@ export function ExplorerSubnav({
   const pathname = usePathname();
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
 
+  // the tab rail scrolls when the inventory outgrows the row — the edge
+  // fades say so (a hard clip reads as "there is no ICM tab"). The mask
+  // tracks scroll position, so each side only fades while more tabs
+  // actually sit beyond it.
+  const railRef = useRef<HTMLElement>(null);
+  const [rail, setRail] = useState({ left: false, right: false });
+  const measureRail = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 4;
+    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    setRail((prev) => (prev.left === left && prev.right === right ? prev : { left, right }));
+  }, []);
+  useEffect(() => {
+    measureRail();
+    const el = railRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(measureRail);
+    ro.observe(el);
+    window.addEventListener("resize", measureRail);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measureRail);
+    };
+  }, [measureRail, tabs]);
+  const onRailScroll = measureRail;
+  const railMask = useMemo(() => {
+    if (!rail.left && !rail.right) return undefined;
+    const mask = `linear-gradient(to right, ${
+      rail.left ? "transparent 0, black 28px" : "black 0"
+    }, ${rail.right ? "black calc(100% - 28px), transparent 100%" : "black 100%"})`;
+    return { WebkitMaskImage: mask, maskImage: mask } as React.CSSProperties;
+  }, [rail]);
+
   return (
     // sticky just below the global navbar (h-14 + banner), riding every
     // shell: only this rail pins — the page header below scrolls away.
@@ -567,15 +601,21 @@ export function ExplorerSubnav({
     // so its dropdown menus paint over this rail, not behind it.
     <div
       className={cn(
-        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex items-stretch justify-between gap-x-6 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
+        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
         className,
       )}
     >
-      <div className="flex min-w-0 items-stretch gap-x-5 md:gap-x-6">
+      <div className="flex min-w-0 items-stretch gap-x-4 md:gap-x-5">
         <ChainSwitcher network={network} chainSlug={chainSlug} chainName={chainName} chainLogoURI={chainLogoURI} />
         {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
         {tabs.length > 0 && (
-          <nav aria-label="Explorer sections" className="scrollbar-hide flex items-stretch gap-x-5 overflow-x-auto md:gap-x-6">
+          <nav
+            ref={railRef}
+            aria-label="Explorer sections"
+            onScroll={onRailScroll}
+            style={railMask}
+            className="scrollbar-hide flex items-stretch gap-x-4 overflow-x-auto md:gap-x-5"
+          >
             {tabs.map((tab) => {
               const active = tab.isActive(pathname);
               return (
@@ -584,7 +624,7 @@ export function ExplorerSubnav({
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.16em] transition-colors",
+                    "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors",
                     active
                       ? "text-zinc-900 dark:text-zinc-100"
                       : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
