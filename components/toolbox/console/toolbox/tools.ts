@@ -692,3 +692,10 @@ export const CATEGORY_ORDER = [
   'Encrypted ERC',
   'Utilities',
 ];
+
+/* URL anchor for a category section on /console/toolbox, so each section is
+   directly linkable (e.g. from the console dropdown):
+   'Create & Deploy' → /console/toolbox#create-deploy */
+export function categoryAnchor(category: string): string {
+  return category.toLowerCase().replace(/&/g, ' ').trim().replace(/\s+/g, '-');
+}
