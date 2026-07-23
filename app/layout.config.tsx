@@ -216,7 +216,7 @@ export const docsMenu: LinkItemType = {
           title='Primary Network'
           description='Connect to Avalanche and start building dApps.'
           docsHref='/docs/primary-network'
-          learnHref='/academy?path=blockchain'
+          learnHref='/academy/avalanche-l1/avalanche-fundamentals'
         />
       ),
     },
@@ -229,7 +229,7 @@ export const docsMenu: LinkItemType = {
           title='Avalanche L1s'
           description='Launch and customize your own Avalanche L1 blockchain.'
           docsHref='/docs/avalanche-l1s'
-          learnHref='/academy?path=avalanche-l1'
+          learnHref='/academy/avalanche-l1'
         />
       ),
     },
@@ -278,7 +278,7 @@ export const docsMenu: LinkItemType = {
           title='Developer Tools'
           description='Explore the Avalanche SDKs, CLI, and more.'
           docsHref='/docs/tooling'
-          learnHref='/academy/blockchain/solidity-foundry'
+          learnHref='/academy'
         />
       ),
     },
