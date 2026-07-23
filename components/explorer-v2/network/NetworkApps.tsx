@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { Board, SectionHeader, StatCell, StatFigure } from "@/components/explorer-v2/ui";
 import { TopProtocolsGrid } from "@/app/(home)/stats/dapps/_components/TopProtocolsGrid";
-import { OnChainAnalyticsSection } from "@/app/(home)/stats/dapps/_components/OnChainAnalyticsSection";
 import { DappsTableControls } from "@/app/(home)/stats/dapps/_components/DappsTableControls";
 import { DappsTable } from "@/app/(home)/stats/dapps/_components/DappsTable";
 import { formatCurrency } from "@/app/(home)/stats/dapps/_components/helpers";
-import type { ChainStatsRange } from "@/app/(home)/stats/dapps/_components/types";
 import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
-import { useChainStats } from "@/app/(home)/stats/dapps/_hooks/useChainStats";
 import { useDappsTable } from "@/app/(home)/stats/dapps/_hooks/useDappsTable";
 
 /* The network scope's "Apps" facet — the applications driving on-chain
@@ -20,12 +16,6 @@ import { useDappsTable } from "@/app/(home)/stats/dapps/_hooks/useDappsTable";
    the meat sections, dropping the old hero and bubble nav. Mainnet-only. */
 export function NetworkApps() {
   const { dapps, metrics, loading, error } = useDapps();
-  const [chainStatsRange, setChainStatsRange] = useState<ChainStatsRange>("all");
-  const {
-    data: chainStats,
-    loading: chainStatsLoading,
-    error: chainStatsError,
-  } = useChainStats(chainStatsRange);
 
   const table = useDappsTable(dapps);
 
@@ -47,14 +37,6 @@ export function NetworkApps() {
           {metrics && <MetricsStrip metrics={metrics} />}
 
           <TopProtocolsGrid dapps={dapps} />
-
-          <OnChainAnalyticsSection
-            data={chainStats}
-            loading={chainStatsLoading}
-            error={chainStatsError}
-            range={chainStatsRange}
-            onRangeChange={setChainStatsRange}
-          />
 
           <section className="flex flex-col gap-6">
             <SectionHeader
@@ -170,7 +152,6 @@ function AppsLoading() {
         ))}
       </div>
       <div className="h-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-      <div className="h-64 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
       <div className="h-96 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
     </div>
   );
