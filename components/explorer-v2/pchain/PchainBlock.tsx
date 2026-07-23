@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -14,7 +14,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
 
   return (
     <ExplorerShell chain={chain} network={network}>
-      {loading && <div className="h-40 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />}
+      {loading && <DetailSkeleton label="Block" />}
       {error && <NotFound label="Block not found" id={id} />}
       {b && (
         <div className="flex flex-col gap-10">
@@ -52,7 +52,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
             <Board>
               {b.transactions.length === 0 && (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 dark:text-zinc-500 md:px-6">
-                  — no transactions —
+                  no transactions
                 </div>
               )}
               {b.transactions.map((t) => (
@@ -61,7 +61,9 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
                   href={`${base}/tx/${t.txHash}`}
                   className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">{t.txHash}</span>
+                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    {t.txHash}
+                  </span>
                   <TxTypePill type={t.txType.replace(/Tx$/, "")} />
                 </Link>
               ))}

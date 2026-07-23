@@ -388,7 +388,7 @@ function ConsoleDashboard() {
               Built on Avalanche
             </h3>
             <Link
-              href="/stats/overview"
+              href="/explorer/mainnet"
               className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               View all →

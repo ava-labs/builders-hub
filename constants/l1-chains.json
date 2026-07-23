@@ -2289,7 +2289,7 @@
   {
     "chainId": "36463",
     "chainName": "The Grotto",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/the-grotto.avif",
     "blockchainId": "0x4d17dde28b48d8261d0e157ff214900e6575600325f02d6efb416eebdbde4ba9",
     "subnetId": "2qZWoi4PSG69vdYAQ9otTxMGmRh8YgAXEsm4HMbZZkMamibU76",
     "slug": "the-grotto",
@@ -6995,7 +6995,7 @@
   {
     "chainId": "28066",
     "chainName": "The Grotto",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/the-grotto.avif",
     "blockchainId": "0x45a76304bee9ad1c4096708c8b6278658c6843a0f89768c5f361b016c2d369ec",
     "subnetId": "TpeVn2DWdvVvrjwD8PKtipqy5suNHLTewTGG2WngPNbKAqMfe",
     "slug": "the-grotto",

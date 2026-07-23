@@ -219,17 +219,17 @@ function LedgerStrip({
             <LedgerDash />
           )}
         </LedgerCell>
-        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/stats/interchain-messaging">
+        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/explorer/mainnet/icm">
           {icmTotal30d > 0 ? (
             <LedgerFigure value={icmTotal30d} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
           ) : (
             <LedgerDash />
           )}
         </LedgerCell>
-        <LedgerCell label="ACTIVE L1S" href="/stats/chain-list">
+        <LedgerCell label="ACTIVE L1S" href="/explorer/mainnet/chains">
           {l1Count !== null ? <LedgerFigure value={l1Count} animateIn={animateIn} /> : <LedgerDash />}
         </LedgerCell>
-        <LedgerCell label="VALIDATORS" href="/stats/validators">
+        <LedgerCell label="VALIDATORS" href="/explorer/mainnet/validators">
           {agg ? <LedgerFigure value={agg.totalValidators} animateIn={animateIn} /> : <LedgerDash />}
         </LedgerCell>
       </div>
@@ -491,7 +491,7 @@ function StatsChapter({
             content insets to the 7xl measure inside. */}
         <motion.div variants={ROW_VARIANTS}>
           <Link
-            href="/stats/validators"
+            href="/explorer/mainnet/validators"
             className="mx-auto flex w-full max-w-7xl flex-col justify-center gap-4 px-5 py-10 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900 lg:py-12"
           >
             <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -517,7 +517,7 @@ function StatsChapter({
         <motion.div variants={ROW_VARIANTS}>
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 divide-y divide-zinc-200 dark:divide-zinc-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0 lg:divide-zinc-200 dark:lg:divide-zinc-800">
           <Link
-            href="/stats/dapps"
+            href="/explorer/mainnet/apps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -531,7 +531,7 @@ function StatsChapter({
             </span>
           </Link>
           <Link
-            href="/stats/dapps"
+            href="/explorer/mainnet/apps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -545,7 +545,7 @@ function StatsChapter({
             </span>
           </Link>
           <Link
-            href="/stats/dapps"
+            href="/explorer/mainnet/apps"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -568,8 +568,8 @@ function StatsChapter({
         {/* board footer: the full instrument lives at /stats */}
         <motion.div variants={ROW_VARIANTS}>
           <Link
-            href="/stats/overview"
-            onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore all network stats", href: "/stats/overview" })}
+            href="/explorer"
+            onClick={() => track("home_cta_clicked", { section: "stats", label: "Explore the network", href: "/explorer" })}
             className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] py-5"
           >
             <span
@@ -578,7 +578,7 @@ function StatsChapter({
             />
             <span className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 md:px-6">
               <span className="text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">
-                Explore all network stats
+                Explore the network
               </span>
               <ArrowRight className="h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
             </span>
@@ -777,12 +777,12 @@ function resolveChainLogo(chain: { chainId?: string; chainName: string; chainLog
 
 function resolveChainStatsHref(chain: { chainId?: string; chainName: string }): string | null {
   if (chain.chainId === "43114" || chain.chainName.toLowerCase().includes("c-chain")) {
-    return "/stats/l1/c-chain";
+    return "/explorer/mainnet/c-chain/accounts";
   }
   const curated = (l1ChainsData as any[]).find(
     (c) => c.chainId === chain.chainId || c.chainName?.toLowerCase() === chain.chainName.toLowerCase(),
   );
-  return curated?.slug ? `/stats/l1/${curated.slug}` : null;
+  return curated?.slug ? `/explorer/mainnet/${curated.slug}/accounts` : null;
 }
 
 function ChainMark({ chain }: { chain: { chainId?: string; chainName: string; chainLogoURI?: string } }) {
@@ -826,7 +826,7 @@ function TopChainRow({
   staticMode: boolean;
 }) {
   // chains without a curated slug still land somewhere real: the full chain list
-  const href = resolveChainStatsHref(chain) ?? "/stats/chain-list";
+  const href = resolveChainStatsHref(chain) ?? "/explorer/mainnet/chains";
   const liveTxCount = useExtrapolatedCount(chain.txCount, MONTH_SECONDS);
   const rowClass =
     "grid grid-cols-[2rem_1.5rem_1fr_6rem] items-center gap-4 py-3 sm:grid-cols-[2rem_1.5rem_1fr_10rem_6rem]";
@@ -964,19 +964,19 @@ function LiveChainsChapter({
           transition={{ duration: 0.5, delay: 0.4 }}
         >
           <Link
-            href="/stats/chain-list"
-            onClick={() => track("home_cta_clicked", { section: "live-chains", label: "All chains", href: "/stats/chain-list" })}
+            href="/explorer/mainnet/chains"
+            onClick={() => track("home_cta_clicked", { section: "live-chains", label: "All chains", href: "/explorer/mainnet/chains" })}
             className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
           >
             ALL CHAINS
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
           <Link
-            href="/stats/overview"
-            onClick={() => track("home_cta_clicked", { section: "live-chains", label: "All network stats", href: "/stats/overview" })}
+            href="/explorer"
+            onClick={() => track("home_cta_clicked", { section: "live-chains", label: "Explorer", href: "/explorer" })}
             className="group inline-flex items-center gap-1.5 font-mono text-[11px] tracking-[0.18em] text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-50"
           >
-            ALL NETWORK STATS
+            EXPLORER
             <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </motion.div>
@@ -1475,7 +1475,7 @@ function FinaleChapter({ reducedMotion }: { reducedMotion: boolean }) {
             description="How sovereign L1s, the primary network, and interchain messaging fit together."
           />
           <FinaleRow
-            href="/stats/overview"
+            href="/explorer"
             title="Explore the live network"
             description="Every chain, validator, and message, observed on-chain."
           />

@@ -148,14 +148,14 @@ export const explorerMenu: LinkItemType = {
       text: "Block Explorer",
       url: "/explorer",
       description:
-      "Explore blocks, transactions, and addresses across Avalanche L1s.",
+      "Search any block, tx, address, or node across the P-Chain, C-Chain, and every L1.",
     },
     {
       icon: <Network />,
-      text: "P-Chain Explorer",
-      url: "/explorer/mainnet/p-chain",
+      text: "L1 Explorers",
+      url: "/explorer/mainnet/chains",
       description:
-      "Blocks, transactions, UTXOs, validators, and staking on the Avalanche P-Chain.",
+      "Blocks, transactions, and addresses on the C-Chain and every Avalanche L1.",
     },
     {
       icon: <DraftingCompass />,
@@ -166,10 +166,10 @@ export const explorerMenu: LinkItemType = {
     },
     {
       icon: <Logs />,
-      text: "Avalanche L1 Stats",
-      url: "/stats/overview",
+      text: "All Networks",
+      url: "/explorer/mainnet",
       description:
-      "The latest metrics for every Avalanche L1 in the network.",
+      "Live activity, ICM, validators, and AVAX across every Avalanche chain.",
     },
     {
       icon: <Network />,
@@ -181,16 +181,16 @@ export const explorerMenu: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/validators/c-chain",
+      url: "/explorer/mainnet/c-chain/validators",
       description:
       "The latest metrics for Primary Network validators.",
     },
     {
       icon: <Flame />,
-      text: <span className="inline-flex items-center gap-2">AVAX Burners<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
-      url: "/stats/dapps/treemap",
+      text: <span className="inline-flex items-center gap-2">Gas Market<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
+      url: "/explorer/mainnet/c-chain/gas",
       description:
-      "Which protocols burn the most AVAX on the C-Chain.",
+      "The C-Chain gas market: live fees, history, and who burns the most.",
     },
     {
       icon: <Bell />,

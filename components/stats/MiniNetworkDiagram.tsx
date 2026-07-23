@@ -851,7 +851,7 @@ export default function MiniNetworkDiagram({
       {!minimal && (
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
         <a
-          href="/stats/overview"
+          href="/explorer/mainnet"
           className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-[11px] font-medium hover:opacity-80 transition-opacity"
         >
           View Stats

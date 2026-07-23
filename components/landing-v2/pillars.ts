@@ -191,7 +191,7 @@ export const PILLARS: Pillar[] = [
         heading: "TOOLING",
         links: [
           { text: "Create an L1 in the Console", href: "/console/create-l1" },
-          { text: "Live network stats", href: "/stats/overview" },
+          { text: "Live network stats", href: "/explorer/mainnet" },
           { text: "Avalanche SDK", href: "/docs/tooling/avalanche-sdk" },
         ],
       },

@@ -205,7 +205,7 @@ function ValidatorLookupInner(_props: BaseConsoleToolProps) {
               )}
               {data.public_ip && <span className="text-xs text-zinc-400 font-mono">{data.public_ip}</span>}
               <a
-                href={`/stats/validators/node/${encodeURIComponent(data.node_id)}`}
+                href={`/explorer/mainnet/p-chain/node/${encodeURIComponent(data.node_id)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
