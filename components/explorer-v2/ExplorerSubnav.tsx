@@ -194,7 +194,8 @@ function ChainSwitcher({
       </button>
 
       {open && (
-        // z-50: must clear the stats pages' sticky section bar (z-40)
+        // z-50 within the subnav's own stacking context (the z-[35] rail):
+        // only needs to clear siblings inside the rail, not the page
         <div className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
           <div className="relative border-b border-zinc-100 dark:border-zinc-900">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
@@ -561,11 +562,12 @@ export function ExplorerSubnav({
     // sticky just below the global navbar (h-14 + banner), riding every
     // shell: only this rail pins — the page header below scrolls away.
     // Negative margins bleed the surface across the shells' px-5/px-6 so
-    // content never peeks past its edges; z-[45] keeps it (and the chain
-    // switcher's dropdown) above the stats pages' sticky bars (z-40).
+    // content never peeks past its edges; z-[35] clears the page-level
+    // sticky bars (z-30) but stays UNDER the global navbar (#nd-nav, z-40)
+    // so its dropdown menus paint over this rail, not behind it.
     <div
       className={cn(
-        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[45] -mx-5 flex items-stretch justify-between gap-x-6 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
+        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex items-stretch justify-between gap-x-6 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
         className,
       )}
     >

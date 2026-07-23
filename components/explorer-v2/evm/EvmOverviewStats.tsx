@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Board, BoardHeader, StatCell, StatDash } from "@/components/explorer-v2/ui";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
-import { fmtCompact, num, useChainMetrics } from "./metric-charts";
+import {
+  Delta,
+  fmtCompact,
+  pctOf,
+  useChainMetrics,
+  windowPair,
+  type WindowPair,
+} from "./metric-charts";
 
 /* The chain's readings, one uniform grid on the page clock: the live
    market row, then the clock's window with its move against the
@@ -18,51 +25,6 @@ const METRICS = [
   "feesPaid",
   "avgGasPrice",
 ].join(",");
-
-interface SeriesPoint {
-  timestamp: number;
-  value: number | string;
-}
-
-interface WindowPair {
-  cur: number;
-  /** null when the series is too short to hold the previous window */
-  prev: number | null;
-}
-
-/* the clock's window vs the window before it — sums for volumes,
-   means for rates. Needs 2N points for a delta; degrades to cur-only. */
-function windowPair(points: SeriesPoint[] | undefined, n: number, mode: "sum" | "avg"): WindowPair | null {
-  if (!points || points.length < Math.min(n, 2)) return null;
-  const sorted = [...points].sort((a, b) => a.timestamp - b.timestamp);
-  const vals = sorted.map((p) => num(p.value as never) ?? 0);
-  const take = (arr: number[]) =>
-    mode === "sum" ? arr.reduce((s, v) => s + v, 0) : arr.reduce((s, v) => s + v, 0) / arr.length;
-  const curSlice = vals.slice(-n);
-  if (!curSlice.length) return null;
-  const prevSlice = vals.slice(-2 * n, -n);
-  return {
-    cur: take(curSlice),
-    prev: prevSlice.length === n ? take(prevSlice) : null,
-  };
-}
-
-function pctOf(p: WindowPair | null): number | null {
-  if (!p || p.prev === null || p.prev === 0) return null;
-  return ((p.cur - p.prev) / p.prev) * 100;
-}
-
-/* the move against the previous window, Etherscan's parenthetical */
-function Delta({ value }: { value: number | null }) {
-  if (value === null) return null;
-  const up = value >= 0;
-  return (
-    <span className={up ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
-      {up ? "+" : ""}
-      {Math.abs(value) >= 100 ? value.toFixed(0) : value.toFixed(1)}% vs prev
-    </span>
-  );
-}
 
 /* utilization off the blocks table, windowed on the clock; 404 = not ingested */
 function useUtilization(chainId: string, n: number) {

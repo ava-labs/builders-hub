@@ -82,3 +82,46 @@ export function GasFill({ used, limit }: { used: number; limit: number }) {
     </span>
   );
 }
+
+/* The honest failure plate: the feed didn't 404, it died (indexer outage,
+   gateway timeout). Shown wherever a list or detail would otherwise sit on
+   "Loading…" forever or claim emptiness it can't know. `compact` renders
+   as a row inside an existing Board; the default is a standalone plate. */
+export function FeedDown({
+  onRetry,
+  compact = false,
+  label = "The indexer isn't answering right now",
+}: {
+  onRetry: () => void;
+  compact?: boolean;
+  label?: string;
+}) {
+  const retryBtn = (
+    <button
+      onClick={onRetry}
+      className="inline-flex items-center border border-zinc-200 bg-white/80 px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-900 transition-colors hover:border-zinc-900 hover:bg-zinc-900 hover:text-white dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-100 dark:hover:border-zinc-100 dark:hover:bg-zinc-100 dark:hover:text-zinc-900"
+    >
+      Retry
+    </button>
+  );
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 md:px-6">
+        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#E6212F]">
+          {label}
+        </span>
+        {retryBtn}
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center gap-5 border-b border-zinc-200 bg-white/80 px-6 py-16 text-center backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#E6212F]">{label}</p>
+      <p className="max-w-md text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        The data service behind this page timed out. It usually recovers quickly; the page keeps
+        whatever it already loaded.
+      </p>
+      {retryBtn}
+    </div>
+  );
+}
