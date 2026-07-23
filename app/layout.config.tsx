@@ -255,7 +255,7 @@ export const docsMenu: LinkItemType = {
           title='Nodes & Validators'
           description='Set up, configure, and maintain Avalanche nodes and validators.'
           docsHref='/docs/nodes'
-          learnHref='/academy/avalanche-l1/permissionless-l1s'
+          toolsHref='/console/layer-1/l1-node-setup'
         />
       ),
     },
@@ -277,8 +277,10 @@ export const docsMenu: LinkItemType = {
           icon={<Code />}
           title='Developer Tools'
           description='Explore the Avalanche SDKs, CLI, and more.'
-          docsHref='/docs/tooling'
-          learnHref='/academy'
+          links={[
+            { label: 'SDK', href: '/docs/tooling/avalanche-sdk' },
+            { label: 'Platform CLI', href: '/docs/tooling/platform-cli' },
+          ]}
         />
       ),
     },
