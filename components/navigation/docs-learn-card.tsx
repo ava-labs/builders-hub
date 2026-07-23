@@ -47,7 +47,7 @@ export function DocsLearnCard({
           href={learnHref}
           className="text-fd-primary transition-colors hover:underline"
         >
-          Learn
+          Academy
         </Link>
       </div>
     </div>
