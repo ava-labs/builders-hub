@@ -6,11 +6,10 @@ export const dynamic = 'force-dynamic';
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 10000;
 
-// The staking time-series (validator/delegator count + weight) now come from
-// OUR OWN metrics-api — reconstructed over the full chain history from
-// decoded_p_txs and served gateway-shaped at /v2/networks/mainnet/metrics/* —
-// replacing metrics.avax.network (the explorer's last external data source).
-// Rewards series still ride the Metabase dashboard below.
+// The staking time-series (validator/delegator count + weight, rewards) all
+// come from our own metrics-api — reconstructed over the full chain history
+// from decoded_p_txs / reward UTXOs and served gateway-shaped at
+// /v2/networks/mainnet/metrics/*. No external data sources.
 
 interface PrimaryNetworkMetrics {
   validator_count: TimeSeriesMetric;
@@ -113,10 +112,8 @@ interface RewardsData {
   cumulative: TimeSeriesDataPoint[];
 }
 
-// Rewards paid per day + cumulative, from OUR metrics-api (reconstructed from
-// reward UTXOs over the full chain history) — replaces the Metabase dashboard,
-// the staking page's last external data source. Values are AVAX, same units
-// the Metabase card charted.
+// Rewards paid per day + cumulative, from our metrics-api (reconstructed from
+// reward UTXOs over the full chain history). Values are AVAX.
 async function fetchRewardsSeries(metric: string): Promise<TimeSeriesDataPoint[]> {
   try {
     const response = await fetchWithTimeout(
