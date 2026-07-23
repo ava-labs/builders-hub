@@ -18,6 +18,7 @@ import {
   OverlayKey,
   fmtCompact,
   metricSeries,
+  weekFloor,
   useChainMetrics,
 } from "./metric-charts";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -111,7 +112,7 @@ export function EvmTxsList({ network }: { network: string }) {
       {/* the shape of the feed over time — absorbed from the old Stats tab */}
       <div className="mt-10 grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartSection
-          label="Transactions"
+          label={`Transactions${weekFloor(range)}`}
           action={<OverlayKey label="avg tps" dashed />}
         >
           {metricSeries(m, range, "txCount", "avgTps").length ? (
@@ -129,7 +130,7 @@ export function EvmTxsList({ network }: { network: string }) {
           )}
         </ChartSection>
 
-        <ChartSection label="Total Transactions">
+        <ChartSection label={`Total Transactions${weekFloor(range)}`}>
           {metricSeries(m, range, "cumulativeTxCount").length ? (
             <DualChart
               data={metricSeries(m, range, "cumulativeTxCount")}

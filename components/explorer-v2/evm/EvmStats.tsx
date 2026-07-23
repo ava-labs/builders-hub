@@ -24,6 +24,7 @@ import {
   metricSeries,
   pctOf,
   useChainMetrics,
+  weekFloor,
   windowPair,
   type DualPoint,
   type IcmPoint,
@@ -78,7 +79,7 @@ export function EvmStats({
     return thin(
       windowSeries(
         [...pts].sort((a, b) => a.timestamp - b.timestamp),
-        range,
+        Math.max(7, range),
       ),
       200,
     );
@@ -178,7 +179,7 @@ export function EvmStats({
           {/* who's here */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection
-              label="Active Addresses"
+              label={`Active Addresses${weekFloor(range)}`}
               action={<OverlayKey label="senders" />}
             >
               {series("activeAddresses", "activeSenders").length ? (
@@ -195,7 +196,7 @@ export function EvmStats({
             </ChartSection>
 
             <ChartSection
-              label="Transactions"
+              label={`Transactions${weekFloor(range)}`}
               action={<OverlayKey label="avg tps" dashed />}
             >
               {series("txCount", "avgTps").length ? (
@@ -216,7 +217,7 @@ export function EvmStats({
 
           {/* the long arc */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-            <ChartSection label="Total Addresses">
+            <ChartSection label={`Total Addresses${weekFloor(range)}`}>
               {series("cumulativeAddresses").length ? (
                 <DualChart
                   data={series("cumulativeAddresses")}
@@ -229,7 +230,7 @@ export function EvmStats({
               )}
             </ChartSection>
 
-            <ChartSection label="Total Transactions">
+            <ChartSection label={`Total Transactions${weekFloor(range)}`}>
               {series("cumulativeTxCount").length ? (
                 <DualChart
                   data={series("cumulativeTxCount")}
@@ -246,7 +247,7 @@ export function EvmStats({
           {/* what's being built, and what it burns */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection
-              label="Contracts Deployed"
+              label={`Contracts Deployed${weekFloor(range)}`}
               action={<OverlayKey label="deployers" dashed />}
             >
               {series("contracts", "deployers").length ? (
@@ -263,7 +264,7 @@ export function EvmStats({
               )}
             </ChartSection>
 
-            <ChartSection label="Gas Used">
+            <ChartSection label={`Gas Used${weekFloor(range)}`}>
               {series("gasUsed").length ? (
                 <DualChart data={series("gasUsed")} kind="bars" fmt={fmtCompact} aLabel="gas" />
               ) : (
@@ -274,7 +275,7 @@ export function EvmStats({
 
           {/* the price of blockspace */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-            <ChartSection label="Fees Paid">
+            <ChartSection label={`Fees Paid${weekFloor(range)}`}>
               {series("feesPaid").length ? (
                 <DualChart
                   data={series("feesPaid")}
@@ -288,7 +289,7 @@ export function EvmStats({
             </ChartSection>
 
             <ChartSection
-              label="Gas Price"
+              label={`Gas Price${weekFloor(range)}`}
               action={<OverlayKey label="daily max" dashed />}
               note={`Average price paid per gas unit in n${tokenSymbol}; the dashed line is each day's spike, on its own scale.`}
             >
@@ -310,7 +311,7 @@ export function EvmStats({
 
           {/* cross-chain traffic — the whole card doors into the observatory */}
           <ChartSection
-            label="Interchain Messages"
+            label={`Interchain Messages${weekFloor(range)}`}
             href="/explorer/mainnet/icm"
             action={
               <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
