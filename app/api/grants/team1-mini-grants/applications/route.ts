@@ -3,9 +3,17 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import { deriveStatus } from "@/lib/grants/status";
+import { memberIdentityWhere } from "@/server/services/projectMembership";
+import { MemberStatus } from "@/types/project";
 
-// List the signed-in user's applications for this program (for the apply page +
-// landing page "your applications" views).
+// List the applications visible to the signed-in user for this program (for the
+// apply page + landing page "your applications" views).
+//
+// Scoped by confirmed project membership, not by GrantApplication.user_id: an
+// application belongs to the project, and only one may exist per project
+// (@@unique([program_key, project_id])). Filtering by submitter would hide a
+// teammate's application from the rest of the team, who would then see the
+// project as un-appliable-to and only discover otherwise on a 409 at submit.
 export async function GET() {
   const session = await getAuthSession();
   const userId = session?.user?.id;
@@ -13,8 +21,23 @@ export async function GET() {
     return NextResponse.json({ applications: [] });
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+
   const apps = await prisma.grantApplication.findMany({
-    where: { program_key: MINI_GRANT_KEY, user_id: userId },
+    where: {
+      program_key: MINI_GRANT_KEY,
+      project: {
+        members: {
+          some: {
+            ...memberIdentityWhere({ id: userId, email: user?.email }),
+            status: MemberStatus.CONFIRMED,
+          },
+        },
+      },
+    },
     select: {
       id: true,
       project_id: true,

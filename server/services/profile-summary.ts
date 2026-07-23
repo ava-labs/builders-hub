@@ -12,6 +12,7 @@ import type { Badge, UserBadge, Requirement } from "@/types/badge";
 import type { ReferralTargetPreset } from "@/lib/referrals/targets";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import type { Prisma } from "@prisma/client";
+import { MemberStatus } from "@/types/project";
 
 export interface ProfileProjectSummary {
   id: string;
@@ -49,7 +50,7 @@ export async function getUserProjects(
       members: {
         some: {
           user_id: userId,
-          status: "Confirmed",
+          status: MemberStatus.CONFIRMED,
         },
       },
     },
@@ -222,12 +223,12 @@ export async function getProfileEngagement(
   const [projectMemberships, hackathonMemberships, consoleBadgeCount] =
     await Promise.all([
       prisma.member.count({
-        where: { user_id: userId, status: "Confirmed" },
+        where: { user_id: userId, status: MemberStatus.CONFIRMED },
       }),
       prisma.member.count({
         where: {
           user_id: userId,
-          status: "Confirmed",
+          status: MemberStatus.CONFIRMED,
           project: { hackaton_id: { not: null } },
         },
       }),

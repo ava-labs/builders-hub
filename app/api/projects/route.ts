@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createProject, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
+import { createProjectWithMembers, getFilteredProjects, GetProjectOptions } from '@/server/services/projects';
 import { withAuth } from '@/lib/protectedRoute';
+import { MemberStatus } from "@/types/project";
 
 export const GET = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
@@ -37,11 +38,11 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
       members.push({
         user_id: session.user.id,
         role: "Member",
-        status: "Confirmed",
+        status: MemberStatus.CONFIRMED,
       });
     }
     
-    const newProject = await createProject({
+    const newProject = await createProjectWithMembers({
       ...body,
       members,
     });
