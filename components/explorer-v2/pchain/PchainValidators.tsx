@@ -98,9 +98,14 @@ export function PchainValidators({ chain, network }: { chain: string; network: s
 export function PchainStaking({ chain, network }: { chain: string; network: string }) {
   return (
     <ExplorerShell chain={chain} network={network}>
+      {/* the P-Chain owns the whole validator economy: Primary staking
+          plus the ACP-77 L1 seat market. The C-Chain tab mounts the same
+          content without includeL1 — purely Primary Network. */}
       <PrimaryStakingContent
         validatorsHref={`/explorer/${network}/${chain}/validators`}
         base={`/explorer/${network}/${chain}/staking`}
+        network={network}
+        includeL1
       />
     </ExplorerShell>
   );

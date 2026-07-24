@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PrimaryNetworkMetrics, TimeSeriesMetric } from "@/types/stats";
+import { getValidatorFeeState } from "@/lib/pchain-node";
 
 /* Shared feeds for the Primary Network's two instruments — Staking (the
    economics) and Validators (the set). Every endpoint returns a whole
@@ -99,6 +100,85 @@ export function useTotalSeats() {
     const metric = (raw as { total_validator_seats?: TimeSeriesMetric })?.total_validator_seats;
     return metric?.data ? metric : null;
   });
+}
+
+/* the same feed, all three series — the L1 economy section reads the
+   split (stake-backed Primary seats vs pay-as-you-go L1 seats) */
+export interface EcosystemSeats {
+  total: TimeSeriesMetric | null;
+  l1: TimeSeriesMetric | null;
+  primary: TimeSeriesMetric | null;
+}
+
+export function useEcosystemSeats() {
+  return useLoad<EcosystemSeats>("/api/total-ecosystem-validators?timeRange=all", (raw) => {
+    const r = raw as {
+      total_validator_seats?: TimeSeriesMetric;
+      l1_validator_seats?: TimeSeriesMetric;
+      primary_network_validator_count?: TimeSeriesMetric;
+    };
+    if (!r?.total_validator_seats?.data) return null;
+    return {
+      total: r.total_validator_seats ?? null,
+      l1: r.l1_validator_seats ?? null,
+      primary: r.primary_network_validator_count ?? null,
+    };
+  });
+}
+
+/* the ACP-77 continuous fee price (nAVAX per second per L1 seat), straight
+   from the node — null while loading or if the RPC is unreachable */
+export function useValidatorFeePrice(network = "mainnet") {
+  const [price, setPrice] = useState<number | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getValidatorFeeState(network).then((f) => {
+      if (!cancelled) setPrice(f ? f.price : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [network]);
+  return price;
+}
+
+/* ------------------------------------------------------------------ */
+/* staking money-flow — reward payouts behind us, unlocks ahead        */
+/* ------------------------------------------------------------------ */
+
+export interface MoneyFlow {
+  rewards: { date: string; avax: number; payouts: number }[];
+  unlocks: { date: string; avax: number; stakers: number }[];
+}
+
+/** the feed serves fixed computed windows — pick the smallest that covers the clock */
+export function moneyFlowWindow(rangeDays: number): 30 | 90 | 365 {
+  return rangeDays <= 30 ? 30 : rangeDays <= 90 ? 90 : 365;
+}
+
+/* fetched at the window covering the page clock; resets on window change
+   so a stale wide window never poses as the narrow one */
+export function useMoneyFlow(network: string, rangeDays: number) {
+  const days = moneyFlowWindow(rangeDays);
+  const [flow, setFlow] = useState<MoneyFlow | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setFlow(null);
+    setFailed(false);
+    fetch(`/api/pchain-activity/${network}?days=${days}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((data: MoneyFlow) => {
+        if (!cancelled) setFlow(data);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [network, days]);
+  return { flow, failed, days };
 }
 
 /* ------------------------------------------------------------------ */

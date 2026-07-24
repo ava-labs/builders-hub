@@ -30,6 +30,7 @@ import {
   num,
   thin,
   toSeries,
+  useMoneyFlow,
   usePrimaryMetrics,
   useSdkValidators,
   useStakingApy,
@@ -59,36 +60,6 @@ const QUIET_BAR = "#A2AFB2";
 /* ---------------------------------------------------------------- */
 /* data                                                              */
 /* ---------------------------------------------------------------- */
-
-interface MoneyFlow {
-  rewards: { date: string; avax: number; payouts: number }[];
-  unlocks: { date: string; avax: number; stakers: number }[];
-}
-
-/* the staking money-flow feed (reward payouts behind us, unlocks ahead),
-   fetched at the smallest computed window that covers the clock */
-function useMoneyFlow(network: string, rangeDays: number) {
-  const days = rangeDays <= 30 ? 30 : rangeDays <= 90 ? 90 : 365;
-  const [flow, setFlow] = useState<MoneyFlow | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    setFlow(null);
-    setFailed(false);
-    fetch(`/api/pchain-activity/${network}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((data: MoneyFlow) => {
-        if (!cancelled) setFlow(data);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [network, days]);
-  return { flow, failed };
-}
 
 /* the sheets' windows floor at a week — a one-bar day chart says nothing */
 function chartWindow(rangeDays: number): number {

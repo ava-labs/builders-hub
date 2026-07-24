@@ -17,12 +17,14 @@ import { cn } from "@/lib/utils";
 import { Board, BoardHeader, ChartBoard, StatCell, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { L1Economy } from "./L1Economy";
 import {
   NANO,
   fmtCompact,
   num,
   thin,
   toSeries,
+  useMoneyFlow,
   usePrimaryMetrics,
   useSdkValidators,
   useStakingApy,
@@ -248,6 +250,46 @@ function RewardsBars({ data }: { data: RewardPoint[] }) {
             dot={false}
             isAnimationActive={false}
           />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+interface FlowDay {
+  date: string;
+  avax: number;
+  count: number;
+}
+
+/* one day-bar shape for both money-flow cards — payouts landed (red, stake
+   moving) and stake reaching term (block gray, value at rest) */
+function MoneyBars({ data, color, noun }: { data: FlowDay[]; color: string; noun: string }) {
+  return (
+    <div className="h-40">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data}>
+          <XAxis dataKey="date" hide />
+          <YAxis hide domain={[0, "dataMax"]} />
+          <RechartsTooltip
+            cursor={{ fill: "rgba(161,161,170,0.08)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const d = payload[0].payload as FlowDay;
+              return (
+                <TipPlate>
+                  <p className="text-[10px] text-zinc-500">{fmtDay(d.date)}</p>
+                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                    {fmtCompact(d.avax)} AVAX
+                  </p>
+                  <p className="text-[10px] tabular-nums text-zinc-500">
+                    {d.count.toLocaleString("en-US")} {noun}
+                  </p>
+                </TipPlate>
+              );
+            }}
+          />
+          <Bar dataKey="avax" fill={color} minPointSize={1} isAnimationActive={false} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -491,11 +533,18 @@ function StakeKey() {
 export function PrimaryStakingContent({
   validatorsHref,
   base,
+  network = "mainnet",
+  includeL1 = false,
 }: {
   validatorsHref: string;
   /** the staking tab's own path — every ChartBoard doors into its metric
    *  sheet under it (base/total-stake, base/apy, …) */
   base?: string;
+  /** the staking feeds watch mainnet; both mounts guard the route already */
+  network?: string;
+  /** the P-Chain mount adds the ACP-77 seat economy; the C-Chain tab
+   *  stays purely Primary Network */
+  includeL1?: boolean;
 }) {
   const door = (metric: string) => (base ? `${base}/${metric}` : undefined);
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
@@ -521,6 +570,14 @@ export function PrimaryStakingContent({
     ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
   const delegators = num(metrics?.delegator_count?.current_value);
   const cumulativeRewards = num(metrics?.cumulative_rewards?.current_value);
+  // the APY feed carries the live circulating supply (AVAX units) and the
+  // all-time burn — the ratio is THE number behind the reward rate
+  const supplyAvax = num(apy?.current?.supply);
+  const totalBurned = num(apy?.current?.totalBurned);
+  const stakingRatio =
+    totalStaked !== null && supplyAvax !== null && supplyAvax > 0
+      ? (totalStaked / supplyAvax) * 100
+      : null;
   // today's row is partial — the last full day is the honest daily figure
   const dailyRewards = useMemo(() => {
     const series = toSeries(metrics?.daily_rewards);
@@ -572,6 +629,22 @@ export function PrimaryStakingContent({
     () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), chartDays)),
     [metrics, chartDays],
   );
+
+  /* -------------------------------------------------------------- */
+  /* the money actually moving — accrual is smooth, cash is lumpy    */
+  /* -------------------------------------------------------------- */
+
+  const { flow, failed: flowFailed, days: flowDays } = useMoneyFlow(network, range);
+  const rewardsPaid = useMemo<FlowDay[]>(
+    () => (flow?.rewards ?? []).map((r) => ({ date: r.date, avax: r.avax, count: r.payouts })),
+    [flow],
+  );
+  const unlocking = useMemo<FlowDay[]>(
+    () => (flow?.unlocks ?? []).map((u) => ({ date: u.date, avax: u.avax, count: u.stakers })),
+    [flow],
+  );
+  const paidSum = useMemo(() => rewardsPaid.reduce((s, d) => s + d.avax, 0), [rewardsPaid]);
+  const unlockSum = useMemo(() => unlocking.reduce((s, d) => s + d.avax, 0), [unlocking]);
 
   /* -------------------------------------------------------------- */
   /* the current set, sliced two ways                                */
@@ -659,10 +732,15 @@ export function PrimaryStakingContent({
                 "—"
               )}
             </StatementCell>
-            <StatementCell label="Median Delegation Fee" sub="across the current set">
-              {medianFee !== null ? (
+            {/* the ratio IS the reward rate's denominator — it earns the
+                panel over the median fee, which lives on the fees chart */}
+            <StatementCell
+              label="Staked of Supply"
+              sub={supplyAvax !== null ? `of ${fmtCompact(supplyAvax)} AVAX` : undefined}
+            >
+              {stakingRatio !== null ? (
                 <>
-                  {medianFee.toFixed(0)}
+                  {stakingRatio.toFixed(1)}
                   <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
                 </>
               ) : (
@@ -739,7 +817,13 @@ export function PrimaryStakingContent({
             </Stat>
             <Stat
               label="Rewards · All-Time"
-              sub={dailyRewards !== null ? `≈ ${fmtCompact(dailyRewards)} AVAX/day` : undefined}
+              sub={
+                dailyRewards !== null
+                  ? totalBurned !== null
+                    ? `≈ ${fmtCompact(dailyRewards)}/day · ${fmtCompact(totalBurned)} burned all-time`
+                    : `≈ ${fmtCompact(dailyRewards)} AVAX/day`
+                  : undefined
+              }
             >
               {cumulativeRewards !== null ? (
                 <>
@@ -830,6 +914,52 @@ export function PrimaryStakingContent({
         </ChartBoard>
       </div>
 
+      {/* the cash view: accrual above is smooth, payouts and unlocks are
+          lumpy — what actually landed in wallets behind us, what reaches
+          term ahead. Past | future across one rule, like the P-Chain home,
+          but on the page clock (the feed's computed windows) */}
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard
+          label={`Rewards Paid · last ${flowDays} days`}
+          href={door("rewards")}
+          action={
+            flow ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {fmtCompact(paidSum)} AVAX
+              </span>
+            ) : undefined
+          }
+        >
+          {flow ? (
+            <MoneyBars data={rewardsPaid} color={DELEGATED_COLOR} noun="payouts" />
+          ) : (
+            <ChartEmpty failed={flowFailed} />
+          )}
+        </ChartBoard>
+
+        <ChartBoard
+          label={`Stake Expiring · next ${flowDays} days`}
+          href={door("expiry")}
+          action={
+            flow ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {fmtCompact(unlockSum)} AVAX
+              </span>
+            ) : undefined
+          }
+        >
+          {flow ? (
+            <MoneyBars data={unlocking} color={QUIET_BAR} noun="stake entries end" />
+          ) : (
+            <ChartEmpty failed={flowFailed} />
+          )}
+        </ChartBoard>
+      </div>
+
+      {/* the P-Chain page carries the network's OTHER validator economy —
+          ACP-77 L1 seats, which burn instead of mint */}
+      {includeL1 && <L1Economy network={network} />}
+
       {/* how the stake spreads across the current set — two snapshots of the
           live set, each with its reading below (· current set is the honest
           qualifier: these don't follow the page clock) */}
@@ -877,6 +1007,51 @@ export function PrimaryStakingContent({
           </p>
         </div>
       </div>
+
+      {/* the protocol's fixed terms — the orientation plate for anyone the
+          numbers above just convinced */}
+      <section className="flex flex-col gap-4">
+        <Board divide={false} className="border">
+          <BoardHeader
+            label="Staking Parameters"
+            action={
+              <Link
+                href="/docs/primary-network/validate/how-to-stake"
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                How to stake
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
+            }
+          />
+          {/* hairline mosaic: the gap paints the rules, so the grid can
+              wrap 2 → 3 → 6 columns without divide-* bookkeeping */}
+          <div className="grid grid-cols-2 gap-px bg-zinc-200 sm:grid-cols-3 lg:grid-cols-6 dark:bg-zinc-800">
+            <ParamCell label="Min Validator Stake" value="2,000 AVAX" />
+            <ParamCell label="Max Validator Weight" value="3M AVAX" sub="≤ 5× own stake" />
+            <ParamCell label="Min Delegation" value="25 AVAX" />
+            <ParamCell label="Staking Term" value="2 wk – 1 yr" />
+            <ParamCell label="Uptime Required" value="≥ 80%" sub="or no reward" />
+            <ParamCell label="Min Delegation Fee" value="2%" />
+          </div>
+        </Board>
+      </section>
+    </div>
+  );
+}
+
+/* a quiet rules cell — smaller voice than the stat strips: these are
+   constants, not readings */
+function ParamCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="flex flex-col gap-1 bg-white px-4 py-3.5 dark:bg-zinc-950">
+      <span className="font-mono text-[9px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+        {label}
+      </span>
+      <span className="font-mono text-[13px] font-medium tabular-nums text-zinc-900 dark:text-zinc-100">
+        {value}
+      </span>
+      {sub && <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{sub}</span>}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { PchainStaking } from "@/components/explorer-v2/pchain/PchainValidators"
 export const metadata: Metadata = {
   title: "Avalanche Staking | Avalanche Explorer",
   description:
-    "Primary Network staking: total stake and its growth, staking APY, rewards minted, and how the stake distributes across the validator set.",
+    "The Avalanche validator economy: Primary Network stake, APY and rewards, stake unlocks, and the ACP-77 L1 seat market — seats, continuous fees, and where they run.",
 };
 
 export default async function StakingPage({
