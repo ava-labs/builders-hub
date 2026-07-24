@@ -21,7 +21,10 @@ export function ChainStakingPageClient({ chainSlug }: { chainSlug: string }) {
       rpcUrl={chain.rpcUrl}
     >
       <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-10 px-5 pb-16 pt-2 md:px-6">
-        <PrimaryStakingContent validatorsHref={`/explorer/mainnet/${chainSlug}/validators`} />
+        <PrimaryStakingContent
+          validatorsHref={`/explorer/mainnet/${chainSlug}/validators`}
+          base={`/explorer/mainnet/${chainSlug}/staking`}
+        />
       </div>
     </ExplorerLayout>
   );

@@ -124,14 +124,29 @@ export function joinSeries(a: SeriesPoint[] | undefined, b?: SeriesPoint[]): Dua
     .sort((x, y) => (x.date < y.date ? -1 : 1));
 }
 
-/** a metric (and its overlay) windowed to the page clock and thinned */
+/* charts floor at a week — a one-point day chart renders as a lone dot.
+   Callers append `weekFloor(range)` to the card title so the exception is
+   stated, per the label doctrine. */
+export const CHART_FLOOR_DAYS = 7;
+export function weekFloor(range: number): string {
+  return range < CHART_FLOOR_DAYS ? " · 7 days" : "";
+}
+
+/** a metric (and its overlay) windowed to the page clock (floored at a
+ *  week) and thinned */
 export function metricSeries(
   m: Metrics,
   range: number,
   key: string,
   overlay?: string,
 ): DualPoint[] {
-  return thin(windowSeries(joinSeries(m[key]?.data, overlay ? m[overlay]?.data : undefined), range), 200);
+  return thin(
+    windowSeries(
+      joinSeries(m[key]?.data, overlay ? m[overlay]?.data : undefined),
+      Math.max(CHART_FLOOR_DAYS, range),
+    ),
+    200,
+  );
 }
 
 /**

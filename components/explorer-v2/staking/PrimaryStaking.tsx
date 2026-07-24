@@ -254,7 +254,7 @@ function RewardsBars({ data }: { data: RewardPoint[] }) {
   );
 }
 
-interface ConcentrationPoint {
+export interface ConcentrationPoint {
   rank: number;
   /** AVAX */
   weight: number;
@@ -266,7 +266,7 @@ const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as 
 /* how evenly the stake spreads across the set — per-rank bars against the
    right axis, the cumulative share climbing the left one; the two shapes
    read together (steep bars + fast climb = concentrated) */
-function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
+export function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
   const rankTicks = [];
   for (let r = 100; r < setSize; r += 100) rankTicks.push(r);
   return (
@@ -343,7 +343,7 @@ function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; set
   );
 }
 
-interface FeeBucket {
+export interface FeeBucket {
   label: string;
   count: number;
   /** AVAX */
@@ -352,7 +352,7 @@ interface FeeBucket {
 
 /* what delegating costs — stake-weighted bars (where the capital sits)
    with the validator count riding the right axis (where the nodes sit) */
-function FeeChart({ data }: { data: FeeBucket[] }) {
+export function FeeChart({ data }: { data: FeeBucket[] }) {
   return (
     <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
@@ -418,9 +418,9 @@ function FeeChart({ data }: { data: FeeBucket[] }) {
   );
 }
 
-type Lens = "weight" | "own" | "delegated";
+export type Lens = "weight" | "own" | "delegated";
 
-const LENS_LABEL: Record<Lens, string> = {
+export const LENS_LABEL: Record<Lens, string> = {
   weight: "Weight",
   own: "Own stake",
   delegated: "Delegated",
@@ -428,7 +428,7 @@ const LENS_LABEL: Record<Lens, string> = {
 
 /* the three old distribution charts folded into one instrument — same
    segmented-control idiom as the range toggle */
-function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
+export function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
   return (
     <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
       {(Object.keys(LENS_LABEL) as Lens[]).map((l) => (
@@ -488,7 +488,16 @@ function StakeKey() {
   );
 }
 
-export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: string }) {
+export function PrimaryStakingContent({
+  validatorsHref,
+  base,
+}: {
+  validatorsHref: string;
+  /** the staking tab's own path — every ChartBoard doors into its metric
+   *  sheet under it (base/total-stake, base/apy, …) */
+  base?: string;
+}) {
+  const door = (metric: string) => (base ? `${base}/${metric}` : undefined);
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: apy, failed: apyFailed } = useStakingApy();
   const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
@@ -497,6 +506,10 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
   // subnav states the window once, so chart titles drop the range suffix.
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
+  // the trend charts floor at a week — a one-point day chart renders as
+  // a lone dot (same rule as the sheets); labels state the exception
+  const chartDays = Math.max(7, range);
+  const weekFloor = range < 7 ? " · 7 days" : "";
 
   /* -------------------------------------------------------------- */
   /* headline figures                                                */
@@ -526,12 +539,12 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       own: p.value / NANO,
       delegated: (delegated.get(p.day) ?? 0) / NANO,
     }));
-    return thin(windowSeries(joined, range));
-  }, [metrics, range]);
+    return thin(windowSeries(joined, chartDays));
+  }, [metrics, chartDays]);
 
   const delegatorSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.delegator_count), range)),
-    [metrics, range],
+    () => thin(windowSeries(toSeries(metrics?.delegator_count), chartDays)),
+    [metrics, chartDays],
   );
 
   const apySeries = useMemo<ApyPoint[]>(() => {
@@ -539,8 +552,8 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
     const sorted = [...apy.data]
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((p) => ({ day: p.date, maxAPY: p.maxAPY, minAPY: p.minAPY }));
-    return thin(windowSeries(sorted, range));
-  }, [apy, range]);
+    return thin(windowSeries(sorted, chartDays));
+  }, [apy, chartDays]);
 
   const dailyRewardSeries = useMemo<RewardPoint[]>(() => {
     // the moving average runs over the FULL series so the window's left
@@ -552,12 +565,12 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       if (i >= 30) rolling -= full[i - 30].value;
       return { ...p, ma: rolling / Math.min(i + 1, 30) };
     });
-    return thin(windowSeries(withMa, range), 180);
-  }, [metrics, range]);
+    return thin(windowSeries(withMa, chartDays), 180);
+  }, [metrics, chartDays]);
 
   const cumulativeRewardSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), range)),
-    [metrics, range],
+    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), chartDays)),
+    [metrics, chartDays],
   );
 
   /* -------------------------------------------------------------- */
@@ -743,7 +756,8 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
 
       {/* the centerpiece: how the stake got here */}
       <ChartBoard
-        label="Total Stake"
+        label={`Total Stake${weekFloor}`}
+        href={door("total-stake")}
         action={
           <span className="hidden sm:block">
             <StakeKey />
@@ -759,7 +773,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
 
       {/* who delegates, and what staking pays */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label="Delegators">
+        <ChartBoard label={`Delegators${weekFloor}`} href={door("total-stake")}>
           {delegatorSeries.length ? (
             <AreaTrend
               data={delegatorSeries}
@@ -772,7 +786,8 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
         </ChartBoard>
 
         <ChartBoard
-          label="Staking APY"
+          label={`Staking APY${weekFloor}`}
+          href={door("apy")}
           action={
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="flex items-center gap-1.5">
@@ -791,7 +806,8 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       {/* what securing the network mints */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
-          label="Daily Rewards"
+          label={`Daily Rewards${weekFloor}`}
+          href={door("rewards")}
           action={
             <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="h-0.5 w-4 bg-[#E6212F]" /> 30d avg
@@ -805,7 +821,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
           )}
         </ChartBoard>
 
-        <ChartBoard label="Cumulative Rewards">
+        <ChartBoard label={`Cumulative Rewards${weekFloor}`} href={door("rewards")}>
           {cumulativeRewardSeries.length ? (
             <AreaTrend data={cumulativeRewardSeries} format={fmtCompact} unit="AVAX" />
           ) : (
@@ -819,6 +835,9 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
           qualifier: these don't follow the page clock) */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
+          {/* no door here: the lens toggle in the title bar is interactive,
+              and a card-wide Link would swallow its clicks — the fees card
+              and the sheet siblings carry the way in */}
           <ChartBoard
             label="Concentration by Rank · current set"
             action={<LensToggle value={lens} onChange={setLens} />}
@@ -840,6 +859,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
         <div className="flex flex-col gap-4">
           <ChartBoard
             label="Delegation Fees · current set"
+            href={door("distribution")}
             action={
               medianFee !== null ? (
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">

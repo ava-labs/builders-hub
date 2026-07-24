@@ -17,6 +17,7 @@ import {
   OverlayKey,
   fmtCompact,
   metricSeries,
+  weekFloor,
   num,
   pctOf,
   useChainMetrics,
@@ -243,7 +244,7 @@ export function EvmAccounts({ network }: { network: string }) {
         {/* the population over time */}
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartSection
-            label="Active Addresses"
+            label={`Active Addresses${weekFloor(range)}`}
             action={<OverlayKey label="senders" />}
           >
             {metricSeries(m, range, "activeAddresses", "activeSenders").length ? (
@@ -259,7 +260,7 @@ export function EvmAccounts({ network }: { network: string }) {
             )}
           </ChartSection>
 
-          <ChartSection label="Total Addresses">
+          <ChartSection label={`Total Addresses${weekFloor(range)}`}>
             {metricSeries(m, range, "cumulativeAddresses").length ? (
               <DualChart
                 data={metricSeries(m, range, "cumulativeAddresses")}
@@ -274,7 +275,7 @@ export function EvmAccounts({ network }: { network: string }) {
         </div>
 
         <ChartSection
-          label="Contracts Deployed"
+          label={`Contracts Deployed${weekFloor(range)}`}
           action={<OverlayKey label="deployers" dashed />}
         >
           {metricSeries(m, range, "contracts", "deployers").length ? (
