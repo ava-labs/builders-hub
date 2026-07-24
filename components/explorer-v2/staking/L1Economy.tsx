@@ -225,12 +225,11 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
       ? (l1Seats / (l1Seats + primarySeats)) * 100
       : null;
 
-  // live L1 sets: registered-active seats per subnet from the
-  // validator-stats aggregate, named by the same feed. Node-verified since
-  // the upstream removal fix (stats-api PR #8): Beam 236/236, h7egy 25/25.
-  // "Registered active" includes seats whose prepaid balance has drained —
-  // still in the set, just not paying — which is exactly the gap between
-  // this board's sum and the fee-paying headline above it.
+  // live L1 sets: fee-paying seats per subnet from the validator-stats
+  // aggregate. Node-verified since the upstream fixes (stats-api PR #8:
+  // removal semantics; PR #9: balances net of continuous-fee burn, drained
+  // seats excluded) — the sum here now matches the fee-paying headline,
+  // and the "of N registered active" sub renders only if they ever drift.
   const liveSets = useMemo<LiveL1[] | null>(() => {
     if (!subnets) return null;
     const slugBySubnet = new Map<string, string>();
@@ -333,8 +332,8 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
           >
             ACP-77
           </Link>
-          ). A seat whose balance runs dry stays registered but goes inactive until topped back
-          up — the gap between the two seat figures. Staking mints; seats burn.
+          ). A seat whose balance runs dry stays registered but goes inactive — no longer counted
+          here — until topped back up. Staking mints; seats burn.
         </p>
       </div>
 
