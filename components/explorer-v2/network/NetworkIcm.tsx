@@ -22,11 +22,10 @@ import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import {
   Board,
   BoardHeader,
+  ChartBoard,
   HashChip,
-  SectionHeader,
   StatCell,
   StatFigure,
-  StatStrip,
 } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "@/components/explorer-v2/staking/bits";
 import { thin } from "@/components/explorer-v2/staking/data";
@@ -38,12 +37,16 @@ import { useIcmStats } from "@/app/(home)/stats/interchain-messaging/_hooks/useI
 import { useIcttStats } from "@/app/(home)/stats/interchain-messaging/_hooks/useIcttStats";
 import { useIcmFlows } from "@/app/(home)/stats/interchain-messaging/_hooks/useIcmFlows";
 
-/* The network-scope ICM facet, rebuilt in the drafting grammar. The old
+/* The network-scope ICM facet, rebuilt in the gas-page grammar. The old
    port carried the /stats page's furniture wholesale — rounded ChartCard,
    the starfield flow sankey, shadcn pie charts, a chain-category filter.
-   All of that is gone: one clock-driven bar chart in the EvmStats idiom,
-   ledger boards for chains / routes / tokens (share bars instead of pies),
-   and a hairline table for transfers. Data feeds are unchanged. */
+   All of that is gone: a lead board headlines the totals, then every
+   instrument lives in a fully-outlined ChartBoard — one clock-driven bar
+   chart, ledger boards for chains / routes / tokens (share bars instead of
+   pies), and a hairline table for transfers. The page's time window is
+   stated once, on the lead board; charts that follow the clock drop the
+   range suffix, and only fixed / all-time windows carry their own label.
+   Data feeds are unchanged. */
 
 const SHELL_INTRO =
   "Every ICM message and token transfer across the network: volume, routes, and the chains doing the talking. Per-chain message feeds live on each chain's own ICM tab.";
@@ -158,6 +161,16 @@ function LedgerEmpty({ label }: { label: string }) {
     <p className="px-5 py-8 text-center font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
       {label}
     </p>
+  );
+}
+
+/* the action-slot qualifier chip — the page clock, an all-time tag, or a
+   count, in the quiet mono voice every board header shares */
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+      {children}
+    </span>
   );
 }
 
@@ -285,24 +298,36 @@ export function NetworkIcm() {
   } else {
     body = (
       <div className="flex flex-col gap-10">
-        <StatStrip cols={3}>
-          <StatCell label={`Total ICM · ${RANGE_LABEL[range]}`}>
-            <StatFigure value={totalICMMessages} />
-          </StatCell>
-          <StatCell label="Latest Day ICM">
-            <StatFigure value={dailyICM} suffix={`avg ${formatNumber(avgDailyICM)}`} />
-          </StatCell>
-          <StatCell label="ICTT Transfers">
-            <StatFigure value={totalICTTTransfers} suffix={`${icttPercentage}% ICM`} />
-          </StatCell>
-        </StatStrip>
+        {/* the lead board: the page's three headline totals, and the one
+            place the time window is named (the ICM figures follow it; the
+            ICTT count is an all-time reading and says so in its own sub) */}
+        <Board divide={false} className="border">
+          <BoardHeader
+            label="Interchain Messaging"
+            display
+            action={<Chip>Last {RANGE_LABEL[range]}</Chip>}
+          />
+          <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-800">
+            <StatCell label="Total ICM">
+              <StatFigure value={totalICMMessages} />
+            </StatCell>
+            <StatCell label="Latest Day ICM">
+              <StatFigure value={dailyICM} suffix={`avg ${formatNumber(avgDailyICM)}`} />
+            </StatCell>
+            <StatCell
+              label="ICTT Transfers"
+              sub={icttData ? `all-time · ${icttPercentage}% of ICM` : "all-time"}
+            >
+              <StatFigure value={totalICTTTransfers} />
+            </StatCell>
+          </div>
+        </Board>
 
-        {/* the pulse: daily message volume on the page clock */}
-        <section className="flex flex-col gap-4">
-          <SectionHeader label={`Messages · ${RANGE_LABEL[range]}`} />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {volumeSeries.length ? (
-              <div className="h-44 text-zinc-900 dark:text-zinc-100">
+        {/* the pulse: daily message volume on the page clock (no range
+            suffix — the lead board's chip carries the window) */}
+        <ChartBoard label="Messages">
+          {volumeSeries.length ? (
+            <div className="h-44 text-zinc-900 dark:text-zinc-100">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={volumeSeries} barCategoryGap="22%">
                     <XAxis dataKey="date" hide />
@@ -340,20 +365,17 @@ export function NetworkIcm() {
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
-            ) : (
-              <ChartEmpty failed={!!metrics} label={metrics ? "No ICM activity" : "Loading…"} />
-            )}
-          </Board>
-        </section>
+          ) : (
+            <ChartEmpty failed={!!metrics} label={metrics ? "No ICM activity" : "Loading…"} />
+          )}
+        </ChartBoard>
 
         {/* who talks, and to whom — the leaderboard and the route ledger
             (the old flow sankey, flattened into rows) */}
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-          <section className="flex min-w-0 flex-col gap-4">
-            <SectionHeader label={`Top Chains · ${RANGE_LABEL[range]}`} />
-            <Board divide={false}>
-              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {topChains.length === 0 && <LedgerSkeleton />}
+          <ChartBoard label="Top Chains" bodyClassName="p-0" className="min-w-0">
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {topChains.length === 0 && <LedgerSkeleton />}
                 {topChains.map((chain, i) => {
                   const catalog = catalogByName.get(chain.name);
                   return (
@@ -374,17 +396,16 @@ export function NetworkIcm() {
                         </>
                       }
                     />
-                  );
-                })}
-              </div>
-            </Board>
-          </section>
+                );
+              })}
+            </div>
+          </ChartBoard>
 
-          <section className="flex min-w-0 flex-col gap-4">
-            <SectionHeader label="Top Routes · 30 Days" />
-            <Board divide={false}>
-              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {flowLoading && <LedgerSkeleton />}
+          {/* fixed 30-day upstream window — the one ledger that keeps its
+              own label, since it doesn't follow the page clock */}
+          <ChartBoard label="Top Routes · 30 days" bodyClassName="p-0" className="min-w-0">
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {flowLoading && <LedgerSkeleton />}
                 {!flowLoading && flowError && (
                   <div className="flex flex-col items-center gap-4 px-5 py-8 text-center">
                     <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
@@ -415,28 +436,27 @@ export function NetworkIcm() {
                       </>
                     }
                   />
-                ))}
-              </div>
-            </Board>
-          </section>
+              ))}
+            </div>
+          </ChartBoard>
         </div>
 
-        {/* token transfers: the ICTT instrument panel */}
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Token Transfers · ICTT" />
-          {icttError && !icttData ? (
-            <Board divide={false}>
-              <div className="flex flex-col items-center gap-4 px-5 py-10 text-center">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                  ICTT feed unavailable
-                </p>
-                <RetryButton onClick={retryIctt}>Retry</RetryButton>
-              </div>
-            </Board>
-          ) : (
-            <Board divide={false}>
-              <BoardHeader label="All-Time" />
-              <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+        {/* token transfers: the ICTT instrument panel. All-Time data, so it
+            carries its own qualifier chip instead of following the clock */}
+        {icttError && !icttData ? (
+          <Board divide={false} className="border">
+            <BoardHeader label="Token Transfers · ICTT" action={<Chip>All-Time</Chip>} />
+            <div className="flex flex-col items-center gap-4 px-5 py-10 text-center">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+                ICTT feed unavailable
+              </p>
+              <RetryButton onClick={retryIctt}>Retry</RetryButton>
+            </div>
+          </Board>
+        ) : (
+          <Board divide={false} className="border">
+            <BoardHeader label="Token Transfers · ICTT" action={<Chip>All-Time</Chip>} />
+            <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
                 <Stat
                   label="Transfers"
                   sub={
@@ -462,21 +482,25 @@ export function NetworkIcm() {
                   label="Top Token"
                   sub={icttData ? `${icttData.overview.topToken.percentage}% of transfers` : undefined}
                 >
-                  {icttData ? icttData.overview.topToken.name : "…"}
-                </Stat>
-              </div>
-            </Board>
-          )}
-        </section>
+                {icttData ? icttData.overview.topToken.name : "…"}
+              </Stat>
+            </div>
+          </Board>
+        )}
 
-        {/* what moves, and along which corridors — the two old pies as ledgers */}
+        {/* what moves, and along which corridors — the two old pies as
+            ledgers. Both read the all-time ICTT feed, so each carries its
+            own All-Time chip rather than the page clock */}
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-          <section className="flex min-w-0 flex-col gap-4">
-            <SectionHeader label="Tokens by Transfers" />
-            <Board divide={false}>
-              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {!icttData && <LedgerSkeleton />}
-                {icttData && topTokens.length === 0 && <LedgerEmpty label="No token data" />}
+          <ChartBoard
+            label="Tokens by Transfers"
+            bodyClassName="p-0"
+            className="min-w-0"
+            action={<Chip>All-Time</Chip>}
+          >
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {!icttData && <LedgerSkeleton />}
+              {icttData && topTokens.length === 0 && <LedgerEmpty label="No token data" />}
                 {topTokens.map((token) => (
                   <LedgerRow
                     key={token.address || token.symbol}
@@ -493,17 +517,19 @@ export function NetworkIcm() {
                       </>
                     }
                   />
-                ))}
-              </div>
-            </Board>
-          </section>
+              ))}
+            </div>
+          </ChartBoard>
 
-          <section className="flex min-w-0 flex-col gap-4">
-            <SectionHeader label="Routes by Transfers" />
-            <Board divide={false}>
-              <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {!icttData && <LedgerSkeleton />}
-                {icttData && icttRoutes.length === 0 && <LedgerEmpty label="No route data" />}
+          <ChartBoard
+            label="Routes by Transfers"
+            bodyClassName="p-0"
+            className="min-w-0"
+            action={<Chip>All-Time</Chip>}
+          >
+            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {!icttData && <LedgerSkeleton />}
+              {icttData && icttRoutes.length === 0 && <LedgerEmpty label="No route data" />}
                 {icttRoutes.map((route) => (
                   <LedgerRow
                     key={route.name}
@@ -515,26 +541,24 @@ export function NetworkIcm() {
                       </span>
                     }
                   />
-                ))}
-              </div>
-            </Board>
-          </section>
+              ))}
+            </div>
+          </ChartBoard>
         </div>
 
         {/* the raw ledger: per-contract transfer rows, paginated */}
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label="Top Transfers"
-            action={
-              icttData?.totalCount ? (
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  {icttData.transfers.length} of {icttData.totalCount.toLocaleString("en-US")}
-                </span>
-              ) : undefined
-            }
-          />
-          <Board divide={false} className="overflow-x-auto">
-            <table className="w-full min-w-[52rem] border-collapse">
+        <ChartBoard
+          label="Top Transfers"
+          bodyClassName="p-0 overflow-x-auto"
+          action={
+            icttData?.totalCount ? (
+              <Chip>
+                {icttData.transfers.length} of {icttData.totalCount.toLocaleString("en-US")}
+              </Chip>
+            ) : undefined
+          }
+        >
+          <table className="w-full min-w-[52rem] border-collapse">
               <thead>
                 <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
                   <th className={TH}>Route</th>
@@ -619,8 +643,7 @@ export function NetworkIcm() {
                 </RetryButton>
               </div>
             )}
-          </Board>
-        </section>
+        </ChartBoard>
       </div>
     );
   }

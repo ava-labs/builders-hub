@@ -1,10 +1,11 @@
 import Link from 'next/link';
-import { type ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { cn } from '@/utils/cn';
 
 /**
  * Chainlink-style dual-intent card for the Documentation mega-menu: one topic,
- * two exits — reference docs and the guided Academy track. Rendered as a
+ * two exits — reference docs plus the guided Academy track and/or the matching
+ * console tool. Rendered as a
  * fumadocs `type: 'custom'` menu item, so the root div is a direct child of
  * the popover grid and carries its own col/row placement classes. Styling
  * mirrors fumadocs' native menu cards (fd-* tokens) so mixed rows read as one
@@ -16,15 +17,29 @@ export function DocsLearnCard({
   description,
   docsHref,
   learnHref,
+  toolsHref,
+  links,
   className,
 }: {
   icon: ReactNode;
   title: string;
   description: string;
-  docsHref: string;
-  learnHref: string;
+  docsHref?: string;
+  /** guided Academy track; renders the "Academy" link */
+  learnHref?: string;
+  /** console tool; renders the "Tools" link */
+  toolsHref?: string;
+  /** custom labeled links; overrides the docs/learn/tools trio entirely */
+  links?: { label: string; href: string }[];
   className?: string;
 }) {
+  const items =
+    links ??
+    [
+      docsHref && { label: 'Docs', href: docsHref },
+      learnHref && { label: 'Academy', href: learnHref },
+      toolsHref && { label: 'Tools', href: toolsHref },
+    ].filter((l): l is { label: string; href: string } => Boolean(l));
   return (
     <div
       className={cn(
@@ -36,19 +51,17 @@ export function DocsLearnCard({
       <p className="text-base font-medium">{title}</p>
       <p className="text-sm text-fd-muted-foreground">{description}</p>
       <div className="mt-auto flex items-center gap-3 pt-1.5 text-sm font-medium">
-        <Link
-          href={docsHref}
-          className="text-fd-primary transition-colors hover:underline"
-        >
-          Docs
-        </Link>
-        <span aria-hidden className="h-3.5 w-px bg-fd-border" />
-        <Link
-          href={learnHref}
-          className="text-fd-primary transition-colors hover:underline"
-        >
-          Learn
-        </Link>
+        {items.map((link, i) => (
+          <Fragment key={link.href}>
+            {i > 0 && <span aria-hidden className="h-3.5 w-px bg-fd-border" />}
+            <Link
+              href={link.href}
+              className="text-fd-primary transition-colors hover:underline"
+            >
+              {link.label}
+            </Link>
+          </Fragment>
+        ))}
       </div>
     </div>
   );

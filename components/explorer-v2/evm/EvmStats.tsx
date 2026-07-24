@@ -1,8 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import {
   Bar,
   ComposedChart,
@@ -17,24 +15,28 @@ import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   ChartSection,
+  Delta,
   DualChart,
   OverlayKey,
   PUNCH,
   QUIET,
   fmtCompact,
   metricSeries,
-  num,
+  pctOf,
   useChainMetrics,
+  weekFloor,
+  windowPair,
   type DualPoint,
   type IcmPoint,
 } from "./metric-charts";
 
 /* The network-wide Stats surface (chainId="all") — the metrics sheet in
-   Boards on one shared clock. Every chart pairs its headline series with
-   the overlay that explains it (senders under addresses, TPS over
-   transactions, max gas price against the average). Per-chain, these
-   charts live on their subject tabs instead: Accounts, Transactions,
-   Gas, ICM. */
+   the gas page's grammar: a readings board on the shared clock with each
+   figure's move against the previous window, then outlined chart cards.
+   Every chart pairs its headline series with the overlay that explains it
+   (senders under addresses, TPS over transactions, max gas price against
+   the average). Per-chain, these charts live on their subject tabs
+   instead: Accounts, Transactions, Gas, ICM. */
 
 const METRICS = [
   "activeAddresses",
@@ -61,57 +63,66 @@ export function EvmStats({
   chainId: string;
   tokenSymbol?: string;
 }) {
-  // the page clock in the subnav — every chart and label below rides it
+  // the page clock in the subnav — every chart and figure below rides it
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
   const rangeLabel = RANGE_LABEL[clock];
-  const { metrics, failed } = useChainMetrics(chainId, range, METRICS);
+  // fetch double the window so every reading can face its previous window
+  const { metrics, failed } = useChainMetrics(chainId, Math.min(range * 2, 365), METRICS);
 
   const m = metrics ?? {};
   const series = (key: string, overlay?: string): DualPoint[] => metricSeries(m, range, key, overlay);
+  const win = (key: string, mode: "sum" | "avg" = "sum") => windowPair(m[key]?.data, range, mode);
 
   const icmSeries = useMemo(() => {
     const pts = metrics?.icmMessages?.data ?? [];
     return thin(
       windowSeries(
         [...pts].sort((a, b) => a.timestamp - b.timestamp),
-        range,
+        Math.max(7, range),
       ),
       200,
     );
   }, [metrics, range]);
 
-  const current = (key: string) => num(m[key]?.current_value);
-
+  // the readings row: the clock's window against the window before it —
+  // sums for volumes, means for rates. No per-cell window labels; the
+  // board header states it once.
   const strip: {
     label: string;
-    value: number | null;
+    pair: ReturnType<typeof win>;
     fmt?: (v: number) => string;
     sub?: string;
   }[] = [
     {
-      label: "Active Addresses · 24h",
-      value: current("activeAddresses"),
-      sub: current("activeSenders") !== null ? `${fmtCompact(current("activeSenders")!)} senders` : undefined,
+      label: "Transactions",
+      pair: win("txCount"),
+      sub: (() => {
+        const tps = win("avgTps", "avg");
+        return tps ? `avg ${tps.cur.toFixed(1)} TPS` : undefined;
+      })(),
     },
     {
-      label: "Transactions · 24h",
-      value: current("txCount"),
-      sub: current("avgTps") !== null ? `avg ${current("avgTps")!.toFixed(1)} TPS` : undefined,
+      label: "Active Addresses",
+      pair: win("activeAddresses", "avg"),
+      sub: range > 1 ? "daily avg" : undefined,
     },
     {
-      label: "Fees Paid · 24h",
-      value: current("feesPaid"),
+      label: "Fees Paid",
+      pair: win("feesPaid"),
       fmt: (v) => `${fmtCompact(v)} ${tokenSymbol}`,
-      sub:
-        current("avgGasPrice") !== null
-          ? `avg gas ${current("avgGasPrice")!.toFixed(2)} n${tokenSymbol}`
-          : undefined,
+      sub: (() => {
+        const gp = win("avgGasPrice", "avg");
+        return gp ? `avg gas ${gp.cur.toFixed(2)} n${tokenSymbol}` : undefined;
+      })(),
     },
     {
-      label: "Contracts Deployed · 24h",
-      value: current("contracts"),
-      sub: current("deployers") !== null ? `${fmtCompact(current("deployers")!)} deployers` : undefined,
+      label: "Contracts Deployed",
+      pair: win("contracts"),
+      sub: (() => {
+        const d = win("deployers");
+        return d ? `${fmtCompact(d.cur)} deployers` : undefined;
+      })(),
     },
   ];
 
@@ -125,14 +136,36 @@ export function EvmStats({
         </div>
       ) : (
         <div className="flex flex-col gap-10">
-          {/* the chain right now — latest full day */}
-          <Board divide={false}>
-            <BoardHeader label="Latest Day" />
+          {/* the window is stated once, up here — everything below follows
+              the same clock unless its label says otherwise */}
+          <Board divide={false} className="border">
+            <BoardHeader
+              label="Network Stats"
+              display
+              action={
+                <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                  Last {rangeLabel}
+                </span>
+              }
+            />
             <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
               {strip.map((s) => (
-                <Stat key={s.label} label={s.label} sub={s.sub}>
-                  {s.value !== null ? (
-                    (s.fmt ?? fmtCompact)(s.value)
+                <Stat
+                  key={s.label}
+                  label={s.label}
+                  sub={
+                    s.pair ? (
+                      <>
+                        {s.sub ? <>{s.sub} · </> : null}
+                        <Delta value={pctOf(s.pair)} />
+                      </>
+                    ) : (
+                      s.sub
+                    )
+                  }
+                >
+                  {s.pair !== null ? (
+                    (s.fmt ?? fmtCompact)(s.pair.cur)
                   ) : metrics ? (
                     <StatDash />
                   ) : (
@@ -146,7 +179,7 @@ export function EvmStats({
           {/* who's here */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection
-              label={`Active Addresses · ${rangeLabel}`}
+              label={`Active Addresses${weekFloor(range)}`}
               action={<OverlayKey label="senders" />}
             >
               {series("activeAddresses", "activeSenders").length ? (
@@ -163,7 +196,7 @@ export function EvmStats({
             </ChartSection>
 
             <ChartSection
-              label={`Transactions · ${rangeLabel}`}
+              label={`Transactions${weekFloor(range)}`}
               action={<OverlayKey label="avg tps" dashed />}
             >
               {series("txCount", "avgTps").length ? (
@@ -184,7 +217,7 @@ export function EvmStats({
 
           {/* the long arc */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-            <ChartSection label={`Total Addresses · ${rangeLabel}`}>
+            <ChartSection label={`Total Addresses${weekFloor(range)}`}>
               {series("cumulativeAddresses").length ? (
                 <DualChart
                   data={series("cumulativeAddresses")}
@@ -197,7 +230,7 @@ export function EvmStats({
               )}
             </ChartSection>
 
-            <ChartSection label={`Total Transactions · ${rangeLabel}`}>
+            <ChartSection label={`Total Transactions${weekFloor(range)}`}>
               {series("cumulativeTxCount").length ? (
                 <DualChart
                   data={series("cumulativeTxCount")}
@@ -214,7 +247,7 @@ export function EvmStats({
           {/* what's being built, and what it burns */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection
-              label={`Contracts Deployed · ${rangeLabel}`}
+              label={`Contracts Deployed${weekFloor(range)}`}
               action={<OverlayKey label="deployers" dashed />}
             >
               {series("contracts", "deployers").length ? (
@@ -231,7 +264,7 @@ export function EvmStats({
               )}
             </ChartSection>
 
-            <ChartSection label={`Gas Used · ${rangeLabel}`}>
+            <ChartSection label={`Gas Used${weekFloor(range)}`}>
               {series("gasUsed").length ? (
                 <DualChart data={series("gasUsed")} kind="bars" fmt={fmtCompact} aLabel="gas" />
               ) : (
@@ -242,7 +275,7 @@ export function EvmStats({
 
           {/* the price of blockspace */}
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-            <ChartSection label={`Fees Paid · ${rangeLabel}`}>
+            <ChartSection label={`Fees Paid${weekFloor(range)}`}>
               {series("feesPaid").length ? (
                 <DualChart
                   data={series("feesPaid")}
@@ -256,7 +289,7 @@ export function EvmStats({
             </ChartSection>
 
             <ChartSection
-              label={`Gas Price · ${rangeLabel}`}
+              label={`Gas Price${weekFloor(range)}`}
               action={<OverlayKey label="daily max" dashed />}
               note={`Average price paid per gas unit in n${tokenSymbol}; the dashed line is each day's spike, on its own scale.`}
             >
@@ -276,17 +309,19 @@ export function EvmStats({
             </ChartSection>
           </div>
 
-          {/* cross-chain traffic */}
+          {/* cross-chain traffic — the whole card doors into the observatory */}
           <ChartSection
-            label={`Interchain Messages · ${rangeLabel}`}
+            label={`Interchain Messages${weekFloor(range)}`}
+            href="/explorer/mainnet/icm"
             action={
-              <Link
-                href="/explorer/mainnet/icm"
-                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-              >
-                ICM observatory
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-              </Link>
+              <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-4 bg-[#A2AFB2]/80" /> received
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-4 bg-[#E6212F]/75" /> sent
+                </span>
+              </span>
             }
           >
             {icmSeries.length ? (

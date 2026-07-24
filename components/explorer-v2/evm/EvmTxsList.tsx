@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { MethodChip } from "./bits";
@@ -18,6 +18,7 @@ import {
   OverlayKey,
   fmtCompact,
   metricSeries,
+  weekFloor,
   useChainMetrics,
 } from "./metric-charts";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -43,7 +44,6 @@ export function EvmTxsList({ network }: { network: string }) {
   // on the page clock
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
   const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
   const m = metrics ?? {};
 
@@ -112,7 +112,7 @@ export function EvmTxsList({ network }: { network: string }) {
       {/* the shape of the feed over time — absorbed from the old Stats tab */}
       <div className="mt-10 grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartSection
-          label={`Transactions · ${rangeLabel}`}
+          label={`Transactions${weekFloor(range)}`}
           action={<OverlayKey label="avg tps" dashed />}
         >
           {metricSeries(m, range, "txCount", "avgTps").length ? (
@@ -130,7 +130,7 @@ export function EvmTxsList({ network }: { network: string }) {
           )}
         </ChartSection>
 
-        <ChartSection label={`Total Transactions · ${rangeLabel}`}>
+        <ChartSection label={`Total Transactions${weekFloor(range)}`}>
           {metricSeries(m, range, "cumulativeTxCount").length ? (
             <DualChart
               data={metricSeries(m, range, "cumulativeTxCount")}
