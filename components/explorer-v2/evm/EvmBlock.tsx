@@ -10,6 +10,7 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatGwei, gasUsedPct } from "./format";
@@ -37,9 +38,14 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader label="Block" />
+            <SubjectHeadline
+              prefix="Height"
+              value={String(b.number)}
+              display={`#${formatNumber(b.number)}`}
+              copyLabel="Copy block number"
+            />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Height">#{formatNumber(b.number)}</SpecRow>
                 <SpecRow label="Hash">
                   <HashChip value={b.hash} len={64} />
                 </SpecRow>

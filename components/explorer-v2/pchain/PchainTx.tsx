@@ -21,6 +21,7 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
   TxTypePill,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
@@ -88,18 +89,21 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
         ))}
       {tx && (
         <div className="flex flex-col gap-10">
+          {/* headline hero, full-width above both rails */}
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Transaction" action={<TxTypePill type={tx.txType} />} />
+            <SubjectHeadline value={tx.txHash} copyLabel="Copy transaction hash" />
+          </section>
+
           {/* identity on the left, type-specific context on the right;
               the fund flow runs full-width below both rails */}
           <div className={hasContext ? "grid items-start gap-x-8 gap-y-10 lg:grid-cols-2" : "flex flex-col gap-10"}>
           <div className="flex flex-col gap-10">
           {/* Overview */}
           <section className="flex flex-col gap-4">
-            <SectionHeader label="Transaction" action={<TxTypePill type={tx.txType} />} />
+            <SectionHeader label="Overview" />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Hash">
-                  <HashChip value={tx.txHash} len={64} />
-                </SpecRow>
                 <SpecRow label="Type">{tx.txType}</SpecRow>
                 {/* a CreateSubnetTx's ID IS the subnet ID; a CreateChainTx's
                     ID IS the blockchain ID — surface the identity, don't make
