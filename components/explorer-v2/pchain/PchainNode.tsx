@@ -136,15 +136,20 @@ export function PchainNode({
   const validationPayout = identity?.validationRewardOwner ?? identity?.rewardOwner;
   const delegationPayout = identity?.delegationRewardOwner ?? identity?.rewardOwner;
 
-  // L1-only validators never stake on the Primary Network, so the indexer
-  // 404s on them. With a subnet hint we go straight to the node:
+  // L1-only validators never stake on the Primary Network. The subnet can
+  // arrive two ways: a ?subnet= hint on the link, or — since the indexer
+  // learned to return L1-only nodes — the node document's own validations.
+  // Either way we go straight to the node for the rich seat view:
   // platform.getCurrentValidators({subnetID, nodeIDs}).
+  const l1Subnet = subnetHint ?? n?.validations?.find((v) => v.kind === "l1")?.subnetId;
+  // no snapshot, no staking history: the L1 seat IS this node's story
+  const l1Only = !!n && !n.hasSnapshot && (n.history?.length ?? 0) === 0;
   const [l1, setL1] = useState<CurrentValidator | null>(null);
   const [l1Checked, setL1Checked] = useState(false);
   useEffect(() => {
-    if (!error || !subnetHint) return;
+    if (!(error || l1Only) || !l1Subnet) return;
     let cancelled = false;
-    getCurrentValidators(network, subnetHint, [nodeId]).then((vs) => {
+    getCurrentValidators(network, l1Subnet, [nodeId]).then((vs) => {
       if (cancelled) return;
       setL1(vs?.[0] ?? null);
       setL1Checked(true);
@@ -152,7 +157,7 @@ export function PchainNode({
     return () => {
       cancelled = true;
     };
-  }, [error, subnetHint, network, nodeId]);
+  }, [error, l1Only, l1Subnet, network, nodeId]);
 
   const [showAllDelegators, setShowAllDelegators] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -180,27 +185,35 @@ export function PchainNode({
   return (
     <ExplorerShell chain={chain} network={network}>
       {loading && <DetailSkeleton label="Validator" />}
-      {error && subnetHint && !l1Checked && <DetailSkeleton label="Validator" />}
-      {error && (!subnetHint || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
-      {error && l1 && <L1ValidatorView nodeId={nodeId} subnetId={subnetHint!} v={l1} base={base} />}
-      {n && (
+      {(error || l1Only) && l1Subnet && !l1Checked && <DetailSkeleton label="Validator" />}
+      {error && (!l1Subnet || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
+      {(error || l1Only) && l1 && l1Subnet && (
+        <L1ValidatorView nodeId={nodeId} subnetId={l1Subnet} v={l1} base={base} />
+      )}
+      {/* the L1-only doc renders the seat view above; fall back to the
+          indexer document only if the RPC no longer knows the seat */}
+      {n && (!l1Only || (l1Checked && !l1)) && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader
               label="Node"
               action={
-                <span
-                  className={`inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${
-                    n.validator.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
-                  }`}
-                >
+                // connection state comes from the Primary Network snapshot —
+                // without one it's a zero value, not a real "Offline"
+                n.hasSnapshot ? (
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      n.validator.connected ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"
+                    className={`inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${
+                      n.validator.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
                     }`}
-                  />
-                  {n.validator.connected ? "Connected" : "Offline"}
-                </span>
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        n.validator.connected ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"
+                      }`}
+                    />
+                    {n.validator.connected ? "Connected" : "Offline"}
+                  </span>
+                ) : undefined
               }
             />
             <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
