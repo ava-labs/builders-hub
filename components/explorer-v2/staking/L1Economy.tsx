@@ -225,11 +225,12 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
       ? (l1Seats / (l1Seats + primarySeats)) * 100
       : null;
 
-  // live L1 sets: active seats per subnet from the validator-stats
-  // aggregate (indexer rows, weight- and balance-filtered), named by the
-  // same feed. Per-set counts match the node for healthy sets; sets in
-  // wind-down can lag until the upstream removal bug is fixed, which is
-  // why no total is summed anywhere on this board.
+  // live L1 sets: registered-active seats per subnet from the
+  // validator-stats aggregate, named by the same feed. Node-verified since
+  // the upstream removal fix (stats-api PR #8): Beam 236/236, h7egy 25/25.
+  // "Registered active" includes seats whose prepaid balance has drained —
+  // still in the set, just not paying — which is exactly the gap between
+  // this board's sum and the fee-paying headline above it.
   const liveSets = useMemo<LiveL1[] | null>(() => {
     if (!subnets) return null;
     const slugBySubnet = new Map<string, string>();
@@ -253,6 +254,13 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
   const burnPerDay =
     feePrice !== null && l1Seats !== null ? (feePrice * l1Seats * SECONDS_PER_DAY) / NANO : null;
 
+  // registered-active seats across all live sets — the fee-paying headline's
+  // wider circle (drained seats stay registered until removed)
+  const registeredSeats = useMemo(
+    () => (liveSets ? liveSets.reduce((s, l) => s + l.seats, 0) : null),
+    [liveSets],
+  );
+
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-4">
@@ -274,9 +282,9 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
             <Stat
               label="L1 Validator Seats"
               sub={
-                liveSets
-                  ? `active · fee-paying, across ${liveSets.length} live L1s`
-                  : "active · fee-paying"
+                registeredSeats !== null && l1Seats !== null && registeredSeats > l1Seats
+                  ? `fee-paying · of ${registeredSeats.toLocaleString("en-US")} registered active`
+                  : "fee-paying"
               }
             >
               {l1Seats !== null ? l1Seats.toLocaleString("en-US") : <StatDash />}
@@ -325,7 +333,8 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
           >
             ACP-77
           </Link>
-          ). Staking mints; seats burn.
+          ). A seat whose balance runs dry stays registered but goes inactive until topped back
+          up — the gap between the two seat figures. Staking mints; seats burn.
         </p>
       </div>
 
@@ -344,9 +353,9 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
         <ChartBoard
           label="Active Seats by L1"
           action={
-            liveSets ? (
+            liveSets && registeredSeats !== null ? (
               <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {liveSets.length.toLocaleString("en-US")} live sets
+                {registeredSeats.toLocaleString("en-US")} seats · {liveSets.length} sets
               </span>
             ) : undefined
           }
