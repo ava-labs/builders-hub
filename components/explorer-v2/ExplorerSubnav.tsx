@@ -312,13 +312,22 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
       { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
     ];
-    // the staking observatory's feeds are mainnet-only
+    // the staking + L1-economy feeds are mainnet-only
     if (network === "mainnet") {
-      tabs.push({
-        label: "Staking",
-        href: `${base}/staking`,
-        isActive: (p) => p.startsWith(`${base}/staking`),
-      });
+      tabs.push(
+        {
+          label: "Staking",
+          href: `${base}/staking`,
+          isActive: (p) => p.startsWith(`${base}/staking`),
+        },
+        // the OTHER validator economy: ACP-77 seats burn where staking
+        // mints — different money, different tab
+        {
+          label: "L1s",
+          href: `${base}/l1s`,
+          isActive: (p) => p.startsWith(`${base}/l1s`),
+        },
+      );
     }
     tabs.push({
       label: "Validators",

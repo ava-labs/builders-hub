@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
@@ -181,6 +182,17 @@ function SeatsByL1({ sets, network }: { sets: LiveL1[]; network: string }) {
         </Link>
       )}
     </div>
+  );
+}
+
+/* The P-Chain's L1s tab: the seat economy as its own page. Lived inside
+   the Staking page briefly — but staking and seats are different economies
+   (one mints, one burns), and each deserves its own door in the subnav. */
+export function PchainL1s({ chain, network }: { chain: string; network: string }) {
+  return (
+    <ExplorerShell chain={chain} network={network}>
+      <L1Economy network={network} />
+    </ExplorerShell>
   );
 }
 

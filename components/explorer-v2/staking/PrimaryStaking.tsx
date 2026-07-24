@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils";
 import { Board, BoardHeader, ChartBoard, StatCell, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
-import { L1Economy } from "./L1Economy";
 import {
   NANO,
   fmtCompact,
@@ -534,7 +533,6 @@ export function PrimaryStakingContent({
   validatorsHref,
   base,
   network = "mainnet",
-  includeL1 = false,
 }: {
   validatorsHref: string;
   /** the staking tab's own path — every ChartBoard doors into its metric
@@ -542,9 +540,6 @@ export function PrimaryStakingContent({
   base?: string;
   /** the staking feeds watch mainnet; both mounts guard the route already */
   network?: string;
-  /** the P-Chain mount adds the ACP-77 seat economy; the C-Chain tab
-   *  stays purely Primary Network */
-  includeL1?: boolean;
 }) {
   const door = (metric: string) => (base ? `${base}/${metric}` : undefined);
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
@@ -955,10 +950,6 @@ export function PrimaryStakingContent({
           )}
         </ChartBoard>
       </div>
-
-      {/* the P-Chain page carries the network's OTHER validator economy —
-          ACP-77 L1 seats, which burn instead of mint */}
-      {includeL1 && <L1Economy network={network} />}
 
       {/* how the stake spreads across the current set — two snapshots of the
           live set, each with its reading below (· current set is the honest
