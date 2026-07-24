@@ -119,13 +119,13 @@ interface LiveL1 {
   name: string;
   logo?: string;
   slug?: string;
-  nodes: number;
+  seats: number;
 }
 
 /* where the seats actually run — proportional bars over the live sets */
 function SeatsByL1({ sets, network }: { sets: LiveL1[]; network: string }) {
-  const max = sets[0]?.nodes ?? 1;
-  const total = sets.reduce((s, l) => s + l.nodes, 0);
+  const max = sets[0]?.seats ?? 1;
+  const total = sets.reduce((s, l) => s + l.seats, 0);
   const visible = sets.slice(0, LEADERBOARD_CAP);
   return (
     <div className="flex flex-col">
@@ -145,13 +145,13 @@ function SeatsByL1({ sets, network }: { sets: LiveL1[]; network: string }) {
             <span className="relative h-2 min-w-0 flex-1 bg-zinc-100 dark:bg-zinc-900">
               <span
                 className="absolute inset-y-0 left-0 bg-[#0061E2]/60"
-                style={{ width: `${(l.nodes / max) * 100}%` }}
+                style={{ width: `${(l.seats / max) * 100}%` }}
               />
             </span>
             <span className="w-20 shrink-0 text-right font-mono text-[11px] tabular-nums text-zinc-700 dark:text-zinc-300">
-              {l.nodes.toLocaleString("en-US")}
+              {l.seats.toLocaleString("en-US")}
               <span className="ml-1 text-zinc-400 dark:text-zinc-600">
-                {total > 0 ? `${Math.round((l.nodes / total) * 100)}%` : ""}
+                {total > 0 ? `${Math.round((l.seats / total) * 100)}%` : ""}
               </span>
             </span>
           </>
@@ -190,8 +190,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
   const { subnets, error: setsFailed } = useValidatorStats(network);
   // one indexer snapshot carries both counts, so the share can't skew:
   // l1ValidatorCount is the ACTIVE (fee-paying) seats registered on the
-  // P-Chain — the number the burn math is honest against. The P2P feed
-  // below counts connected nodes instead, which outlives a drained balance.
+  // P-Chain — the number the burn math is honest against
   const { data: chainStats } = usePchainData<Stats>(network, "stats");
 
   const clock = useExplorerTimeRange();
@@ -226,7 +225,11 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
       ? (l1Seats / (l1Seats + primarySeats)) * 100
       : null;
 
-  // live L1 sets (connected validators right now), named by the same feed
+  // live L1 sets: active seats per subnet from the validator-stats
+  // aggregate (indexer rows, weight- and balance-filtered), named by the
+  // same feed. Per-set counts match the node for healthy sets; sets in
+  // wind-down can lag until the upstream removal bug is fixed, which is
+  // why no total is summed anywhere on this board.
   const liveSets = useMemo<LiveL1[] | null>(() => {
     if (!subnets) return null;
     const slugBySubnet = new Map<string, string>();
@@ -240,10 +243,10 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
         name: s.name,
         logo: s.chainLogoURI,
         slug: slugBySubnet.get(s.id),
-        nodes: Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0),
+        seats: Object.values(s.byClientVersion ?? {}).reduce((sum, v) => sum + v.nodes, 0),
       }))
-      .filter((s) => s.nodes > 0)
-      .sort((a, b) => b.nodes - a.nodes);
+      .filter((s) => s.seats > 0)
+      .sort((a, b) => b.seats - a.seats);
   }, [subnets]);
 
   const perSeatMonth = feePrice !== null ? (feePrice * SECONDS_PER_MONTH) / NANO : null;
@@ -338,15 +341,12 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
           {seatSeries.length ? <SeatsChart data={seatSeries} /> : <ChartEmpty failed={seatsFailed} />}
         </ChartBoard>
 
-        {/* the P2P view: nodes connected and validating each set right now.
-            Deliberately NOT called seats — a node keeps running after its
-            seat's balance drains, so this counts infrastructure, not fees */}
         <ChartBoard
-          label="Validators by L1 · connected now"
+          label="Active Seats by L1"
           action={
             liveSets ? (
               <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {liveSets.reduce((s, l) => s + l.nodes, 0).toLocaleString("en-US")} connected
+                {liveSets.length.toLocaleString("en-US")} live sets
               </span>
             ) : undefined
           }
