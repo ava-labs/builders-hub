@@ -148,14 +148,14 @@ export const explorerMenu: LinkItemType = {
       text: "Block Explorer",
       url: "/explorer",
       description:
-      "Explore blocks, transactions, and addresses across Avalanche L1s.",
+      "Search any block, tx, address, or node across the P-Chain, C-Chain, and every L1.",
     },
     {
       icon: <Network />,
-      text: "P-Chain Explorer",
-      url: "/explorer/mainnet/p-chain",
+      text: "L1 Explorers",
+      url: "/explorer/mainnet/chains",
       description:
-      "Blocks, transactions, UTXOs, validators, and staking on the Avalanche P-Chain.",
+      "Blocks, transactions, and addresses on the C-Chain and every Avalanche L1.",
     },
     {
       icon: <DraftingCompass />,
@@ -166,10 +166,10 @@ export const explorerMenu: LinkItemType = {
     },
     {
       icon: <Logs />,
-      text: "Avalanche L1 Stats",
-      url: "/stats/overview",
+      text: "All Networks",
+      url: "/explorer/mainnet",
       description:
-      "The latest metrics for every Avalanche L1 in the network.",
+      "Live activity, ICM, validators, and AVAX across every Avalanche chain.",
     },
     {
       icon: <Network />,
@@ -181,16 +181,16 @@ export const explorerMenu: LinkItemType = {
     {
       icon: <Hexagon />,
       text: "Primary Network Validators",
-      url: "/stats/validators/c-chain",
+      url: "/explorer/mainnet/c-chain/validators",
       description:
       "The latest metrics for Primary Network validators.",
     },
     {
       icon: <Flame />,
-      text: <span className="inline-flex items-center gap-2">AVAX Burners<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
-      url: "/stats/dapps/treemap",
+      text: <span className="inline-flex items-center gap-2">Gas Market<span className="text-[10px] font-bold uppercase tracking-wider bg-red-500 text-white px-1.5 py-0.5 rounded">New</span></span>,
+      url: "/explorer/mainnet/c-chain/gas",
       description:
-      "Which protocols burn the most AVAX on the C-Chain.",
+      "The C-Chain gas market: live fees, history, and who burns the most.",
     },
     {
       icon: <Bell />,
@@ -215,8 +215,10 @@ export const docsMenu: LinkItemType = {
           icon={<Sprout />}
           title='Primary Network'
           description='Connect to Avalanche and start building dApps.'
-          docsHref='/docs/primary-network'
-          learnHref='/academy?path=blockchain'
+          links={[
+            { label: 'Docs', href: '/docs/primary-network' },
+            { label: 'Stake AVAX', href: '/console/primary-network/stake' },
+          ]}
         />
       ),
     },
@@ -229,7 +231,7 @@ export const docsMenu: LinkItemType = {
           title='Avalanche L1s'
           description='Launch and customize your own Avalanche L1 blockchain.'
           docsHref='/docs/avalanche-l1s'
-          learnHref='/academy?path=avalanche-l1'
+          learnHref='/academy/avalanche-l1'
         />
       ),
     },
@@ -254,8 +256,10 @@ export const docsMenu: LinkItemType = {
           icon={<Computer />}
           title='Nodes & Validators'
           description='Set up, configure, and maintain Avalanche nodes and validators.'
-          docsHref='/docs/nodes'
-          learnHref='/academy/avalanche-l1/permissionless-l1s'
+          links={[
+            { label: 'Docs', href: '/docs/nodes' },
+            { label: 'L1 Node Setup', href: '/console/layer-1/l1-node-setup' },
+          ]}
         />
       ),
     },
@@ -277,8 +281,10 @@ export const docsMenu: LinkItemType = {
           icon={<Code />}
           title='Developer Tools'
           description='Explore the Avalanche SDKs, CLI, and more.'
-          docsHref='/docs/tooling'
-          learnHref='/academy/blockchain/solidity-foundry'
+          links={[
+            { label: 'SDK', href: '/docs/tooling/avalanche-sdk' },
+            { label: 'Platform CLI', href: '/docs/tooling/platform-cli' },
+          ]}
         />
       ),
     },

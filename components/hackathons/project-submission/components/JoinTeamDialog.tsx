@@ -12,6 +12,7 @@ import { EventsLang, t } from "@/lib/events/i18n";
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { MemberStatus } from "@/types/project";
 
 interface JoinTeamDialogProps {
   open: boolean;
@@ -50,7 +51,7 @@ export const JoinTeamDialog = ({
       wasActionTaken.current = true;
       const response = await axios.patch(`/api/project/${projectId}/members/status`, {
         user_id: currentUserId,
-        status: "Confirmed",
+        status: MemberStatus.CONFIRMED,
       });
 
       if (response.status === 200) {

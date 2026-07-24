@@ -22,7 +22,7 @@ export function formatNumber(n: number | undefined): string {
 
 export function timeAgo(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
-  const s = Math.floor(Date.now() / 1000) - unixSecs;
+  const s = Math.floor(Date.now() / 1000 - unixSecs);
   if (s < 0) return "in the future";
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;

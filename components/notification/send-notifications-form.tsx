@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useGetHackathons } from "@/hooks/use-get-hackathons";
 import { sendNotifications } from "@/utils/send-notification";
 import type { Notification } from "@/types/notifications";
+import { isValidEmail } from "@/lib/email";
 
 type NotificationTypeValue = "message" | "courseCompleted";
 type ContentTypeValue = "text/plain" | "text/markdown" | "text/html";
@@ -84,7 +85,6 @@ function renderMarkdown(src: string): string {
   return html;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface Draft {
   title: string;
@@ -135,7 +135,7 @@ export default function SendNotificationsForm({
     return draft.customEmailsRaw
       .split(/[\s,;\n]+/)
       .map((s) => s.trim())
-      .filter((s) => EMAIL_RE.test(s));
+      .filter((s) => isValidEmail(s));
   }, [draft.customEmailsRaw]);
 
   const filteredHacks = useMemo(() => {

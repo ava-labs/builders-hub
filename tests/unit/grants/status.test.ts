@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { deriveStatus } from "@/lib/grants/status";
 
 describe("deriveStatus", () => {
@@ -16,5 +16,12 @@ describe("deriveStatus", () => {
   });
   it("is submitted with no verdict and no evaluations", () => {
     expect(deriveStatus(null, 0)).toBe("submitted");
+  });
+  it("falls through and reports an unrecognized verdict rather than guessing", () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(deriveStatus("definitely-fund-this", 2)).toBe("under_review");
+    expect(deriveStatus("definitely-fund-this", 0)).toBe("submitted");
+    expect(err).toHaveBeenCalledTimes(2);
+    err.mockRestore();
   });
 });

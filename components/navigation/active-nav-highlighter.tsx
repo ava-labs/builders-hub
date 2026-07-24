@@ -7,8 +7,10 @@ export function ActiveNavHighlighter() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Scoped to the site navbar (#nd-nav): in-page navs (explorer rail,
+    // docs subnav) manage their own active state and must not be stamped.
     // Remove all active states first
-    const allNavLinks = document.querySelectorAll('nav a, nav button');
+    const allNavLinks = document.querySelectorAll('#nd-nav a, #nd-nav button');
     allNavLinks.forEach((link) => {
       link.removeAttribute('data-active');
       link.removeAttribute('aria-current');
@@ -43,7 +45,7 @@ export function ActiveNavHighlighter() {
 
     if (activeSection) {
       // Find nav links that match the active section
-      const navLinks = document.querySelectorAll('nav a, nav button');
+      const navLinks = document.querySelectorAll('#nd-nav a, #nd-nav button');
       navLinks.forEach((link) => {
         const href = link.getAttribute('href');
         if (href) {
