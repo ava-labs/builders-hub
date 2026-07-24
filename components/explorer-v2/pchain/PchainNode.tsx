@@ -144,6 +144,19 @@ export function PchainNode({
   const l1Subnet = subnetHint ?? n?.validations?.find((v) => v.kind === "l1")?.subnetId;
   // no snapshot, no staking history: the L1 seat IS this node's story
   const l1Only = !!n && !n.hasSnapshot && (n.history?.length ?? 0) === 0;
+  // the document's own l1 validation, shaped like the RPC record — the
+  // render fallback when the RPC can't answer (rate limit, outage). The
+  // page must never go blank while holding the seat data in hand.
+  const l1FromDoc = useMemo<CurrentValidator | null>(() => {
+    const v = n?.validations?.find((x) => x.kind === "l1");
+    if (!v) return null;
+    return {
+      nodeID: nodeId,
+      weight: String(v.weight),
+      balance: v.balance !== undefined ? String(v.balance) : undefined,
+      validationID: v.validationId,
+    };
+  }, [n, nodeId]);
   const [l1, setL1] = useState<CurrentValidator | null>(null);
   const [l1Checked, setL1Checked] = useState(false);
   useEffect(() => {
@@ -187,12 +200,22 @@ export function PchainNode({
       {loading && <DetailSkeleton label="Validator" />}
       {(error || l1Only) && l1Subnet && !l1Checked && <DetailSkeleton label="Validator" />}
       {error && (!l1Subnet || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
-      {(error || l1Only) && l1 && l1Subnet && (
-        <L1ValidatorView nodeId={nodeId} subnetId={l1Subnet} v={l1} base={base} />
+      {/* the seat view: the RPC record when the node answered, the doc's
+          own copy when it couldn't — a rate-limited RPC must not blank a
+          page whose data is already in hand */}
+      {(error || l1Only) && l1Checked && l1Subnet && (l1 ?? l1FromDoc) && (
+        <L1ValidatorView
+          nodeId={nodeId}
+          subnetId={l1Subnet}
+          v={(l1 ?? l1FromDoc)!}
+          live={!!l1}
+          base={base}
+        />
       )}
-      {/* the L1-only doc renders the seat view above; fall back to the
-          indexer document only if the RPC no longer knows the seat */}
-      {n && (!l1Only || (l1Checked && !l1)) && (
+      {/* nodes with staking history (or no l1 seat at all) keep the full
+          indexer document view — including the corner where a subnet hint
+          exists but neither the RPC nor the doc could produce a seat */}
+      {n && (!l1Only || !l1Subnet || (l1Checked && !l1 && !l1FromDoc)) && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader
@@ -693,11 +716,14 @@ function L1ValidatorView({
   nodeId,
   subnetId,
   v,
+  live = true,
   base,
 }: {
   nodeId: string;
   subnetId: string;
   v: CurrentValidator;
+  /** false when the record came from the indexer snapshot instead of the node */
+  live?: boolean;
   base: string;
 }) {
   return (
@@ -707,7 +733,7 @@ function L1ValidatorView({
           label="Node"
           action={
             <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              L1 validator · live from P-Chain
+              {live ? "L1 validator · live from P-Chain" : "L1 validator · indexer snapshot"}
             </span>
           }
         />
