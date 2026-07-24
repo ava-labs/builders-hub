@@ -47,12 +47,21 @@ export function useEvmData<T>(
     setLoading(true);
     setError(null);
 
+    // Every request carries a deadline: a fetch that never settles (laptop
+    // sleep mid-request, a proxy socket that never closes) would otherwise
+    // end the poll chain silently — the list freezes and visibly ages while
+    // the rest of the page keeps re-rendering.
+    const pollSignal = () => AbortSignal.any([controller.signal, AbortSignal.timeout(15_000)]);
+
     // silent background refresh: stale data stands on any failure, and the
     // tab pauses polling while hidden so a parked explorer doesn't hammer
     // the (shared, small) upstream API.
+    let inFlight = false;
     const refresh = async () => {
+      if (inFlight) return;
+      inFlight = true;
       try {
-        const res = await fetch(key, { signal: controller.signal });
+        const res = await fetch(key, { signal: pollSignal() });
         if (res.ok) {
           setData((await res.json()) as T);
           setError(null);
@@ -60,14 +69,26 @@ export function useEvmData<T>(
       } catch {
         /* keep showing the last good payload */
       }
+      inFlight = false;
       if (!controller.signal.aborted && refreshMs > 0) schedule();
     };
+    let live = false;
     const schedule = () => {
+      live = true;
       timer = setTimeout(() => {
         if (document.visibilityState === "hidden") schedule();
         else void refresh();
       }, refreshMs);
     };
+    // hidden-tab timers are heavily throttled — on return, poll NOW rather
+    // than leaving minutes-old rows on screen until the next tick lands
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && live && !controller.signal.aborted) {
+        if (timer) clearTimeout(timer);
+        void refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     // a 404 with retry404Ms is usually the indexer trailing the chain by
     // seconds on a fresh tx — keep re-asking until the window closes.
@@ -75,7 +96,7 @@ export function useEvmData<T>(
       timer = setTimeout(async () => {
         if (controller.signal.aborted) return;
         try {
-          const res = await fetch(key, { signal: controller.signal });
+          const res = await fetch(key, { signal: pollSignal() });
           if (res.ok) {
             setData((await res.json()) as T);
             setError(null);
@@ -95,7 +116,7 @@ export function useEvmData<T>(
       let notFound = false;
       for (let attempt = 0; attempt < 3; attempt++) {
         try {
-          const res = await fetch(key, { signal: controller.signal });
+          const res = await fetch(key, { signal: pollSignal() });
           if (res.status === 404) throw new Error("not found");
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           setData((await res.json()) as T);
@@ -123,6 +144,7 @@ export function useEvmData<T>(
 
     return () => {
       controller.abort();
+      document.removeEventListener("visibilitychange", onVisible);
       if (timer) clearTimeout(timer);
     };
   }, [key, refreshMs, retry404Ms, nonce]);
