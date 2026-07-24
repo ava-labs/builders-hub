@@ -29,6 +29,8 @@ const DAILY_WINDOW_DAYS = 14;
 // The staking money-flow charts read better with a wider window: 30 bars
 // of rewards behind, 30 of unlocks ahead.
 const STAKING_WINDOW_DAYS = 30;
+/** windows the staking money-flow feed serves (past rewards / future unlocks) */
+export type PchainStakingDays = 30 | 90 | 365;
 
 type L1ChainEntry = {
   chainId: string;
@@ -356,7 +358,7 @@ export interface PchainStakingSeries {
 const REWARD_AMOUNT_EXPR =
   "reinterpretAsUInt64(reverse(substring(utxo_bytes, 75, 8)))";
 
-function sqlPchainDailyRewards(networkId: number): string {
+function sqlPchainDailyRewards(networkId: number, days: PchainStakingDays): string {
   return `
     SELECT
       toDate(block_time) AS day,
@@ -364,7 +366,7 @@ function sqlPchainDailyRewards(networkId: number): string {
       toString(round(sum(${REWARD_AMOUNT_EXPR}) / 1e9, 2)) AS avax
     FROM raw_p_reward_utxos
     WHERE chain_id = ${networkId}
-      AND block_time >= toDate(now() - INTERVAL ${STAKING_WINDOW_DAYS} DAY)
+      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -373,7 +375,7 @@ function sqlPchainDailyRewards(networkId: number): string {
 
 // Primary Network subnet id is 32 zero bytes; L1/subnet validators don't
 // carry meaningful end_times, so unlocks are primary-only by construction.
-function sqlPchainUnlocks(networkId: number, table: string, amountCol: string): string {
+function sqlPchainUnlocks(networkId: number, table: string, amountCol: string, days: PchainStakingDays): string {
   const subnetFilter =
     table === "p_validator_snapshots"
       ? "AND subnet_id = toFixedString(unhex(repeat('00', 32)), 32)"
@@ -388,7 +390,7 @@ function sqlPchainUnlocks(networkId: number, table: string, amountCol: string): 
       AND snapshot_time = (SELECT max(snapshot_time) FROM ${table} WHERE chain_id = ${networkId})
       ${subnetFilter}
       AND end_time >= now()
-      AND end_time < now() + INTERVAL ${STAKING_WINDOW_DAYS} DAY
+      AND end_time < now() + INTERVAL ${days} DAY
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
@@ -419,11 +421,13 @@ const pchainStakingCache = new Map<
  */
 export async function getPchainStakingSeries(
   network: string,
+  days: PchainStakingDays = STAKING_WINDOW_DAYS,
 ): Promise<PchainStakingSeries | null> {
   const networkId = PCHAIN_NETWORK_IDS[network];
   if (networkId === undefined) return null;
 
-  const cached = pchainStakingCache.get(network);
+  const cacheKey = `${network}:${days}`;
+  const cached = pchainStakingCache.get(cacheKey);
   if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
     return cached.data;
   }
@@ -431,19 +435,19 @@ export async function getPchainStakingSeries(
   try {
     type Row = { day: string; avax: string; n?: string; payouts?: string };
     const [rewardRows, validatorRows, delegatorRows] = await Promise.all([
-      clickhouseFetch<Row>(sqlPchainDailyRewards(networkId), QUERY_TIMEOUT_MS),
+      clickhouseFetch<Row>(sqlPchainDailyRewards(networkId, days), QUERY_TIMEOUT_MS),
       clickhouseFetch<Row>(
-        sqlPchainUnlocks(networkId, "p_validator_snapshots", "weight"),
+        sqlPchainUnlocks(networkId, "p_validator_snapshots", "weight", days),
         QUERY_TIMEOUT_MS,
       ),
       clickhouseFetch<Row>(
-        sqlPchainUnlocks(networkId, "p_delegator_snapshots", "stake_amount"),
+        sqlPchainUnlocks(networkId, "p_delegator_snapshots", "stake_amount", days),
         QUERY_TIMEOUT_MS,
       ),
     ]);
 
     const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
-    const rewards = buildPastDates(STAKING_WINDOW_DAYS).map((iso) => ({
+    const rewards = buildPastDates(days).map((iso) => ({
       date: formatDayLabel(iso),
       avax: Number(rewardsByDay.get(iso)?.avax) || 0,
       payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
@@ -456,14 +460,14 @@ export async function getPchainStakingSeries(
       day.stakers += Number(r.n) || 0;
       unlocksByDay.set(r.day, day);
     }
-    const unlocks = buildFutureDates(STAKING_WINDOW_DAYS).map((iso) => ({
+    const unlocks = buildFutureDates(days).map((iso) => ({
       date: formatDayLabel(iso),
       avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
       stakers: unlocksByDay.get(iso)?.stakers ?? 0,
     }));
 
     const data = { rewards, unlocks };
-    pchainStakingCache.set(network, { data, fetchedAt: Date.now() });
+    pchainStakingCache.set(cacheKey, { data, fetchedAt: Date.now() });
     return data;
   } catch (err) {
     console.error('[explorer-clickhouse] pchain staking-series query failed:', err);
@@ -496,10 +500,19 @@ const TOPIC_1155_SINGLE = "c3d58168c5ae7397731d063d5bbf3d657854427343f4c083240f7
 const TOPIC_1155_BATCH = "4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb";
 
 const CCHAIN_EVM_ID = 43114;
-// ~80M logs in the window — give the classification room to run
+// ~80M logs in a fortnight — give the classification room to run
 const CCHAIN_ACTIVITY_TIMEOUT_MS = 60_000;
 
-function sqlCchainClassified(): string {
+/** the page-clock windows the activity chart serves; 90 is the ceiling —
+ *  the per-tx classification over raw_logs spills to disk past a month
+ *  and a full year quadruples the spill for no extra story */
+export type CchainActivityDays = 7 | 30 | 90;
+
+function sqlCchainClassified(days: CchainActivityDays): string {
+  // GROUP BY (day, tx) must hold every tx key in the window at once; the
+  // box caps a query at ~9.3 GiB, which the 32-byte hashes blow past a
+  // month. cityHash64 shrinks the key 4x and external_group_by lets the
+  // rest spill to disk (~10s at 90d, fine behind the 15-minute cache).
   return `
     SELECT
       day,
@@ -509,7 +522,7 @@ function sqlCchainClassified(): string {
     FROM (
       SELECT
         toDate(block_time) AS day,
-        transaction_hash,
+        cityHash64(transaction_hash) AS tx,
         max(multiIf(
           topic0 IN (unhex('${TOPIC_SWAP_V2}'), unhex('${TOPIC_SWAP_V3}'), unhex('${TOPIC_SWAP_LB}')), 3,
           topic0 = unhex('${TOPIC_TRANSFER}') AND topic3 IS NOT NULL, 2,
@@ -519,69 +532,90 @@ function sqlCchainClassified(): string {
         )) AS cls
       FROM raw_logs
       WHERE chain_id = ${CCHAIN_EVM_ID}
-        AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
-      GROUP BY day, transaction_hash
+        AND block_time >= toDate(now() - INTERVAL ${days} DAY)
+      GROUP BY day, tx
     )
     GROUP BY day
     ORDER BY day
+    SETTINGS max_bytes_before_external_group_by = 3000000000
     FORMAT JSONEachRow
   `;
 }
 
-function sqlCchainDailyTotals(): string {
+function sqlCchainDailyTotals(days: CchainActivityDays): string {
   return `
     SELECT toDate(block_time) AS day, toString(count()) AS total
     FROM evm_txs
     WHERE chain_id = ${CCHAIN_EVM_ID}
-      AND block_time >= toDate(now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY)
+      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
     GROUP BY day
     ORDER BY day
     FORMAT JSONEachRow
   `;
 }
 
-let cchainActivityCache: { data: CchainActivityPoint[]; fetchedAt: number } | null = null;
+const cchainActivityCache = new Map<
+  CchainActivityDays,
+  { data: CchainActivityPoint[]; fetchedAt: number }
+>();
+const cchainActivityInFlight = new Map<
+  CchainActivityDays,
+  Promise<CchainActivityPoint[] | null>
+>();
 
 /**
- * Last-14-day C-Chain activity split by on-chain behavior (DeFi swaps /
- * NFT transfers / token transfers / everything else), padded to exactly
- * 14 points. Mainnet only — that's the chain the log archive covers.
+ * C-Chain activity for the page clock's window, split by on-chain behavior
+ * (DeFi swaps / NFT transfers / token transfers / everything else), padded
+ * to exactly `days` points. Mainnet only — that's the chain the log
+ * archive covers. Cached per window; concurrent first-hits share one query
+ * (the 90d classification takes ~10s cold).
  */
-export async function getCchainDailyActivity(): Promise<CchainActivityPoint[] | null> {
-  if (cchainActivityCache && Date.now() - cchainActivityCache.fetchedAt < DAILY_TTL_MS) {
-    return cchainActivityCache.data;
+export async function getCchainDailyActivity(
+  days: CchainActivityDays = 7,
+): Promise<CchainActivityPoint[] | null> {
+  const cached = cchainActivityCache.get(days);
+  if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
+    return cached.data;
   }
+  const inFlight = cchainActivityInFlight.get(days);
+  if (inFlight) return inFlight;
 
-  try {
-    const [classified, totals] = await Promise.all([
-      clickhouseFetch<{ day: string; defi: string; nft: string; tokens: string }>(
-        sqlCchainClassified(),
-        CCHAIN_ACTIVITY_TIMEOUT_MS,
-      ),
-      clickhouseFetch<{ day: string; total: string }>(sqlCchainDailyTotals(), QUERY_TIMEOUT_MS),
-    ]);
-    const classifiedByDay = new Map(classified.map((r) => [r.day, r]));
-    const totalsByDay = new Map(totals.map((r) => [r.day, Number(r.total) || 0]));
-    const data = buildPastDates().map((iso) => {
-      const c = classifiedByDay.get(iso);
-      const defi = Number(c?.defi) || 0;
-      const nft = Number(c?.nft) || 0;
-      const tokens = Number(c?.tokens) || 0;
-      const total = totalsByDay.get(iso) ?? 0;
-      return {
-        date: formatDayLabel(iso),
-        defi,
-        nft,
-        tokens,
-        other: Math.max(0, total - defi - nft - tokens),
-      };
-    });
-    cchainActivityCache = { data, fetchedAt: Date.now() };
-    return data;
-  } catch (err) {
-    console.error('[explorer-clickhouse] cchain activity query failed:', err);
-    return cchainActivityCache?.data ?? null;
-  }
+  const run = (async () => {
+    try {
+      const [classified, totals] = await Promise.all([
+        clickhouseFetch<{ day: string; defi: string; nft: string; tokens: string }>(
+          sqlCchainClassified(days),
+          CCHAIN_ACTIVITY_TIMEOUT_MS,
+        ),
+        clickhouseFetch<{ day: string; total: string }>(sqlCchainDailyTotals(days), QUERY_TIMEOUT_MS),
+      ]);
+      const classifiedByDay = new Map(classified.map((r) => [r.day, r]));
+      const totalsByDay = new Map(totals.map((r) => [r.day, Number(r.total) || 0]));
+      const data = buildPastDates(days).map((iso) => {
+        const c = classifiedByDay.get(iso);
+        const defi = Number(c?.defi) || 0;
+        const nft = Number(c?.nft) || 0;
+        const tokens = Number(c?.tokens) || 0;
+        const total = totalsByDay.get(iso) ?? 0;
+        return {
+          date: formatDayLabel(iso),
+          defi,
+          nft,
+          tokens,
+          other: Math.max(0, total - defi - nft - tokens),
+        };
+      });
+      cchainActivityCache.set(days, { data, fetchedAt: Date.now() });
+      return data;
+    } catch (err) {
+      console.error('[explorer-clickhouse] cchain activity query failed:', err);
+      return cchainActivityCache.get(days)?.data ?? null;
+    } finally {
+      cchainActivityInFlight.delete(days);
+    }
+  })();
+  cchainActivityInFlight.set(days, run);
+  return run;
 }
 
 // --- Gas market (per-chain fee history + top consumers) -------------------

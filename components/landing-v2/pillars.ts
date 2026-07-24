@@ -184,7 +184,7 @@ export const PILLARS: Pillar[] = [
         links: [
           { text: "Avalanche fundamentals", href: "/academy/avalanche-l1/avalanche-fundamentals" },
           { text: "Customizing the EVM", href: "/academy/avalanche-l1/customizing-evm" },
-          { text: "Blockchain fundamentals", href: "/academy?path=blockchain" },
+          { text: "Blockchain fundamentals", href: "/academy/blockchain/blockchain-fundamentals" },
         ],
       },
       {

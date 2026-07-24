@@ -15,6 +15,8 @@ const ALLOWED_METHODS = new Set([
   "platform.getTx",
   "platform.getSubnet",
   "platform.getCurrentValidators",
+  // the node page's network-share denominator
+  "platform.getTotalStake",
 ]);
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ network: string }> }) {

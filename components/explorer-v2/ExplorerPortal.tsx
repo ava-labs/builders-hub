@@ -235,7 +235,8 @@ function ChainBoard({
 }: {
   logo: string;
   title: string;
-  links: { label: string; href: string; primary?: boolean }[];
+  /** disabledNote renders the link grayed-out with the note as its tooltip */
+  links: { label: string; href: string; primary?: boolean; disabledNote?: string }[];
 }) {
   return (
     <Board divide={false} className="h-full">
@@ -250,7 +251,18 @@ function ChainBoard({
           </div>
           <div className="flex flex-wrap items-center gap-x-10 gap-y-4 py-2">
             {links.map((link) =>
-              link.primary ? (
+              link.disabledNote ? (
+                <span
+                  key={link.href}
+                  role="link"
+                  aria-disabled="true"
+                  title={link.disabledNote}
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-300 dark:text-zinc-600"
+                >
+                  {link.label}
+                  <span className="font-medium normal-case tracking-normal text-zinc-400 dark:text-zinc-500">soon</span>
+                </span>
+              ) : link.primary ? (
                 <BrandButton key={link.href} href={link.href}>
                   {link.label}
                 </BrandButton>
@@ -294,7 +306,13 @@ function ContractChainBoard() {
       title="Contract Chain"
       links={[
         { label: "Explore Mainnet", href: "/explorer/mainnet/c-chain", primary: true },
-        { label: "FUJI TESTNET", href: "/explorer/fuji/c-chain" },
+        {
+          label: "FUJI TESTNET",
+          href: "/explorer/fuji/c-chain",
+          // keep in sync with UNAVAILABLE_TESTNET in ExplorerSubnav.tsx
+          disabledNote:
+            "We're having trouble indexing the Fuji C-Chain right now — it'll be available later.",
+        },
       ]}
     />
   );

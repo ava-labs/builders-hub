@@ -13,7 +13,7 @@ import {
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatGwei, gasUsedPct } from "./format";
-import { MethodChip } from "./bits";
+import { FeedDown, MethodChip } from "./bits";
 import { useEvmData } from "./hooks";
 import { NotFound, StatusPill } from "./EvmTx";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -23,14 +23,16 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken;
-  const { data: b, loading, error } = useEvmData<BlockDetail>(c.chainId, `block/${id}`, undefined, {
+  const { data: b, loading, error, retry } = useEvmData<BlockDetail>(c.chainId, `block/${id}`, undefined, {
     retry404Ms: 20_000,
   });
 
   return (
     <EvmShell network={network}>
       {loading && <DetailSkeleton label="Block" />}
-      {error && !b && <NotFound label="Block not found" id={id} />}
+      {/* only a real 404 is "not found" — an indexer outage says so */}
+      {error === "not found" && !b && <NotFound label="Block not found" id={id} />}
+      {error && error !== "not found" && !b && <FeedDown onRetry={retry} />}
       {b && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">

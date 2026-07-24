@@ -7,8 +7,7 @@ import {
   canReviewMiniGrants,
 } from "@/lib/auth/permissions";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
-
-const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
+import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ALLOWED_VERDICTS.includes(verdict)) {
+    if (!isVerdict(verdict)) {
       return NextResponse.json(
         { error: `verdict must be one of: ${ALLOWED_VERDICTS.join(", ")}` },
         { status: 400 },

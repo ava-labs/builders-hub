@@ -79,33 +79,47 @@ async function fetchMetricsApi(
   fetchAllPages: boolean
 ): Promise<{ value: number; timestamp: number }[]> {
   const dedicatedEvmChainId = resolveDedicatedMetricsChain(chainId);
-  const baseUrl = dedicatedEvmChainId ? DEDICATED_STATS_BASE_URL : METRICS_API_URL;
   const resolvedChainId = dedicatedEvmChainId
     ? dedicatedEvmChainId
     : chainId === 'all' ? 'mainnet' : chainId;
-  const allResults: { value: number; timestamp: number }[] = [];
-  let pageToken: string | undefined;
 
-  do {
-    const url = new URL(`${baseUrl}/v2/chains/${resolvedChainId}/metrics/${metric}`);
-    url.searchParams.set('timeInterval', timeInterval);
-    url.searchParams.set('startTimestamp', String(startTimestamp));
-    url.searchParams.set('endTimestamp', String(endTimestamp));
-    url.searchParams.set('pageSize', String(pageSize));
-    if (pageToken) url.searchParams.set('pageToken', pageToken);
+  const fetchPages = async (baseUrl: string): Promise<{ value: number; timestamp: number }[]> => {
+    const allResults: { value: number; timestamp: number }[] = [];
+    let pageToken: string | undefined;
+    do {
+      const url = new URL(`${baseUrl}/v2/chains/${resolvedChainId}/metrics/${metric}`);
+      url.searchParams.set('timeInterval', timeInterval);
+      url.searchParams.set('startTimestamp', String(startTimestamp));
+      url.searchParams.set('endTimestamp', String(endTimestamp));
+      url.searchParams.set('pageSize', String(pageSize));
+      if (pageToken) url.searchParams.set('pageToken', pageToken);
 
-    const res = await fetchWithTimeout(url.toString());
-    if (!res.ok) throw new Error(`metrics-api ${res.status}: ${res.statusText}`);
-    const data = await res.json();
+      const res = await fetchWithTimeout(url.toString());
+      if (!res.ok) throw new Error(`metrics-api ${res.status}: ${res.statusText}`);
+      const data = await res.json();
 
-    if (data.results && Array.isArray(data.results)) {
-      allResults.push(...data.results);
+      if (data.results && Array.isArray(data.results)) {
+        allResults.push(...data.results);
+      }
+
+      pageToken = data.nextPageToken || undefined;
+    } while (fetchAllPages && pageToken);
+    return allResults;
+  };
+
+  const results = await fetchPages(dedicatedEvmChainId ? DEDICATED_STATS_BASE_URL : METRICS_API_URL!);
+  // the dedicated source doesn't compute every metric (cumulativeAddresses
+  // comes back as `results: null` for the C-Chain) — fall back to the shared
+  // gateway rather than losing the chart. Chains the gateway doesn't know
+  // simply return empty again, which is where we already were.
+  if (results.length === 0 && dedicatedEvmChainId && METRICS_API_URL) {
+    try {
+      return await fetchPages(METRICS_API_URL);
+    } catch {
+      return results;
     }
-
-    pageToken = data.nextPageToken || undefined;
-  } while (fetchAllPages && pageToken);
-
-  return allResults;
+  }
+  return results;
 }
 
 async function getTimeSeriesData(

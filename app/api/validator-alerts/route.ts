@@ -10,9 +10,9 @@ import {
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
+import { isValidEmail } from "@/lib/email";
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     // ignore any client-supplied body.email to prevent an authenticated user from
     // directing transactional emails to arbitrary recipients from our trusted domain.
     const email = session.user.email;
-    if (!email || !EMAIL_REGEX.test(email)) {
+    if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
     }
 

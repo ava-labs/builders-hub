@@ -17,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import {
   VersionBarChart,
   VersionBreakdownInline,
@@ -45,7 +45,13 @@ import {
    observatory buried under five chart sections. The economics (stake
    trends, rewards, APY, distribution) moved to the Staking tab; what
    stays here is the machines: who validates, on what version, with what
-   uptime, and for how much longer. */
+   uptime, and for how much longer.
+
+   Same stats grammar as the gas market — outlined ChartBoards, mono titles
+   fused into the border, legends/toggles in the action slot — but
+   deliberately OFF the page clock: this is a roster plus all-time context,
+   not a windowed trend. So there is no range chip; each card states its own
+   basis instead (· current set, · 14d, · all-time). */
 
 const TH =
   "px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-5";
@@ -404,9 +410,10 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
     <div className="flex flex-col gap-10">
       {/* the set at a glance */}
       <section className="flex flex-col gap-4">
-        <Board divide={false}>
+        <Board divide={false} className="border">
           <BoardHeader
             label="Primary Network Validators"
+            display
             action={
               <Link
                 href={stakingHref}
@@ -417,7 +424,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
               </Link>
             }
           />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <Stat label="Validators">
               {sdkValidators ? sdkValidators.length.toLocaleString("en-US") : <StatDash />}
             </Stat>
@@ -464,15 +471,10 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
         </Board>
       </section>
 
-      {/* the roster itself — the page's reason to exist, so it comes first */}
+      {/* the roster itself — the page's reason to exist, so it comes first.
+          the live count rides in the card's action slot as a quiet qualifier
+          (rows / total while filtering) — no window chip, this IS the set */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label={`Validator Set${
-            merged.length
-              ? ` · ${q ? `${rows.length} / ${merged.length}` : merged.length.toLocaleString("en-US")}`
-              : ""
-          }`}
-        />
         <div className="relative w-full sm:max-w-sm">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
           <input
@@ -500,7 +502,19 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
           )}
         </div>
 
-        <Board divide={false} className="overflow-x-auto">
+        <ChartBoard
+          label="Validator Set"
+          action={
+            merged.length ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {q
+                  ? `${rows.length.toLocaleString("en-US")} / ${merged.length.toLocaleString("en-US")}`
+                  : `${merged.length.toLocaleString("en-US")} validators`}
+              </span>
+            ) : undefined
+          }
+          bodyClassName="p-0 overflow-x-auto"
+        >
           <table className="w-full min-w-[62rem] border-collapse">
             <thead>
               <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
@@ -616,7 +630,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
               )}
             </tbody>
           </table>
-        </Board>
+        </ChartBoard>
         {shown < rows.length && (
           <button
             onClick={() => setShown((s) => s + 50)}
@@ -628,91 +642,84 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
       </section>
 
       {/* what the fleet is running */}
-      <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Client Versions"
-          action={
-            availableVersions.length > 0 ? (
-              <label className="flex shrink-0 items-center gap-2">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                  Target
-                </span>
-                <select
-                  value={minVersion}
-                  onChange={(e) => setMinVersion(e.target.value)}
-                  className="border border-zinc-200 bg-white/80 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-700 outline-none transition-colors focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:focus:border-zinc-100"
-                >
-                  {availableVersions.map((version) => (
-                    <option key={version} value={version}>
-                      {version}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : undefined
-          }
-        />
-        <Board divide={false} className="flex flex-col gap-4 px-5 py-5 md:px-6">
-          {versions && minVersion ? (
-            <>
-              <VersionBarChart
-                versionBreakdown={versions}
-                minVersion={minVersion}
-                totalNodes={totalNodes}
-                height="h-8"
-              />
-              <VersionBreakdownInline versions={versions.byClientVersion} minVersion={minVersion} limit={5} />
-              {versionStats && (
-                <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                  {versionStats.stakePercentAbove.toFixed(1)}% of stake runs {minVersion} or newer
-                </p>
-              )}
-            </>
-          ) : (
-            <ChartEmpty failed={false} />
-          )}
-        </Board>
-      </section>
+      <ChartBoard
+        label="Client Versions"
+        action={
+          availableVersions.length > 0 ? (
+            <label className="flex shrink-0 items-center gap-2">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                Target
+              </span>
+              <select
+                value={minVersion}
+                onChange={(e) => setMinVersion(e.target.value)}
+                className="border border-zinc-200 bg-white/80 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-700 outline-none transition-colors focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:focus:border-zinc-100"
+              >
+                {availableVersions.map((version) => (
+                  <option key={version} value={version}>
+                    {version}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : undefined
+        }
+        bodyClassName="flex flex-col gap-4"
+      >
+        {versions && minVersion ? (
+          <>
+            <VersionBarChart
+              versionBreakdown={versions}
+              minVersion={minVersion}
+              totalNodes={totalNodes}
+              height="h-8"
+            />
+            <VersionBreakdownInline versions={versions.byClientVersion} minVersion={minVersion} limit={5} />
+            {versionStats && (
+              <p className="text-[13px] leading-relaxed tabular-nums text-zinc-500 dark:text-zinc-400">
+                {versionStats.stakePercentAbove.toFixed(1)}% of stake runs {minVersion} or newer
+              </p>
+            )}
+          </>
+        ) : (
+          <ChartEmpty failed={false} />
+        )}
+      </ChartBoard>
 
       {/* how the fleet is behaving */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Block Miss Rate · 14d" />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {missBuckets.length ? (
-              <BucketBars
-                data={missBuckets}
-                tint={(b) => (b.label === "0%" ? QUIET_BAR : b.label.startsWith("0–") ? QUIET_BAR : "#E6212F")}
-              />
-            ) : (
-              <ChartEmpty failed={false} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard label="Block Miss Rate · 14d">
+          {missBuckets.length ? (
+            <BucketBars
+              data={missBuckets}
+              tint={(b) => (b.label === "0%" ? QUIET_BAR : b.label.startsWith("0–") ? QUIET_BAR : "#E6212F")}
+            />
+          ) : (
+            <ChartEmpty failed={false} />
+          )}
+        </ChartBoard>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Time Remaining" />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {daysLeftBuckets.length ? (
-              <BucketBars
-                data={daysLeftBuckets}
-                tint={(b) =>
-                  b.label === "< 7d" ? "#E6212F" : b.label === "7–30d" ? "#d97706" : QUIET_BAR
-                }
-              />
-            ) : (
-              <ChartEmpty failed={false} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard label="Time Remaining · current set">
+          {daysLeftBuckets.length ? (
+            <BucketBars
+              data={daysLeftBuckets}
+              tint={(b) =>
+                b.label === "< 7d" ? "#E6212F" : b.label === "7–30d" ? "#d97706" : QUIET_BAR
+              }
+            />
+          ) : (
+            <ChartEmpty failed={false} />
+          )}
+        </ChartBoard>
       </div>
 
       {/* who is actually sealing the chain */}
       {topProducers.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Top Block Producers · 14d" />
-          <Board>
-            {topProducers.map((v, i) => (
+        <ChartBoard
+          label="Top Block Producers · 14d"
+          bodyClassName="p-0 divide-y divide-zinc-200 dark:divide-zinc-800"
+        >
+          {topProducers.map((v, i) => (
               <div
                 key={v.node_id}
                 className="grid grid-cols-[2rem_minmax(0,14rem)_1fr_auto] items-center gap-4 px-5 py-2.5 md:px-6"
@@ -740,13 +747,12 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
                 </span>
               </div>
             ))}
-          </Board>
-        </section>
+        </ChartBoard>
       )}
 
       {/* how the set got to this size */}
-      <section className="flex flex-col gap-4">
-        <SectionHeader
+      <div className="flex flex-col gap-4">
+        <ChartBoard
           label="Validator Count · All Time"
           action={
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
@@ -758,19 +764,18 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
               </span>
             </span>
           }
-        />
-        <Board divide={false} className="px-5 py-5 md:px-6">
+        >
           {countSeries.length ? (
             <CountChart data={countSeries} />
           ) : (
             <ChartEmpty failed={metricsFailed} />
           )}
-        </Board>
-        <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+        </ChartBoard>
+        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
           After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network —
           the blue line counts every validator seat across the ecosystem since then.
         </p>
-      </section>
+      </div>
     </div>
   );
 }

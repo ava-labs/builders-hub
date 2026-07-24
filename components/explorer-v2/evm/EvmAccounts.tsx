@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { useContractNames } from "@/lib/sourcify-client";
@@ -12,19 +12,25 @@ import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.
 import type { AccountsActivity, AccountLeader } from "@/lib/explorer-clickhouse";
 import {
   ChartSection,
+  Delta,
   DualChart,
   OverlayKey,
   fmtCompact,
   metricSeries,
+  weekFloor,
   num,
+  pctOf,
   useChainMetrics,
+  windowPair,
 } from "./metric-charts";
 
-/* The chain's Accounts tab: who is here and who the traffic actually is.
-   The chart half (active/total addresses, contracts deployed) reads the
-   chain-stats indexer; the leaderboard half (most-called addresses,
-   busiest senders) reads ClickHouse through /api/accounts. Chains outside
-   the ClickHouse dataset keep the charts and say so under the boards. */
+/* The chain's Accounts tab in the gas page's grammar: a readings board on
+   the shared clock (each figure against its previous window), outlined
+   chart cards, and the leaderboards framed the same way. The chart half
+   (active/total addresses, contracts deployed) reads the chain-stats
+   indexer; the leaderboard half (most-called addresses, busiest senders)
+   reads ClickHouse through /api/accounts. Chains outside the ClickHouse
+   dataset keep the charts and say so under the boards. */
 
 const METRICS = ["activeAddresses", "activeSenders", "cumulativeAddresses", "contracts", "deployers"].join(",");
 
@@ -68,9 +74,11 @@ function useAccountsActivity(chainId: string, rangeDays: number) {
 }
 
 /* one leaderboard: rank, labelled address, and the three numbers that
-   describe its traffic from this side of the transaction */
+   describe its traffic from this side of the transaction. The card only
+   carries a window chip when it CAN'T follow the page clock. */
 function LeaderBoard({
   label,
+  windowNote,
   leaders,
   loading,
   base,
@@ -80,6 +88,8 @@ function LeaderBoard({
   volume,
 }: {
   label: string;
+  /** the clamp exception, e.g. "90 days · longest computed" */
+  windowNote?: string;
   leaders: AccountLeader[];
   loading: boolean;
   base: string;
@@ -89,9 +99,18 @@ function LeaderBoard({
   volume: (l: AccountLeader) => string;
 }) {
   return (
-    <section className="flex flex-col gap-4">
-      <SectionHeader label={label} />
-      <Board className={cn(loading && leaders.length > 0 && "opacity-60 transition-opacity")}>
+    <ChartBoard
+      label={label}
+      bodyClassName={cn("p-0", loading && leaders.length > 0 && "opacity-60 transition-opacity")}
+      action={
+        windowNote ? (
+          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+            {windowNote}
+          </span>
+        ) : undefined
+      }
+    >
+      <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
         <div className="grid grid-cols-[2rem_minmax(0,1fr)_5rem_5rem_6rem] gap-3 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500">
           <span>#</span>
           <span>Address</span>
@@ -131,8 +150,8 @@ function LeaderBoard({
         {loading && leaders.length === 0 && (
           <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>
         )}
-      </Board>
-    </section>
+      </div>
+    </ChartBoard>
   );
 }
 
@@ -145,12 +164,15 @@ export function EvmAccounts({ network }: { network: string }) {
   const range = RANGE_DAYS[clock];
   const rangeLabel = RANGE_LABEL[clock];
 
-  const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
+  // fetch double the window so every reading can face its previous window
+  const { metrics, failed } = useChainMetrics(c.chainId, Math.min(range * 2, 365), METRICS);
   const { activity, notIndexed, served } = useAccountsActivity(c.chainId, range);
-  const boardsLabel = served < range ? `${served} days` : rangeLabel;
+  // the leaderboards' one exception to the page clock, stated on the card
+  const boardsNote = served < range ? `${served} days · longest computed` : undefined;
 
   const m = metrics ?? {};
   const current = (key: string) => num(m[key]?.current_value);
+  const win = (key: string, mode: "sum" | "avg" = "sum") => windowPair(m[key]?.data, range, mode);
 
   // one Sourcify pass over both boards — the resolved names accumulate,
   // so flipping the clock relabels instantly for repeat leaders
@@ -160,39 +182,69 @@ export function EvmAccounts({ network }: { network: string }) {
   );
   const names = useContractNames(c.chainId, leaderAddresses);
 
-  const strip: { label: string; value: number | null; sub?: string }[] = [
-    {
-      label: "Active Addresses · 24h",
-      value: current("activeAddresses"),
-      sub: current("activeSenders") !== null ? `${fmtCompact(current("activeSenders")!)} senders` : undefined,
-    },
-    { label: "Total Addresses", value: current("cumulativeAddresses"), sub: "all-time" },
-    {
-      label: "Contracts Deployed · 24h",
-      value: current("contracts"),
-      sub: current("deployers") !== null ? `${fmtCompact(current("deployers")!)} deployers` : undefined,
-    },
-  ];
+  // the readings row on the page clock — cells only carry a window label
+  // when they DON'T follow it (the all-time total)
+  const activePair = win("activeAddresses", "avg");
+  const sendersPair = win("activeSenders", "avg");
+  const contractsPair = win("contracts");
+  const deployersPair = win("deployers");
+  const totalAddresses = current("cumulativeAddresses");
 
   return (
     <EvmShell network={network}>
       <div className="flex flex-col gap-10">
-        {/* who's here right now */}
-        <Board divide={false}>
-          <BoardHeader label="Latest Day" />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-y-0 dark:divide-zinc-800">
-            {strip.map((s) => (
-              <Stat key={s.label} label={s.label} sub={s.sub}>
-                {s.value !== null ? fmtCompact(s.value) : metrics || failed ? <StatDash /> : "…"}
-              </Stat>
-            ))}
+        {/* the window is stated once, up here */}
+        <Board divide={false} className="border">
+          <BoardHeader
+            label="Accounts"
+            display
+            action={
+              <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                Last {rangeLabel}
+              </span>
+            }
+          />
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-sm:[&>*:nth-child(odd)]:border-l-0 sm:grid-cols-3 sm:divide-y-0 dark:divide-zinc-800">
+            <Stat
+              label="Active Addresses"
+              sub={
+                activePair ? (
+                  <>
+                    {sendersPair
+                      ? `${range > 1 ? "avg " : ""}${fmtCompact(sendersPair.cur)} senders · `
+                      : range > 1
+                        ? "daily avg · "
+                        : null}
+                    <Delta value={pctOf(activePair)} />
+                  </>
+                ) : undefined
+              }
+            >
+              {activePair ? fmtCompact(activePair.cur) : metrics || failed ? <StatDash /> : "…"}
+            </Stat>
+            <Stat label="Total Addresses" sub="all-time">
+              {totalAddresses !== null ? fmtCompact(totalAddresses) : metrics || failed ? <StatDash /> : "…"}
+            </Stat>
+            <Stat
+              label="Contracts Deployed"
+              sub={
+                contractsPair ? (
+                  <>
+                    {deployersPair ? `${fmtCompact(deployersPair.cur)} deployers · ` : null}
+                    <Delta value={pctOf(contractsPair)} />
+                  </>
+                ) : undefined
+              }
+            >
+              {contractsPair ? fmtCompact(contractsPair.cur) : metrics || failed ? <StatDash /> : "…"}
+            </Stat>
           </div>
         </Board>
 
         {/* the population over time */}
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartSection
-            label={`Active Addresses · ${rangeLabel}`}
+            label={`Active Addresses${weekFloor(range)}`}
             action={<OverlayKey label="senders" />}
           >
             {metricSeries(m, range, "activeAddresses", "activeSenders").length ? (
@@ -208,7 +260,7 @@ export function EvmAccounts({ network }: { network: string }) {
             )}
           </ChartSection>
 
-          <ChartSection label={`Total Addresses · ${rangeLabel}`}>
+          <ChartSection label={`Total Addresses${weekFloor(range)}`}>
             {metricSeries(m, range, "cumulativeAddresses").length ? (
               <DualChart
                 data={metricSeries(m, range, "cumulativeAddresses")}
@@ -223,7 +275,7 @@ export function EvmAccounts({ network }: { network: string }) {
         </div>
 
         <ChartSection
-          label={`Contracts Deployed · ${rangeLabel}`}
+          label={`Contracts Deployed${weekFloor(range)}`}
           action={<OverlayKey label="deployers" dashed />}
         >
           {metricSeries(m, range, "contracts", "deployers").length ? (
@@ -242,13 +294,14 @@ export function EvmAccounts({ network }: { network: string }) {
 
         {/* who the traffic actually is */}
         {notIndexed ? (
-          <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
             Leaderboards need indexed transaction history; this chain isn&apos;t in the dataset yet.
           </p>
         ) : (
           <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <LeaderBoard
-              label={`Most Called · ${boardsLabel}`}
+              label="Most Called"
+              windowNote={boardsNote}
               leaders={activity?.called ?? []}
               loading={!activity}
               base={base}
@@ -258,7 +311,8 @@ export function EvmAccounts({ network }: { network: string }) {
               volume={(l) => `${fmtCompact(l.feesNative)} ${sym}`}
             />
             <LeaderBoard
-              label={`Top Senders · ${boardsLabel}`}
+              label="Top Senders"
+              windowNote={boardsNote}
               leaders={activity?.senders ?? []}
               loading={!activity}
               base={base}

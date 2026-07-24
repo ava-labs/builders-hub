@@ -14,6 +14,7 @@ import {
   Requirement,
   UserBadge,
 } from "@/types/badge";
+import { MemberStatus } from "@/types/project";
 
 export async function assignBadgeProject(
   body: AssignBadgeBody,
@@ -46,14 +47,14 @@ export async function assignBadgeProject(
       id: body.projectId,
       members: {
         some: {
-          status: "Confirmed",
+          status: MemberStatus.CONFIRMED,
         },
       },
     },
     include: {
       members: {
         where: {
-          status: "Confirmed",
+          status: MemberStatus.CONFIRMED,
           user_id: {
             not: null,
           },
@@ -405,7 +406,7 @@ export async function getUserBadgesByProjectId(
       id: projectId,
       members: {
         some: {
-          status: "Confirmed",
+          status: MemberStatus.CONFIRMED,
         },
       },
     },

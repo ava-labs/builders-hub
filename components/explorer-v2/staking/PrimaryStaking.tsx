@@ -14,9 +14,9 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, SectionHeader, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatCell, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   NANO,
   fmtCompact,
@@ -33,7 +33,9 @@ import {
    the network and what securing it pays. Split out of the old validators
    observatory: the set itself (nodes, uptime, versions) lives on the
    Validators tab; this page is the capital. Same grammar as the gas
-   market: a headline strip, then trend boards on one shared clock. */
+   market: lead with the answer (a dark statement panel — what staking
+   pays right now), then the capital strip, then outlined ChartBoards on
+   one shared clock. */
 
 const OWN_COLOR = "currentColor";
 const DELEGATED_COLOR = "#E6212F";
@@ -252,7 +254,7 @@ function RewardsBars({ data }: { data: RewardPoint[] }) {
   );
 }
 
-interface ConcentrationPoint {
+export interface ConcentrationPoint {
   rank: number;
   /** AVAX */
   weight: number;
@@ -264,7 +266,7 @@ const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as 
 /* how evenly the stake spreads across the set — per-rank bars against the
    right axis, the cumulative share climbing the left one; the two shapes
    read together (steep bars + fast climb = concentrated) */
-function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
+export function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
   const rankTicks = [];
   for (let r = 100; r < setSize; r += 100) rankTicks.push(r);
   return (
@@ -341,7 +343,7 @@ function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; set
   );
 }
 
-interface FeeBucket {
+export interface FeeBucket {
   label: string;
   count: number;
   /** AVAX */
@@ -350,7 +352,7 @@ interface FeeBucket {
 
 /* what delegating costs — stake-weighted bars (where the capital sits)
    with the validator count riding the right axis (where the nodes sit) */
-function FeeChart({ data }: { data: FeeBucket[] }) {
+export function FeeChart({ data }: { data: FeeBucket[] }) {
   return (
     <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
@@ -416,9 +418,9 @@ function FeeChart({ data }: { data: FeeBucket[] }) {
   );
 }
 
-type Lens = "weight" | "own" | "delegated";
+export type Lens = "weight" | "own" | "delegated";
 
-const LENS_LABEL: Record<Lens, string> = {
+export const LENS_LABEL: Record<Lens, string> = {
   weight: "Weight",
   own: "Own stake",
   delegated: "Delegated",
@@ -426,7 +428,7 @@ const LENS_LABEL: Record<Lens, string> = {
 
 /* the three old distribution charts folded into one instrument — same
    segmented-control idiom as the range toggle */
-function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
+export function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
   return (
     <div className="inline-flex shrink-0 border border-zinc-200 dark:border-zinc-800">
       {(Object.keys(LENS_LABEL) as Lens[]).map((l) => (
@@ -448,6 +450,30 @@ function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => v
   );
 }
 
+/* a cell inside the dark statement panel — steel label, ink-white figure,
+   muted sub. The homepage pillar voice, same as the gas page's lead panel. */
+function StatementCell({
+  label,
+  sub,
+  children,
+}: {
+  label: string;
+  sub?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6 lg:first:pl-0">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+        {label}
+      </span>
+      <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-[#EBF0FA] sm:text-2xl md:text-[1.75rem]">
+        {children}
+      </span>
+      {sub != null && <span className="text-xs tabular-nums text-[#A2AFB2]">{sub}</span>}
+    </div>
+  );
+}
+
 /* legend chips for the stacked stake chart */
 function StakeKey() {
   return (
@@ -462,15 +488,28 @@ function StakeKey() {
   );
 }
 
-export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: string }) {
+export function PrimaryStakingContent({
+  validatorsHref,
+  base,
+}: {
+  validatorsHref: string;
+  /** the staking tab's own path — every ChartBoard doors into its metric
+   *  sheet under it (base/total-stake, base/apy, …) */
+  base?: string;
+}) {
+  const door = (metric: string) => (base ? `${base}/${metric}` : undefined);
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: apy, failed: apyFailed } = useStakingApy();
   const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
 
-  // the page clock in the subnav — one window for every trend below
+  // the page clock in the subnav — one window for every trend below. The
+  // subnav states the window once, so chart titles drop the range suffix.
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
+  // the trend charts floor at a week — a one-point day chart renders as
+  // a lone dot (same rule as the sheets); labels state the exception
+  const chartDays = Math.max(7, range);
+  const weekFloor = range < 7 ? " · 7 days" : "";
 
   /* -------------------------------------------------------------- */
   /* headline figures                                                */
@@ -500,12 +539,12 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       own: p.value / NANO,
       delegated: (delegated.get(p.day) ?? 0) / NANO,
     }));
-    return thin(windowSeries(joined, range));
-  }, [metrics, range]);
+    return thin(windowSeries(joined, chartDays));
+  }, [metrics, chartDays]);
 
   const delegatorSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.delegator_count), range)),
-    [metrics, range],
+    () => thin(windowSeries(toSeries(metrics?.delegator_count), chartDays)),
+    [metrics, chartDays],
   );
 
   const apySeries = useMemo<ApyPoint[]>(() => {
@@ -513,8 +552,8 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
     const sorted = [...apy.data]
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((p) => ({ day: p.date, maxAPY: p.maxAPY, minAPY: p.minAPY }));
-    return thin(windowSeries(sorted, range));
-  }, [apy, range]);
+    return thin(windowSeries(sorted, chartDays));
+  }, [apy, chartDays]);
 
   const dailyRewardSeries = useMemo<RewardPoint[]>(() => {
     // the moving average runs over the FULL series so the window's left
@@ -526,12 +565,12 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       if (i >= 30) rolling -= full[i - 30].value;
       return { ...p, ma: rolling / Math.min(i + 1, 30) };
     });
-    return thin(windowSeries(withMa, range), 180);
-  }, [metrics, range]);
+    return thin(windowSeries(withMa, chartDays), 180);
+  }, [metrics, chartDays]);
 
   const cumulativeRewardSeries = useMemo(
-    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), range)),
-    [metrics, range],
+    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), chartDays)),
+    [metrics, chartDays],
   );
 
   /* -------------------------------------------------------------- */
@@ -590,11 +629,70 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
 
   return (
     <div className="flex flex-col gap-10">
-      {/* the capital securing the network, right now */}
+      {/* the answer first: what securing the network pays, in the homepage
+          pillar panels' voice (#1F1F1F board, EBF0FA lead over the E6212F
+          punch, steel spec labels) */}
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
+          <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
+            <span className="block text-[#EBF0FA]">What securing the network</span>
+            <span className="block text-[#E6212F]">pays right now.</span>
+          </h3>
+          <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0">
+            <StatementCell label="Max APY · Est">
+              {apy?.current ? (
+                <>
+                  {apy.current.maxAPY.toFixed(1)}
+                  <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
+                </>
+              ) : (
+                "—"
+              )}
+            </StatementCell>
+            <StatementCell label="Min APY · Est">
+              {apy?.current ? (
+                <>
+                  {apy.current.minAPY.toFixed(1)}
+                  <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
+                </>
+              ) : (
+                "—"
+              )}
+            </StatementCell>
+            <StatementCell label="Median Delegation Fee" sub="across the current set">
+              {medianFee !== null ? (
+                <>
+                  {medianFee.toFixed(0)}
+                  <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
+                </>
+              ) : (
+                "—"
+              )}
+            </StatementCell>
+            <StatementCell label="Minted Per Day" sub="last full day">
+              {dailyRewards !== null ? (
+                <>
+                  {fmtCompact(dailyRewards)}
+                  <span className="ml-1.5 text-sm text-[#A2AFB2]">AVAX</span>
+                </>
+              ) : (
+                "—"
+              )}
+            </StatementCell>
+          </div>
+        </div>
+        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Estimated annual yield at current conditions; the exact rate varies with stake duration
+          and the validator&apos;s delegation fee. Rewards are newly minted AVAX.
+        </p>
+      </section>
+
+      {/* the capital securing the network — the lead board */}
       <section className="flex flex-col gap-4">
-        <Board divide={false}>
+        <Board divide={false} className="border">
           <BoardHeader
             label="Primary Network Staking"
+            display
             action={
               <Link
                 href={validatorsHref}
@@ -605,7 +703,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
               </Link>
             }
           />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <Stat
               label="Total Staked"
               sub={
@@ -623,16 +721,12 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
                 <StatDash />
               )}
             </Stat>
-            <Stat label="Staking APY · Est" sub="varies with duration and delegation fees">
-              {apy?.current ? (
-                <>
-                  {apy.current.minAPY.toFixed(1)}–{apy.current.maxAPY.toFixed(1)}
-                  <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </Stat>
+            {/* the count is a door into the set itself */}
+            <StatCell label="Validators" href={validatorsHref} sub="current set">
+              <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                {sdkValidators?.length ? sdkValidators.length.toLocaleString("en-US") : <StatDash />}
+              </span>
+            </StatCell>
             <Stat
               label="Delegators"
               sub={
@@ -644,7 +738,7 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
               {delegators !== null ? delegators.toLocaleString("en-US") : <StatDash />}
             </Stat>
             <Stat
-              label="Rewards · All Time"
+              label="Rewards · All-Time"
               sub={dailyRewards !== null ? `≈ ${fmtCompact(dailyRewards)} AVAX/day` : undefined}
             >
               {cumulativeRewards !== null ? (
@@ -661,144 +755,128 @@ export function PrimaryStakingContent({ validatorsHref }: { validatorsHref: stri
       </section>
 
       {/* the centerpiece: how the stake got here */}
-      <section className="flex flex-col gap-4">
-        <SectionHeader
-          label={`Total Stake · ${rangeLabel}`}
-          action={
-            <span className="hidden sm:block">
-              <StakeKey />
-            </span>
-          }
-        />
-        <Board divide={false} className="px-5 py-5 md:px-6">
-          {stakeSeries.length ? (
-            <TotalStakeChart data={stakeSeries} />
-          ) : (
-            <ChartEmpty failed={metricsFailed} />
-          )}
-        </Board>
-      </section>
+      <ChartBoard
+        label={`Total Stake${weekFloor}`}
+        href={door("total-stake")}
+        action={
+          <span className="hidden sm:block">
+            <StakeKey />
+          </span>
+        }
+      >
+        {stakeSeries.length ? (
+          <TotalStakeChart data={stakeSeries} />
+        ) : (
+          <ChartEmpty failed={metricsFailed} />
+        )}
+      </ChartBoard>
 
       {/* who delegates, and what staking pays */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <section className="flex flex-col gap-4">
-          <SectionHeader label={`Delegators · ${rangeLabel}`} />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {delegatorSeries.length ? (
-              <AreaTrend
-                data={delegatorSeries}
-                format={(v) => Math.round(v).toLocaleString("en-US")}
-                unit="delegators"
-              />
-            ) : (
-              <ChartEmpty failed={metricsFailed} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard label={`Delegators${weekFloor}`} href={door("total-stake")}>
+          {delegatorSeries.length ? (
+            <AreaTrend
+              data={delegatorSeries}
+              format={(v) => Math.round(v).toLocaleString("en-US")}
+              unit="delegators"
+            />
+          ) : (
+            <ChartEmpty failed={metricsFailed} />
+          )}
+        </ChartBoard>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label={`Staking APY · ${rangeLabel}`}
-            action={
-              <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> max
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> min
-                </span>
+        <ChartBoard
+          label={`Staking APY${weekFloor}`}
+          href={door("apy")}
+          action={
+            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> max
               </span>
-            }
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {apySeries.length ? <ApyChart data={apySeries} /> : <ChartEmpty failed={apyFailed} />}
-          </Board>
-        </section>
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> min
+              </span>
+            </span>
+          }
+        >
+          {apySeries.length ? <ApyChart data={apySeries} /> : <ChartEmpty failed={apyFailed} />}
+        </ChartBoard>
       </div>
 
       {/* what securing the network mints */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label={`Daily Rewards · ${rangeLabel}`}
-            action={
-              <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-                <span className="h-0.5 w-4 bg-[#E6212F]" /> 30d avg
-              </span>
-            }
-          />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {dailyRewardSeries.length ? (
-              <RewardsBars data={dailyRewardSeries} />
-            ) : (
-              <ChartEmpty failed={metricsFailed} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard
+          label={`Daily Rewards${weekFloor}`}
+          href={door("rewards")}
+          action={
+            <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+              <span className="h-0.5 w-4 bg-[#E6212F]" /> 30d avg
+            </span>
+          }
+        >
+          {dailyRewardSeries.length ? (
+            <RewardsBars data={dailyRewardSeries} />
+          ) : (
+            <ChartEmpty failed={metricsFailed} />
+          )}
+        </ChartBoard>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeader label={`Cumulative Rewards · ${rangeLabel}`} />
-          <Board divide={false} className="px-5 py-5 md:px-6">
-            {cumulativeRewardSeries.length ? (
-              <AreaTrend data={cumulativeRewardSeries} format={fmtCompact} unit="AVAX" />
-            ) : (
-              <ChartEmpty failed={metricsFailed} />
-            )}
-          </Board>
-        </section>
+        <ChartBoard label={`Cumulative Rewards${weekFloor}`} href={door("rewards")}>
+          {cumulativeRewardSeries.length ? (
+            <AreaTrend data={cumulativeRewardSeries} format={fmtCompact} unit="AVAX" />
+          ) : (
+            <ChartEmpty failed={metricsFailed} />
+          )}
+        </ChartBoard>
       </div>
 
-      {/* how the stake spreads across the current set */}
-      <section className="flex flex-col gap-4">
-        <SectionHeader label="Stake Distribution · Current Set" />
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-          <div className="flex flex-col gap-4">
-            <SectionHeader
-              label={`Concentration by Rank · ${LENS_LABEL[lens].toLowerCase()}`}
-              action={<LensToggle value={lens} onChange={setLens} />}
-            />
-            <Board divide={false} className="px-5 py-5 md:px-6">
-              {concentration.length ? (
-                <ConcentrationChart
-                  data={thin(concentration, 300)}
-                  setSize={concentration.length}
-                />
-              ) : (
-                <ChartEmpty failed={sdkFailed} />
-              )}
-            </Board>
-            <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-              Bars: each validator&apos;s {LENS_LABEL[lens].toLowerCase()} by rank (right axis). Red
-              line: the cumulative share the top N hold (left axis)
-              {halfClub !== null && (
-                <> — the top {halfClub} together control half of it</>
-              )}
-              . The flatter the climb, the more evenly the network&apos;s security is spread.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <SectionHeader
-              label="Delegation Fees · Weighted by Stake"
-              action={
-                medianFee !== null ? (
-                  <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                    median {medianFee.toFixed(0)}%
-                  </span>
-                ) : undefined
-              }
-            />
-            <Board divide={false} className="px-5 py-5 md:px-6">
-              {feeBuckets.length ? <FeeChart data={feeBuckets} /> : <ChartEmpty failed={sdkFailed} />}
-            </Board>
-            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              Red bars: own stake sitting at each fee (left axis) — where the capital actually
-              lives. Dashed line: validator count at that fee (right axis). The cut is what
-              delegating there costs.
-            </p>
-          </div>
+      {/* how the stake spreads across the current set — two snapshots of the
+          live set, each with its reading below (· current set is the honest
+          qualifier: these don't follow the page clock) */}
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          {/* no door here: the lens toggle in the title bar is interactive,
+              and a card-wide Link would swallow its clicks — the fees card
+              and the sheet siblings carry the way in */}
+          <ChartBoard
+            label="Concentration by Rank · current set"
+            action={<LensToggle value={lens} onChange={setLens} />}
+          >
+            {concentration.length ? (
+              <ConcentrationChart data={thin(concentration, 300)} setSize={concentration.length} />
+            ) : (
+              <ChartEmpty failed={sdkFailed} />
+            )}
+          </ChartBoard>
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Bars: each validator&apos;s {LENS_LABEL[lens].toLowerCase()} by rank (right axis). Red
+            line: the cumulative share the top N hold (left axis)
+            {halfClub !== null && <> — the top {halfClub} together control half of it</>}. The
+            flatter the climb, the more evenly the network&apos;s security is spread.
+          </p>
         </div>
-      </section>
+
+        <div className="flex flex-col gap-4">
+          <ChartBoard
+            label="Delegation Fees · current set"
+            href={door("distribution")}
+            action={
+              medianFee !== null ? (
+                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  median {medianFee.toFixed(0)}%
+                </span>
+              ) : undefined
+            }
+          >
+            {feeBuckets.length ? <FeeChart data={feeBuckets} /> : <ChartEmpty failed={sdkFailed} />}
+          </ChartBoard>
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Red bars: own stake sitting at each fee (left axis) — where the capital actually lives.
+            Dashed line: validator count at that fee (right axis). The cut is what delegating there
+            costs.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
