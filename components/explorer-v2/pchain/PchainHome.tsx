@@ -16,6 +16,7 @@ import {
   StatDash,
   StatFigure,
   TxTypePill,
+  idInk,
   txToneText,
 } from "@/components/explorer-v2/ui";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
@@ -468,7 +469,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                     href={`${base}/block/${b.blockNumber}`}
                     className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem_3.5rem] md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                    <span className={`font-mono text-[13px] tabular-nums ${idInk}`}>
                       #{formatNumber(b.blockNumber)}
                     </span>
                     <span className="min-w-0 text-left">
@@ -506,7 +507,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                     href={`${base}/tx/${t.txHash}`}
                     className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.75rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    <span className={`truncate font-mono text-[12px] ${idInk}`}>
                       {truncate(t.txHash, 22)}
                     </span>
                     <span className="min-w-0 text-left">

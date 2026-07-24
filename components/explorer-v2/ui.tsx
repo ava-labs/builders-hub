@@ -446,6 +446,13 @@ export function CellLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Identifier ink — the one blue every clickable identifier wears,
+   whether it's a standalone HashChip link or the lead cell of a row-
+   Link (where a nested <a> is invalid and the row itself navigates).
+   Blue = "this ID takes you to its page", everywhere, no exceptions. */
+export const idInk = "text-[#0061E2] dark:text-[#5f9dff]";
+
+/* ------------------------------------------------------------------ */
 /* HashChip — mono truncated hash/address with copy                    */
 export function HashChip({
   value,
@@ -482,7 +489,7 @@ export function HashChip({
       {href ? (
         <Link
           href={href}
-          className={cn(textCls, "text-[#0061E2] underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-[#5f9dff]")}
+          className={cn(textCls, idInk, "underline-offset-4 hover:text-[#E6212F] hover:underline")}
           title={value}
         >
           {text}

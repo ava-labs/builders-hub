@@ -22,6 +22,7 @@ import {
   SpecRow,
   SubjectHeadline,
   TxTypePill,
+  idInk,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
@@ -612,7 +613,7 @@ export function PchainNode({
                       href={`${base}/tx/${d.txId}`}
                       className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                     >
-                      <span className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">{truncate(d.txId, 16)}</span>
+                      <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 16)}</span>
                       <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                         <span className="font-bold text-zinc-900 dark:text-zinc-100">
                           {formatAvax(d.stakeAmount, { compact: true })}
@@ -645,7 +646,7 @@ export function PchainNode({
                       className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                        <span className={`truncate font-mono text-[12px] ${idInk}`}>
                           {truncate(h.txHash, 16)}
                         </span>
                         <TxTypePill type={h.txType.replace(/Tx$/, "")} />

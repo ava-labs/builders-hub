@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, SubjectHeadline, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, SubjectHeadline, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -66,7 +66,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
                   href={`${base}/tx/${t.txHash}`}
                   className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                  <span className={`min-w-0 truncate font-mono text-[12px] ${idInk}`}>
                     {t.txHash}
                   </span>
                   <TxTypePill type={t.txType.replace(/Tx$/, "")} />
