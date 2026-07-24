@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -21,6 +20,7 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
   TxTypePill,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
@@ -202,7 +202,7 @@ export function PchainNode({
                 </span>
               }
             />
-            <NodeIdHeadline nodeId={n.nodeId} />
+            <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
             {!n.hasSnapshot && (
               <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
                 Not in the latest validator snapshot. Showing on-chain history.
@@ -697,7 +697,7 @@ function L1ValidatorView({
             </span>
           }
         />
-        <NodeIdHeadline nodeId={nodeId} />
+        <SubjectHeadline value={nodeId} copyLabel="Copy NodeID" />
       </section>
 
       <div className="grid items-start gap-8 lg:grid-cols-2">
@@ -746,38 +746,6 @@ function L1ValidatorView({
         )}
       </div>
     </div>
-  );
-}
-
-/* The page's subject, at headline weight: the NodeID is what you came for,
-   so it reads like a title — full value, bold mono, one click to copy. */
-function NodeIdHeadline({ nodeId }: { nodeId: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(nodeId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable — the text is selectable anyway */
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={copy}
-      title="Copy NodeID"
-      className="group flex w-fit max-w-full items-baseline gap-3 text-left"
-    >
-      <span className="break-all font-mono text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-        {nodeId}
-      </span>
-      {copied ? (
-        <Check className="h-4 w-4 shrink-0 self-center text-emerald-600 dark:text-emerald-400" />
-      ) : (
-        <Copy className="h-4 w-4 shrink-0 self-center text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400" />
-      )}
-    </button>
   );
 }
 

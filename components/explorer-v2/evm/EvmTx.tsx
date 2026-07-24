@@ -11,6 +11,7 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatGwei } from "./format";
@@ -73,11 +74,9 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader label="Transaction" action={<StatusPill success={t.success} />} />
+            <SubjectHeadline value={t.hash} copyLabel="Copy transaction hash" />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Hash">
-                  <HashChip value={t.hash} len={64} />
-                </SpecRow>
                 <SpecRow label="Block">
                   <HashChip value={`#${formatNumber(t.blockNumber)}`} href={`${base}/block/${t.blockNumber}`} mono={false} />
                 </SpecRow>
