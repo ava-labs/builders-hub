@@ -475,6 +475,139 @@ export async function getPchainStakingSeries(
   }
 }
 
+// --- P-Chain L1 operations ----------------------------------------------------
+// The P-Chain's own view of the L1 world: every seat registration, weight
+// set, disable, top-up, and subnet conversion is a P-Chain transaction it
+// processed. Daily counts by type (the ops ledger) plus the all-time
+// cumulative conversion curve — the ACP-77 adoption story.
+
+export type PchainL1OpsDays = 30 | 90 | 365;
+
+export interface PchainL1OpsPoint {
+  date: string;
+  register: number;
+  setWeight: number;
+  disable: number;
+  topUp: number;
+  convert: number;
+}
+
+export interface PchainL1ConversionPoint {
+  /** YYYY-MM */
+  month: string;
+  cumulative: number;
+}
+
+export interface PchainL1Ops {
+  ops: PchainL1OpsPoint[];
+  conversions: PchainL1ConversionPoint[];
+}
+
+const L1_OP_TYPES = [
+  "RegisterL1ValidatorTx",
+  "SetL1ValidatorWeightTx",
+  "DisableL1ValidatorTx",
+  "IncreaseL1ValidatorBalanceTx",
+  "ConvertSubnetToL1Tx",
+] as const;
+
+function sqlPchainL1Ops(networkId: number, days: PchainL1OpsDays): string {
+  const types = L1_OP_TYPES.map((t) => `'${t}'`).join(",");
+  return `
+    SELECT toDate(block_time) AS day, tx_type, toString(count()) AS n
+    FROM decoded_p_txs
+    WHERE chain_id = ${networkId}
+      AND tx_type IN (${types})
+      AND block_time >= toDate(now() - INTERVAL ${days} DAY)
+    GROUP BY day, tx_type
+    ORDER BY day
+    FORMAT JSONEachRow
+  `;
+}
+
+function sqlPchainL1Conversions(networkId: number): string {
+  return `
+    SELECT toString(toStartOfMonth(block_time)) AS month, toString(count()) AS n
+    FROM decoded_p_txs
+    WHERE chain_id = ${networkId} AND tx_type = 'ConvertSubnetToL1Tx'
+    GROUP BY month
+    ORDER BY month
+    FORMAT JSONEachRow
+  `;
+}
+
+const pchainL1OpsCache = new Map<string, { data: PchainL1Ops; fetchedAt: number }>();
+
+export async function getPchainL1Ops(
+  network: string,
+  days: PchainL1OpsDays = 30,
+): Promise<PchainL1Ops | null> {
+  const networkId = PCHAIN_NETWORK_IDS[network];
+  if (networkId === undefined) return null;
+
+  const cacheKey = `${network}:${days}`;
+  const cached = pchainL1OpsCache.get(cacheKey);
+  if (cached && Date.now() - cached.fetchedAt < DAILY_TTL_MS) {
+    return cached.data;
+  }
+
+  try {
+    type OpRow = { day: string; tx_type: string; n: string };
+    type ConvRow = { month: string; n: string };
+    const [opRows, convRows] = await Promise.all([
+      clickhouseFetch<OpRow>(sqlPchainL1Ops(networkId, days), QUERY_TIMEOUT_MS),
+      clickhouseFetch<ConvRow>(sqlPchainL1Conversions(networkId), QUERY_TIMEOUT_MS),
+    ]);
+
+    const byDay = new Map<string, PchainL1OpsPoint>();
+    for (const iso of buildPastDates(days)) {
+      byDay.set(iso, {
+        date: formatDayLabel(iso),
+        register: 0,
+        setWeight: 0,
+        disable: 0,
+        topUp: 0,
+        convert: 0,
+      });
+    }
+    const FIELD: Record<string, keyof Omit<PchainL1OpsPoint, "date">> = {
+      RegisterL1ValidatorTx: "register",
+      SetL1ValidatorWeightTx: "setWeight",
+      DisableL1ValidatorTx: "disable",
+      IncreaseL1ValidatorBalanceTx: "topUp",
+      ConvertSubnetToL1Tx: "convert",
+    };
+    for (const r of opRows) {
+      const p = byDay.get(r.day);
+      const f = FIELD[r.tx_type];
+      if (p && f) p[f] += Number(r.n) || 0;
+    }
+
+    // continuous month axis from the first conversion to now — a
+    // cumulative curve must never skip a quiet month
+    const convByMonth = new Map(convRows.map((r) => [r.month.slice(0, 7), Number(r.n) || 0]));
+    const conversions: PchainL1ConversionPoint[] = [];
+    const months = [...convByMonth.keys()].sort();
+    if (months.length) {
+      let cum = 0;
+      const now = new Date().toISOString().slice(0, 7);
+      for (let d = new Date(`${months[0]}-01T00:00:00Z`); ; d.setUTCMonth(d.getUTCMonth() + 1)) {
+        const m = d.toISOString().slice(0, 7);
+        cum += convByMonth.get(m) ?? 0;
+        conversions.push({ month: m, cumulative: cum });
+        if (m >= now) break;
+      }
+    }
+
+    const data = { ops: [...byDay.values()], conversions };
+    pchainL1OpsCache.set(cacheKey, { data, fetchedAt: Date.now() });
+    return data;
+  } catch (err) {
+    console.error("[explorer-clickhouse] pchain l1-ops query failed:", err);
+    return cached?.data ?? null;
+  }
+}
+
 // --- C-Chain activity by behavior --------------------------------------------
 // Categorize each tx by what its event logs SAY it did — no contract-label
 // curation needed. Priority per tx: DeFi swap beats NFT transfer beats

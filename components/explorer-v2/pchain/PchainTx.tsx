@@ -26,6 +26,7 @@ import {
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
+import { GenesisViewer } from "./GenesisViewer";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "./FundFlowDiagram";
 import { knownChainName } from "@/lib/pchain-explorer";
 import type { AssetAmount, Tx, Utxo } from "@/lib/pchain-explorer";
@@ -66,6 +67,8 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   const hasCreation = !!(tx && (tx.details?.chainName || tx.details?.vmId || tx.details?.subnetOwners?.length));
   const hasCrossChain = !!(tx && (tx.details?.sourceChain || tx.details?.destinationChain || tx.importedFrom));
   const isConvert = tx?.txType === "ConvertSubnetToL1Tx";
+  // a CreateChainTx carries the new chain's genesis — the node has the bytes
+  const isCreateChain = tx?.txType === "CreateChainTx";
   const isWarpOp = tx?.txType === "RegisterL1ValidatorTx" || tx?.txType === "SetL1ValidatorWeightTx";
   const hasContext =
     hasStaking || hasContinuous || hasL1Validation || hasCreation || hasCrossChain || isConvert || isWarpOp;
@@ -73,7 +76,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // node-decoded inputs for platform ops (shared by the right-rail panels
   // and the full-width initial-validator-set table); on a 404 it doubles
   // as the authoritative "does this tx exist on-chain at all?" check
-  const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || notFound);
+  const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || isCreateChain || notFound);
 
   return (
     <ExplorerShell chain={chain} network={network}>
@@ -327,6 +330,12 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           )}
           </div>
 
+          {/* CreateChainTx: the full genesis document, decoded from the
+              node's copy of the tx — overview + raw JSON, full-width */}
+          {isCreateChain && (platformOp.loading || platformOp.data?.genesisData != null) && (
+            <GenesisViewer genesisData={platformOp.data?.genesisData} loading={platformOp.loading} />
+          )}
+
           {/* Fund flow: diagram (default) or ledger table */}
           <section className="flex flex-col gap-4">
             <SectionHeader
@@ -573,7 +582,7 @@ function InitialValidatorSet({
                         <HashChip
                           value={nodeId}
                           href={`${base}/node/${nodeId}${subnetId ? `?subnet=${subnetId}` : ""}`}
-                          len={16}
+                          len={50}
                         />
                       ) : (
                         <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">

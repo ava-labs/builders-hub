@@ -87,9 +87,18 @@ async function listClassicValidators(network: "mainnet" | "fuji"): Promise<Simpl
 
 async function listL1Validators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
   // Active L1 validators across all subnets from our P-chain read API.
+  //
+  // Upstream fixed 2026-07-24 (stats-api PR #8): the endpoint used to ship
+  // removed validators (weight-0 rows with stale balances — Coqnet reported
+  // 1,231 "active" vs 6 on the node) because the replay had ACP-77 removal
+  // and disable semantics inverted. The weight/balance filter below is kept
+  // as a cheap defense against regressions; post-fix it drops nothing the
+  // endpoint should have sent. Counts here are REGISTERED ACTIVE seats —
+  // remainingBalance is still gross of continuous-fee burn upstream, so
+  // drained-but-not-removed seats pass the balance check.
   const vs = await fetchAllPages<any>(`/v1/networks/${network}/l1Validators?includeInactive=false`, "validators");
   return vs
-    .filter(v => Number(v.remainingBalance) > 0)
+    .filter(v => Number(v.weight) > 0 && Number(v.remainingBalance) > 0)
     .map(v => ({
       nodeId: v.nodeId,
       subnetId: v.subnetId,

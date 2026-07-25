@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash, idInk } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { useContractNames } from "@/lib/sourcify-client";
@@ -130,7 +130,7 @@ function LeaderBoard({
                 {i + 1}
               </span>
               <span
-                className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100"
+                className={`truncate font-mono text-[12px] ${idInk}`}
                 title={name ? `${name} · ${l.address}` : l.address}
               >
                 {name ?? shortAddr(l.address)}

@@ -12,10 +12,12 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  idInk,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
+import { GenesisViewer } from "./GenesisViewer";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { hexToCB58 } from "@avalanche-sdk/client/utils";
@@ -26,6 +28,7 @@ import {
   VM_NAMES,
   cb58ToHex,
   getCurrentValidators,
+  getPlatformTx,
   getSubnetInfo,
   type CurrentValidator,
   type SubnetInfo,
@@ -96,6 +99,17 @@ export function ChainDetailsContent({
   const [subnet, setSubnet] = useState<SubnetInfo | null>(null);
   const [validators, setValidators] = useState<CurrentValidator[] | null>(null);
   const [shown, setShown] = useState(50);
+  // the chain's genesis rides in its CreateChainTx — the node keeps the bytes
+  const [genesisData, setGenesisData] = useState<unknown>(undefined);
+
+  useEffect(() => {
+    if (!isChain) return;
+    let cancelled = false;
+    getPlatformTx(network, cb58Id).then((u) => !cancelled && setGenesisData(u?.genesisData));
+    return () => {
+      cancelled = true;
+    };
+  }, [network, cb58Id, isChain]);
 
   useEffect(() => {
     // the Primary Network's subnet is implicit and its validator set is the
@@ -223,9 +237,12 @@ export function ChainDetailsContent({
                   ) : (
                     <>
                       <SpecRow label="Status">Sovereign L1 (converted via ACP-77)</SpecRow>
+                      {/* the ACP-77 conversionID is the SHA-256 of the conversion
+                          data, NOT the ConvertSubnetToL1Tx's ID — there is no tx
+                          at this ID, so it must never link to a tx page */}
                       {subnet.conversionID && (
-                        <SpecRow label="Conversion Tx">
-                          <HashChip value={subnet.conversionID} href={`${base}/tx/${subnet.conversionID}`} len={24} />
+                        <SpecRow label="Conversion ID">
+                          <HashChip value={subnet.conversionID} len={24} />
                         </SpecRow>
                       )}
                       {subnet.managerChainID && (
@@ -270,8 +287,8 @@ export function ChainDetailsContent({
                     href={`${base}/node/${v.nodeID}${subnetId ? `?subnet=${subnetId}` : ""}`}
                     className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.6fr_0.8fr_0.8fr_1fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
-                      {truncate(v.nodeID, 18)}
+                    <span className={`break-all font-mono text-[12px] ${idInk}`}>
+                      {v.nodeID}
                     </span>
                     <div className="font-mono text-[11px] tabular-nums text-zinc-700 md:text-right dark:text-zinc-300">
                       <CellLabel>Weight</CellLabel>
@@ -298,6 +315,9 @@ export function ChainDetailsContent({
               )}
             </section>
           )}
+
+          {/* the founding document itself, decoded from the CreateChainTx */}
+          {genesisData != null && <GenesisViewer genesisData={genesisData} />}
         </div>
       )}
     </>

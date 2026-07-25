@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import type { TxSummary } from "@/lib/pchain-explorer";
@@ -70,7 +70,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
               href={`${base}/tx/${t.txHash}`}
               className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
             >
-              <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+              <span className={`truncate font-mono text-[12px] ${idInk}`}>
                 {truncate(t.txHash, 16)}
               </span>
               <span className="justify-self-start">

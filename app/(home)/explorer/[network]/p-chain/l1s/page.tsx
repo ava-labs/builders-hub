@@ -1,15 +1,15 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getExplorerChain } from "@/lib/pchain-explorer";
-import { PchainStaking } from "@/components/explorer-v2/pchain/PchainValidators";
+import { PchainL1s } from "@/components/explorer-v2/staking/L1Economy";
 
 export const metadata: Metadata = {
-  title: "Avalanche Staking | Avalanche Explorer",
+  title: "Avalanche L1s | Avalanche Explorer",
   description:
-    "Primary Network staking: total stake and its growth, staking APY, rewards minted and paid, stake unlocks, and how the stake distributes across the validator set.",
+    "The ACP-77 L1 validator economy: active fee-paying seats, the live continuous-fee price and what the whole set burns, Primary-vs-L1 seat growth, and where the seats run.",
 };
 
-export default async function StakingPage({
+export default async function L1sPage({
   params,
 }: {
   params: Promise<{ network: string }>;
@@ -17,7 +17,7 @@ export default async function StakingPage({
   const { network } = await params;
   const c = getExplorerChain("p-chain");
   if (!c || !c.networks.includes(network)) notFound();
-  // the staking feeds watch mainnet; Fuji has no observatory to show
+  // the seat-economy feeds (ecosystem seats, metrics) watch mainnet only
   if (network !== "mainnet") redirect(`/explorer/${network}/p-chain/validators`);
-  return <PchainStaking chain={c.slug} network={network} />;
+  return <PchainL1s chain={c.slug} network={network} />;
 }
