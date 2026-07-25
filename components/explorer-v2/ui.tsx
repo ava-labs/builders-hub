@@ -446,6 +446,39 @@ export function CellLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* DarkToggle — segmented control in the dark statement panels' voice
+   (#1F1F1F boards: the staking calculator, the gas cost panel).        */
+export function DarkToggle<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="inline-flex shrink-0 flex-wrap border border-white/15">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+            o.value === value
+              ? "bg-[#EBF0FA] text-zinc-900"
+              : "text-[#A2AFB2] hover:bg-white/10 hover:text-[#EBF0FA]",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Identifier ink — the one blue every clickable identifier wears,
    whether it's a standalone HashChip link or the lead cell of a row-
    Link (where a nested <a> is invalid and the row itself navigates).

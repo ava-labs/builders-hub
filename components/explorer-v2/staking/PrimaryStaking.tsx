@@ -14,7 +14,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, ChartBoard, StatCell, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, DarkToggle, StatCell, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
@@ -514,37 +514,6 @@ const DURATIONS = [
 function effectiveConsumptionRate(days: number): number {
   const t = Math.min(1, Math.max(0, days / 365));
   return MIN_CONSUMPTION * (1 - t) + MAX_CONSUMPTION * t;
-}
-
-/* segmented control in the dark panel's voice */
-function DarkToggle<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="inline-flex shrink-0 border border-white/15">
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          onClick={() => onChange(o.value)}
-          className={cn(
-            "px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-            o.value === value
-              ? "bg-[#EBF0FA] text-zinc-900"
-              : "text-[#A2AFB2] hover:bg-white/10 hover:text-[#EBF0FA]",
-          )}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 function YieldCalculator({
