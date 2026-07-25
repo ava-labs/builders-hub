@@ -18,7 +18,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, ChartBoard, DarkToggle, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import {
   useExplorerTimeRange,
   RANGE_DAYS,
@@ -271,10 +271,10 @@ const ACTIONS: { label: string; gas: number }[] = [
   { label: "NFT Mint", gas: 120_000 },
 ];
 
-/* The statement panel as a calculator — same idiom as the staking page:
-   ONE hero number, and the inputs that make it yours. Pick an action
-   preset or dial the gas units to match your contract; the hero answers
-   in money, priced live at base fee + median tip. */
+/* The statement panel, purely observational — no inputs, no gas jargon:
+   ONE hero number (what sending the native token costs, in money, off
+   the live market) with the other everyday actions reading quietly
+   below. Same hero grammar as the staking panel next door. */
 function CostPanel({
   effectiveWei,
   usd,
@@ -288,10 +288,23 @@ function CostPanel({
   symbol: string;
   unit: string;
 }) {
-  const [gasRaw, setGasRaw] = useState(ACTIONS[0].gas.toLocaleString("en-US"));
-  const gas = Number(gasRaw.replace(/[^0-9]/g, "")) || 0;
-  const active = ACTIONS.find((a) => a.gas === gas);
-  const costWei = effectiveWei !== null && gas > 0 ? effectiveWei * gas : null;
+  // one money formatter for every figure on the panel — USD when the
+  // token is priced, native units otherwise, skeleton while settling
+  const price = (gas: number): React.ReactNode => {
+    const costWei = effectiveWei !== null ? effectiveWei * gas : null;
+    if (costWei === null) return "—";
+    if (usd !== null) return fmtUsd((costWei / 1e18) * usd);
+    if (!usdSettled)
+      return (
+        <span
+          className="inline-block h-[0.85em] w-16 animate-pulse bg-white/10 align-middle"
+          aria-label="Loading price"
+        />
+      );
+    return `${fmtNative(costWei)} ${symbol}`;
+  };
+  const hero = ACTIONS[0]; // the native transfer — the everyman number
+  const heroWei = effectiveWei !== null ? effectiveWei * hero.gas : null;
 
   return (
     <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
@@ -303,66 +316,47 @@ function CostPanel({
         </h3>
         <div className="flex flex-col items-end gap-1">
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
-            {active ? active.label : "Custom gas"} · live
+            Sending {symbol || "the native token"} · live
           </span>
           <span className="font-mono text-6xl tabular-nums tracking-tight text-[#EBF0FA] md:text-7xl">
-            {/* hold the figure until the price feed settles — painting
-                native and flipping to dollars a beat later reads as a
-                glitch. Native is the fallback for unlisted tokens only. */}
-            {costWei !== null && usd !== null ? (
-              fmtUsd((costWei / 1e18) * usd)
-            ) : costWei !== null && !usdSettled ? (
+            {heroWei !== null && usd !== null ? (
+              fmtUsd((heroWei / 1e18) * usd)
+            ) : heroWei !== null && !usdSettled ? (
               <span
                 className="inline-block h-[0.85em] w-44 animate-pulse bg-white/10 align-middle"
                 aria-label="Loading price"
               />
-            ) : costWei !== null ? (
+            ) : heroWei !== null ? (
               <>
-                {fmtNative(costWei)}
+                {fmtNative(heroWei)}
                 <span className="ml-2 text-2xl text-[#A2AFB2]">{symbol}</span>
               </>
             ) : (
               "—"
             )}
           </span>
-          {costWei !== null && usd !== null && (
+          {heroWei !== null && usd !== null && (
             <span className="font-mono text-xs tabular-nums text-[#A2AFB2]">
-              = {fmtNative(costWei)} {symbol} · {fmtNano(costWei)} {unit} total
+              = {fmtNative(heroWei)} {symbol} · {fmtNano(heroWei)} {unit} total
             </span>
           )}
         </div>
       </div>
 
-      {/* the calculator: preset actions, or your contract's real gas */}
+      {/* the rest of an everyday session, reading quietly on one rule —
+          plain label→figure pairs, no boxes, no dividers */}
       <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5 border-t border-white/10 pt-6">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-          <DarkToggle
-            options={ACTIONS.map((a) => ({ value: String(a.gas), label: a.label }))}
-            value={active ? String(active.gas) : ""}
-            onChange={(v) => setGasRaw(Number(v).toLocaleString("en-US"))}
-          />
-          <label className="flex items-center gap-3">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
-              Gas
+        <div className="flex flex-wrap items-baseline gap-x-10 gap-y-4">
+          {ACTIONS.slice(1).map((a) => (
+            <span key={a.label} className="flex items-baseline gap-2.5">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+                {a.label}
+              </span>
+              <span className="font-mono text-xl tabular-nums tracking-tight text-[#EBF0FA] md:text-2xl">
+                {price(a.gas)}
+              </span>
             </span>
-            <span className="flex items-baseline gap-2 border-b border-white/25 focus-within:border-[#E6212F]">
-              <input
-                value={gasRaw}
-                onChange={(e) => setGasRaw(e.target.value)}
-                onBlur={() =>
-                  setGasRaw(
-                    gas > 0
-                      ? gas.toLocaleString("en-US")
-                      : ACTIONS[0].gas.toLocaleString("en-US"),
-                  )
-                }
-                inputMode="numeric"
-                aria-label="Gas units"
-                className="w-28 bg-transparent py-1 text-right font-mono text-xl tabular-nums text-[#EBF0FA] outline-none"
-              />
-              <span className="pb-0.5 font-mono text-xs text-[#A2AFB2]">units</span>
-            </span>
-          </label>
+          ))}
         </div>
         {usd !== null && (
           <span className="font-mono text-[11px] text-[#A2AFB2]/80">
@@ -1001,8 +995,8 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           unit={unit}
         />
         <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Priced live at the base fee plus the median priority tip. The presets are typical gas
-          for each action — real usage varies by contract, so dial the gas units to match yours.
+          Priced at the live base fee plus the median priority tip, using typical gas for each
+          action. Actual costs vary by contract.
         </p>
       </section>
 
