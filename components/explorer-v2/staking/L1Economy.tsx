@@ -5,17 +5,18 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import {
   Area,
+  Bar,
   ComposedChart,
-  Line,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
-import { timeAgo } from "@/components/explorer-v2/format";
+import { timeAgo, truncate } from "@/components/explorer-v2/format";
+import { pchainApiPath, type TxSummary } from "@/lib/pchain-explorer";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { usePchainData } from "@/components/explorer-v2/pchain/hooks";
@@ -24,6 +25,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import {
   fmtCompact,
+  moneyFlowWindow,
   thin,
   toSeries,
   useEcosystemSeats,
@@ -150,7 +152,6 @@ export function ChainBadge({
 
 interface L1Registry {
   totals: { subnets: number; l1s: number; blockchains: number; evmChains: number };
-  series: { month: string; blockchains: number; subnets: number }[];
   recent: {
     name: string;
     blockchainId: string;
@@ -181,8 +182,103 @@ function useL1Registry(network: string) {
   return { data, failed };
 }
 
-/* cumulative creations — blockchains as the filled story, subnets dashed */
-function BuildOutChart({ data }: { data: L1Registry["series"] }) {
+/* ------------------------------------------------------------------ */
+/* the P-Chain's L1 ops ledger — every ACP-77 tx type it processed      */
+
+interface L1OpsPoint {
+  date: string;
+  register: number;
+  setWeight: number;
+  disable: number;
+  topUp: number;
+  convert: number;
+}
+
+interface L1Ops {
+  ops: L1OpsPoint[];
+  conversions: { month: string; cumulative: number }[];
+}
+
+function useL1Ops(network: string, days: 30 | 90 | 365) {
+  const [data, setData] = useState<L1Ops | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setData(null);
+    setFailed(false);
+    fetch(`/api/pchain-l1-ops/${network}?days=${days}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((d: L1Ops) => {
+        if (!cancelled) setData(d);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [network, days]);
+  return { data, failed };
+}
+
+/* one tone per op family, rhyming with the tx-type pills: routine weight
+   sets are the quiet gray bulk; joins green, top-ups amber, disables red,
+   conversions the subnet blue */
+const OPS_SERIES = [
+  { key: "setWeight", label: "weight sets", color: "#A2AFB2" },
+  { key: "register", label: "registrations", color: "#4e9a52" },
+  { key: "topUp", label: "top-ups", color: "#C7911B" },
+  { key: "disable", label: "disables", color: "#E6212F" },
+  { key: "convert", label: "conversions", color: "#0061E2" },
+] as const;
+
+function L1OpsChart({ data }: { data: L1OpsPoint[] }) {
+  return (
+    <div className="h-56">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data}>
+          <XAxis dataKey="date" hide />
+          <YAxis hide domain={[0, "dataMax"]} />
+          <RechartsTooltip
+            cursor={{ fill: "rgba(161,161,170,0.08)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const d = payload[0].payload as L1OpsPoint;
+              const total = d.register + d.setWeight + d.disable + d.topUp + d.convert;
+              return (
+                <TipPlate>
+                  <p className="text-[10px] text-zinc-500">{d.date}</p>
+                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                    {total.toLocaleString("en-US")} L1 operations
+                  </p>
+                  {OPS_SERIES.filter((s) => d[s.key] > 0).map((s) => (
+                    <p key={s.key} className="text-[10px] tabular-nums text-zinc-500">
+                      <span className="mr-1 inline-block h-2 w-2 align-middle" style={{ backgroundColor: s.color }} />
+                      {d[s.key].toLocaleString("en-US")} {s.label}
+                    </p>
+                  ))}
+                </TipPlate>
+              );
+            }}
+          />
+          {OPS_SERIES.map((s) => (
+            <Bar
+              key={s.key}
+              dataKey={s.key}
+              stackId="ops"
+              fill={s.color}
+              fillOpacity={0.8}
+              isAnimationActive={false}
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* the ACP-77 adoption curve — every conversion since Etna, cumulative */
+function ConversionsChart({ data }: { data: L1Ops["conversions"] }) {
   return (
     <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
@@ -193,15 +289,12 @@ function BuildOutChart({ data }: { data: L1Registry["series"] }) {
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as L1Registry["series"][number];
+              const d = payload[0].payload as L1Ops["conversions"][number];
               return (
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{d.month}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.blockchains.toLocaleString("en-US")} blockchains
-                  </p>
-                  <p className="text-[10px] tabular-nums text-zinc-500">
-                    {d.subnets.toLocaleString("en-US")} subnets created
+                    {d.cumulative.toLocaleString("en-US")} subnets converted
                   </p>
                 </TipPlate>
               );
@@ -209,20 +302,11 @@ function BuildOutChart({ data }: { data: L1Registry["series"] }) {
           />
           <Area
             type="monotone"
-            dataKey="blockchains"
+            dataKey="cumulative"
             stroke={L1_COLOR}
             strokeWidth={1.5}
             fill={L1_COLOR}
             fillOpacity={0.12}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="subnets"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            strokeDasharray="4 3"
-            dot={false}
             isAnimationActive={false}
           />
         </ComposedChart>
@@ -323,6 +407,44 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
   const clock = useExplorerTimeRange();
   const chartDays = Math.max(7, RANGE_DAYS[clock]);
   const weekFloor = RANGE_DAYS[clock] < 7 ? " · 7 days" : "";
+
+  // the ops ledger rides the page clock at the feed's computed windows
+  const opsDays = moneyFlowWindow(RANGE_DAYS[clock]);
+  const { data: ops, failed: opsFailed } = useL1Ops(network, opsDays);
+
+  // the live tape: newest tx of each ACP-77 type, merged — the indexer's
+  // txs feed filters by a single type, so five small fetches interleave
+  const [recentOps, setRecentOps] = useState<TxSummary[] | null>(null);
+  const [recentOpsFailed, setRecentOpsFailed] = useState(false);
+  useEffect(() => {
+    const TYPES = [
+      "RegisterL1ValidatorTx",
+      "SetL1ValidatorWeightTx",
+      "DisableL1ValidatorTx",
+      "IncreaseL1ValidatorBalanceTx",
+      "ConvertSubnetToL1Tx",
+    ];
+    let cancelled = false;
+    Promise.all(
+      TYPES.map((type) =>
+        fetch(pchainApiPath(network, "txs", { limit: 6, type }))
+          .then((res) => (res.ok ? res.json() : []))
+          .catch(() => []),
+      ),
+    ).then((lists: TxSummary[][]) => {
+      if (cancelled) return;
+      const merged = lists
+        .flat()
+        .filter((t) => t?.txHash)
+        .sort((a, b) => b.blockTimestamp - a.blockTimestamp)
+        .slice(0, 8);
+      if (merged.length) setRecentOps(merged);
+      else setRecentOpsFailed(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [network]);
 
   const seatSeries = useMemo<SeatPoint[]>(() => {
     const l1 = toSeries(seats?.l1);
@@ -496,13 +618,14 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
         </ChartBoard>
       </div>
 
-      {/* the build-out: everything the P-Chain has ever created — the
-          registry behind the seat market. Seats are the run-rate; this
-          is the install base. */}
+      {/* the registry, from the P-Chain's chair: it doesn't see "chains
+          launching" — it sees subnets moving through states. Created →
+          converted (ACP-77) → alive with funded seats. The funnel IS
+          the L1 lifecycle. */}
       <div className="flex flex-col gap-4 pt-2">
         <Board divide={false} className="border">
           <BoardHeader
-            label="The Build-Out"
+            label="L1 Lifecycle"
             display
             action={
               <Link
@@ -515,37 +638,93 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
             }
           />
           <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
-            <Stat label="Blockchains Created" sub="all-time, on the P-Chain">
-              {registry ? registry.totals.blockchains.toLocaleString("en-US") : <StatDash />}
-            </Stat>
-            <Stat label="Subnets Created" sub="all-time">
+            <Stat
+              label="Subnets Created"
+              sub={
+                registry
+                  ? `carrying ${registry.totals.blockchains.toLocaleString("en-US")} blockchains, all-time`
+                  : "all-time"
+              }
+            >
               {registry ? registry.totals.subnets.toLocaleString("en-US") : <StatDash />}
             </Stat>
-            <Stat label="Converted to L1" sub="ACP-77 sovereign sets">
+            <Stat
+              label="Converted to L1"
+              sub={
+                registry && registry.totals.subnets > 0
+                  ? `${Math.round((registry.totals.l1s / registry.totals.subnets) * 100)}% of all subnets, via ACP-77`
+                  : "via ACP-77"
+              }
+            >
               {registry ? registry.totals.l1s.toLocaleString("en-US") : <StatDash />}
+            </Stat>
+            <Stat label="Live Now" sub="with active, fee-paying seats">
+              {liveSets ? liveSets.length.toLocaleString("en-US") : <StatDash />}
             </Stat>
           </div>
         </Board>
       </div>
 
+      {/* the ops ledger: every one of these is a transaction the P-Chain
+          itself processed — the L1 machinery being used, daily */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
-          label="Chains Created · cumulative"
+          label={`L1 Operations · last ${opsDays} days`}
           action={
-            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2.5 w-4 bg-[#0061E2]/25" /> blockchains
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> subnets
-              </span>
+            <span className="hidden flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 sm:flex dark:text-zinc-500">
+              {OPS_SERIES.map((s) => (
+                <span key={s.key} className="flex items-center gap-1">
+                  <span className="h-2 w-2" style={{ backgroundColor: s.color }} />
+                  {s.label}
+                </span>
+              ))}
             </span>
           }
         >
-          {registry?.series.length ? (
-            <BuildOutChart data={registry.series} />
+          {ops?.ops.length ? <L1OpsChart data={ops.ops} /> : <ChartEmpty failed={opsFailed} />}
+        </ChartBoard>
+
+        <ChartBoard label="Subnet → L1 Conversions · cumulative">
+          {ops?.conversions.length ? (
+            <ConversionsChart data={ops.conversions} />
           ) : (
-            <ChartEmpty failed={registryFailed} />
+            <ChartEmpty failed={opsFailed} />
+          )}
+        </ChartBoard>
+      </div>
+
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        {/* the live tape of those operations, one by one */}
+        <ChartBoard
+          label="Recent L1 Operations"
+          action={
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              latest on the P-Chain
+            </span>
+          }
+        >
+          {recentOps === null ? (
+            <ChartEmpty failed={recentOpsFailed} />
+          ) : recentOps.length === 0 ? (
+            <ChartEmpty failed={false} label="No recent L1 operations" />
+          ) : (
+            <div className="flex flex-col">
+              {recentOps.map((t) => (
+                <Link
+                  key={t.txHash}
+                  href={`/explorer/${network}/p-chain/tx/${t.txHash}`}
+                  className="-mx-2 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-2 py-2 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                >
+                  <span className={`truncate font-mono text-[12px] ${idInk}`}>
+                    {truncate(t.txHash, 16)}
+                  </span>
+                  <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                  <span className="w-16 shrink-0 text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                    {timeAgo(t.blockTimestamp)}
+                  </span>
+                </Link>
+              ))}
+            </div>
           )}
         </ChartBoard>
 

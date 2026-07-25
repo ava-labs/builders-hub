@@ -32,8 +32,6 @@ interface RegistrySubnet {
 
 export interface L1Registry {
   totals: { subnets: number; l1s: number; blockchains: number; evmChains: number };
-  /** oldest-first cumulative counts by month (YYYY-MM) */
-  series: { month: string; blockchains: number; subnets: number }[];
   /** newest blockchain launches, newest first */
   recent: {
     name: string;
@@ -67,30 +65,18 @@ async function fetchAllSubnets(network: string): Promise<RegistrySubnet[]> {
   return out;
 }
 
-function monthOf(ts: number): string {
-  return new Date(ts * 1000).toISOString().slice(0, 7);
-}
-
 function buildRegistry(subnets: RegistrySubnet[]): L1Registry {
   const totals = { subnets: 0, l1s: 0, blockchains: 0, evmChains: 0 };
-  const subnetMonths = new Map<string, number>();
-  const chainMonths = new Map<string, number>();
   const allChains: L1Registry["recent"] = [];
 
   for (const s of subnets) {
     if (s.subnetId === PRIMARY_SUBNET_ID) continue;
     totals.subnets++;
     if (s.isL1) totals.l1s++;
-    if (s.createBlockTimestamp) {
-      const m = monthOf(s.createBlockTimestamp);
-      subnetMonths.set(m, (subnetMonths.get(m) ?? 0) + 1);
-    }
     for (const b of s.blockchains ?? []) {
       totals.blockchains++;
       if (b.evmChainId) totals.evmChains++;
       if (b.createBlockTimestamp) {
-        const m = monthOf(b.createBlockTimestamp);
-        chainMonths.set(m, (chainMonths.get(m) ?? 0) + 1);
         allChains.push({
           name: b.blockchainName || "Unnamed chain",
           blockchainId: b.blockchainId,
@@ -103,25 +89,8 @@ function buildRegistry(subnets: RegistrySubnet[]): L1Registry {
     }
   }
 
-  // one continuous month axis from the first creation to now, both series
-  // accumulating along it — a cumulative chart must never skip a month
-  const months = [...new Set([...subnetMonths.keys(), ...chainMonths.keys()])].sort();
-  const series: L1Registry["series"] = [];
-  if (months.length) {
-    let cb = 0;
-    let cs = 0;
-    const now = monthOf(Date.now() / 1000);
-    for (let d = new Date(`${months[0]}-01T00:00:00Z`); ; d.setUTCMonth(d.getUTCMonth() + 1)) {
-      const m = d.toISOString().slice(0, 7);
-      cb += chainMonths.get(m) ?? 0;
-      cs += subnetMonths.get(m) ?? 0;
-      series.push({ month: m, blockchains: cb, subnets: cs });
-      if (m >= now) break;
-    }
-  }
-
   allChains.sort((a, b) => b.createdAt - a.createdAt);
-  return { totals, series, recent: allChains.slice(0, 8), lastUpdated: Date.now() };
+  return { totals, recent: allChains.slice(0, 8), lastUpdated: Date.now() };
 }
 
 export async function GET(
