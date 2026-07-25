@@ -491,26 +491,162 @@ export function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Len
   );
 }
 
-/* a cell inside the dark statement panel — steel label, ink-white figure,
-   muted sub. The homepage pillar voice, same as the gas page's lead panel. */
-function StatementCell({
-  label,
-  sub,
-  children,
+/* ------------------------------------------------------------------ */
+/* The yield calculator — ONE hero rate instead of a strip of cells,
+   and the inputs that make it yours: amount, duration, role. Mirrors
+   /api/staking-apy's official formula exactly (same constants):
+     reward = amount × (720M − supply)/supply × ECR(d) × d/365
+     ECR(d) = 10% → 12%, linear in duration
+   Delegators additionally hand the validator its fee cut.             */
+
+const MAX_SUPPLY = 720_000_000; // AVAX supply cap — the emission source
+const MIN_CONSUMPTION = 0.1;
+const MAX_CONSUMPTION = 0.12;
+
+const DURATIONS = [
+  { key: "2w", label: "2W", days: 14 },
+  { key: "1m", label: "1M", days: 30 },
+  { key: "3m", label: "3M", days: 91 },
+  { key: "6m", label: "6M", days: 182 },
+  { key: "1y", label: "1Y", days: 365 },
+] as const;
+
+function effectiveConsumptionRate(days: number): number {
+  const t = Math.min(1, Math.max(0, days / 365));
+  return MIN_CONSUMPTION * (1 - t) + MAX_CONSUMPTION * t;
+}
+
+/* segmented control in the dark panel's voice */
+function DarkToggle<T extends string>({
+  options,
+  value,
+  onChange,
 }: {
-  label: string;
-  sub?: React.ReactNode;
-  children: React.ReactNode;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6 lg:first:pl-0">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
-        {label}
-      </span>
-      <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-[#EBF0FA] sm:text-2xl md:text-[1.75rem]">
-        {children}
-      </span>
-      {sub != null && <span className="text-xs tabular-nums text-[#A2AFB2]">{sub}</span>}
+    <div className="inline-flex shrink-0 border border-white/15">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+            o.value === value
+              ? "bg-[#EBF0FA] text-zinc-900"
+              : "text-[#A2AFB2] hover:bg-white/10 hover:text-[#EBF0FA]",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function YieldCalculator({
+  supply,
+  medianFee,
+}: {
+  /** circulating AVAX, the emission formula's denominator */
+  supply: number | null;
+  /** the current set's median delegation fee, % */
+  medianFee: number | null;
+}) {
+  const [amountRaw, setAmountRaw] = useState("1,000");
+  const [durationKey, setDurationKey] = useState<(typeof DURATIONS)[number]["key"]>("1y");
+  const [role, setRole] = useState<"delegating" | "validating">("delegating");
+
+  const amount = Number(amountRaw.replace(/[^0-9.]/g, "")) || 0;
+  const days = DURATIONS.find((d) => d.key === durationKey)!.days;
+  const fee = medianFee ?? 2; // protocol floor if the set hasn't loaded
+
+  // the official emission math, then the delegator's haircut
+  const calc = useMemo(() => {
+    if (supply === null || supply <= 0 || supply >= MAX_SUPPLY) return null;
+    const gross = ((MAX_SUPPLY - supply) / supply) * effectiveConsumptionRate(days);
+    const net = role === "delegating" ? gross * (1 - fee / 100) : gross;
+    return {
+      annualPct: net * 100,
+      reward: amount * net * (days / 365),
+    };
+  }, [supply, days, role, fee, amount]);
+
+  return (
+    <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
+      {/* headline left, the ONE number right — big enough to read from
+          across the room */}
+      <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
+        <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
+          <span className="block text-[#EBF0FA]">What securing the network</span>
+          <span className="block text-[#E6212F]">pays right now.</span>
+        </h3>
+        <div className="flex flex-col items-end gap-1">
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+            {role} · {DURATIONS.find((d) => d.key === durationKey)!.label} · est
+          </span>
+          <span className="font-mono text-6xl tabular-nums tracking-tight text-[#EBF0FA] md:text-7xl">
+            {calc ? calc.annualPct.toFixed(1) : "—"}
+            <span className="ml-1 text-2xl text-[#A2AFB2]">%</span>
+            <span className="ml-2 text-lg text-[#A2AFB2]">/ yr</span>
+          </span>
+        </div>
+      </div>
+
+      {/* the calculator: make the rate yours */}
+      <div className="flex flex-col gap-5 border-t border-white/10 pt-6">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+          <label className="flex items-center gap-3">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+              Stake
+            </span>
+            <span className="flex items-baseline gap-2 border-b border-white/25 focus-within:border-[#E6212F]">
+              <input
+                value={amountRaw}
+                onChange={(e) => setAmountRaw(e.target.value)}
+                onBlur={() =>
+                  setAmountRaw(amount > 0 ? amount.toLocaleString("en-US") : "1,000")
+                }
+                inputMode="decimal"
+                aria-label="AVAX amount to stake"
+                className="w-32 bg-transparent py-1 text-right font-mono text-xl tabular-nums text-[#EBF0FA] outline-none placeholder:text-[#A2AFB2]/50"
+              />
+              <span className="pb-0.5 font-mono text-xs text-[#A2AFB2]">AVAX</span>
+            </span>
+          </label>
+          <label className="flex items-center gap-3">
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+              For
+            </span>
+            <DarkToggle
+              options={DURATIONS.map((d) => ({ value: d.key, label: d.label }))}
+              value={durationKey}
+              onChange={setDurationKey}
+            />
+          </label>
+          <DarkToggle
+            options={[
+              { value: "delegating" as const, label: "Delegating" },
+              { value: "validating" as const, label: "Validating" },
+            ]}
+            value={role}
+            onChange={setRole}
+          />
+        </div>
+        <p className="font-mono text-lg text-[#A2AFB2] md:text-xl">
+          earns ≈{" "}
+          <span className="text-3xl font-bold tabular-nums text-[#E6212F] md:text-4xl">
+            {calc && amount > 0 ? fmtCompact(calc.reward) : "—"}
+          </span>{" "}
+          <span className="text-[#EBF0FA]">AVAX</span>
+          {role === "delegating" && (
+            <span className="ml-3 text-xs">after the median {fee.toFixed(0)}% validator fee</span>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
@@ -697,66 +833,21 @@ export function PrimaryStakingContent({
 
   return (
     <div className="flex flex-col gap-10">
-      {/* the answer first: what securing the network pays, in the homepage
-          pillar panels' voice (#1F1F1F board, EBF0FA lead over the E6212F
-          punch, steel spec labels) */}
+      {/* the answer first — ONE number and the calculator that makes it
+          yours, in the homepage pillar panels' voice (#1F1F1F board,
+          EBF0FA lead over the E6212F punch, steel spec labels) */}
       <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
-          <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
-            <span className="block text-[#EBF0FA]">What securing the network</span>
-            <span className="block text-[#E6212F]">pays right now.</span>
-          </h3>
-          <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0">
-            <StatementCell label="Max APY · Est">
-              {apy?.current ? (
-                <>
-                  {apy.current.maxAPY.toFixed(1)}
-                  <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
-                </>
-              ) : (
-                "—"
-              )}
-            </StatementCell>
-            <StatementCell label="Min APY · Est">
-              {apy?.current ? (
-                <>
-                  {apy.current.minAPY.toFixed(1)}
-                  <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
-                </>
-              ) : (
-                "—"
-              )}
-            </StatementCell>
-            {/* the ratio IS the reward rate's denominator — it earns the
-                panel over the median fee, which lives on the fees chart */}
-            <StatementCell
-              label="Staked of Supply"
-              sub={supplyAvax !== null ? `of ${fmtCompact(supplyAvax)} AVAX` : undefined}
-            >
-              {stakingRatio !== null ? (
-                <>
-                  {stakingRatio.toFixed(1)}
-                  <span className="ml-1 text-sm text-[#A2AFB2]">%</span>
-                </>
-              ) : (
-                "—"
-              )}
-            </StatementCell>
-            <StatementCell label="Minted Per Day" sub="last full day">
-              {dailyRewards !== null ? (
-                <>
-                  {fmtCompact(dailyRewards)}
-                  <span className="ml-1.5 text-sm text-[#A2AFB2]">AVAX</span>
-                </>
-              ) : (
-                "—"
-              )}
-            </StatementCell>
-          </div>
-        </div>
+        <YieldCalculator supply={supplyAvax} medianFee={medianFee} />
         <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Estimated annual yield at current conditions; the exact rate varies with stake duration
-          and the validator&apos;s delegation fee. Rewards are newly minted AVAX.
+          Estimates at current network conditions — rewards are newly minted AVAX, and the rate
+          scales with duration. Continuous staking (
+          <Link
+            href="/docs/acps/236-continuous-staking"
+            className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
+          >
+            ACP-236
+          </Link>
+          ) is rolling out: positions will renew and compound automatically.
         </p>
       </section>
 
@@ -781,7 +872,7 @@ export function PrimaryStakingContent({
               label="Total Staked"
               sub={
                 ownStake !== null && delegatedStake !== null
-                  ? `own ${fmtCompact(ownStake / NANO)} · delegated ${fmtCompact(delegatedStake / NANO)}`
+                  ? `${stakingRatio !== null ? `${stakingRatio.toFixed(1)}% of supply · ` : ""}own ${fmtCompact(ownStake / NANO)} · delegated ${fmtCompact(delegatedStake / NANO)}`
                   : undefined
               }
             >
