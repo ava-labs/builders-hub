@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import {
   Area,
   ComposedChart,
+  Line,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -14,6 +15,7 @@ import {
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
+import { timeAgo } from "@/components/explorer-v2/format";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { usePchainData } from "@/components/explorer-v2/pchain/hooks";
@@ -113,6 +115,122 @@ function SeatsKey() {
   );
 }
 
+/* Most L1s never uploaded artwork — a blank circle row after row reads
+   as broken. Deterministic letter tiles instead: hue hashed from the
+   subnet id (stable across renders and sessions), initial from the name. */
+export function ChainBadge({
+  name,
+  logo,
+  id,
+  className = "h-4 w-4 text-[8px]",
+}: {
+  name: string;
+  logo?: string;
+  id: string;
+  className?: string;
+}) {
+  if (logo && hasRealChainLogo(logo)) {
+    return <img src={logo} alt="" className={`${className} shrink-0 rounded-full object-contain`} />;
+  }
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+  return (
+    <span
+      aria-hidden
+      className={`${className} inline-flex shrink-0 items-center justify-center rounded-full font-mono font-bold text-white`}
+      style={{ backgroundColor: `hsl(${h} 40% 42%)` }}
+    >
+      {(name.trim().charAt(0) || "?").toUpperCase()}
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* the build-out registry: every subnet/chain the P-Chain ever created  */
+
+interface L1Registry {
+  totals: { subnets: number; l1s: number; blockchains: number; evmChains: number };
+  series: { month: string; blockchains: number; subnets: number }[];
+  recent: {
+    name: string;
+    blockchainId: string;
+    subnetId: string;
+    isL1: boolean;
+    evmChainId?: number;
+    createdAt: number;
+  }[];
+}
+
+function useL1Registry(network: string) {
+  const [data, setData] = useState<L1Registry | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/l1-registry/${network}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((d: L1Registry) => {
+        if (!cancelled) setData(d);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [network]);
+  return { data, failed };
+}
+
+/* cumulative creations — blockchains as the filled story, subnets dashed */
+function BuildOutChart({ data }: { data: L1Registry["series"] }) {
+  return (
+    <div className="h-56 text-zinc-900 dark:text-zinc-100">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={data}>
+          <XAxis dataKey="month" hide />
+          <YAxis hide domain={[0, "dataMax"]} />
+          <RechartsTooltip
+            cursor={{ stroke: "rgba(161,161,170,0.35)" }}
+            content={({ active, payload }) => {
+              if (!active || !payload?.[0]) return null;
+              const d = payload[0].payload as L1Registry["series"][number];
+              return (
+                <TipPlate>
+                  <p className="text-[10px] text-zinc-500">{d.month}</p>
+                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                    {d.blockchains.toLocaleString("en-US")} blockchains
+                  </p>
+                  <p className="text-[10px] tabular-nums text-zinc-500">
+                    {d.subnets.toLocaleString("en-US")} subnets created
+                  </p>
+                </TipPlate>
+              );
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="blockchains"
+            stroke={L1_COLOR}
+            strokeWidth={1.5}
+            fill={L1_COLOR}
+            fillOpacity={0.12}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="subnets"
+            stroke="currentColor"
+            strokeWidth={1.5}
+            strokeDasharray="4 3"
+            dot={false}
+            isAnimationActive={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 const LEADERBOARD_CAP = 12;
 
 interface LiveL1 {
@@ -134,11 +252,7 @@ function SeatsByL1({ sets, network }: { sets: LiveL1[]; network: string }) {
         const row = (
           <>
             <span className="flex min-w-0 items-center gap-2">
-              {l.logo && hasRealChainLogo(l.logo) ? (
-                <img src={l.logo} alt="" className="h-4 w-4 shrink-0 rounded-full object-contain" />
-              ) : (
-                <span className="h-4 w-4 shrink-0 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-              )}
+              <ChainBadge name={l.name} logo={l.logo} id={l.id} />
               <span className="truncate text-[12.5px] font-medium text-zinc-900 dark:text-zinc-100">
                 {l.name}
               </span>
@@ -200,6 +314,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
   const { data: seats, failed: seatsFailed } = useEcosystemSeats();
   const feePrice = useValidatorFeePrice(network); // nAVAX/s per seat
   const { subnets, error: setsFailed } = useValidatorStats(network);
+  const { data: registry, failed: registryFailed } = useL1Registry(network);
   // one indexer snapshot carries both counts, so the share can't skew:
   // l1ValidatorCount is the ACTIVE (fee-paying) seats registered on the
   // P-Chain — the number the burn math is honest against
@@ -377,6 +492,105 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
             <ChartEmpty failed={false} label="No live L1 sets" />
           ) : (
             <SeatsByL1 sets={liveSets} network={network} />
+          )}
+        </ChartBoard>
+      </div>
+
+      {/* the build-out: everything the P-Chain has ever created — the
+          registry behind the seat market. Seats are the run-rate; this
+          is the install base. */}
+      <div className="flex flex-col gap-4 pt-2">
+        <Board divide={false} className="border">
+          <BoardHeader
+            label="The Build-Out"
+            display
+            action={
+              <Link
+                href={`/explorer/${network}/chains`}
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                Chains directory
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
+            }
+          />
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+            <Stat label="Blockchains Created" sub="all-time, on the P-Chain">
+              {registry ? registry.totals.blockchains.toLocaleString("en-US") : <StatDash />}
+            </Stat>
+            <Stat label="Subnets Created" sub="all-time">
+              {registry ? registry.totals.subnets.toLocaleString("en-US") : <StatDash />}
+            </Stat>
+            <Stat label="Converted to L1" sub="ACP-77 sovereign sets">
+              {registry ? registry.totals.l1s.toLocaleString("en-US") : <StatDash />}
+            </Stat>
+            <Stat label="EVM Chains" sub="carry an EVM chain id">
+              {registry ? registry.totals.evmChains.toLocaleString("en-US") : <StatDash />}
+            </Stat>
+          </div>
+        </Board>
+      </div>
+
+      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard
+          label="Chains Created · cumulative"
+          action={
+            <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2.5 w-4 bg-[#0061E2]/25" /> blockchains
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> subnets
+              </span>
+            </span>
+          }
+        >
+          {registry?.series.length ? (
+            <BuildOutChart data={registry.series} />
+          ) : (
+            <ChartEmpty failed={registryFailed} />
+          )}
+        </ChartBoard>
+
+        <ChartBoard
+          label="Newest Chains"
+          action={
+            registry?.recent.length ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                latest {registry.recent.length}
+              </span>
+            ) : undefined
+          }
+        >
+          {registry === null ? (
+            <ChartEmpty failed={registryFailed} />
+          ) : (
+            <div className="flex flex-col">
+              {registry.recent.map((c) => (
+                <Link
+                  key={c.blockchainId}
+                  href={`/explorer/${network}/p-chain/chain/${c.blockchainId}`}
+                  className="-mx-2 grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 px-2 py-2 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                >
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <ChainBadge
+                      name={c.name}
+                      id={c.subnetId}
+                      className="h-5 w-5 text-[9px]"
+                    />
+                    <span className="truncate text-[12.5px] font-medium text-zinc-900 dark:text-zinc-100">
+                      {c.name}
+                    </span>
+                  </span>
+                  <span className="shrink-0 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+                    {c.isL1 ? "L1" : c.evmChainId ? "EVM" : "subnet"}
+                  </span>
+                  <span className="w-16 shrink-0 text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                    {timeAgo(c.createdAt)}
+                  </span>
+                </Link>
+              ))}
+            </div>
           )}
         </ChartBoard>
       </div>

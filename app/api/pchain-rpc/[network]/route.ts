@@ -17,6 +17,8 @@ const ALLOWED_METHODS = new Set([
   "platform.getCurrentValidators",
   // the node page's network-share denominator
   "platform.getTotalStake",
+  // the L1s tab's continuous-fee price (ACP-77 fee market)
+  "platform.getValidatorFeeState",
 ]);
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ network: string }> }) {
