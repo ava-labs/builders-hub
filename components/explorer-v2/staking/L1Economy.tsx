@@ -514,7 +514,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
               </Link>
             }
           />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+          <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-3 sm:divide-x sm:divide-y-0 dark:divide-zinc-800">
             <Stat label="Blockchains Created" sub="all-time, on the P-Chain">
               {registry ? registry.totals.blockchains.toLocaleString("en-US") : <StatDash />}
             </Stat>
@@ -523,9 +523,6 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
             </Stat>
             <Stat label="Converted to L1" sub="ACP-77 sovereign sets">
               {registry ? registry.totals.l1s.toLocaleString("en-US") : <StatDash />}
-            </Stat>
-            <Stat label="EVM Chains" sub="carry an EVM chain id">
-              {registry ? registry.totals.evmChains.toLocaleString("en-US") : <StatDash />}
             </Stat>
           </div>
         </Board>

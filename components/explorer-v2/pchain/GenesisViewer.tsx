@@ -69,7 +69,16 @@ interface EvmOverview {
   targetGas?: number;
   timestamp?: number;
   precompiles: string[];
-  alloc: { address: string; balance: string }[];
+  alloc: { address: string; balance: string; contract: boolean }[];
+}
+
+/* one subnet-evm GenesisAccount — alloc entries can be funded accounts
+   (balance) or predeployed contracts (code/storage/nonce), or both */
+interface GenesisAccount {
+  balance?: string;
+  code?: string;
+  storage?: Record<string, string>;
+  nonce?: string | number;
 }
 
 function asNumber(v: unknown): number | undefined {
@@ -85,11 +94,12 @@ function evmOverview(g: Record<string, unknown>): EvmOverview | null {
   const config = g.config as Record<string, unknown> | undefined;
   if (!config || typeof config !== "object") return null;
   const fee = (config.feeConfig ?? {}) as Record<string, unknown>;
-  const allocObj = (g.alloc ?? {}) as Record<string, { balance?: string }>;
+  const allocObj = (g.alloc ?? {}) as Record<string, GenesisAccount>;
   const alloc = Object.entries(allocObj)
     .map(([addr, v]) => ({
       address: addr.startsWith("0x") ? addr : `0x${addr}`,
       balance: v?.balance ?? "0",
+      contract: typeof v?.code === "string" && v.code.length > 2,
     }))
     .sort((a, b) => {
       try {
@@ -112,7 +122,13 @@ function evmOverview(g: Record<string, unknown>): EvmOverview | null {
   };
 }
 
-/* wei (hex or decimal string) → whole native-token units, 2dp when needed */
+const MAX_UINT256 = (1n << 256n) - 1n;
+
+/* wei (hex or decimal string) → whole native-token units, 2dp when needed.
+   Genesis balances can be absurd on purpose — a faucet chain allocates
+   max uint256 (~1.16e59 tokens) to one key. Never expand those into a
+   60-character comma string: it crushes the address column into a one-
+   character-per-line ribbon. */
 function formatTokenBalance(balance: string): string {
   let v: bigint;
   try {
@@ -120,7 +136,13 @@ function formatTokenBalance(balance: string): string {
   } catch {
     return balance;
   }
+  if (v === MAX_UINT256) return "MAX";
   const whole = v / 10n ** 18n;
+  if (whole >= 10n ** 15n) {
+    // beyond any real supply — exponent form keeps the column sane
+    const s = whole.toString();
+    return `${s[0]}.${s.slice(1, 3)}e${s.length - 1}`;
+  }
   const cents = ((v % 10n ** 18n) * 100n) / 10n ** 18n;
   const w = whole.toLocaleString("en-US");
   return cents > 0n ? `${w}.${cents.toString().padStart(2, "0")}` : w;
@@ -310,8 +332,18 @@ export function GenesisViewer({
                   key={a.address}
                   className="flex items-center justify-between gap-4 px-5 py-3 md:px-6"
                 >
-                  <HashChip value={a.address} len={24} />
-                  <span className="shrink-0 font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <HashChip value={a.address} len={24} />
+                    {a.contract && (
+                      <span className="shrink-0 border border-[#0061E2]/35 bg-[#0061E2]/10 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#0052bd] dark:border-[#0061E2]/50 dark:text-[#5f9dff]">
+                        contract
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className="shrink-0 font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100"
+                    title={a.balance}
+                  >
                     {formatTokenBalance(a.balance)}
                   </span>
                 </div>
