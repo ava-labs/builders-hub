@@ -24,6 +24,7 @@ export const STAKING_METRICS: Record<StakingMetricKey, StakingMetricDef> = {
       "The capital securing the Primary Network: validators' own stake and everything delegated on top of it.",
     methodology: [
       "Own stake and delegated stake are daily aggregates over the current validator and delegator sets, from the chain-metrics indexer. The stacked view keeps the two apart because they behave differently: own stake moves when operators join, leave, or restake; delegated stake follows retail sentiment and unlock schedules.",
+      "The staking ratio divides that total by the circulating supply the emission feed reports for the same day — the share of all AVAX in existence that is working as security. Days the two feeds don't share are dropped rather than interpolated.",
       "The delegator count rides the same indexer. A rising count against flat delegated stake means smaller average positions — worth reading together, not separately.",
     ],
   },

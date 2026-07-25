@@ -21,6 +21,7 @@ import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-
 import {
   NANO,
   fmtCompact,
+  joinStakingRatio,
   num,
   thin,
   toSeries,
@@ -29,6 +30,7 @@ import {
   useSdkValidators,
   useStakingApy,
   windowSeries,
+  type RatioPoint,
 } from "./data";
 
 /* The Primary Network's staking economy as one instrument — what secures
@@ -206,16 +208,6 @@ function ApyChart({ data }: { data: ApyPoint[] }) {
       </ResponsiveContainer>
     </div>
   );
-}
-
-interface RatioPoint {
-  day: string;
-  /** staked share of circulating supply, % */
-  pct: number;
-  /** AVAX */
-  staked: number;
-  /** AVAX */
-  supply: number;
 }
 
 /* staked share of the circulating supply — the auto domain magnifies the
@@ -788,20 +780,12 @@ export function PrimaryStakingContent({
     return thin(windowSeries(withMa, chartDays), 180);
   }, [metrics, chartDays]);
 
-  // stake joined with the APY feed's daily supply — the share of all
-  // circulating AVAX that is working. Days the two feeds don't share drop.
-  const ratioSeries = useMemo<RatioPoint[]>(() => {
-    if (!apy?.data) return [];
-    const supplyByDay = new Map(apy.data.map((p) => [p.date, p.supply]));
-    const delegated = new Map(toSeries(metrics?.delegator_weight).map((p) => [p.day, p.value]));
-    const joined = toSeries(metrics?.validator_weight).flatMap((p) => {
-      const supply = supplyByDay.get(p.day);
-      if (!supply) return [];
-      const staked = (p.value + (delegated.get(p.day) ?? 0)) / NANO;
-      return [{ day: p.day, pct: (staked / supply) * 100, staked, supply }];
-    });
-    return thin(windowSeries(joined, chartDays));
-  }, [metrics, apy, chartDays]);
+  // the share of all circulating AVAX that is working — the same join the
+  // total-stake sheet charts in full
+  const ratioSeries = useMemo<RatioPoint[]>(
+    () => thin(windowSeries(joinStakingRatio(metrics, apy), chartDays)),
+    [metrics, apy, chartDays],
+  );
 
   /* -------------------------------------------------------------- */
   /* the money actually moving — accrual is smooth, cash is lumpy    */

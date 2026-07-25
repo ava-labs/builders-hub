@@ -27,6 +27,7 @@ import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/expl
 import {
   NANO,
   fmtCompact,
+  joinStakingRatio,
   num,
   thin,
   toSeries,
@@ -35,6 +36,7 @@ import {
   useSdkValidators,
   useStakingApy,
   windowSeries,
+  type RatioPoint,
 } from "./data";
 import {
   ConcentrationChart,
@@ -158,6 +160,11 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
     [metrics, range],
   );
 
+  const ratioSeries = useMemo<RatioPoint[]>(
+    () => thin(windowSeries(joinStakingRatio(metrics, apy), chartWindow(range)), 400),
+    [metrics, apy, range],
+  );
+
   const own = num(metrics?.validator_weight?.current_value);
   const delegated = num(metrics?.delegator_weight?.current_value);
   const total = own !== null && delegated !== null ? (own + delegated) / NANO : null;
@@ -241,6 +248,66 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
           ) : (
             <ChartEmpty failed={failed} />
           )}
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+              {range < 7 ? "Staking Ratio · 7 days" : "Staking Ratio"}
+            </p>
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              staked share of circulating supply
+            </span>
+          </div>
+          {ratioSeries.length ? (
+            <ChartPlate name="staking-ratio">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={ratioSeries} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                  <SheetGrid />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
+                  <YAxis
+                    domain={["auto", "auto"]}
+                    width={44}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={AXIS_TICK}
+                    tickFormatter={(v: number) => `${v.toFixed(0)}%`}
+                  />
+                  <RechartsTooltip
+                    cursor={{ stroke: "rgba(161,161,170,0.35)" }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const d = payload[0].payload as RatioPoint;
+                      return (
+                        <TipPlate>
+                          <p className="text-[10px] text-zinc-500">{d.day}</p>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                            {d.pct.toFixed(1)}% of supply staked
+                          </p>
+                          <p className="text-[10px] tabular-nums text-zinc-500">
+                            {fmtCompact(d.staked)} of {fmtCompact(d.supply)} AVAX
+                          </p>
+                        </TipPlate>
+                      );
+                    }}
+                  />
+                  <Area type="monotone" dataKey="pct" stroke={DELEGATED_COLOR} strokeWidth={1.5} fill={DELEGATED_COLOR} fillOpacity={0.08} isAnimationActive={false} />
+                  <Brush dataKey="day" {...BRUSH_PROPS}>
+                    <LineChart>
+                      <Line dataKey="pct" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                  </Brush>
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartPlate>
+          ) : (
+            <ChartEmpty failed={failed} />
+          )}
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Total stake read against the circulating supply the emission feed reports for the same
+            day. The axis floats to magnify the drift — the range across the whole history is only
+            a few points, and the drift is the signal.
+          </p>
         </section>
 
         <section className="flex flex-col gap-3">

@@ -190,6 +190,38 @@ export interface SeriesPoint {
   value: number;
 }
 
+/* ------------------------------------------------------------------ */
+/* staking ratio — stake joined with the emission feed's daily supply  */
+/* ------------------------------------------------------------------ */
+
+export interface RatioPoint {
+  day: string;
+  /** staked share of circulating supply, % */
+  pct: number;
+  /** AVAX */
+  staked: number;
+  /** AVAX */
+  supply: number;
+}
+
+/* the full oldest-first series; days the two feeds don't share drop.
+   One join, two instruments: the staking page's trend card and the
+   total-stake sheet's full-axes section read the same points. */
+export function joinStakingRatio(
+  metrics: PrimaryNetworkMetrics | null,
+  apy: StakingApy | null,
+): RatioPoint[] {
+  if (!apy?.data) return [];
+  const supplyByDay = new Map(apy.data.map((p) => [p.date, p.supply]));
+  const delegated = new Map(toSeries(metrics?.delegator_weight).map((p) => [p.day, p.value]));
+  return toSeries(metrics?.validator_weight).flatMap((p) => {
+    const supply = supplyByDay.get(p.day);
+    if (!supply) return [];
+    const staked = (p.value + (delegated.get(p.day) ?? 0)) / NANO;
+    return [{ day: p.day, pct: (staked / supply) * 100, staked, supply }];
+  });
+}
+
 export function toSeries(metric: TimeSeriesMetric | null | undefined): SeriesPoint[] {
   if (!metric?.data) return [];
   const today = new Date().toISOString().split("T")[0];
