@@ -175,10 +175,10 @@ function ApyChart({ data }: { data: ApyPoint[] }) {
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{fmtDay(d.day)}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.maxAPY.toFixed(2)}% max
+                    {d.maxAPY.toFixed(2)}% · 1-year term
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
-                    min {d.minAPY.toFixed(2)}%
+                    2-week {d.minAPY.toFixed(2)}%
                   </p>
                 </TipPlate>
               );
@@ -578,15 +578,17 @@ function YieldCalculator({
   return (
     <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
       {/* headline left, the ONE number right — big enough to read from
-          across the room */}
+          across the room. "Minting" is the factual verb: the protocol
+          mints rewards on a public schedule; nothing here promises them
+          to anyone. */}
       <div className="flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
         <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
           <span className="block text-[#EBF0FA]">What securing the network</span>
-          <span className="block text-[#E6212F]">pays right now.</span>
+          <span className="block text-[#E6212F]">is minting right now.</span>
         </h3>
         <div className="flex flex-col items-end gap-1">
           <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
-            {role} · {DURATIONS.find((d) => d.key === durationKey)!.label} · est
+            {role} · {DURATIONS.find((d) => d.key === durationKey)!.label} · est. rate
           </span>
           <span className="font-mono text-6xl tabular-nums tracking-tight text-[#EBF0FA] md:text-7xl">
             {calc ? calc.annualPct.toFixed(1) : "—"}
@@ -596,55 +598,60 @@ function YieldCalculator({
         </div>
       </div>
 
-      {/* the calculator: make the rate yours */}
-      <div className="flex flex-col gap-5 border-t border-white/10 pt-6">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-          <label className="flex items-center gap-3">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
-              Stake
-            </span>
-            <span className="flex items-baseline gap-2 border-b border-white/25 focus-within:border-[#E6212F]">
-              <input
-                value={amountRaw}
-                onChange={(e) => setAmountRaw(e.target.value)}
-                onBlur={() =>
-                  setAmountRaw(amount > 0 ? amount.toLocaleString("en-US") : "1,000")
-                }
-                inputMode="decimal"
-                aria-label="AVAX amount to stake"
-                className="w-32 bg-transparent py-1 text-right font-mono text-xl tabular-nums text-[#EBF0FA] outline-none placeholder:text-[#A2AFB2]/50"
+      {/* the calculator: make the rate yours — inputs left, the estimate
+          answering on the same rule */}
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+            <label className="flex items-center gap-3">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+                Stake
+              </span>
+              <span className="flex items-baseline gap-2 border-b border-white/25 focus-within:border-[#E6212F]">
+                <input
+                  value={amountRaw}
+                  onChange={(e) => setAmountRaw(e.target.value)}
+                  onBlur={() =>
+                    setAmountRaw(amount > 0 ? amount.toLocaleString("en-US") : "1,000")
+                  }
+                  inputMode="decimal"
+                  aria-label="AVAX amount to stake"
+                  className="w-32 bg-transparent py-1 text-right font-mono text-xl tabular-nums text-[#EBF0FA] outline-none placeholder:text-[#A2AFB2]/50"
+                />
+                <span className="pb-0.5 font-mono text-xs text-[#A2AFB2]">AVAX</span>
+              </span>
+            </label>
+            <label className="flex items-center gap-3">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
+                For
+              </span>
+              <DarkToggle
+                options={DURATIONS.map((d) => ({ value: d.key, label: d.label }))}
+                value={durationKey}
+                onChange={setDurationKey}
               />
-              <span className="pb-0.5 font-mono text-xs text-[#A2AFB2]">AVAX</span>
-            </span>
-          </label>
-          <label className="flex items-center gap-3">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A2AFB2]">
-              For
-            </span>
+            </label>
             <DarkToggle
-              options={DURATIONS.map((d) => ({ value: d.key, label: d.label }))}
-              value={durationKey}
-              onChange={setDurationKey}
+              options={[
+                { value: "delegating" as const, label: "Delegating" },
+                { value: "validating" as const, label: "Validating" },
+              ]}
+              value={role}
+              onChange={setRole}
             />
-          </label>
-          <DarkToggle
-            options={[
-              { value: "delegating" as const, label: "Delegating" },
-              { value: "validating" as const, label: "Validating" },
-            ]}
-            value={role}
-            onChange={setRole}
-          />
+          </div>
+          <p className="font-mono text-base text-[#A2AFB2]">
+            est. rewards{" "}
+            <span className="mx-1 align-baseline text-4xl font-bold tabular-nums text-[#E6212F] md:text-5xl">
+              {calc && amount > 0 ? fmtCompact(calc.reward) : "—"}
+            </span>{" "}
+            <span className="text-[#EBF0FA]">AVAX</span>
+          </p>
         </div>
-        <p className="font-mono text-lg text-[#A2AFB2] md:text-xl">
-          earns ≈{" "}
-          <span className="text-3xl font-bold tabular-nums text-[#E6212F] md:text-4xl">
-            {calc && amount > 0 ? fmtCompact(calc.reward) : "—"}
-          </span>{" "}
-          <span className="text-[#EBF0FA]">AVAX</span>
-          {role === "delegating" && (
-            <span className="ml-3 text-xs">after the median {fee.toFixed(0)}% validator fee</span>
-          )}
+        <p className="font-mono text-[11px] text-[#A2AFB2]/80">
+          {role === "delegating"
+            ? `after the current median ${fee.toFixed(0)}% validator fee · min 25 AVAX to delegate`
+            : "running your own node · min 2,000 AVAX to validate"}
         </p>
       </div>
     </div>
@@ -839,8 +846,11 @@ export function PrimaryStakingContent({
       <section className="flex flex-col gap-3">
         <YieldCalculator supply={supplyAvax} medianFee={medianFee} />
         <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Estimates at current network conditions — rewards are newly minted AVAX, and the rate
-          scales with duration. Continuous staking (
+          Estimates only, computed from the protocol&apos;s public emission formula at current
+          network conditions — not a promise of any return and not financial advice. Actual
+          rewards change as the staking ratio moves, and are paid only if the validator maintains
+          the uptime requirement through the whole term. Rewards are newly minted AVAX. Continuous
+          staking (
           <Link
             href="/docs/acps/236-continuous-staking"
             className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
@@ -955,16 +965,18 @@ export function PrimaryStakingContent({
           )}
         </ChartBoard>
 
+        {/* max/min are DURATIONS (1-year vs 2-week terms), not a promise
+            band — the legend says which is which */}
         <ChartBoard
-          label={`Staking APY${weekFloor}`}
+          label={`Reward Rate · est${weekFloor}`}
           href={door("apy")}
           action={
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> max
+                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> 1-year term
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> min
+                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> 2-week
               </span>
             </span>
           }

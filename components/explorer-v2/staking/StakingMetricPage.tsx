@@ -284,7 +284,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <SiblingDoor href={`${base}/apy`} label="Staking APY" sub="What this capital earns, annualized" />
+          <SiblingDoor href={`${base}/apy`} label="Reward Rate" sub="What the protocol mints, annualized · est" />
           <SiblingDoor href={`${base}/expiry`} label="Stake Expiry" sub="When it comes unlocked" />
         </div>
       </div>
@@ -313,11 +313,13 @@ function ApySheet({ base, network }: { base: string; network: string }) {
   return (
     <MetricFrame base={base} metric="apy">
       <div className="flex flex-col gap-10">
-        <SheetStrip label="Staking APY" chip="Live estimate" cols={3}>
-          <Stat label="Max APY" sub="own node, full-year term">
+        <SheetStrip label="Reward Rate" chip="Live estimate" cols={3}>
+          {/* the two figures differ by TERM LENGTH, not by role — the
+              consumption rate interpolates 10% → 12% across durations */}
+          <Stat label="1-Year Term · Est" sub="maximum duration rate">
             {apy?.current ? `${apy.current.maxAPY.toFixed(2)}%` : <StatDash />}
           </Stat>
-          <Stat label="Min APY" sub="delegating, after fees">
+          <Stat label="2-Week Term · Est" sub="minimum duration rate">
             {apy?.current ? `${apy.current.minAPY.toFixed(2)}%` : <StatDash />}
           </Stat>
           <Stat label="Supply" sub="AVAX circulating">
@@ -328,14 +330,14 @@ function ApySheet({ base, network }: { base: string; network: string }) {
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4">
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-              {range < 7 ? "Yield Curves · 7 days" : "Yield Curves"}
+              {range < 7 ? "Rate Curves · 7 days" : "Rate Curves"}
             </p>
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> max
+                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> 1-year term
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> min
+                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> 2-week
               </span>
             </span>
           </div>
@@ -362,9 +364,9 @@ function ApySheet({ base, network }: { base: string; network: string }) {
                         <TipPlate>
                           <p className="text-[10px] text-zinc-500">{d.day}</p>
                           <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {d.maxAPY.toFixed(2)}% max
+                            {d.maxAPY.toFixed(2)}% · 1-year term
                           </p>
-                          <p className="text-[10px] tabular-nums text-zinc-500">min {d.minAPY.toFixed(2)}%</p>
+                          <p className="text-[10px] tabular-nums text-zinc-500">2-week {d.minAPY.toFixed(2)}%</p>
                         </TipPlate>
                       );
                     }}
@@ -591,7 +593,7 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <SiblingDoor href={`${base}/apy`} label="Staking APY" sub="The rate behind the minting" />
+          <SiblingDoor href={`${base}/apy`} label="Reward Rate" sub="The rate behind the minting · est" />
           <SiblingDoor href={`${base}/expiry`} label="Stake Expiry" sub="When the payouts burst: terms ending" />
         </div>
       </div>
@@ -856,7 +858,7 @@ function DistributionSheet({ base, network }: { base: string; network: string })
 
         <div className="grid gap-4 sm:grid-cols-2">
           <SiblingDoor href={`${base}/total-stake`} label="Total Stake" sub="The capital being distributed" />
-          <SiblingDoor href={`${base}/apy`} label="Staking APY" sub="What each slice of it earns" />
+          <SiblingDoor href={`${base}/apy`} label="Reward Rate" sub="The estimated rate behind each slice" />
         </div>
       </div>
     </MetricFrame>
