@@ -47,7 +47,7 @@ export function StepRail({
             className={[
               compact
                 ? "flex cursor-pointer flex-row items-center gap-2 px-2.5 py-1.5 text-left transition-colors"
-                : "flex cursor-pointer flex-col items-start gap-0.5 px-3 py-1 text-left transition-colors",
+                : "flex cursor-pointer flex-col items-start gap-0 px-3 py-1 text-left transition-colors",
               stepState === "done" ? "bg-zinc-100 dark:bg-zinc-900" : "",
               stepState === "current"
                 ? "shadow-[inset_2px_0_0_#E6212F]"
@@ -60,7 +60,7 @@ export function StepRail({
               {padStep(index + 1)}
             </span>
             <span
-              className={`hidden font-mono ${compact ? "text-[7.5px]" : "text-[8px]"} uppercase tracking-[0.14em] sm:block ${nameClass}`}
+              className={`hidden font-mono leading-4 ${compact ? "text-[7.5px]" : "text-[8px]"} uppercase tracking-[0.14em] sm:block ${nameClass}`}
             >
               {step.railLabel}
             </span>

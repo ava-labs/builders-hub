@@ -3,7 +3,6 @@
 import type { FlowDefinition } from "./data/types";
 import { desktopLayout, mobileLayout } from "./stage-layouts";
 import { useFlowState } from "./use-flow-state";
-import { FlowHeader } from "./FlowHeader";
 import { Stage } from "./Stage";
 import { StepRail } from "./StepRail";
 import { StepPanel } from "./StepPanel";
@@ -21,11 +20,6 @@ export function StepFlow({
   return (
     <div className="space-y-4">
       <div className="border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-        <FlowHeader
-          flowId={flow.id}
-          stepIndex={state.stepIndex}
-          stepCount={flow.steps.length}
-        />
         <div className="px-4 py-3">
           <div className="md:hidden">
             <Stage
