@@ -4,10 +4,7 @@ import { motion } from "framer-motion";
 import type { Actor } from "./data/types";
 import type { StagePosition } from "./stage-layouts";
 
-const variants = {
-  idle: { opacity: 0.55 },
-  active: { opacity: 1 },
-};
+const variants = { idle: { opacity: 0.55 }, active: { opacity: 1 } };
 
 export function StageActor({
   actor,
@@ -18,7 +15,6 @@ export function StageActor({
   pos: StagePosition;
   active: boolean;
 }) {
-  const cx = pos.x + pos.w / 2;
   return (
     <motion.g variants={variants} animate={active ? "active" : "idle"} initial={false}>
       <rect
@@ -26,28 +22,29 @@ export function StageActor({
         y={pos.y}
         width={pos.w}
         height={pos.h}
-        rx={10}
-        strokeWidth={active ? 2 : 1.25}
+        strokeWidth={active ? 1.5 : 1}
         className={
           active
-            ? "fill-red-50 stroke-red-500 dark:fill-red-950/40 dark:stroke-red-400"
-            : "fill-white stroke-zinc-300 dark:fill-zinc-900 dark:stroke-zinc-700"
+            ? "fill-white stroke-zinc-900 dark:fill-zinc-950 dark:stroke-zinc-100"
+            : "fill-white stroke-zinc-300 dark:fill-zinc-950 dark:stroke-zinc-700"
         }
       />
+      {active ? (
+        <rect x={pos.x} y={pos.y} width={4} height={pos.h} className="fill-[#E6212F]" />
+      ) : null}
       <text
-        x={cx}
-        y={pos.y + (actor.sublabel ? pos.h / 2 - 4 : pos.h / 2 + 5)}
-        textAnchor="middle"
-        className="fill-zinc-900 text-[15px] font-semibold dark:fill-zinc-100"
+        x={pos.x + 18}
+        y={pos.y + 38}
+        className="fill-zinc-900 text-[15px] font-semibold dark:fill-zinc-50"
       >
         {actor.label}
       </text>
       {actor.sublabel ? (
         <text
-          x={cx}
-          y={pos.y + pos.h / 2 + 17}
-          textAnchor="middle"
-          className="fill-zinc-500 text-[11px] dark:fill-zinc-400"
+          x={pos.x + 18}
+          y={pos.y + 58}
+          letterSpacing="1.2"
+          className="fill-zinc-500 font-mono text-[9.5px] uppercase dark:fill-[#A2AFB2]"
         >
           {actor.sublabel}
         </text>
