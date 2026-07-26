@@ -47,7 +47,7 @@ export function StepRail({
             className={[
               compact
                 ? "flex cursor-pointer flex-row items-center gap-2 px-2.5 py-1.5 text-left transition-colors"
-                : "flex cursor-pointer flex-col items-start gap-0.5 px-3 py-2 text-left transition-colors",
+                : "flex cursor-pointer flex-col items-start gap-0.5 px-3 py-1 text-left transition-colors",
               stepState === "done" ? "bg-zinc-100 dark:bg-zinc-900" : "",
               stepState === "current"
                 ? "shadow-[inset_2px_0_0_#E6212F]"

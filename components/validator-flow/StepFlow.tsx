@@ -53,24 +53,6 @@ export function StepFlow({
             dispatch({ type: "goto", index, stepCount: flow.steps.length })
           }
         />
-        <div className="flex items-center justify-between border-t border-zinc-200 px-4 py-2.5 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={() => dispatch({ type: "back" })}
-            disabled={state.stepIndex === 0}
-            className="cursor-pointer font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-700 disabled:cursor-default disabled:opacity-40 dark:text-zinc-200"
-          >
-            Back
-          </button>
-          <button
-            type="button"
-            onClick={() => dispatch({ type: "next", stepCount: flow.steps.length })}
-            disabled={state.stepIndex === flow.steps.length - 1}
-            className="cursor-pointer font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-700 disabled:cursor-default disabled:opacity-40 dark:text-zinc-200"
-          >
-            Next
-          </button>
-        </div>
       </div>
       <StepPanel
         step={step}
