@@ -423,8 +423,8 @@ body[data-layout="docs"] #nd-sidebar nav {
 /* Constrain wide elements within article to prevent TOC overlap */
 /* Tables, pre, and other wide content get overflow-x: auto */
 /* But NOT containers that hold .fd-steps (those need overflow: visible for step numbers) */
-body[data-layout="docs"] article > *:not(.fd-steps):not(:has(.fd-steps)),
-body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)) {
+body[data-layout="docs"] article > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)),
+body[data-layout="docs"] .prose > *:not(.fd-steps):not(:has(.fd-steps)):not(.vf-explainer):not(:has(.vf-explainer)) {
   max-width: 100% !important;
   overflow-x: auto !important;
 }
