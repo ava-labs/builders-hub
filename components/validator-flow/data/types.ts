@@ -55,6 +55,8 @@ export interface FlowStep {
   readonly id: string;
   readonly title: string;
   readonly summary: string;
+  /** Short uppercase name shown in the step rail, e.g. "SIGN L1 MSG". Max 14 chars. */
+  readonly railLabel: string;
   readonly activeActors: readonly ActorId[];
   readonly travel?: MessageTravel;
   readonly operator: OperatorDepth;
@@ -64,6 +66,7 @@ export interface FlowStep {
 export interface FlowDefinition {
   readonly id: FlowId;
   readonly title: string;
+  readonly heroTitle: string;
   readonly actors: readonly Actor[];
   readonly steps: readonly FlowStep[];
 }

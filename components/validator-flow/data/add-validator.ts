@@ -3,6 +3,7 @@ import type { FlowDefinition } from "./types";
 export const addValidatorFlow: FlowDefinition = {
   id: "add-validator",
   title: "Adding a validator to an Avalanche L1",
+  heroTitle: "Add a validator",
   actors: [
     {
       id: "owner",
@@ -51,6 +52,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "initiate",
       title: "Initiate registration on the L1",
+      railLabel: "INITIATE",
       summary:
         "The operator calls initiateValidatorRegistration on the ValidatorManager with the new node's NodeID, BLS public key, and weight. The contract emits an L1-sourced RegisterL1ValidatorMessage through the Warp precompile.",
       activeActors: ["owner", "l1", "node"],
@@ -73,6 +75,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "aggregate-l1",
       title: "Validators sign the L1 message",
+      railLabel: "SIGN L1 MSG",
       summary:
         "The aggregator asks the L1 validators to BLS-sign the RegisterL1ValidatorMessage and combines the signatures until they represent at least 67% of the total validator weight.",
       activeActors: ["validators", "aggregator"],
@@ -104,6 +107,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "register-pchain",
       title: "Submit RegisterL1ValidatorTx to the P-Chain",
+      railLabel: "P-CHAIN TX",
       summary:
         "The aggregated, signed message goes into a P-Chain RegisterL1ValidatorTx. When it is accepted, the P-Chain assigns a validationID and the validator starts consuming its continuous fee balance.",
       activeActors: ["aggregator", "pchain"],
@@ -136,6 +140,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "pchain-message",
       title: "The P-Chain acknowledges the registration",
+      railLabel: "P-CHAIN ACK",
       summary:
         "The registration is now a P-Chain fact. A P-Chain-sourced L1ValidatorRegistrationMessage (validationID, registered = true) becomes available for the L1 validators to sign. Its source chain is the P-Chain itself.",
       activeActors: ["pchain"],
@@ -149,6 +154,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "aggregate-pchain",
       title: "Validators sign the P-Chain message",
+      railLabel: "SIGN P-MSG",
       summary:
         "The aggregator asks the L1 validators to sign the P-Chain-sourced message. Each validator checks the claim against its own synced view of the P-Chain (the justification) before signing.",
       activeActors: ["validators", "aggregator", "pchain"],
@@ -180,6 +186,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "complete",
       title: "Complete registration on the L1",
+      railLabel: "COMPLETE",
       summary:
         "The signed P-Chain message rides inside the transaction's access list as a warp predicate. The block proposer's node verifies it against its own P-Chain view while building the block; then completeValidatorRegistration marks the validator active in the ValidatorManager.",
       activeActors: ["aggregator", "l1", "owner"],

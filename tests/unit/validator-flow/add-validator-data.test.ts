@@ -54,4 +54,16 @@ describe("add-validator flow data integrity", () => {
       expect(mobileLayout.actors[actor.id]).toBeDefined();
     }
   });
+
+  it("gives every step a rail label that fits a cell", () => {
+    for (const step of addValidatorFlow.steps) {
+      expect(step.railLabel.length).toBeGreaterThan(0);
+      expect(step.railLabel.length).toBeLessThanOrEqual(14);
+      expect(step.railLabel).toMatch(/^[A-Z0-9 -]+$/);
+    }
+  });
+
+  it("carries hero copy", () => {
+    expect(addValidatorFlow.heroTitle.length).toBeGreaterThan(0);
+  });
 });
