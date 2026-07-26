@@ -9,16 +9,27 @@ export interface StagePosition {
 
 export interface StageZone {
   readonly label: string;
+  readonly kind: "l1" | "pchain";
   readonly x: number;
   readonly y: number;
   readonly w: number;
   readonly h: number;
 }
 
+export interface StageDimension {
+  readonly x0: number;
+  readonly x1: number;
+  readonly y: number;
+  readonly label: string;
+}
+
 export interface StageLayout {
   readonly viewBox: { readonly w: number; readonly h: number };
   readonly zones: readonly StageZone[];
   readonly actors: Readonly<Record<ActorId, StagePosition>>;
+  readonly ruleXs: readonly number[];
+  readonly dimension?: StageDimension;
+  readonly crosshair?: { readonly x: number; readonly y: number };
 }
 
 export interface RoutePoints {
@@ -33,8 +44,8 @@ export interface RoutePoints {
 export const desktopLayout: StageLayout = {
   viewBox: { w: 1000, h: 620 },
   zones: [
-    { label: "L1 (Subnet-EVM)", x: 40, y: 40, w: 560, h: 320 },
-    { label: "P-Chain", x: 680, y: 40, w: 280, h: 320 },
+    { label: "L1 · SUBNET-EVM", kind: "l1", x: 40, y: 40, w: 560, h: 320 },
+    { label: "P-CHAIN · REGISTRY", kind: "pchain", x: 680, y: 40, w: 280, h: 320 },
   ],
   actors: {
     l1: { x: 70, y: 100, w: 240, h: 100 },
@@ -44,13 +55,21 @@ export const desktopLayout: StageLayout = {
     aggregator: { x: 390, y: 470, w: 250, h: 100 },
     node: { x: 720, y: 470, w: 210, h: 100 },
   },
+  ruleXs: [193, 347, 500, 653, 807],
+  dimension: {
+    x0: 70,
+    x1: 560,
+    y: 346,
+    label: "CURRENT SET · SIGNS TO 67% OF TOTAL WEIGHT",
+  },
+  crosshair: { x: 640, y: 24 },
 };
 
 export const mobileLayout: StageLayout = {
   viewBox: { w: 480, h: 1060 },
   zones: [
-    { label: "L1 (Subnet-EVM)", x: 40, y: 160, w: 400, h: 260 },
-    { label: "P-Chain", x: 40, y: 700, w: 400, h: 150 },
+    { label: "L1 · SUBNET-EVM", kind: "l1", x: 40, y: 160, w: 400, h: 260 },
+    { label: "P-CHAIN · REGISTRY", kind: "pchain", x: 40, y: 700, w: 400, h: 150 },
   ],
   actors: {
     owner: { x: 60, y: 40, w: 360, h: 90 },
@@ -60,6 +79,7 @@ export const mobileLayout: StageLayout = {
     pchain: { x: 60, y: 740, w: 360, h: 90 },
     node: { x: 60, y: 930, w: 360, h: 85 },
   },
+  ruleXs: [],
 };
 
 export function center(pos: StagePosition): { x: number; y: number } {
