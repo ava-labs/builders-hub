@@ -69,27 +69,27 @@ export function FAQ({ colors }: { colors: Colors }) {
 
   const faqItems: FAQItem[] = [
     {
-      question: "Is finality slower with SAE?",
+      question: "Is finality slower with Continuous Execution?",
       answer: "No — it's technically instant. As soon as consensus accepts a transaction, finality is locked. The key insight: ordering determines the truth, execution reveals it. We have finality the moment a block is accepted — we just won't know the outcome until execution completes. Consensus determines what will happen; execution shows us what happened."
     },
     {
-      question: "What problem does SAE solve?",
-      answer: "Traditional blockchains bottleneck because consensus waits for execution. SAE will run them in parallel — consensus will accept transactions into a queue while execution drains it independently. More throughput, lower latency."
+      question: "What problem does Continuous Execution solve?",
+      answer: "Traditional blockchains bottleneck because consensus waits for execution. Continuous Execution will run them in parallel — consensus will accept transactions into a queue while execution drains it independently. More throughput, lower latency."
     },
     {
-      question: "What will consensus verify in SAE?",
-      answer: "Consensus will verify you can pay for the worst-case cost — gas limit × maximum possible gas price — without running the VM. In synchronous execution, validators execute every transaction to verify it. In SAE, they will only check signatures, nonces, and that senders can afford the maximum fee. Lightweight validation, same security."
+      question: "What will consensus verify in Continuous Execution?",
+      answer: "Consensus will verify you can pay for the worst-case cost — gas limit × maximum possible gas price — without running the VM. In synchronous execution, validators execute every transaction to verify it. With Continuous Execution, they will only check signatures, nonces, and that senders can afford the maximum fee. Lightweight validation, same security."
     },
     {
       question: "How will transaction ordering work?",
       answer: "Order will be locked at consensus, before execution. Once a block is accepted, transaction sequence will be final. Execution will process them in that order. If Alice's swap is ordered before Bob's, Alice executes first — regardless of when execution actually runs."
     },
     {
-      question: "How will a swap or DeFi transaction work in SAE?",
+      question: "How will a swap or DeFi transaction work in Continuous Execution?",
       answer: "Same as before, just faster. Your swap will be ordered by consensus, queued, then executed. You'll get the receipt immediately after execution — not after settlement. The 5-second settlement delay won't affect your experience; your tokens will move as soon as execution completes."
     },
     {
-      question: "How will SAE prevent malicious actors?",
+      question: "How will Continuous Execution prevent malicious actors?",
       answer: "Worst-case fee validation. Attackers won't be able to spam the queue with high gas-limit transactions that use minimal gas — you'll be charged at least half your gas limit. The maximum queue DoS impact will be ~12% fee inflation. If you can't afford the worst-case cost, your transaction will be rejected before it enters the queue."
     },
     {
@@ -98,7 +98,7 @@ export function FAQ({ colors }: { colors: Colors }) {
     },
     {
       question: "Can transactions still fail?",
-      answer: "Yes. SAE will guarantee execution and payment — not success. Reverts, out-of-gas, and contract errors will still happen. The difference: you'll know the outcome faster."
+      answer: "Yes. Continuous Execution will guarantee execution and payment — not success. Reverts, out-of-gas, and contract errors will still happen. The difference: you'll know the outcome faster."
     },
     {
       question: "How fast will users see transaction results?",
@@ -110,11 +110,11 @@ export function FAQ({ colors }: { colors: Colors }) {
     },
     {
       question: "What future capabilities does this unlock?",
-      answer: "Executing after consensus sequencing will enable features like real-time VRF and encrypted mempools for MEV protection. SAE is foundational infrastructure for the next generation of onchain applications."
+      answer: "Executing after consensus sequencing will enable features like real-time VRF and encrypted mempools for MEV protection. Continuous Execution is foundational infrastructure for the next generation of onchain applications."
     },
     {
-      question: "Will SAE be available for just the C-Chain or also L1s?",
-      answer: "SAE will be available for all Avalanche L1s. Every chain in the ecosystem will benefit from parallel consensus and execution."
+      question: "Will Continuous Execution be available for just the C-Chain or also L1s?",
+      answer: "Continuous Execution will be available for all Avalanche L1s. Every chain in the ecosystem will benefit from parallel consensus and execution."
     },
   ]
 

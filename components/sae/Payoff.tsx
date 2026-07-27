@@ -290,7 +290,7 @@ export function Payoff({ colors }: { colors: Colors }) {
       </div>
       
       <p className={`text-xs ${colors.textMuted} font-mono font-medium`}>
-        *Streaming async execution is required to implement these features.
+        *Continuous Execution is required to implement these features.
       </p>
     </div>
   )

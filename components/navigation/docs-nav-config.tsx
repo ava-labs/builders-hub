@@ -174,10 +174,10 @@ export const toolingOptions: NavOption[] = [
 
 export const acpsOptions: NavOption[] = [
   {
-    title: 'Streaming Asynchronous Execution',
+    title: 'Continuous Execution',
     description: 'ACP-194',
     icon: <Book className="w-5 h-5" />,
-    url: '/docs/acps/194-streaming-asynchronous-execution',
+    url: '/docs/acps/194-continuous-execution',
   },
   {
     title: 'Auto-Renewed Staking',
