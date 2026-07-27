@@ -7,14 +7,14 @@ import ConsoleBar from "@/components/landing-v2/ConsoleBar";
 import { PillarRows } from "@/components/landing-v2/PillarsChapter";
 
 /* ------------------------------------------------------------------ */
-/* /solutions — the four pillars, stated in one line                   */
+/* /solutions: the three pillars, stated in one line                   */
 /* ------------------------------------------------------------------ */
 
-const PILLAR_WORDS = ["Performance", "Interoperability", "Privacy", "Compliance"];
+const PILLAR_WORDS = ["Control", "Reach", "Performance"];
 
 // the avalanche pass: a step every CASCADE_MS while the pulse is on a word
-// (steps 0-3), then the remaining steps are the rest at the bottom before
-// the next slide — the headline black again, only the final period red
+// (steps 0-2), then the remaining steps are the rest at the bottom before
+// the next slide, the headline black again, only the final period red
 const CASCADE_MS = 650;
 const CASCADE_STEPS = PILLAR_WORDS.length + 12;
 
@@ -49,7 +49,7 @@ export default function SolutionsIndex() {
                 column, bottom-aligned so it meets the closing line. The stack
                 steps right per line (horizontal momentum) and hands off to the
                 dek across a short vertical rule. Display size is bounded by
-                INTEROPERABILITY (~10.2em + step) fitting its column. */}
+                PERFORMANCE (the longest word) plus its step fitting the column. */}
             <div className="lg:grid lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:gap-14">
               <h1 className="v2-display text-[clamp(1.85rem,4.5vw,4.5rem)]">
                 {PILLAR_WORDS.map((word, i) => {
@@ -76,9 +76,11 @@ export default function SolutionsIndex() {
               <div className="lg:flex lg:flex-col lg:justify-end lg:border-l lg:border-zinc-200 lg:pl-10 dark:lg:border-zinc-800">
                 <p className="mt-8 max-w-2xl pb-1 text-lg leading-relaxed text-zinc-600 dark:text-zinc-300 lg:mt-0 lg:max-w-none lg:text-xl lg:leading-relaxed">
                   Configurable infrastructure for regulated finance: a chain
-                  tuned to how fast it settles, what it connects to, who can see
-                  it, and who can transact. Each capability opens into the
-                  institutional patterns it makes possible.
+                  where you set who validates, who transacts, and who can see
+                  it, connected to public liquidity without leaving your
+                  perimeter, settling with finality that scales with a market.
+                  Each capability opens into the institutional patterns it
+                  makes possible.
                 </p>
               </div>
             </div>

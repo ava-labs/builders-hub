@@ -1,6 +1,22 @@
 /**
- * The four enterprise pillars — single source of truth for the homepage
+ * The three enterprise pillars: single source of truth for the homepage
  * "Why Avalanche" chapter, the /solutions splash pages, and the nav menu.
+ *
+ * The framing is Control · Reach · Performance: the institutional pitch Mike
+ * gives regulated buyers: control without isolation, connection without
+ * compromise, performance that scales with finance. Both halves of his tension
+ * are here: job one is control (you answer to regulators and clients), job two
+ * is reach (markets are networks; you cannot afford to be walled off from the
+ * liquidity, developers, and customers outside your perimeter).
+ *
+ * "Control" carries what were previously the privacy and compliance pillars
+ * (who validates, who transacts, who can see the chain), so the site's altitude
+ * matches the presentation buyers hear before they land here.
+ *
+ * Naming note: the pillars are never presented as an initialism, and the second
+ * pillar is "Reach" rather than "Connection" so the set does not abbreviate to
+ * an unfortunate trigram. Mike's phrase "connection without compromise" is kept
+ * in that pillar's prose.
  *
  * Copy is a working draft: every claim must stay verifiable against shipped
  * protocol behavior (pending a story pass with comms/Mike before production).
@@ -12,10 +28,9 @@ export interface PillarLink {
 }
 
 export type PillarSlug =
-  | "interoperability"
-  | "performance"
-  | "privacy"
-  | "compliance";
+  | "control"
+  | "reach"
+  | "performance";
 
 export interface Pillar {
   slug: PillarSlug;
@@ -34,7 +49,7 @@ export interface Pillar {
   capabilities: { title: string; body: string }[];
   resources: { heading: string; links: PillarLink[] }[];
   /**
-   * Optional: architecture models — the shapes this pillar's primitives
+   * Optional: architecture models, the shapes this pillar's primitives
    * compose into. Rendered as a section only when present.
    */
   models?: {
@@ -50,7 +65,7 @@ export interface Pillar {
 }
 
 /**
- * Institutional use cases — the spine of the /solutions story.
+ * Institutional use cases: the spine of the /solutions story.
  *
  * These are architecture patterns, not marketing tiles: a business framing,
  * the Avalanche shape that implements it, and the guarantees that shape buys.
@@ -81,16 +96,103 @@ export interface UseCase {
 
 export const PILLARS: Pillar[] = [
   {
-    slug: "interoperability",
-    display: { lead: ["Chain to chain,", "natively,"], punch: "no intermediaries" },
-    label: "INTEROPERABILITY",
-    title: "Every chain speaks natively",
+    slug: "control",
+    display: { lead: ["Your chain,", "your rules,"], punch: "your perimeter" },
+    label: "CONTROL",
+    title: "Control without isolation",
     tagline:
-      "Native messaging between Avalanche chains, public or private, verified against validator sets on the P-Chain.",
+      "Sovereignty over who validates, who transacts, and who can see the chain at all. Permissioning and privacy enforced by the protocol, not by policy documents.",
     metaDescription:
-      "Interchain Messaging is built into Avalanche: authenticated messages and token transfers between public, permissioned, and private chains, verified against P-Chain validator sets.",
+      "Avalanche gives regulated institutions control at the protocol level: allowlist precompiles for deployers and transactors, permissioned validator sets, validator-only L1s, and operator-controlled data residency.",
     intro:
-      "An Interchain Messaging (ICM) message carries an aggregate signature from the source chain's validators, verified against the P-Chain's validator registry. No committee, no custodian.",
+      "In regulated finance, job number one is control: you answer to your clients and your regulators before anyone else. On an Avalanche L1 that control is a protocol primitive: you set who validates, who deploys, who transacts, and where the ledger physically lives. The rules are enforced by the chain and auditable on it, and the chain stays fully EVM-compatible.",
+    proofs: [
+      { label: "NETWORK ACCESS", value: "VALIDATOR-ONLY" },
+      { label: "TRANSACTION ACCESS", value: "ALLOWLIST PRECOMPILE" },
+      { label: "DATA RESIDENCY", value: "OPERATOR-CONTROLLED" },
+    ],
+    capabilities: [
+      {
+        title: "Protocol-level permissioning",
+        body: "Allowlist precompiles gate who can deploy contracts and who can transact at all: approved addresses in, everyone else out. Enforcement happens at execution rather than by convention.",
+      },
+      {
+        title: "Permissioned validator set",
+        body: "You decide which operators validate, your own machines or named partners, and admit or remove them through the validator manager contract. Permissioning a regulator node is straightforward.",
+      },
+      {
+        title: "Closed networks, placed data",
+        body: "One configuration flag closes an L1: only nodes you admit can sync, query, or even see it. Validators are machines you place, so every copy of the ledger stays in a jurisdiction, a data center, or your own racks.",
+      },
+    ],
+    resources: [
+      {
+        heading: "DOCUMENTATION",
+        links: [
+          { text: "Avalanche L1s", href: "/docs/avalanche-l1s" },
+          { text: "Deployer allowlist", href: "/docs/avalanche-l1s/precompiles/deployer-allowlist" },
+          { text: "Transaction allowlist", href: "/docs/avalanche-l1s/precompiles/transaction-allowlist" },
+          { text: "Validator-only configuration", href: "/docs/nodes/configure/avalanche-l1-configs" },
+        ],
+      },
+      {
+        heading: "LEARN",
+        links: [
+          { text: "Permissioned L1s", href: "/academy/avalanche-l1/permissioned-l1s" },
+          { text: "Access restriction", href: "/academy/avalanche-l1/access-restriction" },
+          { text: "Avalanche fundamentals", href: "/academy/avalanche-l1/avalanche-fundamentals" },
+        ],
+      },
+      {
+        heading: "TOOLING",
+        links: [
+          { text: "Deployer allowlist tool", href: "/console/l1-access-restrictions/deployer-allowlist" },
+          { text: "Transactor allowlist tool", href: "/console/l1-access-restrictions/transactor-allowlist" },
+          { text: "Create an L1 in the Console", href: "/console/create-l1" },
+        ],
+      },
+    ],
+    models: [
+      {
+        label: "MODEL 01",
+        name: "Walled Garden",
+        tagline: "Full control over who enters the perimeter",
+        description:
+          "You decide who participates. The network sits behind a permissioned perimeter: no outsider can query it, read its transactions, or join without approval. Inside, everything is visible to participants; outside, the network is invisible.",
+        bestFor: "Closed consortia, single-institution tokenization, regulated market infrastructure.",
+        diagram: "walled-garden",
+      },
+      {
+        label: "MODEL 02",
+        name: "Partitioned Ledger",
+        tagline: "Each party holds only their own ledger",
+        description:
+          "Every counterparty pair runs its own isolated ledger, exchanging settlement proofs directly rather than on a shared global one. Non-parties see nothing: no amounts, no identities, no timing.",
+        bestFor: "DVP settlement, inter-bank clearing, FX netting, bilateral repo.",
+        diagram: "partitioned-ledger",
+      },
+      {
+        label: "MODEL 03",
+        name: "Encrypted Settlement",
+        tagline: "Amounts encrypted on shared infrastructure",
+        description:
+          "Transactions run on shared infrastructure, so everyone keeps shared liquidity and interoperability, but amounts, counterparties, and logic stay encrypted. Settlement is verified without anyone reading the underlying values.",
+        bestFor: "Tokenized assets, cross-institution liquidity pools, digital bonds.",
+        diagram: "encrypted-settlement",
+      },
+    ],
+  },
+  {
+    slug: "reach",
+    display: { lead: ["Chain to chain,", "natively,"], punch: "no intermediaries" },
+    label: "REACH",
+    title: "Reach without compromise",
+    tagline:
+      "Native messaging and shared liquidity across every Avalanche chain, public or private, verified against validator sets on the P-Chain, with no third-party bridge in the settlement path.",
+    metaDescription:
+      "Interchain Messaging is built into Avalanche: authenticated messages, token transfers, and shared liquidity between public, permissioned, and private chains, verified against P-Chain validator sets with no third-party bridge.",
+    intro:
+      "Markets are networks. You need the liquidity, the developers, and the customers on the other side of your perimeter: connection without compromise. An Interchain Messaging (ICM) message carries an aggregate signature from the source chain's validators, verified against the P-Chain's validator registry. No committee, no custodian, no third-party bridge.",
     proofs: [
       { label: "MESSAGING", value: "PROTOCOL-NATIVE" },
       { label: "ATTESTATION", value: "SOURCE VALIDATOR SET" },
@@ -99,15 +201,15 @@ export const PILLARS: Pillar[] = [
     capabilities: [
       {
         title: "Authenticated messaging",
-        body: "Messages carry aggregate BLS signatures from the source validator set, verified at the destination against the validator registry on the P-Chain.",
+        body: "Messages carry aggregate BLS signatures from the source validator set, verified at the destination against the validator registry on the P-Chain. The destination trusts the source chain, never a messenger in the middle.",
       },
       {
         title: "Native token transfer",
-        body: "Interchain Token Transfer (ICTT) moves tokens between L1s over ICM, with contracts you deploy and control.",
+        body: "Interchain Token Transfer (ICTT) moves tokens between L1s over ICM, with contracts you deploy and control, so a permissioned chain can reach public liquidity without a custodial bridge.",
       },
       {
-        title: "Permissionless relay",
-        body: "Messages are carried by relayers anyone can run. The destination chain verifies the source validators' signatures, never the messenger.",
+        title: "Shared tooling and liquidity",
+        body: "Every chain shares the same SDK, Console, and messaging layer, and settles against the same public pools. Connection is common tooling and shared liquidity, not just a bridge.",
       },
     ],
     resources: [
@@ -197,151 +299,10 @@ export const PILLARS: Pillar[] = [
       },
     ],
   },
-  {
-    slug: "privacy",
-    display: { lead: ["Visible to you,", "invisible to"], punch: "everyone else" },
-    label: "PRIVACY",
-    title: "Visible to participants. Invisible to everyone else",
-    tagline:
-      "Whatever your privacy requirement, the architecture meets it: close the network, place the data, extend the VM with the cryptography you choose.",
-    metaDescription:
-      "Avalanche privacy is configurable to your requirements: validator-only L1s, operator-controlled data residency, and a VM you can extend with the cryptography you choose.",
-    intro:
-      "Run a validator-only L1 and the chain's data stops at the network's edge. Only nodes you admit can sync, query, or even see it.",
-    proofs: [
-      { label: "NETWORK ACCESS", value: "VALIDATOR-ONLY" },
-      { label: "DATA RESIDENCY", value: "OPERATOR-CONTROLLED" },
-      { label: "OUTSIDE VISIBILITY", value: "NONE" },
-    ],
-    capabilities: [
-      {
-        title: "Validator-only networks",
-        body: "One configuration flag closes the chain. Only validators and the nodes they admit can connect, sync, or serve its data.",
-      },
-      {
-        title: "Data residency",
-        body: "Validators are machines you place: keep every copy of the ledger in a jurisdiction, a data center, or your own racks.",
-      },
-      {
-        title: "Encrypted transport",
-        body: "Traffic between nodes runs over TLS. Even on the network path between your data centers, the chain's data is never readable in transit.",
-      },
-    ],
-    resources: [
-      {
-        heading: "DOCUMENTATION",
-        links: [
-          { text: "Avalanche L1s", href: "/docs/avalanche-l1s" },
-          { text: "Validator-only configuration", href: "/docs/nodes/configure/avalanche-l1-configs" },
-          { text: "Node configuration flags", href: "/docs/nodes/configure/configs-flags" },
-        ],
-      },
-      {
-        heading: "LEARN",
-        links: [
-          { text: "Permissioned L1s", href: "/academy/avalanche-l1/permissioned-l1s" },
-          { text: "Avalanche fundamentals", href: "/academy/avalanche-l1/avalanche-fundamentals" },
-        ],
-      },
-      {
-        heading: "TOOLING",
-        links: [
-          { text: "Create an L1 in the Console", href: "/console/create-l1" },
-          { text: "Avalanche SDK", href: "/docs/tooling/avalanche-sdk" },
-        ],
-      },
-    ],
-    models: [
-      {
-        label: "MODEL 01",
-        name: "Walled Garden",
-        tagline: "Full control over who enters the perimeter",
-        description:
-          "You decide who participates. The network sits behind a permissioned perimeter: no outsider can query it, read its transactions, or join without approval. Inside, everything is visible to participants; outside, the network is invisible.",
-        bestFor: "Closed consortia, single-institution tokenization, regulated market infrastructure.",
-        diagram: "walled-garden",
-      },
-      {
-        label: "MODEL 02",
-        name: "Partitioned Ledger",
-        tagline: "Each party holds only their own ledger",
-        description:
-          "Every counterparty pair runs its own isolated ledger, exchanging settlement proofs directly rather than on a shared global one. Non-parties see nothing: no amounts, no identities, no timing.",
-        bestFor: "DVP settlement, inter-bank clearing, FX netting, bilateral repo.",
-        diagram: "partitioned-ledger",
-      },
-      {
-        label: "MODEL 03",
-        name: "Encrypted Settlement",
-        tagline: "Amounts encrypted on shared infrastructure",
-        description:
-          "Transactions run on shared infrastructure, so everyone keeps shared liquidity and interoperability, but amounts, counterparties, and logic stay encrypted. Settlement is verified without anyone reading the underlying values.",
-        bestFor: "Tokenized assets, cross-institution liquidity pools, digital bonds.",
-        diagram: "encrypted-settlement",
-      },
-    ],
-  },
-  {
-    slug: "compliance",
-    display: { lead: ["Your rules,", "enforced by"], punch: "the protocol" },
-    label: "COMPLIANCE",
-    title: "Policy enforced by the protocol",
-    tagline:
-      "Allowlist validators, deployers, and transactors at the chain level. The rules live in precompiles, not policy documents.",
-    metaDescription:
-      "Avalanche L1s enforce permissioning at the protocol level: allowlist precompiles for deployers and transactions, and permissioned validator sets.",
-    intro:
-      "On an Avalanche L1, permissioning is a protocol primitive: precompiles gate who deploys and who transacts, and the validator set itself can be permissioned. The rules are enforced by the chain and auditable on it, and the chain stays fully EVM-compatible.",
-    proofs: [
-      { label: "CONTRACT DEPLOYMENT", value: "ALLOWLIST PRECOMPILE" },
-      { label: "TRANSACTION ACCESS", value: "ALLOWLIST PRECOMPILE" },
-      { label: "VALIDATOR SET", value: "PERMISSIONED OPTION" },
-    ],
-    capabilities: [
-      {
-        title: "Deployer allowlists",
-        body: "The ContractDeployerAllowList precompile restricts deployment to addresses you approve, enforced at execution rather than by convention.",
-      },
-      {
-        title: "Transaction gating",
-        body: "The TxAllowList precompile controls who can transact at all: approved wallets in, everyone else out.",
-      },
-      {
-        title: "Permissioned validator set",
-        body: "You decide which operators validate, your machines or named partners, and admit or remove them through the validator manager contract.",
-      },
-    ],
-    resources: [
-      {
-        heading: "DOCUMENTATION",
-        links: [
-          { text: "Deployer allowlist", href: "/docs/avalanche-l1s/precompiles/deployer-allowlist" },
-          { text: "Transaction allowlist", href: "/docs/avalanche-l1s/precompiles/transaction-allowlist" },
-          { text: "AllowList interface", href: "/docs/avalanche-l1s/precompiles/allowlist-interface" },
-          { text: "Native minter precompile", href: "/docs/avalanche-l1s/precompiles/native-minter" },
-        ],
-      },
-      {
-        heading: "LEARN",
-        links: [
-          { text: "Access restriction", href: "/academy/avalanche-l1/access-restriction" },
-          { text: "Permissioned L1s", href: "/academy/avalanche-l1/permissioned-l1s" },
-        ],
-      },
-      {
-        heading: "TOOLING",
-        links: [
-          { text: "Deployer allowlist tool", href: "/console/l1-access-restrictions/deployer-allowlist" },
-          { text: "Transactor allowlist tool", href: "/console/l1-access-restrictions/transactor-allowlist" },
-          { text: "Create an L1 in the Console", href: "/console/create-l1" },
-        ],
-      },
-    ],
-  },
 ];
 
 export const USE_CASES: UseCase[] = [
-  /* ---- interoperability ---- */
+  /* ---- reach ---- */
   {
     slug: "public-liquidity",
     label: "LIQUIDITY ACCESS",
@@ -356,7 +317,7 @@ export const USE_CASES: UseCase[] = [
       { label: "CUSTODY RISK", value: "NONE IN PATH" },
       { label: "FINALITY", value: "SUB-SECOND" },
     ],
-    pillar: "interoperability",
+    pillar: "reach",
     diagram: "public-liquidity",
   },
   {
@@ -373,7 +334,7 @@ export const USE_CASES: UseCase[] = [
       { label: "SUPPLY", value: "HOME-ANCHORED" },
       { label: "ATTESTATION", value: "SOURCE VALIDATORS" },
     ],
-    pillar: "interoperability",
+    pillar: "reach",
     diagram: "token-issuance",
   },
 
@@ -413,7 +374,7 @@ export const USE_CASES: UseCase[] = [
     diagram: "dvp-settlement",
   },
 
-  /* ---- privacy ---- */
+  /* ---- control (privacy patterns) ---- */
   {
     slug: "tokenized-deposits",
     label: "TOKENIZED DEPOSITS",
@@ -428,7 +389,7 @@ export const USE_CASES: UseCase[] = [
       { label: "CROSS-ISSUER", value: "BURN-AND-MINT" },
       { label: "VISIBILITY", value: "COUNTERPARTY-ONLY" },
     ],
-    pillar: "privacy",
+    pillar: "control",
     diagram: "tokenized-deposits",
   },
   {
@@ -445,11 +406,11 @@ export const USE_CASES: UseCase[] = [
       { label: "VISIBILITY", value: "PARTIES-ONLY" },
       { label: "STREET VIEW", value: "NONE" },
     ],
-    pillar: "privacy",
+    pillar: "control",
     diagram: "bilateral-repo",
   },
 
-  /* ---- compliance ---- */
+  /* ---- control (compliance patterns) ---- */
   {
     slug: "structured-credit",
     label: "STRUCTURED CREDIT",
@@ -464,7 +425,7 @@ export const USE_CASES: UseCase[] = [
       { label: "ELIGIBILITY", value: "RULE-ENFORCED" },
       { label: "CASH SETTLEMENT", value: "STABLECOIN VIA ICM" },
     ],
-    pillar: "compliance",
+    pillar: "control",
     diagram: "structured-credit",
   },
   {
@@ -481,7 +442,7 @@ export const USE_CASES: UseCase[] = [
       { label: "ENFORCEMENT", value: "AT EXECUTION" },
       { label: "AUDIT TRAIL", value: "ON-CHAIN" },
     ],
-    pillar: "compliance",
+    pillar: "control",
     diagram: "permissioned-venue",
   },
 ];
