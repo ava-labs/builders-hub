@@ -36,7 +36,7 @@ export const addValidatorFlow: FlowDefinition = {
     {
       id: "aggregator",
       label: "Signature aggregator",
-      sublabel: "collects signatures to 67% of weight",
+      sublabel: "collects signatures\nto 67% of weight",
       detail:
         "A service that asks validators for BLS signatures and combines them into one aggregated signature. The Builder Console uses the hosted Glacier aggregator; self-run aggregators also work.",
     },

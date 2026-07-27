@@ -29,6 +29,5 @@ describe("stage layout metadata", () => {
       expect(dim.y).toBeLessThan(desktopLayout.viewBox.h);
       expect(dim.label).not.toMatch(/[–—]/);
     }
-    expect(desktopLayout.crosshair).toBeDefined();
   });
 });

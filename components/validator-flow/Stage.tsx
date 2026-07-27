@@ -40,7 +40,7 @@ export function Stage({
 
   return (
     <svg
-      viewBox={`0 0 ${layout.viewBox.w} ${layout.viewBox.h}`}
+      viewBox={`0 ${layout.topCrop ?? 0} ${layout.viewBox.w} ${layout.viewBox.h - (layout.topCrop ?? 0)}`}
       className={className}
       role="img"
       aria-label={`${flow.title}. Step ${stepIndex + 1} of ${flow.steps.length}: ${step.title}`}
@@ -74,42 +74,13 @@ export function Stage({
         <line
           key={x}
           x1={x}
-          y1={0}
+          y1={layout.topCrop ?? 0}
           x2={x}
           y2={layout.viewBox.h}
           strokeWidth={1}
           className="stroke-zinc-100 dark:stroke-zinc-900"
         />
       ))}
-
-      {layout.crosshair ? (
-        <g strokeWidth={1} className="stroke-zinc-300 dark:stroke-zinc-700">
-          <line
-            x1={layout.crosshair.x - 14}
-            y1={layout.crosshair.y}
-            x2={layout.crosshair.x - 6}
-            y2={layout.crosshair.y}
-          />
-          <line
-            x1={layout.crosshair.x + 6}
-            y1={layout.crosshair.y}
-            x2={layout.crosshair.x + 14}
-            y2={layout.crosshair.y}
-          />
-          <line
-            x1={layout.crosshair.x}
-            y1={layout.crosshair.y - 14}
-            x2={layout.crosshair.x}
-            y2={layout.crosshair.y - 6}
-          />
-          <line
-            x1={layout.crosshair.x}
-            y1={layout.crosshair.y + 6}
-            x2={layout.crosshair.x}
-            y2={layout.crosshair.y + 14}
-          />
-        </g>
-      ) : null}
 
       {layout.zones.map((zone) => (
         <g key={zone.label}>

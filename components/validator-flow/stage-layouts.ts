@@ -29,7 +29,8 @@ export interface StageLayout {
   readonly actors: Readonly<Record<ActorId, StagePosition>>;
   readonly ruleXs: readonly number[];
   readonly dimension?: StageDimension;
-  readonly crosshair?: { readonly x: number; readonly y: number };
+  /** viewBox units cropped from the top of the sheet. */
+  readonly topCrop?: number;
 }
 
 export interface RoutePoints {
@@ -62,7 +63,7 @@ export const desktopLayout: StageLayout = {
     y: 346,
     label: "CURRENT SET · SIGNS TO 67% OF TOTAL WEIGHT",
   },
-  crosshair: { x: 640, y: 24 },
+  topCrop: 12,
 };
 
 export const mobileLayout: StageLayout = {

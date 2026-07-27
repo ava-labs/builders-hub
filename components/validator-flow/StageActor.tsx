@@ -39,16 +39,19 @@ export function StageActor({
       >
         {actor.label}
       </text>
-      {actor.sublabel ? (
-        <text
-          x={pos.x + 18}
-          y={pos.y + 58}
-          letterSpacing="1.2"
-          className="fill-zinc-500 font-mono text-[9.5px] uppercase dark:fill-[#A2AFB2]"
-        >
-          {actor.sublabel}
-        </text>
-      ) : null}
+      {actor.sublabel
+        ? actor.sublabel.split("\n").map((line, index) => (
+            <text
+              key={line}
+              x={pos.x + 18}
+              y={pos.y + 58 + index * 16}
+              letterSpacing="1.2"
+              className="fill-zinc-500 font-mono text-[9.5px] uppercase dark:fill-[#A2AFB2]"
+            >
+              {line}
+            </text>
+          ))
+        : null}
     </motion.g>
   );
 }
