@@ -65,7 +65,7 @@ export const CHAIN_INDEX: ChainHit[] = [
       isTestnet: c.isTestnet === true,
       hasExplorer,
       // no RPC → no explorer to drive; the accounts page still knows the chain
-      href: hasExplorer ? `/explorer/${net}/${c.slug}` : `/explorer/mainnet/${c.slug}/accounts`,
+      href: hasExplorer ? `/explorer/${net}/${c.slug}` : `/explorer/${net}/${c.slug}/accounts`,
       aliases: [
         (c.chainName || "").toLowerCase(),
         c.slug.toLowerCase(),
