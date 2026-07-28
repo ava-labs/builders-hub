@@ -8,6 +8,7 @@
     "avalanche-consensus",
     "avax-token",
     "virtual-machines",
+    "helicon-upgrade",
     "---C-Chain---",
     "coreth-architecture",
     "streaming-async-execution",
