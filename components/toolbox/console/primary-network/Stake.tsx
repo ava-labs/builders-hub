@@ -20,6 +20,10 @@ import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { AddValidatorControls } from '@/components/toolbox/components/ValidatorListInput/AddValidatorControls';
 import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
+import {
+  BLS_PROOF_OF_POSSESSION_REGEX,
+  BLS_PUBLIC_KEY_REGEX,
+} from '@/components/toolbox/components/ValidatorListInput/nodeCredentials';
 import { Steps, Step } from 'fumadocs-ui/components/steps';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
@@ -267,8 +271,10 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     if (!pChainAddress) return 'Connect Core Wallet to get your P-Chain address';
     if (!validator) return 'Please provide validator credentials';
     if (!validator.nodeID?.startsWith('NodeID-')) return 'Invalid NodeID format';
-    if (!validator.nodePOP.publicKey?.startsWith('0x')) return 'Invalid BLS Public Key format';
-    if (!validator.nodePOP.proofOfPossession?.startsWith('0x')) return 'Invalid BLS Signature format';
+    if (!BLS_PUBLIC_KEY_REGEX.test(validator.nodePOP.publicKey))
+      return 'Invalid BLS public key: expected 0x plus 96 hex characters (48 bytes)';
+    if (!BLS_PROOF_OF_POSSESSION_REGEX.test(validator.nodePOP.proofOfPossession))
+      return 'Invalid BLS proof of possession: expected 0x plus 192 hex characters (96 bytes)';
 
     const stakeNum = Number(stakeInAvax);
     if (!Number.isFinite(stakeNum) || stakeNum < config.minStakeAvax) {

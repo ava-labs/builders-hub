@@ -7,6 +7,7 @@ import { cn } from '../utils';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/tabs';
 import { Input } from '../ui/input';
 import type { ConvertToL1Validator } from '../ValidatorListInput';
+import { validateManagedNodeCredentials, validateNodeCredentials } from './nodeCredentials';
 
 type ManagedTestnetNodeSuggestion = {
   id: string;
@@ -95,12 +96,20 @@ export function AddValidatorControls({
       return;
     }
 
-    const publicKey = (choice.public_key || '').trim();
-    const proof = (choice.proof_of_possession || '').trim();
+    const validated = validateManagedNodeCredentials({
+      nodeID: choice.node_id,
+      publicKey: choice.public_key || '',
+      proofOfPossession: choice.proof_of_possession || '',
+    });
+    if (!validated.ok) {
+      setError(`Hosted node returned invalid credentials. ${validated.error}`);
+      return;
+    }
+    const { nodeID, publicKey, proofOfPossession } = validated.value;
 
     const newValidator: ConvertToL1Validator = {
-      nodeID: choice.node_id,
-      nodePOP: { publicKey, proofOfPossession: proof },
+      nodeID,
+      nodePOP: { publicKey, proofOfPossession },
       validatorWeight: BigInt(100),
       validatorBalance: BigInt(100000000),
       remainingBalanceOwner: {
@@ -128,9 +137,21 @@ export function AddValidatorControls({
         setError('Invalid JSON format. Missing nodeID or nodePOP.');
         return;
       }
-      const validator: ConvertToL1Validator = {
+      const validated = validateNodeCredentials({
         nodeID,
-        nodePOP,
+        publicKey: nodePOP.publicKey,
+        proofOfPossession: nodePOP.proofOfPossession,
+      });
+      if (!validated.ok) {
+        setError(validated.error);
+        return;
+      }
+      const validator: ConvertToL1Validator = {
+        nodeID: validated.value.nodeID,
+        nodePOP: {
+          publicKey: validated.value.publicKey,
+          proofOfPossession: validated.value.proofOfPossession,
+        },
         validatorWeight: BigInt(100),
         validatorBalance: BigInt(100000000),
         remainingBalanceOwner: {
@@ -151,16 +172,25 @@ export function AddValidatorControls({
   };
 
   const handleAddManual = () => {
-    const nodeID = manualNodeID.trim();
-    const publicKey = manualPublicKey.trim();
-    const proofOfPossession = manualProof.trim();
-    if (!nodeID || !publicKey || !proofOfPossession) {
+    if (!manualNodeID.trim() || !manualPublicKey.trim() || !manualProof.trim()) {
       setError('Please provide NodeID, BLS Public Key, and Proof of Possession');
       return;
     }
+    const validated = validateNodeCredentials({
+      nodeID: manualNodeID,
+      publicKey: manualPublicKey,
+      proofOfPossession: manualProof,
+    });
+    if (!validated.ok) {
+      setError(validated.error);
+      return;
+    }
     const validator: ConvertToL1Validator = {
-      nodeID,
-      nodePOP: { publicKey, proofOfPossession },
+      nodeID: validated.value.nodeID,
+      nodePOP: {
+        publicKey: validated.value.publicKey,
+        proofOfPossession: validated.value.proofOfPossession,
+      },
       validatorWeight: BigInt(100),
       validatorBalance: BigInt(100000000),
       remainingBalanceOwner: {
