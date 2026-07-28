@@ -1,6 +1,8 @@
 import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
+import { networkSchemaProp } from './lib/constants';
+import { rpcErrorResult } from './lib/tool-helpers';
 
 export const infoTools: ToolDomain = {
   tools: [
@@ -11,11 +13,7 @@ export const infoTools: ToolDomain = {
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: [],
       },
@@ -26,11 +24,7 @@ export const infoTools: ToolDomain = {
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: [],
       },
@@ -41,11 +35,7 @@ export const infoTools: ToolDomain = {
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: [],
       },
@@ -60,11 +50,7 @@ export const infoTools: ToolDomain = {
             type: 'string',
             description: 'The blockchain alias (e.g., "X", "P", "C", or a full blockchain name)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: ['alias'],
       },
@@ -79,11 +65,7 @@ export const infoTools: ToolDomain = {
             type: 'string',
             description: 'The chain ID or alias to check (e.g., "X", "P", "C")',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: ['chain'],
       },
@@ -95,11 +77,7 @@ export const infoTools: ToolDomain = {
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: [],
       },
@@ -119,11 +97,7 @@ export const infoTools: ToolDomain = {
             description:
               'Optional list of NodeIDs to filter peers by (e.g., ["NodeID-AbC..."]). If omitted, all peers are returned.',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: [],
       },
@@ -135,11 +109,7 @@ export const infoTools: ToolDomain = {
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'The Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'The Avalanche network to query (default: mainnet)' }),
         },
         required: [],
       },
@@ -157,10 +127,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -174,10 +141,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -191,10 +155,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -216,10 +177,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -241,10 +199,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -265,10 +220,7 @@ export const infoTools: ToolDomain = {
         }
         return { content: [{ type: 'text', text: JSON.stringify(enriched) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -284,10 +236,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
 
@@ -301,10 +250,7 @@ export const infoTools: ToolDomain = {
         );
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'RPC error');
       }
     },
   },
