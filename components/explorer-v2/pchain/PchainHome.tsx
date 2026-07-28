@@ -280,7 +280,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
   const stakingRatio = totalStake && supply ? (totalStake / supply) * 100 : null;
 
   // staking money-flow: rewards paid (last 14d) and stake unlocking (next
-  // 14d). The section simply doesn't render without aggregate data (devnet).
+  // 14d). The section simply doesn't render without aggregate data.
   const [staking, setStaking] = useState<StakingSeries | null>(null);
   useEffect(() => {
     let cancelled = false;
