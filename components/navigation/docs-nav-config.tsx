@@ -170,13 +170,13 @@ export const acpsOptions: NavOption[] = [
     title: 'Streaming Asynchronous Execution',
     description: 'ACP-194',
     icon: <Book className="w-5 h-5" />,
-    url: '/docs/acps/194-streaming-asynchronous-execution',
+    url: '/docs/acps/194-continuous-execution',
   },
   {
     title: 'Continuous Staking',
     description: 'ACP-236',
     icon: <Book className="w-5 h-5" />,
-    url: '/docs/acps/236-continuous-staking',
+    url: '/docs/acps/236-auto-renewed-staking',
   },
   {
     title: 'ValidatorManager Contract',

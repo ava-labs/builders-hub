@@ -81,7 +81,7 @@ export function TransactionLifecycle() {
         {/* Learn More links */}
         <div className="flex flex-row gap-2 sm:gap-3 justify-center items-center">
           <Link 
-            href="/docs/acps/194-streaming-asynchronous-execution"
+            href="/docs/acps/194-continuous-execution"
             className={`group flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 border ${colors.border} ${colors.blockBg} hover:${colors.blockBgStrong} transition-all`}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeWidth="1.5" className="opacity-50 group-hover:opacity-100 transition-opacity shrink-0 sm:w-4 sm:h-4">
@@ -234,7 +234,7 @@ export function TransactionLifecycle() {
           
           <div className="flex flex-row gap-2 sm:gap-4 justify-center items-stretch">
             <Link 
-              href="/docs/acps/194-streaming-asynchronous-execution"
+              href="/docs/acps/194-continuous-execution"
               className={`group flex items-center gap-2 sm:gap-3 px-3 sm:px-6 py-3 sm:py-4 border ${colors.border} ${colors.blockBg} hover:${colors.blockBgStrong} transition-all`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={colors.stroke} strokeWidth="1.5" className="opacity-50 group-hover:opacity-100 transition-opacity shrink-0 sm:w-5 sm:h-5">
