@@ -74,7 +74,10 @@ const SDK_SOURCES: SDKCodeSource[] = [
 const NETWORK_CONFIG = {
   fuji: {
     minStakeAvax: 1,
-    minEndSeconds: 24 * 60 * 60,
+    // ACP-273 lowered the primary network validator minimum to 12h on Fuji when
+    // Helicon activated (2026-07-28). Mainnet becomes 48h at its activation.
+    minEndSeconds: 12 * 60 * 60,
+    minEndLabel: '12 hours',
     defaultDays: 1,
     presets: [
       { label: '1 day', days: 1 },
@@ -85,6 +88,7 @@ const NETWORK_CONFIG = {
   mainnet: {
     minStakeAvax: 2000,
     minEndSeconds: 14 * 24 * 60 * 60,
+    minEndLabel: '2 weeks',
     defaultDays: 14,
     presets: [
       { label: '2 weeks', days: 14 },
@@ -193,7 +197,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     if (!endTime) return 'End time is required';
     const endUnix = Math.floor(new Date(endTime).getTime() / 1000);
     const duration = endUnix - Math.floor(Date.now() / 1000);
-    if (duration < config.minEndSeconds) return `End time must be at least ${onFuji ? '24 hours' : '2 weeks'} from now`;
+    if (duration < config.minEndSeconds) return `End time must be at least ${config.minEndLabel} from now`;
     if (duration > MAX_END_SECONDS) return 'End time must be within 1 year';
 
     const fee = Number(delegationFee);
@@ -371,12 +375,12 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                     value={endTime}
                     onChange={setEndTime}
                     type="datetime-local"
-                    helperText={`Min: ${onFuji ? '24 hours' : '2 weeks'} · Max: 1 year`}
+                    helperText={`Min: ${config.minEndLabel} · Max: 1 year`}
                     error={(() => {
                       if (!endTime || !error) return null;
                       const d = Math.floor(new Date(endTime).getTime() / 1000) - Math.floor(Date.now() / 1000);
                       if (d < config.minEndSeconds)
-                        return `Must be at least ${onFuji ? '24 hours' : '2 weeks'} from now`;
+                        return `Must be at least ${config.minEndLabel} from now`;
                       if (d > MAX_END_SECONDS) return 'Must be within 1 year';
                       return null;
                     })()}
