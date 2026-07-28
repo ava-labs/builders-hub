@@ -11,6 +11,7 @@ import {
   SpecPlate,
   SpecRow,
   TxTypePill,
+  idInk,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
@@ -182,7 +183,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                     href={`${base}/tx/${t.txHash}`}
                     className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_1fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                   >
-                    <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                    <span className={`truncate font-mono text-[12px] ${idInk}`}>
                       {truncate(t.txHash, 16)}
                     </span>
                     <span className="justify-self-start">

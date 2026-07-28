@@ -103,6 +103,28 @@ export async function getSubnetInfo(network: string, subnetID: string): Promise<
   return rpc<SubnetInfo>(network, "platform.getSubnet", { subnetID });
 }
 
+/** ACP-77 L1 validator fee market: `price` is the continuous fee every L1
+ *  validator seat pays right now, in nAVAX per second, burned from the
+ *  seat's prepaid balance. */
+export interface ValidatorFeeState {
+  excess: number;
+  /** nAVAX per second per seat */
+  price: number;
+  timestamp: string;
+}
+
+export async function getValidatorFeeState(network: string): Promise<ValidatorFeeState | null> {
+  const r = await rpc<{ excess?: number | string; price?: number | string; timestamp?: string }>(
+    network,
+    "platform.getValidatorFeeState",
+    {},
+  );
+  if (!r || r.price === undefined) return null;
+  const price = Number(r.price);
+  if (!Number.isFinite(price)) return null;
+  return { excess: Number(r.excess ?? 0), price, timestamp: r.timestamp ?? "" };
+}
+
 export async function getCurrentValidators(
   network: string,
   subnetID: string,

@@ -24,16 +24,17 @@ export const STAKING_METRICS: Record<StakingMetricKey, StakingMetricDef> = {
       "The capital securing the Primary Network: validators' own stake and everything delegated on top of it.",
     methodology: [
       "Own stake and delegated stake are daily aggregates over the current validator and delegator sets, from the chain-metrics indexer. The stacked view keeps the two apart because they behave differently: own stake moves when operators join, leave, or restake; delegated stake follows retail sentiment and unlock schedules.",
+      "The staking ratio divides that total by the circulating supply the emission feed reports for the same day — the share of all AVAX in existence that is working as security. Days the two feeds don't share are dropped rather than interpolated.",
       "The delegator count rides the same indexer. A rising count against flat delegated stake means smaller average positions — worth reading together, not separately.",
     ],
   },
   apy: {
-    title: "Staking APY",
+    title: "Reward Rate",
     blurb:
-      "What staking pays, annualized: the ceiling for a validator running its own node, the floor for a delegator behind the median fee.",
+      "The protocol's estimated annual reward rate: a full-year term sets the upper curve, the two-week minimum term the lower one.",
     methodology: [
-      "The reward rate follows the network's emission schedule: rewards are newly minted AVAX, scaled by the staking ratio — the more of the supply is staked, the lower the rate for everyone. The max curve assumes a validator staking for a full year at perfect uptime; the min curve is the same position behind delegation fees.",
-      "The exact rate for any position varies with its duration and, for delegators, the validator's fee. Rewards are only paid if the validator meets the uptime requirement through the whole term — APY is a projection, not a promise.",
+      "The rate follows the network's public emission formula: rewards are newly minted AVAX, scaled by how much of the remaining supply is left to mint and by the staking ratio — the more of the supply is staked, the lower the rate for everyone. The two curves differ only by term length: the consumption rate interpolates from 10% at the two-week minimum to 12% at the one-year maximum.",
+      "These are estimates computed from current conditions, not a promise of any return. The realized rate for any position also depends on the validator's delegation fee (for delegators) and on the validator maintaining the uptime requirement through the whole term — miss it and the reward is zero.",
     ],
   },
   rewards: {

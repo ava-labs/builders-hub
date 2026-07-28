@@ -27,13 +27,16 @@ import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/expl
 import {
   NANO,
   fmtCompact,
+  joinStakingRatio,
   num,
   thin,
   toSeries,
+  useMoneyFlow,
   usePrimaryMetrics,
   useSdkValidators,
   useStakingApy,
   windowSeries,
+  type RatioPoint,
 } from "./data";
 import {
   ConcentrationChart,
@@ -59,36 +62,6 @@ const QUIET_BAR = "#A2AFB2";
 /* ---------------------------------------------------------------- */
 /* data                                                              */
 /* ---------------------------------------------------------------- */
-
-interface MoneyFlow {
-  rewards: { date: string; avax: number; payouts: number }[];
-  unlocks: { date: string; avax: number; stakers: number }[];
-}
-
-/* the staking money-flow feed (reward payouts behind us, unlocks ahead),
-   fetched at the smallest computed window that covers the clock */
-function useMoneyFlow(network: string, rangeDays: number) {
-  const days = rangeDays <= 30 ? 30 : rangeDays <= 90 ? 90 : 365;
-  const [flow, setFlow] = useState<MoneyFlow | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    setFlow(null);
-    setFailed(false);
-    fetch(`/api/pchain-activity/${network}?days=${days}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((data: MoneyFlow) => {
-        if (!cancelled) setFlow(data);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [network, days]);
-  return { flow, failed };
-}
 
 /* the sheets' windows floor at a week — a one-bar day chart says nothing */
 function chartWindow(rangeDays: number): number {
@@ -187,6 +160,11 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
     [metrics, range],
   );
 
+  const ratioSeries = useMemo<RatioPoint[]>(
+    () => thin(windowSeries(joinStakingRatio(metrics, apy), chartWindow(range)), 400),
+    [metrics, apy, range],
+  );
+
   const own = num(metrics?.validator_weight?.current_value);
   const delegated = num(metrics?.delegator_weight?.current_value);
   const total = own !== null && delegated !== null ? (own + delegated) / NANO : null;
@@ -273,6 +251,66 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
         </section>
 
         <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+              {range < 7 ? "Staking Ratio · 7 days" : "Staking Ratio"}
+            </p>
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              staked share of circulating supply
+            </span>
+          </div>
+          {ratioSeries.length ? (
+            <ChartPlate name="staking-ratio">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={ratioSeries} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                  <SheetGrid />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
+                  <YAxis
+                    domain={["auto", "auto"]}
+                    width={44}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={AXIS_TICK}
+                    tickFormatter={(v: number) => `${v.toFixed(0)}%`}
+                  />
+                  <RechartsTooltip
+                    cursor={{ stroke: "rgba(161,161,170,0.35)" }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const d = payload[0].payload as RatioPoint;
+                      return (
+                        <TipPlate>
+                          <p className="text-[10px] text-zinc-500">{d.day}</p>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                            {d.pct.toFixed(1)}% of supply staked
+                          </p>
+                          <p className="text-[10px] tabular-nums text-zinc-500">
+                            {fmtCompact(d.staked)} of {fmtCompact(d.supply)} AVAX
+                          </p>
+                        </TipPlate>
+                      );
+                    }}
+                  />
+                  <Area type="monotone" dataKey="pct" stroke={DELEGATED_COLOR} strokeWidth={1.5} fill={DELEGATED_COLOR} fillOpacity={0.08} isAnimationActive={false} />
+                  <Brush dataKey="day" {...BRUSH_PROPS}>
+                    <LineChart>
+                      <Line dataKey="pct" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
+                    </LineChart>
+                  </Brush>
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartPlate>
+          ) : (
+            <ChartEmpty failed={failed} />
+          )}
+          <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+            Total stake read against the circulating supply the emission feed reports for the same
+            day. The axis floats to magnify the drift — the range across the whole history is only
+            a few points, and the drift is the signal.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-3">
           <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
             {range < 7 ? "Delegators · 7 days" : "Delegators"}
           </p>
@@ -313,7 +351,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <SiblingDoor href={`${base}/apy`} label="Staking APY" sub="What this capital earns, annualized" />
+          <SiblingDoor href={`${base}/apy`} label="Reward Rate" sub="What the protocol mints, annualized · est" />
           <SiblingDoor href={`${base}/expiry`} label="Stake Expiry" sub="When it comes unlocked" />
         </div>
       </div>
@@ -342,11 +380,13 @@ function ApySheet({ base, network }: { base: string; network: string }) {
   return (
     <MetricFrame base={base} metric="apy">
       <div className="flex flex-col gap-10">
-        <SheetStrip label="Staking APY" chip="Live estimate" cols={3}>
-          <Stat label="Max APY" sub="own node, full-year term">
+        <SheetStrip label="Reward Rate" chip="Live estimate" cols={3}>
+          {/* the two figures differ by TERM LENGTH, not by role — the
+              consumption rate interpolates 10% → 12% across durations */}
+          <Stat label="1-Year Term · Est" sub="maximum duration rate">
             {apy?.current ? `${apy.current.maxAPY.toFixed(2)}%` : <StatDash />}
           </Stat>
-          <Stat label="Min APY" sub="delegating, after fees">
+          <Stat label="2-Week Term · Est" sub="minimum duration rate">
             {apy?.current ? `${apy.current.minAPY.toFixed(2)}%` : <StatDash />}
           </Stat>
           <Stat label="Supply" sub="AVAX circulating">
@@ -357,14 +397,14 @@ function ApySheet({ base, network }: { base: string; network: string }) {
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-4">
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-              {range < 7 ? "Yield Curves · 7 days" : "Yield Curves"}
+              {range < 7 ? "Rate Curves · 7 days" : "Rate Curves"}
             </p>
             <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> max
+                <span className="h-0.5 w-4 bg-zinc-900 dark:bg-zinc-100" /> 1-year term
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> min
+                <span className="h-0.5 w-4 border-b border-dashed border-[#A2AFB2]" /> 2-week
               </span>
             </span>
           </div>
@@ -391,9 +431,9 @@ function ApySheet({ base, network }: { base: string; network: string }) {
                         <TipPlate>
                           <p className="text-[10px] text-zinc-500">{d.day}</p>
                           <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {d.maxAPY.toFixed(2)}% max
+                            {d.maxAPY.toFixed(2)}% · 1-year term
                           </p>
-                          <p className="text-[10px] tabular-nums text-zinc-500">min {d.minAPY.toFixed(2)}%</p>
+                          <p className="text-[10px] tabular-nums text-zinc-500">2-week {d.minAPY.toFixed(2)}%</p>
                         </TipPlate>
                       );
                     }}
@@ -620,7 +660,7 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
         </section>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <SiblingDoor href={`${base}/apy`} label="Staking APY" sub="The rate behind the minting" />
+          <SiblingDoor href={`${base}/apy`} label="Reward Rate" sub="The rate behind the minting · est" />
           <SiblingDoor href={`${base}/expiry`} label="Stake Expiry" sub="When the payouts burst: terms ending" />
         </div>
       </div>
@@ -885,7 +925,7 @@ function DistributionSheet({ base, network }: { base: string; network: string })
 
         <div className="grid gap-4 sm:grid-cols-2">
           <SiblingDoor href={`${base}/total-stake`} label="Total Stake" sub="The capital being distributed" />
-          <SiblingDoor href={`${base}/apy`} label="Staking APY" sub="What each slice of it earns" />
+          <SiblingDoor href={`${base}/apy`} label="Reward Rate" sub="The estimated rate behind each slice" />
         </div>
       </div>
     </MetricFrame>

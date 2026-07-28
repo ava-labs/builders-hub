@@ -21,10 +21,12 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
   TxTypePill,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
+import { GenesisViewer } from "./GenesisViewer";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "./FundFlowDiagram";
 import { knownChainName } from "@/lib/pchain-explorer";
 import type { AssetAmount, Tx, Utxo } from "@/lib/pchain-explorer";
@@ -65,6 +67,8 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   const hasCreation = !!(tx && (tx.details?.chainName || tx.details?.vmId || tx.details?.subnetOwners?.length));
   const hasCrossChain = !!(tx && (tx.details?.sourceChain || tx.details?.destinationChain || tx.importedFrom));
   const isConvert = tx?.txType === "ConvertSubnetToL1Tx";
+  // a CreateChainTx carries the new chain's genesis — the node has the bytes
+  const isCreateChain = tx?.txType === "CreateChainTx";
   const isWarpOp = tx?.txType === "RegisterL1ValidatorTx" || tx?.txType === "SetL1ValidatorWeightTx";
   const hasContext =
     hasStaking || hasContinuous || hasL1Validation || hasCreation || hasCrossChain || isConvert || isWarpOp;
@@ -72,7 +76,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // node-decoded inputs for platform ops (shared by the right-rail panels
   // and the full-width initial-validator-set table); on a 404 it doubles
   // as the authoritative "does this tx exist on-chain at all?" check
-  const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || notFound);
+  const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || isCreateChain || notFound);
 
   return (
     <ExplorerShell chain={chain} network={network}>
@@ -88,18 +92,21 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
         ))}
       {tx && (
         <div className="flex flex-col gap-10">
+          {/* headline hero, full-width above both rails */}
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Transaction" action={<TxTypePill type={tx.txType} />} />
+            <SubjectHeadline value={tx.txHash} copyLabel="Copy transaction hash" />
+          </section>
+
           {/* identity on the left, type-specific context on the right;
               the fund flow runs full-width below both rails */}
           <div className={hasContext ? "grid items-start gap-x-8 gap-y-10 lg:grid-cols-2" : "flex flex-col gap-10"}>
           <div className="flex flex-col gap-10">
           {/* Overview */}
           <section className="flex flex-col gap-4">
-            <SectionHeader label="Transaction" action={<TxTypePill type={tx.txType} />} />
+            <SectionHeader label="Overview" />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Hash">
-                  <HashChip value={tx.txHash} len={64} />
-                </SpecRow>
                 <SpecRow label="Type">{tx.txType}</SpecRow>
                 {/* a CreateSubnetTx's ID IS the subnet ID; a CreateChainTx's
                     ID IS the blockchain ID — surface the identity, don't make
@@ -322,6 +329,12 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           </div>
           )}
           </div>
+
+          {/* CreateChainTx: the full genesis document, decoded from the
+              node's copy of the tx — overview + raw JSON, full-width */}
+          {isCreateChain && (platformOp.loading || platformOp.data?.genesisData != null) && (
+            <GenesisViewer genesisData={platformOp.data?.genesisData} loading={platformOp.loading} />
+          )}
 
           {/* Fund flow: diagram (default) or ledger table */}
           <section className="flex flex-col gap-4">
@@ -569,7 +582,7 @@ function InitialValidatorSet({
                         <HashChip
                           value={nodeId}
                           href={`${base}/node/${nodeId}${subnetId ? `?subnet=${subnetId}` : ""}`}
-                          len={16}
+                          len={50}
                         />
                       ) : (
                         <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">

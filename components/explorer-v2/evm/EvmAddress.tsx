@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown, MethodChip } from "./bits";
@@ -114,7 +114,7 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
                       href={`${base}/tx/${t.hash}`}
                       className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.4fr_0.9fr_0.6fr_1.3fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                     >
-                      <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                      <span className={`truncate font-mono text-[12px] ${idInk}`}>
                         {truncate(t.hash, 18)}
                       </span>
                       <span className="min-w-0 justify-self-start">

@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -21,7 +20,9 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
   TxTypePill,
+  idInk,
 } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
@@ -135,15 +136,33 @@ export function PchainNode({
   const validationPayout = identity?.validationRewardOwner ?? identity?.rewardOwner;
   const delegationPayout = identity?.delegationRewardOwner ?? identity?.rewardOwner;
 
-  // L1-only validators never stake on the Primary Network, so the indexer
-  // 404s on them. With a subnet hint we go straight to the node:
+  // L1-only validators never stake on the Primary Network. The subnet can
+  // arrive two ways: a ?subnet= hint on the link, or — since the indexer
+  // learned to return L1-only nodes — the node document's own validations.
+  // Either way we go straight to the node for the rich seat view:
   // platform.getCurrentValidators({subnetID, nodeIDs}).
+  const l1Subnet = subnetHint ?? n?.validations?.find((v) => v.kind === "l1")?.subnetId;
+  // no snapshot, no staking history: the L1 seat IS this node's story
+  const l1Only = !!n && !n.hasSnapshot && (n.history?.length ?? 0) === 0;
+  // the document's own l1 validation, shaped like the RPC record — the
+  // render fallback when the RPC can't answer (rate limit, outage). The
+  // page must never go blank while holding the seat data in hand.
+  const l1FromDoc = useMemo<CurrentValidator | null>(() => {
+    const v = n?.validations?.find((x) => x.kind === "l1");
+    if (!v) return null;
+    return {
+      nodeID: nodeId,
+      weight: String(v.weight),
+      balance: v.balance !== undefined ? String(v.balance) : undefined,
+      validationID: v.validationId,
+    };
+  }, [n, nodeId]);
   const [l1, setL1] = useState<CurrentValidator | null>(null);
   const [l1Checked, setL1Checked] = useState(false);
   useEffect(() => {
-    if (!error || !subnetHint) return;
+    if (!(error || l1Only) || !l1Subnet) return;
     let cancelled = false;
-    getCurrentValidators(network, subnetHint, [nodeId]).then((vs) => {
+    getCurrentValidators(network, l1Subnet, [nodeId]).then((vs) => {
       if (cancelled) return;
       setL1(vs?.[0] ?? null);
       setL1Checked(true);
@@ -151,7 +170,7 @@ export function PchainNode({
     return () => {
       cancelled = true;
     };
-  }, [error, subnetHint, network, nodeId]);
+  }, [error, l1Only, l1Subnet, network, nodeId]);
 
   const [showAllDelegators, setShowAllDelegators] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -179,30 +198,48 @@ export function PchainNode({
   return (
     <ExplorerShell chain={chain} network={network}>
       {loading && <DetailSkeleton label="Validator" />}
-      {error && subnetHint && !l1Checked && <DetailSkeleton label="Validator" />}
-      {error && (!subnetHint || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
-      {error && l1 && <L1ValidatorView nodeId={nodeId} subnetId={subnetHint!} v={l1} base={base} />}
-      {n && (
+      {(error || l1Only) && l1Subnet && !l1Checked && <DetailSkeleton label="Validator" />}
+      {error && (!l1Subnet || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
+      {/* the seat view: the RPC record when the node answered, the doc's
+          own copy when it couldn't — a rate-limited RPC must not blank a
+          page whose data is already in hand */}
+      {(error || l1Only) && l1Checked && l1Subnet && (l1 ?? l1FromDoc) && (
+        <L1ValidatorView
+          nodeId={nodeId}
+          subnetId={l1Subnet}
+          v={(l1 ?? l1FromDoc)!}
+          live={!!l1}
+          base={base}
+        />
+      )}
+      {/* nodes with staking history (or no l1 seat at all) keep the full
+          indexer document view — including the corner where a subnet hint
+          exists but neither the RPC nor the doc could produce a seat */}
+      {n && (!l1Only || !l1Subnet || (l1Checked && !l1 && !l1FromDoc)) && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader
               label="Node"
               action={
-                <span
-                  className={`inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${
-                    n.validator.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
-                  }`}
-                >
+                // connection state comes from the Primary Network snapshot —
+                // without one it's a zero value, not a real "Offline"
+                n.hasSnapshot ? (
                   <span
-                    className={`h-1.5 w-1.5 rounded-full ${
-                      n.validator.connected ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"
+                    className={`inline-flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] ${
+                      n.validator.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
                     }`}
-                  />
-                  {n.validator.connected ? "Connected" : "Offline"}
-                </span>
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        n.validator.connected ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"
+                      }`}
+                    />
+                    {n.validator.connected ? "Connected" : "Offline"}
+                  </span>
+                ) : undefined
               }
             />
-            <NodeIdHeadline nodeId={n.nodeId} />
+            <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
             {!n.hasSnapshot && (
               <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
                 Not in the latest validator snapshot. Showing on-chain history.
@@ -612,7 +649,7 @@ export function PchainNode({
                       href={`${base}/tx/${d.txId}`}
                       className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                     >
-                      <span className="font-mono text-[12px] text-zinc-700 dark:text-zinc-300">{truncate(d.txId, 16)}</span>
+                      <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 16)}</span>
                       <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                         <span className="font-bold text-zinc-900 dark:text-zinc-100">
                           {formatAvax(d.stakeAmount, { compact: true })}
@@ -645,7 +682,7 @@ export function PchainNode({
                       className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                        <span className={`truncate font-mono text-[12px] ${idInk}`}>
                           {truncate(h.txHash, 16)}
                         </span>
                         <TxTypePill type={h.txType.replace(/Tx$/, "")} />
@@ -679,11 +716,14 @@ function L1ValidatorView({
   nodeId,
   subnetId,
   v,
+  live = true,
   base,
 }: {
   nodeId: string;
   subnetId: string;
   v: CurrentValidator;
+  /** false when the record came from the indexer snapshot instead of the node */
+  live?: boolean;
   base: string;
 }) {
   return (
@@ -693,11 +733,11 @@ function L1ValidatorView({
           label="Node"
           action={
             <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              L1 validator · live from P-Chain
+              {live ? "L1 validator · live from P-Chain" : "L1 validator · indexer snapshot"}
             </span>
           }
         />
-        <NodeIdHeadline nodeId={nodeId} />
+        <SubjectHeadline value={nodeId} copyLabel="Copy NodeID" />
       </section>
 
       <div className="grid items-start gap-8 lg:grid-cols-2">
@@ -746,38 +786,6 @@ function L1ValidatorView({
         )}
       </div>
     </div>
-  );
-}
-
-/* The page's subject, at headline weight: the NodeID is what you came for,
-   so it reads like a title — full value, bold mono, one click to copy. */
-function NodeIdHeadline({ nodeId }: { nodeId: string }) {
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(nodeId);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      /* clipboard unavailable — the text is selectable anyway */
-    }
-  };
-  return (
-    <button
-      type="button"
-      onClick={copy}
-      title="Copy NodeID"
-      className="group flex w-fit max-w-full items-baseline gap-3 text-left"
-    >
-      <span className="break-all font-mono text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-        {nodeId}
-      </span>
-      {copied ? (
-        <Check className="h-4 w-4 shrink-0 self-center text-emerald-600 dark:text-emerald-400" />
-      ) : (
-        <Copy className="h-4 w-4 shrink-0 self-center text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400" />
-      )}
-    </button>
   );
 }
 

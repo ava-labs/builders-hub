@@ -1,0 +1,127 @@
+name: Bump container versions
+
+# Keeps scripts/versions.json (the avalanchego / subnet-evm / icm-relayer image
+# pins the Builder Console hands to users) tracking the latest GitHub releases.
+#
+# Why this exists: scripts/update_docker_tags.mjs already runs on postinstall,
+# so a fresh `install` quietly rewrites versions.json and prints "please commit
+# the changes" into a wall of install output that nobody reads. The committed
+# pin therefore drifts. That matters because the script keeps the current value
+# whenever an upstream lookup fails, so the committed file is the fallback that
+# real users get.
+#
+# This job runs the same script on a schedule and opens a PR when it moves, so
+# the drift becomes a review instead of a surprise.
+#
+# The commit is made through the GitHub contents API rather than `git commit`,
+# because commits created via the API are signed by GitHub and show as
+# Verified. A plain commit from a runner would be unsigned, which is a merge
+# blocker here.
+
+on:
+  schedule:
+    # Mondays, 13:00 UTC (09:00 ET). Scheduled runs only fire on the default
+    # branch, and GitHub delays them under load, so treat this as "some time
+    # Monday morning".
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: bump-container-versions
+  cancel-in-progress: false
+
+env:
+  BUMP_BRANCH: chore/auto-bump-container-versions
+
+jobs:
+  bump:
+    name: Check for new releases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      # No dependency install: the updater is plain Node using only built-in
+      # modules, and skipping install avoids running postinstall side effects.
+      - name: Check for new releases
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node ./scripts/update_docker_tags.mjs | tee /tmp/updater.log
+
+          if git diff --quiet -- scripts/versions.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Pins already match the latest releases."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git --no-pager diff -- scripts/versions.json
+          fi
+
+      - name: Open or update the bump PR
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # Always rebuild the branch from the current base, so a stale open PR
+          # never carries an old master underneath it.
+          base_sha=$(gh api "repos/$REPO/git/ref/heads/$BASE" --jq '.object.sha')
+
+          if gh api "repos/$REPO/git/ref/heads/$BUMP_BRANCH" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/$REPO/git/refs/heads/$BUMP_BRANCH" \
+              -f sha="$base_sha" -F force=true >/dev/null
+          else
+            gh api --method POST "repos/$REPO/git/refs" \
+              -f ref="refs/heads/$BUMP_BRANCH" -f sha="$base_sha" >/dev/null
+          fi
+
+          # Commit via the contents API so the commit is signed by GitHub.
+          file_sha=$(gh api "repos/$REPO/contents/scripts/versions.json?ref=$BUMP_BRANCH" --jq '.sha')
+          gh api --method PUT "repos/$REPO/contents/scripts/versions.json" \
+            -f message="chore(console): bump container versions to latest releases" \
+            -f content="$(base64 -w0 scripts/versions.json)" \
+            -f sha="$file_sha" \
+            -f branch="$BUMP_BRANCH" >/dev/null
+
+          # Body: the actual pin changes, plus the updater's own output.
+          {
+            echo "New upstream releases are available. Pins updated to match."
+            echo
+            echo '```'
+            git --no-pager diff --unified=0 -- scripts/versions.json | grep -E '^[+-]\s+"' || true
+            echo '```'
+            echo
+            echo "<details><summary>Updater output</summary>"
+            echo
+            echo '```'
+            cat /tmp/updater.log
+            echo '```'
+            echo
+            echo "</details>"
+            echo
+            echo "Versions come from GitHub releases; Docker Hub is only checked to confirm the image tag exists. Release candidates are never pinned. Opened by \`.github/workflows/bump-container-versions.yml\`."
+          } > /tmp/pr-body.md
+
+          if [ -n "$(gh pr list --repo "$REPO" --head "$BUMP_BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit --repo "$REPO" "$BUMP_BRANCH" --body-file /tmp/pr-body.md
+            echo "Updated the existing PR."
+          else
+            gh pr create --repo "$REPO" \
+              --base "$BASE" --head "$BUMP_BRANCH" \
+              --title "chore(console): bump container versions to latest releases" \
+              --body-file /tmp/pr-body.md
+          fi
