@@ -7,6 +7,29 @@ description: "How adding a validator to an Avalanche L1 actually works: two L1 t
 
 <ValidatorFlowExplainer flow="add-validator" />
 
+## Run the whole flow in code
+
+The six steps above are one call in the Avalanche TypeScript SDK: `registerL1Validator` from [`@avalanche-sdk/interchain`](https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/interchain/src/validator-manager) orchestrates both L1 transactions, the two BLS signature rounds, and the P-Chain submission end to end. The package is early (0.1.x alpha), so pin your version.
+
+```bash
+npm install @avalanche-sdk/interchain
+```
+
+```ts
+import { registerL1Validator } from "@avalanche-sdk/interchain/validator-manager";
+
+const result = await registerL1Validator(walletClient, publicClient, {
+  validatorManagerAddress,
+  networkId,
+  subnetId,
+  validator,              // NodeID, BLS public key, weight
+  aggregateSignatures,    // steps 02 + 05: the BLS signature rounds
+  getBlsProofOfPossession,
+  submitPChainRegisterTx, // step 03: RegisterL1ValidatorTx
+  onProgress,
+});
+```
+
 ## The six steps at a glance
 
 The interactive explainer above is the narration; this table is the quick reference.
@@ -98,6 +121,11 @@ The 53-byte AddressedCall wraps the inner message: codec `0x0000`, type ID `0x00
     title="Validator Manager contracts"
     description="Contract reference for ACP-99 managers."
     href="./contract"
+  />
+  <Card
+    title="Validator Manager SDK (TypeScript)"
+    description="registerL1Validator and the per-step building blocks in @avalanche-sdk/interchain."
+    href="https://github.com/ava-labs/avalanche-sdk-typescript/tree/main/interchain/src/validator-manager"
   />
   <Card
     title="ACP-77: reinventing subnets"

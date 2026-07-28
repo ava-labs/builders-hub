@@ -1,5 +1,8 @@
 import type { FlowDefinition } from "./types";
 
+const SDK_REGISTER_FILE =
+  "https://github.com/ava-labs/avalanche-sdk-typescript/blob/main/interchain/src/validator-manager/registerL1Validator.ts";
+
 export const addValidatorFlow: FlowDefinition = {
   id: "add-validator",
   title: "Adding a validator to an Avalanche L1",
@@ -65,6 +68,7 @@ export const addValidatorFlow: FlowDefinition = {
       operator: {
         consoleHref: "/console/add-validator/initiate-registration",
         consoleLabel: "Add Validator: initiate registration",
+        sdkRefs: [{ label: "initiateValidatorRegistration", href: SDK_REGISTER_FILE }],
         notes: [
           "Pick the L1 first: the console flow starts at select-subnet.",
           "PoA chains call the ValidatorManager directly; PoS chains go through the StakingManager.",
@@ -88,6 +92,7 @@ export const addValidatorFlow: FlowDefinition = {
       operator: {
         consoleHref: "/console/add-validator/pchain-registration",
         consoleLabel: "Add Validator: P-Chain registration",
+        sdkRefs: [{ label: "AggregateSignaturesFn", href: SDK_REGISTER_FILE }],
         notes: [
           "The console performs this aggregation for you inside the P-Chain registration step, via the hosted signature aggregator.",
         ],
@@ -120,6 +125,7 @@ export const addValidatorFlow: FlowDefinition = {
       operator: {
         consoleHref: "/console/add-validator/pchain-registration",
         consoleLabel: "Add Validator: P-Chain registration",
+        sdkRefs: [{ label: "SubmitPChainRegisterTxFn", href: SDK_REGISTER_FILE }],
         notes: [
           "The console builds and submits this transaction for you. Self-serve paths exist via the Avalanche SDK.",
           "The P-Chain account paying the fee needs sufficient AVAX; the console links a faucet and the C-P bridge if the balance is low.",
@@ -167,6 +173,7 @@ export const addValidatorFlow: FlowDefinition = {
       operator: {
         consoleHref: "/console/add-validator/complete-registration",
         consoleLabel: "Add Validator: complete registration",
+        sdkRefs: [{ label: "AggregateSignaturesFn", href: SDK_REGISTER_FILE }],
         notes: [
           "P-Chain-sourced aggregation is stricter than step 2: validators must recognize the registration in their own P-Chain view before they sign.",
         ],
@@ -199,6 +206,7 @@ export const addValidatorFlow: FlowDefinition = {
       operator: {
         consoleHref: "/console/add-validator/complete-registration",
         consoleLabel: "Add Validator: complete registration",
+        sdkRefs: [{ label: "completeValidatorRegistration", href: SDK_REGISTER_FILE }],
         commands: [
           {
             label:

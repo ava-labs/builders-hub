@@ -26,7 +26,8 @@ export function StepPanel({
   const hasOperator = Boolean(
     step.operator.consoleHref ||
       step.operator.commands?.length ||
-      step.operator.notes?.length,
+      step.operator.notes?.length ||
+      step.operator.sdkRefs?.length,
   );
   const eyebrow = step.travel
     ? `STEP ${padStep(stepNumber)} / ${padStep(stepCount)} · ${KIND_LABELS[step.travel.kind]}`
@@ -73,13 +74,28 @@ export function StepPanel({
           </button>
           {operatorOpen ? (
             <div className="mt-3 space-y-3">
-              {step.operator.consoleHref ? (
-                <Link
-                  href={step.operator.consoleHref}
-                  className="inline-block border border-zinc-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-800 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
-                >
-                  Open in console: {step.operator.consoleLabel}
-                </Link>
+              {step.operator.consoleHref || step.operator.sdkRefs?.length ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {step.operator.consoleHref ? (
+                    <Link
+                      href={step.operator.consoleHref}
+                      className="inline-block border border-zinc-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-800 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                    >
+                      Open in console: {step.operator.consoleLabel}
+                    </Link>
+                  ) : null}
+                  {step.operator.sdkRefs?.map((ref) => (
+                    <a
+                      key={ref.label}
+                      href={ref.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block border border-zinc-200 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-800 transition-colors hover:bg-zinc-100 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900"
+                    >
+                      SDK: {ref.label}
+                    </a>
+                  ))}
+                </div>
               ) : null}
               {step.operator.commands?.map((command) => (
                 <div key={command.label}>

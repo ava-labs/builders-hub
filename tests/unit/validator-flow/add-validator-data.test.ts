@@ -66,4 +66,13 @@ describe("add-validator flow data integrity", () => {
   it("carries hero copy", () => {
     expect(addValidatorFlow.heroTitle.length).toBeGreaterThan(0);
   });
+
+  it("points sdk references at the sdk repository", () => {
+    const refs = addValidatorFlow.steps.flatMap((step) => step.operator.sdkRefs ?? []);
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of refs) {
+      expect(ref.label.length).toBeGreaterThan(0);
+      expect(ref.href).toMatch(/^https:\/\/github\.com\/ava-labs\/avalanche-sdk-typescript\//);
+    }
+  });
 });

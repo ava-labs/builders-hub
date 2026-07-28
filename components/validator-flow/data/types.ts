@@ -44,9 +44,15 @@ export interface OperatorCommand {
   readonly code: string;
 }
 
+export interface SdkRef {
+  readonly label: string;
+  readonly href: string;
+}
+
 export interface OperatorDepth {
   readonly consoleHref?: string;
   readonly consoleLabel?: string;
+  readonly sdkRefs?: readonly SdkRef[];
   readonly commands?: readonly OperatorCommand[];
   readonly notes?: readonly string[];
 }
