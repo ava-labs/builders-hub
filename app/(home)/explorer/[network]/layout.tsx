@@ -15,7 +15,11 @@ export default async function ExplorerNetworkLayout({ children, params }: Networ
   const { network } = await params;
   if (!isPchainNetwork(network)) {
     const legacy = l1ChainsData.find((c) => c.slug === network);
-    redirect(legacy ? `/explorer/mainnet/${network}` : "/explorer");
+    // Route to the chain's real network, not a hardcoded mainnet — a legacy
+    // single-segment URL for a Fuji chain must not land on its mainnet twin.
+    const legacyNetwork =
+      legacy && (legacy as { isTestnet?: boolean }).isTestnet ? "fuji" : "mainnet";
+    redirect(legacy ? `/explorer/${legacyNetwork}/${network}` : "/explorer");
   }
   return <>{children}</>;
 }

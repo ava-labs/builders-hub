@@ -133,7 +133,10 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
     options.push({
       id: 'builder-hub',
       label: 'Builder Hub Explorer',
-      url: `/explorer/${builderHubExplorerSlug(evmChainId)}`,
+      // Network-first URL: carry the chain's own testnet flag so a Fuji L1
+      // lands on /explorer/fuji/... instead of being defaulted to mainnet by
+      // a downstream normalizer (which then mislabels the page "MAINNET").
+      url: `/explorer/${isTestnet ? 'fuji' : 'mainnet'}/${builderHubExplorerSlug(evmChainId)}`,
       description: 'Native in-app blocks, txs, and addresses',
       internal: true,
     });
