@@ -6,7 +6,7 @@ vi.mock("@/prisma/prisma", () => ({
   prisma: { hackathon: { findUnique: findUniqueMock } },
 }));
 
-import { canEditEvent } from "@/lib/auth/permissions";
+import { canEditEvent, canManageHackathonJudges } from "@/lib/auth/permissions";
 
 const EVENT_ID = "evt-1";
 
@@ -68,5 +68,46 @@ describe("canEditEvent", () => {
       EVENT_ID,
     );
     expect(allowed).toBe(false);
+  });
+});
+
+describe("canManageHackathonJudges", () => {
+  it("denies anonymous users and non-privileged roles without a lookup", async () => {
+    expect(await canManageHackathonJudges(null, EVENT_ID)).toBe(false);
+    expect(
+      await canManageHackathonJudges(
+        { user: { id: "u1", custom_attributes: ["hackathonCreator"] } },
+        EVENT_ID,
+      ),
+    ).toBe(false);
+    expect(findUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("allows devrel for any event without a lookup", async () => {
+    const allowed = await canManageHackathonJudges(
+      { user: { id: "u1", custom_attributes: ["devrel"] } },
+      EVENT_ID,
+    );
+    expect(allowed).toBe(true);
+    expect(findUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("allows team1-admin only for events they created or cohost", async () => {
+    findUniqueMock.mockResolvedValue({
+      cohosts: ["admin@example.com"],
+      created_by: "creator-id",
+    });
+    const session = (id: string, email: string) => ({
+      user: { id, email, custom_attributes: ["team1-admin"] },
+    });
+    expect(
+      await canManageHackathonJudges(session("creator-id", "x@example.com"), EVENT_ID),
+    ).toBe(true);
+    expect(
+      await canManageHackathonJudges(session("u9", "admin@example.com"), EVENT_ID),
+    ).toBe(true);
+    expect(
+      await canManageHackathonJudges(session("u9", "stranger@example.com"), EVENT_ID),
+    ).toBe(false);
   });
 });

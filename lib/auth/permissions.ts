@@ -59,14 +59,19 @@ export function canReviewMiniGrants(
 }
 
 /**
- * True when the user may assign/remove judges for any hackathon. Today
- * this is devrel-only; we may scope it per-hackathon later.
+ * True when the user may assign/remove judges for the given hackathon:
+ * devrel for any event; team1-admin for events they created or cohost.
  */
-export function canManageHackathonJudges(
-  session: { user?: { custom_attributes?: string[] } } | null | undefined,
-): boolean {
+export async function canManageHackathonJudges(
+  session:
+    | { user?: { id?: string; email?: string; custom_attributes?: string[] } }
+    | null
+    | undefined,
+  hackathonId: string,
+): Promise<boolean> {
   if (!session?.user) return false;
-  return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
+  if (hasAnyAttribute(session.user.custom_attributes, ["devrel"])) return true;
+  return isTeam1AdminForOwnEvent(session.user, hackathonId);
 }
 
 export function canManageEvaluationPhase(
@@ -111,12 +116,31 @@ export async function canViewEventRegistrations(
 }
 
 /**
+ * Shared mechanic (not a policy): true when the user holds the team1-admin
+ * role AND is the creator or a listed cohost of the given event — the same
+ * set surfaced in their managed events list (GET /api/events?managed=true).
+ * Policy functions (canEditEvent, canManageHackathonJudges) decide what
+ * this grants; change the policy there, not here.
+ */
+async function isTeam1AdminForOwnEvent(
+  user: { id?: string; email?: string; custom_attributes?: string[] },
+  hackathonId: string,
+): Promise<boolean> {
+  if (!hasAnyAttribute(user.custom_attributes, ["team1-admin"])) return false;
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { cohosts: true, created_by: true },
+  });
+  if (!hackathon) return false;
+  if (user.id && hackathon.created_by === user.id) return true;
+  return !!user.email && hackathon.cohosts.includes(user.email);
+}
+
+/**
  * True when the user may edit an event (PUT/PATCH /api/events/[id]):
  * - devrel: any event.
  * - team1-admin: only events they created or where they are a listed
- *   cohost — the same set surfaced in their managed events list
- *   (GET /api/events?managed=true), so everything they can see they
- *   can also edit.
+ *   cohost, so everything in their managed list they can also edit.
  */
 export async function canEditEvent(
   session:
@@ -126,16 +150,8 @@ export async function canEditEvent(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  const attributes = session.user.custom_attributes;
-  if (hasAnyAttribute(attributes, ["devrel"])) return true;
-  if (!hasAnyAttribute(attributes, ["team1-admin"])) return false;
-  const hackathon = await prisma.hackathon.findUnique({
-    where: { id: hackathonId },
-    select: { cohosts: true, created_by: true },
-  });
-  if (!hackathon) return false;
-  if (session.user.id && hackathon.created_by === session.user.id) return true;
-  return !!session.user.email && hackathon.cohosts.includes(session.user.email);
+  if (hasAnyAttribute(session.user.custom_attributes, ["devrel"])) return true;
+  return isTeam1AdminForOwnEvent(session.user, hackathonId);
 }
 
 /**

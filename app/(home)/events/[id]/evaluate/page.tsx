@@ -4,7 +4,7 @@ import { prisma } from "@/prisma/prisma";
 import {
   canEvaluateHackathon,
   canManageEvaluationPhase,
-  canManageHackathonJudges,
+  hasAnyAttribute,
 } from "@/lib/auth/permissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
@@ -89,7 +89,7 @@ export default async function HackathonEvaluatePage({
   });
 
   const viewerId = session!.user!.id;
-  const isDevrel = canManageHackathonJudges(session);
+  const isDevrel = hasAnyAttribute(session?.user?.custom_attributes, ["devrel"]);
 
   // Rejected projects must never reach the client for non-devrel users — filter server-side.
   const visibleProjects = isDevrel
