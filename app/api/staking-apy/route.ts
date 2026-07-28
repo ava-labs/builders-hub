@@ -21,9 +21,6 @@ const CONFIG = {
     maxStakingDays: 365, // 1 year
   },
 
-  endpoints: {
-    metabase: 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/38ea69a5-e373-4258-9db6-8425fcba3a1a/dashcard/9955/card/13502?parameters=%5B%5D',
-  },
 } as const;
 
 interface APYDataPoint {
@@ -41,7 +38,7 @@ interface CurrentData {
   minAPY: number;
 }
 
-interface MetabaseRow {
+interface EmissionsRow {
   date: string;
   cumulativeEmissions: number;
 }
@@ -104,27 +101,27 @@ async function fetchPChainSupply(): Promise<number | null> {
   }
 }
 
-async function fetchHistoricalData(): Promise<MetabaseRow[]> {
+// Historical cumulative emissions from our metrics-api (cumulative staking
+// rewards reconstructed from reward UTXOs). Any constant accounting offset in
+// the series is absorbed below by alignmentOffset (the curve is shifted so its
+// latest point equals the real on-chain supply). Full history from 2020-10.
+async function fetchHistoricalData(): Promise<EmissionsRow[]> {
   try {
-    const response = await fetchWithTimeout(CONFIG.endpoints.metabase, {
-      headers: { Accept: 'application/json' },
-    });
-
+    const response = await fetchWithTimeout(
+      `${EXPLORER_API_BASE}/v2/networks/mainnet/metrics/cumulativeStakingRewards`,
+      { headers: { Accept: 'application/json' } },
+    );
     if (!response.ok) return [];
     const data = await response.json();
-    if (!data?.data?.rows || !Array.isArray(data.data.rows)) return [];
-    const rows: MetabaseRow[] = [];
-    for (const row of data.data.rows) {
-      const dateStr = row[0];
-      const emissions = row[1];    
-      if (!dateStr || typeof emissions !== 'number' || emissions <= 0) continue;
-
+    if (!Array.isArray(data?.results)) return [];
+    const rows: EmissionsRow[] = [];
+    for (const r of data.results as { value: number; timestamp: number }[]) {
+      if (typeof r.value !== 'number' || r.value <= 0) continue;
       rows.push({
-        date: dateStr.split('T')[0],
-        cumulativeEmissions: emissions,
+        date: new Date(r.timestamp * 1000).toISOString().split('T')[0],
+        cumulativeEmissions: r.value,
       });
     }
-
     rows.sort((a, b) => a.date.localeCompare(b.date));
     return rows;
   } catch {
@@ -160,9 +157,9 @@ export async function GET() {
     let apyHistory: APYDataPoint[] = [];
 
     if (historicalData.length > 0 && pChainSupply) {
-      const latestMetabase = historicalData[historicalData.length - 1];
-      const metabaseLatestSupply = CONFIG.network.genesisSupply + latestMetabase.cumulativeEmissions;
-      const alignmentOffset = pChainSupply - metabaseLatestSupply;
+      const latestRow = historicalData[historicalData.length - 1];
+      const seriesLatestSupply = CONFIG.network.genesisSupply + latestRow.cumulativeEmissions;
+      const alignmentOffset = pChainSupply - seriesLatestSupply;
       apyHistory = historicalData.map((row) => {
         const supply = CONFIG.network.genesisSupply + row.cumulativeEmissions + alignmentOffset;
         return {

@@ -40,7 +40,7 @@ const DEPTH = "0.5rem"; // extrusion depth — keep in sync with the -top/-right
 export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
   return (
     <div className="relative overflow-hidden">
-      <div className="flex gap-2 pr-2 pt-2">
+      <div className="flex gap-2 pr-2 pt-3">
         {blocks.map((b, i) => {
           const live = i === 0;
           const hasFill = typeof b.fill === "number";
@@ -63,13 +63,15 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
               // momentum curve: sharp attack, long decay — stretched so a
               // single arriving block glides rather than snaps
               transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-[96px] shrink-0"
+              // hover lifts the whole cuboid off the sheet: all three faces
+              // ride the same group-hover translate so it moves as one solid
+              className="group relative w-[96px] shrink-0"
             >
               {/* top face — tints only when the block is sealed full */}
               <span
                 aria-hidden
                 className={cn(
-                  "absolute -top-2 left-0 w-full origin-bottom-left skew-x-[-45deg]",
+                  "absolute -top-2 left-0 w-full origin-bottom-left skew-x-[-45deg] transition-transform duration-200 ease-out group-hover:-translate-y-1",
                   live
                     ? "bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_75%,white)]"
                     : sealed
@@ -84,7 +86,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
               <span
                 aria-hidden
                 className={cn(
-                  "absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] overflow-hidden",
+                  "absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] overflow-hidden transition-transform duration-200 ease-out group-hover:-translate-y-1",
                   live
                     ? "bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_70%,black)]"
                     : carries
@@ -109,7 +111,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
               <Link
                 href={b.href}
                 className={cn(
-                  "relative flex h-full flex-col gap-1 overflow-hidden px-3 py-2.5 backdrop-blur-sm transition-colors",
+                  "relative flex h-full flex-col gap-1 overflow-hidden px-3 py-2.5 backdrop-blur-sm transition-[background-color,translate] duration-200 ease-out group-hover:-translate-y-1",
                   live
                     ? "bg-[var(--chain-accent,#E6212F)] hover:bg-[color-mix(in_srgb,var(--chain-accent,#E6212F)_80%,black)]"
                     : carries
@@ -206,7 +208,7 @@ export function BlockTape({ blocks }: { blocks: TapeBlock[] }) {
 
 export function BlockTapeSkeleton() {
   return (
-    <div className="flex gap-2 overflow-hidden pr-2 pt-2">
+    <div className="flex gap-2 overflow-hidden pr-2 pt-3">
       {Array.from({ length: 14 }).map((_, i) => (
         <div
           key={i}

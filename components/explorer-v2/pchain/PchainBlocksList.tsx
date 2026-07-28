@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { pchainApiPath, type BlocksList, type BlockSummary } from "@/lib/pchain-explorer";
 import { LIVE_REFRESH_MS } from "./hooks";
@@ -112,7 +112,7 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
               onClick={() => router.push(`${base}/block/${b.blockNumber}`)}
               className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-1 px-5 py-3.5 transition-colors hover:bg-zinc-50 md:grid-cols-[1fr_1.1fr_0.5fr_0.6fr_minmax(19rem,2fr)_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
             >
-              <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
+              <span className={`font-mono text-[13px] tabular-nums ${idInk}`}>
                 #{formatNumber(b.blockNumber)}
               </span>
               <span className="justify-self-start">

@@ -104,7 +104,7 @@ export function PipelineIntegration({ colors }: { colors: Colors }) {
         Where Firewood fits.
       </h3>
       <p className={`text-xs ${colors.textMuted} font-mono mb-6`}>
-        Firewood is the storage layer for StreVM, Avalanche&apos;s Streaming Async Execution engine.
+        Firewood is the storage layer for StreVM, Avalanche&apos;s Continuous Execution engine.
       </p>
 
       {/* Pipeline diagram */}

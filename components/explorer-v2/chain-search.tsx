@@ -47,7 +47,11 @@ export const CHAIN_INDEX: ChainHit[] = [
     aliases: ["p-chain", "pchain", "platform chain", "platform", "primary network"],
   },
   ...(l1ChainsData as L1Chain[]).map((c) => {
-    const hasExplorer = !!c.rpcUrl;
+    // No testnet EVM chain is indexed right now (Fuji C-Chain indexing is
+    // down; the other fuji deployments were never indexed), so an rpcUrl
+    // alone doesn't make a testnet entry explorable — matchChains then drops
+    // those rows instead of routing users to empty /explorer/fuji pages.
+    const hasExplorer = !!c.rpcUrl && c.isTestnet !== true;
     // testnet deployments live under the fuji network segment — the chain
     // layout resolves same-slug pairs by that segment
     const net = c.isTestnet === true ? "fuji" : "mainnet";

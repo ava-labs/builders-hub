@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { GasFill } from "./bits";
 import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
@@ -38,7 +38,7 @@ export function EvmBlocksList({ network }: { network: string }) {
               href={`${base}/block/${b.number}`}
               className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1fr_0.7fr_1fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
             >
-              <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">
+              <span className={`font-mono text-[13px] tabular-nums ${idInk}`}>
                 #{formatNumber(b.number)}
               </span>
               <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">

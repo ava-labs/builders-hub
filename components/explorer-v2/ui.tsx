@@ -56,6 +56,51 @@ export function SectionHeader({
   );
 }
 
+/* The page's subject at headline weight — bold mono, one click to copy. */
+export function SubjectHeadline({
+  value,
+  display,
+  prefix,
+  copyLabel = "Copy",
+}: {
+  /** what lands on the clipboard */
+  value: string;
+  /** what renders — defaults to value */
+  display?: string;
+  /** leading noun, kept outside the break-all span so it never splits */
+  prefix?: string;
+  copyLabel?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable — the text is selectable anyway */
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title={copyLabel}
+      className="group flex w-fit max-w-full items-baseline gap-3 text-left"
+    >
+      <span className="min-w-0 font-mono text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+        {prefix && <>{prefix} </>}
+        <span className="break-all">{display ?? value}</span>
+      </span>
+      {copied ? (
+        <Check className="h-4 w-4 shrink-0 self-center text-emerald-600 dark:text-emerald-400" />
+      ) : (
+        <Copy className="h-4 w-4 shrink-0 self-center text-zinc-300 transition-colors group-hover:text-zinc-500 dark:text-zinc-600 dark:group-hover:text-zinc-400" />
+      )}
+    </button>
+  );
+}
+
 /* A title bar INSIDE a Board — for stat strips, where a free-floating
    SectionHeader above the box stacks three full-width rules (header rule,
    board top, board bottom) and the readings float between lines. Fusing
@@ -401,6 +446,46 @@ export function CellLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* DarkToggle — segmented control in the dark statement panels' voice
+   (#1F1F1F boards: the staking calculator, the gas cost panel).        */
+export function DarkToggle<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="inline-flex shrink-0 flex-wrap border border-white/15">
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={cn(
+            "px-2.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
+            o.value === value
+              ? "bg-[#EBF0FA] text-zinc-900"
+              : "text-[#A2AFB2] hover:bg-white/10 hover:text-[#EBF0FA]",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Identifier ink — the one blue every clickable identifier wears,
+   whether it's a standalone HashChip link or the lead cell of a row-
+   Link (where a nested <a> is invalid and the row itself navigates).
+   Blue = "this ID takes you to its page", everywhere, no exceptions. */
+export const idInk = "text-[#0061E2] dark:text-[#5f9dff]";
+
+/* ------------------------------------------------------------------ */
 /* HashChip — mono truncated hash/address with copy                    */
 export function HashChip({
   value,
@@ -437,7 +522,7 @@ export function HashChip({
       {href ? (
         <Link
           href={href}
-          className={cn(textCls, "text-[#0061E2] underline-offset-4 hover:text-[#E6212F] hover:underline dark:text-[#5f9dff]")}
+          className={cn(textCls, idInk, "underline-offset-4 hover:text-[#E6212F] hover:underline")}
           title={value}
         >
           {text}

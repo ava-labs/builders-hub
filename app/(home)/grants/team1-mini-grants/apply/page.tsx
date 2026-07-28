@@ -6,7 +6,8 @@ import { Team1Symbol, Team1Wordmark } from "@/components/grants/Team1Wordmark";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useSession, getSession } from "next-auth/react";
 import { useLoginModalTrigger, useLoginCompleteListener } from "@/hooks/useLoginModal";
-import { useForm, type Resolver, type FieldErrors } from "react-hook-form";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@/lib/zodResolver";
 import {
   Loader2,
   CheckCircle2,
@@ -29,11 +30,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   miniGrantFormSchema,
   MAX_GRANT_BUDGET_USD,
   type MiniGrantFormData,
 } from "@/types/miniGrantForm";
 import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_KEY } from "@/lib/grants/programs";
+import { MemberStatus } from "@/types/project";
+import { isValidEmail } from "@/lib/email";
 import {
   clearStoredReferralAttribution,
   getStoredReferralAttribution,
@@ -77,6 +88,9 @@ interface UserProject {
   category: string | null;
   other_category: string | null;
   is_preexisting_idea: boolean;
+  // True while an invitation to this project is awaiting the user's acceptance.
+  // The server refuses edits and submissions until they confirm.
+  pending: boolean;
 }
 
 // Normalize a Prisma Json column ({ label: url }) into a plain string map,
@@ -133,28 +147,6 @@ interface ProjectMember {
   status: string;
 }
 
-// Validate with safeParse so a ZodError is never thrown. The installed
-// @hookform/resolvers (4.1.3) doesn't recognise Zod 4.1's issue shape and
-// re-throws the error as an unhandled rejection on the onChange/trigger path.
-// Mapping issues to react-hook-form field errors lets <FormMessage> render them.
-const miniGrantResolver: Resolver<MiniGrantFormData> = async (values) => {
-  const result = miniGrantFormSchema.safeParse(values);
-  if (result.success) {
-    return { values: result.data, errors: {} };
-  }
-  const errors: FieldErrors<MiniGrantFormData> = {};
-  for (const issue of result.error.issues) {
-    const key = issue.path[0];
-    if (typeof key === "string" && !(key in errors)) {
-      (errors as Record<string, { type: string; message: string }>)[key] = {
-        type: String(issue.code),
-        message: issue.message,
-      };
-    }
-  }
-  return { values: {}, errors };
-};
-
 function Team1MiniGrantsApplyContent() {
   const { data: session, status, update } = useSession();
   const router = useRouter();
@@ -189,6 +181,11 @@ function Team1MiniGrantsApplyContent() {
   const [createProjectError, setCreateProjectError] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
 
+  // Invitation acceptance (a project the user was invited to but hasn't joined).
+  const [acceptProjectId, setAcceptProjectId] = useState<string | null>(null);
+  const [accepting, setAccepting] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
+
   // Existing applications by this user for this program.
   const [applications, setApplications] = useState<
     { id: string; projectId: string; projectName: string; status: string }[]
@@ -216,7 +213,7 @@ function Team1MiniGrantsApplyContent() {
   });
 
   const form = useForm<MiniGrantFormData>({
-    resolver: miniGrantResolver,
+    resolver: zodResolver<MiniGrantFormData>(miniGrantFormSchema),
     defaultValues: {
       project_url: "",
       requested_amount_usd: undefined as unknown as number,
@@ -284,6 +281,7 @@ function Team1MiniGrantsApplyContent() {
               category: cats.length ? cats[0] : null,
               other_category: (p.other_category as string | null) ?? null,
               is_preexisting_idea: Boolean(p.is_preexisting_idea),
+              pending: p.my_member_status === MemberStatus.PENDING,
             };
           })
         : [];
@@ -325,6 +323,14 @@ function Team1MiniGrantsApplyContent() {
     const project = projects.find((p) => p.id === projectId);
     if (!project) {
       handledProjectParamRef.current = true;
+      return;
+    }
+
+    // Arriving from an invitation email: ask the user to join before anything
+    // else. Until they confirm, the server rejects edits and submissions.
+    if (project.pending) {
+      handledProjectParamRef.current = true;
+      setAcceptProjectId(project.id);
       return;
     }
 
@@ -531,6 +537,7 @@ function Team1MiniGrantsApplyContent() {
           category: newProjectCategory || null,
           other_category: payload.other_category,
           is_preexisting_idea: newProjectExisting,
+          pending: false,
         };
         setProjects((prev) => [created, ...prev]);
         setSelectedProjectId(created.id);
@@ -546,10 +553,42 @@ function Team1MiniGrantsApplyContent() {
     }
   }
 
+  // Confirm the user's pending membership. Reuses the endpoint the build-games
+  // JoinTeamDialog calls; it also links member.user_id for invitees who created
+  // their account after being invited by email.
+  async function handleAcceptInvitation(projectId: string) {
+    setAccepting(true);
+    setAcceptError(null);
+    try {
+      const res = await fetch(`/api/project/${projectId}/members/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: session?.user?.id,
+          status: MemberStatus.CONFIRMED,
+          // Mini Grants allows a user to be on several projects at once, so
+          // there is no other membership to clean up.
+          wasInOtherProject: false,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to accept the invitation. Please try again.");
+      setAcceptProjectId(null);
+      await loadProjects();
+      setSelectedProjectId(projectId);
+    } catch (err) {
+      setAcceptError(
+        err instanceof Error ? err.message : "Failed to accept the invitation. Please try again.",
+      );
+    } finally {
+      setAccepting(false);
+    }
+  }
+
   async function handleInviteMember() {
     const email = inviteEmail.trim();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
+    // Same rule the server enforces (lib/email.ts), so a typed address that gets
+    // this far can never be rejected by the endpoint's schema.
+    if (!email || !isValidEmail(email)) {
       setInviteError("Please enter a valid email address.");
       return;
     }
@@ -569,7 +608,9 @@ function Team1MiniGrantsApplyContent() {
         }),
       });
       if (!res.ok) {
-        throw new Error("Failed to send the invitation. Please try again.");
+        // The route names the offending address on 400 and explains the 429.
+        const body = (await res.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(body?.message || "Failed to send the invitation. Please try again.");
       }
       setInviteSuccess(`Invitation sent to ${email}.`);
       setInviteEmail("");
@@ -812,12 +853,13 @@ function Team1MiniGrantsApplyContent() {
                 <Alert>
                   <CheckCircle2 className="h-4 w-4" />
                   <AlertTitle>
-                    You&apos;ve already applied with{" "}
-                    {applications.length === 1 ? "1 project" : `${applications.length} projects`}
+                    {applications.length === 1
+                      ? "1 of your projects has already applied"
+                      : `${applications.length} of your projects have already applied`}
                   </AlertTitle>
                   <AlertDescription>
-                    You can apply again, but with a different project. Projects you&apos;ve already
-                    submitted are marked below.
+                    You can apply again, but with a different project. Projects that already have an
+                    application &mdash; yours or a teammate&apos;s &mdash; are marked below.
                   </AlertDescription>
                 </Alert>
               )}
@@ -857,7 +899,9 @@ function Team1MiniGrantsApplyContent() {
                     // that rule in the UI so users don't hit a dead end.
                     const belongsToOtherProgram =
                       !!project.hackaton_id && project.hackaton_id !== MINI_GRANT_HACKATHON_ID;
-                    const isSelectable = !isApplied && !belongsToOtherProgram;
+                    // A pending invitee can't select or edit: the server rejects
+                    // both until the membership is confirmed.
+                    const isSelectable = !isApplied && !belongsToOtherProgram && !project.pending;
                     // Editing is only for unsubmitted drafts (mirrors the server
                     // guard): selectable projects attached to no other program.
                     const isDraft = isSelectable;
@@ -865,7 +909,7 @@ function Team1MiniGrantsApplyContent() {
                       <div
                         key={project.id}
                         className={`flex flex-col gap-2 rounded-lg border p-4 transition-colors ${
-                          isApplied || belongsToOtherProgram
+                          isApplied || belongsToOtherProgram || project.pending
                             ? "border-border opacity-70"
                             : isSelected
                               ? "border-primary bg-primary/5"
@@ -903,6 +947,10 @@ function Team1MiniGrantsApplyContent() {
                             <span className="mt-1 shrink-0 text-xs font-medium text-muted-foreground">
                               Another program
                             </span>
+                          ) : project.pending ? (
+                            <span className="mt-1 shrink-0 text-xs font-medium text-muted-foreground">
+                              Invitation pending
+                            </span>
                           ) : (
                             isSelected && <Check className="mt-1 h-5 w-5 shrink-0 text-primary" />
                           )}
@@ -920,11 +968,27 @@ function Team1MiniGrantsApplyContent() {
                             </Button>
                           </div>
                         )}
+                        {project.pending && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="shrink-0"
+                            onClick={() => setAcceptProjectId(project.id)}
+                          >
+                            Accept invitation
+                          </Button>
+                        )}
                        </div>
                         {belongsToOtherProgram && (
                           <p className="pl-1 text-xs text-muted-foreground">
                             This project belongs to another program or hackathon. Create a new
                             project to apply for this grant.
+                          </p>
+                        )}
+                        {project.pending && (
+                          <p className="pl-1 text-xs text-muted-foreground">
+                            You&apos;ve been invited to this project. Accept the invitation to
+                            select it and apply.
                           </p>
                         )}
                         {project.links.length > 0 && (
@@ -1260,7 +1324,14 @@ function Team1MiniGrantsApplyContent() {
                     type="email"
                     placeholder="teammate@example.com"
                     value={inviteEmail}
+                    disabled={invitingMember}
                     onChange={(e) => setInviteEmail(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleInviteMember();
+                      }
+                    }}
                   />
                   <Button type="button" onClick={handleInviteMember} disabled={invitingMember}>
                     {invitingMember ? <Loader2 className="h-4 w-4 animate-spin" /> : "Invite"}
@@ -1505,6 +1576,60 @@ function Team1MiniGrantsApplyContent() {
             </Button>
           </div>
         )}
+
+        <Dialog
+          open={!!acceptProjectId}
+          onOpenChange={(open) => {
+            if (!open && !accepting) {
+              setAcceptProjectId(null);
+              setAcceptError(null);
+            }
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                Join &ldquo;
+                {projects.find((p) => p.id === acceptProjectId)?.project_name || "this project"}
+                &rdquo;?
+              </DialogTitle>
+              <DialogDescription>
+                You&apos;ve been invited to join this project&apos;s Mini Grant application. Once you
+                accept, you can edit the project and submit on its behalf.
+              </DialogDescription>
+            </DialogHeader>
+            {acceptError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{acceptError}</AlertDescription>
+              </Alert>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={accepting}
+                onClick={() => setAcceptProjectId(null)}
+              >
+                Not now
+              </Button>
+              <Button
+                type="button"
+                disabled={accepting}
+                onClick={() => acceptProjectId && handleAcceptInvitation(acceptProjectId)}
+              >
+                {accepting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Accepting...
+                  </>
+                ) : (
+                  "Accept"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

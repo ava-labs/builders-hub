@@ -10,10 +10,12 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
+  idInk,
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatGwei, gasUsedPct } from "./format";
-import { MethodChip } from "./bits";
+import { FeedDown, MethodChip } from "./bits";
 import { useEvmData } from "./hooks";
 import { NotFound, StatusPill } from "./EvmTx";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -23,21 +25,28 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken;
-  const { data: b, loading, error } = useEvmData<BlockDetail>(c.chainId, `block/${id}`, undefined, {
+  const { data: b, loading, error, retry } = useEvmData<BlockDetail>(c.chainId, `block/${id}`, undefined, {
     retry404Ms: 20_000,
   });
 
   return (
     <EvmShell network={network}>
       {loading && <DetailSkeleton label="Block" />}
-      {error && !b && <NotFound label="Block not found" id={id} />}
+      {/* only a real 404 is "not found" — an indexer outage says so */}
+      {error === "not found" && !b && <NotFound label="Block not found" id={id} />}
+      {error && error !== "not found" && !b && <FeedDown onRetry={retry} />}
       {b && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader label="Block" />
+            <SubjectHeadline
+              prefix="Height"
+              value={String(b.number)}
+              display={`#${formatNumber(b.number)}`}
+              copyLabel="Copy block number"
+            />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Height">#{formatNumber(b.number)}</SpecRow>
                 <SpecRow label="Hash">
                   <HashChip value={b.hash} len={64} />
                 </SpecRow>
@@ -78,7 +87,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                   href={`${base}/tx/${t.hash}`}
                   className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.5fr_8rem_1.4fr_0.9fr_5rem] md:items-center md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                  <span className={`min-w-0 truncate font-mono text-[12px] ${idInk}`}>
                     {truncate(t.hash, 20)}
                   </span>
                   <span className="min-w-0">

@@ -1,7 +1,7 @@
 ---
 title: "Helicon: Improved Staking Economics and Continuous Execution"
-description: The Avalanche Helicon upgrade activates ACP-236, ACP-273, ACP-194, and ACP-283, bringing auto-renewing validator staking, shorter minimum staking durations, decoupled C-Chain execution, and a dynamic minimum gas price to the network, and recalibrating the staking reward curve in a progressive rollout afterward.
-date: 2026-07-16
+description: The Avalanche Helicon upgrade activates six ACPs, bringing auto-renewed staking, a higher validator uptime requirement, shorter minimum staking durations, Continuous Execution for the C-Chain, a dynamic minimum gas price, and a recalibrated staking reward curve.
+date: 2026-07-28
 authors: [AvaxDevelopers]
 topics: [Network Updates, Helicon Upgrade, Staking, P-Chain, C-Chain, ACP-236, ACP-267, ACP-273, ACP-194, ACP-283, ACP-285]
 comments: true
@@ -12,25 +12,25 @@ import { StakingRewardCurveChart } from "@/components/content-design/staking-rew
 
 ## Introducing the Helicon Upgrade
 
-Helicon is coming to the Fuji Testnet. Building on [Octane](https://build.avax.network/blog/octane-optimizing-c-chain-gas-fees) and [Granite](https://build.avax.network/blog/granite-upgrade), this upgrade brings Streaming Asynchronous Execution (SAE) to the C-Chain, along with changes to Avalanche's staking economics.
+Helicon has been activated on the Fuji Testnet. Building on [Octane](https://build.avax.network/blog/octane-optimizing-c-chain-gas-fees) and [Granite](https://build.avax.network/blog/granite-upgrade), this upgrade brings Continuous Execution to the C-Chain, along with changes to Avalanche's staking economics.
 
 The upgrade is driven by six Avalanche Community Proposals:
 
-- [ACP-194: Streaming Asynchronous Execution](/docs/acps/194-streaming-asynchronous-execution)
-- [ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking)
-- [ACP-267: Increase Validator Uptime Requirement](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase)
-- [ACP-273: Reduce Minimum Staking Duration](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration)
-- [ACP-283: Dynamic Minimum Gas Price](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/283-dynamic-minimum-gas-price)
-- [ACP-285: Reduce Minimum Consumption Rate](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate) (progressive rollout post-Helicon activation)
+- [ACP-194:](/docs/acps/194-continuous-execution) Continuous Execution
+- [ACP-236:](/docs/acps/236-auto-renewed-staking) Auto-Renewed Staking
+- [ACP-267:](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase) Uptime Requirement Increase
+- [ACP-273:](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration) Reduce Minimum Staking Duration
+- [ACP-283:](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/283-dynamic-minimum-gas-price) Dynamic Minimum Gas Price
+- [ACP-285:](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate) Reduce Minimum Consumption Rate (progressive rollout post-Helicon activation)
 
 
-The [Fuji Testnet pre-release](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji?utm_campaign=47348274-Helicon%20Upgrade&utm_source=helicon_blog) is out with the ACPs going into effect at 11 AM on July 28, 2026 on the Fuji TestNet. After Fuji is updated and verified, a mainnet-compatible release will be published. This post covers what each change does and why it matters, not when it activates.
+**Mainnet release:** Activation times and the required AvalancheGo version will be confirmed with the Mainnet pre-release.
 
 ---
 
 ## Validator Economics
 
-Helicon reworks validator capital commitment through [ACP-236](https://build.avax.network/docs/acps/236-auto-renewed-staking) (Auto-Renewed Staking) and [ACP-273](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration) (Reduce Minimum Staking Duration), then recalibrates the underlying economics via [ACP-285](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate) (Reduce Minimum Consumption Rate).  ACP-285 phases in gradually post-activation rather than flipping all at once.
+Helicon reworks validator capital commitment through [ACP-236](https://build.avax.network/docs/acps/236-auto-renewed-staking) (Auto-Renewed Staking) and [ACP-273](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration) (Reduce Minimum Staking Duration), then recalibrates the underlying economics via [ACP-285](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate) (Reduce Minimum Consumption Rate), and ties rewards to stronger performance guarantees with [ACP-267](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase) (Uptime Requirement Increase). ACP-285 phases in gradually post-activation rather than flipping all at once.
 
 ### Auto-Renewed Staking (ACP-236)
 
@@ -40,9 +40,9 @@ Operators running multiple nodes spend significant time and resources manually r
 **ACP-236 eliminates that overhead.**
 </Callout>
 
-Managing the validator lifecycle at scale means recurring key-signing overhead and reward gaps at every period boundary. ACP-236 fixes that. Stake once, keep validating — rewards compound automatically, and key signing is reduced to onboarding and deliberate config changes. No more churning out of the validator set at every period boundary. Better for operators, better for network stability.
+Managing the validator lifecycle at scale means recurring key-signing overhead and reward gaps at every period boundary. ACP-236 fixes that. **Stake once, keep validating — rewards compound automatically,** and key signing is reduced to onboarding and deliberate config changes. No more churning out of the validator set at every period boundary. Better for operators, better for network stability.
 
-Before ACP-236, primary-network validators commit to a fixed end time within minimum and maximum duration constraints. When the period ends, the operator has to re-stake, manually signing a new transaction. Participants running more than a handful of nodes are most affected — the current design costs them operational overhead and forfeits potential rewards during re-staking gaps.
+Before ACP-236, Primary Network validators commit to a fixed end time within minimum and maximum duration constraints. When the period ends, the operator has to re-stake, manually signing a new transaction. Participants running more than a handful of nodes are most affected — the current design costs them operational overhead and forfeits potential rewards during re-staking gaps.
 
 ACP-236 replaces the fixed end time with a cycle duration (`period`) and an auto-compound ratio, implemented through three new transaction types:
 
@@ -60,17 +60,21 @@ Delegations do not auto-renew. Only the validator's own stake renews, and a dele
 
 ---
 
-### Higher Uptime Requirement (ACP-267)
+### Uptime Requirement Increase (ACP-267)
 
 <Callout type="info">
-A single non-responsive validator in a consensus sample forces the protocol to retry, adding latency for everyone.
+The Avalanche Primary Network currently requires validators to maintain 80% uptime to earn staking rewards, which creates measurable drag on network performance.
 
-**ACP-267 raises the minimum uptime threshold from 80% to 90%.**
+**ACP-267 raises the bar to 90%.**
 </Callout>
 
-When the Snowman consensus protocol queries validators about a block, hitting too many offline nodes causes the query to fail and be reissued, adding latency and reducing throughput for the whole network. The 80% floor allowed too much slack. ACP-267 closes that gap by requiring 90% uptime for rewards, keeping the existing all-or-nothing model with no partial payouts.
+While the 80% threshold has served the network adequately, higher validator uptime is essential for achieving further performance gains across the Avalanche Primary Network. When the Snowman consensus protocol queries validators about a block, too many non-responsive nodes in the sampled set force additional query rounds, increasing latency across API endpoints and slowing block finalization. With a higher uptime floor, we expect a more consistently available validator set, meaning faster agreement and better throughput for the whole network.
 
-The higher threshold applies to validations that started on or after April 1, 2026 and are still active when the upgrade activates. Validators that began their period before that date continue to be evaluated against the 80% threshold, so no one is penalized retroactively.
+**The reward model is unchanged:** validators must meet the uptime threshold during their staking period to receive rewards. There are no partial payouts if validators fall short of 90% uptime, and the cycle's reward is forfeited in full.
+
+The new threshold applies to validations that started on or after April 1, 2026 and that haven't ended before the AvalancheGo release implementing this ACP. Validators whose staking period began before April 1, 2026 will **continue to be evaluated against the existing 80% requirement,** with no retroactive penalty.
+
+Uptime is measured by observed peer responsiveness throughout the staking period, consistent with the existing calculation method. There are no changes to how uptime is tracked — only the threshold at which rewards are issued.
 
 ---
 
@@ -82,9 +86,7 @@ Institutional allocators often can't commit capital for weeks at a time.
 **ACP-273 brings the minimum staking window inside the redemption timelines they actually operate under.**
 </Callout>
 
-The minimum validation period drops from 336 hours (two weeks) to 48 hours — this aims to resolve a direct conflict with institutional redemption requirements, without weakening network security guarantees. Working alongside ACP-236, short auto-renewing cycles let an operator stay continuously validating while keeping each individual commitment brief. Continuity and capital flexibility at once.
-
-Reducing the shortest validation window from 336 hours down to 48 hours bridges the gap between chain security and institutional redemption needs. When paired with [ACP-236](/docs/acps/236-auto-renewed-staking), these brief, recurring cycles allow participants to maintain a permanent presence on the network while preserving capital liquidity. It provides operational continuity without long-term lockups.
+The minimum validation period drops from 336 hours (two weeks) to 48 hours. This aims to resolve a direct conflict with institutional redemption requirements, without weakening network security guarantees. Working alongside ACP-236, short auto-renewing cycles let an operator stay continuously validating while keeping each individual commitment brief. Continuity and capital flexibility at once.
 
 ---
 
@@ -114,7 +116,7 @@ A 2.5-point cut to the mean consumption rate is not a 2.5-point cut to yield. Th
 
 The staking changes address who validates and how. The next two proposals address what the chain can actually do with that validator set. ACP-194 and ACP-283 both target the C-Chain directly: one restructures how blocks execute, the other closes a long-standing spam vector.
 
-### Streaming Asynchronous Execution (ACP-194)
+### Continuous Execution (ACP-194)
 
 <Callout type="info">
 The C-Chain's current architecture forces consensus and execution to take turns.
@@ -125,10 +127,8 @@ The C-Chain's current architecture forces consensus and execution to take turns.
 Today the C-Chain executes a block's transactions before consensus can move on, capping throughput at that back-and-forth. ACP-194 decouples the two: consensus accepts blocks into a queue while a separate executor works through them in parallel, so the chain does more work in the same amount of time.
 
 <HeliconSaeDiagram diagram="block-relationship" />
-
 <HeliconSaeDiagram diagram="parallel-streams" />
-
-One nuance relevant to a narrow slice of tooling: a transaction's effects finalize a moment after its block is accepted rather than at the instant of acceptance. For the full picture, including the interactive transaction-lifecycle walkthrough, the Streaming Asynchronous Execution doc is the best resource.
+One nuance relevant to a narrow slice of tooling: a transaction's effects finalize a moment after its block is accepted rather than at the instant of acceptance. For [Continuous Execution](https://build.avax.network/docs/acps/194-continuous-execution) the ACP is the best resource.
 
 ---
 
@@ -150,25 +150,27 @@ Each validator can set a `min-price-target` in wei, or leave it unset and inheri
 
 The concrete changes for developers and node operators, ordered by ACP.
 
-- **ACP-194** — transaction effects are final at settlement, shortly after a block is accepted. When reading receipts or querying state, account for the brief gap between block acceptance and settlement.
-- **ACP-236** — new P-Chain transactions `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx` (owner-signed; `period 0` exits), and `RewardAutoRenewedValidatorTx` (consensus-issued). `platform.getCurrentValidators` adds `period`, `autoCompoundRewardShares` (ppm), and `validatorAuthority`.
-- **ACP-267** — uptime requirement raised to 90% for validations started on or after April 1, 2026; validations started earlier remain at the 80% threshold.
-- **ACP-273** — minimum staking duration reduced to 48 hours.
-- **ACP-283** — new `min-price-target` (wei) for the validator-voted minimum gas price; fetch fee parameters from the network instead of assuming a fixed floor.
-- **ACP-285** — mean consumption rate ramps from 10% to 7.5% over 90 days from activation.
+- **ACP-194**: transaction effects are final at settlement, shortly after a block is accepted. When reading receipts or querying state, account for the brief gap between block acceptance and settlement.
+- **ACP-236**: new P-Chain transactions `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx` (owner-signed; `period 0` exits), and `RewardAutoRenewedValidatorTx` (consensus-issued). `platform.getCurrentValidators` adds `period`, `autoCompoundRewardShares` (ppm), and `validatorAuthority`.
+- **ACP-267**: validators must maintain at least 90% uptime during their staking period to receive their validation rewards.
+- **ACP-273**: minimum staking duration reduced to 48 hours.
+- **ACP-283**: new `min-price-target` (wei) for the validator-voted minimum gas price; fetch fee parameters from the network instead of assuming a fixed floor.
+- **ACP-285**: mean consumption rate ramps from 10% to 7.5% over 90 days from activation.
+
+[Read the full release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji)
+
+Questions? [Join the discussion on GitHub](https://github.com/avalanche-foundation/ACPs/discussions)
 
 ---
 
 ## Resources
 
-- [Join the discussion on GitHub](https://github.com/avalanche-foundation/ACPs/discussions)
-- [ACP-194: Streaming Asynchronous Execution](/docs/acps/194-streaming-asynchronous-execution)
+- [ACP-194: Continuous Execution](/docs/acps/194-continuous-execution)
 - [ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking)
-- [ACP-267: Increase Validator Uptime Requirement](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase)
 - [ACP-273: Reduce Minimum Staking Duration](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/273-reduce-minimum-staking-duration)
 - [ACP-283: Dynamic Minimum Gas Price](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/283-dynamic-minimum-gas-price)
 - [ACP-285: Reduce Minimum Consumption Rate](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate)
-- [Helicon Devnet Resources](https://github.com/ava-labs/helicon-devnet-resources) — spin up a node and test the new transaction types
+- [ACP-267: Uptime Requirement Increase](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/267-uptime-requirement-increase)
 - [AVAX Staking for Professionals](/docs/primary-network/validate/staking-for-finance-professionals)
 - [AvalancheGo Releases](https://github.com/ava-labs/avalanchego/releases)
 

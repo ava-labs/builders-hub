@@ -1,5 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 import { ALLOWED_FILE_TYPES } from "@/constants/upload";
+import { isProjectMemberOrInvitee, memberIdentityWhere } from "./projectMembership";
+import { MemberStatus } from "@/types/project";
 
 /**
  * Maps MIME types to their expected file extensions
@@ -84,7 +86,7 @@ export async function canUserDeleteFile(
   console.log("project found by image URL:", project);
   if (project) {
     // Verify if the user is a member of the project
-    const isMember = await isUserProjectMember(userId, project.id);
+    const isMember = await isProjectMemberOrInvitee(userId, project.id);
     return isMember;
   }
 
@@ -140,13 +142,8 @@ async function findProjectByHackathonAndUser(
       hackaton_id: hackathonId,
       members: {
         some: {
-          OR: [
-            { user_id: userId },
-            { email: user.email },
-          ],
-          status: {
-            not: "Removed",
-          },
+          ...memberIdentityWhere({ id: userId, email: user.email }),
+          status: { not: MemberStatus.REMOVED },
         },
       },
     },
@@ -194,34 +191,6 @@ async function findProjectByImageUrl(fileIdentifier: string): Promise<{ id: stri
   return project;
 }
 
-/**
- * Verifies if a user is a member of a project
- */
-export async function isUserProjectMember(userId: string, projectId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user) {
-    return false;
-  }
-
-  const member = await prisma.member.findFirst({
-    where: {
-      project_id: projectId,
-      OR: [
-        { user_id: userId },
-        { email: user.email },
-      ],
-      status: {
-        not: "Removed",
-      },
-    },
-  });
-
-  return !!member;
-}
 
 /**
  * Searches for a user profile that has the specified image

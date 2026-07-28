@@ -8,7 +8,7 @@
 //
 // URL scheme (finalized, chain-family agnostic so L1s slot in later):
 //   /explorer/{network}/{chain}/{resource}
-//   network  = mainnet | fuji | devnet
+//   network  = mainnet | fuji
 //   chain    = p-chain (+ future L1 slugs)
 //   resource = "" (home) | blocks | block/{id} | txs | tx/{id}
 //              | address/{addr} | node/{nodeId} | validators
@@ -18,7 +18,7 @@ export const EXPLORER_API_BASE =
 
 // --- networks -------------------------------------------------------------
 
-export const PCHAIN_NETWORKS = ["mainnet", "fuji", "devnet"] as const;
+export const PCHAIN_NETWORKS = ["mainnet", "fuji"] as const;
 export type PchainNetwork = (typeof PCHAIN_NETWORKS)[number];
 
 export function isPchainNetwork(v: string): v is PchainNetwork {
@@ -28,7 +28,6 @@ export function isPchainNetwork(v: string): v is PchainNetwork {
 export const NETWORK_LABEL: Record<PchainNetwork, string> = {
   mainnet: "Mainnet",
   fuji: "Fuji",
-  devnet: "Devnet",
 };
 
 // --- chain registry (future L1 explorers register here) -------------------

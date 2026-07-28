@@ -27,22 +27,33 @@ interface PriceData {
   marketCap: number;
 }
 
-function usePrice(chainId: string | number | undefined): PriceData | null {
-  const [price, setPrice] = useState<PriceData | null>(null);
+function usePrice(chainId: string | number | undefined): {
+  price: PriceData | null;
+  /** the fetch resolved — distinguishes "loading" from "token isn't listed",
+   *  so USD-or-native cells can hold instead of flipping units */
+  settled: boolean;
+} {
+  const [state, setState] = useState<{ price: PriceData | null; settled: boolean }>({
+    price: null,
+    settled: false,
+  });
   useEffect(() => {
     if (chainId == null) return;
     let cancelled = false;
+    setState({ price: null, settled: false });
     fetch(`/api/explorer/${chainId}?priceOnly=true`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { price?: PriceData } | null) => {
-        if (!cancelled && data?.price) setPrice(data.price);
+        if (!cancelled) setState({ price: data?.price ?? null, settled: true });
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setState({ price: null, settled: true });
+      });
     return () => {
       cancelled = true;
     };
   }, [chainId]);
-  return price;
+  return state;
 }
 
 /* wei (decimal string) → the tx list's value column, adaptive precision */
@@ -90,7 +101,7 @@ export function EvmHome({ network }: { network: string }) {
   const s = stats.data;
   const blockList = blocks.data?.blocks ?? [];
   const txList = txs.data?.transactions ?? [];
-  const price = usePrice(c.chainId);
+  const { price, settled: priceSettled } = usePrice(c.chainId);
   const isCchain = String(c.chainId) === "43114";
 
   // Cadence figures from the freshest slice of Ash's blocks feed: the list
@@ -154,6 +165,7 @@ export function EvmHome({ network }: { network: string }) {
               base={base}
               symbol={sym}
               usdPrice={price?.price ?? null}
+              usdSettled={priceSettled}
               liveCells={[
                 ...(price
                   ? [
@@ -197,10 +209,14 @@ export function EvmHome({ network }: { network: string }) {
             />
           </div>
 
-          {/* what the chain is FOR — the activity breakdown the pre-EvmHome
-              overview carried: stacked behavior bands for the C-Chain, the
-              accent-colored tx line for everyone else. */}
-          {isCchain ? <CchainActivityChart /> : <TxHistoryChart chainId={c.chainId} />}
+          {/* what the chain is FOR — the activity breakdown on the page
+              clock: stacked behavior bands for the C-Chain, the accent
+              area for everyone else. Both door into the Transactions tab. */}
+          {isCchain ? (
+            <CchainActivityChart href={`${base}/txs`} />
+          ) : (
+            <TxHistoryChart chainId={c.chainId} href={`${base}/txs`} />
+          )}
 
           <div className="grid gap-12 lg:grid-cols-2">
             {/* Latest blocks */}

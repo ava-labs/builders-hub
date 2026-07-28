@@ -4,10 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
-import { MethodChip } from "./bits";
+import { FeedDown, MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
 import { useEvmData } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -30,7 +30,7 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
   const sym = c.nativeToken;
   const [tab, setTab] = useState<Tab>("txs");
 
-  const { data: s, loading, error } = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, {
+  const { data: s, loading, error, retry } = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, {
     retry404Ms: 15_000,
   });
   const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
@@ -42,7 +42,9 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
   return (
     <EvmShell network={network}>
       {loading && <DetailSkeleton label="Address" />}
-      {error && !s && (
+      {/* a 404 means the address is unknown; anything else means the
+          indexer died on us — say so instead of pretending */}
+      {error === "not found" && !s && (
         <Board divide={false} className="px-6 py-16 text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
             Address not found
@@ -50,6 +52,7 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
           <p className="mt-3 break-all font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{addr}</p>
         </Board>
       )}
+      {error && error !== "not found" && !s && <FeedDown onRetry={retry} />}
       {s && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
@@ -95,11 +98,14 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
 
             {tab === "txs" ? (
               <Board>
-                {txList.length === 0 && (
-                  <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                    {txs.loading ? "Loading…" : "no transactions"}
-                  </div>
-                )}
+                {txList.length === 0 &&
+                  (txs.error && !txs.loading ? (
+                    <FeedDown compact onRetry={txs.retry} />
+                  ) : (
+                    <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
+                      {txs.loading ? "Loading…" : "no transactions"}
+                    </div>
+                  ))}
                 {txList.map((t) => {
                   const outgoing = t.from.toLowerCase() === addr.toLowerCase();
                   return (
@@ -108,7 +114,7 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
                       href={`${base}/tx/${t.hash}`}
                       className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.4fr_0.9fr_0.6fr_1.3fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                     >
-                      <span className="truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                      <span className={`truncate font-mono text-[12px] ${idInk}`}>
                         {truncate(t.hash, 18)}
                       </span>
                       <span className="min-w-0 justify-self-start">
@@ -146,11 +152,14 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
               </Board>
             ) : (
               <Board>
-                {xferList.length === 0 && (
-                  <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                    {transfers.loading ? "Loading…" : "no token transfers"}
-                  </div>
-                )}
+                {xferList.length === 0 &&
+                  (transfers.error && !transfers.loading ? (
+                    <FeedDown compact onRetry={transfers.retry} />
+                  ) : (
+                    <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
+                      {transfers.loading ? "Loading…" : "no token transfers"}
+                    </div>
+                  ))}
                 {xferList.map((x, i) => {
                   const outgoing = x.from.toLowerCase() === addr.toLowerCase();
                   return (

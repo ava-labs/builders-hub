@@ -37,8 +37,9 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 /**
- * Lists the signed-in user's Team1 Mini Grants applications. Renders nothing when
- * logged out or when the user has no applications yet.
+ * Lists the Team1 Mini Grants applications of every project the signed-in user is
+ * a confirmed member of — a teammate may have been the one who submitted. Renders
+ * nothing when logged out or when there are no applications yet.
  */
 export function MiniGrantApplications({ className = "" }: { className?: string }) {
   const { status } = useSession();

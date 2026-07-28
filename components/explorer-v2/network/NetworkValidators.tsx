@@ -9,9 +9,9 @@ import { AlertTriangle, ArrowRight, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Board,
-  SectionHeader,
+  BoardHeader,
+  ChartBoard,
   StatCell,
-  StatDash,
   StatFigure,
 } from "@/components/explorer-v2/ui";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
@@ -40,6 +40,17 @@ type SortDirection = "asc" | "desc";
 const TH =
   "px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-6";
 const TD = "px-5 py-3.5 text-[13px] md:px-6";
+
+/* the action-slot qualifier chip — a window tag or a count, in the quiet
+   mono voice every board header shares (this page has no clock; the one
+   window statement is the lead board's "Current set") */
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+      {children}
+    </span>
+  );
+}
 
 export function NetworkValidators() {
   const { resolvedTheme } = useTheme();
@@ -278,8 +289,9 @@ export function NetworkValidators() {
   if (loading) {
     content = (
       <div className="flex flex-col gap-10" role="status" aria-label="Loading validators">
-        <Board divide={false}>
-          <div className="grid grid-cols-2 divide-x divide-zinc-200 lg:grid-cols-4 dark:divide-zinc-800">
+        <Board divide={false} className="border">
+          <BoardHeader label="Validators" display action={<Chip>Current set</Chip>} />
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             {Array.from({ length: 4 }, (_, i) => (
               <div key={i} className="flex flex-col gap-2.5 px-5 py-5 md:px-6">
                 <span className="h-2.5 w-20 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
@@ -314,16 +326,20 @@ export function NetworkValidators() {
   } else {
     content = (
       <div className="flex flex-col gap-10">
-        {/* headline metrics — the former hero, now a hairline stat strip */}
-        <Board divide={false}>
-          <div className="grid grid-cols-2 divide-x divide-zinc-200 lg:grid-cols-4 dark:divide-zinc-800">
+        {/* the lead board: the former hero's headline metrics, and the one
+            place the roster window is named. Nothing here follows a clock —
+            this is the live set as it stands, so the chip says "Current set"
+            rather than a time window */}
+        <Board divide={false} className="border">
+          <BoardHeader label="Validators" display action={<Chip>Current set</Chip>} />
+          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <StatCell label="Chains">
               <StatFigure value={aggregatedStats.totalSubnets} />
             </StatCell>
             <StatCell label="Validators">
               <StatFigure value={aggregatedStats.totalNodes} />
             </StatCell>
-            <StatCell label="Up to date">
+            <StatCell label="Up to date" sub={minVersion ? `≥ ${minVersion}` : undefined}>
               <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
                 {upToDatePercentage.toFixed(1)}
                 <span className="ml-0.5 text-sm text-zinc-400 dark:text-zinc-500">%</span>
@@ -336,28 +352,32 @@ export function NetworkValidators() {
         </Board>
 
         {/* client-version spread across the whole network: the stacked
-            distribution bar carries the picture, the labels name it */}
-        <section className="flex flex-col gap-4">
-          <SectionHeader label="Client versions" />
-          <Board divide={false} className="flex flex-col gap-4 px-5 py-5 md:px-6">
-            <VersionBarChart
-              versionBreakdown={{ byClientVersion: totalVersionBreakdown }}
-              minVersion={minVersion}
-              totalNodes={aggregatedStats.totalNodes}
-              height="h-8"
-            />
-            <VersionBreakdownInline
-              versions={totalVersionBreakdown}
-              minVersion={minVersion}
-              limit={5}
-            />
-          </Board>
-        </section>
+            distribution bar carries the picture, the labels name it. The
+            green/gray split is measured against the selected target below,
+            so the header chip names that target */}
+        <ChartBoard
+          label="Client Versions"
+          bodyClassName="flex flex-col gap-4"
+          action={minVersion ? <Chip>target {minVersion}</Chip> : undefined}
+        >
+          <VersionBarChart
+            versionBreakdown={{ byClientVersion: totalVersionBreakdown }}
+            minVersion={minVersion}
+            totalNodes={aggregatedStats.totalNodes}
+            height="h-8"
+          />
+          <VersionBreakdownInline
+            versions={totalVersionBreakdown}
+            minVersion={minVersion}
+            limit={5}
+          />
+        </ChartBoard>
 
-        {/* the validator sets */}
+        {/* the validator sets. The search and target-version controls are
+            page-level furniture (target version also drives the client-version
+            board and the up-to-date stat above), so they lead; the table's
+            own ChartBoard names the section and carries the set count */}
         <section className="flex flex-col gap-4">
-          <SectionHeader label={`Validator sets · ${sortedData.length}`} />
-
           {/* search + target-version filter */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-sm">
@@ -407,7 +427,11 @@ export function NetworkValidators() {
             )}
           </div>
 
-          <Board divide={false} className="overflow-x-auto">
+          <ChartBoard
+            label="Validator Sets"
+            bodyClassName="p-0 overflow-x-auto"
+            action={<Chip>{sortedData.length} sets</Chip>}
+          >
             <table className="w-full min-w-[56rem] border-collapse">
               <thead>
                 <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
@@ -538,18 +562,17 @@ export function NetworkValidators() {
                 })}
               </tbody>
             </table>
-          </Board>
-
-          {hasMoreData && (
-            <div className="flex justify-center">
-              <button
-                onClick={handleLoadMore}
-                className="border border-zinc-200 bg-white/80 px-6 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500 backdrop-blur-sm transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-              >
-                Load more · {sortedData.length - visibleCount} remaining
-              </button>
-            </div>
-          )}
+            {hasMoreData && (
+              <div className="flex justify-center border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+                <button
+                  onClick={handleLoadMore}
+                  className="border border-zinc-200 bg-white/80 px-6 py-2.5 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500 backdrop-blur-sm transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+                >
+                  Load more · {sortedData.length - visibleCount} remaining
+                </button>
+              </div>
+            )}
+          </ChartBoard>
         </section>
       </div>
     );

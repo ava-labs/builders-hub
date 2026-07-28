@@ -1,16 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Area, AreaChart, Line, LineChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis } from "recharts";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { cn } from "@/lib/utils";
+import { ChartBoard } from "@/components/explorer-v2/ui";
+import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { RANGE_DAYS, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
+import { fmtCompact, metricSeries, useChainMetrics } from "./metric-charts";
 
-/* What the chain is FOR — ported from the pre-EvmHome overview
- * (components/explorer/L1ExplorerPage.tsx). C-Chain: 14 days of activity
- * classified by on-chain behavior (ClickHouse via /api/cchain-activity),
- * stacked areas. Other chains: the plain daily-transactions line
- * (ClickHouse via /api/explorer/{chainId}?historyOnly=true), drawn in the
- * chain's own accent. Either section renders nothing until data exists, so
- * unindexed chains lose no vertical space. */
+/* What the chain is FOR — the overview's activity breakdown, on the page
+ * clock. C-Chain: daily activity classified by on-chain behavior
+ * (ClickHouse via /api/cchain-activity?days=…), stacked areas. Other
+ * chains: the daily-transactions area off the chain-stats indexer, drawn
+ * in the chain's own accent. Either card doors into the Transactions tab.
+ * Both render nothing until data exists, so unindexed chains lose no
+ * vertical space. */
 
 interface CchainActivityDay {
   date: string;
@@ -28,148 +39,183 @@ const ACTIVITY_SERIES: { key: keyof Omit<CchainActivityDay, "date">; label: stri
   { key: "nft", label: "NFT", tone: "#52525b" },
 ];
 
-export function CchainActivityChart() {
+/* the served window per clock tick: the classification can't afford a
+   year (it spills past 90d), and a 1-point day chart says nothing — both
+   ends clamp and the label states the exception */
+const ACTIVITY_DAYS: Record<ExplorerRange, 7 | 30 | 90> = {
+  day: 7,
+  week: 7,
+  month: 30,
+  quarter: 90,
+  year: 90,
+};
+
+const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
+
+export function CchainActivityChart({ href }: { href?: string }) {
+  const clock = useExplorerTimeRange();
+  const served = ACTIVITY_DAYS[clock];
+  const exception =
+    clock === "day" ? "· 7 days" : clock === "year" ? "· 90 days · longest computed" : null;
+
   const [activity, setActivity] = useState<CchainActivityDay[] | null>(null);
+  const [servedDays, setServedDays] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/cchain-activity")
+    fetch(`/api/cchain-activity?days=${served}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { days: CchainActivityDay[] } | null) => {
-        if (!cancelled && data?.days?.length) setActivity(data.days);
+        if (!cancelled && data?.days?.length) {
+          setActivity(data.days);
+          setServedDays(served);
+        }
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [served]);
 
   if (!activity) return null;
+  // a window switch keeps the last payload on screen, dimmed, until the
+  // new one lands — same idiom as the gas market
+  const stale = servedDays !== served;
 
   return (
-    <section className="flex flex-col gap-4">
-      <SectionHeader
-        label="Network Activity · 14 days"
-        action={
-          <span className="flex shrink-0 items-center gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-            {ACTIVITY_SERIES.map((s) => (
-              <span key={s.key} className="flex items-center gap-1.5">
-                <span className="h-2 w-2" style={{ background: s.tone }} />
-                {s.label}
-              </span>
-            ))}
-          </span>
-        }
-      />
-      <Board divide={false} className="px-5 py-5 md:px-6">
-        <div className="h-28">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={activity}>
-              <YAxis hide domain={[0, "dataMax"]} />
-              <RechartsTooltip
-                cursor={{ stroke: "rgba(161,161,170,0.3)" }}
-                content={({ active: a, payload }) => {
-                  if (!a || !payload?.length) return null;
-                  const d = payload[0].payload as CchainActivityDay;
-                  const total = d.defi + d.nft + d.tokens + d.other;
-                  return (
-                    <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2.5 py-1.5 shadow-sm">
-                      <p className="text-[10px] text-zinc-500">
-                        {d.date} · {total.toLocaleString()} txns
+    <ChartBoard
+      label={exception ? `Network Activity ${exception}` : "Network Activity"}
+      href={href}
+      className={cn(stale && "opacity-60 transition-opacity")}
+      action={
+        <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 sm:gap-4 dark:text-zinc-500">
+          {ACTIVITY_SERIES.map((s) => (
+            <span key={s.key} className="flex items-center gap-1.5">
+              <span className="h-2 w-2" style={{ background: s.tone }} />
+              {s.label}
+            </span>
+          ))}
+        </span>
+      }
+    >
+      <div className="h-48">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={activity} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+            <XAxis
+              dataKey="date"
+              tickLine={false}
+              axisLine={false}
+              tick={AXIS_TICK}
+              minTickGap={48}
+              interval="preserveStartEnd"
+            />
+            <YAxis hide domain={[0, "dataMax"]} />
+            <RechartsTooltip
+              cursor={{ stroke: "rgba(161,161,170,0.3)" }}
+              content={({ active: a, payload }) => {
+                if (!a || !payload?.length) return null;
+                const d = payload[0].payload as CchainActivityDay;
+                const total = d.defi + d.nft + d.tokens + d.other;
+                return (
+                  <TipPlate>
+                    <p className="text-[10px] text-zinc-500">
+                      {d.date} · {total.toLocaleString()} txns
+                    </p>
+                    {ACTIVITY_SERIES.map((s) => (
+                      <p
+                        key={s.key}
+                        className="flex items-center gap-1.5 text-xs tabular-nums text-zinc-900 dark:text-zinc-100"
+                      >
+                        <span className="h-1.5 w-1.5" style={{ background: s.tone }} />
+                        {d[s.key].toLocaleString()} {s.label.toLowerCase()}
+                        <span className="text-[10px] text-zinc-400">
+                          {total > 0 ? `${((d[s.key] / total) * 100).toFixed(0)}%` : ""}
+                        </span>
                       </p>
-                      {ACTIVITY_SERIES.map((s) => (
-                        <p key={s.key} className="flex items-center gap-1.5 text-xs tabular-nums text-zinc-900 dark:text-zinc-100">
-                          <span className="h-1.5 w-1.5" style={{ background: s.tone }} />
-                          {d[s.key].toLocaleString()} {s.label.toLowerCase()}
-                        </p>
-                      ))}
-                    </div>
-                  );
-                }}
+                    ))}
+                  </TipPlate>
+                );
+              }}
+            />
+            {ACTIVITY_SERIES.map((s) => (
+              <Area
+                key={s.key}
+                dataKey={s.key}
+                stackId="day"
+                stroke={s.tone}
+                strokeWidth={1}
+                fill={s.tone}
+                fillOpacity={0.85}
+                type="monotone"
+                isAnimationActive={false}
               />
-              {ACTIVITY_SERIES.map((s) => (
-                <Area
-                  key={s.key}
-                  dataKey={s.key}
-                  stackId="day"
-                  stroke={s.tone}
-                  strokeWidth={1}
-                  fill={s.tone}
-                  fillOpacity={0.85}
-                  type="monotone"
-                />
-              ))}
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </Board>
-    </section>
+            ))}
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartBoard>
   );
 }
 
-interface TransactionHistoryPoint {
-  date: string;
-  transactions: number;
-}
+// the history charts ride the chain-stats indexer, which serves any clock
+const TX_METRICS = "txCount";
 
-export function TxHistoryChart({ chainId }: { chainId: number | string }) {
-  const [history, setHistory] = useState<TransactionHistoryPoint[] | null>(null);
+export function TxHistoryChart({ chainId, href }: { chainId: number | string; href?: string }) {
+  const clock = useExplorerTimeRange();
+  const range = RANGE_DAYS[clock];
+  // a 1-point day chart says nothing — floor at a week, label the exception
+  const windowDays = Math.max(7, range);
+  const { metrics } = useChainMetrics(String(chainId), windowDays, TX_METRICS);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/explorer/${chainId}?historyOnly=true`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { transactionHistory: TransactionHistoryPoint[] } | null) => {
-        if (!cancelled && data?.transactionHistory?.length) setHistory(data.transactionHistory);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [chainId]);
+  const history = useMemo(
+    () => metricSeries(metrics ?? {}, windowDays, "txCount"),
+    [metrics, windowDays],
+  );
 
-  if (!history) return null;
+  if (!history.length) return null;
 
   return (
-    <section className="flex flex-col gap-4">
-      <SectionHeader
-        label="Transactions · 14 days"
-        action={
-          <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-            {history[0]?.date} → {history[history.length - 1]?.date}
-          </span>
-        }
-      />
-      <Board divide={false} className="px-5 py-5 md:px-6">
-        <div className="h-20">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={history}>
-              <YAxis hide domain={["dataMin", "dataMax"]} />
-              <RechartsTooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.[0]) return null;
-                  return (
-                    <div className="bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 shadow-sm">
-                      <p className="text-[10px] text-zinc-500">{payload[0].payload.date}</p>
-                      <p className="text-xs font-semibold text-[var(--chain-accent,#E6212F)]">
-                        {payload[0].value?.toLocaleString()} txns
-                      </p>
-                    </div>
-                  );
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="transactions"
-                stroke="var(--chain-accent, #E6212F)"
-                strokeWidth={1.5}
-                dot={false}
-                activeDot={{ r: 3, fill: "var(--chain-accent, #E6212F)" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </Board>
-    </section>
+    <ChartBoard label={clock === "day" ? "Transactions · 7 days" : "Transactions"} href={href}>
+      <div className="h-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={history} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+            <XAxis
+              dataKey="date"
+              tickLine={false}
+              axisLine={false}
+              tick={AXIS_TICK}
+              minTickGap={48}
+              interval="preserveStartEnd"
+            />
+            <YAxis hide domain={[0, "dataMax"]} />
+            <RechartsTooltip
+              cursor={{ stroke: "rgba(161,161,170,0.3)" }}
+              content={({ active, payload }) => {
+                if (!active || !payload?.[0]) return null;
+                const d = payload[0].payload as { date: string; a: number };
+                return (
+                  <TipPlate>
+                    <p className="text-[10px] text-zinc-500">{d.date}</p>
+                    <p className="text-xs font-semibold tabular-nums text-[var(--chain-accent,#E6212F)]">
+                      {fmtCompact(d.a)} txns
+                    </p>
+                  </TipPlate>
+                );
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="a"
+              stroke="var(--chain-accent, #E6212F)"
+              strokeWidth={1.5}
+              fill="var(--chain-accent, #E6212F)"
+              fillOpacity={0.08}
+              isAnimationActive={false}
+              activeDot={{ r: 3, fill: "var(--chain-accent, #E6212F)" }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </ChartBoard>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, TxTypePill } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, SubjectHeadline, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { formatBytes, formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -20,9 +20,14 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader label="Block" action={<TxTypePill type={b.blockType.replace(/Block$/, "")} />} />
+            <SubjectHeadline
+              prefix="Height"
+              value={b.blockNumber}
+              display={`#${formatNumber(Number(b.blockNumber))}`}
+              copyLabel="Copy block number"
+            />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Height">#{formatNumber(Number(b.blockNumber))}</SpecRow>
                 <SpecRow label="Hash">
                   <HashChip value={b.blockHash} len={64} />
                 </SpecRow>
@@ -61,7 +66,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
                   href={`${base}/tx/${t.txHash}`}
                   className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
+                  <span className={`min-w-0 truncate font-mono text-[12px] ${idInk}`}>
                     {t.txHash}
                   </span>
                   <TxTypePill type={t.txType.replace(/Tx$/, "")} />

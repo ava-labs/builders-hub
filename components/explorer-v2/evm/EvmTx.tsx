@@ -11,9 +11,11 @@ import {
   SectionHeader,
   SpecPlate,
   SpecRow,
+  SubjectHeadline,
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatGwei } from "./format";
+import { FeedDown } from "./bits";
 import { useEvmData } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxDetail } from "@/lib/evm-explorer";
@@ -58,23 +60,23 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const sym = c.nativeToken;
   // fresh txs exist on-chain seconds before the indexer ingests them — retry a
   // 404 for a short window before giving up (mirrors the pchain detail pages)
-  const { data: t, loading, error } = useEvmData<TxDetail>(c.chainId, `tx/${txHash}`, undefined, {
+  const { data: t, loading, error, retry } = useEvmData<TxDetail>(c.chainId, `tx/${txHash}`, undefined, {
     retry404Ms: 20_000,
   });
 
   return (
     <EvmShell network={network}>
       {loading && <DetailSkeleton label="Transaction" />}
-      {error && !t && <NotFound label="Transaction not found" id={txHash} />}
+      {/* only a real 404 is "not found" — an indexer outage says so */}
+      {error === "not found" && !t && <NotFound label="Transaction not found" id={txHash} />}
+      {error && error !== "not found" && !t && <FeedDown onRetry={retry} />}
       {t && (
         <div className="flex flex-col gap-10">
           <section className="flex flex-col gap-4">
             <SectionHeader label="Transaction" action={<StatusPill success={t.success} />} />
+            <SubjectHeadline value={t.hash} copyLabel="Copy transaction hash" />
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
-                <SpecRow label="Hash">
-                  <HashChip value={t.hash} len={64} />
-                </SpecRow>
                 <SpecRow label="Block">
                   <HashChip value={`#${formatNumber(t.blockNumber)}`} href={`${base}/block/${t.blockNumber}`} mono={false} />
                 </SpecRow>

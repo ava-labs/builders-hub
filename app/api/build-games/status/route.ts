@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth/authSession';
 import { prisma } from '@/prisma/prisma';
+import { MemberStatus } from "@/types/project";
 
 const BG_HACKATHON_ID = "249d2911-7931-4aa0-a696-37d8370b79f9";
 
@@ -28,14 +29,14 @@ export async function GET() {
       prisma.project.findMany({
         where: {
           hackaton_id: BG_HACKATHON_ID,
-          members: { some: { email: session.user.email, status: { not: "Removed" } } },
+          members: { some: { email: session.user.email, status: { not: MemberStatus.REMOVED } } },
         },
         select: {
           id: true,
           project_name: true,
           created_at: true,
           members: {
-            where: { email: session.user.email, status: { not: "Removed" } },
+            where: { email: session.user.email, status: { not: MemberStatus.REMOVED } },
             select: { status: true },
           },
         },
@@ -58,7 +59,7 @@ export async function GET() {
         const buildGames = (formData?.form_data as Record<string, any>)?.build_games;
         const stage1Result: string | null = buildGames?.stage1_result ?? null;
         const stage2Result: string | null = (buildGames?.stages as Record<string, string> | undefined)?.['2'] ?? null;
-        const isConfirmed = p.members.some((m) => m.status === "Confirmed");
+        const isConfirmed = p.members.some((m) => m.status === MemberStatus.CONFIRMED);
         return { projectName: p.project_name, stage1Result, stage2Result, isConfirmed, createdAt: p.created_at };
       })
     );

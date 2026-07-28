@@ -6,11 +6,10 @@ export const dynamic = 'force-dynamic';
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 10000;
 
-// Time-series come from the metrics gateway (metrics.avax.network) via direct
-// HTTP — the P-chain validator/delegator series aren't in our own ClickHouse.
-// The Glacier chainkit SDK is gone; the version distribution now comes from our
-// own /v1 network overview.
-const METRICS_API_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
+// The staking time-series (validator/delegator count + weight, rewards) all
+// come from our own metrics-api — reconstructed over the full chain history
+// from decoded_p_txs / reward UTXOs and served gateway-shaped at
+// /v2/networks/mainnet/metrics/*. No external data sources.
 
 interface PrimaryNetworkMetrics {
   validator_count: TimeSeriesMetric;
@@ -34,7 +33,6 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   }
 }
 
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
 
 // Cache storage with stale-while-revalidate pattern
 const cachedData = new Map<string, { data: PrimaryNetworkMetrics; timestamp: number }>();
@@ -51,7 +49,6 @@ async function getTimeSeriesData(
     const { startTimestamp, endTimestamp } = getTimestampsFromTimeRange(timeRange);
     let allResults: any[] = [];
 
-    const rlToken = getRlToken();
     let pageToken: string | undefined;
     do {
       const qs = new URLSearchParams({
@@ -59,9 +56,8 @@ async function getTimeSeriesData(
         endTimestamp: String(endTimestamp),
         pageSize: String(pageSize),
       });
-      if (rlToken) qs.set('rltoken', rlToken);
       if (pageToken) qs.set('pageToken', pageToken);
-      const res = await fetchWithTimeout(`${METRICS_API_URL}/v2/networks/mainnet/metrics/${metricType}?${qs.toString()}`);
+      const res = await fetchWithTimeout(`${EXPLORER_API_BASE}/v2/networks/mainnet/metrics/${metricType}?${qs.toString()}`);
       if (!res.ok) break;
       const page = await res.json();
       if (Array.isArray(page?.results)) allResults = allResults.concat(page.results);
@@ -111,60 +107,45 @@ async function fetchValidatorVersions() {
   }
 }
 
-// Metabase endpoint URL for reward distribution (returns both daily and cumulative)
-const REWARDS_URL = 'https://ava-labs-inc.metabaseapp.com/api/public/dashboard/3e895234-4c31-40f7-a3ee-4656f6caf535/dashcard/6788/card/5464?parameters=%5B%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22b87e50a4%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22address%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%2242440d5%22%2C%22target%22%3A%5B%22variable%22%2C%5B%22template-tag%22%2C%22Node_ID%22%5D%5D%7D%2C%7B%22type%22%3A%22string%2F%3D%22%2C%22value%22%3Anull%2C%22id%22%3A%22ccdf28e0%22%2C%22target%22%3A%5B%22dimension%22%2C%5B%22template-tag%22%2C%22Reward_Type%22%5D%2C%7B%22stage-number%22%3A0%7D%5D%7D%5D';
-
 interface RewardsData {
   daily: TimeSeriesDataPoint[];
   cumulative: TimeSeriesDataPoint[];
 }
 
-async function fetchRewardsData(): Promise<RewardsData> {
+// Rewards paid per day + cumulative, from our metrics-api (reconstructed from
+// reward UTXOs over the full chain history). Values are AVAX.
+async function fetchRewardsSeries(metric: string): Promise<TimeSeriesDataPoint[]> {
   try {
-    const response = await fetchWithTimeout(REWARDS_URL, {
-      headers: { 'Accept': 'application/json' }
-    });
-
+    const response = await fetchWithTimeout(
+      `${EXPLORER_API_BASE}/v2/networks/mainnet/metrics/${metric}`,
+      { headers: { Accept: 'application/json' } },
+    );
     if (!response.ok) {
-      console.warn(`[fetchRewardsData] Failed to fetch: ${response.status}`);
-      return { daily: [], cumulative: [] };
+      console.warn(`[fetchRewardsSeries] ${metric}: ${response.status}`);
+      return [];
     }
-
     const data = await response.json();
-    
-    if (!data?.data?.rows || !Array.isArray(data.data.rows)) {
-      console.warn('[fetchRewardsData] Invalid data format');
-      return { daily: [], cumulative: [] };
-    }
-
-    // Transform Metabase format to TimeSeriesDataPoint format
-    // Metabase returns: [["2025-12-09T00:00:00Z", dailyValue, cumulativeValue], ...]
-    // index 0: date, index 1: daily rewards, index 2: cumulative rewards
-    const daily: TimeSeriesDataPoint[] = [];
-    const cumulative: TimeSeriesDataPoint[] = [];
-
-    data.data.rows.forEach((row: [string, number, number]) => {
-      const dateStr = row[0];
-      const dailyValue = row[1] || 0;
-      const cumulativeValue = row[2] || 0;
-      const timestamp = Math.floor(new Date(dateStr).getTime() / 1000);
-      const date = dateStr.split('T')[0];
-
-      daily.push({ timestamp, value: dailyValue, date });
-      cumulative.push({ timestamp, value: cumulativeValue, date });
-    });
-
-    // Sort by timestamp descending (most recent first)
-    daily.sort((a, b) => b.timestamp - a.timestamp);
-    cumulative.sort((a, b) => b.timestamp - a.timestamp);
-
-    return { daily, cumulative };
+    if (!Array.isArray(data?.results)) return [];
+    // already newest-first with UTC-midnight timestamps
+    return data.results.map((r: { value: number; timestamp: number }) => ({
+      timestamp: r.timestamp,
+      value: r.value || 0,
+      date: new Date(r.timestamp * 1000).toISOString().split('T')[0],
+    }));
   } catch (error) {
     if (error instanceof Error && error.name !== 'AbortError') {
-      console.warn('[fetchRewardsData] Error:', error);
+      console.warn(`[fetchRewardsSeries] ${metric}:`, error);
     }
-    return { daily: [], cumulative: [] };
+    return [];
   }
+}
+
+async function fetchRewardsData(): Promise<RewardsData> {
+  const [daily, cumulative] = await Promise.all([
+    fetchRewardsSeries('dailyStakingRewards'),
+    fetchRewardsSeries('cumulativeStakingRewards'),
+  ]);
+  return { daily, cumulative };
 }
 
 async function fetchFreshDataInternal(timeRange: string): Promise<PrimaryNetworkMetrics | null> {
