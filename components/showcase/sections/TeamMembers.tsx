@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import MemberBadge from "./MemberBadge";
 import { UserBadge } from "@/types/badge";
+import { MemberStatus } from "@/types/project";
 
 type Props = {
   members: Member[];
@@ -26,7 +27,7 @@ export default function TeamMembers({ members, projectName, badges }: Props) {
       
       <TooltipProvider>
         <div className="flex flex-wrap justify-center gap-8 mt-8">
-          {members.filter((member) => member.status === "Confirmed").map((member, index) => (
+          {members.filter((member) => member.status === MemberStatus.CONFIRMED).map((member, index) => (
             <Tooltip key={index} >
               <TooltipTrigger asChild>
                 <div className="flex flex-col justify-center items-center gap-4  hover:scale-105 transition-transform duration-200">

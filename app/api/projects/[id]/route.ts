@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { HackathonHeader } from "@/types/hackathons";
-import { updateProject } from "@/server/services/projects";
-import { isUserProjectMember } from "@/server/services/fileValidation";
+import { isConfirmedProjectMember, isProjectMemberOrInvitee } from "@/server/services/projectMembership";
 import { withAuth } from '@/lib/protectedRoute';
 import { GetProjectByIdWithMembers } from "@/server/services/memberProject";
 import { prisma } from "@/prisma/prisma";
@@ -15,13 +13,7 @@ import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 // hackathon-attached project through this generic endpoint. Returns null when the
 // mutation is allowed, otherwise the NextResponse error to return.
 async function guardDraftMutation(id: string, session: any): Promise<NextResponse | null> {
-  const orConds: Prisma.MemberWhereInput[] = [{ user_id: session.user.id }];
-  if (session.user.email) orConds.push({ email: session.user.email });
-  const member = await prisma.member.findFirst({
-    where: { project_id: id, status: "Confirmed", OR: orConds },
-    select: { id: true },
-  });
-  if (!member) {
+  if (!(await isConfirmedProjectMember(session.user.id, id))) {
     return NextResponse.json(
       { error: "Forbidden: only a confirmed member can modify this project" },
       { status: 403 },
@@ -65,7 +57,7 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
     }
 
     // Check if user is a member of the project
-    const isMember = await isUserProjectMember(session.user.id, id);
+    const isMember = await isProjectMemberOrInvitee(session.user.id, id);
     if (!isMember) {
       return NextResponse.json(
         { error: "Forbidden: You are not a member of this project" },
@@ -84,34 +76,12 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
   }
 });
 
-export const PUT = withAuth(async (req: NextRequest, context: any, session: any) => {
-  try {
-    const { id } = await context.params;
-    
-    if (!id) {
-      return NextResponse.json({ error: "ID required" }, { status: 400 });
-    }
-
-    // Check if user is a member of the project
-    const isMember = await isUserProjectMember(session.user.id, id);
-    if (!isMember) {
-      return NextResponse.json(
-        { error: "Forbidden: You are not a member of this project" },
-        { status: 403 }
-      );
-    }
-
-    const partialEditedHackathon = (await req.json()) as Partial<HackathonHeader>;
-    const updatedHackathon = await updateProject(id ?? partialEditedHackathon.id, partialEditedHackathon);
-
-    return NextResponse.json(updatedHackathon);
-  } catch (error) {
-    console.error("Error in PUT /api/projects/[id]:", error);
-    return NextResponse.json({ error: `Internal Server Error: ${error}` }, { status: 500 });
-  }
-});
-
-// Targeted partial edit (does NOT clobber unspecified fields like the PUT path).
+// Targeted partial edit. There is deliberately no PUT handler: the removed one
+// gated only on isUserProjectMember (which admits pending invitees), skipped
+// guardDraftMutation so submitted/reviewed projects stayed writable, and passed
+// the body straight to updateProject, whose `members: { create: ... }` let a
+// caller inject confirmed members. Nothing called it. Keep edits going through
+// PATCH so guardDraftMutation stays the single gate.
 export const PATCH = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;

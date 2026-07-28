@@ -79,7 +79,7 @@ function GasClock({ colors }: { colors: Colors }) {
       {/* Explanation text */}
       <div className="mt-4 md:mt-6">
         <p className={`text-base sm:text-sm ${colors.textMuted} leading-relaxed`}>
-          <a href="/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates" className="font-semibold text-red-400 hover:underline">ACP-176</a> gave us <span className="italic font-mono text-red-400">R</span> — how much gas the network can process per second. If you know the gas consumed, you know how much time passed. SAE builds on this: <span className="italic font-mono text-red-400">R</span> shows up in the equations for block size limits, queue bounds, and when blocks settle.
+          <a href="/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates" className="font-semibold text-red-400 hover:underline">ACP-176</a> gave us <span className="italic font-mono text-red-400">R</span> — how much gas the network can process per second. If you know the gas consumed, you know how much time passed. Continuous Execution builds on this: <span className="italic font-mono text-red-400">R</span> shows up in the equations for block size limits, queue bounds, and when blocks settle.
         </p>
       </div>
     </div>
@@ -146,7 +146,7 @@ export function BlockRelationship({ colors }: { colors: Colors }) {
       {/* Section header */}
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className={`text-sm sm:text-xs md:text-[11px] uppercase tracking-[0.15em] ${colors.text} font-semibold`}>
-          Streaming Asynchronous Execution (SAE)
+          Continuous Execution
         </span>
       </div>
 

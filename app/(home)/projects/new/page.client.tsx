@@ -14,6 +14,7 @@ import {
   UserSearchPicker,
   type SearchUser,
 } from '@/components/common/UserSearchPicker';
+import { MemberStatus } from "@/types/project";
 
 interface Props {
   userId: string;
@@ -106,7 +107,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       .map((m) => ({
         user_id: m.id,
         role: 'Member',
-        status: 'Pending Confirmation',
+        status: MemberStatus.PENDING,
       }));
 
     const fullDesc = values.full_description.trim();
@@ -129,7 +130,7 @@ export function NewProjectForm({ userId, currentUserName, currentUserImage }: Pr
       origin: 'builders-hub',
       hackaton_id: null,
       members: [
-        { user_id: userId, role: 'Member', status: 'Confirmed' },
+        { user_id: userId, role: 'Member', status: MemberStatus.CONFIRMED },
         ...additionalMembers,
       ],
     };

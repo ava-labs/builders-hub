@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { isValidEmail } from "@/lib/email";
 
 export type EmailListInputProps = {
   value: string[];
@@ -22,15 +23,10 @@ export function EmailListInput({
 }: EmailListInputProps) {
   const [newEmail, setNewEmail] = useState("");
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   const handleAddEmail = () => {
     const trimmed = newEmail.trim();
     if (!trimmed) return;
-    if (!validateEmail(trimmed)) return;
+    if (!isValidEmail(trimmed)) return;
     if (value.includes(trimmed)) return;
     onChange([...value, trimmed]);
     setNewEmail("");
