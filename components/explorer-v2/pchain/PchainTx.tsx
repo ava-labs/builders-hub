@@ -56,7 +56,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // optionally compounding rewards back in
   const hasContinuous = !!(
     tx &&
-    ((tx.period ?? 0) > 0 ||
+    (tx.period !== undefined ||
       tx.autoCompoundRewardShares !== undefined ||
       tx.autoCompoundPercent !== undefined ||
       tx.validatorAuthority?.length)
@@ -202,17 +202,28 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           {hasContinuous && (
             <Section label="Continuous Staking">
               <SpecPlate>
-                {(tx.period ?? 0) > 0 && (
-                  <SpecRow label="Renews Every">
-                    {tx.periodHuman ?? humanPeriod(tx.period!)}
-                    <span className="ml-2 text-zinc-400 dark:text-zinc-500">
-                      {tx.period!.toLocaleString("en-US")}s
-                    </span>
-                  </SpecRow>
-                )}
+                {tx.period !== undefined &&
+                  (tx.period > 0 ? (
+                    <SpecRow label="Renews Every">
+                      {tx.periodHuman ?? humanPeriod(tx.period)}
+                      <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                        {tx.period.toLocaleString("en-US")}s
+                      </span>
+                    </SpecRow>
+                  ) : (
+                    /* period=0 is the graceful exit: stop auto-renewing */
+                    <SpecRow label="Renews Every">
+                      Does not renew
+                      <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                        graceful exit — the stake ends after the current period
+                      </span>
+                    </SpecRow>
+                  ))}
                 {autoCompoundPct(tx) !== null && (
                   <SpecRow label="Auto-Compound">
-                    {autoCompoundPct(tx)}% of each reward restakes
+                    {autoCompoundPct(tx) === "0"
+                      ? "0% — rewards are fully paid out, nothing restakes"
+                      : `${autoCompoundPct(tx)}% of each reward restakes`}
                   </SpecRow>
                 )}
                 {tx.validatorAuthority?.length ? (
