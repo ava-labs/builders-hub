@@ -111,6 +111,34 @@ export async function canViewEventRegistrations(
 }
 
 /**
+ * True when the user may edit an event (PUT/PATCH /api/events/[id]):
+ * - devrel: any event.
+ * - team1-admin: only events they created or where they are a listed
+ *   cohost — the same set surfaced in their managed events list
+ *   (GET /api/events?managed=true), so everything they can see they
+ *   can also edit.
+ */
+export async function canEditEvent(
+  session:
+    | { user?: { id?: string; email?: string; custom_attributes?: string[] } }
+    | null
+    | undefined,
+  hackathonId: string,
+): Promise<boolean> {
+  if (!session?.user) return false;
+  const attributes = session.user.custom_attributes;
+  if (hasAnyAttribute(attributes, ["devrel"])) return true;
+  if (!hasAnyAttribute(attributes, ["team1-admin"])) return false;
+  const hackathon = await prisma.hackathon.findUnique({
+    where: { id: hackathonId },
+    select: { cohosts: true, created_by: true },
+  });
+  if (!hackathon) return false;
+  if (session.user.id && hackathon.created_by === session.user.id) return true;
+  return !!session.user.email && hackathon.cohosts.includes(session.user.email);
+}
+
+/**
  * Constant-time bearer-token check for the public projects endpoint.
  * Expects `Authorization: Bearer <token>`. Compares to the
  * HACKATHON_PROJECTS_API_KEY env var. Returns false if the env var is
