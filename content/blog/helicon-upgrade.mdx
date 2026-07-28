@@ -150,7 +150,7 @@ Each validator can set a `min-price-target` in wei, or leave it unset and inheri
 
 The concrete changes for developers and node operators, ordered by ACP.
 
-- **ACP-194**: transaction effects are final at settlement, shortly after a block is accepted. When reading receipts or querying state, account for the brief gap between block acceptance and settlement.
+- **ACP-194**: transaction effects are final at execution, shortly after a block is accepted.
 - **ACP-236**: new P-Chain transactions `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx` (owner-signed; `period 0` exits), and `RewardAutoRenewedValidatorTx` (consensus-issued). `platform.getCurrentValidators` adds `period`, `autoCompoundRewardShares` (ppm), and `validatorAuthority`.
 - **ACP-267**: validators must maintain at least 90% uptime during their staking period to receive their validation rewards.
 - **ACP-273**: minimum staking duration reduced to 48 hours.
