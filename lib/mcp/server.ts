@@ -32,9 +32,24 @@ interface ServerConfig {
   description?: string;
 }
 
-// Cap how many JSON-RPC items a single batch can carry. The 60/min global rate limit only
-// charges per HTTP request, so without this cap a single batch could amplify a client's quota.
+// Cap both batch size and in-request concurrency. The HTTP boundary separately
+// charges quota by item/tool cost, so batching cannot amplify either quota or fan-out.
 export const MAX_BATCH_SIZE = 20;
+export const MAX_BATCH_CONCURRENCY = 4;
+
+async function mapWithConcurrency<T, R>(items: T[], limit: number, mapper: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, async () => {
+      while (next < items.length) {
+        const index = next++;
+        results[index] = await mapper(items[index]!);
+      }
+    })
+  );
+  return results;
+}
 
 export class MCPServer {
   private readonly config: ServerConfig;
@@ -233,30 +248,30 @@ export class MCPServer {
    */
   async handlePost(body: unknown): Promise<JsonRpcResponse | JsonRpcResponse[] | null> {
     if (Array.isArray(body)) {
-      if (body.length > MAX_BATCH_SIZE) {
+      if (body.length === 0 || body.length > MAX_BATCH_SIZE) {
         return {
           jsonrpc: '2.0',
           id: null,
           error: {
             code: -32600,
-            message: `Batch size ${body.length} exceeds the maximum of ${MAX_BATCH_SIZE}`,
+            message: body.length === 0
+              ? 'Batch must contain at least one request'
+              : `Batch size ${body.length} exceeds the maximum of ${MAX_BATCH_SIZE}`,
           },
         };
       }
 
-      const responses = await Promise.all(
-        body.map(async (message) => {
-          const parsed = jsonRpcMessageSchema.safeParse(message);
-          if (!parsed.success) {
-            return {
-              jsonrpc: '2.0' as const,
-              id: this.getResponseId(message),
-              error: { code: -32600, message: 'Invalid request' },
-            };
-          }
-          return this.processMessage(parsed.data);
-        })
-      );
+      const responses = await mapWithConcurrency(body, MAX_BATCH_CONCURRENCY, async (message) => {
+        const parsed = jsonRpcMessageSchema.safeParse(message);
+        if (!parsed.success) {
+          return {
+            jsonrpc: '2.0' as const,
+            id: this.getResponseId(message),
+            error: { code: -32600, message: 'Invalid request' },
+          };
+        }
+        return this.processMessage(parsed.data);
+      });
 
       const filteredResponses = responses.filter((response): response is JsonRpcResponse => response !== null);
       return filteredResponses.length > 0 ? filteredResponses : null;
