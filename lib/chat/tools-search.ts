@@ -37,7 +37,7 @@ export const consoleTools: ConsoleTool[] = [
     url: '/console/primary-network/stake',
     category: 'Primary Network',
     description: 'Stake AVAX to become a validator or delegate to existing validators, with fixed-duration or auto-renewed (ACP-236) staking',
-    keywords: ['stake', 'staking', 'validator', 'delegate', 'delegation', 'avax', 'rewards', 'earn', 'auto-renew', 'auto-renewed', 'continuous', 'auto-compound', 'acp-236', 'helicon'],
+    keywords: ['stake', 'staking', 'validator', 'delegate', 'delegation', 'avax', 'rewards', 'earn', 'auto-renew', 'auto-renewed', 'continuous', 'auto-compound', 'acp-236', 'helicon', 'update', 'stop', 'set-config'],
   },
   {
     title: 'Testnet Faucet',
