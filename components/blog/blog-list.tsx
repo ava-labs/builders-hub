@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowRight, X } from 'lucide-react';
 import { BlogSearch } from './blog-search';
+import { formatBlogDate } from '@/utils/formatBlogDate';
 
 interface BlogPost {
   url: string;
@@ -70,7 +71,7 @@ export function BlogList({ blogs }: BlogListProps) {
                     Latest
                   </span>
                   <time className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider">
-                    {new Date(filteredBlogs[0].data.date ?? filteredBlogs[0].url).toDateString()}
+                    {formatBlogDate(filteredBlogs[0].data.date)}
                   </time>
                 </div>
 
@@ -137,7 +138,7 @@ export function BlogList({ blogs }: BlogListProps) {
                 <div className="relative flex flex-col h-full p-6">
                   {/* Header */}
                   <time className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wider mb-3">
-                    {new Date(post.data.date ?? post.url).toDateString()}
+                    {formatBlogDate(post.data.date)}
                   </time>
 
                   {/* Title */}

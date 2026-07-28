@@ -848,10 +848,10 @@ export function PrimaryStakingContent({
           Estimates only, computed from the protocol&apos;s public emission formula at current
           network conditions — not a promise of any return and not financial advice. Actual
           rewards change as the staking ratio moves, and are paid only if the validator maintains
-          the uptime requirement through the whole term. Rewards are newly minted AVAX. Continuous
-          staking (
+          the uptime requirement through the whole term. Rewards are newly minted AVAX.
+          Auto-renewed staking (
           <Link
-            href="/docs/acps/236-continuous-staking"
+            href="/docs/acps/236-auto-renewed-staking"
             className="text-[#0061E2] underline-offset-4 hover:underline dark:text-[#5f9dff]"
           >
             ACP-236

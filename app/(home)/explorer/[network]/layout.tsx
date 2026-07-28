@@ -8,7 +8,7 @@ interface NetworkLayoutProps {
   params: Promise<{ network: string }>;
 }
 
-/* The [network] segment is the mainnet | fuji | devnet flag every explorer
+/* The [network] segment is the mainnet | fuji flag every explorer
    route carries. Legacy chain-first URLs (/explorer/{slug}) land here with a
    chain slug in the network position; send them to that chain on mainnet. */
 export default async function ExplorerNetworkLayout({ children, params }: NetworkLayoutProps) {

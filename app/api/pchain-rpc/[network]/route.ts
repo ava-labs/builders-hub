@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // (Ash's explorer API) doesn't decode platform-op inputs — the initial
 // validator set of a ConvertSubnetToL1Tx, subnet conversion state, live
 // L1 validator sets — so the explorer enriches those views straight from
-// the node. Read-only method allowlist; no devnet (no public endpoint).
+// the node. Read-only method allowlist.
 
 const RPC_BY_NETWORK: Record<string, string> = {
   mainnet: "https://api.avax.network/ext/bc/P",
