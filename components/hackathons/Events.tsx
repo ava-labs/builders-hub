@@ -372,7 +372,7 @@ export default function Events({
             <DiscoveryCard
               title={t(lang, "events.discovery.communityEvents.title")}
               description={t(lang, "events.discovery.communityEvents.description")}
-              image="https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/nav-banner/local_events_team1-UJLssyvek3G880Q013A94SdMKxiLRq.jpg"
+              image="/team1/team1-events.png"
               url="https://lu.ma/Team1?utm_source=builder_hub"
             />
             <DiscoveryCard

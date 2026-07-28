@@ -10,9 +10,20 @@ import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
 export const dynamic = "force-dynamic";
 
 const REQUEST_TIMEOUT_MS = 8000;
-// Explorer data is either immutable (tx/block) or refreshed ~30s upstream; a
-// short shared cache + SWR keeps the origin light without going stale.
+// Live data (lists, stats, addresses) refreshes ~30s upstream; a short shared
+// cache + SWR keeps the origin light without going stale.
 const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=60";
+// tx/{id} and block/{id} are final at acceptance — once the upstream returns a
+// 200 the payload never changes, so cache hard and spare the origin box (its
+// per-tx queries scan tens of millions of rows; see 2026-07-21 CH diagnosis).
+const IMMUTABLE_CACHE_CONTROL =
+  "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
+
+function cacheControlFor(resource: string): string {
+  return resource.startsWith("tx/") || resource.startsWith("block/")
+    ? IMMUTABLE_CACHE_CONTROL
+    : CACHE_CONTROL;
+}
 
 async function fetchWithTimeout(url: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -38,15 +49,21 @@ export async function GET(
   const search = req.nextUrl.search; // forward ?limit=, ?before=, ?q=, …
   const upstream = `${EXPLORER_API_BASE}/api/${network}/${resource}${search}`;
 
+  // The stats aggregate is computed lazily upstream: a cold call takes
+  // ~15s before its cache makes it instant. Cutting it off at the default
+  // 8s guarantees a 504 AND wastes the compute, so the priming request
+  // gets a longer leash.
+  const timeoutMs = resource === "stats" ? 25_000 : REQUEST_TIMEOUT_MS;
+
   try {
-    const res = await fetchWithTimeout(upstream);
+    const res = await fetchWithTimeout(upstream, timeoutMs);
     const body = await res.text();
     // Pass through status + body; attach cache headers only on success.
     return new NextResponse(body, {
       status: res.status,
       headers: {
         "content-type": res.headers.get("content-type") ?? "application/json",
-        ...(res.ok ? { "cache-control": CACHE_CONTROL } : {}),
+        ...(res.ok ? { "cache-control": cacheControlFor(resource) } : {}),
       },
     });
   } catch (err) {

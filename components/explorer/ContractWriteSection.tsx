@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, AlertCircle, Loader2, ExternalLink, Check, Wall
 import { keccak256, toBytes, parseEther } from "viem";
 import { useWalletStore } from "@/components/toolbox/stores/walletStore";
 import { useWalletConnect } from "@/components/toolbox/hooks/useWalletConnect";
+import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -69,6 +70,7 @@ export default function ContractWriteSection({
   rpcUrl,
   themeColor = "#E57373",
 }: ContractWriteSectionProps) {
+  const network = useExplorerNetwork();
   const [expandedFunctions, setExpandedFunctions] = useState<Set<string>>(new Set());
   const [functionInputs, setFunctionInputs] = useState<Record<string, Record<string, string>>>({});
   const [functionResults, setFunctionResults] = useState<Record<string, FunctionResult>>({});
@@ -430,7 +432,7 @@ export default function ContractWriteSection({
                             {result.txHash}
                           </span>
                           <Link
-                            href={`/explorer/${chainSlug}/tx/${result.txHash}`}
+                            href={`/explorer/${network}/${chainSlug}/tx/${result.txHash}`}
                             className="flex items-center gap-1 text-xs font-medium hover:underline cursor-pointer"
                             style={{ color: themeColor }}
                           >

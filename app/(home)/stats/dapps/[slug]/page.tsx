@@ -233,7 +233,7 @@ export default function DAppDetailPage() {
         <div className="text-center space-y-4">
           <AppWindow className="h-12 w-12 text-red-500 mx-auto" />
           <p className="text-red-600 dark:text-red-400">{error || "Protocol not found"}</p>
-          <Button variant="outline" onClick={() => router.push("/stats/dapps")}>
+          <Button variant="outline" onClick={() => router.push("/explorer/mainnet/apps")}>
             Back to DApps
           </Button>
         </div>
@@ -258,7 +258,7 @@ export default function DAppDetailPage() {
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-xs sm:text-sm mb-4 overflow-x-auto scrollbar-hide pb-1">
             <button
-              onClick={() => router.push("/stats/dapps")}
+              onClick={() => router.push("/explorer/mainnet/apps")}
               className="inline-flex items-center gap-1 sm:gap-1.5 text-zinc-500 dark:text-zinc-400 whitespace-nowrap flex-shrink-0 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
             >
               <AppWindow className="w-3 h-3 sm:w-3.5 sm:h-3.5" />

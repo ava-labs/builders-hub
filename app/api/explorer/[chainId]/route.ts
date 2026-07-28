@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
 import { isValidRpcUrl } from "@/lib/rpcUrlValidator";
-
-// Initialize Avalanche SDK
-const avalanche = new Avalanche({
-  network: "mainnet",
-});
 
 interface Block {
   number: string;
@@ -104,6 +98,9 @@ interface Transaction {
   timestamp: string;
   gasPrice: string;
   gas: string;
+  // 4-byte function selector ("0x" for plain transfers) — enough for the
+  // lists to name the method without shipping full calldata for 100 txs
+  input?: string;
   isCrossChain?: boolean;
   // Cross-chain info (for ICM messages) - blockchain IDs in hex format
   sourceBlockchainId?: string;
@@ -389,6 +386,7 @@ async function fetchHistoricalIcmMessages(
         timestamp: formatTimestamp(block?.timestamp || '0x0'),
         gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
         gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+        input: tx.input && tx.input.length >= 10 ? tx.input.slice(0, 10) : "0x",
         isCrossChain: true,
         sourceBlockchainId,
         destinationBlockchainId,
@@ -533,12 +531,19 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
     timing.receiptsCount = 0;
   }
 
-  // Build Block array with gas fees from receipts
+  // Build Block array with gas fees from receipts. When receipts were
+  // skipped (initialLoad), fall back to header math — gasUsed × baseFee is
+  // free (both live in the block header) and on Avalanche it's the burn
+  // floor, so the fees column is never blank.
   const blocks: Block[] = validBlocks.map((block, blockIndex) => {
-    const gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
+    let gasFeeWei = blockGasFees.get(blockIndex) || BigInt(0);
+    let burnedFeeWei = blockBurnedFees.get(blockIndex) || BigInt(0);
+    if (gasFeeWei === BigInt(0) && block.baseFeePerGas && block.gasUsed) {
+      const headerBurn = BigInt(block.gasUsed) * BigInt(block.baseFeePerGas);
+      gasFeeWei = headerBurn;
+      burnedFeeWei = headerBurn;
+    }
     const gasFee = gasFeeWei > 0 ? (Number(gasFeeWei) / 1e18).toFixed(6) : undefined;
-
-    const burnedFeeWei = blockBurnedFees.get(blockIndex) || BigInt(0);
     const burnedFee = burnedFeeWei > 0 ? (Number(burnedFeeWei) / 1e18).toFixed(18) : undefined;
 
     // Parse timestampMilliseconds for Avalanche (hex string to number)
@@ -631,6 +636,7 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
       timestamp: formatTimestamp(tx.blockTimestamp),
       gasPrice: formatGasPrice(tx.gasPrice || "0x0"),
       gas: hexToNumber(tx.gas || "0x0").toLocaleString(),
+      input: tx.input && tx.input.length >= 10 ? tx.input.slice(0, 10) : "0x",
       isCrossChain,
     };
 
@@ -779,18 +785,14 @@ async function fetchExplorerData(chainId: string, evmChainId: string, rpcUrl: st
   };
 }
 
-// Check if Glacier supports this chain
-async function checkGlacierSupport(chainId: string): Promise<boolean> {
-  try {
-    const result = await avalanche.data.evm.chains.get({
-      chainId: chainId,
-    });
-    // If we get a result with a chainId, the chain is supported
-    return !!result?.chainId;
-  } catch (error) {
-    // Chain not supported by Glacier
-    return false;
-  }
+// Glacier dependency removed: the explorer is now served entirely by the
+// self-hosted ClickHouse-backed APIs (/api/evm for EVM chains, /v1 + /api for
+// P-chain), so an external "is this chain Glacier-indexed?" probe is obsolete.
+// Kept as a no-op returning true so existing call sites (the `isIndexed` gate
+// and ExplorerContext) resolve without any external round-trip. Real coverage
+// is still gated by checkChainIndexed()/hasMetricsActivity.
+async function checkGlacierSupport(_chainId: string): Promise<boolean> {
+  return true;
 }
 
 // Probe metrics API for any non-zero activity over the last ~30 days.
@@ -838,6 +840,15 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const initialLoad = searchParams.get('initialLoad') === 'true';
     const priceOnly = searchParams.get('priceOnly') === 'true';
+    const blocksOnly = searchParams.get('blocksOnly') === 'true';
+    const historyOnly = searchParams.get('historyOnly') === 'true';
+
+    // 14-day daily tx counts straight from ClickHouse — no RPC, no price
+    // probes. The overview's line chart polls this; keep it feather-light.
+    if (historyOnly) {
+      const dailyTxsData = await getDailyTxsByChain();
+      return NextResponse.json({ transactionHistory: dailyTxsData.get(chainId) || [] });
+    }
     const lastFetchedBlockParam = searchParams.get('lastFetchedBlock');
     const lastFetchedBlock = lastFetchedBlockParam ? parseInt(lastFetchedBlockParam, 10) : undefined;
 
@@ -892,6 +903,46 @@ export async function GET(
 
     if (!rpcUrl) {
       return NextResponse.json({ error: "RPC URL not configured. Provide rpcUrl query parameter for custom chains." }, { status: 400 });
+    }
+
+    // If blocksOnly, return just the newest block headers (tx hashes, no
+    // bodies) — the network tape's polling diet: no receipts, no ICM scan
+    if (blocksOnly) {
+      const blocksOnlyStart = Date.now();
+      const latest = hexToNumber(await fetchFromRPC(rpcUrl, "eth_blockNumber"));
+      if (lastFetchedBlock !== undefined && lastFetchedBlock >= latest) {
+        return NextResponse.json({ blocks: [], latestBlock: latest });
+      }
+      const count =
+        lastFetchedBlock !== undefined && lastFetchedBlock > 0
+          ? Math.min(latest - lastFetchedBlock, 10)
+          : 6;
+      const headers = await Promise.all(
+        Array.from({ length: count }, (_, i) => latest - i)
+          .filter((n) => n >= 0)
+          .map(
+            (n) =>
+              fetchFromRPC(rpcUrl, "eth_getBlockByNumber", [`0x${n.toString(16)}`, false]).catch(
+                () => null
+              ) as Promise<RpcBlock | null>
+          )
+      );
+      const blocks = headers
+        .filter((b): b is RpcBlock => b !== null)
+        .map((block) => ({
+          number: hexToNumber(block.number).toString(),
+          hash: block.hash,
+          timestamp: formatTimestamp(block.timestamp),
+          transactionCount: block.transactions?.length || 0,
+          gasUsed: hexToNumber(block.gasUsed).toLocaleString(),
+          gasLimit: hexToNumber(block.gasLimit).toLocaleString(),
+          timestampMilliseconds: block.timestampMilliseconds
+            ? parseInt(block.timestampMilliseconds, 16)
+            : undefined,
+        }));
+      requestTiming.blocksOnly = Date.now() - blocksOnlyStart;
+      requestTiming.total = Date.now() - requestStart;
+      return NextResponse.json({ blocks, latestBlock: latest });
     }
 
     // Fetch fresh data and check Glacier support in parallel

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-
-const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
+import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (verdict !== null && !ALLOWED_VERDICTS.includes(verdict)) {
+    if (verdict !== null && !isVerdict(verdict)) {
       return NextResponse.json(
         { error: `verdict must be one of: ${ALLOWED_VERDICTS.join(", ")} or null` },
         { status: 400 }

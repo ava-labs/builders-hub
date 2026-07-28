@@ -46,7 +46,9 @@ interface Flow {
 
 function build(utxos: Utxo[], side: "in" | "out", reward: boolean): Flow[] {
   const flows: Flow[] = utxos.map((u, i) => ({
-    key: `${side}-${u.utxoId || i}`,
+    // the index rides along because the indexer can emit the same utxoId
+    // twice (unmerged ReplacingMergeTree rows) — keys must survive that
+    key: `${side}-${u.utxoId || "u"}-${i}`,
     amount: Number(u.amount || 0),
     addresses: u.addresses ?? [],
     kind: side === "in" ? "input" : u.staked ? "staked" : reward ? "reward" : "transfer",
@@ -133,7 +135,7 @@ function explainNoMovement(type: string): string {
   if (t.includes("reward"))
     return "Marks the end of a validation period and settles its staking reward. When the reward is compounded or the period is aborted, the outcome is recorded as state and no UTXOs move.";
   if (t.includes("setautorenew") || t.includes("config"))
-    return "Updates a validator's auto-renew configuration — staking period and compounding. It changes on-chain state only and moves no funds.";
+    return "Updates a validator's auto-renew configuration: staking period and compounding. It changes on-chain state only and moves no funds.";
   if (t.includes("advancetime"))
     return "Advances the P-Chain timestamp so scheduled staking events (validators starting/ending) can be processed. It carries no funds.";
   if (t.includes("disable"))

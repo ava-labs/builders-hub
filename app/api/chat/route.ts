@@ -856,13 +856,13 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
 
 ## Stats Pages
-- [Network Overview](/stats/overview) — active addresses, TPS, validators, market cap
-- [AVAX Token](/stats/avax-token) — token metrics
+- [Network Overview](/explorer/mainnet) — active addresses, TPS, validators, market cap
+- [AVAX Token](/explorer/mainnet/token) — token metrics
 - [Network Metrics](/stats/network-metrics) — network-wide metrics
-- [DApp Gas Usage](/stats/dapps/treemap) — gas treemap by DApp
-- [Interchain Messaging](/stats/interchain-messaging) — ICM stats
-- [Chain List](/stats/chain-list) — all Avalanche L1 chains
-- [Validators](/stats/validators) — validator dashboard
+- [C-Chain Gas Market](/explorer/mainnet/c-chain/gas) — live fees, fee history, gas usage by protocol
+- [Interchain Messaging](/explorer/mainnet/icm) — ICM stats
+- [Chain List](/explorer/mainnet/chains) — all Avalanche L1 chains
+- [Validators](/explorer/mainnet/validators) — validator dashboard
 - Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
 
 ## URL Rules
