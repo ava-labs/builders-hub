@@ -3,7 +3,7 @@ import { getExplorerChain } from "@/lib/pchain-explorer";
 import { PchainHome } from "@/components/explorer-v2/pchain/PchainHome";
 
 // Route: /explorer/{network}/p-chain — the [network] segment carries the
-// network (mainnet | fuji | devnet); the chain is the static "p-chain".
+// network (mainnet | fuji); the chain is the static "p-chain".
 export default async function ExplorerNetworkHome({
   params,
 }: {

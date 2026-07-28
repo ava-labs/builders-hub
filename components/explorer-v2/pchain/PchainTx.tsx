@@ -456,8 +456,8 @@ function SubnetChip({ base, subnetId }: { base: string; subnetId: string }) {
 }
 
 /* One platform.getTx fetch per page, shared by every panel that needs the
-   node-decoded inputs. Additive — if the RPC is unreachable (devnet has no
-   public endpoint), data stays null and the panels don't render. */
+   node-decoded inputs. Additive — if the RPC is unreachable,
+   data stays null and the panels don't render. */
 function usePlatformTx(network: string, txHash: string, enabled: boolean) {
   const [data, setData] = useState<PlatformUnsignedTx | null>(null);
   const [loading, setLoading] = useState(enabled);
