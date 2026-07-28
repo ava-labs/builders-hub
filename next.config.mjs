@@ -1829,6 +1829,25 @@ const config = {
         destination: "/docs/nodes/configure/configs-flags",
         permanent: true,
       },
+      // Legacy docs.avax.network IA. That domain is an alias for this app rather
+      // than a forward, so pre-migration paths 404 instead of redirecting. These
+      // three are linked from the upstream avalanche-foundation/ACPs READMEs,
+      // which are fetched into /docs/acps at build time.
+      {
+        source: "/nodes/configure/avalanchego-config-flags",
+        destination: "/docs/nodes/configure/configs-flags",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/avalanchego-config-flags",
+        destination: "/docs/nodes/configure/configs-flags",
+        permanent: true,
+      },
+      {
+        source: "/build/cross-chain/awm/overview",
+        destination: "/docs/cross-chain/avalanche-warp-messaging/overview",
+        permanent: true,
+      },
       // Docker node setup redirect
       {
         source: "/docs/nodes/operate/docker",
