@@ -92,7 +92,7 @@ export const consoleTools: ConsoleTool[] = [
     url: '/console/layer-1/explorer-setup',
     category: 'Layer 1',
     description: 'Deploy a block explorer for your L1',
-    keywords: ['explorer', 'block', 'scan', 'deploy', 'l1', 'transactions', 'view'],
+    keywords: ['explorer', 'block', 'scan', 'deploy', 'l1', 'transactions', 'view', 'blockscout', 'terraform', 'kubernetes'],
   },
   {
     title: 'Performance Monitor',

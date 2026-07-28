@@ -347,7 +347,7 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Explorer Setup',
-    description: 'Deploy a block explorer for your L1.',
+    description: 'Deploy a Blockscout block explorer for your L1 via Terraform, Kubernetes, or Docker.',
     path: '/console/layer-1/explorer-setup',
     category: 'L1 Management',
     icon: Telescope,
