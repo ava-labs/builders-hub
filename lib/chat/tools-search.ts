@@ -95,11 +95,11 @@ export const consoleTools: ConsoleTool[] = [
     keywords: ['explorer', 'block', 'scan', 'deploy', 'l1', 'transactions', 'view'],
   },
   {
-    title: 'Performance Monitor',
-    url: '/console/layer-1/performance-monitor',
+    title: 'Monitoring Setup',
+    url: '/console/layer-1/monitoring-setup',
     category: 'Layer 1',
-    description: 'Monitor the performance and health of your L1',
-    keywords: ['performance', 'monitor', 'metrics', 'health', 'l1', 'tps', 'latency'],
+    description: 'Set up Prometheus and Grafana monitoring for your AvalancheGo nodes',
+    keywords: ['monitoring', 'grafana', 'prometheus', 'metrics', 'health', 'node', 'tps', 'uptime', 'dashboard', 'docker', 'terraform', 'kubernetes'],
   },
 
   // Testnet Infrastructure

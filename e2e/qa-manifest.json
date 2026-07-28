@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T17:45:37.116Z",
+  "generatedAt": "2026-07-28T20:31:35.246Z",
   "surfaces": [
     {
       "kind": "academy-page",
@@ -1404,9 +1404,27 @@
     },
     {
       "kind": "console-tool",
-      "route": "/console/layer-1/performance-monitor",
-      "file": "app/console/layer-1/performance-monitor/page.tsx",
-      "title": "Performance Monitor"
+      "route": "/console/layer-1/monitoring-setup",
+      "file": "app/console/layer-1/monitoring-setup/page.tsx",
+      "title": "Monitoring Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/upgrade",
+      "file": "app/console/layer-1/upgrade/page.tsx",
+      "title": "Upgrade JSON Builder"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/upgrade/select-l1",
+      "file": "app/console/layer-1/upgrade/[step]/page.tsx",
+      "title": "Upgrade JSON Builder › Select L1"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/upgrade/upgrade-json",
+      "file": "app/console/layer-1/upgrade/[step]/page.tsx",
+      "title": "Upgrade JSON Builder › Upgrade JSON"
     },
     {
       "kind": "console-tool",

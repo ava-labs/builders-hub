@@ -147,9 +147,9 @@ export const consoleFlows: Record<string, FlowMetadata> = {
         priority: "recommended",
       },
       {
-        path: "/console/layer-1/performance-monitor",
-        title: "Monitor Performance",
-        description: "Watch your L1's health while the upgrade activates",
+        path: "/console/layer-1/monitoring-setup",
+        title: "Set Up Monitoring",
+        description: "Stand up Grafana dashboards to watch your L1's health",
         priority: "optional",
       },
     ],
