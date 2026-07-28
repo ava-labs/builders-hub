@@ -9,17 +9,35 @@ import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import type { TxSummary } from "@/lib/pchain-explorer";
 
+/* The types the upstream indexer serves, grouped by the same families the
+   pills are toned by (see txToneText/pillTone) so the rail and the table
+   below read as one vocabulary. Every value here is a type the indexer
+   answers `?type=` for; the auto-renewed trio returns nothing until a
+   network has Helicon active, which the empty state states plainly. */
 const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "All types" },
+  // primary-network staking
   { value: "AddPermissionlessValidatorTx", label: "Add Validator" },
   { value: "AddPermissionlessDelegatorTx", label: "Add Delegator" },
   { value: "RewardValidatorTx", label: "Reward" },
+  // auto-renewed staking (ACP-236, Helicon): a cycle-based stake, the
+  // consensus-issued reward at each cycle end, and owner config changes
+  { value: "AddAutoRenewedValidatorTx", label: "Auto-Renew Validator" },
+  { value: "RewardAutoRenewedValidatorTx", label: "Auto-Renew Reward" },
+  { value: "SetAutoRenewedValidatorConfigTx", label: "Auto-Renew Config" },
+  // L1 lifecycle
+  { value: "ConvertSubnetToL1Tx", label: "Convert to L1" },
+  { value: "RegisterL1ValidatorTx", label: "Register L1 Validator" },
+  { value: "SetL1ValidatorWeightTx", label: "Set L1 Weight" },
+  { value: "IncreaseL1ValidatorBalanceTx", label: "Increase L1 Balance" },
+  { value: "DisableL1ValidatorTx", label: "Disable L1 Validator" },
+  // creation
+  { value: "CreateSubnetTx", label: "Create Subnet" },
+  { value: "CreateChainTx", label: "Create Chain" },
+  // value movement
   { value: "ImportTx", label: "Import" },
   { value: "ExportTx", label: "Export" },
   { value: "BaseTx", label: "Transfer" },
-  { value: "CreateSubnetTx", label: "Create Subnet" },
-  { value: "CreateChainTx", label: "Create Chain" },
-  { value: "ConvertSubnetToL1Tx", label: "Convert to L1" },
 ];
 
 export function PchainTxsList({ chain, network }: { chain: string; network: string }) {

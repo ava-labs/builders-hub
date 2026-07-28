@@ -52,8 +52,8 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       tx.details?.stakingTxId ||
       tx.details?.rewardPaid !== undefined)
   );
-  // continuous staking (Granite): the stake renews itself on a period,
-  // optionally compounding rewards back in
+  // auto-renewed staking (ACP-236, Helicon): the stake renews itself on a
+  // period, optionally compounding rewards back in
   const hasContinuous = !!(
     tx &&
     ((tx.period ?? 0) > 0 ||
