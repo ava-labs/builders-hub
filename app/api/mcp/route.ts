@@ -1,9 +1,23 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { MCPServer } from '@/lib/mcp/server';
 import { validateOrigin, getCORSHeaders } from '@/lib/mcp/cors';
-import { checkMCPRateLimit, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
-import { docsTools, blockchainTools, githubTools, platformTools, infoTools } from '@/lib/mcp/tools';
+import { checkMCPRateLimit, getMCPRequestCost, getRateLimitHeaders } from '@/lib/mcp-rate-limit';
+import { MCPBodyTooLargeError, readMCPJson } from '@/lib/mcp/request-body';
+import {
+  docsTools,
+  blockchainTools,
+  platformTools,
+  infoTools,
+  dataTools,
+  actionTools,
+  consoleTools,
+} from '@/lib/mcp/tools';
 import { docsResources } from '@/lib/mcp/resources';
+
+// Fail fast rather than riding Vercel's default 60s into a gateway 504 if an upstream
+// RPC ever hangs (the rpc.ts backoff cap is the primary guard; this is the safety net).
+// 30s comfortably covers every real tool call.
+export const maxDuration = 30;
 
 // ---------------------------------------------------------------------------
 // Singleton MCP server — registered once at module load
@@ -11,16 +25,20 @@ import { docsResources } from '@/lib/mcp/resources';
 
 const server = new MCPServer({
   name: 'avalanche-mcp',
-  version: '2.1.0',
+  version: '2.4.0',
   protocolVersion: '2024-11-05',
-  description: 'Unified read-only MCP server for Avalanche docs, CLI/RPC/ACP lookup, GitHub code search, blockchain lookups, P-Chain, and Info API',
+  description: 'Unified MCP server for Avalanche docs, CLI/RPC/ACP lookup, blockchain & P-Chain lookups, indexed on-chain data via the query gateway (per-field source routing) + Glacier, build-plan runbooks, and Builder Console guidance',
 });
 
 server.registerToolDomain(docsTools);
 server.registerToolDomain(blockchainTools);
-server.registerToolDomain(githubTools);
 server.registerToolDomain(platformTools);
 server.registerToolDomain(infoTools);
+// dataTools' indexed on-chain queries (onchain_activity / chain_stats / onchain_query) route
+// through the query gateway via MCP_GATEWAY_URL (HMAC-signed); see lib/mcp/tools/lib/gateway-client.ts.
+server.registerToolDomain(dataTools);
+server.registerToolDomain(actionTools);
+server.registerToolDomain(consoleTools);
 server.registerResourceDomain(docsResources);
 
 // ---------------------------------------------------------------------------
@@ -82,6 +100,7 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const origin = request.headers.get('origin');
+  let rateLimitChecked = false;
 
   // CORS validation
   if (!validateOrigin(origin)) {
@@ -91,27 +110,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Rate limiting
-  const rateLimitResponse = await checkMCPRateLimit(request);
-  if (rateLimitResponse) {
-    const corsHeaders = getCORSHeaders(origin);
-    const headers = new Headers(rateLimitResponse.headers);
-    Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
-    return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
-  }
-
-  // Reject oversized request bodies before parsing JSON.
-  const contentLength = Number(request.headers.get('content-length') || '0');
-  const MAX_BODY_BYTES = 256 * 1024; // 256 KB
-  if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) {
-    return NextResponse.json(
-      { jsonrpc: '2.0', id: null, error: { code: -32600, message: 'Request body too large' } },
-      { status: 413, headers: getCORSHeaders(origin) }
-    );
-  }
-
   try {
-    const body = await request.json();
+    const body = await readMCPJson(request);
+    const rateLimitResponse = await checkMCPRateLimit(request, getMCPRequestCost(body));
+    rateLimitChecked = true;
+    if (rateLimitResponse) {
+      const corsHeaders = getCORSHeaders(origin);
+      const headers = new Headers(rateLimitResponse.headers);
+      Object.entries(corsHeaders).forEach(([k, v]) => headers.set(k, v));
+      return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
+    }
     const useSSE = wantsSSE(request);
     const corsHeaders = getCORSHeaders(origin);
     const rateLimitHeaders = await getRateLimitHeaders(request);
@@ -132,6 +140,29 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, { headers: allHeaders });
   } catch (err) {
+    if (err instanceof MCPBodyTooLargeError) {
+      const rateLimitResponse = await checkMCPRateLimit(request);
+      rateLimitChecked = true;
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        Object.entries(getCORSHeaders(origin)).forEach(([key, value]) => headers.set(key, value));
+        return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
+      }
+      return NextResponse.json(
+        { jsonrpc: '2.0', id: null, error: { code: -32600, message: err.message } },
+        { status: 413, headers: getCORSHeaders(origin) }
+      );
+    }
+    // Invalid JSON must still consume quota; otherwise parse errors become a
+    // cheap bypass around the distributed limiter.
+    if (!rateLimitChecked) {
+      const rateLimitResponse = await checkMCPRateLimit(request);
+      if (rateLimitResponse) {
+        const headers = new Headers(rateLimitResponse.headers);
+        Object.entries(getCORSHeaders(origin)).forEach(([key, value]) => headers.set(key, value));
+        return new NextResponse(rateLimitResponse.body, { status: rateLimitResponse.status, headers });
+      }
+    }
     console.error('[mcp] failed to parse JSON-RPC request body', err);
     const errorResponse = { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } };
     const corsHeaders = getCORSHeaders(origin);

@@ -14,20 +14,19 @@ function stripFrontmatter(content: string): string {
 }
 
 export async function getLLMText(page: Page) {
+  // Use the RAW markdown, never 'processed'. getText('processed') runs a per-page
+  // MDX compile (buildMDX + shiki + twoslash) that only fires in prod; the docs
+  // search index builds this over ~1,000+ pages on the first call and blows the
+  // 30s serverless budget (the docs_search 504). Raw is a plain read — no compile.
   let content: string;
   try {
-    content = await (page.data as PageDataWithText).getText('processed');
+    content = stripFrontmatter(await (page.data as PageDataWithText).getText('raw'));
   } catch {
+    // Fallback: read raw MDX from disk and strip frontmatter.
     try {
-      content = await (page.data as PageDataWithText).getText('raw');
+      content = stripFrontmatter(await readFile(page.absolutePath, 'utf-8'));
     } catch {
-      // Fallback: read raw MDX from disk and strip frontmatter
-      try {
-        const raw = await readFile(page.absolutePath, 'utf-8');
-        content = stripFrontmatter(raw);
-      } catch {
-        content = '';
-      }
+      content = '';
     }
   }
 
