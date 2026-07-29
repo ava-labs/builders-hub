@@ -13,8 +13,8 @@ import {
   TxTypePill,
   idInk,
 } from "@/components/explorer-v2/ui";
-import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
-import { usePchainData } from "./hooks";
+import { formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { useAvaxUsd, usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
 import type { Address, AddressTxs } from "@/lib/pchain-explorer";
 
@@ -33,6 +33,8 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
   const base = `/explorer/${network}/${chain}`;
   const { data: a, loading, error } = usePchainData<Address>(network, `address/${addr}`);
   const { data: history } = usePchainData<AddressTxs>(network, `address/${addr}/txs`, { limit: 50 });
+  // mainnet only: Fuji AVAX has no market value to quote
+  const avaxUsd = useAvaxUsd(network === "mainnet");
 
   const totalRaw = a ? Number(a.balance.total) : 0;
   const composition = a
@@ -89,11 +91,23 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
             <section className="flex flex-col gap-4">
               <SectionHeader label="Balance" />
               <Board divide={false} className="flex flex-col gap-5 px-5 py-5 md:px-6">
-                <div className="flex flex-wrap items-baseline gap-2">
-                  <span className="font-mono text-3xl tabular-nums tracking-tight text-zinc-900 md:text-[2.25rem] dark:text-zinc-50">
-                    {formatAvax(a.balance.total, { symbol: false })}
-                  </span>
-                  <span className="font-mono text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-baseline gap-2">
+                    <span className="font-mono text-3xl tabular-nums tracking-tight text-zinc-900 md:text-[2.25rem] dark:text-zinc-50">
+                      {formatAvax(a.balance.total, { symbol: false })}
+                    </span>
+                    <span className="font-mono text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
+                  </div>
+                  {/* the fiat line rides under the hero figure, never replaces
+                      it: AVAX is the ledger unit, USD is the gloss */}
+                  {formatUsd(a.balance.total, avaxUsd) && (
+                    <span className="font-mono text-[13px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                      {formatUsd(a.balance.total, avaxUsd)}
+                      <span className="ml-2 text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                        at ${avaxUsd?.toFixed(2)}/AVAX
+                      </span>
+                    </span>
+                  )}
                 </div>
                 {totalRaw > 0 && (
                   <div className="flex h-2 w-full overflow-hidden" aria-hidden>
@@ -116,7 +130,14 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                         {p.label}
                       </dt>
                       <dd className="flex items-baseline gap-3 text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
-                        {formatAvax(p.raw)}
+                        <span className="flex flex-col items-end">
+                          {formatAvax(p.raw)}
+                          {formatUsd(p.raw, avaxUsd) && (
+                            <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                              {formatUsd(p.raw, avaxUsd)}
+                            </span>
+                          )}
+                        </span>
                         <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
                           {totalRaw > 0 ? `${((p.raw / totalRaw) * 100).toFixed(1)}%` : "—"}
                         </span>
