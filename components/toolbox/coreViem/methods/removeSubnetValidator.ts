@@ -1,4 +1,5 @@
 import type { AvalancheWalletClient } from '@avalanche-sdk/client';
+import { utils } from '@avalabs/avalanchejs';
 
 export type RemoveSubnetValidatorParams = {
   subnetId: string;
@@ -29,8 +30,18 @@ export async function removeSubnetValidator(
     subnetAuth: params.subnetAuth,
   });
 
+  // Core rebuilds the unsigned tx before signing, and it needs the funding
+  // UTXOs to do that. When the request omits them it falls back to Glacier
+  // (`getUtxosByTxFromGlacier`), so a lagging or down P-Chain indexer breaks
+  // signing even though the tx and the node are both fine. The prepare step
+  // already selected the exact UTXOs, so hand them over and keep Core off the
+  // indexer entirely. Core parses this field with `Utxo.fromBytes`, so it wants
+  // serialized UTXO bytes as hex, not UTXO IDs.
+  const codec = utils.getManagerForVM('PVM').getDefaultCodec();
+  const utxoIds = txnRequest.tx.utxos.map((utxo) => utils.bufferToHex(utxo.toBytes(codec)));
+
   // Send the transaction (this will prompt the user to sign)
-  const result = await client.sendXPTransaction(txnRequest);
+  const result = await client.sendXPTransaction({ ...txnRequest, utxoIds });
 
   return result.txHash;
 }
