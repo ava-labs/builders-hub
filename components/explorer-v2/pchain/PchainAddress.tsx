@@ -9,12 +9,11 @@ import {
   DetailSkeleton,
   HashChip,
   SectionHeader,
-  StatCell,
-  StatStrip,
   SubjectHeadline,
   TxTypePill,
   idInk,
 } from "@/components/explorer-v2/ui";
+import { cn } from "@/lib/utils";
 import { formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { useAvaxUsd, usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -45,15 +44,71 @@ const BALANCE_TONES = {
    of them into a box that shows eight. */
 const UTXO_PAGE = 50;
 
-/* The strip's figure type, matching the shared StatFigure scale (which we
-   can't use directly: it count-up animates a Number and would round AVAX
-   to whole units). */
-function Figure({ value, unit }: { value: string; unit?: string }) {
+/* ---- the summary table ----------------------------------------------
+   A real table rather than a grid of stacked cells: one row per metric,
+   with the label, the figure, and its qualifier each in their own aligned
+   column. Balance keeps its prominence through type weight (`lead`)
+   instead of through layout. */
+
+interface MetricRow {
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+  /** the page's headline figure, set larger and bolder than the rest */
+  lead?: boolean;
+}
+
+const TH = "px-5 py-2.5 font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500";
+/* Vertical hairlines only between columns, so the last cell stays open to
+   the board edge and the rules read as a table rather than a set of boxes. */
+const RULE = "border-r border-zinc-200 dark:border-zinc-800";
+
+function MetricTable({ rows }: { rows: MetricRow[] }) {
   return (
-    <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-      {value}
-      {unit && <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>}
-    </span>
+    <Board divide={false} className="overflow-x-auto">
+      <table className="w-full border-collapse text-left">
+        <thead>
+          <tr className="border-b border-zinc-200 dark:border-zinc-800">
+            <th scope="col" className={cn(TH, RULE, "w-[26%]")}>
+              Metric
+            </th>
+            <th scope="col" className={cn(TH, RULE, "w-[34%]")}>
+              Value
+            </th>
+            <th scope="col" className={TH}>
+              Detail
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+          {rows.map((r) => (
+            <tr key={r.label}>
+              <th
+                scope="row"
+                className={cn(
+                  RULE,
+                  "px-5 py-3 align-top font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 md:px-6 dark:text-zinc-400",
+                )}
+              >
+                {r.label}
+              </th>
+              <td
+                className={cn(
+                  RULE,
+                  "px-5 py-3 align-top font-mono tabular-nums tracking-tight text-zinc-900 md:px-6 dark:text-zinc-50",
+                  r.lead ? "text-lg font-bold md:text-xl" : "text-[13px]",
+                )}
+              >
+                {r.value}
+              </td>
+              <td className="px-5 py-3 align-top font-mono text-[11px] tabular-nums text-zinc-400 md:px-6 dark:text-zinc-500">
+                {r.detail}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Board>
   );
 }
 
@@ -79,6 +134,67 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
     : [];
   const usd = a ? formatUsd(a.balance.total, avaxUsd) : undefined;
 
+  // Rows are assembled rather than hand-written so the optional ones (USD off
+  // testnet, provenance on an address the indexer has no funding tx for) drop
+  // out without leaving an empty row behind.
+  const metricRows: MetricRow[] = [];
+  if (a) {
+    metricRows.push({
+      label: "Balance",
+      lead: true,
+      value: (
+        <>
+          {formatAvax(a.balance.total, { symbol: false })}
+          <span className="ml-1.5 text-sm font-normal text-zinc-400 dark:text-zinc-500">AVAX</span>
+        </>
+      ),
+      // lead with whatever is at work rather than with the unlocked share: on
+      // a validator's payout address that reads "0.0% unlocked", which is true
+      // and tells the reader nothing
+      detail:
+        stakedRaw > 0
+          ? `${((stakedRaw / totalRaw) * 100).toFixed(1)}% staked`
+          : lockedRaw > 0
+            ? `${((lockedRaw / totalRaw) * 100).toFixed(1)}% locked`
+            : "all unlocked",
+    });
+    if (usd) {
+      metricRows.push({ label: "In USD", value: usd, detail: `at $${avaxUsd?.toFixed(2)}/AVAX` });
+    }
+    metricRows.push({
+      label: "Unspent UTXOs",
+      value: formatNumber(a.utxoCount),
+      // the API returns the newest 1,000; say so rather than letting the list
+      // below quietly disagree with this count
+      detail: a.utxos.length < a.utxoCount ? `${formatNumber(a.utxos.length)} newest indexed` : undefined,
+    });
+    if (a.fundedBy) {
+      metricRows.push({
+        label: "First funded",
+        value: timeAgo(a.fundedBy.blockTimestamp),
+        detail: (
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {formatAvax(a.fundedBy.amount)}
+            <span aria-hidden>·</span>
+            <HashChip value={a.fundedBy.txHash} href={`${base}/tx/${a.fundedBy.txHash}`} len={16} />
+          </span>
+        ),
+      });
+      if (a.fundedBy.funders.length > 0) {
+        metricRows.push({
+          label: "Funded from",
+          value: (
+            <span className="flex flex-col gap-1">
+              {a.fundedBy.funders.map((f) => (
+                <HashChip key={f} value={f} href={`${base}/address/${f}`} len={18} />
+              ))}
+            </span>
+          ),
+        });
+      }
+    }
+  }
+
   return (
     <ExplorerShell chain={chain} network={network}>
       {loading && <DetailSkeleton label="Address" />}
@@ -91,63 +207,8 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
             <SubjectHeadline value={a.address} copyLabel="Copy address" />
           </section>
 
-          {/* ---------------- the ledger strip ---------------- */}
-          <StatStrip cols={usd ? 4 : 3}>
-            <StatCell
-              label="Balance"
-              sub={
-                // lead with whatever is at work rather than with the unlocked
-                // share: on a validator's payout address that reads "0.0%
-                // unlocked", which is true and tells the reader nothing
-                stakedRaw > 0
-                  ? `${((stakedRaw / totalRaw) * 100).toFixed(1)}% staked`
-                  : lockedRaw > 0
-                    ? `${((lockedRaw / totalRaw) * 100).toFixed(1)}% locked`
-                    : "all unlocked"
-              }
-            >
-              <Figure value={formatAvax(a.balance.total, { symbol: false })} unit="AVAX" />
-            </StatCell>
-            {usd && (
-              <StatCell label="In USD" sub={`at $${avaxUsd?.toFixed(2)}/AVAX`}>
-                <Figure value={usd} />
-              </StatCell>
-            )}
-            <StatCell
-              label="Unspent UTXOs"
-              sub={
-                // the API returns the newest 1,000; say so rather than
-                // letting the list quietly disagree with the count
-                a.utxos.length < a.utxoCount
-                  ? `${formatNumber(a.utxos.length)} newest indexed`
-                  : undefined
-              }
-            >
-              <Figure value={formatNumber(a.utxoCount)} />
-            </StatCell>
-            <StatCell
-              label="First funded"
-              sub={a.fundedBy ? `${formatAvax(a.fundedBy.amount)} · view tx` : undefined}
-              href={a.fundedBy ? `${base}/tx/${a.fundedBy.txHash}` : undefined}
-            >
-              {a.fundedBy ? (
-                <Figure value={timeAgo(a.fundedBy.blockTimestamp).replace(" ago", "")} unit="ago" />
-              ) : (
-                <Figure value="—" />
-              )}
-            </StatCell>
-          </StatStrip>
-
-          {/* provenance as one hairline line, not the five-row plate it was:
-              the funders matter for tracing, but not at plate weight */}
-          {a.fundedBy && a.fundedBy.funders.length > 0 && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              <span className="uppercase tracking-[0.16em]">Funded from</span>
-              {a.fundedBy.funders.map((f) => (
-                <HashChip key={f} value={f} href={`${base}/address/${f}`} len={20} />
-              ))}
-            </div>
-          )}
+          {/* ---------------- the summary table ---------------- */}
+          <MetricTable rows={metricRows} />
 
           {/* balance composition, only when there is a split to show */}
           {isSplit && (
