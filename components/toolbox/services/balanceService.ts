@@ -1,4 +1,5 @@
 import { getPChainBalance, getNativeTokenBalance, getChains } from '../coreViem/utils/glacier';
+import { getPChainUnlockedNAvax } from '../utils/pChainNodeBalance';
 import { avalancheFuji, avalanche } from 'viem/chains';
 import { createPublicClient, http } from 'viem';
 
@@ -158,12 +159,28 @@ class BalanceService {
   }
 
   // P-Chain balance fetching
+  //
+  // The node is the source of truth. Glacier is only a fallback: its P-Chain
+  // indexer can stall (Fuji froze for ~24h on 2026-07-28), and a stale balance
+  // silently blocks users: the wizards gate on `pChainBalance > 0`, and the
+  // header is what a user checks before topping up.
   async fetchPChainBalance(isTestnet: boolean, pChainAddress: string): Promise<number> {
     if (!pChainAddress) return 0;
 
     try {
+      const unlocked = await getPChainUnlockedNAvax(isTestnet, pChainAddress);
+      return Number(unlocked) / 1e9;
+    } catch (nodeError) {
+      console.warn('P-Chain node balance failed, falling back to the indexer:', nodeError);
+    }
+
+    try {
       const network = isTestnet ? 'testnet' : 'mainnet';
       const response = await getPChainBalance(network, pChainAddress);
+      // `unlockedUnstaked` only. Deliberately NOT summing `atomicMemoryUnlocked`:
+      // funds sitting in shared memory need an ImportTx before the P-Chain can
+      // spend them, so counting them here would overstate what's spendable
+      // (this is exactly why Core's number reads high against the node's).
       return Number(response.balances.unlockedUnstaked[0]?.amount || 0) / 1e9;
     } catch (error) {
       console.error('Failed to fetch P-Chain balance:', error);
