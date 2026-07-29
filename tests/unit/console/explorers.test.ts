@@ -12,7 +12,7 @@ describe('getExplorerOptions', () => {
     expect(options.map((o) => o.id)).toEqual(['builder-hub']);
     expect(options[0]).toMatchObject({
       label: 'Builder Hub Explorer',
-      url: '/explorer/12345',
+      url: '/explorer/fuji/12345',
       internal: true,
     });
   });
@@ -26,7 +26,7 @@ describe('getExplorerOptions', () => {
 
     expect(options.map((o) => o.id)).toEqual(['builder-hub', 'subnets', 'snowtrace', 'avascan']);
     expect(options[0]).toMatchObject({
-      url: '/explorer/avalanche-c-chain',
+      url: '/explorer/fuji/avalanche-c-chain',
       internal: true,
     });
     expect(options[1].url).toBe('https://subnets-test.avax.network');
@@ -35,7 +35,7 @@ describe('getExplorerOptions', () => {
   it('uses the c-chain slug for mainnet C-Chain', () => {
     const options = getExplorerOptions({ evmChainId: 43114, isTestnet: false });
     const builderHub = options.find((o) => o.id === 'builder-hub');
-    expect(builderHub?.url).toBe('/explorer/c-chain');
+    expect(builderHub?.url).toBe('/explorer/mainnet/c-chain');
   });
 
   it('includes the configured custom explorer alongside the Builder Hub option', () => {
@@ -48,7 +48,7 @@ describe('getExplorerOptions', () => {
     expect(options.map((o) => o.id)).toEqual(['builder-hub', 'subnets', 'snowtrace', 'custom']);
     expect(options[0]).toMatchObject({
       label: 'Builder Hub Explorer',
-      url: '/explorer/99999',
+      url: '/explorer/mainnet/99999',
     });
     expect(options[3]).toMatchObject({
       label: 'L1 Custom Explorer',

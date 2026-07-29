@@ -8,7 +8,7 @@
 //
 // URL scheme (shared with P-chain, chain-family agnostic):
 //   /explorer/{network}/{chain}/{resource}
-//   network  = mainnet | fuji | devnet
+//   network  = mainnet | fuji
 //   chain    = an L1/C-Chain slug (resolved to a numeric chainId by the layout)
 //   resource = "" (home) | blocks | block/{id} | txs | tx/{hash}
 //              | address/{addr} | address/{addr}/txs | address/{addr}/transfers
