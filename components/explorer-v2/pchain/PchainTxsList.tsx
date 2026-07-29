@@ -7,23 +7,26 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
-import type { TxSummary } from "@/lib/pchain-explorer";
+import { txTypeLabel, type TxSummary } from "@/lib/pchain-explorer";
 
+/* Deliberate order (validator business first, plumbing last), with the
+   display names coming from the shared map so this rail and the one on the
+   address page can't drift apart. */
 const TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "All types" },
-  { value: "AddPermissionlessValidatorTx", label: "Add Validator" },
-  { value: "AddPermissionlessDelegatorTx", label: "Add Delegator" },
-  { value: "RewardValidatorTx", label: "Reward" },
-  { value: "AddAutoRenewedValidatorTx", label: "Add Auto-Renew Validator" },
-  { value: "SetAutoRenewedValidatorConfigTx", label: "Auto-Renew Config" },
-  { value: "RewardAutoRenewedValidatorTx", label: "Auto-Renew Reward" },
-  { value: "ImportTx", label: "Import" },
-  { value: "ExportTx", label: "Export" },
-  { value: "BaseTx", label: "Transfer" },
-  { value: "CreateSubnetTx", label: "Create Subnet" },
-  { value: "CreateChainTx", label: "Create Chain" },
-  { value: "ConvertSubnetToL1Tx", label: "Convert to L1" },
-];
+  "",
+  "AddPermissionlessValidatorTx",
+  "AddPermissionlessDelegatorTx",
+  "RewardValidatorTx",
+  "AddAutoRenewedValidatorTx",
+  "SetAutoRenewedValidatorConfigTx",
+  "RewardAutoRenewedValidatorTx",
+  "ImportTx",
+  "ExportTx",
+  "BaseTx",
+  "CreateSubnetTx",
+  "CreateChainTx",
+  "ConvertSubnetToL1Tx",
+].map((value) => ({ value, label: value ? txTypeLabel(value) : "All types" }));
 
 export function PchainTxsList({ chain, network }: { chain: string; network: string }) {
   const base = `/explorer/${network}/${chain}`;
@@ -77,7 +80,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
                 {truncate(t.txHash, 16)}
               </span>
               <span className="justify-self-start">
-                <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
               </span>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Block</CellLabel>
