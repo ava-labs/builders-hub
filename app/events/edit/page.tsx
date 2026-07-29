@@ -2861,7 +2861,8 @@ const HackathonsEdit = () => {
                     <TooltipContent>{selectedHackathon ? t[language].update : t[language].save}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                {session?.user?.custom_attributes?.includes("devrel") && selectedHackathon !== null && (
+                {(session?.user?.custom_attributes?.includes("devrel") ||
+                  session?.user?.custom_attributes?.includes("team1-admin")) && selectedHackathon !== null && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
