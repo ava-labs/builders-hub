@@ -68,38 +68,25 @@ interface MetricRow {
   lead?: boolean;
 }
 
-const TH = "px-5 py-2.5 font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500";
-/* One vertical hairline, between the two columns: the value column stays
-   open to the board edge so the rules read as a table, not a set of boxes. */
-const RULE = "border-r border-zinc-200 dark:border-zinc-800";
-
 function MetricTable({ rows }: { rows: MetricRow[] }) {
+  /* Label at the left edge, figure at the right, one metric per row, the
+     rule carrying the eye between them. No column headers: on a two-column
+     key/value block "Metric" and "Value" are furniture, and the labels say
+     what they are. Right-aligning the figures is what closes the gap that
+     left-aligned values opened in a 1,390px table. */
   return (
-    <Board divide={false} className="overflow-x-auto">
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b border-zinc-200 dark:border-zinc-800">
-            <th scope="col" className={cn(TH, RULE, "w-[30%] md:w-[22%]")}>
-              Metric
-            </th>
-            <th scope="col" className={TH}>
-              Value
-            </th>
-          </tr>
-        </thead>
+    <Board divide={false}>
+      <table className="w-full border-collapse">
         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
           {rows.map((r) => (
             <tr key={r.label}>
               <th
                 scope="row"
-                className={cn(
-                  RULE,
-                  "px-5 py-3 align-top font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500 md:px-6 dark:text-zinc-400",
-                )}
+                className="px-5 py-3.5 text-left align-baseline font-mono text-[11px] font-medium uppercase tracking-[0.14em] whitespace-nowrap text-zinc-500 md:px-6 dark:text-zinc-400"
               >
                 {r.label}
               </th>
-              <td className="px-5 py-3 align-top md:px-6">
+              <td className="px-5 py-3.5 text-right align-baseline md:px-6">
                 <span
                   className={cn(
                     "block font-mono tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50",
@@ -209,8 +196,11 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
       metricRows.push({
         label: "First funded",
         value: timeAgo(a.fundedBy.blockTimestamp),
+        // justify-end, not text-right: the cell's text alignment does not
+        // reach flex children, which is what left these two rows floating
+        // mid-row while every plain-text value sat flush right
         detail: (
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1">
             {formatAvax(a.fundedBy.amount)}
             <span aria-hidden>·</span>
             <HashChip value={a.fundedBy.txHash} href={`${base}/tx/${a.fundedBy.txHash}`} len={16} />
@@ -221,7 +211,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
         metricRows.push({
           label: "Funded from",
           value: (
-            <span className="flex flex-col gap-1">
+            <span className="flex flex-col items-end gap-1">
               {a.fundedBy.funders.map((f) => (
                 <HashChip key={f} value={f} href={`${base}/address/${f}`} len={18} />
               ))}
@@ -307,9 +297,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                 ) : undefined
               }
             />
-            {/* a single-type address needs no filter, and one chip reading
-                "All types" next to one reading "Export" is just furniture */}
-            {typeOptions.length > 2 && (
+            {txs.length > 0 && (
               <TypeFilterRail options={typeOptions} value={txType} onChange={setTxType} />
             )}
             {/* no internal scroll: the old max-height box clipped a half row
@@ -331,7 +319,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                   >
                     <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 20)}</span>
                     <span className="justify-self-start">
-                      <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                      <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
                     </span>
                     <div
                       className={`font-mono text-[11px] tabular-nums md:text-right ${
