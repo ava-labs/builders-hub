@@ -78,6 +78,12 @@ const config = {
   },
   async redirects() {
     return [
+      // ── Console: performance monitor replaced by the monitoring setup tool ──
+      {
+        source: '/console/layer-1/performance-monitor',
+        destination: '/console/layer-1/monitoring-setup',
+        permanent: true,
+      },
       // ── Explorer: legacy chain-first URLs → network-first scheme ──
       // /explorer/{slug}/tx|block|address/... predate the [network] segment;
       // the slug can't be a network name (or the chains directory), so the

@@ -353,9 +353,9 @@ const TOOLS_RAW: ToolCard[] = [
     icon: Telescope,
   },
   {
-    name: 'Performance Monitor',
-    description: 'Monitor your L1 node performance and health.',
-    path: '/console/layer-1/performance-monitor',
+    name: 'Monitoring Setup',
+    description: 'Stand up Prometheus + Grafana dashboards for your nodes via Terraform, Kubernetes, or Docker.',
+    path: '/console/layer-1/monitoring-setup',
     category: 'L1 Management',
     icon: Activity,
   },
