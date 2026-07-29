@@ -478,10 +478,13 @@ export default function ToolboxBoard() {
                       The heading is a self-anchor: clicking it puts the section's
                       deep link in the address bar for copying. */}
                   <div className="mb-4 flex items-center gap-3">
-                    <a href={`#${categoryAnchor(category)}`} className="group/anchor inline-flex items-center gap-1.5">
+                    <Link
+                      href={`#${categoryAnchor(category)}`}
+                      className="group/anchor inline-flex items-center gap-1.5"
+                    >
                       <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{category}</h2>
                       <LinkIcon className="h-3 w-3 text-zinc-400 opacity-0 transition-opacity group-hover/anchor:opacity-100 dark:text-zinc-500" />
-                    </a>
+                    </Link>
                     <div className="h-px flex-1 bg-zinc-200/80 dark:bg-zinc-800" />
                     <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
                       {tools.length} {tools.length === 1 ? 'tool' : 'tools'}
