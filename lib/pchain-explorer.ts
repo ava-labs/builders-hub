@@ -368,6 +368,42 @@ export interface NodeResponse {
   nodeInfo?: { version: string; publicIp: string; benched: string[]; observedUptime: number };
 }
 
+/* Completed validation periods come from the Data API, not the explorer API
+   (whose node document caps `history` at 100 recent staking txs, which on a
+   busy validator are all delegator additions). Served by
+   app/api/pchain-validations/[network]/[nodeId]. */
+
+export interface ValidationPeriod {
+  txHash: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  amountStaked: string;
+  delegationFeePercent: number;
+  delegatorCount: number;
+  amountDelegated: string;
+  /** nAVAX actually paid for the validator's own stake */
+  validationReward: string;
+  /** nAVAX actually paid out of the delegators' rewards as this node's fee */
+  delegationReward: string;
+  rewardTxHash?: string;
+  /** a term that closed without paying missed the uptime requirement */
+  rewarded: boolean;
+}
+
+export interface ValidationsResponse {
+  nodeId: string;
+  periods: ValidationPeriod[];
+  totals: {
+    periods: number;
+    validationReward: string;
+    delegationReward: string;
+    /** start of the earliest term on record: "validating since" */
+    firstStart: number | null;
+    /** terms that closed without a reward */
+    unrewarded: number;
+  };
+}
+
 export interface ValidatorSummary {
   nodeId: string;
   subnetId: string;

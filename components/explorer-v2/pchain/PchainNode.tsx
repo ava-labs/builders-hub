@@ -15,6 +15,7 @@ import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
   Board,
   BoardHeader,
+  CellLabel,
   DetailSkeleton,
   HashChip,
   SectionHeader,
@@ -33,7 +34,7 @@ import {
   getPrimaryTotalStake,
   type CurrentValidator,
 } from "@/lib/pchain-node";
-import type { NodeResponse } from "@/lib/pchain-explorer";
+import type { NodeResponse, ValidationsResponse } from "@/lib/pchain-explorer";
 
 /* The node page as one instrument, not an endless scroll: a bold summary
    strip, then two split views — what the validator IS (the spec plate)
@@ -64,6 +65,29 @@ function useP2PDetail(nodeId: string, enabled: boolean) {
       .catch(() => {});
     return () => controller.abort();
   }, [nodeId, enabled]);
+  return data;
+}
+
+/* --- the track record: past validation terms and what they paid --- */
+
+/* The node document's `history` cannot answer this. Upstream caps it at 100
+   recent staking txs and honours no filter, so on a validator with thousands
+   of delegators every row is a delegator addition and the node's own past
+   terms fall off the end. The Data API indexes the terms themselves. */
+function useValidationHistory(network: string, nodeId: string): ValidationsResponse | null {
+  const [data, setData] = useState<ValidationsResponse | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`/api/pchain-validations/${network}/${encodeURIComponent(nodeId)}`, {
+      signal: controller.signal,
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: ValidationsResponse | null) => d?.periods && setData(d))
+      .catch(() => {
+        /* a node with no closed terms just doesn't get the section */
+      });
+    return () => controller.abort();
+  }, [network, nodeId]);
   return data;
 }
 
@@ -115,6 +139,9 @@ export function PchainNode({
   const p2p = useP2PDetail(nodeId, network === "mainnet" && Boolean(n?.hasSnapshot));
   // payout owners + BLS identity + the network-share denominator, live
   const { identity, networkStake } = useStakeContext(network, nodeId, Boolean(n?.hasSnapshot));
+  // past terms: asked for unconditionally, since the nodes where the track
+  // record matters most are the ones no longer in the current snapshot
+  const validations = useValidationHistory(network, nodeId);
 
   // the stake story, derived once: share of the network, delegation
   // headroom, the validator's total take, how far through the term it is
@@ -369,6 +396,14 @@ export function PchainNode({
                 uptime requirement. Delegator rewards are shown gross; the fee comes out at payout.
               </p>
             </section>
+          )}
+
+          {/* the track record, next to the projection above it: every closed
+              term and what it actually paid. This is the question a delegator
+              is really asking before committing stake, and the one the
+              rebuilt page had lost. */}
+          {validations && validations.periods.length > 0 && (
+            <ValidationHistory data={validations} base={base} />
           )}
 
           {/* split view: what it IS | how it's PERFORMING */}
@@ -673,7 +708,10 @@ export function PchainNode({
 
             {n.history.length > 0 && (
               <section className="flex min-w-0 flex-col gap-4">
-                <SectionHeader label={`History · ${n.history.length}`} />
+                {/* not the validation record (that's Past Validation Terms
+                    above): this is the raw recent staking-tx feed, which on a
+                    busy validator is all delegator additions */}
+                <SectionHeader label={`Recent staking activity · ${n.history.length}`} />
                 <Board>
                   {(showAllHistory ? n.history : n.history.slice(0, LIST_CAP)).map((h) => (
                     <Link
@@ -706,6 +744,146 @@ export function PchainNode({
         </div>
       )}
     </ExplorerShell>
+  );
+}
+
+/* Past validation terms: the node's track record.
+ *
+ * Deliberately shows rewards PAID rather than a historical uptime figure. The
+ * Data API keeps no per-period uptime, and inventing one would be worse than
+ * omitting it: a term only pays out when the node met the uptime requirement,
+ * so the payout already answers "did it do the job". An unrewarded term is
+ * called out in red, since that is the one row a delegator must not miss.
+ */
+function ValidationHistory({ data, base }: { data: ValidationsResponse; base: string }) {
+  const [showAll, setShowAll] = useState(false);
+  const { periods, totals } = data;
+  const lifetimeReward = BigInt(totals.validationReward) + BigInt(totals.delegationReward);
+  // delegations, not people: the same delegator re-staking across two terms
+  // counts twice, which is the honest reading of "how much work has this node
+  // taken on" rather than a unique-holder count the API can't give us
+  const delegationsServed = periods.reduce((s, p) => s + p.delegatorCount, 0);
+  const rows = showAll ? periods : periods.slice(0, LIST_CAP);
+
+  return (
+    <section className="flex flex-col gap-3">
+      <Board divide={false} className="border">
+        <BoardHeader
+          label="Past Validation Terms"
+          display
+          action={
+            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+              {formatNumber(totals.periods)} completed
+              {totals.unrewarded > 0 && (
+                <span className="text-[#E6212F]"> · {formatNumber(totals.unrewarded)} unrewarded</span>
+              )}
+            </span>
+          }
+        />
+        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+          <Tile
+            label="Validating since"
+            value={totals.firstStart ? formatTime(totals.firstStart).slice(0, 10) : "—"}
+            sub={
+              totals.firstStart
+                ? `${formatNumber(Math.floor((Date.now() / 1000 - totals.firstStart) / 86400))} days on record`
+                : undefined
+            }
+          />
+          <Tile label="Terms completed" value={formatNumber(totals.periods)} />
+          <Tile
+            label="Rewards earned"
+            value={formatAvax(lifetimeReward.toString(), { compact: true })}
+            strong
+            tone="good"
+            sub="own stake plus fee take"
+          />
+          {/* Deliberately not a "terms unrewarded" tile: across 200 sampled
+              mainnet terms from 2020 to 2026 the Data API has never returned a
+              completed term with a zero reward, so that figure would read 0
+              forever. The count is called out in the header instead, on the
+              only occasion it means anything. */}
+          <Tile
+            label="Delegations served"
+            value={formatNumber(delegationsServed)}
+            sub="across every term"
+          />
+        </div>
+        <div className="sticky top-0 z-10 hidden grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr] gap-4 border-t border-zinc-200 bg-white px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-500">
+          <span>Term</span>
+          <span className="text-right">Days</span>
+          <span className="text-right">Stake</span>
+          <span className="text-right">Delegators</span>
+          <span className="text-right">Reward paid</span>
+        </div>
+        <div className="divide-y divide-zinc-200 border-t border-zinc-200 md:border-t-0 dark:divide-zinc-800 dark:border-zinc-800">
+          {rows.map((p) => {
+            const days = Math.round((p.endTimestamp - p.startTimestamp) / 86400);
+            const paid = BigInt(p.validationReward) + BigInt(p.delegationReward);
+            return (
+              <div
+                key={p.txHash}
+                className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr] md:items-center md:px-6"
+              >
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="font-mono text-[11.5px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                    {formatTime(p.startTimestamp).slice(0, 10)} → {formatTime(p.endTimestamp).slice(0, 10)}
+                  </span>
+                  <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                    ended {timeAgo(p.endTimestamp)}
+                  </span>
+                </div>
+                <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Days</CellLabel>
+                  {formatNumber(days)}
+                </div>
+                <div className="font-mono text-[11px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-100">
+                  <CellLabel>Stake</CellLabel>
+                  {formatAvax(p.amountStaked, { compact: true })}
+                </div>
+                <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <CellLabel>Delegators</CellLabel>
+                  {formatNumber(p.delegatorCount)}
+                </div>
+                <div className="font-mono text-[11px] tabular-nums md:text-right">
+                  <CellLabel>Reward paid</CellLabel>
+                  {p.rewarded ? (
+                    // the reward tx is the receipt; pre-Banff payouts have none
+                    p.rewardTxHash ? (
+                      <Link
+                        href={`${base}/tx/${p.rewardTxHash}`}
+                        className="text-emerald-600 hover:underline dark:text-emerald-400"
+                      >
+                        +{formatAvax(paid.toString(), { compact: true })}
+                      </Link>
+                    ) : (
+                      <span className="text-emerald-600 dark:text-emerald-400">
+                        +{formatAvax(paid.toString(), { compact: true })}
+                      </span>
+                    )
+                  ) : (
+                    <span className="text-[#E6212F]">no reward</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {periods.length > LIST_CAP && (
+          <ExpandRow
+            expanded={showAll}
+            count={periods.length - LIST_CAP}
+            onClick={() => setShowAll((v) => !v)}
+          />
+        )}
+      </Board>
+      <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+        Every staking term this node has completed, with the reward it was actually paid. A term pays
+        out only if the node met the uptime requirement over that term, so a paid term is a term the
+        node saw through. Per-term uptime itself is not retained once a term closes; the live figures
+        above cover the current one.
+      </p>
+    </section>
   );
 }
 
