@@ -10,9 +10,10 @@ import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
 export const dynamic = "force-dynamic";
 
 const REQUEST_TIMEOUT_MS = 8000;
-// Live data (lists, stats, addresses) refreshes ~30s upstream; a short shared
-// cache + SWR keeps the origin light without going stale.
-const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=60";
+// Live data (lists, stats, addresses) refreshes ~30s upstream and the origin
+// bounds its own staleness (sync refresh on cold cache variants), so keep SWR
+// short — a long window here re-serves upstream's stale body past its cure.
+const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=15";
 // tx/{id} and block/{id} are final at acceptance — once the upstream returns a
 // 200 the payload never changes, so cache hard and spare the origin box (its
 // per-tx queries scan tens of millions of rows; see 2026-07-21 CH diagnosis).
