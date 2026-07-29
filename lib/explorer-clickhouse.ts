@@ -327,7 +327,6 @@ export async function getDailyTxsByChain(): Promise<
 const PCHAIN_NETWORK_IDS: Record<string, number> = {
   mainnet: 1,
   fuji: 5,
-  devnet: 0,
 };
 
 export interface PchainRewardPoint {

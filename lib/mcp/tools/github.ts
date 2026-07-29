@@ -295,6 +295,14 @@ async function searchCode(params: SearchCodeParams) {
 }
 
 function mapGithubError(status: number, details: string) {
+  if (status === 401) {
+    return {
+      total_count: 0,
+      items: [],
+      error: 'GitHub code search is unauthenticated (401). The server GITHUB_TOKEN is missing or invalid.',
+      suggestion: 'Set a valid GITHUB_TOKEN env var on the MCP deployment — /search/code requires authentication.',
+    };
+  }
   if (status === 408) {
     return {
       total_count: 0,
