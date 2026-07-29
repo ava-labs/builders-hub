@@ -31,7 +31,7 @@ import { formatAvax, formatNumber, timeAgo, truncate } from "@/components/explor
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import type { Stats, TxSummary, BlockSummary } from "@/lib/pchain-explorer";
+import { txTypeLabel, type Stats, type TxSummary, type BlockSummary } from "@/lib/pchain-explorer";
 
 /* The /api/pchain-activity contract: staking money-flow, not tx counts.
    Rewards paid ride red (stake moving = the chain alive); stake about to
@@ -511,7 +511,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                       {truncate(t.txHash, 22)}
                     </span>
                     <span className="min-w-0 text-left">
-                      <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                      <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {timeAgo(t.blockTimestamp)}

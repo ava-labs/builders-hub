@@ -588,7 +588,20 @@ function pillTone(type: string): keyof typeof PILL_TONES {
   return "neutral";
 }
 
-export function TxTypePill({ type, className }: { type: string; className?: string }) {
+export function TxTypePill({
+  type,
+  label,
+  className,
+}: {
+  /** the raw type: what the tone is derived from */
+  type: string;
+  /** friendly display text; defaults to `type`. Kept separate because
+   *  `pillTone` matches on substrings of the raw type, so rendering a label
+   *  through `type` would silently retone some pills (a "Auto-Renew Config"
+   *  label loses the "validator" that puts it in the stake family). */
+  label?: string;
+  className?: string;
+}) {
   const tone = pillTone(type);
   return (
     <span
@@ -599,7 +612,7 @@ export function TxTypePill({ type, className }: { type: string; className?: stri
       )}
     >
       <span className="size-1 shrink-0 bg-current opacity-80" aria-hidden />
-      <span className="truncate">{type}</span>
+      <span className="truncate">{label ?? type}</span>
     </span>
   );
 }

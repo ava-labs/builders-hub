@@ -6,7 +6,7 @@ import { Board, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, Sub
 import { formatBytes, formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
-import type { Block } from "@/lib/pchain-explorer";
+import { txTypeLabel, type Block } from "@/lib/pchain-explorer";
 
 export function PchainBlock({ chain, network, id }: { chain: string; network: string; id: string }) {
   const base = `/explorer/${network}/${chain}`;
@@ -69,7 +69,7 @@ export function PchainBlock({ chain, network, id }: { chain: string; network: st
                   <span className={`min-w-0 truncate font-mono text-[12px] ${idInk}`}>
                     {t.txHash}
                   </span>
-                  <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                  <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
                 </Link>
               ))}
             </Board>

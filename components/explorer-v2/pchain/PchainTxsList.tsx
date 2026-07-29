@@ -80,7 +80,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
                 {truncate(t.txHash, 16)}
               </span>
               <span className="justify-self-start">
-                <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
               </span>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Block</CellLabel>
