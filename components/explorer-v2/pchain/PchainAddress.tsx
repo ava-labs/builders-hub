@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
@@ -11,13 +11,14 @@ import {
   SectionHeader,
   SubjectHeadline,
   TxTypePill,
+  TypeFilterRail,
   idInk,
 } from "@/components/explorer-v2/ui";
 import { cn } from "@/lib/utils";
 import { formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { useAvaxUsd, usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
-import type { Address, AddressTxs } from "@/lib/pchain-explorer";
+import { txTypeLabel, type Address, type AddressTxs } from "@/lib/pchain-explorer";
 
 /* Address view: subject, then figures, then activity.
  *
@@ -44,23 +45,32 @@ const BALANCE_TONES = {
    of them into a box that shows eight. */
 const UTXO_PAGE = 50;
 
+/* Transaction paging. The type filter runs client-side because the address
+   txs endpoint ignores a `type` param (unlike the /txs list endpoint), so
+   the filter can only see what has been loaded, and the UI says so.
+   TX_MAX is the API's own ceiling: it clamps `limit` to 200. */
+const TX_PAGE = 50;
+const TX_MAX = 200;
+
 /* ---- the summary table ----------------------------------------------
-   A real table rather than a grid of stacked cells: one row per metric,
-   with the label, the figure, and its qualifier each in their own aligned
-   column. Balance keeps its prominence through type weight (`lead`)
-   instead of through layout. */
+   A real table rather than a grid of stacked cells: labels in their own
+   aligned column, figures in theirs. Two columns only. A third "detail"
+   column earned a header and a rule for what is only ever a short
+   qualifier, so the qualifier rides under its own figure instead.
+   Balance keeps its prominence through type weight (`lead`), not layout. */
 
 interface MetricRow {
   label: string;
   value: React.ReactNode;
+  /** muted qualifier under the figure: a share, a rate, a source */
   detail?: React.ReactNode;
   /** the page's headline figure, set larger and bolder than the rest */
   lead?: boolean;
 }
 
 const TH = "px-5 py-2.5 font-mono text-[10px] font-normal uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500";
-/* Vertical hairlines only between columns, so the last cell stays open to
-   the board edge and the rules read as a table rather than a set of boxes. */
+/* One vertical hairline, between the two columns: the value column stays
+   open to the board edge so the rules read as a table, not a set of boxes. */
 const RULE = "border-r border-zinc-200 dark:border-zinc-800";
 
 function MetricTable({ rows }: { rows: MetricRow[] }) {
@@ -69,14 +79,11 @@ function MetricTable({ rows }: { rows: MetricRow[] }) {
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="border-b border-zinc-200 dark:border-zinc-800">
-            <th scope="col" className={cn(TH, RULE, "w-[26%]")}>
+            <th scope="col" className={cn(TH, RULE, "w-[30%] md:w-[22%]")}>
               Metric
             </th>
-            <th scope="col" className={cn(TH, RULE, "w-[34%]")}>
-              Value
-            </th>
             <th scope="col" className={TH}>
-              Detail
+              Value
             </th>
           </tr>
         </thead>
@@ -92,17 +99,20 @@ function MetricTable({ rows }: { rows: MetricRow[] }) {
               >
                 {r.label}
               </th>
-              <td
-                className={cn(
-                  RULE,
-                  "px-5 py-3 align-top font-mono tabular-nums tracking-tight text-zinc-900 md:px-6 dark:text-zinc-50",
-                  r.lead ? "text-lg font-bold md:text-xl" : "text-[13px]",
+              <td className="px-5 py-3 align-top md:px-6">
+                <span
+                  className={cn(
+                    "block font-mono tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50",
+                    r.lead ? "text-lg font-bold md:text-xl" : "text-[13px]",
+                  )}
+                >
+                  {r.value}
+                </span>
+                {r.detail != null && (
+                  <span className="mt-1 block font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                    {r.detail}
+                  </span>
                 )}
-              >
-                {r.value}
-              </td>
-              <td className="px-5 py-3 align-top font-mono text-[11px] tabular-nums text-zinc-400 md:px-6 dark:text-zinc-500">
-                {r.detail}
               </td>
             </tr>
           ))}
@@ -115,10 +125,37 @@ function MetricTable({ rows }: { rows: MetricRow[] }) {
 export function PchainAddress({ chain, network, addr }: { chain: string; network: string; addr: string }) {
   const base = `/explorer/${network}/${chain}`;
   const { data: a, loading, error } = usePchainData<Address>(network, `address/${addr}`);
-  const { data: history } = usePchainData<AddressTxs>(network, `address/${addr}/txs`, { limit: 50 });
+  const [txLimit, setTxLimit] = useState(TX_PAGE);
+  const { data: history, loading: txsLoading } = usePchainData<AddressTxs>(
+    network,
+    `address/${addr}/txs`,
+    { limit: txLimit },
+  );
   // mainnet only: Fuji AVAX has no market value to quote
   const avaxUsd = useAvaxUsd(network === "mainnet");
   const [utxoLimit, setUtxoLimit] = useState(UTXO_PAGE);
+  const [txType, setTxType] = useState("");
+
+  const txs = history?.txs ?? [];
+
+  /* Filter options are derived from what this address has actually done,
+     not from the global list of P-Chain tx types. Offering "Create Chain"
+     on an exchange hot wallet that has only ever exported is a chip that
+     can only ever return nothing. Counts ride in the label. */
+  const typeOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of txs) counts.set(t.txType, (counts.get(t.txType) ?? 0) + 1);
+    return [
+      { value: "", label: `All types ${txs.length}` },
+      ...[...counts.entries()]
+        .sort((x, y) => y[1] - x[1])
+        .map(([v, n]) => ({ value: v, label: `${txTypeLabel(v)} ${n}` })),
+    ];
+  }, [txs]);
+
+  const shownTxs = txType ? txs.filter((t) => t.txType === txType) : txs;
+  // more to fetch, and headroom under the API's 200-row ceiling
+  const canLoadMore = Boolean(history?.truncated) && txLimit < TX_MAX;
 
   const totalRaw = a ? Number(a.balance.total) : 0;
   const lockedRaw = a ? Number(a.balance.locked) : 0;
@@ -258,18 +295,33 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
           {/* ---------------- activity, full width ---------------- */}
           <section className="flex flex-col gap-4">
             <SectionHeader
-              label={`Transactions${history ? ` · ${history.txs.length}${history.truncated ? "+" : ""}` : ""}`}
+              label={`Transactions${history ? ` · ${shownTxs.length}${!txType && history.truncated ? "+" : ""}` : ""}`}
+              action={
+                txType ? (
+                  <button
+                    onClick={() => setTxType("")}
+                    className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
+                  >
+                    Clear filter ✕
+                  </button>
+                ) : undefined
+              }
             />
+            {/* a single-type address needs no filter, and one chip reading
+                "All types" next to one reading "Export" is just furniture */}
+            {typeOptions.length > 2 && (
+              <TypeFilterRail options={typeOptions} value={txType} onChange={setTxType} />
+            )}
             {/* no internal scroll: the old max-height box clipped a half row
                 at its top edge under the sticky header, which read as broken */}
-            <Board>
+            <Board className={cn(txsLoading && txs.length > 0 && "opacity-60 transition-opacity")}>
               <div className="hidden grid-cols-[2.2fr_1fr_1fr_0.8fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
                 <span>Hash</span>
                 <span>Type</span>
                 <span className="text-right">Net</span>
                 <span className="text-right">Age</span>
               </div>
-              {(history?.txs ?? []).map((t) => {
+              {shownTxs.map((t) => {
                 const net = Number(t.net);
                 return (
                   <Link
@@ -304,12 +356,33 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                   </Link>
                 );
               })}
-              {history && history.txs.length === 0 && (
+              {history && shownTxs.length === 0 && (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  no transactions
+                  {txType
+                    ? `no ${txTypeLabel(txType)} transactions among the ${formatNumber(txs.length)} loaded`
+                    : "no transactions"}
                 </div>
               )}
             </Board>
+            {/* The filter is client-side, so "42 Export" means 42 of the rows
+                loaded so far, not of the address's whole history. Say that
+                plainly rather than letting a filtered count read as a total. */}
+            {history?.truncated && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {canLoadMore && (
+                  <button
+                    onClick={() => setTxLimit((n) => Math.min(TX_MAX, n + TX_PAGE))}
+                    className="border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+                  >
+                    Load more
+                  </button>
+                )}
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                  {txType ? "filtering the" : "showing the"} newest {formatNumber(txs.length)}
+                  {!canLoadMore && ", the most this endpoint returns"}
+                </span>
+              </div>
+            )}
           </section>
 
           <section className="flex flex-col gap-4">

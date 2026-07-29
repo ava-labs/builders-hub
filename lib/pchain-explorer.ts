@@ -294,6 +294,37 @@ export interface Address {
   utxos: AddressUtxo[];
 }
 
+/* Display names for P-Chain tx types, shared by every surface that offers a
+   type filter so the chip on the list page and the chip on an address page
+   can't drift apart. Keys are the raw `txType` the API returns. */
+export const TX_TYPE_LABELS: Record<string, string> = {
+  AddPermissionlessValidatorTx: "Add Validator",
+  AddPermissionlessDelegatorTx: "Add Delegator",
+  AddValidatorTx: "Add Validator (legacy)",
+  AddDelegatorTx: "Add Delegator (legacy)",
+  AddSubnetValidatorTx: "Add Subnet Validator",
+  RemoveSubnetValidatorTx: "Remove Subnet Validator",
+  RewardValidatorTx: "Reward",
+  AddAutoRenewedValidatorTx: "Add Auto-Renew Validator",
+  SetAutoRenewedValidatorConfigTx: "Auto-Renew Config",
+  RewardAutoRenewedValidatorTx: "Auto-Renew Reward",
+  ImportTx: "Import",
+  ExportTx: "Export",
+  BaseTx: "Transfer",
+  CreateSubnetTx: "Create Subnet",
+  CreateChainTx: "Create Chain",
+  ConvertSubnetToL1Tx: "Convert to L1",
+  RegisterL1ValidatorTx: "Register L1 Validator",
+  SetL1ValidatorWeightTx: "Set L1 Validator Weight",
+  IncreaseL1ValidatorBalanceTx: "Increase L1 Balance",
+  DisableL1ValidatorTx: "Disable L1 Validator",
+};
+
+/** Display name for a tx type, falling back to the raw type minus its `Tx`. */
+export function txTypeLabel(txType: string): string {
+  return TX_TYPE_LABELS[txType] ?? txType.replace(/Tx$/, "");
+}
+
 export interface AddressTx {
   txHash: string;
   txType: string;
