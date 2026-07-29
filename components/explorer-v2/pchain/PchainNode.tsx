@@ -34,7 +34,7 @@ import {
   getPrimaryTotalStake,
   type CurrentValidator,
 } from "@/lib/pchain-node";
-import type { NodeResponse, ValidationsResponse } from "@/lib/pchain-explorer";
+import { txTypeLabel, type NodeResponse, type ValidationsResponse } from "@/lib/pchain-explorer";
 
 /* The node page as one instrument, not an endless scroll: a bold summary
    strip, then two split views — what the validator IS (the spec plate)
@@ -364,37 +364,11 @@ export function PchainNode({
                     sub="gross minus the fee"
                   />
                 </div>
-                {/* where the validator's take comes from, as one bar */}
-                {stake.totalTake > 0 && (
-                  <div className="flex flex-col gap-2 border-t border-zinc-200 px-5 py-4 md:px-6 dark:border-zinc-800">
-                    <div className="flex h-2 w-full overflow-hidden">
-                      <div
-                        className="bg-zinc-900 dark:bg-zinc-100"
-                        style={{ width: `${(n.validator.potentialReward / stake.totalTake) * 100}%` }}
-                      />
-                      <div className="flex-1 bg-[#E6212F]" />
-                    </div>
-                    <div className="flex justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      <span>
-                        ■ own stake{" "}
-                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                          {((n.validator.potentialReward / stake.totalTake) * 100).toFixed(1)}%
-                        </span>
-                      </span>
-                      <span>
-                        delegation fees{" "}
-                        <span className="font-bold text-[#E6212F]">
-                          {((stake.feeTake / stake.totalTake) * 100).toFixed(1)}%
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* No own-stake-vs-fees split bar here. On any validator whose
+                    own stake dominates it renders as a solid block reading
+                    "99.8% / 0.2%", which is arithmetic the two tiles above
+                    already state and not a number anyone acts on. */}
               </Board>
-              <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                Projected payouts at the end of the term, assuming the validator keeps meeting the
-                uptime requirement. Delegator rewards are shown gross; the fee comes out at payout.
-              </p>
             </section>
           )}
 
@@ -528,26 +502,36 @@ export function PchainNode({
                   ) : (
                     <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Not enough samples</p>
                   )}
-                  {n.uptime.sampleCount > 0 && (
-                    <div className="grid grid-cols-5 gap-4">
-                      {[
-                        { l: "MIN", v: n.uptime.min },
-                        { l: "AVG", v: n.uptime.avg },
-                        { l: "P50", v: n.uptime.p50 },
-                        { l: "P95", v: n.uptime.p95 },
-                        { l: "MAX", v: n.uptime.max },
-                      ].map((s) => (
-                        <div key={s.l} className="flex flex-col gap-1">
-                          <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                            {s.l}
-                          </span>
-                          <span className="font-mono text-[13px] font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {s.v.toFixed(1)}%
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* A five-across MIN/AVG/P50/P95/MAX strip is five copies of
+                      the same number on any healthy validator. Show the spread
+                      only when there is one; otherwise one figure says it. */}
+                  {n.uptime.sampleCount > 0 &&
+                    (n.uptime.max - n.uptime.min < 0.1 ? (
+                      <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                          {n.uptime.avg.toFixed(1)}%
+                        </span>{" "}
+                        flat across {formatNumber(n.uptime.sampleCount)} samples
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-4">
+                        {[
+                          { l: "MIN", v: n.uptime.min },
+                          { l: "AVG", v: n.uptime.avg },
+                          { l: "P95", v: n.uptime.p95 },
+                          { l: "MAX", v: n.uptime.max },
+                        ].map((s) => (
+                          <div key={s.l} className="flex flex-col gap-1">
+                            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                              {s.l}
+                            </span>
+                            <span className="font-mono text-[13px] font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+                              {s.v.toFixed(1)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
 
                   {/* block production, proposed vs missed */}
                   {blocksSeries.length > 1 && (
@@ -594,7 +578,10 @@ export function PchainNode({
                     </div>
                   )}
 
-                  {/* proposal timing: how often it lands its first slot */}
+                  {/* Proposal timing. A three-segment bar is worth drawing only
+                      when the node actually misses its first slot; at 99.9%
+                      slot 0 it is a solid block with a legend under it, so the
+                      healthy case gets one line instead. */}
                   {slots && (
                     <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                       <div className="flex items-center justify-between">
@@ -602,31 +589,43 @@ export function PchainNode({
                           Proposal timing
                         </span>
                         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                          slot 0 <span className="font-bold text-zinc-900 dark:text-zinc-100">{((slots.slot0 / slots.total) * 100).toFixed(1)}%</span>
+                          slot 0{" "}
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                            {((slots.slot0 / slots.total) * 100).toFixed(1)}%
+                          </span>
                         </span>
                       </div>
-                      <div className="flex h-2 w-full overflow-hidden">
-                        <div
-                          className="bg-zinc-900 dark:bg-zinc-100"
-                          style={{ width: `${(slots.slot0 / slots.total) * 100}%` }}
-                          title={`Slot 0 · ${formatNumber(slots.slot0)}`}
-                        />
-                        <div
-                          className="bg-[#A2AFB2]"
-                          style={{ width: `${(slots.slot1 / slots.total) * 100}%` }}
-                          title={`Slot 1 · ${formatNumber(slots.slot1)}`}
-                        />
-                        <div
-                          className="bg-[#E6212F]"
-                          style={{ width: `${(slots.slot2plus / slots.total) * 100}%` }}
-                          title={`Slot 2+ · ${formatNumber(slots.slot2plus)}`}
-                        />
-                      </div>
-                      <div className="flex gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                        <span>■ slot 0 first try</span>
-                        <span>slot 1</span>
-                        <span className="text-[#E6212F]">slot 2+</span>
-                      </div>
+                      {slots.slot0 / slots.total < 0.95 ? (
+                        <>
+                          <div className="flex h-2 w-full overflow-hidden">
+                            <div
+                              className="bg-zinc-900 dark:bg-zinc-100"
+                              style={{ width: `${(slots.slot0 / slots.total) * 100}%` }}
+                              title={`Slot 0 · ${formatNumber(slots.slot0)}`}
+                            />
+                            <div
+                              className="bg-[#A2AFB2]"
+                              style={{ width: `${(slots.slot1 / slots.total) * 100}%` }}
+                              title={`Slot 1 · ${formatNumber(slots.slot1)}`}
+                            />
+                            <div
+                              className="bg-[#E6212F]"
+                              style={{ width: `${(slots.slot2plus / slots.total) * 100}%` }}
+                              title={`Slot 2+ · ${formatNumber(slots.slot2plus)}`}
+                            />
+                          </div>
+                          <div className="flex gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                            <span>■ slot 0 first try</span>
+                            <span>slot 1</span>
+                            <span className="text-[#E6212F]">slot 2+</span>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+                          lands its first slot on {formatNumber(slots.slot0)} of{" "}
+                          {formatNumber(slots.total)} proposals
+                        </p>
+                      )}
                     </div>
                   )}
                 </Board>
@@ -723,7 +722,7 @@ export function PchainNode({
                         <span className={`truncate font-mono text-[12px] ${idInk}`}>
                           {truncate(h.txHash, 16)}
                         </span>
-                        <TxTypePill type={h.txType.replace(/Tx$/, "")} />
+                        <TxTypePill type={h.txType} label={txTypeLabel(h.txType)} />
                       </div>
                       <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                         {timeAgo(h.blockTimestamp)}
@@ -780,7 +779,14 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
             </span>
           }
         />
-        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
+        {/* Two tiles, not four. "Terms completed" restated the header chip and
+            the row count below it; "Delegations served" was the weakest figure
+            on the page. Both survivors say something the table does not.
+            (Also deliberately no "terms unrewarded" tile: across 200 sampled
+            mainnet terms from 2020 to 2026 the Data API has never returned a
+            completed term with a zero reward, so it would read 0 forever. The
+            count is in the header, on the only occasion it means anything.) */}
+        <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-2 sm:divide-y-0 sm:divide-x dark:divide-zinc-800">
           <Tile
             label="Validating since"
             value={totals.firstStart ? formatTime(totals.firstStart).slice(0, 10) : "—"}
@@ -790,23 +796,12 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
                 : undefined
             }
           />
-          <Tile label="Terms completed" value={formatNumber(totals.periods)} />
           <Tile
             label="Rewards earned"
             value={formatAvax(lifetimeReward.toString(), { compact: true })}
             strong
             tone="good"
-            sub="own stake plus fee take"
-          />
-          {/* Deliberately not a "terms unrewarded" tile: across 200 sampled
-              mainnet terms from 2020 to 2026 the Data API has never returned a
-              completed term with a zero reward, so that figure would read 0
-              forever. The count is called out in the header instead, on the
-              only occasion it means anything. */}
-          <Tile
-            label="Delegations served"
-            value={formatNumber(delegationsServed)}
-            sub="across every term"
+            sub="own stake plus fee take, across every term"
           />
         </div>
         <div className="sticky top-0 z-10 hidden grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr] gap-4 border-t border-zinc-200 bg-white px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-500">
@@ -877,12 +872,6 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
           />
         )}
       </Board>
-      <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        Every staking term this node has completed, with the reward it was actually paid. A term pays
-        out only if the node met the uptime requirement over that term, so a paid term is a term the
-        node saw through. Per-term uptime itself is not retained once a term closes; the live figures
-        above cover the current one.
-      </p>
     </section>
   );
 }
