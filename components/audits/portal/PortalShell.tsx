@@ -52,6 +52,12 @@ export function PortalShell({
           </span>
         </Link>
         <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="hidden text-sm text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200 sm:inline"
+          >
+            Builder Hub
+          </Link>
           {firmName ? (
             <span className="flex items-center gap-2 text-sm">
               <span

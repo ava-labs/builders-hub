@@ -54,6 +54,17 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         {meta.join(" · ")}
       </p>
 
+      <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
+        Security firm on the Ava Labs whitelist?{" "}
+        <Link
+          href="/audits/portal"
+          className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200"
+        >
+          Open the auditor portal
+        </Link>
+        .
+      </p>
+
       <div className="mt-16 border-t border-zinc-200 pt-10 dark:border-white/10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
           How it works

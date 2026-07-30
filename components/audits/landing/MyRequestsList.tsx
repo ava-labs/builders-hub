@@ -215,6 +215,17 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
         </p>
       ) : null}
 
+      <p className="mt-10 text-center text-xs text-zinc-400 dark:text-zinc-500">
+        Quoting as a whitelisted security firm?{" "}
+        <Link
+          href="/audits/portal"
+          className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-300"
+        >
+          Open the auditor portal
+        </Link>
+        .
+      </p>
+
       <AlertDialog
         open={deletingDraft !== null}
         onOpenChange={(open) => (!open ? setDeletingDraft(null) : null)}
