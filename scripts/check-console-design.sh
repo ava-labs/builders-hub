@@ -173,7 +173,9 @@ check_direct_viem_client() {
     done
   fi
 
-  for f in "${scan[@]}"; do
+  # ${scan[@]+...} keeps macOS bash 3.2 (set -u) happy when the filtered
+  # list is empty, e.g. a lint-staged run over non-toolbox files.
+  for f in ${scan[@]+"${scan[@]}"}; do
     # Skip approved files
     local skip=0
     for a in "${approved_core[@]}"; do

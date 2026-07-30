@@ -28,10 +28,14 @@ const OWNER_QUOTE_AUDITOR_SELECT = {
 export interface OwnerRequestSummary {
   id: string;
   project_name: string;
+  description: string;
   services: string[];
+  nsloc: number | null;
   status: string;
   display_status: DisplayRequestStatus;
   quote_count: number;
+  /** min/max of received quotes, for the "quotes ready" list cards. */
+  quote_price_range: { min: number; max: number } | null;
   quote_deadline: Date | null;
   needed_by: Date | null;
   submitted_at: Date | null;
@@ -65,22 +69,30 @@ export async function getOwnerRequests(userId: string): Promise<OwnerRequestSumm
   const rows = await prisma.auditRequest.findMany({
     where: { user_id: userId },
     orderBy: { created_at: "desc" },
-    include: { _count: { select: { quotes: true } } },
+    // Prices only: the list cards show count + range, never quote content.
+    include: { quotes: { select: { price_usd: true } } },
   });
 
-  return rows.map((row) => ({
-    id: row.id,
-    project_name: row.project_name,
-    services: row.services,
-    status: row.status,
-    display_status: deriveRequestStatus(row, row._count.quotes),
-    quote_count: row._count.quotes,
-    quote_deadline: row.quote_deadline,
-    needed_by: row.needed_by,
-    submitted_at: row.submitted_at,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  }));
+  return rows.map((row) => {
+    const prices = row.quotes.map((quote) => quote.price_usd);
+    return {
+      id: row.id,
+      project_name: row.project_name,
+      description: row.description,
+      services: row.services,
+      nsloc: row.nsloc,
+      status: row.status,
+      display_status: deriveRequestStatus(row, prices.length),
+      quote_count: prices.length,
+      quote_price_range:
+        prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null,
+      quote_deadline: row.quote_deadline,
+      needed_by: row.needed_by,
+      submitted_at: row.submitted_at,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    };
+  });
 }
 
 export async function getOwnerRequestDetail(userId: string, requestId: string) {
@@ -93,6 +105,8 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
       },
       // Latest decision wins (append-only history).
       subsidy_decisions: { orderBy: { decided_at: "desc" }, take: 1 },
+      // "N of M firms have quoted" on the collecting banner.
+      _count: { select: { fanout_deliveries: true } },
     },
   });
   if (!row) return null;
@@ -125,11 +139,12 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
       }
     : null;
 
-  const { quotes: _quotes, subsidy_decisions: _decisions, ...request } = row;
+  const { quotes: _quotes, subsidy_decisions: _decisions, _count, ...request } = row;
   return {
     ...request,
     display_status,
     quote_count: quotes.length,
+    fanout_count: _count.fanout_deliveries,
     quotes,
     subsidy,
   };

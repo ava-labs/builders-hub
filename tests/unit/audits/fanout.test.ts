@@ -131,6 +131,18 @@ describe("submitRequestAndFanout", () => {
     expect(txDeliveryCreateManyMock).not.toHaveBeenCalled();
   });
 
+  it("rejects a row whose required needed_by date is null (no 1970 coercion)", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...completeDraft, needed_by: null });
+
+    const result = await submitRequestAndFanout("req-1", OWNER);
+
+    expect(result.success).toBe(false);
+    if (!result.success && result.code === "invalid") {
+      expect(result.errors?.needed_by).toBeDefined();
+    }
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
   it("defaults the quote deadline to +10 days when the draft has none", async () => {
     await submitRequestAndFanout("req-1", OWNER);
 

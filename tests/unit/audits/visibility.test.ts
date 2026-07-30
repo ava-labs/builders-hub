@@ -46,17 +46,32 @@ describe("getOwnerRequests", () => {
     expect(requestFindManyMock.mock.calls[0][0].where).toMatchObject({ user_id: OWNER });
   });
 
-  it("returns derived display status and quote counts", async () => {
+  it("returns derived display status, quote counts and price ranges", async () => {
     requestFindManyMock.mockResolvedValue([
-      { ...baseRequest, _count: { quotes: 4 } },
-      { ...baseRequest, id: "req-2", quote_deadline: PAST, _count: { quotes: 2 } },
-      { ...baseRequest, id: "req-3", status: "draft", quote_deadline: null, _count: { quotes: 0 } },
+      {
+        ...baseRequest,
+        quotes: [
+          { price_usd: 28000 },
+          { price_usd: 18000 },
+          { price_usd: 44000 },
+          { price_usd: 34500 },
+        ],
+      },
+      {
+        ...baseRequest,
+        id: "req-2",
+        quote_deadline: PAST,
+        quotes: [{ price_usd: 20000 }, { price_usd: 30000 }],
+      },
+      { ...baseRequest, id: "req-3", status: "draft", quote_deadline: null, quotes: [] },
     ]);
 
     const rows = await getOwnerRequests(OWNER);
 
     expect(rows.map((r) => r.display_status)).toEqual(["collecting", "deciding", "draft"]);
     expect(rows.map((r) => r.quote_count)).toEqual([4, 2, 0]);
+    expect(rows[0].quote_price_range).toEqual({ min: 18000, max: 44000 });
+    expect(rows[2].quote_price_range).toBeNull();
   });
 });
 
@@ -78,6 +93,7 @@ describe("getOwnerRequestDetail", () => {
       ...baseRequest,
       status: "engaged",
       accepted_quote_id: "q-2",
+      _count: { fanout_deliveries: 12 },
       quotes: [
         {
           id: "q-1",
@@ -117,12 +133,14 @@ describe("getOwnerRequestDetail", () => {
     expect(bySelection["q-2"].quote_email).toBe("audits@ledgerproof.example");
     expect(bySelection["q-1"].quote_email).toBeUndefined();
     expect(bySelection["q-1"].firm_name).toBe("Harborline");
+    expect(detail!.fanout_count).toBe(12);
   });
 
   it("exposes the subsidy outcome without the deciding admin", async () => {
     requestFindFirstMock.mockResolvedValue({
       ...baseRequest,
       status: "engaged",
+      _count: { fanout_deliveries: 12 },
       quotes: [],
       subsidy_decisions: [
         {

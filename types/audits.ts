@@ -27,6 +27,11 @@ const normalizedEmail = z.preprocess(
 const httpsUrl = trimmed(MAX_URL)
   .min(1, "Link is required")
   .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://");
+// z.coerce.date() would coerce null to 1970-01-01 (a valid Date), silently
+// passing a missing required date. Map nullish to undefined so it fails as
+// "required" instead.
+const requiredDate = (message: string) =>
+  z.preprocess((v) => v ?? undefined, z.coerce.date({ message }));
 
 const repoDraftSchema = z.strictObject({
   url: trimmed(MAX_URL),
@@ -84,7 +89,7 @@ export const auditSubmitSchema = z.object({
   website: httpsUrl,
   description: trimmed(MAX_LONG).min(10, "Description needs at least 10 characters"),
   scope: trimmed(MAX_LONG).min(10, "Scope needs at least 10 characters"),
-  deployment_target: z.enum(DEPLOYMENT_TARGETS),
+  deployment_target: z.enum(DEPLOYMENT_TARGETS, { message: "Pick a deployment target" }),
   services: z.array(z.enum(AUDIT_SERVICES)).min(1, "Pick at least one service"),
   repos: z
     .array(z.object({ url: httpsUrl, ref: trimmed(MAX_NAME).optional().default("") }))
@@ -92,7 +97,7 @@ export const auditSubmitSchema = z.object({
     .optional()
     .default([]),
   doc_links: z.array(httpsUrl).max(20).optional().default([]),
-  needed_by: z.coerce.date(),
+  needed_by: requiredDate("Pick the latest completion date"),
   quote_deadline: z.coerce.date().nullable().optional(),
   contact_name: trimmed(MAX_NAME).min(1, "Contact name is required"),
   contact_email: normalizedEmail,
@@ -103,7 +108,7 @@ export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
 export const auditQuoteSchema = z.strictObject({
   price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
   duration_weeks: z.number().int().min(1).max(52),
-  earliest_start: z.coerce.date(),
+  earliest_start: requiredDate("Pick the earliest start date"),
   message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
   reaudit_included: z.boolean(),
 });
