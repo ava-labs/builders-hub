@@ -4,6 +4,7 @@ const { sendMailMock } = vi.hoisted(() => ({ sendMailMock: vi.fn() }));
 vi.mock("@/server/services/mail", () => ({ sendMail: sendMailMock }));
 
 import { sendFanoutNotification } from "@/server/services/audits/emails/sendFanoutNotification";
+import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
 
 const AUDITOR = { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" };
 const REQUEST = {
@@ -52,6 +53,26 @@ describe("sendFanoutNotification", () => {
     const [, html, subject, text] = sendMailMock.mock.calls[0] as [string, string, string, string];
     expect(subject).toContain("Glacierswap");
     expect(text).toContain("Glacierswap");
+    expect(subject).not.toContain("—");
+    expect(html).not.toContain("—");
+    expect(text).not.toContain("—");
+  });
+});
+
+describe("sendAuditorInvite", () => {
+  it("sends the sign-in instruction to the firm's quote email", async () => {
+    await sendAuditorInvite(AUDITOR);
+
+    expect(sendMailMock.mock.calls[0][0]).toBe("quotes@nordlicht.example");
+    expect(htmlOf()).toContain('href="https://build.avax.network/audits/portal"');
+  });
+
+  it("neutralizes markup in the firm name and avoids em dashes", async () => {
+    await sendAuditorInvite({ ...AUDITOR, firm_name: "<b>Evil</b> Firm" });
+
+    const [, html, subject, text] = sendMailMock.mock.calls[0] as [string, string, string, string];
+    expect(html).not.toContain("<b>Evil</b>");
+    expect(html).toContain("&lt;b&gt;Evil&lt;/b&gt;");
     expect(subject).not.toContain("—");
     expect(html).not.toContain("—");
     expect(text).not.toContain("—");

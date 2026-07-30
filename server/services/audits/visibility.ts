@@ -151,3 +151,277 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
 }
 
 export type OwnerRequestDetail = NonNullable<Awaited<ReturnType<typeof getOwnerRequestDetail>>>;
+
+// ── Admin scope ─────────────────────────────────────────────────────────────
+// Admins see everything (quotes are private to "the requesting project and
+// admins"); every number is derived at read time, nothing aggregated is
+// stored. Drafts stay private to their owner and never appear here.
+
+export interface AdminOverview {
+  open_requests: number;
+  /** Open requests whose quote deadline falls within the next 7 days. */
+  open_closing_this_week: number;
+  quotes_collected: number;
+  /** Median quote price across OPEN requests (design tile), null when none. */
+  median_quote_usd: number | null;
+  engaged_count: number;
+  /** 10% of accepted volume over engaged requests: what Areta would have charged. */
+  fees_not_paid_usd: number;
+}
+
+export type AdminSubsidyState = "needs_approval" | "approved" | "declined" | null;
+
+export interface AdminRequestRow {
+  id: string;
+  project_name: string;
+  project_types: string[];
+  requester_name: string | null;
+  requester_email: string | null;
+  submitted_at: Date | null;
+  created_at: Date;
+  quote_deadline: Date | null;
+  display_status: DisplayRequestStatus;
+  quote_count: number;
+  quote_price_range: { min: number; max: number } | null;
+  subsidy_state: AdminSubsidyState;
+  subsidy_pct: number | null;
+  accepted_firm_price_usd: number | null;
+  fanout_count: number;
+}
+
+const ADMIN_LIST_INCLUDE = {
+  user: { select: { name: true, email: true } },
+  quotes: { select: { price_usd: true, status: true } },
+  subsidy_decisions: { orderBy: { decided_at: "desc" as const }, take: 1 },
+  _count: { select: { fanout_deliveries: true } },
+};
+
+type AdminListRow = {
+  id: string;
+  project_name: string;
+  project_types: string[];
+  status: string;
+  submitted_at: Date | null;
+  created_at: Date;
+  quote_deadline: Date | null;
+  user: { name: string | null; email: string | null };
+  quotes: { price_usd: number; status: string }[];
+  subsidy_decisions: { state: string; pct: number }[];
+  _count: { fanout_deliveries: number };
+};
+
+function toAdminRow(row: AdminListRow): AdminRequestRow {
+  const prices = row.quotes.map((quote) => quote.price_usd);
+  const display_status = deriveRequestStatus(row, prices.length);
+  const latest = row.subsidy_decisions[0] ?? null;
+  const accepted = row.quotes.find((quote) => quote.status === "accepted") ?? null;
+  const subsidy_state: AdminSubsidyState =
+    row.status === "engaged"
+      ? latest
+        ? (latest.state as AdminSubsidyState)
+        : "needs_approval"
+      : latest
+        ? (latest.state as AdminSubsidyState)
+        : null;
+
+  return {
+    id: row.id,
+    project_name: row.project_name,
+    project_types: row.project_types,
+    requester_name: row.user?.name ?? null,
+    requester_email: row.user?.email ?? null,
+    submitted_at: row.submitted_at,
+    created_at: row.created_at,
+    quote_deadline: row.quote_deadline,
+    display_status,
+    quote_count: prices.length,
+    quote_price_range:
+      prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null,
+    subsidy_state,
+    subsidy_pct: latest?.pct ?? null,
+    accepted_firm_price_usd: accepted?.price_usd ?? null,
+    fanout_count: row._count.fanout_deliveries,
+  };
+}
+
+async function fetchAdminRows(): Promise<AdminRequestRow[]> {
+  const rows = await prisma.auditRequest.findMany({
+    where: { status: { not: "draft" } },
+    orderBy: { created_at: "desc" },
+    include: ADMIN_LIST_INCLUDE,
+  });
+  return (rows as unknown as AdminListRow[]).map(toAdminRow);
+}
+
+export async function getAdminOverview(): Promise<AdminOverview> {
+  const rows = await prisma.auditRequest.findMany({
+    where: { status: { not: "draft" } },
+    include: ADMIN_LIST_INCLUDE,
+  });
+  const mapped = (rows as unknown as AdminListRow[]).map((row) => ({
+    row,
+    display: deriveRequestStatus(row, row.quotes.length),
+  }));
+
+  const open = mapped.filter(
+    (entry) => entry.display === "collecting" || entry.display === "deciding",
+  );
+  const openPrices = open
+    .flatMap((entry) => entry.row.quotes.map((quote) => quote.price_usd))
+    .sort((a, b) => a - b);
+  const median =
+    openPrices.length === 0
+      ? null
+      : openPrices.length % 2 === 1
+        ? openPrices[(openPrices.length - 1) / 2]
+        : Math.round(
+            (openPrices[openPrices.length / 2 - 1] + openPrices[openPrices.length / 2]) / 2,
+          );
+
+  const engaged = mapped.filter((entry) => entry.display === "engaged");
+  const acceptedVolume = engaged.reduce((sum, entry) => {
+    const accepted = entry.row.quotes.find((quote) => quote.status === "accepted");
+    return sum + (accepted?.price_usd ?? 0);
+  }, 0);
+
+  const weekAhead = Date.now() + 7 * 24 * 60 * 60 * 1000;
+  return {
+    open_requests: open.length,
+    open_closing_this_week: open.filter(
+      (entry) =>
+        entry.row.quote_deadline &&
+        entry.row.quote_deadline.getTime() <= weekAhead &&
+        entry.row.quote_deadline.getTime() >= Date.now(),
+    ).length,
+    quotes_collected: mapped.reduce((sum, entry) => sum + entry.row.quotes.length, 0),
+    median_quote_usd: median,
+    engaged_count: engaged.length,
+    fees_not_paid_usd: Math.round(acceptedVolume * 0.1),
+  };
+}
+
+export async function getAdminRequests(filters: {
+  status?: DisplayRequestStatus;
+  subsidy?: "none" | "approved" | "declined";
+  deadline_before?: Date;
+  deadline_after?: Date;
+  take: number;
+  skip: number;
+}): Promise<AdminRequestRow[]> {
+  // Program scale is tens of requests: fetch, derive, filter in JS. take is
+  // schema-capped at 100.
+  const rows = await fetchAdminRows();
+  return rows
+    .filter((row) => !filters.status || row.display_status === filters.status)
+    .filter((row) => {
+      if (!filters.subsidy) return true;
+      if (filters.subsidy === "none") {
+        return row.subsidy_state === null || row.subsidy_state === "needs_approval";
+      }
+      return row.subsidy_state === filters.subsidy;
+    })
+    .filter((row) => {
+      if (filters.deadline_before && (!row.quote_deadline || row.quote_deadline > filters.deadline_before)) return false;
+      if (filters.deadline_after && (!row.quote_deadline || row.quote_deadline < filters.deadline_after)) return false;
+      return true;
+    })
+    .slice(filters.skip, filters.skip + filters.take);
+}
+
+export async function getAdminRequestDetail(requestId: string) {
+  const row = await prisma.auditRequest.findFirst({
+    where: { id: requestId, status: { not: "draft" } },
+    include: {
+      user: { select: { name: true, email: true } },
+      quotes: {
+        orderBy: { price_usd: "asc" },
+        include: { auditor: { select: { firm_name: true, services: true, quote_email: true } } },
+      },
+      subsidy_decisions: {
+        orderBy: { decided_at: "desc" },
+        include: { decider: { select: { name: true } } },
+      },
+      events: { orderBy: { created_at: "desc" }, take: 100 },
+      fanout_deliveries: { include: { auditor: { select: { firm_name: true } } } },
+    },
+  });
+  if (!row) return null;
+
+  const display_status = deriveRequestStatus(row, row.quotes.length);
+  return {
+    ...row,
+    display_status,
+    quotes: row.quotes.map((quote) => ({
+      id: quote.id,
+      price_usd: quote.price_usd,
+      duration_weeks: quote.duration_weeks,
+      earliest_start: quote.earliest_start,
+      message: quote.message,
+      reaudit_included: quote.reaudit_included,
+      status: quote.status,
+      display_status: deriveQuoteDisplayStatus(quote.status, display_status),
+      firm_name: quote.auditor.firm_name,
+      services: quote.auditor.services,
+      quote_email: quote.auditor.quote_email,
+    })),
+  };
+}
+
+export type AdminRequestDetail = NonNullable<Awaited<ReturnType<typeof getAdminRequestDetail>>>;
+
+export interface AdminAuditorRow {
+  id: string;
+  firm_name: string;
+  quote_email: string;
+  services: string[];
+  active: boolean;
+  invited_at: Date;
+  first_login_at: Date | null;
+  deactivated_at: Date | null;
+  attio_ref: string | null;
+  sent: number;
+  quoted: number;
+  won: number;
+  last_quote_at: Date | null;
+}
+
+export async function getAdminAuditors(): Promise<AdminAuditorRow[]> {
+  const rows = await prisma.auditor.findMany({
+    orderBy: [{ active: "desc" }, { firm_name: "asc" }],
+    include: {
+      _count: { select: { fanout_deliveries: true } },
+      quotes: { select: { status: true, created_at: true } },
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    firm_name: row.firm_name,
+    quote_email: row.quote_email,
+    services: row.services,
+    active: row.active,
+    invited_at: row.invited_at,
+    first_login_at: row.first_login_at,
+    deactivated_at: row.deactivated_at,
+    attio_ref: row.attio_ref,
+    sent: row._count.fanout_deliveries,
+    quoted: row.quotes.length,
+    won: row.quotes.filter((quote) => quote.status === "accepted").length,
+    last_quote_at: row.quotes.reduce<Date | null>(
+      (latest, quote) => (!latest || quote.created_at > latest ? quote.created_at : latest),
+      null,
+    ),
+  }));
+}
+
+/** The accepted quote's price for the subsidy worksheet and decision. */
+export async function getAcceptedQuoteForAdmin(
+  requestId: string,
+): Promise<{ id: string; price_usd: number; firm_name: string } | null> {
+  const quote = await prisma.auditQuote.findFirst({
+    where: { request_id: requestId, status: "accepted" },
+    include: { auditor: { select: { firm_name: true } } },
+  });
+  if (!quote) return null;
+  return { id: quote.id, price_usd: quote.price_usd, firm_name: quote.auditor.firm_name };
+}

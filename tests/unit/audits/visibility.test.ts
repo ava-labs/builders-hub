@@ -1,8 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { requestFindManyMock, requestFindFirstMock } = vi.hoisted(() => ({
+const { requestFindManyMock, requestFindFirstMock, auditorFindManyMock } = vi.hoisted(() => ({
   requestFindManyMock: vi.fn(),
   requestFindFirstMock: vi.fn(),
+  auditorFindManyMock: vi.fn(),
 }));
 
 vi.mock("@/prisma/prisma", () => ({
@@ -11,10 +12,19 @@ vi.mock("@/prisma/prisma", () => ({
       findMany: requestFindManyMock,
       findFirst: requestFindFirstMock,
     },
+    auditor: {
+      findMany: auditorFindManyMock,
+    },
   },
 }));
 
-import { getOwnerRequests, getOwnerRequestDetail } from "@/server/services/audits/visibility";
+import {
+  getAdminAuditors,
+  getAdminOverview,
+  getAdminRequests,
+  getOwnerRequests,
+  getOwnerRequestDetail,
+} from "@/server/services/audits/visibility";
 
 const OWNER = "user-owner";
 const DAY = 24 * 60 * 60 * 1000;
@@ -165,5 +175,104 @@ describe("getOwnerRequestDetail", () => {
     });
     expect(JSON.stringify(detail!.subsidy)).not.toContain("admin-1");
     expect(JSON.stringify(detail!.subsidy)).not.toContain("Board approved");
+  });
+});
+
+describe("admin scope", () => {
+  const adminFixtures = [
+    {
+      // collecting, deadline ahead -> open
+      ...baseRequest,
+      id: "req-a",
+      user: { name: "Alex", email: "alex@example.com" },
+      quotes: [
+        { price_usd: 20000, status: "submitted" },
+        { price_usd: 30000, status: "submitted" },
+      ],
+      subsidy_decisions: [],
+      _count: { fanout_deliveries: 6 },
+    },
+    {
+      // collecting, past deadline, one quote -> deciding (open)
+      ...baseRequest,
+      id: "req-b",
+      quote_deadline: PAST,
+      user: { name: "Alex", email: "alex@example.com" },
+      quotes: [{ price_usd: 18000, status: "submitted" }],
+      subsidy_decisions: [],
+      _count: { fanout_deliveries: 6 },
+    },
+    {
+      // engaged with an accepted quote and no decision -> needs approval
+      ...baseRequest,
+      id: "req-c",
+      status: "engaged",
+      accepted_quote_id: "q-x",
+      user: { name: "Alex", email: "alex@example.com" },
+      quotes: [
+        { price_usd: 28000, status: "accepted" },
+        { price_usd: 36000, status: "not_selected" },
+      ],
+      subsidy_decisions: [],
+      _count: { fanout_deliveries: 6 },
+    },
+  ];
+
+  it("derives every overview number at read time", async () => {
+    requestFindManyMock.mockResolvedValue(adminFixtures);
+
+    const overview = await getAdminOverview();
+
+    expect(overview.open_requests).toBe(2);
+    expect(overview.quotes_collected).toBe(5);
+    // "across open requests" (design tile): open quotes 18k 20k 30k -> 20k
+    expect(overview.median_quote_usd).toBe(20000);
+    expect(overview.engaged_count).toBe(1);
+    // 10% of accepted volume over engaged requests (28k -> 2.8k)
+    expect(overview.fees_not_paid_usd).toBe(2800);
+  });
+
+  it("filters by derived status and flags needs_approval", async () => {
+    requestFindManyMock.mockResolvedValue(adminFixtures);
+
+    const deciding = await getAdminRequests({ status: "deciding", take: 50, skip: 0 });
+    expect(deciding.map((row) => row.id)).toEqual(["req-b"]);
+
+    const all = await getAdminRequests({ take: 50, skip: 0 });
+    const engaged = all.find((row) => row.id === "req-c");
+    expect(engaged?.subsidy_state).toBe("needs_approval");
+    expect(engaged?.accepted_firm_price_usd).toBe(28000);
+  });
+
+  it("derives whitelist stats per firm", async () => {
+    auditorFindManyMock.mockResolvedValue([
+      {
+        id: "aud-1",
+        firm_name: "Nordlicht Security",
+        quote_email: "quotes@nordlicht.example",
+        services: [],
+        active: true,
+        invited_at: new Date("2026-05-02"),
+        first_login_at: new Date("2026-05-12"),
+        deactivated_at: null,
+        attio_ref: "NL-114",
+        _count: { fanout_deliveries: 9 },
+        quotes: [
+          { status: "accepted", created_at: new Date("2026-07-25") },
+          { status: "submitted", created_at: new Date("2026-07-10") },
+          { status: "not_selected", created_at: new Date("2026-06-01") },
+        ],
+      },
+    ]);
+
+    const rows = await getAdminAuditors();
+
+    expect(rows[0]).toMatchObject({
+      firm_name: "Nordlicht Security",
+      sent: 9,
+      quoted: 3,
+      won: 1,
+    });
+    expect(rows[0].last_quote_at).toEqual(new Date("2026-07-25"));
   });
 });

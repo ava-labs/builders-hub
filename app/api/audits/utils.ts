@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { canAdministerAuditProgram } from "@/lib/auth/permissions";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 export interface AuditCaller {
@@ -35,6 +36,43 @@ export async function requireProjectUser(options?: { allowPending?: boolean }): 
     };
   }
   return { caller: { userId, email } };
+}
+
+export interface AdminCaller {
+  userId: string;
+  email: string;
+  /** Shown in subsidy-approval events; falls back to the email. */
+  name: string;
+}
+
+type AdminResult = { admin: AdminCaller; error?: never } | { admin?: never; error: NextResponse };
+
+/**
+ * Gate for the audit-program admin routes: signed in AND audit_admin or
+ * devrel in custom_attributes (withAuthRole takes a single role only, so the
+ * check goes through canAdministerAuditProgram).
+ */
+export async function requireAuditAdmin(): Promise<AdminResult> {
+  const session = await getAuthSession();
+  const userId = session?.user?.id;
+  const email = session?.user?.email?.trim().toLowerCase();
+  if (!userId || !email) {
+    return {
+      error: NextResponse.json(
+        { success: false, message: "Please sign in." },
+        { status: 401 },
+      ),
+    };
+  }
+  if (!canAdministerAuditProgram(session)) {
+    return {
+      error: NextResponse.json(
+        { success: false, message: "Access denied.", requiredRole: "audit_admin" },
+        { status: 403 },
+      ),
+    };
+  }
+  return { admin: { userId, email, name: session?.user?.name ?? email } };
 }
 
 /**
