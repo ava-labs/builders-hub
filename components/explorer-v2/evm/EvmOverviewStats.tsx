@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Board, BoardHeader, StatCell, StatDash } from "@/components/explorer-v2/ui";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import {
   Delta,
   fmtCompact,
@@ -85,9 +85,15 @@ export function EvmOverviewStats({
   // the page clock: window sums/averages and their vs-prev move all ride it
   const clock = useExplorerTimeRange();
   const n = RANGE_DAYS[clock];
-  const windowLabel = RANGE_LABEL[clock];
-  // fetch double the window so the previous window is comparable
-  const { metrics, failed } = useChainMetrics(chainId, Math.min(n * 2, 365), METRICS);
+  const windowLabel = rangeWindowLabel(clock);
+  // fetch double the window so the previous window is comparable; the
+  // all-time tick fetches the genesis window as-is (there is no previous
+  // window to face, so the deltas sit out)
+  const { metrics, failed } = useChainMetrics(
+    chainId,
+    clock === "all" ? n : Math.min(n * 2, 365),
+    METRICS,
+  );
   const util = useUtilization(chainId, n);
 
   const m = metrics ?? {};
@@ -148,7 +154,7 @@ export function EvmOverviewStats({
         display
         action={
           <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-            Last {windowLabel}
+            {windowLabel}
           </span>
         }
       />

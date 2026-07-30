@@ -20,7 +20,7 @@ import {
 } from "@/components/explorer/L1ExplorerPage";
 import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
 import { Stat, TipPlate } from "@/components/explorer-v2/staking/bits";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { ChainChip } from "@/components/stats/ChainChip";
 import { buildTxUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
@@ -85,7 +85,7 @@ function fmtCount(v: number): string {
 function useIcmSeries(chainId: string, windowDays: number): { days: IcmDay[] | null; failed: boolean } {
   const [days, setDays] = useState<IcmDay[] | null>(null);
   const [failed, setFailed] = useState(false);
-  const timeRange = windowDays <= 30 ? "30d" : windowDays <= 90 ? "90d" : "1y";
+  const timeRange = windowDays <= 30 ? "30d" : windowDays <= 90 ? "90d" : windowDays <= 365 ? "1y" : "all";
   useEffect(() => {
     let cancelled = false;
     setDays(null);
@@ -238,7 +238,7 @@ export function IcmMessagesPage({
   // the daily chart floors at a week (one bar says nothing) and labels it
   const clock = useExplorerTimeRange();
   const rangeDays = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
+  const rangeLabel = rangeWindowLabel(clock);
   const chartDays = Math.max(7, rangeDays);
 
   const { days, failed: seriesFailed } = useIcmSeries(chainId, rangeDays);
@@ -303,7 +303,7 @@ export function IcmMessagesPage({
           display
           action={
             <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-              Last {rangeLabel}
+              {rangeLabel}
             </span>
           }
         />
