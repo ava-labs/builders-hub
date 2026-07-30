@@ -358,7 +358,22 @@ function TreemapCell(props: Record<string, unknown>) {
         strokeWidth={2}
       />
       {showLabel && showLogo && (
-        <image href={datum.logo} x={x + 10} y={y + 9} width={15} height={15} />
+        <>
+          {/* the CDN flattens icon transparency onto white squares; a
+              circular clip turns them into the same coin badges the HTML
+              logos get from rounded-full */}
+          <clipPath id={`sc-dom-clip-${datum.rank}`}>
+            <circle cx={x + 17.5} cy={y + 16.5} r={7.5} />
+          </clipPath>
+          <image
+            href={datum.logo}
+            x={x + 10}
+            y={y + 9}
+            width={15}
+            height={15}
+            clipPath={`url(#sc-dom-clip-${datum.rank})`}
+          />
+        </>
       )}
       {showLabel && (
         <text
