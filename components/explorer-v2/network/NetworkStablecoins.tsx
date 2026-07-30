@@ -662,23 +662,64 @@ export function NetworkStablecoins() {
                           const d = payload[0].payload as Record<string, number> & {
                             date: string;
                           };
+                          // one row per live band, largest first, each tied
+                          // to its band color; coins not yet issued that day
+                          // stay out instead of reading $0
                           const bands = stackKeys
-                            .map((k) => ({ symbol: k.symbol, usd: d[k.id] ?? 0 }))
+                            .map((k, i) => ({
+                              symbol: k.symbol,
+                              logo: k.logo,
+                              slot: String(i),
+                              usd: d[k.id] ?? 0,
+                            }))
+                            .filter((b) => b.usd > 0)
                             .sort((x, y) => y.usd - x.usd);
+                          if (d.other > 0) {
+                            bands.push({
+                              symbol: "Other",
+                              logo: undefined,
+                              slot: "tail",
+                              usd: d.other,
+                            });
+                          }
                           return (
                             <TipPlate>
-                              <p className="text-[10px] text-zinc-500">{d.date}</p>
-                              <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                {fmtUsd(d.total)}
-                              </p>
-                              {bands.map((b) => (
-                                <p key={b.symbol} className="text-[10px] tabular-nums text-zinc-500">
-                                  {fmtUsd(b.usd)} {b.symbol}
-                                </p>
-                              ))}
-                              <p className="text-[10px] tabular-nums text-zinc-500">
-                                {fmtUsd(d.other)} other
-                              </p>
+                              <div className="flex min-w-52 flex-col">
+                                <div className="flex items-baseline justify-between gap-6">
+                                  <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
+                                    {d.date}
+                                  </span>
+                                  <span className="font-mono text-[13px] font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
+                                    {fmtUsd(d.total)}
+                                  </span>
+                                </div>
+                                <div className="mt-1.5 flex flex-col gap-1 border-t border-zinc-200 pt-1.5 dark:border-zinc-700">
+                                  {bands.map((b) => (
+                                    <div key={b.symbol} className="flex items-center gap-2">
+                                      <span
+                                        className="size-2 shrink-0"
+                                        style={{ background: `var(--sc-${b.slot})` }}
+                                      />
+                                      {b.logo && (
+                                        <img
+                                          src={b.logo}
+                                          alt=""
+                                          className="h-3.5 w-3.5 shrink-0 rounded-full"
+                                        />
+                                      )}
+                                      <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
+                                        {b.symbol}
+                                      </span>
+                                      <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                                        {fmtUsd(b.usd)}
+                                      </span>
+                                      <span className="w-10 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                                        {d.total > 0 ? ((b.usd / d.total) * 100).toFixed(1) : "0.0"}%
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             </TipPlate>
                           );
                         }}
@@ -694,6 +735,7 @@ export function NetworkStablecoins() {
                           strokeWidth={1}
                           fill={`var(--sc-${i})`}
                           fillOpacity={0.9}
+                          activeDot={false}
                           isAnimationActive={false}
                         />
                       ))}
@@ -706,6 +748,7 @@ export function NetworkStablecoins() {
                         strokeWidth={1}
                         fill="var(--sc-tail)"
                         fillOpacity={0.9}
+                        activeDot={false}
                         isAnimationActive={false}
                       />
                     </ComposedChart>
