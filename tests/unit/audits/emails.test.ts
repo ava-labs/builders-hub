@@ -1,0 +1,59 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+
+const { sendMailMock } = vi.hoisted(() => ({ sendMailMock: vi.fn() }));
+vi.mock("@/server/services/mail", () => ({ sendMail: sendMailMock }));
+
+import { sendFanoutNotification } from "@/server/services/audits/emails/sendFanoutNotification";
+
+const AUDITOR = { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" };
+const REQUEST = {
+  project_name: "Glacierswap",
+  quote_deadline: new Date("2026-08-09T12:00:00Z"),
+  services: ["Smart contract audit (Solidity / Vyper)"],
+  nsloc: 4200,
+};
+
+// html is the 2nd arg of sendMail(email, html, subject, text)
+const htmlOf = () => sendMailMock.mock.calls[0][1] as string;
+
+beforeEach(() => {
+  sendMailMock.mockReset();
+  sendMailMock.mockResolvedValue(undefined);
+});
+
+describe("sendFanoutNotification", () => {
+  it("sends to the auditor row's quote_email only", async () => {
+    await sendFanoutNotification(AUDITOR, REQUEST);
+
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(sendMailMock.mock.calls[0][0]).toBe("quotes@nordlicht.example");
+  });
+
+  it("neutralizes markup in the project name", async () => {
+    await sendFanoutNotification(AUDITOR, {
+      ...REQUEST,
+      project_name: '<img src=x onerror=alert(1)>',
+    });
+
+    const html = htmlOf();
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  });
+
+  it("links to the auditor portal with a fixed https CTA", async () => {
+    await sendFanoutNotification(AUDITOR, REQUEST);
+
+    expect(htmlOf()).toContain('href="https://build.avax.network/audits/portal"');
+  });
+
+  it("carries the project name in subject and plain text, with no em dashes anywhere", async () => {
+    await sendFanoutNotification(AUDITOR, REQUEST);
+
+    const [, html, subject, text] = sendMailMock.mock.calls[0] as [string, string, string, string];
+    expect(subject).toContain("Glacierswap");
+    expect(text).toContain("Glacierswap");
+    expect(subject).not.toContain("—");
+    expect(html).not.toContain("—");
+    expect(text).not.toContain("—");
+  });
+});
