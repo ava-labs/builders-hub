@@ -1,0 +1,148 @@
+import { z } from "zod";
+import { emailSchema } from "@/lib/email";
+import {
+  DEPLOYMENT_TARGETS,
+  SUBSIDY_DECISION_STATES,
+  URGENCY_OPTIONS,
+} from "@/lib/audits/status";
+import {
+  AUDIT_FRAMEWORKS,
+  AUDIT_LANGUAGES,
+  AUDIT_PROJECT_TYPES,
+  AUDIT_SERVICES,
+} from "@/lib/audits/constants";
+import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
+
+const MAX_NAME = 200;
+const MAX_URL = 2048;
+const MAX_LONG = 4000;
+export const MAX_ATTACHMENT_BYTES = 128 * 1024 * 1024; // 128MB, Areta parity
+
+const trimmed = (max: number) => z.string().trim().max(max);
+// Normalize before validating so " A@B.com " both passes and stores lowercased.
+const normalizedEmail = z.preprocess(
+  (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
+  emailSchema,
+);
+const httpsUrl = trimmed(MAX_URL)
+  .min(1, "Link is required")
+  .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://");
+
+const repoDraftSchema = z.strictObject({
+  url: trimmed(MAX_URL),
+  ref: trimmed(MAX_NAME).optional().default(""),
+});
+
+const attachmentSchema = z.strictObject({
+  name: trimmed(300).min(1),
+  url: trimmed(MAX_URL).min(1),
+  size: z.number().int().min(0).max(MAX_ATTACHMENT_BYTES),
+});
+export type AuditAttachment = z.infer<typeof attachmentSchema>;
+
+/**
+ * Autosave payload for a draft. Deliberately permissive: length caps, correct
+ * types and chip membership only, NO format validation, so a half-typed URL
+ * or email can never fail an autosave. `auditSubmitSchema` is the single
+ * completeness gate. strictObject so a payload can never smuggle status,
+ * user_id or any other column through the PATCH.
+ */
+export const auditDraftSchema = z.strictObject({
+  source_project_id: trimmed(MAX_NAME).nullable().optional(),
+  project_name: trimmed(MAX_NAME).optional(),
+  website: trimmed(MAX_URL).optional(),
+  description: trimmed(MAX_LONG).optional(),
+  scope: trimmed(MAX_LONG).optional(),
+  project_types: z.array(z.enum(AUDIT_PROJECT_TYPES)).max(AUDIT_PROJECT_TYPES.length).optional(),
+  deployment_target: z.enum(DEPLOYMENT_TARGETS).or(z.literal("")).optional(),
+  multichain: z.boolean().optional(),
+  services: z.array(z.enum(AUDIT_SERVICES)).max(AUDIT_SERVICES.length).optional(),
+  repos: z.array(repoDraftSchema).max(20).optional(),
+  languages: z.array(z.enum(AUDIT_LANGUAGES)).max(AUDIT_LANGUAGES.length).optional(),
+  frameworks: z.array(z.enum(AUDIT_FRAMEWORKS)).max(AUDIT_FRAMEWORKS.length).optional(),
+  nsloc: z.number().int().min(0).max(100_000_000).nullable().optional(),
+  doc_links: z.array(trimmed(MAX_URL)).max(20).optional(),
+  attachments: z.array(attachmentSchema).max(10).optional(),
+  needed_by: z.coerce.date().nullable().optional(),
+  quote_deadline: z.coerce.date().nullable().optional(),
+  urgency: z.enum(URGENCY_OPTIONS).nullable().optional(),
+  contact_name: trimmed(MAX_NAME).optional(),
+  contact_email: trimmed(320).optional(),
+  contact_handle: trimmed(100).nullable().optional(),
+  contact_calendar_url: trimmed(MAX_URL).nullable().optional(),
+});
+export type AuditDraftInput = z.infer<typeof auditDraftSchema>;
+
+/**
+ * The completeness gate, re-validated server-side against the stored row
+ * inside the submit transaction (never trusting the client). Unknown row
+ * columns are stripped, listed ones must hold. quote_deadline may be absent:
+ * submission defaults it to +10 days.
+ */
+export const auditSubmitSchema = z.object({
+  project_name: trimmed(MAX_NAME).min(1, "Project name is required"),
+  website: httpsUrl,
+  description: trimmed(MAX_LONG).min(10, "Description needs at least 10 characters"),
+  scope: trimmed(MAX_LONG).min(10, "Scope needs at least 10 characters"),
+  deployment_target: z.enum(DEPLOYMENT_TARGETS),
+  services: z.array(z.enum(AUDIT_SERVICES)).min(1, "Pick at least one service"),
+  repos: z
+    .array(z.object({ url: httpsUrl, ref: trimmed(MAX_NAME).optional().default("") }))
+    .max(20)
+    .optional()
+    .default([]),
+  doc_links: z.array(httpsUrl).max(20).optional().default([]),
+  needed_by: z.coerce.date(),
+  quote_deadline: z.coerce.date().nullable().optional(),
+  contact_name: trimmed(MAX_NAME).min(1, "Contact name is required"),
+  contact_email: normalizedEmail,
+  contact_calendar_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
+});
+export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
+
+export const auditQuoteSchema = z.strictObject({
+  price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
+  duration_weeks: z.number().int().min(1).max(52),
+  earliest_start: z.coerce.date(),
+  message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
+  reaudit_included: z.boolean(),
+});
+export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
+
+export const acceptQuoteSchema = z.strictObject({
+  quoteId: z.string().min(1),
+});
+
+export const subsidyDecisionSchema = z.strictObject({
+  state: z.enum(SUBSIDY_DECISION_STATES),
+  pct: z.number().int().min(0).max(SUBSIDY_MAX_PCT),
+  note: trimmed(2000).optional(),
+});
+export type SubsidyDecisionInput = z.infer<typeof subsidyDecisionSchema>;
+
+export const auditorCreateSchema = z.strictObject({
+  firm_name: trimmed(MAX_NAME).min(1, "Firm name is required"),
+  quote_email: normalizedEmail,
+  services: z.array(z.enum(AUDIT_SERVICES)).max(AUDIT_SERVICES.length).optional().default([]),
+  attio_ref: trimmed(MAX_NAME).optional(),
+});
+export type AuditorCreateInput = z.infer<typeof auditorCreateSchema>;
+
+export const auditorUpdateSchema = z.strictObject({
+  firm_name: trimmed(MAX_NAME).min(1).optional(),
+  services: z.array(z.enum(AUDIT_SERVICES)).max(AUDIT_SERVICES.length).optional(),
+  active: z.boolean().optional(),
+});
+export type AuditorUpdateInput = z.infer<typeof auditorUpdateSchema>;
+
+export const adminRequestFiltersSchema = z.object({
+  status: z
+    .enum(["draft", "collecting", "deciding", "engaged", "expired", "withdrawn"])
+    .optional(),
+  subsidy: z.enum(["none", "approved", "declined"]).optional(),
+  deadline_before: z.coerce.date().optional(),
+  deadline_after: z.coerce.date().optional(),
+  take: z.coerce.number().int().min(1).max(100).default(50),
+  skip: z.coerce.number().int().min(0).default(0),
+});
+export type AdminRequestFilters = z.infer<typeof adminRequestFiltersSchema>;
