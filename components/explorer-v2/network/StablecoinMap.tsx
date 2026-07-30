@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from "d3-geo";
 import { feature } from "topojson-client";
 import type { Topology, GeometryCollection } from "topojson-specification";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { HoverReadout, HoverRow } from "@/components/explorer-v2/network/stablecoin-hover";
 
 /* The coverage map: every country a stablecoin on Avalanche answers to,
    in the brand red on a quiet gray world. Countries are keyed by ISO
@@ -15,7 +15,7 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 export interface CoveredCountry {
   name: string;
   flag: string;
-  tokens: string[];
+  tokens: { symbol: string; logo?: string; usd: number }[];
   usd: number;
 }
 
@@ -171,18 +171,36 @@ export function StablecoinMap({ coverage }: { coverage: Map<string, CoveredCount
           className="pointer-events-none absolute z-10 -translate-x-1/2"
           style={{ left: tip.x, top: tip.y + 14 }}
         >
-          <TipPlate>
-            <p className="whitespace-nowrap text-[10px] text-zinc-500">
-              {tipData.flag} {tipData.name}
-            </p>
-            <p className="whitespace-nowrap text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-              ${usdCompact.format(tipData.usd)}
-            </p>
-            <p className="max-w-48 text-[10px] text-zinc-500">
-              {tipData.tokens.slice(0, 5).join(" · ")}
-              {tipData.tokens.length > 5 && ` +${tipData.tokens.length - 5}`}
-            </p>
-          </TipPlate>
+          <HoverReadout
+            label={`${tipData.flag} ${tipData.name}`}
+            value={`$${usdCompact.format(tipData.usd)}`}
+          >
+            {[...tipData.tokens]
+              .sort((a, b) => b.usd - a.usd)
+              .slice(0, 5)
+              .map((t) => (
+                <HoverRow
+                  key={t.symbol}
+                  logo={t.logo}
+                  label={t.symbol}
+                  value={`$${usdCompact.format(t.usd)}`}
+                  share={
+                    tipData.usd > 0 ? `${((t.usd / tipData.usd) * 100).toFixed(1)}%` : undefined
+                  }
+                />
+              ))}
+            {tipData.tokens.length > 5 && (
+              <HoverRow
+                label={`+${tipData.tokens.length - 5} more`}
+                value={`$${usdCompact.format(
+                  [...tipData.tokens]
+                    .sort((a, b) => b.usd - a.usd)
+                    .slice(5)
+                    .reduce((sum, t) => sum + t.usd, 0),
+                )}`}
+              />
+            )}
+          </HoverReadout>
         </div>
       )}
     </div>

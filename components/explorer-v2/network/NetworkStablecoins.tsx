@@ -26,10 +26,11 @@ import {
   StatCell,
   idInk,
 } from "@/components/explorer-v2/ui";
-import { ChartEmpty, TipPlate } from "@/components/explorer-v2/staking/bits";
+import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 import { Delta } from "@/components/explorer-v2/evm/metric-charts";
 import { StablecoinMap, type CoveredCountry } from "@/components/explorer-v2/network/StablecoinMap";
+import { HoverReadout, HoverRow } from "@/components/explorer-v2/network/stablecoin-hover";
 import type { StablecoinAsset, StablecoinsApiResponse } from "@/lib/stablecoins";
 
 /* The network scope's stablecoin observatory: every pegged asset issued or
@@ -543,24 +544,32 @@ export function NetworkStablecoins() {
   // plus each curated issuer jurisdiction
   const coverage = useMemo(() => {
     const cov = new Map<string, CoveredCountry>();
-    const add = (id: string, name: string, flag: string, symbol: string, usd: number) => {
+    // one asset can reach the same country twice (currency anchor and
+    // issuer jurisdiction both United States): count it once per country
+    const seen = new Map<string, Set<string>>();
+    const add = (id: string, name: string, flag: string, a: StablecoinAsset) => {
+      const ids = seen.get(id) ?? new Set<string>();
+      if (ids.has(a.id)) return;
+      ids.add(a.id);
+      seen.set(id, ids);
       const entry = cov.get(id) ?? { name, flag, tokens: [], usd: 0 };
-      if (!entry.tokens.includes(symbol)) {
-        entry.tokens.push(symbol);
-        entry.usd += usd;
-      }
+      // distinct assets can share a ticker (two BUSDs): merge their rows
+      const token = entry.tokens.find((t) => t.symbol === a.symbol);
+      if (token) token.usd += a.mcap;
+      else entry.tokens.push({ symbol: a.symbol, logo: a.logo, usd: a.mcap });
+      entry.usd += a.mcap;
       cov.set(id, entry);
     };
     for (const a of assets) {
       if (a.pegCurrency === "EUR") {
-        for (const [id, name] of EUROZONE) add(id, name, "\u{1F1EA}\u{1F1FA}", a.symbol, a.mcap);
+        for (const [id, name] of EUROZONE) add(id, name, "\u{1F1EA}\u{1F1FA}", a);
       } else {
         const anchor = CURRENCY_ANCHOR[a.pegCurrency];
         const id = anchor && COUNTRY_ID[anchor.country];
-        if (anchor && id) add(id, anchor.country, anchor.flag, a.symbol, a.mcap);
+        if (anchor && id) add(id, anchor.country, anchor.flag, a);
       }
       if (a.country && COUNTRY_ID[a.country]) {
-        add(COUNTRY_ID[a.country], a.country, a.flag ?? "", a.symbol, a.mcap);
+        add(COUNTRY_ID[a.country], a.country, a.flag ?? "", a);
       }
     }
     return cov;
@@ -683,44 +692,18 @@ export function NetworkStablecoins() {
                             });
                           }
                           return (
-                            <TipPlate>
-                              <div className="flex min-w-52 flex-col">
-                                <div className="flex items-baseline justify-between gap-6">
-                                  <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-400 dark:text-zinc-500">
-                                    {d.date}
-                                  </span>
-                                  <span className="font-mono text-[13px] font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                    {fmtUsd(d.total)}
-                                  </span>
-                                </div>
-                                <div className="mt-1.5 flex flex-col gap-1 border-t border-zinc-200 pt-1.5 dark:border-zinc-700">
-                                  {bands.map((b) => (
-                                    <div key={b.symbol} className="flex items-center gap-2">
-                                      <span
-                                        className="size-2 shrink-0"
-                                        style={{ background: `var(--sc-${b.slot})` }}
-                                      />
-                                      {b.logo && (
-                                        <img
-                                          src={b.logo}
-                                          alt=""
-                                          className="h-3.5 w-3.5 shrink-0 rounded-full"
-                                        />
-                                      )}
-                                      <span className="font-mono text-[10px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
-                                        {b.symbol}
-                                      </span>
-                                      <span className="ml-auto font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                                        {fmtUsd(b.usd)}
-                                      </span>
-                                      <span className="w-10 shrink-0 text-right font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                                        {d.total > 0 ? ((b.usd / d.total) * 100).toFixed(1) : "0.0"}%
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </TipPlate>
+                            <HoverReadout label={d.date} value={fmtUsd(d.total)}>
+                              {bands.map((b) => (
+                                <HoverRow
+                                  key={b.symbol}
+                                  swatch={`var(--sc-${b.slot})`}
+                                  logo={b.logo}
+                                  label={b.symbol}
+                                  value={fmtUsd(b.usd)}
+                                  share={`${d.total > 0 ? ((b.usd / d.total) * 100).toFixed(1) : "0.0"}%`}
+                                />
+                              ))}
+                            </HoverReadout>
                           );
                         }}
                       />
@@ -797,12 +780,14 @@ export function NetworkStablecoins() {
                         if (!active || !payload?.[0]) return null;
                         const d = payload[0].payload as TreemapDatum;
                         return (
-                          <TipPlate>
-                            <p className="text-[10px] text-zinc-500">{d.name}</p>
-                            <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                              {fmtUsd(d.size)} &middot; {d.share.toFixed(1)}%
-                            </p>
-                          </TipPlate>
+                          <HoverReadout label={d.name} value={fmtUsd(d.size)}>
+                            <HoverRow
+                              swatch={`var(--sc-${d.rank < 5 ? d.rank : "tail"})`}
+                              logo={d.logo}
+                              label={d.symbol}
+                              share={`${d.share.toFixed(1)}%`}
+                            />
+                          </HoverReadout>
                         );
                       }}
                     />
