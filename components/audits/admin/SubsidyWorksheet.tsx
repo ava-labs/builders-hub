@@ -90,7 +90,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
               }}
               inputMode="numeric"
               aria-label="Program share percentage"
-              className="h-10 w-16 text-right text-lg font-semibold tabular-nums text-brand dark:text-brand-soft"
+              className="h-9 w-14 px-2 text-right text-base font-semibold tabular-nums text-brand dark:text-brand-soft"
             />
             <span className="text-lg font-semibold text-brand dark:text-brand-soft">%</span>
           </div>
@@ -116,7 +116,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
 
       <dl className="mt-4 space-y-1.5 border-t border-zinc-200 pt-4 text-sm dark:border-white/10">
         <div className="flex items-center justify-between gap-3">
-          <dt className="text-zinc-600 dark:text-[#A2AFB2]">Program pays · type an exact amount</dt>
+          <dt className="text-zinc-600 dark:text-[#A2AFB2]">Program pays</dt>
           <dd className="flex items-center gap-1">
             <span className="text-zinc-500">$</span>
             <Input
@@ -127,7 +127,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
               }}
               inputMode="numeric"
               aria-label="Program amount in US dollars"
-              className="h-10 w-28 text-right font-semibold tabular-nums"
+              className="h-9 w-24 px-2 text-right font-semibold tabular-nums"
             />
           </dd>
         </div>

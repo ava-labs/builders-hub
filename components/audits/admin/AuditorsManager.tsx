@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { AdminAuditorRow } from "@/server/services/audits/visibility";
 import { formatIsoDate } from "@/components/audits/shared/format";
@@ -64,6 +65,25 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
     active: auditors.filter((a) => a.active && a.first_login_at).length,
     invited: auditors.filter((a) => a.active && !a.first_login_at).length,
     inactive: auditors.filter((a) => !a.active).length,
+  };
+
+  const setActive = async (auditor: AdminAuditorRow, active: boolean) => {
+    const res = await fetch(`/api/audits/admin/auditors/${auditor.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ active }),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.success) {
+      toast.error(body?.message ?? "That didn't work. Try again.");
+      return;
+    }
+    toast.success(
+      active
+        ? `${auditor.firm_name} reactivated.`
+        : `${auditor.firm_name} deactivated. History and past quotes stay intact.`,
+    );
+    router.refresh();
   };
 
   const resend = async (auditor: AdminAuditorRow) => {
@@ -121,8 +141,15 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{auditor.sent}</TableCell>
                 <TableCell className="text-right tabular-nums">{auditor.won}</TableCell>
-                <TableCell className="text-sm">
-                  <StatusCell auditor={auditor} onResend={(a) => void resend(a)} />
+                <TableCell className="text-sm" onClick={(event) => event.stopPropagation()}>
+                  <span className="flex items-center gap-2.5">
+                    <Switch
+                      checked={auditor.active}
+                      onCheckedChange={(next) => void setActive(auditor, next)}
+                      aria-label={`${auditor.active ? "Deactivate" : "Activate"} ${auditor.firm_name}`}
+                    />
+                    <StatusCell auditor={auditor} onResend={(a) => void resend(a)} />
+                  </span>
                 </TableCell>
               </TableRow>
             ))}
