@@ -222,13 +222,15 @@ function ShareRow({
   lead,
   usd,
   share,
+  className,
 }: {
   lead: React.ReactNode;
   usd: number;
   share: number;
+  className?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-5 py-3 md:px-6">
+    <div className={cn("flex items-center gap-3 px-5 py-3 md:px-6", className)}>
       <span className="flex min-w-0 flex-1 items-center gap-2.5">{lead}</span>
       <span className="hidden h-[3px] w-24 shrink-0 overflow-hidden bg-zinc-100 sm:block dark:bg-zinc-900">
         <span
@@ -325,6 +327,7 @@ interface TreemapDatum {
   size: number;
   share: number;
   rank: number;
+  logo?: string;
 }
 
 function TreemapCell(props: Record<string, unknown>) {
@@ -340,6 +343,9 @@ function TreemapCell(props: Record<string, unknown>) {
   const slot = datum.rank < 5 ? String(datum.rank) : "tail";
   const showLabel = width >= 52 && height >= 36;
   const showShare = width >= 64 && height >= 54;
+  // a failed SVG <image> renders nothing (no broken-icon glyph), so the
+  // logo needs no fallback state here
+  const showLogo = datum.logo && width >= 76;
   return (
     <g>
       <rect
@@ -351,9 +357,12 @@ function TreemapCell(props: Record<string, unknown>) {
         stroke="var(--sc-gap)"
         strokeWidth={2}
       />
+      {showLabel && showLogo && (
+        <image href={datum.logo} x={x + 10} y={y + 9} width={15} height={15} />
+      )}
       {showLabel && (
         <text
-          x={x + 10}
+          x={x + 10 + (showLogo ? 20 : 0)}
           y={y + 20}
           fill={`var(--sc-ink-${slot})`}
           fontSize={12}
@@ -476,6 +485,7 @@ export function NetworkStablecoins() {
       size: a.mcap,
       share: (a.mcap / totalMcap) * 100,
       rank: i,
+      logo: a.logo,
     }));
     if (rest > 0) {
       cells.push({
@@ -484,6 +494,7 @@ export function NetworkStablecoins() {
         size: rest,
         share: (rest / totalMcap) * 100,
         rank: 99,
+        logo: undefined,
       });
     }
     return cells;
@@ -703,11 +714,18 @@ export function NetworkStablecoins() {
           </p>
         </section>
 
-        {/* how the market splits: dominance by token, then by currency */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-          <ChartBoard label="Dominance" className="min-w-0" action={<Chip>Current</Chip>}>
+        {/* how the market splits: dominance by token, then by currency.
+            The grid stretches both cells and the treemap fills its board,
+            so the pair shares one bottom edge */}
+        <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+          <ChartBoard
+            label="Dominance"
+            className="flex min-w-0 flex-col"
+            bodyClassName="flex flex-1 flex-col"
+            action={<Chip>Current</Chip>}
+          >
             {treemapCells.length ? (
-              <div className="sc-map h-72">
+              <div className="sc-map min-h-72 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <Treemap
                     data={treemapCells}
@@ -740,7 +758,8 @@ export function NetworkStablecoins() {
 
           <ChartBoard
             label="By Currency"
-            className="min-w-0"
+            className="flex min-w-0 flex-col"
+            bodyClassName="flex flex-1 flex-col justify-center"
             action={<Chip>{coverage.size} countries</Chip>}
           >
             <div className="flex flex-col gap-4">
@@ -763,18 +782,21 @@ export function NetworkStablecoins() {
           </ChartBoard>
         </div>
 
-        {/* what stands behind the peg, and how tightly it holds */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        {/* what stands behind the peg, and how tightly it holds. Three
+            backing rows share the peg watch's height, so the pair lands
+            on one bottom edge */}
+        <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartBoard
             label="Backing"
-            bodyClassName="p-0"
-            className="min-w-0"
+            bodyClassName="flex flex-1 flex-col p-0"
+            className="flex min-w-0 flex-col"
             action={<Chip>Current</Chip>}
           >
-            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <div className="flex flex-1 flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
               {backing.map(([mechanism, g]) => (
                 <ShareRow
                   key={mechanism}
+                  className="flex-1"
                   usd={g.usd}
                   share={totalMcap > 0 ? (g.usd / totalMcap) * 100 : 0}
                   lead={
@@ -795,7 +817,8 @@ export function NetworkStablecoins() {
           <section className="flex min-w-0 flex-col gap-3">
             <ChartBoard
               label="USD Peg Watch"
-              bodyClassName="p-0"
+              bodyClassName="p-0 flex-1"
+              className="flex flex-1 flex-col"
               action={<Chip>Current</Chip>}
             >
               <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -825,13 +848,14 @@ export function NetworkStablecoins() {
                 )}
               </div>
             </ChartBoard>
-            <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Distance from the dollar in basis points, largest deviation first. Tokens under
-              $100k, without a price feed, or whose feed reads more than 20% off peg (a stale
-              pool, not a depeg) sit this board out.
-            </p>
           </section>
         </div>
+        <p className="-mt-6 text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          The peg watch reads distance from the dollar in basis points, largest deviation
+          first; tokens under $100k, without a price feed, or whose feed sits more than 20%
+          off peg (a stale pool, not a depeg) are excluded. Backing follows DefiLlama&apos;s
+          peg-mechanism classification.
+        </p>
 
         {/* the roster: every token, its currency, and where it answers to */}
         <section className="flex min-w-0 flex-col gap-3">
@@ -894,23 +918,28 @@ export function NetworkStablecoins() {
                         {asset.pegCurrency}
                       </td>
                       <td className={TD}>
-                        {asset.address ? (
-                          <Link
-                            href={`/explorer/mainnet/c-chain/address/${asset.address}`}
-                            className={cn(
-                              idInk,
-                              "font-medium underline-offset-4 hover:text-[#E6212F] hover:underline",
+                        <span className="flex items-center gap-2.5">
+                          <TokenLogo uri={asset.logo} symbol={asset.symbol} />
+                          <span className="min-w-0">
+                            {asset.address ? (
+                              <Link
+                                href={`/explorer/mainnet/c-chain/address/${asset.address}`}
+                                className={cn(
+                                  idInk,
+                                  "font-medium underline-offset-4 hover:text-[#E6212F] hover:underline",
+                                )}
+                              >
+                                {asset.symbol}
+                              </Link>
+                            ) : (
+                              <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                                {asset.symbol}
+                              </span>
                             )}
-                          >
-                            {asset.symbol}
-                          </Link>
-                        ) : (
-                          <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                            {asset.symbol}
+                            <span className="block max-w-40 truncate font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+                              {asset.name}
+                            </span>
                           </span>
-                        )}
-                        <span className="block max-w-40 truncate font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                          {asset.name}
                         </span>
                       </td>
                       <td className={cn(TD, "text-zinc-700 dark:text-zinc-300")}>
