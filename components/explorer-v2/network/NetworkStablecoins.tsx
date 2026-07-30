@@ -29,11 +29,8 @@ import {
 import { ChartEmpty, TipPlate } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
 import { Delta } from "@/components/explorer-v2/evm/metric-charts";
-import type {
-  StablecoinAsset,
-  StablecoinHistoryPoint,
-  StablecoinsApiResponse,
-} from "@/lib/stablecoins";
+import { StablecoinMap, type CoveredCountry } from "@/components/explorer-v2/network/StablecoinMap";
+import type { StablecoinAsset, StablecoinsApiResponse } from "@/lib/stablecoins";
 
 /* The network scope's stablecoin observatory: every pegged asset issued or
    bridged onto Avalanche, in the gas-page grammar. A lead board headlines
@@ -124,6 +121,46 @@ function anchorFlag(code: string): string {
   return CURRENCY_ANCHOR[code]?.flag ?? "";
 }
 
+/* ISO 3166-1 numeric ids for the map, matching the vendored topology */
+const COUNTRY_ID: Record<string, string> = {
+  "United States": "840",
+  "El Salvador": "222",
+  Japan: "392",
+  Switzerland: "756",
+  Liechtenstein: "438",
+  Singapore: "702",
+  Turkey: "792",
+  "United Kingdom": "826",
+  Australia: "036",
+  Brazil: "076",
+  Mexico: "484",
+  France: "250",
+};
+
+/* the euro's legal-tender countries: one EUR token covers all of them */
+const EUROZONE: [string, string][] = [
+  ["040", "Austria"],
+  ["056", "Belgium"],
+  ["191", "Croatia"],
+  ["196", "Cyprus"],
+  ["233", "Estonia"],
+  ["246", "Finland"],
+  ["250", "France"],
+  ["276", "Germany"],
+  ["300", "Greece"],
+  ["372", "Ireland"],
+  ["380", "Italy"],
+  ["428", "Latvia"],
+  ["440", "Lithuania"],
+  ["442", "Luxembourg"],
+  ["470", "Malta"],
+  ["528", "Netherlands"],
+  ["620", "Portugal"],
+  ["703", "Slovakia"],
+  ["705", "Slovenia"],
+  ["724", "Spain"],
+];
+
 /* ---- data ---- */
 
 function useStablecoins() {
@@ -206,6 +243,36 @@ function ShareRow({
         {fmtUsd(usd)}
       </span>
     </div>
+  );
+}
+
+/* coin logo with a monogram fallback, the ChainLogo rule */
+function TokenLogo({ uri, symbol }: { uri?: string; symbol: string }) {
+  const [broken, setBroken] = useState(false);
+  if (!uri || broken) {
+    return (
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-zinc-200 font-mono text-[9px] font-bold uppercase text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
+        {symbol.charAt(0)}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={uri}
+      alt=""
+      onError={() => setBroken(true)}
+      className="h-5 w-5 shrink-0 rounded-full object-contain"
+    />
+  );
+}
+
+/* legend chip for one stacked band */
+function BandKey({ slot, label }: { slot: string; label: string }) {
+  return (
+    <span className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+      <span className="size-2" style={{ background: `var(--sc-${slot})` }} />
+      {label}
+    </span>
   );
 }
 
@@ -386,14 +453,18 @@ export function NetworkStablecoins() {
 
   /* ---- chart + treemap series ---- */
 
+  // one flat row per day: a column per named coin plus the folded tail,
+  // in the treemap's rank order so both instruments speak the same colors
+  const stackKeys = data?.stack.keys ?? [];
   const capSeries = useMemo(() => {
-    const pts = history.map((p) => ({
+    const pts = (data?.stack.points ?? []).map((p) => ({
       date: new Date(p.date * 1000).toISOString().slice(0, 10),
-      value: p.total,
-      byCurrency: p.byCurrency,
+      total: p.total,
+      other: p.other,
+      ...p.coins,
     }));
     return thin(windowSeries(pts, Math.max(7, RANGE_DAYS[range])), 200);
-  }, [history, range]);
+  }, [data, range]);
 
   const treemapCells = useMemo<TreemapDatum[]>(() => {
     if (!totalMcap) return [];
@@ -440,6 +511,33 @@ export function NetworkStablecoins() {
       .filter((a) => Math.abs(a.bp) <= 2_000)
       .sort((x, y) => Math.abs(y.bp) - Math.abs(x.bp))
       .slice(0, 8);
+  }, [assets]);
+
+  // the map's coverage: currency anchors (every euro country for EUR)
+  // plus each curated issuer jurisdiction
+  const coverage = useMemo(() => {
+    const cov = new Map<string, CoveredCountry>();
+    const add = (id: string, name: string, flag: string, symbol: string, usd: number) => {
+      const entry = cov.get(id) ?? { name, flag, tokens: [], usd: 0 };
+      if (!entry.tokens.includes(symbol)) {
+        entry.tokens.push(symbol);
+        entry.usd += usd;
+      }
+      cov.set(id, entry);
+    };
+    for (const a of assets) {
+      if (a.pegCurrency === "EUR") {
+        for (const [id, name] of EUROZONE) add(id, name, "\u{1F1EA}\u{1F1FA}", a.symbol, a.mcap);
+      } else {
+        const anchor = CURRENCY_ANCHOR[a.pegCurrency];
+        const id = anchor && COUNTRY_ID[anchor.country];
+        if (anchor && id) add(id, anchor.country, anchor.flag, a.symbol, a.mcap);
+      }
+      if (a.country && COUNTRY_ID[a.country]) {
+        add(COUNTRY_ID[a.country], a.country, a.flag ?? "", a.symbol, a.mcap);
+      }
+    }
+    return cov;
   }, [assets]);
 
   /* ---- the by-country table ---- */
@@ -520,56 +618,87 @@ export function NetworkStablecoins() {
           </div>
         </Board>
 
-        {/* the pulse: total circulating value on the page clock */}
+        {/* the pulse: total circulating value on the page clock, one band
+            per top coin in the treemap's rank colors, the rest folded gray */}
         <section className="flex min-w-0 flex-col gap-3">
           <ChartBoard label="Market Cap">
             {capSeries.length ? (
-              <div className="h-44 text-zinc-900 dark:text-zinc-100">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={capSeries}>
-                    <XAxis dataKey="date" hide />
-                    <YAxis hide domain={[0, "dataMax"]} />
-                    <RechartsTooltip
-                      cursor={{ stroke: "rgba(161,161,170,0.35)" }}
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null;
-                        const d = payload[0].payload as (typeof capSeries)[number];
-                        const top = Object.entries(d.byCurrency)
-                          .sort((x, y) => y[1] - x[1])
-                          .slice(0, 3);
-                        return (
-                          <TipPlate>
-                            <p className="text-[10px] text-zinc-500">{d.date}</p>
-                            <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                              {fmtUsd(d.value)}
-                            </p>
-                            {top.map(([code, usd]) => (
-                              <p key={code} className="text-[10px] tabular-nums text-zinc-500">
-                                {fmtUsd(usd)} {code}
+              <div className="sc-map flex flex-col gap-3">
+                <div className="h-52 text-zinc-900 dark:text-zinc-100">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={capSeries}>
+                      <XAxis dataKey="date" hide />
+                      <YAxis hide domain={[0, "dataMax"]} />
+                      <RechartsTooltip
+                        cursor={{ stroke: "rgba(161,161,170,0.35)" }}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.[0]) return null;
+                          const d = payload[0].payload as Record<string, number> & {
+                            date: string;
+                          };
+                          const bands = stackKeys
+                            .map((k) => ({ symbol: k.symbol, usd: d[k.id] ?? 0 }))
+                            .sort((x, y) => y.usd - x.usd);
+                          return (
+                            <TipPlate>
+                              <p className="text-[10px] text-zinc-500">{d.date}</p>
+                              <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                                {fmtUsd(d.total)}
                               </p>
-                            ))}
-                          </TipPlate>
-                        );
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="value"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                      fill="currentColor"
-                      fillOpacity={0.1}
-                      isAnimationActive={false}
-                    />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                              {bands.map((b) => (
+                                <p key={b.symbol} className="text-[10px] tabular-nums text-zinc-500">
+                                  {fmtUsd(b.usd)} {b.symbol}
+                                </p>
+                              ))}
+                              <p className="text-[10px] tabular-nums text-zinc-500">
+                                {fmtUsd(d.other)} other
+                              </p>
+                            </TipPlate>
+                          );
+                        }}
+                      />
+                      {stackKeys.map((k, i) => (
+                        <Area
+                          key={k.id}
+                          stackId="cap"
+                          type="monotone"
+                          dataKey={k.id}
+                          name={k.symbol}
+                          stroke="var(--sc-gap)"
+                          strokeWidth={1}
+                          fill={`var(--sc-${i})`}
+                          fillOpacity={0.9}
+                          isAnimationActive={false}
+                        />
+                      ))}
+                      <Area
+                        stackId="cap"
+                        type="monotone"
+                        dataKey="other"
+                        name="Other"
+                        stroke="var(--sc-gap)"
+                        strokeWidth={1}
+                        fill="var(--sc-tail)"
+                        fillOpacity={0.9}
+                        isAnimationActive={false}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                  {stackKeys.map((k, i) => (
+                    <BandKey key={k.id} slot={String(i)} label={k.symbol} />
+                  ))}
+                  <BandKey slot="tail" label="Other" />
+                </div>
               </div>
             ) : (
               <ChartEmpty failed={false} label="No history" />
             )}
           </ChartBoard>
           <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Circulating value of every stablecoin on Avalanche, in USD. Supply data from
+            Circulating value of every stablecoin on Avalanche, in USD. The five largest coins
+            carry their own bands; everything else stacks into Other. Supply data from
             DefiLlama, refreshed every five minutes.
           </p>
         </section>
@@ -611,29 +740,25 @@ export function NetworkStablecoins() {
 
           <ChartBoard
             label="By Currency"
-            bodyClassName="p-0"
             className="min-w-0"
-            action={<Chip>Current</Chip>}
+            action={<Chip>{coverage.size} countries</Chip>}
           >
-            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {currencies.map(([code, usd]) => (
-                <ShareRow
-                  key={code}
-                  usd={usd}
-                  share={totalMcap > 0 ? (usd / totalMcap) * 100 : 0}
-                  lead={
-                    <>
-                      <span className="shrink-0 text-base leading-none">{anchorFlag(code)}</span>
-                      <span className="truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                        {code}
-                      </span>
-                      <span className="truncate font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500">
-                        {anchorCountry(code)}
-                      </span>
-                    </>
-                  }
-                />
-              ))}
+            <div className="flex flex-col gap-4">
+              <StablecoinMap coverage={coverage} />
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+                {currencies.map(([code, usd]) => (
+                  <span
+                    key={code}
+                    className="flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400"
+                  >
+                    <span className="text-[13px] leading-none">{anchorFlag(code)}</span>
+                    {code}
+                    <span className="tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {fmtUsd(usd)}
+                    </span>
+                  </span>
+                ))}
+              </div>
             </div>
           </ChartBoard>
         </div>
@@ -676,9 +801,12 @@ export function NetworkStablecoins() {
               <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
                 {pegWatch.map((a) => (
                   <div key={a.id} className="flex items-center gap-3 px-5 py-3 md:px-6">
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                      {a.symbol}
-                      <span className="ml-2 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500">
+                    <span className="flex min-w-0 flex-1 items-center gap-2.5">
+                      <TokenLogo uri={a.logo} symbol={a.symbol} />
+                      <span className="truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                        {a.symbol}
+                      </span>
+                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500">
                         {fmtUsd(a.mcap)}
                       </span>
                     </span>

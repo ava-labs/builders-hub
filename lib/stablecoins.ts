@@ -29,6 +29,8 @@ export interface StablecoinAsset {
   flag?: string;
   /** verified C-Chain contract, when we have one */
   address?: string;
+  /** DefiLlama's pegged-asset icon CDN */
+  logo?: string;
 }
 
 export interface StablecoinHistoryPoint {
@@ -43,9 +45,30 @@ export interface StablecoinHistoryPoint {
   byCurrency: Record<string, number>;
 }
 
+/* the market-cap chart's stacked bands: the top coins by current value,
+   everything else folded into "other" against the aggregate total */
+export interface StablecoinStackKey {
+  id: string;
+  symbol: string;
+  logo?: string;
+}
+
+export interface StablecoinStackPoint {
+  /** unix seconds, one point per day */
+  date: number;
+  /** USD circulating per stack key id */
+  coins: Record<string, number>;
+  other: number;
+  total: number;
+}
+
 export interface StablecoinsApiResponse {
   assets: StablecoinAsset[];
   history: StablecoinHistoryPoint[];
+  stack: {
+    keys: StablecoinStackKey[];
+    points: StablecoinStackPoint[];
+  };
   updatedAt: number;
 }
 
