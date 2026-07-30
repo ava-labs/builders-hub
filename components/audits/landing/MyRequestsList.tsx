@@ -2,6 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { OwnerRequestSummary } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
@@ -45,7 +58,28 @@ function cardMeta(request: OwnerRequestSummary): string | null {
 }
 
 export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
+  const [deletingDraft, setDeletingDraft] = useState<OwnerRequestSummary | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const deleteDraft = async () => {
+    if (!deletingDraft) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/audits/requests/${deletingDraft.id}`, { method: "DELETE" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        toast.error(body?.message ?? "We couldn't delete this draft.");
+        return;
+      }
+      toast.success("Draft deleted.");
+      setDeletingDraft(null);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const counts = requests.reduce<Record<Exclude<Filter, "all">, number>>(
     (acc, request) => {
@@ -118,11 +152,28 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold">{request.project_name || "Untitled request"}</p>
-                  {meta ? (
-                    <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                      {meta}
-                    </p>
-                  ) : null}
+                  <span className="flex items-center gap-2">
+                    {meta ? (
+                      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+                        {meta}
+                      </p>
+                    ) : null}
+                    {request.display_status === "draft" ? (
+                      <button
+                        type="button"
+                        aria-label={`Delete draft ${request.project_name || "Untitled request"}`}
+                        title="Delete draft"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setDeletingDraft(request);
+                        }}
+                        className="-m-2 cursor-pointer rounded-md p-2 text-zinc-400 transition-colors hover:text-brand dark:text-zinc-500 dark:hover:text-brand-soft"
+                      >
+                        <Trash2 aria-hidden className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </span>
                 </div>
                 <StatusBadge
                   className="mt-1.5"
@@ -149,6 +200,9 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
                       </span>
                     </span>
                   ) : null}
+                  {request.display_status === "draft" ? (
+                    <span>Edited {formatIsoDate(request.updated_at)} · continue editing</span>
+                  ) : null}
                 </div>
               </Link>
             </li>
@@ -160,6 +214,29 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
           Nothing under this filter.
         </p>
       ) : null}
+
+      <AlertDialog
+        open={deletingDraft !== null}
+        onOpenChange={(open) => (!open ? setDeletingDraft(null) : null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete draft {deletingDraft?.project_name || "Untitled request"}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the draft and everything typed into it. Only drafts can be
+              deleted; submitted requests stay on record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Keep draft</AlertDialogCancel>
+            <AlertDialogAction disabled={busy} onClick={() => void deleteDraft()}>
+              Delete draft
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
