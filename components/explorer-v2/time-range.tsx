@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -126,11 +127,34 @@ export function ExplorerRangeControl({ className }: { className?: string }) {
   const present = useRangeConsumersPresent();
   if (!present) return null;
   return (
-    <div
-      role="radiogroup"
-      aria-label="Time range for all stats on this page"
-      className={cn("inline-flex self-center border border-zinc-200 dark:border-zinc-800", className)}
-    >
+    <>
+      {/* narrow viewports: six segments would squeeze the section tabs out
+          of the rail entirely, so the clock folds into the native picker */}
+      <label className={cn("relative self-center sm:hidden", className)}>
+        <span className="sr-only">Time range for all stats on this page</span>
+        <select
+          value={current}
+          onChange={(e) => setExplorerRange(e.target.value as ExplorerRange)}
+          className="appearance-none border border-zinc-200 bg-transparent py-1.5 pl-2.5 pr-7 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+        >
+          {/* label only: the closed control renders the selected option's
+              full text, so anything longer would re-widen the rail */}
+          {EXPLORER_RANGES.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <ChevronsUpDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+      </label>
+      <div
+        role="radiogroup"
+        aria-label="Time range for all stats on this page"
+        className={cn(
+          "hidden self-center border border-zinc-200 sm:inline-flex dark:border-zinc-800",
+          className,
+        )}
+      >
       {EXPLORER_RANGES.map(({ value, label, title }) => {
         const active = value === current;
         return (
@@ -152,7 +176,8 @@ export function ExplorerRangeControl({ className }: { className?: string }) {
           </button>
         );
       })}
-    </div>
+      </div>
+    </>
   );
 }
 

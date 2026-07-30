@@ -187,7 +187,9 @@ function ChainSwitcher({
             />
           )
         )}
-        <span className="max-w-28 truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:max-w-40 md:max-w-56 dark:text-zinc-100">
+        {/* below sm the name would starve the section tabs — the mark and
+            chevron carry the switcher, the page header names the surface */}
+        <span className="hidden truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:block sm:max-w-40 md:max-w-56 dark:text-zinc-100">
           {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks"}
         </span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
@@ -614,7 +616,7 @@ export function ExplorerSubnav({
         className,
       )}
     >
-      <div className="flex min-w-0 items-stretch gap-x-4 md:gap-x-5">
+      <div className="flex min-w-0 items-stretch gap-x-3 sm:gap-x-4 md:gap-x-5">
         <ChainSwitcher network={network} chainSlug={chainSlug} chainName={chainName} chainLogoURI={chainLogoURI} />
         {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
         {tabs.length > 0 && (
@@ -623,7 +625,7 @@ export function ExplorerSubnav({
             aria-label="Explorer sections"
             onScroll={onRailScroll}
             style={railMask}
-            className="scrollbar-hide flex items-stretch gap-x-4 overflow-x-auto md:gap-x-5"
+            className="scrollbar-hide flex items-stretch gap-x-3 overflow-x-auto sm:gap-x-4 md:gap-x-5"
           >
             {tabs.map((tab) => {
               const active = tab.isActive(pathname);
