@@ -14,10 +14,26 @@ import { MyRequestsList } from "@/components/audits/landing/MyRequestsList";
 export default async function AuditsPage() {
   const session = await getAuthSession();
 
+  const email = session?.user?.email?.trim().toLowerCase();
+  // Pure Auditor lookup (no first_login_at stamping: that stays a portal-visit
+  // event) so whitelisted firms see their entry point from every state.
+  const isAuditor = email
+    ? Boolean(
+        await prisma.auditor.findFirst({
+          where: { quote_email: email, active: true },
+          select: { id: true },
+        }),
+      )
+    : false;
+
   return (
     <main className="container relative max-w-[1400px]">
       {session?.user?.id ? (
-        <SignedIn userId={session.user.id} isAdmin={canAdministerAuditProgram(session)} />
+        <SignedIn
+          userId={session.user.id}
+          isAdmin={canAdministerAuditProgram(session)}
+          isAuditor={isAuditor}
+        />
       ) : (
         <SignedOut />
       )}
@@ -30,8 +46,16 @@ async function SignedOut() {
   return <AuditsLanding firmCount={firmCount} />;
 }
 
-async function SignedIn({ userId, isAdmin }: { userId: string; isAdmin: boolean }) {
+async function SignedIn({
+  userId,
+  isAdmin,
+  isAuditor,
+}: {
+  userId: string;
+  isAdmin: boolean;
+  isAuditor: boolean;
+}) {
   const requests = await getOwnerRequests(userId);
-  if (requests.length === 0) return <FirstRun isAdmin={isAdmin} />;
-  return <MyRequestsList requests={requests} isAdmin={isAdmin} />;
+  if (requests.length === 0) return <FirstRun isAdmin={isAdmin} isAuditor={isAuditor} />;
+  return <MyRequestsList requests={requests} isAdmin={isAdmin} isAuditor={isAuditor} />;
 }

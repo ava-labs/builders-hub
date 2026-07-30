@@ -60,9 +60,11 @@ function cardMeta(request: OwnerRequestSummary): string | null {
 export function MyRequestsList({
   requests,
   isAdmin = false,
+  isAuditor = false,
 }: {
   requests: OwnerRequestSummary[];
   isAdmin?: boolean;
+  isAuditor?: boolean;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
@@ -117,6 +119,14 @@ export function MyRequestsList({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isAuditor ? (
+            <Link
+              href="/audits/portal"
+              className="inline-flex h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40 md:h-10"
+            >
+              Auditor portal
+            </Link>
+          ) : null}
           {isAdmin ? (
             <Link
               href="/audits/admin"

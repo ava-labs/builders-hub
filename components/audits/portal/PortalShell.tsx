@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 const initialsOf = (name: string) =>
@@ -14,15 +13,10 @@ const initialsOf = (name: string) =>
 
 /**
  * Slim portal identity bar under the Builder Hub navbar: wordmark, firm
- * identity, portal sign-out. Theme and global nav come from the Hub shell.
+ * identity, exit. Sign-out lives in the navbar's account menu (one shared
+ * session); the bar only ever leaves the portal.
  */
-export function PortalShell({
-  firmName,
-  signedIn,
-}: {
-  firmName: string | null;
-  signedIn: boolean;
-}) {
+export function PortalShell({ firmName }: { firmName: string | null }) {
   return (
     <div className="border-b border-zinc-200 dark:border-white/10">
       <div className="mx-auto flex h-12 w-full max-w-5xl items-center justify-between gap-3 px-4">
@@ -44,15 +38,11 @@ export function PortalShell({
               <span className="hidden font-medium sm:inline">{firmName}</span>
             </span>
           ) : null}
-          {signedIn ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => void signOut({ callbackUrl: "/audits/portal/sign-in" })}
-            >
-              Sign out
-            </Button>
-          ) : null}
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/audits" title="Back to Security Audits, session intact">
+              Exit portal
+            </Link>
+          </Button>
         </div>
       </div>
     </div>

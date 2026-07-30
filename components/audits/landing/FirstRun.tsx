@@ -2,7 +2,13 @@ import Link from "next/link";
 import { EmptyState } from "@/components/audits/shared/EmptyState";
 
 /** Signed in, zero requests (design 1f). Copy verbatim. */
-export function FirstRun({ isAdmin = false }: { isAdmin?: boolean }) {
+export function FirstRun({
+  isAdmin = false,
+  isAuditor = false,
+}: {
+  isAdmin?: boolean;
+  isAuditor?: boolean;
+}) {
   return (
     <EmptyState
       headline={
@@ -23,13 +29,25 @@ export function FirstRun({ isAdmin = false }: { isAdmin?: boolean }) {
       }
       footnote="Typically several quotes within 10 days"
       action2={
-        isAdmin ? (
-          <Link
-            href="/audits/admin"
-            className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-          >
-            Admin dashboard
-          </Link>
+        isAdmin || isAuditor ? (
+          <span className="flex items-center gap-4">
+            {isAuditor ? (
+              <Link
+                href="/audits/portal"
+                className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                Auditor portal
+              </Link>
+            ) : null}
+            {isAdmin ? (
+              <Link
+                href="/audits/admin"
+                className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+              >
+                Admin dashboard
+              </Link>
+            ) : null}
+          </span>
         ) : null
       }
     />

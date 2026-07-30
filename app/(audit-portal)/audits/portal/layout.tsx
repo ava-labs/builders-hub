@@ -36,10 +36,7 @@ export default async function AuditorPortalLayout({
       <NavbarDropdownInjector />
       <LayoutWrapper baseOptions={baseOptions}>
         <div className="flex min-h-[70dvh] flex-col">
-          <PortalShell
-            firmName={auditor?.active ? auditor.firm_name : null}
-            signedIn={Boolean(email)}
-          />
+          <PortalShell firmName={auditor?.active ? auditor.firm_name : null} />
           <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16">{children}</main>
         </div>
         <Footer />
