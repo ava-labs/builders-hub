@@ -67,7 +67,7 @@ export function NetworkToken() {
   // follows it (daily bars up to a month, weekly for a quarter, monthly
   // for a year) so the chart stays readable at every window
   const clock = useExplorerTimeRange();
-  const period: Period = clock === "year" ? "M" : clock === "quarter" ? "W" : "D";
+  const period: Period = clock === "year" || clock === "all" ? "M" : clock === "quarter" ? "W" : "D";
   const [brushIndexes, setBrushIndexes] = useState<{
     startIndex: number;
     endIndex: number;
@@ -613,7 +613,8 @@ export function NetworkToken() {
                     <div>
                       <h2 className="text-lg font-medium text-black dark:text-white">Network Fees Paid</h2>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        C-Chain and ICM contract fees · {RANGE_LABEL[clock]}
+                        C-Chain and ICM contract fees ·{" "}
+                        {clock === "all" ? `${RANGE_LABEL.year} · longest window` : RANGE_LABEL[clock]}
                       </p>
                     </div>
                   </div>

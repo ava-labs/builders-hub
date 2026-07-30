@@ -157,7 +157,9 @@ export function metricSeries(
 export function useChainMetrics(chainId: string, range: number, metricKeys: string) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [failed, setFailed] = useState(false);
-  const timeRange = range <= 30 ? "30d" : range <= 90 ? "90d" : "1y";
+  // "all" rides the API's genesis-anchored window (STATS_CONFIG.TIME_RANGES
+  // pins it to September 2020), so the widest clock tick is true all-time
+  const timeRange = range <= 30 ? "30d" : range <= 90 ? "90d" : range <= 365 ? "1y" : "all";
 
   useEffect(() => {
     let cancelled = false;

@@ -92,6 +92,16 @@ interface SupplyData {
   priceChange24h: number;
 }
 
+/* the overview aggregate's longest upstream window is a year: the ALL
+   tick clamps to it, and the pulse labels say so */
+function overviewWindow(range: ExplorerRange): Exclude<ExplorerRange, "all"> {
+  return range === "all" ? "year" : range;
+}
+
+function overviewWindowLabel(range: ExplorerRange): string {
+  return range === "all" ? `${RANGE_LABEL.year} · longest window` : RANGE_LABEL[range];
+}
+
 function useOverviewStats(timeRange: ExplorerRange) {
   const [data, setData] = useState<OverviewData | null>(null);
   // when the figures landed — the anchor the live tx counter counts from
@@ -243,7 +253,7 @@ export function NetworkOverview() {
   // the shared clock: registers this page as a consumer, so the subnav
   // surfaces its range control and every reading below tracks the one pick
   const range = useExplorerTimeRange();
-  const { data, fetchedAt, refreshing } = useOverviewStats(range);
+  const { data, fetchedAt, refreshing } = useOverviewStats(overviewWindow(range));
   const supply = useAvaxSupply();
 
   const agg = data?.aggregated;
@@ -380,7 +390,7 @@ export function NetworkOverview() {
 
         {/* the ecosystem's ledger strip */}
         <section className="flex flex-col gap-4">
-          <SectionHeader label={`Network pulse · ${RANGE_LABEL[range]}`} />
+          <SectionHeader label={`Network pulse · ${overviewWindowLabel(range)}`} />
           <Board
             divide={false}
             className={cn("overflow-hidden transition-opacity", refreshing && data && "opacity-60")}
@@ -454,7 +464,7 @@ export function NetworkOverview() {
         <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
         <section className="flex min-w-0 flex-col gap-4">
           <SectionHeader
-            label={`Top chains · ${RANGE_LABEL[range]}`}
+            label={`Top chains · ${overviewWindowLabel(range)}`}
             action={<BoardLink href="/explorer/mainnet/chains">All chains</BoardLink>}
           />
           <Board divide={false} className="overflow-x-auto">
