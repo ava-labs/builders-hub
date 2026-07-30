@@ -7,6 +7,8 @@ interface EmptyStateProps {
   headline: ReactNode;
   body: string;
   action?: ReactNode;
+  /** Quiet secondary affordance under the footnote. */
+  action2?: ReactNode;
   footnote?: string;
   className?: string;
 }
@@ -16,6 +18,7 @@ export function EmptyState({
   headline,
   body,
   action,
+  action2,
   footnote,
   className,
 }: EmptyStateProps) {
@@ -36,6 +39,7 @@ export function EmptyState({
           {footnote}
         </p>
       ) : null}
+      {action2 ? <div className="mt-6 flex justify-center">{action2}</div> : null}
     </div>
   );
 }

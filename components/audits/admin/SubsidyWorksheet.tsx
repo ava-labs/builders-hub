@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { computeSubsidySplit, SUBSIDY_MAX_PCT, SUBSIDY_PCT_STEP } from "@/lib/audits/subsidy";
 import { formatUsd } from "@/components/audits/shared/format";
@@ -69,11 +70,23 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
       ) : null}
 
       <div className="mt-5">
-        <div className="flex items-baseline justify-between">
-          <p className="text-sm text-zinc-600 dark:text-[#A2AFB2]">Program share · drag to set</p>
-          <p className="text-2xl font-semibold tabular-nums text-brand dark:text-brand-soft">
-            {pct}%
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-zinc-600 dark:text-[#A2AFB2]">
+            Program share · drag or type
           </p>
+          <div className="flex items-center gap-1">
+            <Input
+              value={String(pct)}
+              onChange={(event) => {
+                const next = Number.parseInt(event.target.value, 10);
+                setPct(Number.isNaN(next) ? 0 : Math.max(0, Math.min(SUBSIDY_MAX_PCT, next)));
+              }}
+              inputMode="numeric"
+              aria-label="Program share percentage"
+              className="h-10 w-16 text-right text-lg font-semibold tabular-nums text-brand dark:text-brand-soft"
+            />
+            <span className="text-lg font-semibold text-brand dark:text-brand-soft">%</span>
+          </div>
         </div>
         <Slider
           value={[pct]}

@@ -3,9 +3,10 @@
 // this one function.
 
 export const SUBSIDY_MAX_PCT = 75;
-// Slider step in the admin worksheet. The server enforces only the 0..75 cap;
-// the step is a UI affordance, not a rule.
-export const SUBSIDY_PCT_STEP = 5;
+// Slider step in the admin worksheet (1 so figures like 56% are reachable;
+// Federico 2026-07-30, superseding the boards' step 5). The server enforces
+// only the 0..75 cap; the step is a UI affordance, not a rule.
+export const SUBSIDY_PCT_STEP = 1;
 
 export interface SubsidySplit {
   program_amount_usd: number;

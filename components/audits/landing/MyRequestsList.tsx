@@ -57,7 +57,13 @@ function cardMeta(request: OwnerRequestSummary): string | null {
   return null;
 }
 
-export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }) {
+export function MyRequestsList({
+  requests,
+  isAdmin = false,
+}: {
+  requests: OwnerRequestSummary[];
+  isAdmin?: boolean;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [deletingDraft, setDeletingDraft] = useState<OwnerRequestSummary | null>(null);
@@ -110,12 +116,22 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
             Quotes from the Ava Labs whitelist, free and private to you.
           </p>
         </div>
-        <Link
-          href="/audits/new"
-          className="inline-flex h-11 items-center rounded-lg bg-zinc-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 md:h-10"
-        >
-          New request
-        </Link>
+        <div className="flex items-center gap-2">
+          {isAdmin ? (
+            <Link
+              href="/audits/admin"
+              className="inline-flex h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40 md:h-10"
+            >
+              Admin dashboard
+            </Link>
+          ) : null}
+          <Link
+            href="/audits/new"
+            className="inline-flex h-11 items-center rounded-lg bg-zinc-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 md:h-10"
+          >
+            New request
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter requests">

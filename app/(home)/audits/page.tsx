@@ -1,4 +1,5 @@
 import { getAuthSession } from "@/lib/auth/authSession";
+import { canAdministerAuditProgram } from "@/lib/auth/permissions";
 import { prisma } from "@/prisma/prisma";
 import { getOwnerRequests } from "@/server/services/audits/visibility";
 import { AuditsLanding } from "@/components/audits/landing/AuditsLanding";
@@ -15,7 +16,11 @@ export default async function AuditsPage() {
 
   return (
     <main className="container relative max-w-[1400px]">
-      {session?.user?.id ? <SignedIn userId={session.user.id} /> : <SignedOut />}
+      {session?.user?.id ? (
+        <SignedIn userId={session.user.id} isAdmin={canAdministerAuditProgram(session)} />
+      ) : (
+        <SignedOut />
+      )}
     </main>
   );
 }
@@ -25,8 +30,8 @@ async function SignedOut() {
   return <AuditsLanding firmCount={firmCount} />;
 }
 
-async function SignedIn({ userId }: { userId: string }) {
+async function SignedIn({ userId, isAdmin }: { userId: string; isAdmin: boolean }) {
   const requests = await getOwnerRequests(userId);
-  if (requests.length === 0) return <FirstRun />;
-  return <MyRequestsList requests={requests} />;
+  if (requests.length === 0) return <FirstRun isAdmin={isAdmin} />;
+  return <MyRequestsList requests={requests} isAdmin={isAdmin} />;
 }
