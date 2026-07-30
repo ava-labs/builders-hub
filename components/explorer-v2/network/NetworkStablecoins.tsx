@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   RANGE_DAYS,
-  RANGE_LABEL,
+  rangeWindowLabel,
   useExplorerTimeRange,
 } from "@/components/explorer-v2/time-range";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
@@ -625,7 +625,7 @@ export function NetworkStablecoins() {
           <BoardHeader
             label="Stablecoins on Avalanche"
             display
-            action={<Chip>Last {RANGE_LABEL[range]}</Chip>}
+            action={<Chip>{rangeWindowLabel(range)}</Chip>}
           />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
             <StatCell label="Market Cap" sub={<Delta value={mcapDelta} />}>
