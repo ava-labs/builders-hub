@@ -12,7 +12,7 @@ import {
 import { Board, BoardHeader, StatDash } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat, TipPlate } from "@/components/explorer-v2/staking/bits";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   ChartSection,
   Delta,
@@ -66,7 +66,7 @@ export function EvmStats({
   // the page clock in the subnav — every chart and figure below rides it
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
+  const rangeLabel = rangeWindowLabel(clock);
   // fetch double the window so every reading can face its previous window
   const { metrics, failed } = useChainMetrics(chainId, Math.min(range * 2, 365), METRICS);
 
@@ -144,7 +144,7 @@ export function EvmStats({
               display
               action={
                 <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                  Last {rangeLabel}
+                  {rangeLabel}
                 </span>
               }
             />

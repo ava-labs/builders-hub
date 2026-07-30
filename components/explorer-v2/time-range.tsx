@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 /* a provider through four different shells.                            */
 /* ------------------------------------------------------------------ */
 
-export type ExplorerRange = "day" | "week" | "month" | "quarter" | "year";
+export type ExplorerRange = "day" | "week" | "month" | "quarter" | "year" | "all";
 
 export const EXPLORER_RANGES: { value: ExplorerRange; label: string; title: string }[] = [
   { value: "day", label: "1D", title: "Last day" },
@@ -20,16 +20,22 @@ export const EXPLORER_RANGES: { value: ExplorerRange; label: string; title: stri
   { value: "month", label: "1M", title: "Last month" },
   { value: "quarter", label: "3M", title: "Last quarter" },
   { value: "year", label: "1Y", title: "Last year" },
+  { value: "all", label: "ALL", title: "All time" },
 ];
 
 /* Every consumer vocabulary the old surfaces used, derived from the one
-   range so no page needs its own mapping table. */
+   range so no page needs its own mapping table. "All" is a finite
+   sentinel (ten years, older than every chain here) so window arithmetic
+   stays finite: slices return everything, deltas clamp to the first
+   point. Feeds with a shorter maximum window clamp to it and say so with
+   a "longest window" label, the gas page's rule. */
 export const RANGE_DAYS: Record<ExplorerRange, number> = {
   day: 1,
   week: 7,
   month: 30,
   quarter: 90,
   year: 365,
+  all: 3650,
 };
 
 /* the window spelled out, for chart headers ("Transactions · 30 days") */
@@ -39,7 +45,13 @@ export const RANGE_LABEL: Record<ExplorerRange, string> = {
   month: "30 days",
   quarter: "90 days",
   year: "1 year",
+  all: "all time",
 };
+
+/* the lead-board chip's copy: "Last 30 days", but never "Last all time" */
+export function rangeWindowLabel(range: ExplorerRange): string {
+  return range === "all" ? "All time" : `Last ${RANGE_LABEL[range]}`;
+}
 
 const DEFAULT_RANGE: ExplorerRange = "month";
 const STORAGE_KEY = "explorer-time-range";

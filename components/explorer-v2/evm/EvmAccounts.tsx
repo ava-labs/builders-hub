@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, BoardHeader, ChartBoard, StatDash, idInk } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat } from "@/components/explorer-v2/staking/bits";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { useContractNames } from "@/lib/sourcify-client";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { AccountsActivity, AccountLeader } from "@/lib/explorer-clickhouse";
@@ -162,7 +162,7 @@ export function EvmAccounts({ network }: { network: string }) {
 
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
+  const rangeLabel = rangeWindowLabel(clock);
 
   // fetch double the window so every reading can face its previous window
   const { metrics, failed } = useChainMetrics(c.chainId, Math.min(range * 2, 365), METRICS);
@@ -200,7 +200,7 @@ export function EvmAccounts({ network }: { network: string }) {
             display
             action={
               <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                Last {rangeLabel}
+                {rangeLabel}
               </span>
             }
           />

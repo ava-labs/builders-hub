@@ -19,7 +19,7 @@ import {
   idInk,
   txToneText,
 } from "@/components/explorer-v2/ui";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   usePrimaryMetrics,
   toSeries,
@@ -94,8 +94,10 @@ interface StatDef {
    in the metric's own unit — absolute heads, not percents */
 function levelDiff(points: SeriesPoint[], n: number): number | null {
   const cur = points[points.length - 1];
-  const prev = points[points.length - 1 - n];
-  if (!cur || !prev) return null;
+  // a window wider than the history (the ALL tick) reads from the first
+  // point: the diff becomes "since the series began"
+  const prev = points[Math.max(0, points.length - 1 - n)];
+  if (!cur || !prev || cur === prev) return null;
   return cur.value - prev.value;
 }
 
@@ -237,7 +239,7 @@ function MainnetChainStats({
     <ChainStatsBoard
       action={
         <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-          Last {RANGE_LABEL[clock]}
+          {rangeWindowLabel(clock)}
         </span>
       }
       cells={buildStatCells(s, totalStake, stakingRatio, base, {
