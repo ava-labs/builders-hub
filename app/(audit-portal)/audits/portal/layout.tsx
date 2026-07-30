@@ -1,4 +1,8 @@
 import type { Metadata } from "next";
+import { Footer } from "@/components/navigation/footer";
+import { baseOptions } from "@/app/layout.config";
+import { LayoutWrapper } from "@/app/layout-wrapper.client";
+import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { resolveAuditorByEmail } from "@/server/services/audits/auditors";
 import { PortalShell } from "@/components/audits/portal/PortalShell";
@@ -10,10 +14,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * Chrome-free route group: deliberately NOT LayoutWrapper (no Builder Hub
- * navbar, footer, or login/terms modals; auditors have no accounts). The
- * ROOT layout still provides theme, session and toasts. Resolving the
- * auditor here also stamps first_login_at on the firm's first visit.
+ * The portal lives in the standard Builder Hub shell (Federico, 2026-07-30,
+ * superseding the standalone chrome of the original boards): same navbar and
+ * footer as /audits, plus a slim portal identity bar. Access stays
+ * whitelist-gated; sign-in remains the OTP flow. Deliberately NOT the (home)
+ * group: no AutoLoginModalTrigger/TrackNewUser here, so pure-auditor
+ * (pending_) sessions never get pushed through Builder Hub onboarding.
+ * Resolving the auditor here also stamps first_login_at on first visit.
  */
 export default async function AuditorPortalLayout({
   children,
@@ -25,12 +32,18 @@ export default async function AuditorPortalLayout({
   const auditor = email ? await resolveAuditorByEmail(email) : null;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background text-foreground">
-      <PortalShell
-        firmName={auditor?.active ? auditor.firm_name : null}
-        signedIn={Boolean(email)}
-      />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16">{children}</main>
-    </div>
+    <>
+      <NavbarDropdownInjector />
+      <LayoutWrapper baseOptions={baseOptions}>
+        <div className="flex min-h-[70dvh] flex-col">
+          <PortalShell
+            firmName={auditor?.active ? auditor.firm_name : null}
+            signedIn={Boolean(email)}
+          />
+          <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-16">{children}</main>
+        </div>
+        <Footer />
+      </LayoutWrapper>
+    </>
   );
 }
