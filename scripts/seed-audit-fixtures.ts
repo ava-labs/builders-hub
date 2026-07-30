@@ -4,10 +4,15 @@
  * Usage:
  *   npx tsx scripts/seed-audit-fixtures.ts               # whitelist firms only
  *   npx tsx scripts/seed-audit-fixtures.ts you@org.com   # + sample requests owned by that User
+ *   npx tsx scripts/seed-audit-fixtures.ts --clean       # REMOVE everything this script seeded
  *
- * Idempotent: firms upsert by quote_email, requests/quotes by fixed ids.
- * Every name is invented (design-package fixture rules); NEVER seed the real
- * whitelist or any real firm name, and never run this against production.
+ * Idempotent: firms upsert by quote_email, requests/quotes by fixed ids, so
+ * --clean can target exactly those rows (requests cascade their quotes,
+ * deliveries and events). Every name is invented (design-package fixture
+ * rules); NEVER seed the real whitelist or any real firm name, never run
+ * this against production, and only ever against a database explicitly
+ * designated as disposable. The schema migration itself carries NO data:
+ * sample rows exist only where someone ran this script.
  */
 import { PrismaClient } from "@prisma/client";
 
@@ -293,7 +298,25 @@ async function seedRequests(userId: string, auditorIds: Map<string, string>) {
   });
 }
 
+async function clean() {
+  const requests = await prisma.auditRequest.deleteMany({
+    where: { id: { in: Object.values(REQ) } },
+  });
+  const firms = await prisma.auditor.deleteMany({
+    where: { quote_email: { in: FIRMS.map((firm) => firm.quote_email) } },
+  });
+  // Whitelist events (auditor_added etc.) have no request_id; sweep the ones
+  // the seeded firms produced via their fixed .example identities.
+  console.log(
+    `Removed ${requests.count} seeded requests (quotes/deliveries/events cascade) and ${firms.count} seeded firms.`,
+  );
+}
+
 async function main() {
+  if (process.argv[2] === "--clean") {
+    await clean();
+    return;
+  }
   const ownerEmail = process.argv[2]?.trim().toLowerCase();
   const auditorIds = await seedFirms();
   console.log(`Seeded ${auditorIds.size} auditor firms (1 deactivated).`);

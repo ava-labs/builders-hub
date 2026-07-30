@@ -14,8 +14,8 @@ interface StepperProps {
 // adapted to the audit design language: done step = zinc check, current = red.
 export function Stepper({ steps, current, onJumpBack }: StepperProps) {
   return (
-    <nav aria-label="Progress" className="mb-8">
-      <ol className="flex flex-wrap items-center gap-2">
+    <nav aria-label="Progress">
+      <ol className="flex flex-wrap items-center justify-center gap-2">
         {steps.map((label, index) => {
           const isComplete = index < current;
           const isCurrent = index === current;

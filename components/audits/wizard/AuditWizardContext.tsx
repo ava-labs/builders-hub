@@ -25,6 +25,8 @@ interface AuditWizardContextValue {
   saveState: SaveState;
   savedAt: Date | null;
   saveDraftNow: () => Promise<void>;
+  /** Flush the draft, then leave for My requests. Nothing typed = just leave. */
+  saveAndExit: () => Promise<void>;
   submit: () => Promise<void>;
   submitting: boolean;
 }
@@ -83,6 +85,18 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
     else toast.error("We couldn't save your draft. Check your session and try again.");
   }, [flush]);
 
+  const saveAndExit = useCallback(async () => {
+    // An untouched wizard has nothing worth keeping; leave quietly.
+    if (!form.formState.isDirty && !initialDraft) {
+      router.push("/audits");
+      return;
+    }
+    const id = await flush(true);
+    if (id) toast.success("Draft saved. Find it under Drafts in My requests.");
+    else toast.error("We couldn't save your draft, but your session may have expired.");
+    router.push("/audits");
+  }, [flush, form, initialDraft, router]);
+
   const submit = useCallback(async () => {
     const valid = await form.trigger(STEP_FIELDS[3]);
     if (!valid) return;
@@ -127,10 +141,23 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       saveState,
       savedAt,
       saveDraftNow,
+      saveAndExit,
       submit,
       submitting,
     }),
-    [form, step, setStep, goNext, goBack, saveState, savedAt, saveDraftNow, submit, submitting],
+    [
+      form,
+      step,
+      setStep,
+      goNext,
+      goBack,
+      saveState,
+      savedAt,
+      saveDraftNow,
+      saveAndExit,
+      submit,
+      submitting,
+    ],
   );
 
   return (

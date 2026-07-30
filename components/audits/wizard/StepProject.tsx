@@ -44,6 +44,7 @@ interface StepProjectProps {
 export function StepProject({ importProjectId }: StepProjectProps) {
   const form = useFormContext<AuditWizardValues>();
   const [projects, setProjects] = useState<ImportableProject[]>([]);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const appliedRef = useRef(false);
 
   const applyImport = useCallback(
@@ -63,6 +64,7 @@ export function StepProject({ importProjectId }: StepProjectProps) {
       .then((rows) => {
         if (cancelled) return;
         setProjects(rows);
+        setLoadState("ready");
         if (importProjectId && !appliedRef.current) {
           const match = rows.find((row) => row.id === importProjectId);
           if (match) {
@@ -73,6 +75,7 @@ export function StepProject({ importProjectId }: StepProjectProps) {
       })
       .catch(() => {
         // Import is a convenience; the wizard works without it.
+        if (!cancelled) setLoadState("error");
       });
     return () => {
       cancelled = true;
@@ -81,33 +84,47 @@ export function StepProject({ importProjectId }: StepProjectProps) {
 
   return (
     <div className="space-y-6">
-      {projects.length > 0 ? (
-        <div className="space-y-1.5 rounded-lg border border-zinc-200 p-4 dark:border-white/10">
-          <p className="text-sm font-medium">Import from your Builder Hub project</p>
-          <Select
-            value={form.watch("source_project_id") ?? ""}
-            onValueChange={(id) => {
-              const match = projects.find((row) => row.id === id);
-              if (match) applyImport(match);
-            }}
-          >
-            <SelectTrigger className="h-11 md:h-10">
-              <SelectValue placeholder="Pick a project" />
-            </SelectTrigger>
-            <SelectContent>
-              {projects.map((project) => (
-                <SelectItem key={project.id} value={project.id}>
-                  {project.project_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      {/* Always visible: the import affordance is a first-class entry point,
+          so an account without projects still learns it exists. */}
+      <div className="space-y-1.5 rounded-lg border border-zinc-200 p-4 dark:border-white/10">
+        <p className="text-sm font-medium">Import from your Builder Hub project</p>
+        {loadState === "loading" ? (
+          <p className="text-sm text-muted-foreground">Loading your projects…</p>
+        ) : loadState === "error" ? (
           <p className="text-sm text-muted-foreground">
-            Pre-fills name, description, website and repos from the project record. Everything
-            stays editable.
+            We couldn&apos;t load your projects right now · fill in the details manually below.
           </p>
-        </div>
-      ) : null}
+        ) : projects.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No Builder Hub projects on this account yet · fill in the details manually below.
+          </p>
+        ) : (
+          <>
+            <Select
+              value={form.watch("source_project_id") ?? ""}
+              onValueChange={(id) => {
+                const match = projects.find((row) => row.id === id);
+                if (match) applyImport(match);
+              }}
+            >
+              <SelectTrigger className="h-11 md:h-10">
+                <SelectValue placeholder="Pick a project" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map((project) => (
+                  <SelectItem key={project.id} value={project.id}>
+                    {project.project_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              Pre-fills name, description, website and repos from the project record. Everything
+              stays editable.
+            </p>
+          </>
+        )}
+      </div>
 
       <FormField
         control={form.control}

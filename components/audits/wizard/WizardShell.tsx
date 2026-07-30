@@ -1,6 +1,7 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/audits/shared/Stepper";
 import {
@@ -37,18 +38,30 @@ function SaveIndicator() {
 }
 
 function WizardBody({ importProjectId }: { importProjectId: string | null }) {
-  const { step, setStep, goNext, goBack, saveDraftNow, submit, submitting } = useAuditWizard();
+  const { step, setStep, goNext, goBack, saveDraftNow, saveAndExit, submit, submitting } =
+    useAuditWizard();
 
   return (
-    <div className="mx-auto w-full max-w-[780px]">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="mx-auto w-full max-w-4xl">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-          Audits / New request
+          <Link href="/audits" className="hover:text-zinc-800 dark:hover:text-zinc-200">
+            Audits
+          </Link>{" "}
+          / New request
         </p>
-        <SaveIndicator />
+        <div className="flex items-center gap-3">
+          <SaveIndicator />
+          <Button type="button" variant="ghost" size="sm" onClick={() => void saveAndExit()}>
+            <ArrowLeft aria-hidden className="mr-1.5 h-4 w-4" />
+            Save &amp; exit
+          </Button>
+        </div>
       </div>
 
-      <Stepper steps={WIZARD_STEPS} current={step} onJumpBack={setStep} />
+      <div className="mb-6 flex justify-center">
+        <Stepper steps={WIZARD_STEPS} current={step} onJumpBack={setStep} />
+      </div>
 
       <form onSubmit={(event) => event.preventDefault()} noValidate>
         <div className="space-y-6 rounded-xl border border-border bg-card p-6 sm:p-8">
