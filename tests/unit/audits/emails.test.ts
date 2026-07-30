@@ -5,6 +5,7 @@ vi.mock("@/server/services/mail", () => ({ sendMail: sendMailMock }));
 
 import { sendFanoutNotification } from "@/server/services/audits/emails/sendFanoutNotification";
 import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
+import { sendNotSelectedNotice } from "@/server/services/audits/emails/sendNotSelectedNotice";
 
 const AUDITOR = { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" };
 const REQUEST = {
@@ -56,6 +57,33 @@ describe("sendFanoutNotification", () => {
     expect(subject).not.toContain("—");
     expect(html).not.toContain("—");
     expect(text).not.toContain("—");
+  });
+});
+
+describe("sendNotSelectedNotice", () => {
+  it("tells the losing firm plainly: no reason, no competitor info, no prices", async () => {
+    await sendNotSelectedNotice(AUDITOR, { project_name: "Glacierswap" });
+
+    const [to, html, subject, text] = sendMailMock.mock.calls[0] as [
+      string,
+      string,
+      string,
+      string,
+    ];
+    expect(to).toBe("quotes@nordlicht.example");
+    expect(subject).toContain("Glacierswap");
+    // No amounts, no winner identity, no em dashes.
+    for (const part of [subject, html, text]) {
+      expect(part).not.toContain("$");
+      expect(part).not.toContain("—");
+    }
+  });
+
+  it("neutralizes markup in the project name", async () => {
+    await sendNotSelectedNotice(AUDITOR, { project_name: "<script>x()</script>" });
+
+    expect(htmlOf()).not.toContain("<script>");
+    expect(htmlOf()).toContain("&lt;script&gt;");
   });
 });
 

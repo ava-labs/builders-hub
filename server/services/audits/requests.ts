@@ -1,7 +1,12 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
+import { deriveRequestStatus } from "@/lib/audits/status";
+import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
+import { deliverFanoutEmails } from "@/server/services/audits/fanout";
 import type { AuditDraftInput } from "@/types/audits";
+
+const DAY = 24 * 60 * 60 * 1000;
 
 export type MutationResult = { success: true } | { success: false; code: "not_found" };
 
@@ -51,6 +56,85 @@ export async function deleteDraft(userId: string, requestId: string): Promise<Mu
     where: { id: requestId, user_id: userId, status: "draft" },
   });
   return result.count === 0 ? { success: false, code: "not_found" } : { success: true };
+}
+
+export type ReopenResult =
+  | { success: true; auditorCount: number; emailFailures: number }
+  | { success: false; code: "not_found" | "not_reopenable" | "already_reopened" };
+
+type ReopenTxOutcome =
+  | { kind: "not_found" | "not_reopenable" | "already_reopened" }
+  | {
+      kind: "ok";
+      auditors: { id: string; firm_name: string; quote_email: string }[];
+      request: {
+        project_name: string;
+        quote_deadline: Date;
+        services: string[];
+        nsloc: number | null;
+      };
+    };
+
+/**
+ * One more round for a derived-expired request (deadline passed, zero
+ * quotes): fresh +10d deadline, re-fanout to every active firm. Deliveries
+ * upsert via skipDuplicates so history stays intact, and exactly ONE reopen
+ * is allowed, enforced by counting request_reopened events.
+ */
+export async function reopen(userId: string, requestId: string): Promise<ReopenResult> {
+  const outcome = await prisma.$transaction(async (tx): Promise<ReopenTxOutcome> => {
+    const row = await tx.auditRequest.findFirst({
+      where: { id: requestId, user_id: userId },
+      include: { _count: { select: { quotes: true } } },
+    });
+    if (!row) return { kind: "not_found" };
+    if (deriveRequestStatus(row, row._count.quotes) !== "expired") {
+      return { kind: "not_reopenable" };
+    }
+    const priorReopens = await tx.auditEventLog.count({
+      where: { request_id: requestId, action: "request_reopened" },
+    });
+    if (priorReopens >= 1) return { kind: "already_reopened" };
+
+    const quote_deadline = new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
+    await tx.auditRequest.update({ where: { id: row.id }, data: { quote_deadline } });
+
+    const auditors = await tx.auditor.findMany({
+      where: { active: true },
+      select: { id: true, firm_name: true, quote_email: true },
+    });
+    if (auditors.length > 0) {
+      await tx.auditFanoutDelivery.createMany({
+        data: auditors.map((auditor) => ({ request_id: row.id, auditor_id: auditor.id })),
+        skipDuplicates: true,
+      });
+    }
+    await tx.auditEventLog.create({
+      data: {
+        request_id: row.id,
+        actor_type: "project_user",
+        actor_id: userId,
+        action: "request_reopened",
+        meta: { auditor_count: auditors.length },
+      },
+    });
+
+    return {
+      kind: "ok",
+      auditors,
+      request: {
+        project_name: row.project_name,
+        quote_deadline,
+        services: row.services,
+        nsloc: row.nsloc,
+      },
+    };
+  });
+
+  if (outcome.kind !== "ok") return { success: false, code: outcome.kind };
+
+  const { emailFailures } = await deliverFanoutEmails(requestId, outcome.auditors, outcome.request);
+  return { success: true, auditorCount: outcome.auditors.length, emailFailures };
 }
 
 export async function withdraw(userId: string, requestId: string): Promise<MutationResult> {

@@ -1,19 +1,49 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { updateManyMock, deleteManyMock, eventCreateMock } = vi.hoisted(() => ({
+const {
+  updateManyMock,
+  deleteManyMock,
+  eventCreateMock,
+  txRequestFindFirstMock,
+  txRequestUpdateMock,
+  txEventCountMock,
+  txEventCreateMock,
+  txAuditorFindManyMock,
+  txDeliveryCreateManyMock,
+  deliverFanoutEmailsMock,
+} = vi.hoisted(() => ({
   updateManyMock: vi.fn(),
   deleteManyMock: vi.fn(),
   eventCreateMock: vi.fn(),
+  txRequestFindFirstMock: vi.fn(),
+  txRequestUpdateMock: vi.fn(),
+  txEventCountMock: vi.fn(),
+  txEventCreateMock: vi.fn(),
+  txAuditorFindManyMock: vi.fn(),
+  txDeliveryCreateManyMock: vi.fn(),
+  deliverFanoutEmailsMock: vi.fn(),
 }));
+
+const tx = {
+  auditRequest: { findFirst: txRequestFindFirstMock, update: txRequestUpdateMock },
+  auditEventLog: { count: txEventCountMock, create: txEventCreateMock },
+  auditor: { findMany: txAuditorFindManyMock },
+  auditFanoutDelivery: { createMany: txDeliveryCreateManyMock },
+};
 
 vi.mock("@/prisma/prisma", () => ({
   prisma: {
     auditRequest: { updateMany: updateManyMock, deleteMany: deleteManyMock },
     auditEventLog: { create: eventCreateMock },
+    $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx)),
   },
 }));
 
-import { patchDraft, deleteDraft, withdraw } from "@/server/services/audits/requests";
+vi.mock("@/server/services/audits/fanout", () => ({
+  deliverFanoutEmails: deliverFanoutEmailsMock,
+}));
+
+import { patchDraft, deleteDraft, reopen, withdraw } from "@/server/services/audits/requests";
 
 const OWNER = "user-owner";
 
@@ -82,5 +112,61 @@ describe("withdraw", () => {
 
     expect(result).toEqual({ success: false, code: "not_found" });
     expect(eventCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("reopen", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const expiredRow = {
+    id: "req-1",
+    project_name: "Glacierswap",
+    services: [],
+    nsloc: 4200,
+    status: "collecting",
+    quote_deadline: new Date(Date.now() - 2 * DAY),
+    _count: { quotes: 0 },
+  };
+
+  beforeEach(() => {
+    txRequestFindFirstMock.mockResolvedValue(expiredRow);
+    txEventCountMock.mockResolvedValue(0);
+    txRequestUpdateMock.mockResolvedValue({});
+    txAuditorFindManyMock.mockResolvedValue([
+      { id: "aud-1", firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" },
+    ]);
+    txDeliveryCreateManyMock.mockResolvedValue({ count: 1 });
+    txEventCreateMock.mockResolvedValue({});
+    deliverFanoutEmailsMock.mockResolvedValue({ emailFailures: 0 });
+  });
+
+  it("gives an expired request a fresh +10d deadline and re-fans out, history intact", async () => {
+    const result = await reopen(OWNER, "req-1");
+
+    expect(result).toMatchObject({ success: true, auditorCount: 1 });
+    const deadline = txRequestUpdateMock.mock.calls[0][0].data.quote_deadline as Date;
+    expect(Math.abs(deadline.getTime() - (Date.now() + 10 * DAY))).toBeLessThan(60_000);
+    expect(txDeliveryCreateManyMock.mock.calls[0][0].skipDuplicates).toBe(true);
+    expect(txEventCreateMock.mock.calls[0][0].data).toMatchObject({
+      action: "request_reopened",
+    });
+    expect(deliverFanoutEmailsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses anything that is not derived-expired (quotes exist)", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...expiredRow, _count: { quotes: 2 } });
+
+    const result = await reopen(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "not_reopenable" });
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("allows exactly one extra round", async () => {
+    txEventCountMock.mockResolvedValue(1);
+
+    const result = await reopen(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "already_reopened" });
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
   });
 });

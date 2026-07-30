@@ -567,6 +567,32 @@ export async function getAdminAuditors(): Promise<AdminAuditorRow[]> {
   }));
 }
 
+/**
+ * Post-acceptance participants: the winner (for the contact reveal) and the
+ * not-selected firms (for the losing notices). Server-internal only.
+ */
+export async function getAcceptanceParticipants(requestId: string) {
+  const row = await prisma.auditRequest.findUnique({
+    where: { id: requestId },
+    select: {
+      project_name: true,
+      quotes: {
+        select: {
+          price_usd: true,
+          status: true,
+          auditor: { select: { firm_name: true, quote_email: true } },
+        },
+      },
+    },
+  });
+  if (!row) return null;
+  return {
+    project_name: row.project_name,
+    winner: row.quotes.find((quote) => quote.status === "accepted") ?? null,
+    losers: row.quotes.filter((quote) => quote.status === "not_selected"),
+  };
+}
+
 /** The accepted quote's price for the subsidy worksheet and decision. */
 export async function getAcceptedQuoteForAdmin(
   requestId: string,

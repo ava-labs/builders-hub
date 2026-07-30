@@ -5,8 +5,13 @@ import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { QuoteChipPill, chipsFor } from "@/components/audits/quotes/QuotesPanel";
 
+interface QuoteCardsProps {
+  quotes: OwnerQuote[];
+  onAccept?: (quote: OwnerQuote) => void;
+}
+
 /** Card grid (design 1i); the forced view below 900px. */
-export function QuoteCards({ quotes }: { quotes: OwnerQuote[] }) {
+export function QuoteCards({ quotes, onAccept }: QuoteCardsProps) {
   return (
     <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {quotes.map((quote) => (
@@ -33,6 +38,15 @@ export function QuoteCards({ quotes }: { quotes: OwnerQuote[] }) {
             <p className="mt-3 line-clamp-3 text-sm text-zinc-600 dark:text-[#A2AFB2]">
               {quote.message}
             </p>
+          ) : null}
+          {onAccept && quote.display_status === "submitted" ? (
+            <button
+              type="button"
+              onClick={() => onAccept(quote)}
+              className="mt-3 h-11 w-full cursor-pointer rounded-lg border border-zinc-300 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40 md:h-10"
+            >
+              Accept quote…
+            </button>
           ) : null}
         </li>
       ))}

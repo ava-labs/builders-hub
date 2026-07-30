@@ -13,8 +13,13 @@ const initialsOf = (name: string) =>
     .slice(0, 2)
     .toUpperCase();
 
+interface QuoteRowsProps {
+  quotes: OwnerQuote[];
+  onAccept?: (quote: OwnerQuote) => void;
+}
+
 /** Stacked rows · message-forward (design 1g). Sorted by price ascending. */
-export function QuoteRows({ quotes }: { quotes: OwnerQuote[] }) {
+export function QuoteRows({ quotes, onAccept }: QuoteRowsProps) {
   return (
     <ul className="divide-y divide-zinc-200 rounded-xl border border-zinc-200 bg-white dark:divide-white/10 dark:border-white/10 dark:bg-[#1F1F1F]">
       {quotes.map((quote) => (
@@ -42,6 +47,15 @@ export function QuoteRows({ quotes }: { quotes: OwnerQuote[] }) {
             <p className="mt-0.5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
               {quote.duration_weeks} weeks · starts {formatIsoDate(quote.earliest_start)}
             </p>
+            {onAccept && quote.display_status === "submitted" ? (
+              <button
+                type="button"
+                onClick={() => onAccept(quote)}
+                className="mt-2 cursor-pointer text-sm text-zinc-600 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Accept quote…
+              </button>
+            ) : null}
           </div>
         </li>
       ))}

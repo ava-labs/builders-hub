@@ -111,8 +111,6 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Hands-on learning and real building, from hackathons to workshops and bootcamps.',
       url: '/events',
-      // marker: the popover CSS lays four-item menus out as a 2x2 grid
-      menu: { className: 'nav-grid-2' },
     },
     {
       icon: <Gamepad2 />,
@@ -134,6 +132,13 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Research grants and the Blizzard Fund for your project.',
       url: '/grants',
+    },
+    {
+      icon: <ShieldCheck />,
+      text: 'Security Audits',
+      description:
+        'Quotes from every vetted firm, free. Subsidized up to 75% by the program.',
+      url: '/audits',
     },
   ],
 };

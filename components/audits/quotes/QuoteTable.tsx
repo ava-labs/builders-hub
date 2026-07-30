@@ -11,8 +11,13 @@ import {
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
+interface QuoteTableProps {
+  quotes: OwnerQuote[];
+  onAccept?: (quote: OwnerQuote) => void;
+}
+
 /** Comparison table · numbers-forward (design 1h). Bars in info blue, never red. */
-export function QuoteTable({ quotes }: { quotes: OwnerQuote[] }) {
+export function QuoteTable({ quotes, onAccept }: QuoteTableProps) {
   const highest = Math.max(...quotes.map((quote) => quote.price_usd));
 
   return (
@@ -25,6 +30,7 @@ export function QuoteTable({ quotes }: { quotes: OwnerQuote[] }) {
             <TableHead className="min-w-32">Vs highest</TableHead>
             <TableHead>Duration</TableHead>
             <TableHead>Can start</TableHead>
+            {onAccept ? <TableHead aria-label="Accept" /> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -53,6 +59,19 @@ export function QuoteTable({ quotes }: { quotes: OwnerQuote[] }) {
               <TableCell className="font-mono text-sm">
                 {formatIsoDate(quote.earliest_start)}
               </TableCell>
+              {onAccept ? (
+                <TableCell>
+                  {quote.display_status === "submitted" ? (
+                    <button
+                      type="button"
+                      onClick={() => onAccept(quote)}
+                      className="cursor-pointer text-sm text-zinc-600 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    >
+                      Accept…
+                    </button>
+                  ) : null}
+                </TableCell>
+              ) : null}
             </TableRow>
           ))}
         </TableBody>

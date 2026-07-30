@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { ViewSwitcher, useQuoteViewPreference } from "@/components/audits/shared/ViewSwitcher";
 import { QuoteRows } from "@/components/audits/quotes/QuoteRows";
 import { QuoteTable } from "@/components/audits/quotes/QuoteTable";
 import { QuoteCards } from "@/components/audits/quotes/QuoteCards";
+import { AcceptQuoteDialog } from "@/components/audits/quotes/AcceptQuoteDialog";
 
 export type QuoteChip = { label: string; tone: "info" | "positive" };
 
@@ -31,26 +33,44 @@ interface QuotesPanelProps {
   userId: string;
   /** The reveal line under the list (collecting/deciding states). */
   showAcceptNote?: boolean;
+  /** When set, quotes carry the quiet accept affordance (dialog holds the red). */
+  acceptRequestId?: string | null;
 }
 
-export function QuotesPanel({ quotes, userId, showAcceptNote = false }: QuotesPanelProps) {
+export function QuotesPanel({
+  quotes,
+  userId,
+  showAcceptNote = false,
+  acceptRequestId = null,
+}: QuotesPanelProps) {
   const { view, setView, forcedCards } = useQuoteViewPreference(userId);
+  const [accepting, setAccepting] = useState<OwnerQuote | null>(null);
 
   if (quotes.length === 0) return null;
+
+  const onAccept = acceptRequestId ? (quote: OwnerQuote) => setAccepting(quote) : undefined;
 
   return (
     <section aria-label="Quotes">
       <div className="mb-3 flex items-center justify-end">
         <ViewSwitcher value={view} onChange={setView} disabled={forcedCards} />
       </div>
-      {view === "rows" && <QuoteRows quotes={quotes} />}
-      {view === "table" && <QuoteTable quotes={quotes} />}
-      {view === "cards" && <QuoteCards quotes={quotes} />}
+      {view === "rows" && <QuoteRows quotes={quotes} onAccept={onAccept} />}
+      {view === "table" && <QuoteTable quotes={quotes} onAccept={onAccept} />}
+      {view === "cards" && <QuoteCards quotes={quotes} onAccept={onAccept} />}
       {showAcceptNote ? (
         <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
           Accepting reveals contact details both ways, closes the request, and notifies the other
           firms automatically.
         </p>
+      ) : null}
+      {acceptRequestId ? (
+        <AcceptQuoteDialog
+          requestId={acceptRequestId}
+          quote={accepting}
+          otherCount={Math.max(0, quotes.length - 1)}
+          onClose={() => setAccepting(null)}
+        />
       ) : null}
     </section>
   );

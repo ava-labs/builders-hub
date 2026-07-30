@@ -88,12 +88,48 @@ function WithdrawButton({ requestId }: { requestId: string }) {
   );
 }
 
-function StateCard({ title, body }: { title: string; body: string }) {
+function StateCard({
+  title,
+  body,
+  action,
+}: {
+  title: string;
+  body: string;
+  action?: React.ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-6 dark:border-white/10 dark:bg-[#1F1F1F]">
       <p className="font-semibold">{title}</p>
       <p className="mt-1.5 text-sm text-zinc-600 dark:text-[#A2AFB2]">{body}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
+  );
+}
+
+function ReopenButton({ requestId }: { requestId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  const reopen = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/audits/requests/${requestId}/reopen`, { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        toast.error(body?.message ?? "We couldn't reopen this request.");
+        return;
+      }
+      toast.success(`Reopened. ${body.auditorCount} firms were notified again.`);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Button variant="outline" disabled={busy} onClick={() => void reopen()} className="h-11 md:h-10">
+      Reopen for one more round
+    </Button>
   );
 }
 
@@ -153,7 +189,12 @@ export function RequestDetailView({
               </p>
             </div>
             {detail.quotes.length > 0 ? (
-              <QuotesPanel quotes={detail.quotes} userId={userId} showAcceptNote />
+              <QuotesPanel
+                quotes={detail.quotes}
+                userId={userId}
+                showAcceptNote
+                acceptRequestId={detail.id}
+              />
             ) : (
               <StateCard
                 title="No quotes yet."
@@ -178,7 +219,12 @@ export function RequestDetailView({
               Window closed{detail.quote_deadline ? ` ${formatIsoDate(detail.quote_deadline)}` : ""}{" "}
               · quotes visible only to you and program admins
             </p>
-            <QuotesPanel quotes={detail.quotes} userId={userId} showAcceptNote />
+            <QuotesPanel
+              quotes={detail.quotes}
+              userId={userId}
+              showAcceptNote
+              acceptRequestId={detail.id}
+            />
           </>
         ) : null}
 
@@ -238,6 +284,7 @@ export function RequestDetailView({
           <StateCard
             title="The quote window closed without quotes."
             body="This request can be reopened for one more round; every active firm is notified again."
+            action={<ReopenButton requestId={detail.id} />}
           />
         ) : null}
 

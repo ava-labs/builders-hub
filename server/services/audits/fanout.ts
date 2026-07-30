@@ -109,15 +109,28 @@ export async function submitRequestAndFanout(
   if (outcome.kind === "not_found") return { success: false, code: "not_found" };
   if (outcome.kind === "invalid") return { success: false, code: "invalid", errors: outcome.errors };
 
-  // After commit: best-effort sends, one delivery-row status update each.
+  const { emailFailures } = await deliverFanoutEmails(requestId, outcome.auditors, outcome.request);
+  return { success: true, auditorCount: outcome.auditors.length, emailFailures };
+}
+
+/**
+ * Post-commit best-effort sends with one delivery-row status update each.
+ * Shared by submission and reopen; an email failure NEVER fails the caller,
+ * it degrades that delivery to email_status "failed".
+ */
+export async function deliverFanoutEmails(
+  requestId: string,
+  auditors: { id: string; firm_name: string; quote_email: string }[],
+  request: { project_name: string; quote_deadline: Date; services: string[]; nsloc: number | null },
+): Promise<{ emailFailures: number }> {
   const sends = await Promise.allSettled(
-    outcome.auditors.map((auditor) => sendFanoutNotification(auditor, outcome.request)),
+    auditors.map((auditor) => sendFanoutNotification(auditor, request)),
   );
   const emailFailures = sends.filter((send) => send.status === "rejected").length;
 
   await Promise.all(
     sends.map((send, index) => {
-      const auditor = outcome.auditors[index];
+      const auditor = auditors[index];
       return prisma.auditFanoutDelivery.update({
         where: {
           request_id_auditor_id: { request_id: requestId, auditor_id: auditor.id },
@@ -130,5 +143,5 @@ export async function submitRequestAndFanout(
     }),
   );
 
-  return { success: true, auditorCount: outcome.auditors.length, emailFailures };
+  return { emailFailures };
 }
