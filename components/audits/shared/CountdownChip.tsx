@@ -22,6 +22,8 @@ interface CountdownChipProps {
   deadline: Date | string;
   /** Rendered before the countdown, e.g. "Quotes close". */
   prefix?: string;
+  /** "portal": amber when calm (auditor triage palette); default: neutral. */
+  palette?: "default" | "portal";
   className?: string;
 }
 
@@ -31,7 +33,7 @@ interface CountdownChipProps {
  * disagree. Countdown urgency is the one red text moment: <=7 days turns
  * brand red.
  */
-export function CountdownChip({ deadline, prefix, className }: CountdownChipProps) {
+export function CountdownChip({ deadline, prefix, palette = "default", className }: CountdownChipProps) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -53,7 +55,11 @@ export function CountdownChip({ deadline, prefix, className }: CountdownChipProp
         <span
           className={cn(
             "font-medium",
-            urgent ? "text-brand dark:text-brand-soft" : "text-zinc-900 dark:text-zinc-100",
+            urgent
+              ? "text-brand dark:text-brand-soft"
+              : palette === "portal"
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-zinc-900 dark:text-zinc-100",
           )}
         >
           {remaining}

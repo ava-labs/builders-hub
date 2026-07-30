@@ -1,9 +1,23 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-const { requestFindManyMock, requestFindFirstMock, auditorFindManyMock } = vi.hoisted(() => ({
+const {
+  requestFindManyMock,
+  requestFindFirstMock,
+  requestFindUniqueMock,
+  auditorFindManyMock,
+  deliveryFindManyMock,
+  deliveryFindUniqueMock,
+  quoteFindManyMock,
+  quoteFindUniqueMock,
+} = vi.hoisted(() => ({
   requestFindManyMock: vi.fn(),
   requestFindFirstMock: vi.fn(),
+  requestFindUniqueMock: vi.fn(),
   auditorFindManyMock: vi.fn(),
+  deliveryFindManyMock: vi.fn(),
+  deliveryFindUniqueMock: vi.fn(),
+  quoteFindManyMock: vi.fn(),
+  quoteFindUniqueMock: vi.fn(),
 }));
 
 vi.mock("@/prisma/prisma", () => ({
@@ -11,9 +25,18 @@ vi.mock("@/prisma/prisma", () => ({
     auditRequest: {
       findMany: requestFindManyMock,
       findFirst: requestFindFirstMock,
+      findUnique: requestFindUniqueMock,
     },
     auditor: {
       findMany: auditorFindManyMock,
+    },
+    auditFanoutDelivery: {
+      findMany: deliveryFindManyMock,
+      findUnique: deliveryFindUniqueMock,
+    },
+    auditQuote: {
+      findMany: quoteFindManyMock,
+      findUnique: quoteFindUniqueMock,
     },
   },
 }));
@@ -22,8 +45,10 @@ import {
   getAdminAuditors,
   getAdminOverview,
   getAdminRequests,
+  getAuditorInbox,
   getOwnerRequests,
   getOwnerRequestDetail,
+  getRequestForAuditor,
 } from "@/server/services/audits/visibility";
 
 const OWNER = "user-owner";
@@ -43,8 +68,7 @@ const baseRequest = {
 };
 
 beforeEach(() => {
-  requestFindManyMock.mockReset();
-  requestFindFirstMock.mockReset();
+  vi.clearAllMocks();
 });
 
 describe("getOwnerRequests", () => {
@@ -244,7 +268,7 @@ describe("admin scope", () => {
     expect(engaged?.accepted_firm_price_usd).toBe(28000);
   });
 
-  it("derives whitelist stats per firm", async () => {
+  it("derives whitelist stats per firm (see bottom of file for the source guard)", async () => {
     auditorFindManyMock.mockResolvedValue([
       {
         id: "aud-1",
@@ -274,5 +298,63 @@ describe("admin scope", () => {
       won: 1,
     });
     expect(rows[0].last_quote_at).toEqual(new Date("2026-07-25"));
+  });
+});
+
+describe("auditor scope", () => {
+  it("pins the auditor id in every inbox query and strips contacts from the projection", async () => {
+    deliveryFindManyMock.mockResolvedValue([]);
+    quoteFindManyMock.mockResolvedValue([]);
+
+    await getAuditorInbox("aud-1");
+
+    expect(deliveryFindManyMock.mock.calls[0][0].where).toMatchObject({ auditor_id: "aud-1" });
+    expect(quoteFindManyMock.mock.calls[0][0].where).toMatchObject({ auditor_id: "aud-1" });
+    const requestSelect = deliveryFindManyMock.mock.calls[0][0].include.request.select;
+    expect(requestSelect.contact_name).toBeUndefined();
+    expect(requestSelect.contact_email).toBeUndefined();
+    expect(requestSelect.contact_handle).toBeUndefined();
+    expect(requestSelect.contact_calendar_url).toBeUndefined();
+    expect(requestSelect.user).toBeUndefined();
+  });
+
+  it("hides a request without this auditor's fan-out row", async () => {
+    deliveryFindUniqueMock.mockResolvedValue(null);
+
+    const result = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(result).toBeNull();
+    expect(deliveryFindUniqueMock.mock.calls[0][0].where).toEqual({
+      request_id_auditor_id: { request_id: "req-1", auditor_id: "aud-1" },
+    });
+    expect(requestFindFirstMock).not.toHaveBeenCalled();
+  });
+
+  it("reveals project contacts only when the own quote is accepted", async () => {
+    deliveryFindUniqueMock.mockResolvedValue({ request_id: "req-1", auditor_id: "aud-1" });
+    requestFindFirstMock.mockResolvedValue({
+      id: "req-1",
+      project_name: "Glacierswap",
+      status: "engaged",
+      quote_deadline: PAST,
+      services: [],
+    });
+    quoteFindUniqueMock.mockResolvedValue({ id: "q-1", status: "accepted", price_usd: 28000 });
+    requestFindUniqueMock.mockResolvedValue({
+      contact_name: "Ada Stone",
+      contact_email: "ada@glacierswap.example",
+      contact_handle: null,
+      contact_calendar_url: null,
+    });
+
+    const won = await getRequestForAuditor("aud-1", "req-1");
+    expect(won!.contacts?.contact_email).toBe("ada@glacierswap.example");
+
+    quoteFindUniqueMock.mockResolvedValue({ id: "q-1", status: "submitted", price_usd: 28000 });
+    requestFindUniqueMock.mockClear();
+
+    const pending = await getRequestForAuditor("aud-1", "req-1");
+    expect(pending!.contacts).toBeNull();
+    expect(requestFindUniqueMock).not.toHaveBeenCalled();
   });
 });

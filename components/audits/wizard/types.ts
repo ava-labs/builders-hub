@@ -153,7 +153,7 @@ interface DraftRow {
   contact_calendar_url: string | null;
 }
 
-function parseRepos(value: unknown): { url: string; ref: string }[] {
+export function parseRepos(value: unknown): { url: string; ref: string }[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter((entry): entry is { url?: unknown; ref?: unknown } => Boolean(entry) && typeof entry === "object")
@@ -164,7 +164,7 @@ function parseRepos(value: unknown): { url: string; ref: string }[] {
     .filter((repo) => repo.url !== "");
 }
 
-function parseAttachments(value: unknown): AuditAttachment[] {
+export function parseAttachments(value: unknown): AuditAttachment[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
     (entry): entry is AuditAttachment =>

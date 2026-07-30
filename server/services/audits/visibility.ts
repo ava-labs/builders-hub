@@ -2,6 +2,7 @@ import { prisma } from "@/prisma/prisma";
 import {
   deriveQuoteDisplayStatus,
   deriveRequestStatus,
+  isQuoteWindowOpen,
   type DisplayQuoteStatus,
   type DisplayRequestStatus,
 } from "@/lib/audits/status";
@@ -151,6 +152,158 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
 }
 
 export type OwnerRequestDetail = NonNullable<Awaited<ReturnType<typeof getOwnerRequestDetail>>>;
+
+// ── Auditor scope ───────────────────────────────────────────────────────────
+// Every function pins auditor_id unconditionally; an auditor's inbox is
+// exactly its AuditFanoutDelivery rows. These projections NEVER include
+// contact_* or the requesting user; contacts attach only once the firm's own
+// quote is accepted (both facts are pinned by tests).
+
+// What an auditor may ever see about a request, before winning it.
+const AUDITOR_SAFE_REQUEST_SELECT = {
+  id: true,
+  project_name: true,
+  description: true,
+  scope: true,
+  project_types: true,
+  deployment_target: true,
+  multichain: true,
+  services: true,
+  repos: true,
+  languages: true,
+  frameworks: true,
+  nsloc: true,
+  doc_links: true,
+  attachments: true,
+  needed_by: true,
+  quote_deadline: true,
+  urgency: true,
+  status: true,
+  submitted_at: true,
+  created_at: true,
+} as const;
+
+const AUDITOR_INBOX_REQUEST_SELECT = {
+  id: true,
+  project_name: true,
+  description: true,
+  services: true,
+  nsloc: true,
+  languages: true,
+  frameworks: true,
+  repos: true,
+  needed_by: true,
+  quote_deadline: true,
+  urgency: true,
+  status: true,
+  submitted_at: true,
+} as const;
+
+export interface AuditorOwnQuote {
+  id: string;
+  status: string;
+  price_usd: number;
+  updated_at: Date;
+}
+
+export async function getAuditorInbox(auditorId: string) {
+  const [deliveries, ownQuotes] = await Promise.all([
+    prisma.auditFanoutDelivery.findMany({
+      where: { auditor_id: auditorId },
+      orderBy: { created_at: "desc" },
+      include: { request: { select: AUDITOR_INBOX_REQUEST_SELECT } },
+    }),
+    prisma.auditQuote.findMany({
+      where: { auditor_id: auditorId },
+      select: { id: true, request_id: true, status: true, price_usd: true, updated_at: true },
+    }),
+  ]);
+
+  const quoteByRequest = new Map(ownQuotes.map((quote) => [quote.request_id, quote]));
+  return deliveries.map((delivery) => {
+    const quote = quoteByRequest.get(delivery.request_id) ?? null;
+    return {
+      request: delivery.request,
+      own_quote: quote
+        ? {
+            id: quote.id,
+            status: quote.status,
+            price_usd: quote.price_usd,
+            updated_at: quote.updated_at,
+          }
+        : null,
+      window_open: isQuoteWindowOpen(delivery.request),
+    };
+  });
+}
+
+export type AuditorInboxItem = Awaited<ReturnType<typeof getAuditorInbox>>[number];
+
+export interface AuditorContacts {
+  contact_name: string;
+  contact_email: string;
+  contact_handle: string | null;
+  contact_calendar_url: string | null;
+}
+
+export async function getRequestForAuditor(auditorId: string, requestId: string) {
+  // The fan-out delivery row IS the invitation: without it the request does
+  // not exist for this firm (routes 404).
+  const delivery = await prisma.auditFanoutDelivery.findUnique({
+    where: { request_id_auditor_id: { request_id: requestId, auditor_id: auditorId } },
+    select: { request_id: true },
+  });
+  if (!delivery) return null;
+
+  const request = await prisma.auditRequest.findFirst({
+    where: { id: requestId },
+    select: AUDITOR_SAFE_REQUEST_SELECT,
+  });
+  if (!request) return null;
+
+  const own_quote = await getOwnQuote(auditorId, requestId);
+
+  // Contacts reveal both ways only after acceptance.
+  let contacts: AuditorContacts | null = null;
+  if (own_quote?.status === "accepted") {
+    contacts = await prisma.auditRequest.findUnique({
+      where: { id: requestId },
+      select: {
+        contact_name: true,
+        contact_email: true,
+        contact_handle: true,
+        contact_calendar_url: true,
+      },
+    });
+  }
+
+  return {
+    ...request,
+    own_quote: own_quote
+      ? {
+          id: own_quote.id,
+          status: own_quote.status,
+          price_usd: own_quote.price_usd,
+          duration_weeks: own_quote.duration_weeks,
+          earliest_start: own_quote.earliest_start,
+          message: own_quote.message,
+          reaudit_included: own_quote.reaudit_included,
+          updated_at: own_quote.updated_at,
+        }
+      : null,
+    contacts,
+    window_open: isQuoteWindowOpen(request),
+  };
+}
+
+export type AuditorRequestView = NonNullable<Awaited<ReturnType<typeof getRequestForAuditor>>>;
+
+/** The firm's OWN quote; the composite key pins auditor_id structurally. */
+export async function getOwnQuote(auditorId: string, requestId: string) {
+  return prisma.auditQuote.findUnique({
+    where: { request_id_auditor_id: { request_id: requestId, auditor_id: auditorId } },
+  });
+}
 
 // ── Admin scope ─────────────────────────────────────────────────────────────
 // Admins see everything (quotes are private to "the requesting project and
