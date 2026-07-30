@@ -1,12 +1,12 @@
 import { prisma } from "@/prisma/prisma";
-import { computeSubsidySplit } from "@/lib/audits/subsidy";
+import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { getAcceptedQuoteForAdmin } from "@/server/services/audits/visibility";
 import type { SubsidyDecisionInput } from "@/types/audits";
 
 export type DecideSubsidyResult =
   | { success: true; decision_id: string }
-  | { success: false; code: "invalid_state" };
+  | { success: false; code: "invalid_state" | "over_cap" };
 
 /**
  * Records a subsidy decision. APPEND-ONLY: every call creates a new row and
@@ -24,8 +24,16 @@ export async function decideSubsidy(
   const accepted = await getAcceptedQuoteForAdmin(requestId);
   if (!accepted) return { success: false, code: "invalid_state" };
 
-  const pct = input.state === "declined" ? 0 : input.pct;
-  const split = computeSubsidySplit(accepted.price_usd, pct);
+  const cap = Math.floor((accepted.price_usd * SUBSIDY_MAX_PCT) / 100);
+  const program_amount_usd = input.state === "declined" ? 0 : input.program_amount_usd;
+  if (program_amount_usd > cap) return { success: false, code: "over_cap" };
+  const split = {
+    program_amount_usd,
+    project_amount_usd: accepted.price_usd - program_amount_usd,
+  };
+  // Display-only: the exact amounts above are what count.
+  const pct =
+    accepted.price_usd > 0 ? Math.round((program_amount_usd / accepted.price_usd) * 100) : 0;
 
   return prisma.$transaction(async (tx) => {
     const request = await tx.auditRequest.findUnique({

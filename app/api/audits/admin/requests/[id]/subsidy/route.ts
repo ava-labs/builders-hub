@@ -31,8 +31,14 @@ export async function POST(request: NextRequest, context: RouteParams<{ id: stri
     const result = await decideSubsidy(id, parsed.data, { id: admin.userId, name: admin.name });
     if (!result.success) {
       return NextResponse.json(
-        { success: false, message: "Subsidy decisions need an engaged request with an accepted quote." },
-        { status: 409 },
+        {
+          success: false,
+          message:
+            result.code === "over_cap"
+              ? "The amount exceeds the 75% cap for this quote."
+              : "Subsidy decisions need an engaged request with an accepted quote.",
+        },
+        { status: result.code === "over_cap" ? 400 : 409 },
       );
     }
     return NextResponse.json({ success: true, decision_id: result.decision_id });

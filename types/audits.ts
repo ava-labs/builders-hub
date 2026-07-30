@@ -118,9 +118,12 @@ export const acceptQuoteSchema = z.strictObject({
   quoteId: z.string().min(1),
 });
 
+// Amount-based (Federico 2026-07-30): admins think in dollar figures like
+// $2,500, so the exact program amount is what travels; the 75%-of-price cap
+// is enforced in the service where the accepted price is known.
 export const subsidyDecisionSchema = z.strictObject({
   state: z.enum(SUBSIDY_DECISION_STATES),
-  pct: z.number().int().min(0).max(SUBSIDY_MAX_PCT),
+  program_amount_usd: z.number().int().min(0),
   note: trimmed(2000).optional(),
 });
 export type SubsidyDecisionInput = z.infer<typeof subsidyDecisionSchema>;

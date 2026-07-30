@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { computeSubsidySplit, SUBSIDY_MAX_PCT, SUBSIDY_PCT_STEP } from "@/lib/audits/subsidy";
+import { SUBSIDY_MAX_PCT, SUBSIDY_PCT_STEP } from "@/lib/audits/subsidy";
 import { formatUsd } from "@/components/audits/shared/format";
 
 interface SubsidyWorksheetProps {
@@ -23,9 +23,16 @@ interface SubsidyWorksheetProps {
  */
 export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: SubsidyWorksheetProps) {
   const router = useRouter();
-  const [pct, setPct] = useState(latest?.state === "approved" ? latest.pct : 0);
+  // The exact dollar amount is the source of truth (Federico 2026-07-30);
+  // slider and percent are two views onto it.
+  const cap = Math.floor((priceUsd * SUBSIDY_MAX_PCT) / 100);
+  const [amount, setAmount] = useState(
+    latest?.state === "approved" ? Math.min(cap, Math.round((priceUsd * latest.pct) / 100)) : 0,
+  );
   const [busy, setBusy] = useState(false);
-  const split = computeSubsidySplit(priceUsd, pct);
+  const pct = priceUsd > 0 ? Math.round((amount / priceUsd) * 100) : 0;
+  const setFromPct = (nextPct: number) =>
+    setAmount(Math.min(cap, Math.round((priceUsd * nextPct) / 100)));
 
   const decide = async (state: "approved" | "declined") => {
     setBusy(true);
@@ -33,7 +40,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
       const res = await fetch(`/api/audits/admin/requests/${requestId}/subsidy`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state, pct }),
+        body: JSON.stringify({ state, program_amount_usd: amount }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.success) {
@@ -79,7 +86,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
               value={String(pct)}
               onChange={(event) => {
                 const next = Number.parseInt(event.target.value, 10);
-                setPct(Number.isNaN(next) ? 0 : Math.max(0, Math.min(SUBSIDY_MAX_PCT, next)));
+                setFromPct(Number.isNaN(next) ? 0 : Math.max(0, Math.min(SUBSIDY_MAX_PCT, next)));
               }}
               inputMode="numeric"
               aria-label="Program share percentage"
@@ -90,7 +97,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
         </div>
         <Slider
           value={[pct]}
-          onValueChange={(value) => setPct(value[0] ?? 0)}
+          onValueChange={(value) => setFromPct(value[0] ?? 0)}
           max={SUBSIDY_MAX_PCT}
           step={SUBSIDY_PCT_STEP}
           aria-label="Program share percentage"
@@ -108,14 +115,29 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
       </div>
 
       <dl className="mt-4 space-y-1.5 border-t border-zinc-200 pt-4 text-sm dark:border-white/10">
-        <div className="flex justify-between">
-          <dt className="text-zinc-600 dark:text-[#A2AFB2]">Program pays</dt>
-          <dd className="font-semibold tabular-nums">{formatUsd(split.program_amount_usd)}</dd>
+        <div className="flex items-center justify-between gap-3">
+          <dt className="text-zinc-600 dark:text-[#A2AFB2]">Program pays · type an exact amount</dt>
+          <dd className="flex items-center gap-1">
+            <span className="text-zinc-500">$</span>
+            <Input
+              value={String(amount)}
+              onChange={(event) => {
+                const next = Number.parseInt(event.target.value.replaceAll(",", ""), 10);
+                setAmount(Number.isNaN(next) ? 0 : Math.max(0, Math.min(cap, next)));
+              }}
+              inputMode="numeric"
+              aria-label="Program amount in US dollars"
+              className="h-10 w-28 text-right font-semibold tabular-nums"
+            />
+          </dd>
         </div>
         <div className="flex justify-between">
           <dt className="text-zinc-600 dark:text-[#A2AFB2]">Project pays</dt>
-          <dd className="font-semibold tabular-nums">{formatUsd(split.project_amount_usd)}</dd>
+          <dd className="font-semibold tabular-nums">{formatUsd(priceUsd - amount)}</dd>
         </div>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Cap: {formatUsd(cap)} ({SUBSIDY_MAX_PCT}% of the accepted price).
+        </p>
       </dl>
 
       <div className="mt-5 flex flex-col gap-2">
@@ -124,7 +146,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
           onClick={() => void decide("approved")}
           className="h-11 bg-brand text-white hover:bg-brand-deep"
         >
-          Approve {pct}% subsidy
+          Approve {formatUsd(amount)} subsidy
         </Button>
         <Button disabled={busy} variant="outline" onClick={() => void decide("declined")}>
           Decline subsidy
