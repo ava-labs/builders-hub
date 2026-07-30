@@ -13,7 +13,7 @@ interface SubsidyWorksheetProps {
   requestId: string;
   firmName: string;
   priceUsd: number;
-  latest: { state: string; pct: number; decided_at: Date } | null;
+  latest: { state: string; pct: number; program_amount_usd: number; decided_at: Date } | null;
 }
 
 /**
@@ -27,7 +27,7 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
   // slider and percent are two views onto it.
   const cap = Math.floor((priceUsd * SUBSIDY_MAX_PCT) / 100);
   const [amount, setAmount] = useState(
-    latest?.state === "approved" ? Math.min(cap, Math.round((priceUsd * latest.pct) / 100)) : 0,
+    latest?.state === "approved" ? Math.min(cap, latest.program_amount_usd) : 0,
   );
   const [busy, setBusy] = useState(false);
   const pct = priceUsd > 0 ? Math.round((amount / priceUsd) * 100) : 0;
@@ -72,7 +72,10 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
       {latest ? (
         <p className="mt-2 rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-500 dark:bg-white/5 dark:text-zinc-400">
           Latest decision: {latest.state}
-          {latest.state === "approved" ? ` ${latest.pct}%` : ""} · a new decision supersedes it.
+          {latest.state === "approved"
+            ? ` ${formatUsd(latest.program_amount_usd)} (${latest.pct}%)`
+            : ""}{" "}
+          · a new decision supersedes it.
         </p>
       ) : null}
 

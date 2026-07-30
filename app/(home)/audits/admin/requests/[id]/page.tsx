@@ -89,6 +89,7 @@ export default async function AuditAdminDrilldownPage({
                   ? {
                       state: latestDecision.state,
                       pct: latestDecision.pct,
+                      program_amount_usd: latestDecision.program_amount_usd,
                       decided_at: latestDecision.decided_at,
                     }
                   : null

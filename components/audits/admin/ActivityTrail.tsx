@@ -28,10 +28,18 @@ function eventLine(event: TrailEvent): string {
       return ["Quote accepted", firm, price].filter(Boolean).join(" · ");
     case "contacts_revealed":
       return "Contacts revealed both ways";
-    case "subsidy_approved":
-      return ["Subsidy approved", `${typeof meta.pct === "number" ? meta.pct : "?"}%`, admin ? `by ${admin}` : null]
+    case "subsidy_approved": {
+      const amount =
+        typeof meta.program_amount_usd === "number" ? formatUsd(meta.program_amount_usd) : null;
+      const share = typeof meta.pct === "number" ? `(${meta.pct}%)` : null;
+      return [
+        "Subsidy approved",
+        amount ? `${amount}${share ? ` ${share}` : ""}` : share,
+        admin ? `by ${admin}` : null,
+      ]
         .filter(Boolean)
         .join(" · ");
+    }
     case "subsidy_declined":
       return ["Subsidy declined", admin ? `by ${admin}` : null].filter(Boolean).join(" · ");
     case "request_withdrawn":
@@ -58,7 +66,7 @@ export function ActivityTrail({ events }: { events: AdminRequestDetail["events"]
       {events.length === 0 ? (
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Nothing yet.</p>
       ) : (
-        <ul className="mt-3 space-y-2.5 border-l border-zinc-200 pl-4 dark:border-white/10">
+        <ul className="mt-3 max-h-[26rem] space-y-2.5 overflow-y-auto border-l border-zinc-200 pl-4 pr-2 dark:border-white/10">
           {events.map((event) => (
             <li key={event.id} className="text-sm">
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
