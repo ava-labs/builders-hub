@@ -32,16 +32,15 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
 
   return (
     <div className="relative mx-auto max-w-4xl px-4 py-12 sm:py-16">
-      {/* The masthead moment (round-3 N-3): one large corner staircase in the
-          hero's empty right, the sign-in stack's sibling; the old two-row
-          strip read as an afterthought. Desktop only · accents, never
-          wallpaper. */}
+      {/* The masthead accent (round-3 N-3, resized on Federico's review): a
+          quiet corner staircase pinned to the container edge, well clear of
+          the headline. Desktop only · accents, never wallpaper. */}
       <BlocksArt
         cols={4}
-        rows={4}
-        size="lg"
+        rows={3}
+        size="md"
         variant="corner"
-        className="absolute right-4 top-12 hidden sm:top-16 lg:inline-flex"
+        className="absolute right-0 top-10 hidden lg:inline-flex"
       />
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         Ava Labs audit program · free for builders
@@ -92,21 +91,20 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         </span>
       </Link>
 
-      <div className="mt-12">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
+      {/* The X3-A plate as mocked on the round-3 board: the steps live inside
+          one framed compartment card, mono label on top, 1px hairline gutters
+          between the columns (horizontal when stacked at mobile). */}
+      <div className="mt-12 rounded-xl border border-zinc-200 dark:border-white/10">
+        <h2 className="px-5 pt-4 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
           How it works
         </h2>
-        {/* Hairline compartments between the steps (round-3 X3-A): the
-            guideline's 1px vertical gutters, the same language as the site
-            footer below. Stacked at mobile the hairlines turn horizontal. */}
-        <div className="mt-6 sm:grid sm:grid-cols-3">
+        <div className="mt-2 sm:grid sm:grid-cols-3">
           {HOW_IT_WORKS.map((item, index) => (
             <div
               key={item.step}
               className={cn(
-                "border-zinc-200 py-4 first:pt-0 last:pb-0 dark:border-white/10 sm:py-0",
-                index > 0 && "border-t sm:border-l sm:border-t-0 sm:pl-8",
-                index < HOW_IT_WORKS.length - 1 && "sm:pr-8",
+                "border-zinc-200 px-5 py-4 dark:border-white/10",
+                index > 0 && "border-t sm:border-l sm:border-t-0",
               )}
             >
               <p className="font-mono text-sm text-brand dark:text-brand-soft">{item.step}</p>
