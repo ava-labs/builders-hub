@@ -131,9 +131,9 @@ export function NoFundMovement({ txType }: { txType: string }) {
 function explainNoMovement(type: string): string {
   const t = type.toLowerCase();
   if (t.includes("rewardautorenew"))
-    return "Settles an auto-renewed staking cycle: the earned reward is compounded back into the validator's stake (or the cycle is closed out) as on-chain state. No UTXOs are created or spent.";
+    return "Settles an auto-renewed staking cycle: the earned reward compounds back into the validator's stake, and any non-compounded share is minted directly into state as a reward UTXO (see Reward Payout). Nothing flows through the transaction itself.";
   if (t.includes("reward"))
-    return "Marks the end of a validation period and settles its staking reward. When the reward is compounded or the period is aborted, the outcome is recorded as state and no UTXOs move.";
+    return "Marks the end of a validation period and settles its staking reward. Payouts are minted directly into state as reward UTXOs rather than moving through the transaction; an aborted vote mints nothing.";
   if (t.includes("setautorenew") || t.includes("config"))
     return "Updates a validator's auto-renew configuration: staking period and compounding. It changes on-chain state only and moves no funds.";
   if (t.includes("advancetime"))
