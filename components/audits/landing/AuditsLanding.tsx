@@ -35,7 +35,7 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         Ava Labs audit program · free for builders
       </p>
-      <h1 className="mt-4 text-5xl font-black uppercase leading-[0.95] tracking-tight text-zinc-950 dark:text-zinc-50 sm:text-6xl">
+      <h1 className="v2-display mt-4 text-5xl text-zinc-950 dark:text-zinc-50 sm:text-6xl">
         Every vetted auditor.
         <br />
         One request.

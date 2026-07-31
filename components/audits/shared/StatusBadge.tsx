@@ -29,14 +29,23 @@ const QUOTE_STATUS: Record<string, { label: string; tone: string }> = {
 interface StatusBadgeProps {
   status: string;
   kind?: "request" | "quote";
+  /** Replaces the mapped label, keeping the status tone ("You quoted $X"). */
+  label?: string;
   /** Extra copy after the label, e.g. "· pick one" on the list cards. */
   suffix?: string;
   className?: string;
 }
 
-export function StatusBadge({ status, kind = "request", suffix, className }: StatusBadgeProps) {
+export function StatusBadge({
+  status,
+  kind = "request",
+  label,
+  suffix,
+  className,
+}: StatusBadgeProps) {
   const map = kind === "quote" ? QUOTE_STATUS : REQUEST_STATUS;
-  const entry = map[status] ?? { label: status, tone: NEUTRAL };
+  const mapped = map[status] ?? { label: status, tone: NEUTRAL };
+  const entry = { label: label ?? mapped.label, tone: mapped.tone };
   return (
     <span
       className={cn(

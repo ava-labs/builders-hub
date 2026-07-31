@@ -14,10 +14,10 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
  * signIn("credentials"). Codes expire after 3 minutes (sendOTP reality; the
  * board's 10:00 was sample copy).
  */
-export function SignInCard() {
+export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code">("email");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);

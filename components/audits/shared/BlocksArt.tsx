@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 type BlocksSize = "sm" | "md" | "lg";
-type BlocksVariant = "cascade" | "corner";
+type BlocksVariant = "cascade" | "corner" | "stack";
 type BlocksPalette = "page" | "plate";
 
 interface BlocksArtProps {
@@ -10,7 +10,8 @@ interface BlocksArtProps {
   rows?: 2 | 3 | 4;
   size?: BlocksSize;
   /** cascade = left-aligned, rows step right (marketing surfaces).
-      corner = right-aligned, for the top-right of dark plates. */
+      corner = right-aligned, for the top-right of dark plates.
+      stack = left-flush shrinking rows (the sign-in panel, board 1a). */
   variant?: BlocksVariant;
   /** page follows the theme; plate uses the fixed board hues for
       always-dark surfaces (#121212 / #1F1F1F plates). */
@@ -68,9 +69,7 @@ export function BlocksArt({
             key={row}
             className="flex"
             style={
-              variant === "cascade" && row > 0
-                ? { marginLeft: row * INDENT[size] }
-                : undefined
+              variant === "cascade" && row > 0 ? { marginLeft: row * INDENT[size] } : undefined
             }
           >
             {Array.from({ length: count }, (_, col) => (

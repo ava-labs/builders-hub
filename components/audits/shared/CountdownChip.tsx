@@ -24,8 +24,18 @@ interface CountdownChipProps {
   prefix?: string;
   /** "portal": amber when calm (auditor triage palette); default: neutral. */
   palette?: "default" | "portal";
+  /** Bordered dot-pill form (portal cards, board 1b); default stays inline text. */
+  pill?: boolean;
   className?: string;
 }
+
+/* Light hues per Foundations/1f: amber-700 (amber-600 fails AA on white) and
+   brand-deep for urgent (brand passes only at the margin). */
+const URGENT_TEXT = "text-brand-deep dark:text-brand-soft";
+const CALM_TEXT = "text-amber-700 dark:text-amber-400";
+const URGENT_PILL = "border-brand-deep/35 text-brand-deep dark:border-brand-soft/40 dark:text-brand-soft";
+const CALM_PILL = "border-amber-700/35 text-amber-700 dark:border-amber-400/35 dark:text-amber-400";
+const CLOSED_PILL = "border-zinc-300 text-zinc-600 dark:border-white/15 dark:text-zinc-400";
 
 /**
  * Live deadline countdown. Renders nothing until mounted (the mount gate from
@@ -33,7 +43,13 @@ interface CountdownChipProps {
  * disagree. Countdown urgency is the one red text moment: <=7 days turns
  * brand red.
  */
-export function CountdownChip({ deadline, prefix, palette = "default", className }: CountdownChipProps) {
+export function CountdownChip({
+  deadline,
+  prefix,
+  palette = "default",
+  pill = false,
+  className,
+}: CountdownChipProps) {
   const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -48,6 +64,22 @@ export function CountdownChip({ deadline, prefix, palette = "default", className
   const remaining = formatRemaining(target, now);
   const urgent = target.getTime() - now.getTime() <= 7 * DAY;
 
+  if (pill) {
+    const tone = !remaining ? CLOSED_PILL : urgent ? URGENT_PILL : CALM_PILL;
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium",
+          tone,
+          className,
+        )}
+      >
+        <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
+        {remaining ? `${prefix ? `${prefix} ` : ""}${remaining}` : "Window closed"}
+      </span>
+    );
+  }
+
   return (
     <span className={cn("inline-flex items-baseline gap-1 text-sm", className)}>
       {prefix ? <span className="text-zinc-500 dark:text-zinc-400">{prefix}</span> : null}
@@ -55,11 +87,7 @@ export function CountdownChip({ deadline, prefix, palette = "default", className
         <span
           className={cn(
             "font-medium",
-            urgent
-              ? "text-brand dark:text-brand-soft"
-              : palette === "portal"
-                ? "text-amber-600 dark:text-amber-400"
-                : "text-zinc-900 dark:text-zinc-100",
+            urgent ? URGENT_TEXT : palette === "portal" ? CALM_TEXT : "text-zinc-900 dark:text-zinc-100",
           )}
         >
           {remaining}

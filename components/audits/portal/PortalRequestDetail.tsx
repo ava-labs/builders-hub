@@ -5,7 +5,7 @@ import { Lock } from "lucide-react";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
-import { CARD, MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { CARD, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { SpecList, type SpecItem } from "@/components/audits/shared/SpecList";
 import { formatIsoDate } from "@/components/audits/shared/format";
@@ -32,7 +32,7 @@ function buildSpecItems(view: AuditorRequestView): SpecItem[] {
             children: (
               <div className="space-y-1">
                 {repos.map((repo) => (
-                  <p key={repo.url} className="font-mono text-xs">
+                  <p key={repo.url} className="break-all font-mono text-xs">
                     <a href={repo.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                       {shortRepo(repo.url)}
                     </a>
@@ -64,14 +64,14 @@ function buildSpecItems(view: AuditorRequestView): SpecItem[] {
             children: (
               <div className="space-y-1">
                 {view.doc_links.map((link) => (
-                  <p key={link} className="font-mono text-xs">
+                  <p key={link} className="break-all font-mono text-xs">
                     <a href={link} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                       {link}
                     </a>
                   </p>
                 ))}
                 {attachments.map((attachment) => (
-                  <p key={attachment.url} className="font-mono text-xs">
+                  <p key={attachment.url} className="break-all font-mono text-xs">
                     <a href={attachment.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
                       {attachment.name}
                     </a>
@@ -106,9 +106,13 @@ export function PortalRequestDetail({ view }: { view: AuditorRequestView }) {
   ].join(" · ");
 
   return (
-    <div className="py-8">
-      <p className={MONO_LABEL}>
-        <Link href="/audits/portal" className="hover:text-zinc-800 dark:hover:text-zinc-200">
+    <div className="py-10">
+      {/* Quiet sentence-case breadcrumb (board :233), not the mono-caps shout. */}
+      <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
+        <Link
+          href="/audits/portal"
+          className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200"
+        >
           Inbox
         </Link>{" "}
         / {view.project_name || "Untitled request"}
@@ -123,11 +127,7 @@ export function PortalRequestDetail({ view }: { view: AuditorRequestView }) {
           <span className="text-sm text-zinc-500 dark:text-zinc-400">Window closed</span>
         )}
       </div>
-      {metaLine ? (
-        <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-          {metaLine}
-        </p>
-      ) : null}
+      {metaLine ? <p className={`${MONO_LABEL_META} mt-1.5`}>{metaLine}</p> : null}
 
       {view.contacts ? (
         <div className="mt-5 rounded-xl border border-emerald-600/30 bg-emerald-500/5 p-4">

@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
+import { MONO_LABEL_META } from "@/components/audits/shared/classes";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import { QuoteSummary } from "@/components/audits/portal/QuoteSummary";
 
@@ -96,9 +97,7 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
     <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#1F1F1F]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Your quote</h2>
-        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-          Private · project + admins only
-        </span>
+        <span className={MONO_LABEL_META}>Private · project + admins only</span>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -200,14 +199,17 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
           />
         </div>
 
-        <Button
-          disabled={!editable || busy}
-          onClick={() => void submit()}
-          className="audits-sweep h-11 w-full bg-brand text-white"
-        >
-          {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {existing ? "Update quote" : "Send quote"}
-        </Button>
+        {/* Send quote at thumb reach below lg (board 1g); in-card from lg up. */}
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-white/10 dark:bg-[#1F1F1F]/95 lg:static lg:border-t-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:lg:bg-transparent">
+          <Button
+            disabled={!editable || busy}
+            onClick={() => void submit()}
+            className="audits-sweep h-11 w-full bg-brand text-white"
+          >
+            {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {existing ? "Update quote" : "Send quote"}
+          </Button>
+        </div>
 
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {editable
@@ -216,6 +218,8 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
               ? "This quote was accepted. The engagement continues off-platform."
               : `The window closed${deadline ? ` ${formatIsoDate(deadline)}` : ""}. Quotes can no longer be edited.`}
         </p>
+        {/* Clears the fixed mobile CTA bar. */}
+        <div aria-hidden className="h-10 lg:hidden" />
       </div>
     </div>
   );
