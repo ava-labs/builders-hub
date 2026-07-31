@@ -43,10 +43,13 @@ export function MultiLinkInput() {
         type="button"
         variant="outline"
         size="sm"
-        className="h-11 md:h-9"
+        className="group h-11 md:h-9"
         onClick={() => update([...links, ""])}
       >
-        <Plus aria-hidden className="mr-1.5 h-4 w-4" />
+        <Plus
+          aria-hidden
+          className="mr-1.5 h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
+        />
         Add link
       </Button>
     </div>

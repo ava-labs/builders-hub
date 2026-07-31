@@ -95,9 +95,12 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
         </div>
         <Link
           href="/audits/new"
-          className="audits-sweep inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
+          className="audits-sweep group inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
         >
-          <Plus aria-hidden className="h-4 w-4" />
+          <Plus
+            aria-hidden
+            className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
+          />
           New request
         </Link>
       </div>
