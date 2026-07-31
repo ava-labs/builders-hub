@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { BlocksArt } from "@/components/audits/shared/BlocksArt";
 
 const HOW_IT_WORKS = [
   {
@@ -30,17 +31,7 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-      <div aria-hidden className="mb-6 inline-flex flex-col items-start">
-        <div className="flex">
-          <span className="h-2.5 w-[30px] bg-brand" />
-          <span className="h-2.5 w-[30px] bg-zinc-900 dark:bg-zinc-100" />
-          <span className="h-2.5 w-[30px] bg-zinc-200 dark:bg-white/15" />
-        </div>
-        <div className="ml-[30px] flex">
-          <span className="h-2.5 w-[30px] bg-zinc-900 dark:bg-zinc-100" />
-          <span className="h-2.5 w-[30px] bg-zinc-200 dark:bg-white/15" />
-        </div>
-      </div>
+      <BlocksArt rows={2} className="mb-6" />
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         Ava Labs audit program · free for builders
       </p>

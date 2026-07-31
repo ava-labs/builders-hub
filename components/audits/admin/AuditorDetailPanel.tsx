@@ -127,7 +127,7 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
   };
 
   return (
-    <Sheet open={state !== null} onOpenChange={(open) => (!open ? onClose() : null)}>
+    <Sheet modal open={state !== null} onOpenChange={(open) => (!open ? onClose() : null)}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{auditor ? auditor.firm_name : "Add auditor"}</SheetTitle>

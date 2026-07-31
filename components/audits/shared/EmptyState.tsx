@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { BlocksArt } from "@/components/audits/shared/BlocksArt";
 
 interface EmptyStateProps {
   eyebrow?: string;
@@ -11,27 +12,6 @@ interface EmptyStateProps {
   action2?: ReactNode;
   footnote?: string;
   className?: string;
-}
-
-/** Digital-blocks cascade (board 1f): the brand accent, art not wallpaper. */
-function BlocksArt() {
-  const block = "h-2.5 w-[30px]";
-  return (
-    <div aria-hidden className="mb-7 inline-flex flex-col items-start">
-      <div className="flex">
-        <span className={cn(block, "bg-brand")} />
-        <span className={cn(block, "bg-zinc-900 dark:bg-zinc-100")} />
-        <span className={cn(block, "bg-zinc-200 dark:bg-white/15")} />
-      </div>
-      <div className="ml-[30px] flex">
-        <span className={cn(block, "bg-zinc-900 dark:bg-zinc-100")} />
-        <span className={cn(block, "bg-zinc-200 dark:bg-white/15")} />
-      </div>
-      <div className="ml-[60px] flex">
-        <span className={cn(block, "bg-zinc-200 dark:bg-white/15")} />
-      </div>
-    </div>
-  );
 }
 
 export function EmptyState({
@@ -46,7 +26,7 @@ export function EmptyState({
   return (
     <div className={cn("mx-auto max-w-xl py-20 text-center", className)}>
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards">
-        <BlocksArt />
+        <BlocksArt className="mb-7" />
         {eyebrow ? (
           <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
             {eyebrow}

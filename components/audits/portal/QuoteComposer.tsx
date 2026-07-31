@@ -31,6 +31,18 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
   const router = useRouter();
   const editable = windowOpen && existing?.status !== "accepted" && existing?.status !== "not_selected";
 
+  // Hooks live ABOVE the resting-state returns: `editable` can flip on a
+  // mounted composer (window closes, quote gets accepted after a 409 refresh)
+  // and an early return before these would change the hook count mid-life.
+  const [price, setPrice] = useState(existing ? String(existing.price_usd) : "");
+  const [weeks, setWeeks] = useState(existing ? String(existing.duration_weeks) : "");
+  const [start, setStart] = useState<Date | null>(
+    existing ? new Date(existing.earliest_start) : null,
+  );
+  const [message, setMessage] = useState(existing?.message ?? "");
+  const [reaudit, setReaudit] = useState(existing?.reaudit_included ?? false);
+  const [busy, setBusy] = useState(false);
+
   // Decided or closed with a quote on file: the form rests (design iteration
   // 2026-07-31). Closed with no quote needs no dead disabled form either.
   if (!editable && existing) return <QuoteSummary quote={existing} />;
@@ -42,14 +54,6 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
       </div>
     );
   }
-  const [price, setPrice] = useState(existing ? String(existing.price_usd) : "");
-  const [weeks, setWeeks] = useState(existing ? String(existing.duration_weeks) : "");
-  const [start, setStart] = useState<Date | null>(
-    existing ? new Date(existing.earliest_start) : null,
-  );
-  const [message, setMessage] = useState(existing?.message ?? "");
-  const [reaudit, setReaudit] = useState(existing?.reaudit_included ?? false);
-  const [busy, setBusy] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
