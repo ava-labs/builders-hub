@@ -148,12 +148,17 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
 async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
 
     // active addresses is a distinct count, not a sum — the metrics-api only
     // buckets it by day/week/month, so quarter and year (no wider bucket
     // exists) read the monthly figure rather than an unsupported interval.
-    const interval = timeRange === 'quarter' || timeRange === 'year' ? 'month' : timeRange;
+    const isMonthly = timeRange === 'quarter' || timeRange === 'year';
+    const interval = isMonthly ? 'month' : timeRange;
+    // monthly buckets are stamped at month START and only complete months
+    // are served: a 30-day lookback contains none for most of the month
+    // (every chain read 0 from the 2nd onward), so the monthly read
+    // reaches back 65 days to always cover one full bucket
+    const startTimestamp = endTimestamp - ((isMonthly ? 65 : 30) * SECONDS_PER_DAY);
 
     const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
     url.searchParams.set('timeInterval', interval);
