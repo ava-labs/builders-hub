@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { SUBSIDY_MAX_PCT, SUBSIDY_PCT_STEP } from "@/lib/audits/subsidy";
 import { BlocksArt } from "@/components/audits/shared/BlocksArt";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
 interface SubsidyWorksheetProps {
   requestId: string;
@@ -34,6 +34,9 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
     latest?.state === "approved" ? Math.min(cap, latest.program_amount_usd) : 0,
   );
   const [busy, setBusy] = useState(false);
+  // Decided worksheets rest (round-3 M3-C): the instrument stays one
+  // disclosure away, decisions remain append-only.
+  const [adjusting, setAdjusting] = useState(false);
   const pct = priceUsd > 0 ? Math.round((amount / priceUsd) * 100) : 0;
   const setFromPct = (nextPct: number) =>
     setAmount(Math.min(cap, Math.round((priceUsd * nextPct) / 100)));
@@ -66,17 +69,39 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
         The program can pay up to 75%.
       </p>
 
-      {latest ? (
-        <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-500 dark:bg-white/5 dark:text-zinc-400">
-          Latest decision: {latest.state}
-          {latest.state === "approved"
-            ? ` ${formatUsd(latest.program_amount_usd)} (${latest.pct}%)`
-            : ""}{" "}
-          · a new decision supersedes it.
-        </p>
-      ) : null}
+      {latest && !adjusting ? (
+        <>
+          <div className="mt-4 rounded-[10px] border border-zinc-200 px-3.5 py-3 dark:border-white/10">
+            <p className="font-mono text-base font-bold tabular-nums">
+              {latest.state === "approved"
+                ? `Approved · ${formatUsd(latest.program_amount_usd)} (${latest.pct}%)`
+                : "Subsidy declined"}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              {formatIsoDate(latest.decided_at)} · a new decision supersedes it.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAdjusting(true)}
+            className="mt-3 cursor-pointer text-sm text-zinc-600 underline underline-offset-2 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Adjust decision
+          </button>
+        </>
+      ) : (
+        <>
+          {latest ? (
+            <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-500 dark:bg-white/5 dark:text-zinc-400">
+              Latest decision: {latest.state}
+              {latest.state === "approved"
+                ? ` ${formatUsd(latest.program_amount_usd)} (${latest.pct}%)`
+                : ""}{" "}
+              · a new decision supersedes it.
+            </p>
+          ) : null}
 
-      {/* One framed instrument (board 1b): every number lives in these rows. */}
+          {/* One framed instrument (board 1b): every number lives in these rows. */}
       <div className="mt-4 overflow-hidden rounded-[10px] border border-zinc-200 dark:border-white/10">
         <div className="flex items-baseline justify-between gap-3 px-3.5 py-2.5 text-sm">
           <span className="text-zinc-600 dark:text-[#A2AFB2]">Project&apos;s pick</span>
@@ -169,6 +194,17 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
         Logged with your name on the request activity trail. The payment itself happens
         off-platform.
       </p>
+      {latest ? (
+        <button
+          type="button"
+          onClick={() => setAdjusting(false)}
+          className="mt-3 cursor-pointer text-sm text-zinc-600 underline underline-offset-2 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        >
+          Keep the current decision
+        </button>
+      ) : null}
+        </>
+      )}
     </div>
   );
 }

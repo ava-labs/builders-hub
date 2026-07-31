@@ -27,7 +27,7 @@ import {
 import { AUDIT_SERVICES } from "@/lib/audits/constants";
 import type { AdminAuditorRow } from "@/server/services/audits/visibility";
 import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
-import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
+import { AUDITS_DIALOG, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate } from "@/components/audits/shared/format";
 
 const initialsOf = (name: string) =>
@@ -275,6 +275,38 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
               </button>
             </div>
           ) : null}
+
+          {/* Add mode: the invite lifecycle fills the sheet's quiet middle as
+              the guideline's numbered-mono lever (round-3 M3-B). */}
+          {auditor ? null : (
+            <div className="mt-6">
+              <p className={MONO_LABEL_SM}>What happens next</p>
+              <div className="mt-1">
+                {(
+                  [
+                    ["01", "OTP invite goes to the quote email", "On add"],
+                    ["02", "First sign-in stamps the firm as active", "First login"],
+                    ["03", "Every new request fans out to them", "From now on"],
+                  ] as const
+                ).map(([num, line, when], index) => (
+                  <div
+                    key={num}
+                    className={
+                      index > 0
+                        ? "flex items-baseline justify-between gap-3 border-t border-zinc-200 py-2.5 text-sm dark:border-white/[0.08]"
+                        : "flex items-baseline justify-between gap-3 py-2.5 text-sm"
+                    }
+                  >
+                    <span className="min-w-0">
+                      <span className="font-mono text-xs font-semibold text-brand">{num}</span>
+                      <span className="ml-2.5 text-zinc-700 dark:text-zinc-300">{line}</span>
+                    </span>
+                    <span className={MONO_LABEL_META}>{when}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Pinned footer: destructive LEFT, primary RIGHT (board 2b). */}

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import type { AdminAuditorRow } from "@/server/services/audits/visibility";
@@ -136,7 +137,17 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
           <Button asChild variant="outline" className="h-11 md:h-10">
             <a href="/api/audits/admin/auditors/export" target="_self">Export CSV</a>
           </Button>
-          <Button onClick={() => setPanel({ mode: "add" })} className="h-11 md:h-10">
+          {/* The whitelist's primary action carries the brand treatment
+              (round-3 M3-A): the page's one red CTA, sweep on hover, and the
+              plus pops a quarter turn with it. */}
+          <Button
+            onClick={() => setPanel({ mode: "add" })}
+            className="audits-sweep group h-11 bg-brand text-white md:h-10"
+          >
+            <Plus
+              aria-hidden
+              className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
+            />
             Add auditor
           </Button>
         </div>
@@ -167,7 +178,10 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
                 <TableCell className="font-medium">{auditor.firm_name}</TableCell>
                 <TableCell className="font-mono text-xs">{auditor.quote_email}</TableCell>
                 <TableCell className="max-w-56">
-                  <span className="line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <span
+                    title={auditor.services.join(", ") || undefined}
+                    className="block truncate text-xs text-zinc-500 dark:text-zinc-400"
+                  >
                     {auditor.services.join(", ") || "·"}
                   </span>
                 </TableCell>
