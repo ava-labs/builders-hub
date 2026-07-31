@@ -8,73 +8,134 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import type { AdminRequestDetail } from "@/server/services/audits/visibility";
+import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
+/* zinc row hairlines + hover (ledger L-8): the ui/table defaults inject
+   slate-tinted semantic tokens inside this zinc card. */
+const ROW = "border-zinc-200 hover:bg-zinc-50 dark:border-white/10 dark:hover:bg-white/[0.03]";
+
+interface QuoteComparisonProps {
+  quotes: AdminRequestDetail["quotes"];
+  fanoutCount: number;
+  submittedAt: Date | null;
+  quoteDeadline: Date | null;
+  displayStatus: string;
+  neededBy: Date | null;
+}
+
 /**
- * Every quote side by side (design 1b): price bars in a single info-blue
- * hue, the project's pick tinted blue, NEVER red (red is not a status here).
+ * Every quote side by side (design 1b): the card owns its header row, price
+ * bars run a single brand-blue hue with the TOP price de-emphasized, the
+ * project's pick is a quiet mono sub-label · NEVER red (red is not a status
+ * here), and starts outside the requested window carry the ⚠ flag.
  */
-export function QuoteComparison({ quotes }: { quotes: AdminRequestDetail["quotes"] }) {
+export function QuoteComparison({
+  quotes,
+  fanoutCount,
+  submittedAt,
+  quoteDeadline,
+  displayStatus,
+  neededBy,
+}: QuoteComparisonProps) {
+  const headerMeta = [
+    ...(submittedAt ? [`fan-out ${formatIsoDate(submittedAt)}`] : []),
+    ...(quoteDeadline
+      ? [
+          `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatIsoDate(quoteDeadline)}`,
+        ]
+      : []),
+  ].join(" · ");
+
   if (quotes.length === 0) {
     return (
-      <p className="rounded-xl border border-zinc-200 p-6 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
-        No quotes yet.
-      </p>
+      <div className={CARD}>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+          <p className="text-sm font-semibold">Quotes · 0 of {fanoutCount} firms responded</p>
+          {headerMeta ? (
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{headerMeta}</p>
+          ) : null}
+        </div>
+        <p className="p-5 text-sm text-zinc-500 dark:text-zinc-400">No quotes yet.</p>
+      </div>
     );
   }
+
   const highest = Math.max(...quotes.map((quote) => quote.price_usd));
+  const neededByTime = neededBy ? new Date(neededBy).getTime() : null;
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/10">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Auditor</TableHead>
-            <TableHead>Price ↑</TableHead>
-            <TableHead className="min-w-28">Vs highest</TableHead>
-            <TableHead>Weeks</TableHead>
-            <TableHead>Start</TableHead>
-            <TableHead>Note</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {quotes.map((quote) => {
-            const isPick = quote.status === "accepted";
-            return (
-              <TableRow key={quote.id} className={cn(isPick && "bg-info/5")}>
-                <TableCell>
-                  <span className="font-medium">{quote.firm_name}</span>
-                  {isPick ? (
-                    <span className="ml-2 inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-info dark:text-info-soft">
-                      Project&apos;s pick
+    <div className={cn(CARD, "overflow-hidden")}>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+        <p className="text-sm font-semibold">
+          Quotes · {quotes.length} of {fanoutCount} firms responded
+        </p>
+        {headerMeta ? <p className="text-xs text-zinc-500 dark:text-zinc-400">{headerMeta}</p> : null}
+      </div>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-zinc-200 bg-zinc-50 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.02]">
+              <TableHead className={cn(MONO_LABEL_SM, "px-4")}>Auditor</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Price ↑</TableHead>
+              <TableHead className={cn(MONO_LABEL_SM, "min-w-28")}>Vs highest</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Weeks</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Start</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Note</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {quotes.map((quote) => {
+              const isPick = quote.status === "accepted";
+              const isHighest = quotes.length > 1 && quote.price_usd === highest;
+              const outside =
+                neededByTime !== null &&
+                new Date(quote.earliest_start).getTime() > neededByTime;
+              return (
+                <TableRow
+                  key={quote.id}
+                  className={cn(ROW, isPick && "bg-info/5", !isPick && isHighest && "opacity-75")}
+                >
+                  <TableCell className="px-4">
+                    <span className="font-medium">{quote.firm_name}</span>
+                    {isPick ? (
+                      <span className="mt-0.5 block font-mono text-[10.5px] uppercase tracking-[0.08em] text-info dark:text-info-soft">
+                        Project&apos;s pick
+                      </span>
+                    ) : null}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm font-semibold tabular-nums">
+                    {formatUsd(quote.price_usd)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="h-2 w-full min-w-20 rounded-[4px] bg-zinc-100 dark:bg-white/[0.06]">
+                      <div
+                        className={cn("h-2 rounded-[4px]", isHighest ? "bg-info-soft" : "bg-bar")}
+                        style={{ width: `${Math.round((quote.price_usd / highest) * 100)}%` }}
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{quote.duration_weeks}</TableCell>
+                  <TableCell
+                    className={cn(
+                      "font-mono text-sm",
+                      outside && "text-brand-deep dark:text-brand-soft",
+                    )}
+                  >
+                    {formatIsoDate(quote.earliest_start)}
+                    {outside ? <span aria-label="outside the requested window"> ⚠</span> : null}
+                  </TableCell>
+                  <TableCell className="max-w-64">
+                    <span className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+                      {outside ? "Start is outside the requested window" : quote.message}
                     </span>
-                  ) : null}
-                </TableCell>
-                <TableCell className="font-semibold tabular-nums">
-                  {formatUsd(quote.price_usd)}
-                </TableCell>
-                <TableCell>
-                  <div className="h-1.5 w-full min-w-20 rounded-full bg-zinc-100 dark:bg-white/10">
-                    <div
-                      className="h-1.5 rounded-full bg-info dark:bg-info-soft"
-                      style={{ width: `${Math.round((quote.price_usd / highest) * 100)}%` }}
-                    />
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-sm">{quote.duration_weeks}</TableCell>
-                <TableCell className="font-mono text-sm">
-                  {formatIsoDate(quote.earliest_start)}
-                </TableCell>
-                <TableCell className="max-w-64">
-                  <span className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
-                    {quote.message}
-                  </span>
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

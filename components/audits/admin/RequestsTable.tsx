@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import type { AdminRequestRow } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
@@ -20,7 +21,8 @@ const kUsd = (value: number) => `$${Math.round(value / 1000)}k`;
 
 function SubsidyCell({ row }: { row: AdminRequestRow }) {
   if (row.subsidy_state === "needs_approval") {
-    return <span className="font-medium text-brand dark:text-brand-soft">Needs approval</span>;
+    // Amber per Foundations "needs action" (the row wash stays the only red).
+    return <span className="font-medium text-amber-700 dark:text-amber-400">Needs approval</span>;
   }
   if (row.subsidy_state === "approved") {
     // Amount-first everywhere (locked 2026-07-30); pct is the view in brackets.
@@ -60,14 +62,14 @@ export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
     <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/10">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Request</TableHead>
-            <TableHead>Submitted</TableHead>
-            <TableHead>Quote ddl</TableHead>
-            <TableHead>Quotes</TableHead>
-            <TableHead>Range</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Subsidy</TableHead>
+          <TableRow className="border-zinc-200 bg-zinc-50 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.02]">
+            <TableHead className={cn(MONO_LABEL_SM, "px-4")}>Request</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Submitted</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Quote ddl</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Quotes</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Range</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Status</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Subsidy</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -76,8 +78,10 @@ export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
               key={row.id}
               onClick={() => router.push(`/audits/admin/requests/${row.id}`)}
               className={cn(
-                "cursor-pointer",
-                row.subsidy_state === "needs_approval" && "bg-brand/5",
+                "cursor-pointer border-zinc-200 dark:border-white/10",
+                row.subsidy_state === "needs_approval"
+                  ? "bg-brand/5 hover:bg-brand/10 dark:hover:bg-brand/10"
+                  : "hover:bg-zinc-50 dark:hover:bg-white/[0.03]",
               )}
             >
               <TableCell>

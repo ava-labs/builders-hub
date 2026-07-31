@@ -2,6 +2,7 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { canAdministerAuditProgram } from "@/lib/auth/permissions";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AccessDenied } from "@/components/ui/access-denied";
+import { getAdminOverview } from "@/server/services/audits/visibility";
 import { AdminNav } from "@/components/audits/admin/AdminNav";
 
 export default async function AuditAdminLayout({ children }: { children: React.ReactNode }) {
@@ -15,6 +16,7 @@ export default async function AuditAdminLayout({ children }: { children: React.R
       </main>
     );
   }
+  const overview = await getAdminOverview();
 
   return (
     <main className="container relative max-w-[1400px] px-4 py-10">
@@ -25,7 +27,7 @@ export default async function AuditAdminLayout({ children }: { children: React.R
             No pings by design · this page is the feed
           </p>
         </div>
-        <AdminNav />
+        <AdminNav needsApprovalCount={overview.needs_approval_count} />
         {children}
       </div>
     </main>

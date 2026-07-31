@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import type { AdminRequestDetail } from "@/server/services/audits/visibility";
+import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { ROW_ENTER } from "@/components/audits/shared/motion";
 import { formatUsd } from "@/components/audits/shared/format";
 
@@ -61,8 +62,17 @@ const stamp = (date: Date) => {
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)}`;
 };
 
-/** The audit trail admins rely on instead of pings (design 1b). */
-export function ActivityTrail({ events }: { events: AdminRequestDetail["events"] }) {
+/** The audit trail admins rely on instead of pings (design 1b): a
+ * chronological story in a card, stamps in a fixed mono gutter, ending in
+ * the amber PENDING row while the subsidy decision is outstanding. */
+export function ActivityTrail({
+  events,
+  pendingDecision = false,
+}: {
+  events: AdminRequestDetail["events"];
+  /** Engaged with no subsidy decision on file: the trail's call to action. */
+  pendingDecision?: boolean;
+}) {
   // Rows present at first render are "seen"; only rows arriving later (the
   // router.refresh after a decision) get the entrance animation.
   const seenRef = useRef<Set<string> | null>(null);
@@ -74,23 +84,47 @@ export function ActivityTrail({ events }: { events: AdminRequestDetail["events"]
     : new Set(events.filter((event) => !seen.has(event.id)).map((event) => event.id));
   for (const id of freshIds) seen.add(id);
 
+  // Stored newest-first for the projection; the trail reads as a story, so
+  // it renders oldest-first and ends at the decision (board 1b).
+  const chronological = [...events].reverse();
+
   return (
-    <section>
-      <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+    <section className={`${CARD} p-5`}>
+      <h2 className={MONO_LABEL_SM}>
         Activity · the audit trail admins rely on instead of pings
       </h2>
-      {events.length === 0 ? (
+      {events.length === 0 && !pendingDecision ? (
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Nothing yet.</p>
       ) : (
-        <ul className="mt-3 max-h-[26rem] space-y-2.5 overflow-y-auto border-l border-zinc-200 pl-4 pr-2 dark:border-white/10">
-          {events.map((event) => (
-            <li key={event.id} className={cn("text-sm", freshIds.has(event.id) && ROW_ENTER)}>
-              <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
+        <ul className="mt-3 max-h-[26rem] space-y-2.5 overflow-y-auto pr-2">
+          {chronological.map((event) => (
+            <li
+              key={event.id}
+              className={cn("flex gap-3 text-sm", freshIds.has(event.id) && ROW_ENTER)}
+            >
+              <span className="w-[88px] shrink-0 font-mono text-xs leading-5 text-zinc-400 dark:text-zinc-500">
                 {stamp(event.created_at)}
-              </span>{" "}
-              <span className="text-zinc-700 dark:text-zinc-300">{eventLine(event)}</span>
+              </span>
+              <span
+                className={cn(
+                  "min-w-0 leading-5",
+                  event.action === "quote_accepted"
+                    ? "font-semibold text-zinc-950 dark:text-zinc-50"
+                    : "text-zinc-700 dark:text-zinc-300",
+                )}
+              >
+                {eventLine(event)}
+              </span>
             </li>
           ))}
+          {pendingDecision ? (
+            <li className="flex gap-3 text-sm text-amber-700 dark:text-amber-400">
+              <span className="w-[88px] shrink-0 font-mono text-xs uppercase leading-5">
+                Pending
+              </span>
+              <span className="min-w-0 leading-5">Subsidy decision · worksheet on the right</span>
+            </li>
+          ) : null}
         </ul>
       )}
     </section>

@@ -1,14 +1,24 @@
+import { cn } from "@/lib/utils";
 import type { AdminOverview } from "@/server/services/audits/visibility";
+import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 
 const kUsd = (value: number) => `$${(value / 1000).toFixed(value >= 100_000 ? 0 : 1)}k`;
 
-/** Stat tiles (design 1a). Every number is derived at read time. */
+/** Stat tiles (design 1a + 2a). Every number is derived at read time; figures
+ * live in the mono slot. "Needs approval" rides second so the 2-up mobile
+ * grid promotes it next to open requests (board 2a). */
 export function OverviewTiles({ overview }: { overview: AdminOverview }) {
   const tiles = [
     {
       label: "Open requests",
       value: String(overview.open_requests),
       sub: `${overview.open_closing_this_week} close this week`,
+    },
+    {
+      label: "Needs approval",
+      value: String(overview.needs_approval_count),
+      sub: "engaged, no decision yet",
+      tone: overview.needs_approval_count > 0 ? ("amber" as const) : undefined,
     },
     {
       label: "Quotes collected",
@@ -32,24 +42,21 @@ export function OverviewTiles({ overview }: { overview: AdminOverview }) {
       label: "Fees not paid to Areta",
       value: kUsd(overview.fees_not_paid_usd),
       sub: "10% of engaged volume",
-      positive: true,
+      tone: "green" as const,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
       {tiles.map((tile) => (
-        <div
-          key={tile.label}
-          className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#1F1F1F]"
-        >
-          <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-            {tile.label}
-          </p>
+        <div key={tile.label} className={cn(CARD, "rounded-[10px] p-[13px_15px]")}>
+          <p className={MONO_LABEL_SM}>{tile.label}</p>
           <p
-            className={`mt-2 text-2xl font-semibold tabular-nums ${
-              tile.positive ? "text-emerald-600 dark:text-emerald-400" : ""
-            }`}
+            className={cn(
+              "mt-2 font-mono text-2xl font-bold tabular-nums",
+              tile.tone === "green" && "text-emerald-700 dark:text-emerald-400",
+              tile.tone === "amber" && "text-amber-700 dark:text-amber-400",
+            )}
           >
             {tile.value}
           </p>

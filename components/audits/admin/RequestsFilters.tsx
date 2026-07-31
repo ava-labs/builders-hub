@@ -9,6 +9,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+const ALL = "all";
 
 const STATUS_OPTIONS = [
   { value: "collecting", label: "Collecting" },
@@ -24,7 +27,9 @@ const SUBSIDY_OPTIONS = [
   { value: "declined", label: "Declined" },
 ];
 
-/** URL-driven filters: the server page refetches on every change. */
+/** URL-driven filters (status, subsidy, deadline · board 1a): the server page
+ * refetches on every change. Each select carries an "All" sentinel so one
+ * filter clears without resetting the row. */
 export function RequestsFilters() {
   const router = useRouter();
   const pathname = usePathname();
@@ -39,14 +44,19 @@ export function RequestsFilters() {
 
   const status = searchParams.get("status") ?? "";
   const subsidy = searchParams.get("subsidy") ?? "";
+  const deadlineBefore = searchParams.get("deadline_before") ?? "";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Select value={status} onValueChange={(value) => setParam("status", value)}>
-        <SelectTrigger className="h-10 w-40">
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filter requests">
+      <Select
+        value={status}
+        onValueChange={(value) => setParam("status", value === ALL ? null : value)}
+      >
+        <SelectTrigger className="h-10 w-36">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={ALL}>All statuses</SelectItem>
           {STATUS_OPTIONS.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
@@ -54,11 +64,15 @@ export function RequestsFilters() {
           ))}
         </SelectContent>
       </Select>
-      <Select value={subsidy} onValueChange={(value) => setParam("subsidy", value)}>
-        <SelectTrigger className="h-10 w-40">
+      <Select
+        value={subsidy}
+        onValueChange={(value) => setParam("subsidy", value === ALL ? null : value)}
+      >
+        <SelectTrigger className="h-10 w-36">
           <SelectValue placeholder="Subsidy" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value={ALL}>Any subsidy state</SelectItem>
           {SUBSIDY_OPTIONS.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
@@ -66,7 +80,15 @@ export function RequestsFilters() {
           ))}
         </SelectContent>
       </Select>
-      {status || subsidy ? (
+      <Input
+        type="date"
+        value={deadlineBefore}
+        onChange={(event) => setParam("deadline_before", event.target.value || null)}
+        aria-label="Deadline before"
+        title="Deadline before"
+        className="h-10 w-[160px]"
+      />
+      {status || subsidy || deadlineBefore ? (
         <Button
           variant="ghost"
           size="sm"

@@ -197,6 +197,9 @@ const AUDITOR_INBOX_REQUEST_SELECT = {
   urgency: true,
   status: true,
   submitted_at: true,
+  // The won card's "engaged {date}" pill (board 1b); the request's own close
+  // date, no contact or competitor data.
+  closed_at: true,
 } as const;
 
 export interface AuditorOwnQuote {
@@ -320,6 +323,8 @@ export interface AdminOverview {
   engaged_count: number;
   /** 10% of accepted volume over engaged requests: what Areta would have charged. */
   fees_not_paid_usd: number;
+  /** Engaged requests with no subsidy decision on file (the amber tile, board 2a). */
+  needs_approval_count: number;
 }
 
 export type AdminSubsidyState = "needs_approval" | "approved" | "declined" | null;
@@ -452,6 +457,8 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     median_quote_usd: median,
     engaged_count: engaged.length,
     fees_not_paid_usd: Math.round(acceptedVolume * 0.1),
+    needs_approval_count: engaged.filter((entry) => entry.row.subsidy_decisions.length === 0)
+      .length,
   };
 }
 

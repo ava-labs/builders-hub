@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -26,7 +27,16 @@ import {
 import { AUDIT_SERVICES } from "@/lib/audits/constants";
 import type { AdminAuditorRow } from "@/server/services/audits/visibility";
 import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
+import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
 import { formatIsoDate } from "@/components/audits/shared/format";
+
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
 export type PanelState = { mode: "add" } | { mode: "edit"; auditor: AdminAuditorRow } | null;
 
@@ -128,67 +138,105 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
 
   return (
     <Sheet modal open={state !== null} onOpenChange={(open) => (!open ? onClose() : null)}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-        <SheetHeader>
-          <SheetTitle>{auditor ? auditor.firm_name : "Add auditor"}</SheetTitle>
-          <SheetDescription>
+      <SheetContent className={`${AUDITS_DIALOG} flex w-full flex-col gap-0 p-0 sm:max-w-md`}>
+        {/* Header band: identity square + name + meta, the Active toggle at hand
+            (board 2b; the IcmMessageSheet anatomy). */}
+        <SheetHeader className="border-b border-zinc-200 px-4 py-3.5 dark:border-white/10">
+          <div className="flex items-center gap-3 pr-8">
+            <span
+              aria-hidden
+              className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono text-[11px] font-bold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
+            >
+              {auditor ? initialsOf(auditor.firm_name) : "+"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="text-[15px]">
+                {auditor ? auditor.firm_name : "Add auditor"}
+              </SheetTitle>
+              <SheetDescription className={`${MONO_LABEL_META} mt-0.5 normal-case`}>
+                {auditor ? (
+                  <>
+                    On the whitelist since {formatIsoDate(auditor.invited_at)}
+                    {auditor.attio_ref ? ` · Attio ref ${auditor.attio_ref}` : ""}
+                  </>
+                ) : (
+                  "Vetted by security first."
+                )}
+              </SheetDescription>
+            </div>
             {auditor ? (
-              <>
-                On the whitelist since {formatIsoDate(auditor.invited_at)}
-                {auditor.attio_ref ? ` · Attio ref ${auditor.attio_ref}` : ""}
-              </>
-            ) : (
-              "Vetted by security first."
-            )}
-          </SheetDescription>
+              <label className="flex shrink-0 items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                <Switch
+                  checked={auditor.active}
+                  disabled={busy}
+                  onCheckedChange={(next) => void setActive(next)}
+                  aria-label={auditor.active ? "Deactivate firm" : "Reactivate firm"}
+                  className="data-[state=checked]:bg-brand"
+                />
+                {auditor.active ? "Active" : "Inactive"}
+              </label>
+            ) : null}
+          </div>
         </SheetHeader>
 
-        <div className="space-y-5 px-4 pb-6">
-          {auditor ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-              {auditor.sent} requests received · {auditor.quoted} quoted · {auditor.won} won
-              {auditor.last_quote_at ? ` · last quote ${formatIsoDate(auditor.last_quote_at)}` : ""}
-            </p>
-          ) : null}
+        {/* Stats band: ink numbers, green WON (all four live on AdminAuditorRow). */}
+        {auditor ? (
+          <p className="border-b border-zinc-200 px-4 py-2.5 font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+            <span className="font-semibold text-zinc-950 dark:text-zinc-50">{auditor.sent}</span>{" "}
+            requests received ·{" "}
+            <span className="font-semibold text-zinc-950 dark:text-zinc-50">{auditor.quoted}</span>{" "}
+            quoted ·{" "}
+            <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+              {auditor.won} won
+            </span>
+            {auditor.last_quote_at ? ` · last quote ${formatIsoDate(auditor.last_quote_at)}` : ""}
+          </p>
+        ) : null}
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="auditor-firm-name">
-              Firm name <span className="text-brand">*</span>
-            </label>
-            <Input
-              id="auditor-firm-name"
-              value={firmName}
-              onChange={(event) => setFirmName(event.target.value)}
-              className="h-11 md:h-10"
-            />
-          </div>
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5">
+          <div className={auditor ? "grid gap-4 sm:grid-cols-2" : "space-y-5"}>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" htmlFor="auditor-firm-name">
+                Firm name <span className="text-brand dark:text-brand-soft">*</span>
+              </label>
+              <Input
+                id="auditor-firm-name"
+                value={firmName}
+                onChange={(event) => setFirmName(event.target.value)}
+                className="h-11 md:h-10"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium" htmlFor="auditor-quote-email">
-              Quote email <span className="text-brand">*</span>
-            </label>
-            <Input
-              id="auditor-quote-email"
-              value={quoteEmail}
-              onChange={(event) => setQuoteEmail(event.target.value)}
-              disabled={Boolean(auditor)}
-              inputMode="email"
-              className="h-11 md:h-10"
-            />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              OTP sign-in links and fan-out emails go here.
-            </p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" htmlFor="auditor-quote-email">
+                Quote email <span className="text-brand dark:text-brand-soft">*</span>
+              </label>
+              <Input
+                id="auditor-quote-email"
+                value={quoteEmail}
+                onChange={(event) => setQuoteEmail(event.target.value)}
+                disabled={Boolean(auditor)}
+                inputMode="email"
+                className="h-11 font-mono text-[13px] md:h-10"
+              />
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                OTP sign-in links and fan-out emails go here.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-1.5">
             <p className="text-sm font-medium">
               Services{" "}
               <span className="font-normal text-zinc-500 dark:text-zinc-400">
-                {auditor ? "· shown on the whitelist table and on quotes" : "· optional now, editable anytime"}
+                {auditor
+                  ? "· shown on the whitelist table and on quotes"
+                  : "· optional now, editable anytime"}
               </span>
             </p>
             <ChipGroup
               multiple
+              collapsible={!auditor}
               options={asChips(AUDIT_SERVICES)}
               value={services}
               onChange={setServices}
@@ -201,29 +249,50 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
           </div>
 
           {auditor ? (
-            <p className="text-sm text-zinc-600 dark:text-[#A2AFB2]">
-              {auditor.first_login_at
-                ? `Invite accepted · first login ${formatIsoDate(auditor.first_login_at)}`
-                : `Invited ${formatIsoDate(auditor.invited_at)} · no login yet`}
-            </p>
-          ) : null}
-
-          {auditor ? (
-            <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
-              <Button disabled={busy || !firmName.trim()} onClick={() => void save()}>
-                Save changes
-              </Button>
-              <Button disabled={busy} variant="outline" onClick={() => void resend()}>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[10px] border border-zinc-200 bg-zinc-50 px-3.5 py-3 text-sm dark:border-white/10 dark:bg-white/[0.02]">
+              <span
+                aria-hidden
+                className={
+                  auditor.first_login_at
+                    ? "text-emerald-700 dark:text-emerald-400"
+                    : "text-amber-700 dark:text-amber-400"
+                }
+              >
+                {auditor.first_login_at ? "✓" : "•"}
+              </span>
+              <span className="min-w-0 flex-1 text-zinc-600 dark:text-[#A2AFB2]">
+                {auditor.first_login_at
+                  ? `Invite accepted · first login ${formatIsoDate(auditor.first_login_at)}`
+                  : `Invited ${formatIsoDate(auditor.invited_at)} · no login yet`}
+              </span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void resend()}
+                className="shrink-0 cursor-pointer text-sm text-zinc-600 underline underline-offset-2 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
                 Send new OTP link
-              </Button>
+              </button>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Pinned footer: destructive LEFT, primary RIGHT (board 2b). */}
+        <div className="border-t border-zinc-200 px-4 py-3 dark:border-white/10">
+          {auditor ? (
+            <div className="flex items-center gap-2.5">
               {auditor.active ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button disabled={busy} variant="ghost" className="text-zinc-500">
+                    <Button
+                      disabled={busy}
+                      variant="outline"
+                      className="border-brand-deep/35 text-brand-deep hover:bg-brand-deep/5 hover:text-brand-deep dark:border-brand-soft/35 dark:text-brand-soft dark:hover:bg-brand-soft/10 dark:hover:text-brand-soft"
+                    >
                       Deactivate…
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className={AUDITS_DIALOG}>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Deactivate {auditor.firm_name}?</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -232,20 +301,26 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Keep active</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => void setActive(false)}>
+                      <AlertDialogAction
+                        onClick={() => void setActive(false)}
+                        className="border border-brand-deep/35 bg-transparent text-brand-deep shadow-none hover:bg-brand-deep/5 dark:border-brand-soft/35 dark:text-brand-soft dark:hover:bg-brand-soft/10"
+                      >
                         Deactivate
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              ) : (
-                <Button disabled={busy} variant="ghost" onClick={() => void setActive(true)}>
-                  Reactivate
-                </Button>
-              )}
+              ) : null}
+              <span className="flex-1" />
+              <Button disabled={busy} variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button disabled={busy || !firmName.trim()} onClick={() => void save()}>
+                Save changes
+              </Button>
             </div>
           ) : (
-            <div className="space-y-3 border-t border-zinc-200 pt-4 dark:border-white/10">
+            <div className="space-y-2.5">
               <Button
                 disabled={busy || !firmName.trim() || !quoteEmail.trim()}
                 onClick={() => void add()}

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import type { AdminAuditorRow } from "@/server/services/audits/visibility";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import {
@@ -127,7 +128,7 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Auditor whitelist</h2>
-          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+          <p className={`${MONO_LABEL_META} mt-1`}>
             {counts.active} active · {counts.invited} invited · {counts.inactive} inactive
           </p>
         </div>
@@ -144,13 +145,13 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
       <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/10">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Firm</TableHead>
-              <TableHead>Quote contact</TableHead>
-              <TableHead>Services</TableHead>
-              <TableHead className="text-right">Sent</TableHead>
-              <TableHead className="text-right">Won</TableHead>
-              <TableHead>Status</TableHead>
+            <TableRow className="border-zinc-200 bg-zinc-50 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.02]">
+              <TableHead className={cn(MONO_LABEL_SM, "px-4")}>Firm</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Quote contact</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Services</TableHead>
+              <TableHead className={cn(MONO_LABEL_SM, "text-right")}>Sent</TableHead>
+              <TableHead className={cn(MONO_LABEL_SM, "text-right")}>Won</TableHead>
+              <TableHead className={MONO_LABEL_SM}>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -158,7 +159,10 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
               <TableRow
                 key={auditor.id}
                 onClick={() => setPanel({ mode: "edit", auditor })}
-                className={cn("cursor-pointer", !effectiveActive(auditor) && "opacity-60")}
+                className={cn(
+                  "cursor-pointer border-zinc-200 hover:bg-zinc-50 dark:border-white/10 dark:hover:bg-white/[0.03]",
+                  !effectiveActive(auditor) && "opacity-60",
+                )}
               >
                 <TableCell className="font-medium">{auditor.firm_name}</TableCell>
                 <TableCell className="font-mono text-xs">{auditor.quote_email}</TableCell>
