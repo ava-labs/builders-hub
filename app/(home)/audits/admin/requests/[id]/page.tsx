@@ -76,7 +76,11 @@ export default async function AuditAdminDrilldownPage({
             </p>
           </div>
 
-          <ActivityTrail events={detail.events} pendingDecision={Boolean(accepted) && !latestDecision} />
+          <ActivityTrail
+            events={detail.events}
+            fanoutFirms={detail.fanout_deliveries.map((delivery) => delivery.auditor.firm_name)}
+            pendingDecision={Boolean(accepted) && !latestDecision}
+          />
         </div>
 
         <div>

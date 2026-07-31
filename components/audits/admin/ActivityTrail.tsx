@@ -15,7 +15,18 @@ function metaOf(event: TrailEvent): Record<string, unknown> {
     : {};
 }
 
-function eventLine(event: TrailEvent): string {
+/** Full list up to this many firms; beyond it, first three + "+N more". */
+const FANOUT_NAMES_SHOWN = 4;
+
+function fanoutFirmsSuffix(firms: string[]): string {
+  if (firms.length === 0) return "";
+  const shown =
+    firms.length <= FANOUT_NAMES_SHOWN ? firms : firms.slice(0, FANOUT_NAMES_SHOWN - 1);
+  const more = firms.length - shown.length;
+  return ` · ${shown.join(", ")}${more > 0 ? ` +${more} more` : ""}`;
+}
+
+function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
   const meta = metaOf(event);
   const firm = typeof meta.firm_name === "string" ? meta.firm_name : null;
   const price = typeof meta.price_usd === "number" ? formatUsd(meta.price_usd) : null;
@@ -25,7 +36,7 @@ function eventLine(event: TrailEvent): string {
     case "request_submitted":
       return `Request submitted${typeof meta.project_name === "string" ? ` by ${meta.project_name}` : ""}`;
     case "fanout_created":
-      return `Fanned out to ${typeof meta.auditor_count === "number" ? meta.auditor_count : "all"} whitelisted firms`;
+      return `Fanned out to ${typeof meta.auditor_count === "number" ? meta.auditor_count : "all"} whitelisted firms${fanoutFirmsSuffix(fanoutFirms)}`;
     case "quote_submitted":
       return ["Quote submitted", firm, price].filter(Boolean).join(" · ");
     case "quote_updated":
@@ -62,14 +73,18 @@ const stamp = (date: Date) => {
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)}`;
 };
 
-/** The audit trail admins rely on instead of pings (design 1b): a
- * chronological story in a card, stamps in a fixed mono gutter, ending in
- * the amber PENDING row while the subsidy decision is outstanding. */
+/** The audit trail admins rely on instead of pings (design 1b, order
+ * amended by Federico in loop-test): NEWEST FIRST in a card, stamps in a
+ * fixed mono gutter, the amber PENDING row on top while the subsidy
+ * decision is outstanding. */
 export function ActivityTrail({
   events,
+  fanoutFirms = [],
   pendingDecision = false,
 }: {
   events: AdminRequestDetail["events"];
+  /** Firm names from the fan-out deliveries snapshot (the "which ones"). */
+  fanoutFirms?: string[];
   /** Engaged with no subsidy decision on file: the trail's call to action. */
   pendingDecision?: boolean;
 }) {
@@ -84,10 +99,6 @@ export function ActivityTrail({
     : new Set(events.filter((event) => !seen.has(event.id)).map((event) => event.id));
   for (const id of freshIds) seen.add(id);
 
-  // Stored newest-first for the projection; the trail reads as a story, so
-  // it renders oldest-first and ends at the decision (board 1b).
-  const chronological = [...events].reverse();
-
   return (
     <section className={`${CARD} p-5`}>
       <h2 className={MONO_LABEL_SM}>
@@ -97,7 +108,15 @@ export function ActivityTrail({
         <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">Nothing yet.</p>
       ) : (
         <ul className="mt-3 max-h-[26rem] space-y-2.5 overflow-y-auto pr-2">
-          {chronological.map((event) => (
+          {pendingDecision ? (
+            <li className="flex gap-3 text-sm text-amber-700 dark:text-amber-400">
+              <span className="w-[88px] shrink-0 font-mono text-xs uppercase leading-5">
+                Pending
+              </span>
+              <span className="min-w-0 leading-5">Subsidy decision · worksheet on the right</span>
+            </li>
+          ) : null}
+          {events.map((event) => (
             <li
               key={event.id}
               className={cn("flex gap-3 text-sm", freshIds.has(event.id) && ROW_ENTER)}
@@ -113,18 +132,10 @@ export function ActivityTrail({
                     : "text-zinc-700 dark:text-zinc-300",
                 )}
               >
-                {eventLine(event)}
+                {eventLine(event, fanoutFirms)}
               </span>
             </li>
           ))}
-          {pendingDecision ? (
-            <li className="flex gap-3 text-sm text-amber-700 dark:text-amber-400">
-              <span className="w-[88px] shrink-0 font-mono text-xs uppercase leading-5">
-                Pending
-              </span>
-              <span className="min-w-0 leading-5">Subsidy decision · worksheet on the right</span>
-            </li>
-          ) : null}
         </ul>
       )}
     </section>
