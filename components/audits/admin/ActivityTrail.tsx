@@ -1,4 +1,9 @@
+"use client";
+
+import { useRef } from "react";
+import { cn } from "@/lib/utils";
 import type { AdminRequestDetail } from "@/server/services/audits/visibility";
+import { ROW_ENTER } from "@/components/audits/shared/motion";
 import { formatUsd } from "@/components/audits/shared/format";
 
 type TrailEvent = AdminRequestDetail["events"][number];
@@ -58,6 +63,17 @@ const stamp = (date: Date) => {
 
 /** The audit trail admins rely on instead of pings (design 1b). */
 export function ActivityTrail({ events }: { events: AdminRequestDetail["events"] }) {
+  // Rows present at first render are "seen"; only rows arriving later (the
+  // router.refresh after a decision) get the entrance animation.
+  const seenRef = useRef<Set<string> | null>(null);
+  const firstRender = seenRef.current === null;
+  if (seenRef.current === null) seenRef.current = new Set(events.map((event) => event.id));
+  const seen = seenRef.current;
+  const freshIds = firstRender
+    ? new Set<string>()
+    : new Set(events.filter((event) => !seen.has(event.id)).map((event) => event.id));
+  for (const id of freshIds) seen.add(id);
+
   return (
     <section>
       <h2 className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -68,7 +84,7 @@ export function ActivityTrail({ events }: { events: AdminRequestDetail["events"]
       ) : (
         <ul className="mt-3 max-h-[26rem] space-y-2.5 overflow-y-auto border-l border-zinc-200 pl-4 pr-2 dark:border-white/10">
           {events.map((event) => (
-            <li key={event.id} className="text-sm">
+            <li key={event.id} className={cn("text-sm", freshIds.has(event.id) && ROW_ENTER)}>
               <span className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
                 {stamp(event.created_at)}
               </span>{" "}

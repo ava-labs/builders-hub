@@ -12,6 +12,8 @@
 export interface NavItem {
   text: string;
   href: string;
+  /** Small "New" style pill next to the label (drop after launch month). */
+  badge?: string;
   external?: boolean;
 }
 
@@ -82,7 +84,7 @@ export const menuSections: NavSection[] = [
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
       { text: 'Grants & Funding', href: '/grants' },
-      { text: 'Security Audits', href: '/audits' },
+      { text: 'Security Audits', href: '/audits', badge: 'New' },
     ],
   },
 ];

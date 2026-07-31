@@ -1,6 +1,8 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CHIP_POP } from "@/components/audits/shared/motion";
 
 export interface ChipOption {
   value: string;
@@ -51,12 +53,15 @@ export function ChipGroup({
             aria-pressed={selected}
             onClick={() => toggle(option.value)}
             className={cn(
-              "h-11 cursor-pointer rounded-full border px-4 text-sm transition-colors md:h-9 md:px-3.5",
+              "inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-full border px-4 text-sm transition-colors md:h-9 md:px-3.5",
+              // Selected = red outline + wash (Foundations chips): red marks
+              // active states, never a second CTA.
               selected
-                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                ? "border-brand bg-brand/5 text-brand-deep dark:border-[#FF394A] dark:bg-[#FF394A]/10 dark:text-brand-soft"
                 : "border-zinc-300 text-zinc-700 hover:border-zinc-500 dark:border-white/15 dark:text-zinc-300 dark:hover:border-white/40",
             )}
           >
+            {selected ? <Check aria-hidden className={cn("h-3 w-3", CHIP_POP)} /> : null}
             {option.label}
           </button>
         );

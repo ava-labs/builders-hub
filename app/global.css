@@ -2015,3 +2015,28 @@ html.embed-mode #nd-toc {
   font-style: normal;
   font-display: swap;
 }
+
+/* Audit marketplace: red-CTA hover sweep (house BrandButton pattern, mockup
+   board section 07). The light plane sweeps in behind the label; the label
+   flips to ink. Flattened by the prefers-reduced-motion reducer above. */
+.audits-sweep {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.audits-sweep::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #ebf0fa;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+.audits-sweep:hover::before {
+  transform: scaleX(1);
+}
+.audits-sweep:hover {
+  color: #1f1f1f;
+}

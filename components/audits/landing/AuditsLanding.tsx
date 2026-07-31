@@ -55,7 +55,7 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       <div className="mt-8">
         <Link
           href="/audits/new"
-          className="inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
+          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors"
         >
           Request quotes
         </Link>

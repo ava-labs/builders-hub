@@ -22,7 +22,7 @@ export function FirstRun({
       action={
         <Link
           href="/audits/new"
-          className="inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-deep"
+          className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors"
         >
           Start your first request
         </Link>

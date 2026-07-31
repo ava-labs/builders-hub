@@ -199,7 +199,7 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
         <Button
           disabled={!editable || busy}
           onClick={() => void submit()}
-          className="h-11 w-full bg-brand text-white hover:bg-brand-deep"
+          className="audits-sweep h-11 w-full bg-brand text-white"
         >
           {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
           {existing ? "Update quote" : "Send quote"}

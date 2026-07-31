@@ -104,7 +104,7 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
                     type="button"
                     disabled={submitting}
                     onClick={() => void submit()}
-                    className="h-11 flex-1 bg-brand text-white hover:bg-brand-deep sm:flex-none md:h-10"
+                    className="audits-sweep h-11 flex-1 bg-brand text-white sm:flex-none md:h-10"
                   >
                     {submitting ? (
                       <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />

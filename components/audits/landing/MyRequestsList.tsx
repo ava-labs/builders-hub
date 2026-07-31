@@ -119,7 +119,7 @@ export function MyRequestsList({
           ) : null}
           <Link
             href="/audits/new"
-            className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-deep md:h-10"
+            className="audits-sweep inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
           >
             <Plus aria-hidden className="h-4 w-4" />
             New request
