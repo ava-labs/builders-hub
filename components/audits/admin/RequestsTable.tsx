@@ -15,9 +15,8 @@ import { MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import type { AdminRequestRow } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatQuoteRange, formatUsd } from "@/components/audits/shared/format";
 
-const kUsd = (value: number) => `$${Math.round(value / 1000)}k`;
 
 function SubsidyCell({ row }: { row: AdminRequestRow }) {
   if (row.subsidy_state === "needs_approval") {
@@ -65,7 +64,7 @@ export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
           <TableRow className="border-zinc-200 bg-zinc-50 hover:bg-zinc-50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:bg-white/[0.02]">
             <TableHead className={cn(MONO_LABEL_SM, "px-4")}>Request</TableHead>
             <TableHead className={MONO_LABEL_SM}>Submitted</TableHead>
-            <TableHead className={MONO_LABEL_SM}>Quote ddl</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Quote deadline</TableHead>
             <TableHead className={MONO_LABEL_SM}>Quotes</TableHead>
             <TableHead className={MONO_LABEL_SM}>Range</TableHead>
             <TableHead className={MONO_LABEL_SM}>Status</TableHead>
@@ -116,7 +115,7 @@ export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
               <TableCell className="tabular-nums">{row.quote_count}</TableCell>
               <TableCell className="font-mono text-xs">
                 {row.quote_price_range
-                  ? `${kUsd(row.quote_price_range.min)}–${kUsd(row.quote_price_range.max)}`
+                  ? formatQuoteRange(row.quote_price_range.min, row.quote_price_range.max)
                   : "·"}
               </TableCell>
               <TableCell>

@@ -186,7 +186,9 @@ export function RequestDetailView({
                 body="Firms typically respond in the final days of the window. Quotes appear here as they arrive."
               />
             )}
-            <div className="flex justify-end">
+            {/* Hairline-anchored closing row of the quotes block (board R3-B):
+                the quiet destructive affordance belongs to the panel, not the void. */}
+            <div className="flex justify-end border-t border-zinc-200 pt-3 dark:border-white/10">
               <WithdrawButton requestId={detail.id} />
             </div>
           </>

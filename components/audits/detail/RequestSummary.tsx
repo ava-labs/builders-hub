@@ -2,7 +2,7 @@ import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate } from "@/components/audits/shared/format";
+import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
 import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
 
 function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
@@ -25,7 +25,9 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
   const timeline = [
     ...(detail.needed_by ? [`needed by ${formatIsoDate(detail.needed_by)}`] : []),
     ...(detail.quote_deadline ? [`quotes close ${formatIsoDate(detail.quote_deadline)}`] : []),
-    ...(detail.urgency ? [URGENCY_LABELS[detail.urgency as UrgencyOption] ?? ""] : []),
+    ...(detail.urgency
+      ? [lowerFirst(URGENCY_LABELS[detail.urgency as UrgencyOption] ?? "")]
+      : []),
   ].filter(Boolean);
 
   return (

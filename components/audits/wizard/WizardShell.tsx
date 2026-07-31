@@ -98,9 +98,13 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
                   className="h-11 shrink-0 md:h-10"
                   onClick={() => void goNext()}
                 >
-                  Continue
-                  <span className="hidden sm:inline">
-                    {CONTINUE_LABELS[step].slice("Continue".length)}
+                  {/* One label node: a second flex child would stack the
+                      button's gap on top of the suffix's leading space. */}
+                  <span>
+                    Continue
+                    <span className="hidden sm:inline">
+                      {CONTINUE_LABELS[step].slice("Continue".length)}
+                    </span>
                   </span>
                 </Button>
               ) : (

@@ -8,22 +8,25 @@ import { CARD, MONO_LABEL } from "@/components/audits/shared/classes";
 import { CHEVRON_NUDGE, HOVER_LIFT, ROW_ENTER } from "@/components/audits/shared/motion";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
-import { formatIsoDate, truncate } from "@/components/audits/shared/format";
+import {
+  formatIsoDate,
+  formatQuoteRange,
+  quoteCountLabel,
+  truncate,
+} from "@/components/audits/shared/format";
 
 const BADGE_SUFFIX: Record<string, string> = {
   deciding: "· pick one",
   engaged: "· auditor engaged",
 };
 
-const kUsd = (value: number) => `$${Math.round(value / 1000)}K`;
-
 function cardMeta(request: OwnerRequestSummary): string | null {
   if (request.display_status === "collecting" && request.quote_count > 0) {
-    return `${request.quote_count} quotes in`;
+    return `${quoteCountLabel(request.quote_count)} in`;
   }
   if (request.quote_count > 0 && request.quote_price_range) {
     const { min, max } = request.quote_price_range;
-    return `${request.quote_count} quotes · ${kUsd(min)}–${kUsd(max)}`;
+    return `${quoteCountLabel(request.quote_count)} · ${formatQuoteRange(min, max)}`;
   }
   return null;
 }

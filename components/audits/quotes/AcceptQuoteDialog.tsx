@@ -88,7 +88,7 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
             <AlertDialogHeader className="text-left">
               <p className={MONO_LABEL_SM}>Irreversible · read once</p>
               <AlertDialogTitle className="text-[17px] font-bold tracking-[-0.01em]">
-                Accept {quote.firm_name}&apos;s quote?
+                Accept the quote from {quote.firm_name}?
               </AlertDialogTitle>
             </AlertDialogHeader>
             <dl className="rounded-[10px] border border-zinc-200 dark:border-white/[0.16]">

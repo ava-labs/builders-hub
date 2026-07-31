@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
 import { MONO_LABEL } from "@/components/audits/shared/classes";
 import { CHECK_POP } from "@/components/audits/shared/motion";
-import { formatIsoDate } from "@/components/audits/shared/format";
+import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
 import { FanoutNoticeCard } from "@/components/audits/shared/FanoutNoticeCard";
 import { useAuditWizard } from "@/components/audits/wizard/AuditWizardContext";
 import type { AuditWizardValues } from "@/components/audits/wizard/types";
@@ -27,12 +27,13 @@ function summaryLines(values: AuditWizardValues): { label: string; line: string;
   const projectParts = [values.project_name || "Untitled request", target];
   if (values.project_types.length > 0) projectParts.push(values.project_types.join(", "));
 
+  const repoCount = values.repos.filter((repo) => repo.url.trim() !== "").length;
   const scopeParts = [
     values.services.length > 0
       ? `${values.services[0]}${values.services.length > 1 ? ` +${values.services.length - 1}` : ""}`
       : "No services picked",
-    `${values.repos.filter((repo) => repo.url.trim() !== "").length} repos pinned`,
   ];
+  if (repoCount > 0) scopeParts.push(`${repoCount} ${repoCount === 1 ? "repo" : "repos"} pinned`);
   if (values.nsloc.trim() !== "") scopeParts.push(`~${values.nsloc} nSLOC`);
   if (values.frameworks.length > 0) scopeParts.push(values.frameworks.join(", "));
 
@@ -42,7 +43,7 @@ function summaryLines(values: AuditWizardValues): { label: string; line: string;
       ? `quotes close ${formatIsoDate(values.quote_deadline)}`
       : "no quote deadline",
   ];
-  if (values.urgency) timelineParts.push(URGENCY_LABELS[values.urgency]);
+  if (values.urgency) timelineParts.push(lowerFirst(URGENCY_LABELS[values.urgency]));
 
   return [
     { label: "01 · Project", line: projectParts.join(" · "), step: 0 },
