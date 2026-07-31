@@ -13,8 +13,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-  RANGE_DAYS,
-  RANGE_LABEL,
+  rangeWindowLabel,
   useExplorerTimeRange,
   type ExplorerRange,
 } from "@/components/explorer-v2/time-range";
@@ -58,6 +57,9 @@ const ICM_TIME_RANGE: Record<ExplorerRange, string> = {
   month: "30d",
   quarter: "90d",
   year: "1y",
+  // the route's widest window (730 days) predates the first ICM message,
+  // so this tick really is all-time here
+  all: "all",
 };
 
 const QUIET = "#A2AFB2";
@@ -239,7 +241,9 @@ export function NetworkIcm() {
     [metrics],
   );
   const dailyICM = metrics?.aggregatedData?.[0]?.totalMessageCount ?? 0;
-  const avgDailyICM = Math.round(totalICMMessages / RANGE_DAYS[range]);
+  // divide by the days the feed actually returned, not the clock's nominal
+  // span: the all-time window would otherwise dilute the average to noise
+  const avgDailyICM = Math.round(totalICMMessages / Math.max(1, metrics?.aggregatedData?.length ?? 1));
 
   const topChains = useMemo(() => {
     if (!metrics?.aggregatedData) return [];
@@ -305,7 +309,7 @@ export function NetworkIcm() {
           <BoardHeader
             label="Interchain Messaging"
             display
-            action={<Chip>Last {RANGE_LABEL[range]}</Chip>}
+            action={<Chip>{rangeWindowLabel(range)}</Chip>}
           />
           <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-800">
             <StatCell label="Total ICM">

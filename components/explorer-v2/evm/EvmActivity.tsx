@@ -48,6 +48,7 @@ const ACTIVITY_DAYS: Record<ExplorerRange, 7 | 30 | 90> = {
   month: 30,
   quarter: 90,
   year: 90,
+  all: 90,
 };
 
 const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
@@ -56,7 +57,11 @@ export function CchainActivityChart({ href }: { href?: string }) {
   const clock = useExplorerTimeRange();
   const served = ACTIVITY_DAYS[clock];
   const exception =
-    clock === "day" ? "· 7 days" : clock === "year" ? "· 90 days · longest computed" : null;
+    clock === "day"
+      ? "· 7 days"
+      : clock === "year" || clock === "all"
+        ? "· 90 days · longest computed"
+        : null;
 
   const [activity, setActivity] = useState<CchainActivityDay[] | null>(null);
   const [servedDays, setServedDays] = useState<number | null>(null);
