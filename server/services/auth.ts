@@ -3,6 +3,7 @@ import { prisma } from "@/prisma/prisma";
 import { Account, Profile, User } from "next-auth";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
 import { encryptToken } from "@/lib/github-token";
+import { normalizeEmail } from "@/lib/utils";
 
 const oauthUserSelect = {
   id: true,
@@ -17,9 +18,10 @@ export async function upsertUser(user: User, account: Account | null, profile: P
     throw new Error("El usuario debe tener un email válido");
   }
 
+  const email = normalizeEmail(user.email);
 
   const existingUser = await prisma.user.findUnique({
-    where: { email: user.email },
+    where: { email },
     select: oauthUserSelect,
   });
 
@@ -40,7 +42,7 @@ export async function upsertUser(user: User, account: Account | null, profile: P
 
   if (existingUser) {
     upsertedUser = await prisma.user.update({
-      where: { email: user.email },
+      where: { email },
       select: oauthUserSelect,
       data: {
         name: user.name || "",
@@ -55,8 +57,8 @@ export async function upsertUser(user: User, account: Account | null, profile: P
     upsertedUser = await prisma.user.create({
       select: oauthUserSelect,
       data: {
-        email: user.email,
-        notification_email: user.email,
+        email,
+        notification_email: email,
         name: user.name || "",
         image: user.image || "",
         authentication_mode: account?.provider ?? "",
