@@ -2041,3 +2041,45 @@ html.embed-mode #nd-toc {
 .audits-sweep:hover {
   color: #1f1f1f;
 }
+
+/* The hero display word rests as INK (a fully red line over the red CTA
+   was too much red); the brand arrives as motion instead: a slow red
+   sheen sweeps through the letters left to right (~1.8s), then the word
+   rests ~4s before the next pass. Both loop endpoints show plain ink so
+   the restart is invisible. Reduced motion collapses to static ink (the
+   global reducer above); browsers without text clipping keep ink too.
+   The red full stop next to it is plain markup and stays in both cases. */
+.audits-word-fill {
+  --audits-ink: #09090b;
+}
+.dark .audits-word-fill {
+  --audits-ink: #fafafa;
+}
+@supports (-webkit-background-clip: text) {
+  .audits-word-fill {
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-image: linear-gradient(
+      100deg,
+      var(--audits-ink) 0%,
+      var(--audits-ink) 45%,
+      #e6212f 50%,
+      var(--audits-ink) 55%,
+      var(--audits-ink) 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 250% 100%;
+    background-position: 0% 0;
+    animation: audits-ink-sheen 6s ease-in-out infinite;
+  }
+  @keyframes audits-ink-sheen {
+    0% {
+      background-position: 100% 0;
+    }
+    30%,
+    100% {
+      background-position: 0% 0;
+    }
+  }
+}

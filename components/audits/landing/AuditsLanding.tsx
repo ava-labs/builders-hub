@@ -50,7 +50,10 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       <h1 className="v2-display mt-4 text-5xl text-zinc-950 dark:text-zinc-50 sm:text-6xl">
         Every vetted auditor.
         <br />
-        One request.
+        {/* Ink at rest, red as motion: a recurring sheen sweeps the words;
+            only the full stop holds the brand at rest. */}
+        <span className="audits-word-fill">One request</span>
+        <span className="text-brand">.</span>
       </h1>
       <p className="mt-4 max-w-2xl text-lg text-zinc-600 dark:text-[#A2AFB2]">
         Describe your scope once. Every security firm on the Ava Labs whitelist quotes it,
