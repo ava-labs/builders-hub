@@ -30,11 +30,13 @@ export function FirstRun({
       footnote="Typically several quotes within 10 days"
       action2={
         isAdmin || isAuditor ? (
-          <span className="flex items-center gap-4">
+          // This empty state IS the home view for pure admins and auditors
+          // (they never have requests), so their doors are real buttons.
+          <span className="flex flex-wrap items-center justify-center gap-2.5">
             {isAuditor ? (
               <Link
                 href="/audits/portal"
-                className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="inline-flex h-10 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40"
               >
                 Auditor portal
               </Link>
@@ -42,7 +44,7 @@ export function FirstRun({
             {isAdmin ? (
               <Link
                 href="/audits/admin"
-                className="text-sm text-zinc-500 underline underline-offset-2 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="inline-flex h-10 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40"
               >
                 Admin dashboard
               </Link>

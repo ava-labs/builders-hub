@@ -29,6 +29,17 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-20 sm:py-28">
+      <div aria-hidden className="mb-8 inline-flex flex-col items-start">
+        <div className="flex">
+          <span className="h-2.5 w-[30px] bg-brand" />
+          <span className="h-2.5 w-[30px] bg-zinc-900 dark:bg-zinc-100" />
+          <span className="h-2.5 w-[30px] bg-zinc-200 dark:bg-white/15" />
+        </div>
+        <div className="ml-[30px] flex">
+          <span className="h-2.5 w-[30px] bg-zinc-900 dark:bg-zinc-100" />
+          <span className="h-2.5 w-[30px] bg-zinc-200 dark:bg-white/15" />
+        </div>
+      </div>
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         Ava Labs audit program · free for builders
       </p>
@@ -54,17 +65,6 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         {meta.join(" · ")}
       </p>
 
-      <p className="mt-6 text-sm text-zinc-500 dark:text-zinc-400">
-        Security firm on the Ava Labs whitelist?{" "}
-        <Link
-          href="/audits/portal"
-          className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200"
-        >
-          Open the auditor portal
-        </Link>
-        .
-      </p>
-
       <div className="mt-16 border-t border-zinc-200 pt-10 dark:border-white/10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
           How it works
@@ -78,6 +78,22 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-12 max-w-md rounded-xl border border-zinc-200 p-5 dark:border-white/10">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+          For audit firms
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-[#A2AFB2]">
+          On the Ava Labs whitelist? Fan-out requests arrive by email; sign in with your firm's
+          quote address to send private quotes.
+        </p>
+        <Link
+          href="/audits/portal"
+          className="mt-3.5 inline-flex h-9 items-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40"
+        >
+          Open the auditor portal →
+        </Link>
       </div>
     </div>
   );
