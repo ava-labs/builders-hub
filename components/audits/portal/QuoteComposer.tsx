@@ -21,6 +21,8 @@ interface QuoteComposerProps {
   existing: AuditorRequestView["own_quote"];
   windowOpen: boolean;
   deadline: Date | null;
+  /** Deactivated firms browse read-only; the composer never arms (N-4). */
+  firmActive?: boolean;
 }
 
 /**
@@ -28,9 +30,19 @@ interface QuoteComposerProps {
  * carries the nuance. Editable until the window closes; the server enforces
  * the same rule (isQuoteWindowOpen), so this state can only ever be cosmetic.
  */
-export function QuoteComposer({ requestId, existing, windowOpen, deadline }: QuoteComposerProps) {
+export function QuoteComposer({
+  requestId,
+  existing,
+  windowOpen,
+  deadline,
+  firmActive = true,
+}: QuoteComposerProps) {
   const router = useRouter();
-  const editable = windowOpen && existing?.status !== "accepted" && existing?.status !== "not_selected";
+  const editable =
+    firmActive &&
+    windowOpen &&
+    existing?.status !== "accepted" &&
+    existing?.status !== "not_selected";
 
   // Hooks live ABOVE the resting-state returns: `editable` can flip on a
   // mounted composer (window closes, quote gets accepted after a 409 refresh)
@@ -47,6 +59,13 @@ export function QuoteComposer({ requestId, existing, windowOpen, deadline }: Quo
   // Decided or closed with a quote on file: the form rests (design iteration
   // 2026-07-31). Closed with no quote needs no dead disabled form either.
   if (!editable && existing) return <QuoteSummary quote={existing} />;
+  if (!firmActive && !existing) {
+    return (
+      <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-[#A2AFB2]">
+        Quoting is disabled while the firm is deactivated. Past quotes stay on record.
+      </div>
+    );
+  }
   if (!editable && !existing) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-[#A2AFB2]">

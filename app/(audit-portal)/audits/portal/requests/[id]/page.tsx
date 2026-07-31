@@ -15,12 +15,12 @@ export default async function AuditorRequestPage({
   if (!email) redirect("/audits/portal/sign-in");
 
   const auditor = await resolveAuditorByEmail(email);
-  if (!auditor) return <NotWhitelisted email={email} reason="unknown" />;
-  if (!auditor.active) return <NotWhitelisted email={email} reason="deactivated" />;
+  if (!auditor) return <NotWhitelisted email={email} />;
 
   const { id } = await params;
   const view = await getRequestForAuditor(auditor.id, id);
   if (!view) notFound();
 
-  return <PortalRequestDetail view={view} />;
+  // Deactivated firms keep read-only access to their history (round-3 N-4).
+  return <PortalRequestDetail view={view} firmActive={auditor.active} />;
 }

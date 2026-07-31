@@ -32,7 +32,7 @@ vi.mock("@/server/services/audits/visibility", () => ({
 import { upsertOwnQuote } from "@/server/services/audits/quotes";
 
 const DAY = 24 * 60 * 60 * 1000;
-const AUDITOR = { id: "aud-1", firm_name: "Nordlicht Security" };
+const AUDITOR = { id: "aud-1", firm_name: "Nordlicht Security", active: true };
 const INPUT = {
   price_usd: 34500,
   duration_weeks: 4,
@@ -87,6 +87,17 @@ describe("upsertOwnQuote", () => {
     });
     expect(quoteCreateMock).not.toHaveBeenCalled();
     expect(quoteUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a deactivated firm even inside an open window", async () => {
+    // Read-only portal access for deactivated firms (round-3 N-4) must never
+    // extend to writes; the route wrapper AND the service both refuse.
+    const result = await upsertOwnQuote({ ...AUDITOR, active: false }, "req-1", INPUT);
+
+    expect(result).toEqual({ success: false, code: "not_active" });
+    expect(quoteCreateMock).not.toHaveBeenCalled();
+    expect(quoteUpdateMock).not.toHaveBeenCalled();
+    expect(eventCreateMock).not.toHaveBeenCalled();
   });
 
   it("creates the first quote pinned to this auditor and logs quote_submitted", async () => {

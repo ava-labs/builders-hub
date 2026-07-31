@@ -11,6 +11,7 @@ import { SpecList, type SpecItem } from "@/components/audits/shared/SpecList";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
 import { QuoteComposer } from "@/components/audits/portal/QuoteComposer";
+import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
 
 const shortRepo = (url: string) => url.replace(/^https?:\/\/(www\.)?github\.com\//i, "");
 
@@ -94,19 +95,27 @@ function buildSpecItems(view: AuditorRequestView): SpecItem[] {
 }
 
 /** Request context left in one definition card, sticky quote form right (design 1d). */
-export function PortalRequestDetail({ view }: { view: AuditorRequestView }) {
+export function PortalRequestDetail({
+  view,
+  firmActive = true,
+}: {
+  view: AuditorRequestView;
+  /** Deactivated firms read their history; the composer rests (N-4). */
+  firmActive?: boolean;
+}) {
   const metaLine = [
     ...(view.submitted_at
       ? [`Submitted ${formatIsoDate(view.submitted_at)} by ${view.project_name}`]
       : []),
     ...(view.needed_by ? [`needed by ${formatIsoDate(view.needed_by)}`] : []),
     ...(view.urgency
-      ? [`urgency: ${URGENCY_LABELS[view.urgency as UrgencyOption] ?? view.urgency}`]
+      ? [URGENCY_LABELS[view.urgency as UrgencyOption] ?? view.urgency]
       : []),
   ].join(" · ");
 
   return (
     <div className="py-10">
+      {firmActive ? null : <DeactivatedBanner />}
       {/* Quiet sentence-case breadcrumb (board :233), not the mono-caps shout. */}
       <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
         <Link
@@ -204,6 +213,7 @@ export function PortalRequestDetail({ view }: { view: AuditorRequestView }) {
             existing={view.own_quote}
             windowOpen={view.window_open}
             deadline={view.quote_deadline}
+            firmActive={firmActive}
           />
         </div>
       </div>

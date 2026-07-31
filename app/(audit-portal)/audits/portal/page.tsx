@@ -11,9 +11,9 @@ export default async function AuditorInboxPage() {
   if (!email) redirect("/audits/portal/sign-in");
 
   const auditor = await resolveAuditorByEmail(email);
-  if (!auditor) return <NotWhitelisted email={email} reason="unknown" />;
-  if (!auditor.active) return <NotWhitelisted email={email} reason="deactivated" />;
+  if (!auditor) return <NotWhitelisted email={email} />;
 
+  // Deactivated firms keep read-only access to their history (round-3 N-4).
   const items = await getAuditorInbox(auditor.id);
-  return <PortalInbox items={items} quoteEmail={auditor.quote_email} />;
+  return <PortalInbox items={items} quoteEmail={auditor.quote_email} readOnly={!auditor.active} />;
 }

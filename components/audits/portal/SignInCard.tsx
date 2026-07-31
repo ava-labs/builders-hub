@@ -69,8 +69,11 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
     }
   };
 
+  // The card lives on the page's always-dark panel, so its colors are fixed
+  // dark values: theme-branched classes resolve against the ROOT theme and
+  // rendered light-ink headings on the dark plate (board N-2).
   return (
-    <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-[#1F1F1F]">
+    <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#1F1F1F] p-6 text-zinc-50">
       {step === "email" ? (
         <>
           <h2 className="text-lg font-semibold">Sign in with one-time code</h2>
@@ -92,7 +95,11 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
               autoComplete="email"
               className="h-11"
             />
-            <Button type="submit" disabled={busy || !email.trim()} className="h-11 w-full">
+            <Button
+              type="submit"
+              disabled={busy || !email.trim()}
+              className="h-11 w-full bg-white text-zinc-900 hover:bg-zinc-200"
+            >
               {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
               Send code
             </Button>
@@ -122,7 +129,7 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
           <Button
             disabled={busy || code.length !== 6}
             onClick={() => void verify(code)}
-            className="mt-4 h-11 w-full"
+            className="mt-4 h-11 w-full bg-white text-zinc-900 hover:bg-zinc-200"
           >
             {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
             Sign in

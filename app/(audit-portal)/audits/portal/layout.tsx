@@ -36,7 +36,9 @@ export default async function AuditorPortalLayout({
       <NavbarDropdownInjector />
       <LayoutWrapper baseOptions={baseOptions}>
         <div className="flex min-h-[70dvh] flex-col">
-          <PortalShell firmName={auditor?.active ? auditor.firm_name : null} />
+          {/* Identity stays up for deactivated firms too: their read-only
+              portal (N-4) is still THEIR portal. */}
+          <PortalShell firmName={auditor?.firm_name ?? null} />
           <main className="mx-auto w-full max-w-[1040px] flex-1 px-4 pb-16">{children}</main>
         </div>
         <Footer />

@@ -7,6 +7,7 @@ import type { AuditorInboxItem } from "@/server/services/audits/visibility";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { EmptyState } from "@/components/audits/shared/EmptyState";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
+import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
 import { CARD } from "@/components/audits/shared/classes";
 import { HOVER_LIFT, ROW_ENTER } from "@/components/audits/shared/motion";
 import { formatIsoDate, formatUsd, truncate } from "@/components/audits/shared/format";
@@ -77,9 +78,12 @@ function CardPill({ item }: { item: AuditorInboxItem }) {
 export function PortalInbox({
   items,
   quoteEmail,
+  readOnly = false,
 }: {
   items: AuditorInboxItem[];
   quoteEmail: string;
+  /** Deactivated firms browse their history without action affordances (N-4). */
+  readOnly?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("all");
 
@@ -112,6 +116,7 @@ export function PortalInbox({
 
   return (
     <div className="py-10">
+      {readOnly ? <DeactivatedBanner /> : null}
       {/* Short nowrap labels keep the row on ONE line at 375 (board 1g); the
           full "Awaiting your quote" returns from md up. Targets stay 44px. */}
       <div
@@ -180,7 +185,7 @@ export function PortalInbox({
                   <p className="font-semibold">{item.request.project_name || "Untitled request"}</p>
                   <CardPill item={item} />
                   <span className="flex-1" />
-                  {bucket === "awaiting" ? (
+                  {readOnly ? null : bucket === "awaiting" ? (
                     <span className="hidden rounded-lg bg-zinc-900 px-3.5 py-1.5 text-sm font-medium text-white sm:inline-block dark:bg-zinc-100 dark:text-zinc-900">
                       Review &amp; quote
                     </span>

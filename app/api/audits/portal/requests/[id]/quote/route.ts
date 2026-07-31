@@ -30,12 +30,18 @@ export const PUT = withAuditor<RouteParams<{ id: string }>>(async (request, cont
 
   try {
     const result = await upsertOwnQuote(
-      { id: auditor.id, firm_name: auditor.firm_name },
+      { id: auditor.id, firm_name: auditor.firm_name, active: auditor.active },
       id,
       parsed.data,
     );
     if (!result.success && result.code === "not_invited") {
       return NextResponse.json({ success: false, message: "Request not found." }, { status: 404 });
+    }
+    if (!result.success && result.code === "not_active") {
+      return NextResponse.json(
+        { success: false, message: "This firm is deactivated. Contact the program team." },
+        { status: 403 },
+      );
     }
     if (!result.success) {
       return NextResponse.json(

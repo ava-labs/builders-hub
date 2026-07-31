@@ -7,7 +7,7 @@ import type { AuditQuoteInput } from "@/types/audits";
 
 export type UpsertQuoteResult =
   | { success: true; updated: boolean }
-  | { success: false; code: "not_invited" | "window_closed" };
+  | { success: false; code: "not_invited" | "window_closed" | "not_active" };
 
 /**
  * Create or edit the firm's OWN quote. Reads go through visibility (the sole
@@ -18,10 +18,14 @@ export type UpsertQuoteResult =
  * request only.
  */
 export async function upsertOwnQuote(
-  auditor: { id: string; firm_name: string },
+  auditor: { id: string; firm_name: string; active: boolean },
   requestId: string,
   input: AuditQuoteInput,
 ): Promise<UpsertQuoteResult> {
+  // Deactivated firms keep read-only portal access (N-4); writes stay shut
+  // here too so the rule holds even if a route wrapper loosens.
+  if (!auditor.active) return { success: false, code: "not_active" };
+
   // The fan-out delivery row is the invitation; without it this request does
   // not exist for the firm.
   const delivery = await prisma.auditFanoutDelivery.findUnique({
