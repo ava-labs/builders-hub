@@ -45,10 +45,14 @@ export function renderAuditEmail(input: AuditEmailInput): string {
 </head>
 <body style="margin: 0; padding: 16px 8px; background-color: #EFF0F2;">
     <div style="background-color: #18181B; color: #FAFAFA; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 26px; border-radius: 12px; border: 1px solid #3F3F46;">
-      <div>
-        <span style="display: inline-block; vertical-align: middle; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #E6212F;"></span>
-        <span style="display: inline-block; vertical-align: middle; margin-left: 9px; font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.14em; color: #A2AFB2;">BUILDER HUB · AVA LABS AUDIT PROGRAM</span>
-      </div>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse;">
+        <tr>
+          <td style="width: 23px; vertical-align: top; padding-top: 1px;">
+            <span style="display: inline-block; width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #E6212F;"></span>
+          </td>
+          <td style="vertical-align: top; font-family: 'Courier New', monospace; font-size: 11px; line-height: 15px; letter-spacing: 0.14em; color: #A2AFB2;">BUILDER HUB · AVA LABS AUDIT PROGRAM</td>
+        </tr>
+      </table>
       <p style="font-family: 'Courier New', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: ${eyebrowColor}; margin: 18px 0 0;">${escapeHtml(input.eyebrow)}</p>
       <h2 style="color: #FAFAFA; font-size: 20px; line-height: 1.3; margin: 8px 0 0;">${escapeHtml(input.title)}</h2>
       ${input.metaLine ? `<p style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.7; color: #A1A1AA; margin: 10px 0 0;">${escapeHtml(input.metaLine)}</p>` : ""}
