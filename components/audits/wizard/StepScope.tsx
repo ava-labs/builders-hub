@@ -34,6 +34,7 @@ export function StepScope() {
             </FormLabel>
             <ChipGroup
               multiple
+              collapsible
               options={asChips(AUDIT_SERVICES)}
               value={field.value}
               onChange={field.onChange}

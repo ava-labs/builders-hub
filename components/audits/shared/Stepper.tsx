@@ -101,9 +101,11 @@ export function Stepper({ steps, current, onJumpBack }: StepperProps) {
         <p className={MONO_LABEL_SM}>
           Step {current + 1} of {steps.length} · {steps[current]}
         </p>
-        <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-white/10">
+        {/* Edge-to-edge square 3px bar (board 1k): bleeds through the card
+            header's px-5/pb-4 so it runs flush under the header rule. */}
+        <div className="-mx-5 -mb-4 mt-3 h-[3px] overflow-hidden bg-zinc-100 dark:bg-white/10">
           <div
-            className={cn("h-full rounded-full bg-brand", WIDTH_TWEEN)}
+            className={cn("h-full bg-brand", WIDTH_TWEEN)}
             style={{ width: `${((current + 1) / steps.length) * 100}%` }}
           />
         </div>

@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { OwnerRequestSummary } from "@/server/services/audits/visibility";
+import { AUDITS_DIALOG } from "@/components/audits/shared/classes";
 import { RequestCard } from "@/components/audits/landing/RequestCard";
 
 type Filter = "all" | "collecting" | "deciding" | "closed" | "drafts";
@@ -141,7 +142,7 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
         open={deletingDraft !== null}
         onOpenChange={(open) => (!open ? setDeletingDraft(null) : null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className={AUDITS_DIALOG}>
           <AlertDialogHeader>
             <AlertDialogTitle>
               Delete draft {deletingDraft?.project_name || "Untitled request"}?
@@ -153,7 +154,11 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={busy}>Keep draft</AlertDialogCancel>
-            <AlertDialogAction disabled={busy} onClick={() => void deleteDraft()}>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={() => void deleteDraft()}
+              className="border border-brand-deep/35 bg-transparent text-brand-deep shadow-none hover:bg-brand-deep/5 dark:border-brand-soft/35 dark:text-brand-soft dark:hover:bg-brand-soft/10"
+            >
               Delete draft
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { DEPLOYMENT_TARGET_LABELS } from "@/lib/audits/constants";
 import type { DeploymentTarget } from "@/lib/audits/status";
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
-import { MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { AUDITS_DIALOG, MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { CollectingBanner } from "@/components/audits/detail/CollectingBanner";
@@ -37,12 +37,6 @@ function metaStrip(detail: OwnerRequestDetail): string {
     ...(detail.needed_by ? [`needed by ${formatIsoDate(detail.needed_by)}`] : []),
   ];
   return parts.filter(Boolean).join(" · ");
-}
-
-function median(values: number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
 }
 
 function WithdrawButton({ requestId }: { requestId: string }) {
@@ -72,7 +66,7 @@ function WithdrawButton({ requestId }: { requestId: string }) {
           Withdraw request
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className={AUDITS_DIALOG}>
         <AlertDialogHeader>
           <AlertDialogTitle>Withdraw this request?</AlertDialogTitle>
           <AlertDialogDescription>
@@ -82,7 +76,11 @@ function WithdrawButton({ requestId }: { requestId: string }) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Keep collecting</AlertDialogCancel>
-          <AlertDialogAction disabled={busy} onClick={() => void withdraw()}>
+          <AlertDialogAction
+            disabled={busy}
+            onClick={() => void withdraw()}
+            className="border border-brand-deep/35 bg-transparent text-brand-deep shadow-none hover:bg-brand-deep/5 dark:border-brand-soft/35 dark:text-brand-soft dark:hover:bg-brand-soft/10"
+          >
             Withdraw
           </AlertDialogAction>
         </AlertDialogFooter>
@@ -145,7 +143,6 @@ export function RequestDetailView({
 }) {
   const status = detail.display_status;
   const acceptedQuote = detail.quotes.find((quote) => quote.status === "accepted") ?? null;
-  const prices = detail.quotes.map((quote) => quote.price_usd);
 
   return (
     <div className="mx-auto max-w-[1040px] px-4 py-10">
@@ -179,6 +176,7 @@ export function RequestDetailView({
               <QuotesPanel
                 quotes={detail.quotes}
                 userId={userId}
+                neededBy={detail.needed_by}
                 showAcceptNote
                 acceptRequestId={detail.id}
               />
@@ -196,12 +194,6 @@ export function RequestDetailView({
 
         {status === "deciding" ? (
           <>
-            {prices.length > 0 ? (
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-300">
-                {detail.quote_count} quotes · {formatUsd(Math.min(...prices))}–
-                {formatUsd(Math.max(...prices))} · median {formatUsd(median(prices))}
-              </p>
-            ) : null}
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               Window closed{detail.quote_deadline ? ` ${formatIsoDate(detail.quote_deadline)}` : ""}{" "}
               · quotes visible only to you and program admins
@@ -209,6 +201,7 @@ export function RequestDetailView({
             <QuotesPanel
               quotes={detail.quotes}
               userId={userId}
+              neededBy={detail.needed_by}
               showAcceptNote
               acceptRequestId={detail.id}
             />
@@ -222,7 +215,7 @@ export function RequestDetailView({
               {detail.quotes.length > 1 ? (
                 <div id="quote-archive" className="scroll-mt-24 space-y-3">
                   <p className={MONO_LABEL_SM}>Archived quotes · read-only</p>
-                  <QuotesPanel quotes={detail.quotes} userId={userId} />
+                  <QuotesPanel quotes={detail.quotes} userId={userId} neededBy={detail.needed_by} />
                 </div>
               ) : null}
             </>

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
+import { AUDITS_DIALOG, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
 interface AcceptQuoteDialogProps {
@@ -25,8 +26,10 @@ interface AcceptQuoteDialogProps {
 }
 
 /**
- * The decisive moment (design 1j): consequences spelled out before the
- * irreversible action; the red solid appears only here.
+ * The decisive moment (design 1j): the facts in a bordered plate, the four
+ * consequences with explicit dots, and the red solid appears only here
+ * (deliberately without the sweep hover: irreversible, not playful).
+ * Below 640px it docks as a bottom sheet.
  */
 export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: AcceptQuoteDialogProps) {
   const router = useRouter();
@@ -66,41 +69,56 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
       ]
     : [];
 
+  const facts = quote
+    ? [
+        { label: "Price", value: formatUsd(quote.price_usd), strong: true },
+        { label: "Duration", value: `${quote.duration_weeks} weeks` },
+        { label: "Earliest start", value: formatIsoDate(quote.earliest_start) },
+        { label: "Re-audit of fixes", value: quote.reaudit_included ? "Included" : "Not included" },
+      ]
+    : [];
+
   return (
     <AlertDialog open={quote !== null} onOpenChange={(open) => (!open ? onClose() : null)}>
-      <AlertDialogContent>
+      <AlertDialogContent
+        className={`${AUDITS_DIALOG} max-sm:top-auto max-sm:bottom-0 max-sm:left-0 max-sm:max-w-full max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-b-none max-sm:border-x-0 max-sm:border-b-0`}
+      >
         {quote ? (
           <>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Accept {quote.firm_name}&apos;s quote?</AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div>
-                  <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-                    <dt className="text-zinc-500 dark:text-zinc-400">Price</dt>
-                    <dd className="text-right font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                      {formatUsd(quote.price_usd)}
-                    </dd>
-                    <dt className="text-zinc-500 dark:text-zinc-400">Duration</dt>
-                    <dd className="text-right text-zinc-900 dark:text-zinc-100">
-                      {quote.duration_weeks} weeks
-                    </dd>
-                    <dt className="text-zinc-500 dark:text-zinc-400">Earliest start</dt>
-                    <dd className="text-right font-mono text-xs text-zinc-900 dark:text-zinc-100">
-                      {formatIsoDate(quote.earliest_start)}
-                    </dd>
-                    <dt className="text-zinc-500 dark:text-zinc-400">Re-audit of fixes</dt>
-                    <dd className="text-right text-zinc-900 dark:text-zinc-100">
-                      {quote.reaudit_included ? "Included" : "Not included"}
-                    </dd>
-                  </dl>
-                  <ul className="mt-4 space-y-1.5 border-t border-zinc-200 pt-3 text-sm text-zinc-600 dark:border-white/10 dark:text-zinc-400">
-                    {consequences.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-              </AlertDialogDescription>
+            <AlertDialogHeader className="text-left">
+              <p className={MONO_LABEL_SM}>Irreversible · read once</p>
+              <AlertDialogTitle className="text-[17px] font-bold tracking-[-0.01em]">
+                Accept {quote.firm_name}&apos;s quote?
+              </AlertDialogTitle>
             </AlertDialogHeader>
+            <dl className="rounded-[10px] border border-zinc-200 dark:border-white/[0.16]">
+              {facts.map((fact, index) => (
+                <div
+                  key={fact.label}
+                  className={`flex items-baseline justify-between gap-4 px-4 py-2.5 text-sm ${index > 0 ? "border-t border-zinc-200 dark:border-white/[0.08]" : ""}`}
+                >
+                  <dt className="text-zinc-600 dark:text-[#A2AFB2]">{fact.label}</dt>
+                  <dd
+                    className={`font-mono text-[13px] text-zinc-900 dark:text-zinc-100 ${fact.strong ? "font-bold" : ""}`}
+                  >
+                    {fact.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <AlertDialogDescription asChild>
+              <ul className="space-y-1.5 text-sm text-zinc-600 dark:text-[#A2AFB2]">
+                {consequences.map((line) => (
+                  <li key={line} className="flex gap-2.5">
+                    <span
+                      aria-hidden
+                      className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full bg-zinc-900 dark:bg-zinc-100"
+                    />
+                    <span className="leading-relaxed">{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </AlertDialogDescription>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
               <Button

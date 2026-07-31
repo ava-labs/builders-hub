@@ -72,30 +72,43 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
               {step === 3 && <StepReview />}
             </div>
 
-            <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5 dark:border-white/10">
+            {/* Spacer so the mobile fixed action bar never covers the last field. */}
+            <div aria-hidden className="h-16 md:hidden" />
+            {/* Primary action at thumb reach on mobile (board 1k); in-card footer from md up. */}
+            <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-zinc-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-white/10 dark:bg-[#1F1F1F]/95 md:static md:mt-7 md:flex-wrap md:bg-transparent md:px-0 md:pb-0 md:pt-5 md:backdrop-blur-none dark:md:bg-transparent">
               {step > 0 ? (
                 <Button type="button" variant="ghost" onClick={goBack}>
                   Back
                 </Button>
               ) : null}
-              {step < WIZARD_STEPS.length - 1 ? (
-                <p className={cn(MONO_LABEL_SM, "hidden md:block")}>Nothing is sent until step 4</p>
-              ) : null}
-              <span className="flex-1" />
+              <p
+                className={cn(
+                  MONO_LABEL_SM,
+                  "min-w-0 flex-1 leading-tight max-md:text-[9.5px] md:flex-none",
+                )}
+              >
+                {step < WIZARD_STEPS.length - 1
+                  ? "Nothing is sent until step 4"
+                  : "Free · no fees · subsidy reviewed after quotes arrive"}
+              </p>
+              <span className="hidden flex-1 md:block" />
               {step < WIZARD_STEPS.length - 1 ? (
                 <Button
                   type="button"
-                  className="h-11 flex-1 sm:flex-none md:h-10"
+                  className="h-11 shrink-0 md:h-10"
                   onClick={() => void goNext()}
                 >
-                  {CONTINUE_LABELS[step]}
+                  Continue
+                  <span className="hidden sm:inline">
+                    {CONTINUE_LABELS[step].slice("Continue".length)}
+                  </span>
                 </Button>
               ) : (
-                <div className="flex flex-1 items-center justify-end gap-3 sm:flex-none">
+                <div className="flex shrink-0 items-center justify-end gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="h-11 md:h-10"
+                    className="h-11 max-[400px]:hidden md:h-10"
                     onClick={() => void saveDraftNow()}
                   >
                     Save draft
@@ -104,7 +117,7 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
                     type="button"
                     disabled={submitting}
                     onClick={() => void submit()}
-                    className="audits-sweep h-11 flex-1 bg-brand text-white sm:flex-none md:h-10"
+                    className="audits-sweep h-11 bg-brand text-white md:h-10"
                   >
                     {submitting ? (
                       <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" />

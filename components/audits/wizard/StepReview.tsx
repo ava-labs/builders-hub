@@ -1,7 +1,8 @@
 "use client";
 
+import { Check } from "lucide-react";
 import { useFormContext } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   FormControl,
   FormDescription,
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
+import { MONO_LABEL } from "@/components/audits/shared/classes";
+import { CHECK_POP } from "@/components/audits/shared/motion";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import { FanoutNoticeCard } from "@/components/audits/shared/FanoutNoticeCard";
 import { useAuditWizard } from "@/components/audits/wizard/AuditWizardContext";
@@ -55,40 +58,42 @@ export function StepReview() {
 
   return (
     <div className="space-y-6">
-      <FormField
-        control={form.control}
-        name="contact_name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Contact name <span className="text-brand">*</span>
-            </FormLabel>
-            <FormControl>
-              <Input {...field} autoComplete="name" className="h-11 md:h-10" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {/* Contacts pair like every other step's field pairs (board 1c). */}
+      <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
+        <FormField
+          control={form.control}
+          name="contact_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Contact name <span className="text-brand">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input {...field} autoComplete="name" className="h-11 md:h-10" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="contact_email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Contact email <span className="text-brand">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input {...field} inputMode="email" autoComplete="email" className="h-11 md:h-10" />
+              </FormControl>
+              <FormDescription>Pre-filled from your Builder Hub account.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
-      <FormField
-        control={form.control}
-        name="contact_email"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Contact email <span className="text-brand">*</span>
-            </FormLabel>
-            <FormControl>
-              <Input {...field} inputMode="email" autoComplete="email" className="h-11 md:h-10" />
-            </FormControl>
-            <FormDescription>Pre-filled from your Builder Hub account.</FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 sm:gap-4">
         <FormField
           control={form.control}
           name="contact_handle"
@@ -123,24 +128,35 @@ export function StepReview() {
         />
       </div>
 
-      <div className="space-y-4 rounded-lg border border-zinc-200 p-4 dark:border-white/10">
-        {summaryLines(values).map((row) => (
-          <div key={row.label} className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                {row.label}
+      {/* Completed-step receipt rows: check circle + wash + underlined Edit (board 1c). */}
+      <div className="space-y-2">
+        {summaryLines(values).map((row, index) => (
+          <div
+            key={row.label}
+            className="flex items-start gap-3 rounded-[10px] border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]"
+          >
+            <span
+              className={cn(
+                CHECK_POP,
+                "mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white fill-mode-backwards dark:bg-zinc-100 dark:text-zinc-900",
+              )}
+              style={{ animationDelay: `${index * 60}ms` }}
+            >
+              <Check aria-hidden className="h-3 w-3" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className={MONO_LABEL}>{row.label}</p>
+              <p className="mt-1 line-clamp-2 text-sm text-zinc-700 dark:text-zinc-300">
+                {row.line}
               </p>
-              <p className="mt-1 truncate text-sm">{row.line}</p>
             </div>
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="shrink-0"
               onClick={() => setStep(row.step)}
+              className="shrink-0 cursor-pointer text-sm text-zinc-600 underline underline-offset-2 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             >
               Edit
-            </Button>
+            </button>
           </div>
         ))}
       </div>

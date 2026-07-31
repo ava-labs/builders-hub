@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LayoutGrid, Rows3, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type QuoteView = "rows" | "table" | "cards";
-const VIEWS: { value: QuoteView; label: string }[] = [
-  { value: "rows", label: "Rows" },
-  { value: "table", label: "Table" },
-  { value: "cards", label: "Cards" },
+const VIEWS: { value: QuoteView; label: string; icon: typeof Rows3 }[] = [
+  { value: "rows", label: "Rows", icon: Rows3 },
+  { value: "table", label: "Table", icon: Table2 },
+  { value: "cards", label: "Cards", icon: LayoutGrid },
 ];
 
 /**
@@ -45,18 +46,19 @@ export function useQuoteViewPreference(userId: string): {
 interface ViewSwitcherProps {
   value: QuoteView;
   onChange: (view: QuoteView) => void;
-  disabled?: boolean;
   className?: string;
 }
 
-export function ViewSwitcher({ value, onChange, disabled, className }: ViewSwitcherProps) {
+/** Segmented control with icons; HIDDEN below 900px where cards are forced
+    (board 2a: "below 900px the switcher hides"), replacing the old
+    disabled-at-opacity-50 treatment. */
+export function ViewSwitcher({ value, onChange, className }: ViewSwitcherProps) {
   return (
     <div
       role="group"
       aria-label="Quote view"
       className={cn(
-        "inline-flex items-center rounded-lg border border-zinc-300 p-0.5 dark:border-white/15",
-        disabled && "pointer-events-none opacity-50",
+        "hidden items-center rounded-lg border border-zinc-300 p-0.5 min-[900px]:inline-flex dark:border-white/15",
         className,
       )}
     >
@@ -67,12 +69,13 @@ export function ViewSwitcher({ value, onChange, disabled, className }: ViewSwitc
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "h-8 cursor-pointer rounded-md px-3 text-xs font-medium transition-colors",
+            "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors",
             value === option.value
               ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
               : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100",
           )}
         >
+          <option.icon aria-hidden className="h-3.5 w-3.5" />
           {option.label}
         </button>
       ))}

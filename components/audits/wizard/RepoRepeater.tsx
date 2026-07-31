@@ -19,19 +19,21 @@ export function RepoRepeater() {
           quote.
         </p>
       </div>
+      {/* The URL takes the full width on phones (board 1k: field pairs stack);
+          ref + remove wrap onto their own line below sm. */}
       {fields.map((field, index) => (
-        <div key={field.id} className="flex items-start gap-2">
+        <div key={field.id} className="flex flex-wrap items-start gap-2">
           <Input
             {...register(`repos.${index}.url`)}
             placeholder="https://github.com/org/repo"
             inputMode="url"
-            className="h-11 flex-1 md:h-10"
+            className="h-11 w-full sm:w-auto sm:flex-1 md:h-10"
             aria-label={`Repository ${index + 1} URL`}
           />
           <Input
             {...register(`repos.${index}.ref`)}
             placeholder="branch or commit"
-            className="h-11 w-40 md:h-10"
+            className="h-11 min-w-0 flex-1 sm:w-40 sm:flex-none md:h-10"
             aria-label={`Repository ${index + 1} branch or commit`}
           />
           <Button

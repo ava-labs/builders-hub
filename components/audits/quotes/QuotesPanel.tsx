@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { ViewSwitcher, useQuoteViewPreference } from "@/components/audits/shared/ViewSwitcher";
+import { formatUsd } from "@/components/audits/shared/format";
 import { QuoteRows } from "@/components/audits/quotes/QuoteRows";
 import { QuoteTable } from "@/components/audits/quotes/QuoteTable";
 import { QuoteCards } from "@/components/audits/quotes/QuoteCards";
@@ -28,9 +29,17 @@ export function chipsFor(quote: OwnerQuote, quotes: OwnerQuote[]): QuoteChip[] {
   return chips;
 }
 
+const median = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+};
+
 interface QuotesPanelProps {
   quotes: OwnerQuote[];
   userId: string;
+  /** Request-level date; the table flags starts outside it (board 1h). */
+  neededBy?: string | Date | null;
   /** The reveal line under the list (collecting/deciding states). */
   showAcceptNote?: boolean;
   /** When set, quotes carry the quiet accept affordance (dialog holds the red). */
@@ -40,23 +49,35 @@ interface QuotesPanelProps {
 export function QuotesPanel({
   quotes,
   userId,
+  neededBy = null,
   showAcceptNote = false,
   acceptRequestId = null,
 }: QuotesPanelProps) {
-  const { view, setView, forcedCards } = useQuoteViewPreference(userId);
+  const { view, setView } = useQuoteViewPreference(userId);
   const [accepting, setAccepting] = useState<OwnerQuote | null>(null);
 
   if (quotes.length === 0) return null;
 
   const onAccept = acceptRequestId ? (quote: OwnerQuote) => setAccepting(quote) : undefined;
+  const prices = quotes.map((quote) => quote.price_usd);
+  const summary =
+    quotes.length > 1
+      ? `${quotes.length} quotes · ${formatUsd(Math.min(...prices))}–${formatUsd(Math.max(...prices))} · median ${formatUsd(median(prices))}`
+      : `1 quote · ${formatUsd(prices[0])}`;
 
   return (
     <section aria-label="Quotes">
-      <div className="mb-3 flex items-center justify-end">
-        <ViewSwitcher value={view} onChange={setView} disabled={forcedCards} />
+      {/* Title row (board 2a): summary + switcher live WITH the content they control. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2 className="text-[17px] font-bold tracking-tight">Quotes</h2>
+        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
+          {summary}
+        </p>
+        <span className="flex-1" />
+        <ViewSwitcher value={view} onChange={setView} />
       </div>
       {view === "rows" && <QuoteRows quotes={quotes} onAccept={onAccept} />}
-      {view === "table" && <QuoteTable quotes={quotes} onAccept={onAccept} />}
+      {view === "table" && <QuoteTable quotes={quotes} neededBy={neededBy} onAccept={onAccept} />}
       {view === "cards" && <QuoteCards quotes={quotes} onAccept={onAccept} />}
       {showAcceptNote ? (
         <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">

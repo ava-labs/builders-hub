@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CHIP_POP } from "@/components/audits/shared/motion";
@@ -12,12 +13,17 @@ export interface ChipOption {
 export const asChips = (options: readonly string[]): ChipOption[] =>
   options.map((option) => ({ value: option, label: option }));
 
+/** Collapsed chip walls show at most this many chips (board 1k "More…"). */
+const COLLAPSED_VISIBLE = 6;
+
 interface ChipGroupProps {
   options: readonly ChipOption[];
   /** Selected values (single-select passes at most one). */
   value: readonly string[];
   onChange: (next: string[]) => void;
   multiple?: boolean;
+  /** Long option walls collapse behind a "More…" chip; selections always stay visible. */
+  collapsible?: boolean;
   "aria-label"?: string;
 }
 
@@ -31,8 +37,10 @@ export function ChipGroup({
   value,
   onChange,
   multiple = false,
+  collapsible = false,
   "aria-label": ariaLabel,
 }: ChipGroupProps) {
+  const [expanded, setExpanded] = useState(false);
   const toggle = (option: string) => {
     const selected = value.includes(option);
     if (multiple) {
@@ -42,9 +50,23 @@ export function ChipGroup({
     onChange(selected ? [] : [option]);
   };
 
+  const collapsed = collapsible && !expanded && options.length > COLLAPSED_VISIBLE + 1;
+  let quota = Math.max(0, COLLAPSED_VISIBLE - value.length);
+  const visible = collapsed
+    ? options.filter((option) => {
+        if (value.includes(option.value)) return true;
+        if (quota > 0) {
+          quota -= 1;
+          return true;
+        }
+        return false;
+      })
+    : options;
+  const hiddenCount = options.length - visible.length;
+
   return (
     <div role="group" aria-label={ariaLabel} className="flex flex-wrap gap-2">
-      {options.map((option) => {
+      {visible.map((option) => {
         const selected = value.includes(option.value);
         return (
           <button
@@ -66,6 +88,24 @@ export function ChipGroup({
           </button>
         );
       })}
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="inline-flex h-11 cursor-pointer items-center rounded-full border border-dashed border-zinc-300 px-4 text-sm text-zinc-500 transition-colors hover:border-zinc-500 hover:text-zinc-700 dark:border-white/15 dark:text-zinc-400 dark:hover:border-white/40 dark:hover:text-zinc-200 md:h-9 md:px-3.5"
+        >
+          {hiddenCount} more…
+        </button>
+      ) : null}
+      {collapsible && expanded ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="inline-flex h-11 cursor-pointer items-center rounded-full border border-dashed border-zinc-300 px-4 text-sm text-zinc-500 transition-colors hover:border-zinc-500 hover:text-zinc-700 dark:border-white/15 dark:text-zinc-400 dark:hover:border-white/40 dark:hover:text-zinc-200 md:h-9 md:px-3.5"
+        >
+          Show less
+        </button>
+      ) : null}
     </div>
   );
 }

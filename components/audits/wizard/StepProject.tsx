@@ -187,6 +187,7 @@ export function StepProject({ importProjectId }: StepProjectProps) {
             </FormLabel>
             <ChipGroup
               multiple
+              collapsible
               options={asChips(AUDIT_PROJECT_TYPES)}
               value={field.value}
               onChange={field.onChange}
