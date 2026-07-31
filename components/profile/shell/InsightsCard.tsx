@@ -2,6 +2,18 @@
 
 import * as React from "react";
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
   GitHubIcon,
   GlobeIcon,
   LinkedInIcon,
@@ -316,22 +328,27 @@ function ChartSection({ data }: { data: BuilderInsightsData }) {
       />
       <div className="pr-chart">
         <BigChart series={activeSeries} normalized={tab === "all"} />
-        {tab === "all" && (
-          <div className="pr-chart__legend">
-            {activeSeries.map((s) => (
-              <span key={s.label} className="pr-chart__legend-item">
-                <span
-                  className="pr-chart__legend-swatch"
-                  style={{ background: s.accent }}
-                />
-                {s.label}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );
+}
+
+const AXIS_TICK = {
+  fontSize: 11,
+  fill: "var(--pr-g-650)",
+  fontFamily: "ui-monospace, monospace",
+} as const;
+
+const TOOLTIP_STYLE: React.CSSProperties = {
+  background: "var(--pr-g-100)",
+  border: "1px solid var(--pr-g-400)",
+  borderRadius: 10,
+  fontSize: 12,
+  fontFamily: "ui-monospace, monospace",
+};
+
+function formatTick(v: number): string {
+  return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(Math.round(v));
 }
 
 function BigChart({
@@ -341,154 +358,137 @@ function BigChart({
   series: Series[];
   normalized: boolean;
 }) {
-  const W = 880;
-  const H = 260;
-  const PAD_L = normalized ? 14 : 52;
-  const PAD_R = 14;
-  const PAD_T = 20;
-  const PAD_B = 32;
-  const innerW = W - PAD_L - PAD_R;
-  const innerH = H - PAD_T - PAD_B;
-
-  // X-axis is the union of months across the active series, sorted. This way
-  // each point lands at its real calendar position — series that started
-  // later (e.g. console) won't be stretched to fill the whole axis.
-  const monthSet = new Set<string>();
-  for (const s of series) for (const p of s.data) monthSet.add(p.month);
-  const months = Array.from(monthSet).sort();
-
-  if (months.length === 0) {
-    return (
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-        <text
-          x={W / 2}
-          y={H / 2}
-          textAnchor="middle"
-          fontSize={12}
-          fill="var(--pr-g-650)"
-          fontFamily="ui-monospace, monospace"
-        >
-          No data yet
-        </text>
-      </svg>
+  // Merge all series onto a shared month axis so each point lands at its
+  // real calendar position — series that started later (e.g. console)
+  // won't be stretched to fill the whole axis.
+  const rows = React.useMemo(() => {
+    const byMonth = new Map<string, Record<string, string | number>>();
+    for (const s of series) {
+      const max = Math.max(...s.data.map((p) => p.value), 1);
+      for (const p of s.data) {
+        const row = byMonth.get(p.month) ?? { month: p.month };
+        // Normalized mode plots each series as % of its own peak (single
+        // shared 0–100 axis); tooltips always show the raw value.
+        row[s.label] = normalized ? (p.value / max) * 100 : p.value;
+        row[`${s.label}__raw`] = p.value;
+        byMonth.set(p.month, row);
+      }
+    }
+    return Array.from(byMonth.values()).sort((a, b) =>
+      String(a.month).localeCompare(String(b.month)),
     );
+  }, [series, normalized]);
+
+  if (rows.length === 0) {
+    return <div className="pr-leaderboard__empty">No data yet</div>;
   }
 
-  const step = innerW / Math.max(months.length - 1, 1);
-  const xForMonth = (month: string) => {
-    const idx = months.indexOf(month);
-    return PAD_L + idx * step;
+  const tooltipFormatter = (
+    value: number | string,
+    name: string | number,
+    item: { payload?: Record<string, string | number> },
+  ) => {
+    const raw = item.payload?.[`${name}__raw`];
+    return [formatNumber(Number(raw ?? value)), String(name)] as [string, string];
   };
 
-  const seriesScales = series.map((s) => {
-    const vals = s.data.map((r) => r.value);
-    const max = Math.max(...vals, 1);
-    const min = normalized ? 0 : Math.min(...vals, 0);
-    return { vals, max, min, span: Math.max(max - min, 1) };
-  });
-
-  const yFor = (sIdx: number, v: number) => {
-    const { min, span } = seriesScales[sIdx];
-    return PAD_T + innerH - ((v - min) / span) * innerH;
+  const common = {
+    data: rows,
+    margin: { top: 8, right: 8, bottom: 0, left: 0 },
   };
-
-  const ticks =
-    !normalized && seriesScales[0]
-      ? [0, 0.25, 0.5, 0.75, 1].map(
-          (t) => seriesScales[0].min + t * seriesScales[0].span,
-        )
-      : [];
+  // NOTE: grid/axes/tooltip/legend must be DIRECT children of the chart —
+  // recharts does not find components nested inside a fragment variable.
+  const gridProps = {
+    stroke: "var(--pr-g-300)",
+    strokeDasharray: "2 4",
+    vertical: false,
+  };
+  const xAxisProps = {
+    dataKey: "month",
+    tick: AXIS_TICK,
+    tickFormatter: (m: string) => m.slice(5),
+    axisLine: false,
+    tickLine: false,
+  };
+  // Normalized ("All") mode plots shapes only, like the previous chart: each
+  // series scaled to its own peak, no y-axis — tooltips carry the raw values.
+  const yAxisProps = {
+    tick: AXIS_TICK,
+    tickFormatter: formatTick,
+    axisLine: false,
+    tickLine: false,
+    width: 44,
+    hide: normalized,
+    domain: normalized ? ([0, 100] as [number, number]) : undefined,
+  };
+  const tooltipProps = {
+    contentStyle: TOOLTIP_STYLE,
+    labelStyle: { color: "var(--pr-g-1000)" },
+    cursor: { stroke: "var(--pr-g-400)" },
+    formatter: tooltipFormatter,
+  };
+  const legendProps = {
+    iconType: "plainline" as const,
+    wrapperStyle: { fontSize: 12, fontFamily: "ui-monospace, monospace" },
+  };
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
-      <defs>
-        {series.map((s) => {
-          const id = `pr-chart-grad-${s.accent.replace(/\W/g, "")}`;
-          return (
-            <linearGradient key={id} id={id} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={s.accent} stopOpacity={0.28} />
-              <stop offset="100%" stopColor={s.accent} stopOpacity={0} />
-            </linearGradient>
-          );
-        })}
-      </defs>
-
-      {ticks.map((t, i) => (
-        <g key={`tick-${i}`}>
-          <line
-            x1={PAD_L}
-            x2={W - PAD_R}
-            y1={yFor(0, t)}
-            y2={yFor(0, t)}
-            stroke="var(--pr-g-300)"
-            strokeDasharray="2 4"
-          />
-          <text
-            x={PAD_L - 10}
-            y={yFor(0, t) + 4}
-            textAnchor="end"
-            fontSize={11}
-            fill="var(--pr-g-650)"
-            fontFamily="ui-monospace, monospace"
-          >
-            {t >= 1000 ? `${(t / 1000).toFixed(1)}k` : Math.round(t)}
-          </text>
-        </g>
-      ))}
-
-      {series.map((s, sIdx) => {
-        if (s.data.length === 0) return null;
-        const pts = s.data.map(
-          (r) => `${xForMonth(r.month)},${yFor(sIdx, r.value)}`,
-        );
-        const line = `M${pts.join(" L")}`;
-        const firstX = xForMonth(s.data[0].month);
-        const lastX = xForMonth(s.data[s.data.length - 1].month);
-        const area = `M${pts[0]} L${pts.join(" ")} L${lastX},${PAD_T + innerH} L${firstX},${PAD_T + innerH} Z`;
-        const gradId = `pr-chart-grad-${s.accent.replace(/\W/g, "")}`;
-        return (
-          <g key={`${s.label}-${sIdx}`}>
-            {!normalized && <path d={area} fill={`url(#${gradId})`} />}
-            <path
-              d={line}
-              fill="none"
+    <ResponsiveContainer width="100%" height={260}>
+      {normalized ? (
+        <LineChart {...common}>
+          <CartesianGrid {...gridProps} />
+          <XAxis {...xAxisProps} />
+          <YAxis {...yAxisProps} />
+          <Tooltip {...tooltipProps} />
+          <Legend {...legendProps} />
+          {series.map((s) => (
+            <Line
+              key={s.label}
+              dataKey={s.label}
               stroke={s.accent}
               strokeWidth={2.25}
-              strokeLinejoin="round"
-              strokeLinecap="round"
+              dot={false}
+              connectNulls
             />
-            {!normalized &&
-              s.data.map((r) => {
-                const px = xForMonth(r.month);
-                const py = yFor(sIdx, r.value);
-                return (
-                  <circle
-                    key={`${s.label}-pt-${r.month}`}
-                    cx={px}
-                    cy={py}
-                    r={3}
-                    fill={s.accent}
-                  />
-                );
-              })}
-          </g>
-        );
-      })}
-
-      {months.map((month) => (
-        <text
-          key={month}
-          x={xForMonth(month)}
-          y={H - 10}
-          textAnchor="middle"
-          fontSize={11}
-          fill="var(--pr-g-650)"
-          fontFamily="ui-monospace, monospace"
-        >
-          {month.slice(5)}
-        </text>
-      ))}
-    </svg>
+          ))}
+        </LineChart>
+      ) : (
+        <AreaChart {...common}>
+          <defs>
+            {series.map((s) => (
+              <linearGradient
+                key={s.label}
+                id={`pr-chart-grad-${s.accent.replace(/\W/g, "")}`}
+                x1="0"
+                x2="0"
+                y1="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor={s.accent} stopOpacity={0.28} />
+                <stop offset="100%" stopColor={s.accent} stopOpacity={0} />
+              </linearGradient>
+            ))}
+          </defs>
+          <CartesianGrid {...gridProps} />
+          <XAxis {...xAxisProps} />
+          <YAxis {...yAxisProps} />
+          <Tooltip {...tooltipProps} />
+          <Legend {...legendProps} />
+          {series.map((s) => (
+            <Area
+              key={s.label}
+              dataKey={s.label}
+              stroke={s.accent}
+              strokeWidth={2.25}
+              fill={`url(#pr-chart-grad-${s.accent.replace(/\W/g, "")})`}
+              dot={{ r: 3, fill: s.accent, strokeWidth: 0 }}
+              activeDot={{ r: 4 }}
+              connectNulls
+            />
+          ))}
+        </AreaChart>
+      )}
+    </ResponsiveContainer>
   );
 }
 
@@ -664,8 +664,51 @@ function ProfileCompletionSection({ data }: { data: BuilderInsightsData }) {
 // Referral leaderboard — People / Teams toggle.
 // ───────────────────────────────────────────────────────────────────────────
 
+function formatMonthLabel(month: string): string {
+  return new Date(`${month}-01T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
   const [tab, setTab] = React.useState<LeaderboardKey>("people");
+  const [month, setMonth] = React.useState<string>("all");
+
+  const months = React.useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...data.topReferrersMonthly.map((r) => r.month),
+          ...data.topTeamReferrersMonthly.map((r) => r.month),
+        ]),
+      )
+        .sort()
+        .reverse(),
+    [data.topReferrersMonthly, data.topTeamReferrersMonthly],
+  );
+
+  const peopleRows = React.useMemo(() => {
+    if (month === "all") return data.topReferrers;
+    const meta = new Map(data.topReferrers.map((r) => [r.referrerId, r]));
+    // ponytail: monthly rows join against the all-time top-100 for name/team
+    // metadata; referrers outside that set are dropped. Widen the top-100
+    // limit in builderInsights.ts if that ever matters.
+    return data.topReferrersMonthly
+      .filter((r) => r.month === month && meta.has(r.referrerId))
+      .map((r) => ({ ...meta.get(r.referrerId)!, ...r }))
+      .sort((a, b) => b.totalReferrals - a.totalReferrals);
+  }, [month, data.topReferrers, data.topReferrersMonthly]);
+
+  const teamRows = React.useMemo(() => {
+    if (month === "all") return data.topTeamReferrers;
+    const meta = new Map(data.topTeamReferrers.map((r) => [r.teamId, r]));
+    return data.topTeamReferrersMonthly
+      .filter((r) => r.month === month && meta.has(r.teamId))
+      .map((r) => ({ ...meta.get(r.teamId)!, ...r }))
+      .sort((a, b) => b.totalReferrals - a.totalReferrals);
+  }, [month, data.topTeamReferrers, data.topTeamReferrersMonthly]);
 
   return (
     <section className="pr-insights__section">
@@ -676,18 +719,35 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
         <h4 className="pr-insights__title">Referral leaderboard</h4>
         <span className="pr-insights__subtitle">
           {tab === "people"
-            ? `${data.topReferrers.length} top contributors`
-            : `${data.topTeamReferrers.length} teams`}
+            ? `${peopleRows.length} top contributors${month === "all" ? "" : ` · ${formatMonthLabel(month)}`}`
+            : `${teamRows.length} teams${month === "all" ? "" : ` · ${formatMonthLabel(month)}`}`}
         </span>
       </header>
-      <Segmented<LeaderboardKey>
-        value={tab}
-        onChange={setTab}
-        options={[
-          { value: "people", label: "People" },
-          { value: "teams", label: "Teams" },
-        ]}
-      />
+      <div className="pr-leaderboard__controls">
+        <Segmented<LeaderboardKey>
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "people", label: "People" },
+            { value: "teams", label: "Teams" },
+          ]}
+        />
+        {months.length > 0 && (
+          <select
+            className="pr-month-select"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            aria-label="Filter referrals by month"
+          >
+            <option value="all">All time</option>
+            {months.map((m) => (
+              <option key={m} value={m}>
+                {formatMonthLabel(m)}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {tab === "people" ? (
         <div className="pr-leaderboard">
@@ -705,14 +765,16 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
               </tr>
             </thead>
             <tbody>
-              {data.topReferrers.length === 0 ? (
+              {peopleRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="pr-leaderboard__empty">
-                    No referral conversions recorded yet.
+                    {month === "all"
+                      ? "No referral conversions recorded yet."
+                      : `No referral conversions in ${formatMonthLabel(month)}.`}
                   </td>
                 </tr>
               ) : (
-                data.topReferrers.slice(0, 20).map((r, i) => (
+                peopleRows.slice(0, 20).map((r, i) => (
                   <tr key={r.referrerId}>
                     <td className="pr-rank">{i + 1}</td>
                     <td>
@@ -767,14 +829,16 @@ function LeaderboardSection({ data }: { data: BuilderInsightsData }) {
               </tr>
             </thead>
             <tbody>
-              {data.topTeamReferrers.length === 0 ? (
+              {teamRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="pr-leaderboard__empty">
-                    No team referral conversions recorded yet.
+                    {month === "all"
+                      ? "No team referral conversions recorded yet."
+                      : `No team referral conversions in ${formatMonthLabel(month)}.`}
                   </td>
                 </tr>
               ) : (
-                data.topTeamReferrers.map((r, i) => (
+                teamRows.map((r, i) => (
                   <tr key={r.teamId}>
                     <td className="pr-rank">{i + 1}</td>
                     <td>
