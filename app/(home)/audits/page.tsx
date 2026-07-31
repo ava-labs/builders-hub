@@ -57,5 +57,5 @@ async function SignedIn({
 }) {
   const requests = await getOwnerRequests(userId);
   if (requests.length === 0) return <FirstRun isAdmin={isAdmin} isAuditor={isAuditor} />;
-  return <MyRequestsList requests={requests} isAdmin={isAdmin} isAuditor={isAuditor} />;
+  return <MyRequestsList requests={requests} />;
 }

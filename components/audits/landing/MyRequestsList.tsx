@@ -37,15 +37,7 @@ const FILTER_LABELS: Record<Exclude<Filter, "all">, string> = {
   drafts: "Drafts",
 };
 
-export function MyRequestsList({
-  requests,
-  isAdmin = false,
-  isAuditor = false,
-}: {
-  requests: OwnerRequestSummary[];
-  isAdmin?: boolean;
-  isAuditor?: boolean;
-}) {
+export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [deletingDraft, setDeletingDraft] = useState<OwnerRequestSummary | null>(null);
@@ -100,31 +92,13 @@ export function MyRequestsList({
             Quotes from the Ava Labs whitelist, free and private to you.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {isAuditor ? (
-            <Link
-              href="/audits/portal"
-              className="inline-flex h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40 md:h-10"
-            >
-              Auditor portal
-            </Link>
-          ) : null}
-          {isAdmin ? (
-            <Link
-              href="/audits/admin"
-              className="inline-flex h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40 md:h-10"
-            >
-              Admin dashboard
-            </Link>
-          ) : null}
-          <Link
-            href="/audits/new"
-            className="audits-sweep inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
-          >
-            <Plus aria-hidden className="h-4 w-4" />
-            New request
-          </Link>
-        </div>
+        <Link
+          href="/audits/new"
+          className="audits-sweep inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
+        >
+          <Plus aria-hidden className="h-4 w-4" />
+          New request
+        </Link>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter requests">

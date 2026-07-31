@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 
 const HOW_IT_WORKS = [
   {
@@ -65,23 +66,31 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         {meta.join(" · ")}
       </p>
 
-      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-xl border border-zinc-200 py-3 pl-4 pr-3 dark:border-white/10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+      <Link
+        href="/audits/portal"
+        className="group relative mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-y border-zinc-200 py-3.5 pl-4 pr-2 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:hover:bg-zinc-900/60"
+      >
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-px bg-transparent transition-colors duration-300 group-hover:bg-brand"
+        />
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
           For audit firms
-        </p>
-        <p className="text-sm text-zinc-600 dark:text-[#A2AFB2]">
+        </span>
+        <span className="text-sm text-zinc-600 dark:text-[#A2AFB2]">
           On the whitelist? Requests arrive by email; quotes go in through the portal.
-        </p>
+        </span>
         <span className="flex-1" />
-        <Link
-          href="/audits/portal"
-          className="inline-flex h-9 items-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40"
-        >
-          Open the auditor portal →
-        </Link>
-      </div>
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm text-zinc-500 transition-colors group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
+          Sign in
+          <ArrowRight
+            aria-hidden
+            className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-1"
+          />
+        </span>
+      </Link>
 
-      <div className="mt-10 border-t border-zinc-200 pt-8 dark:border-white/10">
+      <div className="mt-12">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
           How it works
         </h2>
