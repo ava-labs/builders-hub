@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { BlocksArt } from "@/components/audits/shared/BlocksArt";
 
 const HOW_IT_WORKS = [
@@ -30,8 +31,18 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-      <BlocksArt rows={2} className="mb-6" />
+    <div className="relative mx-auto max-w-4xl px-4 py-12 sm:py-16">
+      {/* The masthead moment (round-3 N-3): one large corner staircase in the
+          hero's empty right, the sign-in stack's sibling; the old two-row
+          strip read as an afterthought. Desktop only · accents, never
+          wallpaper. */}
+      <BlocksArt
+        cols={4}
+        rows={4}
+        size="lg"
+        variant="corner"
+        className="absolute right-4 top-12 hidden sm:top-16 lg:inline-flex"
+      />
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         Ava Labs audit program · free for builders
       </p>
@@ -85,9 +96,19 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
           How it works
         </h2>
-        <div className="mt-6 grid gap-8 sm:grid-cols-3">
-          {HOW_IT_WORKS.map((item) => (
-            <div key={item.step}>
+        {/* Hairline compartments between the steps (round-3 X3-A): the
+            guideline's 1px vertical gutters, the same language as the site
+            footer below. Stacked at mobile the hairlines turn horizontal. */}
+        <div className="mt-6 sm:grid sm:grid-cols-3">
+          {HOW_IT_WORKS.map((item, index) => (
+            <div
+              key={item.step}
+              className={cn(
+                "border-zinc-200 py-4 first:pt-0 last:pb-0 dark:border-white/10 sm:py-0",
+                index > 0 && "border-t sm:border-l sm:border-t-0 sm:pl-8",
+                index < HOW_IT_WORKS.length - 1 && "sm:pr-8",
+              )}
+            >
               <p className="font-mono text-sm text-brand dark:text-brand-soft">{item.step}</p>
               <p className="mt-2 font-semibold text-zinc-900 dark:text-zinc-100">{item.title}</p>
               <p className="mt-1.5 text-sm text-zinc-600 dark:text-[#A2AFB2]">{item.body}</p>
