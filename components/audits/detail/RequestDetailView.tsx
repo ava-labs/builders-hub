@@ -16,13 +16,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
-import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { DEPLOYMENT_TARGET_LABELS } from "@/lib/audits/constants";
+import type { DeploymentTarget } from "@/lib/audits/status";
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
+import { MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
-import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
-import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
+import { CollectingBanner } from "@/components/audits/detail/CollectingBanner";
+import { EngagedPanel } from "@/components/audits/detail/EngagedPanel";
+import { RequestSummary } from "@/components/audits/detail/RequestSummary";
 import { QuotesPanel } from "@/components/audits/quotes/QuotesPanel";
 
 function metaStrip(detail: OwnerRequestDetail): string {
@@ -89,100 +91,6 @@ function WithdrawButton({ requestId }: { requestId: string }) {
   );
 }
 
-function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-        {label}
-      </p>
-      <div className="mt-1 text-sm text-zinc-700 dark:text-zinc-300">{children}</div>
-    </div>
-  );
-}
-
-/** What was sent to the firms, so the request page answers its own questions. */
-function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
-  const repos = parseRepos(detail.repos);
-  const attachments = parseAttachments(detail.attachments);
-  const timeline = [
-    ...(detail.needed_by ? [`needed by ${formatIsoDate(detail.needed_by)}`] : []),
-    ...(detail.quote_deadline ? [`quotes close ${formatIsoDate(detail.quote_deadline)}`] : []),
-    ...(detail.urgency ? [URGENCY_LABELS[detail.urgency as UrgencyOption] ?? ""] : []),
-  ].filter(Boolean);
-
-  return (
-    <div className="space-y-4 rounded-xl border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#1F1F1F]">
-      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-        Your request · what every firm received
-      </p>
-      {detail.description ? <SummaryRow label="Project">{detail.description}</SummaryRow> : null}
-      {detail.scope ? (
-        <SummaryRow label="Scope">
-          <span className="whitespace-pre-line">{detail.scope}</span>
-        </SummaryRow>
-      ) : null}
-      {detail.services.length > 0 ? (
-        <SummaryRow label="Services">{detail.services.join(" · ")}</SummaryRow>
-      ) : null}
-      {repos.length > 0 ? (
-        <SummaryRow label="Repositories">
-          <ul className="space-y-1">
-            {repos.map((repo) => (
-              <li key={repo.url} className="font-mono text-xs">
-                <a
-                  href={repo.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2"
-                >
-                  {repo.url}
-                </a>
-                {repo.ref ? <span className="text-zinc-500"> @ {repo.ref}</span> : null}
-              </li>
-            ))}
-          </ul>
-        </SummaryRow>
-      ) : null}
-      {detail.doc_links.length > 0 || attachments.length > 0 ? (
-        <SummaryRow label="Docs">
-          <ul className="space-y-1">
-            {detail.doc_links.map((link) => (
-              <li key={link} className="font-mono text-xs">
-                <a
-                  href={link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2"
-                >
-                  {link}
-                </a>
-              </li>
-            ))}
-            {attachments.map((attachment) => (
-              <li key={attachment.url} className="font-mono text-xs">
-                <a
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2"
-                >
-                  {attachment.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </SummaryRow>
-      ) : null}
-      {timeline.length > 0 ? <SummaryRow label="Timeline">{timeline.join(" · ")}</SummaryRow> : null}
-      <SummaryRow label="Contact">
-        {[detail.contact_name, detail.contact_email, detail.contact_handle]
-          .filter(Boolean)
-          .join(" · ")}
-      </SummaryRow>
-    </div>
-  );
-}
-
 function StateCard({
   title,
   body,
@@ -240,18 +148,22 @@ export function RequestDetailView({
   const prices = detail.quotes.map((quote) => quote.price_usd);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+    <div className="mx-auto max-w-[1040px] px-4 py-10">
+      <p className={MONO_LABEL}>
         <Link href="/audits" className="hover:text-zinc-800 dark:hover:text-zinc-200">
           Audit requests
         </Link>{" "}
         / {detail.project_name || "Untitled request"}
       </p>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-2 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">
           {detail.project_name || "Untitled request"}
         </h1>
         <StatusBadge status={status} />
+        <span className="flex-1" />
+        {status === "engaged" && detail.closed_at ? (
+          <p className={MONO_LABEL}>Accepted {formatIsoDate(detail.closed_at)}</p>
+        ) : null}
       </div>
       {metaStrip(detail) ? (
         <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
@@ -262,38 +174,7 @@ export function RequestDetailView({
       <div className="mt-8 space-y-6">
         {status === "collecting" ? (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#1F1F1F]">
-              <p className="text-sm">
-                {detail.quote_deadline ? (
-                  <>
-                    <CountdownChip deadline={detail.quote_deadline} prefix="Window closes" />
-                    <span className="text-zinc-500 dark:text-zinc-400">
-                      {" "}
-                      · {formatIsoDate(detail.quote_deadline)}{" "}
-                    </span>
-                  </>
-                ) : null}
-                <span className="text-zinc-400 dark:text-zinc-500">| </span>
-                {detail.fanout_count > 0 ? (
-                  <>
-                    <span className="font-medium">
-                      {detail.quote_count} of {detail.fanout_count}
-                    </span>{" "}
-                    <span className="text-zinc-500 dark:text-zinc-400">firms have quoted</span>
-                  </>
-                ) : (
-                  <span className="text-zinc-500 dark:text-zinc-400">
-                    sent to <span className="font-medium">0 firms</span> · the whitelist was empty
-                    at submission
-                  </span>
-                )}
-              </p>
-              <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                {detail.fanout_count > 0
-                  ? "Most quotes land in the final days"
-                  : "Reopen after expiry re-notifies every active firm"}
-              </p>
-            </div>
+            <CollectingBanner detail={detail} />
             {detail.quotes.length > 0 ? (
               <QuotesPanel
                 quotes={detail.quotes}
@@ -335,55 +216,22 @@ export function RequestDetailView({
         ) : null}
 
         {status === "engaged" ? (
-          <>
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-6">
-              <p className="font-semibold">
-                Engaged{acceptedQuote ? ` ${acceptedQuote.firm_name}` : ""}
-                {detail.closed_at ? ` on ${formatIsoDate(detail.closed_at)}` : ""}.
-              </p>
-              <p className="mt-1.5 text-sm text-zinc-600 dark:text-[#A2AFB2]">
-                Continues off-platform under standardized terms.
-              </p>
-              {acceptedQuote?.quote_email ? (
-                <p className="mt-3 text-sm">
-                  Contact:{" "}
-                  <a
-                    className="font-medium underline underline-offset-2"
-                    href={`mailto:${acceptedQuote.quote_email}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {acceptedQuote.quote_email}
-                  </a>
-                </p>
+          acceptedQuote ? (
+            <>
+              <EngagedPanel detail={detail} acceptedQuote={acceptedQuote} />
+              {detail.quotes.length > 1 ? (
+                <div id="quote-archive" className="scroll-mt-24 space-y-3">
+                  <p className={MONO_LABEL_SM}>Archived quotes · read-only</p>
+                  <QuotesPanel quotes={detail.quotes} userId={userId} />
+                </div>
               ) : null}
-            </div>
-            {detail.subsidy ? (
-              <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-white/10 dark:bg-[#1F1F1F]">
-                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                  Subsidy outcome
-                </p>
-                {detail.subsidy.state === "approved" ? (
-                  <p className="mt-2 text-sm">
-                    The program pays{" "}
-                    <span className="font-semibold">{detail.subsidy.pct}%</span> (
-                    {formatUsd(detail.subsidy.program_amount_usd)}) · you pay{" "}
-                    <span className="font-semibold">
-                      {formatUsd(detail.subsidy.project_amount_usd)}
-                    </span>
-                    .
-                  </p>
-                ) : (
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-[#A2AFB2]">
-                    A subsidy was not approved for this engagement.
-                  </p>
-                )}
-              </div>
-            ) : null}
-            {detail.quotes.length > 0 ? (
-              <QuotesPanel quotes={detail.quotes} userId={userId} />
-            ) : null}
-          </>
+            </>
+          ) : (
+            <StateCard
+              title="Engaged."
+              body="The engagement continues off-platform under standardized terms."
+            />
+          )
         ) : null}
 
         {status === "expired" ? (
