@@ -35,9 +35,11 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       {/* The masthead accent (round-3 N-3, resized on Federico's review): a
           quiet corner staircase pinned to the container edge, well clear of
           the headline. Desktop only · accents, never wallpaper. */}
+      {/* rows = cols completes the staircase: column heights step 1-2-3-4,
+          so the faintest column is the tallest (Federico, dark review). */}
       <BlocksArt
         cols={4}
-        rows={3}
+        rows={4}
         size="md"
         variant="corner"
         className="absolute right-0 top-10 hidden lg:inline-flex"
@@ -63,7 +65,9 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         </Link>
       </div>
 
-      <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+      {/* Indented to the same 16px rail as the FOR AUDIT FIRMS row and the
+          plate label below: the three mono-caps lines share one left edge. */}
+      <p className="mt-8 pl-4 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         {meta.join(" · ")}
       </p>
 
@@ -95,7 +99,7 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
           one framed compartment card, mono label on top, 1px hairline gutters
           between the columns (horizontal when stacked at mobile). */}
       <div className="mt-12 rounded-xl border border-zinc-200 dark:border-white/10">
-        <h2 className="px-5 pt-4 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
+        <h2 className="px-4 pt-4 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-100">
           How it works
         </h2>
         <div className="mt-2 sm:grid sm:grid-cols-3">
@@ -103,7 +107,7 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
             <div
               key={item.step}
               className={cn(
-                "border-zinc-200 px-5 py-4 dark:border-white/10",
+                "border-zinc-200 px-4 py-4 dark:border-white/10",
                 index > 0 && "border-t sm:border-l sm:border-t-0",
               )}
             >

@@ -31,7 +31,9 @@ const INDENT: Record<BlocksSize, number> = { sm: 26, md: 30, lg: 56 };
 const HUES: Record<BlocksPalette, string[]> = {
   page: [
     "bg-brand",
-    "bg-zinc-900 dark:bg-zinc-100",
+    // Dark keeps the guideline slate instead of inverted ink: a near-white
+    // block on a dark page read as a fourth, alien hue (Federico, round 3).
+    "bg-zinc-900 dark:bg-[#3B484B]",
     "bg-zinc-200 dark:bg-white/15",
     "bg-zinc-100 dark:bg-white/10",
   ],
