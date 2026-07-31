@@ -18,21 +18,23 @@ export function StepTimeline() {
 
   return (
     <div className="space-y-6">
-      <DateField
-        control={form.control}
-        name="needed_by"
-        label="Needed by"
-        required
-        helper="The latest completion date for the audit."
-      />
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        <DateField
+          control={form.control}
+          name="needed_by"
+          label="Needed by"
+          required
+          helper="The latest completion date for the audit."
+        />
 
-      <DateField
-        control={form.control}
-        name="quote_deadline"
-        label="Quote deadline"
-        required
-        helper={QUOTE_DEADLINE_HELPER_COPY}
-      />
+        <DateField
+          control={form.control}
+          name="quote_deadline"
+          label="Quote deadline"
+          required
+          helper={QUOTE_DEADLINE_HELPER_COPY}
+        />
+      </div>
 
       <FormField
         control={form.control}

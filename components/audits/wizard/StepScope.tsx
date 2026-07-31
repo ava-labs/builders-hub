@@ -23,13 +23,7 @@ export function StepScope() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold">What should auditors look at?</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Scope quality is the biggest driver of quote accuracy · nSLOC most of all.
-        </p>
-      </div>
-
+      {/* Step title + subline render once in the card header (WizardShell). */}
       <FormField
         control={form.control}
         name="services"
@@ -72,39 +66,41 @@ export function StepScope() {
 
       <RepoRepeater />
 
-      <FormField
-        control={form.control}
-        name="languages"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Languages</FormLabel>
-            <ChipGroup
-              multiple
-              options={asChips(AUDIT_LANGUAGES)}
-              value={field.value}
-              onChange={field.onChange}
-              aria-label="Languages"
-            />
-          </FormItem>
-        )}
-      />
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="languages"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Languages</FormLabel>
+              <ChipGroup
+                multiple
+                options={asChips(AUDIT_LANGUAGES)}
+                value={field.value}
+                onChange={field.onChange}
+                aria-label="Languages"
+              />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="frameworks"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Frameworks</FormLabel>
-            <ChipGroup
-              multiple
-              options={asChips(AUDIT_FRAMEWORKS)}
-              value={field.value}
-              onChange={field.onChange}
-              aria-label="Frameworks"
-            />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="frameworks"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Frameworks</FormLabel>
+              <ChipGroup
+                multiple
+                options={asChips(AUDIT_FRAMEWORKS)}
+                value={field.value}
+                onChange={field.onChange}
+                aria-label="Frameworks"
+              />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <FormField
         control={form.control}

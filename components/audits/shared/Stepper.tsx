@@ -2,6 +2,8 @@
 
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { CHECK_POP, CONNECTOR_FILL, WIDTH_TWEEN } from "@/components/audits/shared/motion";
 
 interface StepperProps {
   steps: readonly string[];
@@ -10,33 +12,47 @@ interface StepperProps {
   onJumpBack: (index: number) => void;
 }
 
-// Markup lifted from the mini-grants stepper (grants/team1-mini-grants/apply),
-// adapted to the audit design language: done step = zinc check, current = red.
+type NodeState = "done" | "current" | "todo";
+
+function Node({ state, index }: { state: NodeState; index: number }) {
+  return (
+    <span
+      className={cn(
+        "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors duration-150",
+        state === "current" && "border-brand bg-brand text-white",
+        state === "done" &&
+          "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900",
+        state === "todo" && "border-zinc-300 text-zinc-500 dark:border-white/15 dark:text-zinc-400",
+      )}
+    >
+      {state === "done" ? <Check aria-hidden className={cn("h-3.5 w-3.5", CHECK_POP)} /> : index + 1}
+    </span>
+  );
+}
+
+/**
+ * The wizard card's header row (design 1b, picked 2026-07-31): nodes joined
+ * by full-width connectors that fill left to right as steps complete. Below
+ * sm it collapses to the board-1k progress bar; Back in the footer covers
+ * navigation there, so jump-back nodes are a >=sm affordance.
+ */
 export function Stepper({ steps, current, onJumpBack }: StepperProps) {
   return (
     <nav aria-label="Progress">
-      <ol className="flex flex-wrap items-center justify-center gap-2">
+      <ol className="hidden items-center sm:flex">
         {steps.map((label, index) => {
-          const isComplete = index < current;
-          const isCurrent = index === current;
+          const state: NodeState = index < current ? "done" : index === current ? "current" : "todo";
           const node = (
             <>
+              <Node state={state} index={index} />
               <span
                 className={cn(
-                  "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold",
-                  isCurrent
-                    ? "border-brand bg-brand text-white"
-                    : isComplete
-                      ? "border-zinc-300 bg-zinc-100 text-zinc-600 dark:border-white/15 dark:bg-white/10 dark:text-zinc-300"
-                      : "border-border bg-muted text-muted-foreground",
-                )}
-              >
-                {isComplete ? <Check aria-hidden className="h-3.5 w-3.5" /> : index + 1}
-              </span>
-              <span
-                className={cn(
-                  "text-sm",
-                  isCurrent ? "font-semibold text-foreground" : "text-muted-foreground",
+                  "text-[13px]",
+                  state === "current"
+                    ? "font-semibold text-foreground"
+                    : state === "done"
+                      ? "font-medium text-zinc-700 dark:text-zinc-300"
+                      : "text-muted-foreground",
                 )}
               >
                 {label}
@@ -44,8 +60,22 @@ export function Stepper({ steps, current, onJumpBack }: StepperProps) {
             </>
           );
           return (
-            <li key={label} className="flex items-center gap-2">
-              {isComplete ? (
+            <li key={label} className={cn("flex items-center", index > 0 && "flex-1")}>
+              {index > 0 && (
+                <span
+                  aria-hidden
+                  className="relative mx-3 h-px flex-1 overflow-hidden bg-zinc-200 dark:bg-white/10"
+                >
+                  <span
+                    className={cn(
+                      "absolute inset-0 bg-zinc-900 dark:bg-zinc-100",
+                      CONNECTOR_FILL,
+                      index <= current ? "scale-x-100" : "scale-x-0",
+                    )}
+                  />
+                </span>
+              )}
+              {state === "done" ? (
                 <button
                   type="button"
                   onClick={() => onJumpBack(index)}
@@ -55,17 +85,29 @@ export function Stepper({ steps, current, onJumpBack }: StepperProps) {
                   {node}
                 </button>
               ) : (
-                <span aria-current={isCurrent ? "step" : undefined} className="flex items-center gap-2 px-1">
+                <span
+                  aria-current={state === "current" ? "step" : undefined}
+                  className="flex items-center gap-2 px-1"
+                >
                   {node}
                 </span>
-              )}
-              {index < steps.length - 1 && (
-                <span aria-hidden className="mx-1 hidden h-px w-6 bg-border sm:inline-block" />
               )}
             </li>
           );
         })}
       </ol>
+
+      <div className="sm:hidden" aria-current="step">
+        <p className={MONO_LABEL_SM}>
+          Step {current + 1} of {steps.length} · {steps[current]}
+        </p>
+        <div className="mt-2 h-[3px] w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-white/10">
+          <div
+            className={cn("h-full rounded-full bg-brand", WIDTH_TWEEN)}
+            style={{ width: `${((current + 1) / steps.length) * 100}%` }}
+          />
+        </div>
+      </div>
     </nav>
   );
 }

@@ -126,37 +126,39 @@ export function StepProject({ importProjectId }: StepProjectProps) {
         )}
       </div>
 
-      <FormField
-        control={form.control}
-        name="project_name"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Project name <span className="text-brand">*</span>
-            </FormLabel>
-            <FormControl>
-              <Input {...field} className="h-11 md:h-10" autoComplete="organization" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="project_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Project name <span className="text-brand">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input {...field} className="h-11 md:h-10" autoComplete="organization" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="website"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Project website <span className="text-brand">*</span>
-            </FormLabel>
-            <FormControl>
-              <Input {...field} inputMode="url" placeholder="https://…" className="h-11 md:h-10" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="website"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Project website <span className="text-brand">*</span>
+              </FormLabel>
+              <FormControl>
+                <Input {...field} inputMode="url" placeholder="https://…" className="h-11 md:h-10" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
 
       <FormField
         control={form.control}
@@ -195,40 +197,42 @@ export function StepProject({ importProjectId }: StepProjectProps) {
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="deployment_target"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>
-              Deployment target <span className="text-brand">*</span>
-            </FormLabel>
-            <ChipGroup
-              options={DEPLOYMENT_OPTIONS}
-              value={field.value ? [field.value] : []}
-              onChange={(next) => field.onChange(next[0] ?? "")}
-              aria-label="Deployment target"
-            />
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="deployment_target"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                Deployment target <span className="text-brand">*</span>
+              </FormLabel>
+              <ChipGroup
+                options={DEPLOYMENT_OPTIONS}
+                value={field.value ? [field.value] : []}
+                onChange={(next) => field.onChange(next[0] ?? "")}
+                aria-label="Deployment target"
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-      <FormField
-        control={form.control}
-        name="multichain"
-        render={({ field }) => (
-          <FormItem className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-white/10">
-            <div>
-              <FormLabel>Multi-chain project</FormLabel>
-              <FormDescription>Also deployed outside Avalanche</FormDescription>
-            </div>
-            <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
-          </FormItem>
-        )}
-      />
+        <FormField
+          control={form.control}
+          name="multichain"
+          render={({ field }) => (
+            <FormItem className="flex items-center justify-between rounded-lg border border-zinc-200 p-4 dark:border-white/10">
+              <div>
+                <FormLabel>Multi-chain project</FormLabel>
+                <FormDescription>Also deployed outside Avalanche</FormDescription>
+              </div>
+              <FormControl>
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      </div>
     </div>
   );
 }
