@@ -6,12 +6,14 @@ const {
   eventCreateMock,
   participantsMock,
   noticeMock,
+  acceptedNoticeMock,
 } = vi.hoisted(() => ({
   txQuoteUpdateManyMock: vi.fn(),
   txRequestUpdateManyMock: vi.fn(),
   eventCreateMock: vi.fn(),
   participantsMock: vi.fn(),
   noticeMock: vi.fn(),
+  acceptedNoticeMock: vi.fn(),
 }));
 
 const tx = {
@@ -34,6 +36,10 @@ vi.mock("@/server/services/audits/emails/sendNotSelectedNotice", () => ({
   sendNotSelectedNotice: noticeMock,
 }));
 
+vi.mock("@/server/services/audits/emails/sendQuoteAcceptedNotice", () => ({
+  sendQuoteAcceptedNotice: acceptedNoticeMock,
+}));
+
 import { acceptQuote } from "@/server/services/audits/acceptance";
 
 const OWNER = "user-owner";
@@ -45,6 +51,7 @@ beforeEach(() => {
   txRequestUpdateManyMock.mockResolvedValue({ count: 1 });
   eventCreateMock.mockResolvedValue({});
   noticeMock.mockResolvedValue(undefined);
+  acceptedNoticeMock.mockResolvedValue(undefined);
   participantsMock.mockResolvedValue({
     project_name: "Glacierswap",
     winner: {
@@ -101,7 +108,7 @@ describe("acceptQuote", () => {
     });
   });
 
-  it("notifies every losing firm after commit, and a failing notice is non-fatal", async () => {
+  it("notifies the winner and every losing firm after commit, failures non-fatal", async () => {
     noticeMock.mockRejectedValueOnce(new Error("sendgrid down"));
 
     const result = await acceptQuote("req-1", "q-2", OWNER);
@@ -110,6 +117,15 @@ describe("acceptQuote", () => {
     expect(noticeMock).toHaveBeenCalledTimes(2);
     expect(noticeMock.mock.calls[0][0]).toMatchObject({
       quote_email: "quotes@harborline.example",
+    });
+    // The winning firm gets its own accepted notice with the request handle.
+    expect(acceptedNoticeMock).toHaveBeenCalledTimes(1);
+    expect(acceptedNoticeMock.mock.calls[0][0]).toMatchObject({
+      quote_email: "quotes@nordlicht.example",
+    });
+    expect(acceptedNoticeMock.mock.calls[0][1]).toMatchObject({
+      id: "req-1",
+      project_name: "Glacierswap",
     });
   });
 
@@ -121,6 +137,7 @@ describe("acceptQuote", () => {
     expect(result).toEqual({ success: false, code: "not_acceptable" });
     expect(txRequestUpdateManyMock).not.toHaveBeenCalled();
     expect(noticeMock).not.toHaveBeenCalled();
+    expect(acceptedNoticeMock).not.toHaveBeenCalled();
     expect(eventCreateMock).not.toHaveBeenCalled();
   });
 });

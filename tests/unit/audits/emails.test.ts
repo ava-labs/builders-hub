@@ -6,6 +6,7 @@ vi.mock("@/server/services/mail", () => ({ sendMail: sendMailMock }));
 import { sendFanoutNotification } from "@/server/services/audits/emails/sendFanoutNotification";
 import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
 import { sendNotSelectedNotice } from "@/server/services/audits/emails/sendNotSelectedNotice";
+import { sendQuoteAcceptedNotice } from "@/server/services/audits/emails/sendQuoteAcceptedNotice";
 
 const AUDITOR = { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" };
 const REQUEST = {
@@ -104,5 +105,39 @@ describe("sendAuditorInvite", () => {
     expect(subject).not.toContain("—");
     expect(html).not.toContain("—");
     expect(text).not.toContain("—");
+  });
+});
+
+describe("sendQuoteAcceptedNotice", () => {
+  it("sends to the winning firm with a deep link into the portal request", async () => {
+    await sendQuoteAcceptedNotice(AUDITOR, { id: "req-1", project_name: "Glacierswap" });
+
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(sendMailMock.mock.calls[0][0]).toBe("quotes@nordlicht.example");
+    expect(htmlOf()).toContain('href="https://build.avax.network/audits/portal/requests/req-1"');
+  });
+
+  it("neutralizes markup in the project name and avoids em dashes", async () => {
+    await sendQuoteAcceptedNotice(AUDITOR, {
+      id: "req-1",
+      project_name: "<b>Pwn</b> Markets",
+    });
+
+    const [, html, subject, text] = sendMailMock.mock.calls[0] as string[];
+    expect(html).not.toContain("<b>Pwn</b>");
+    expect(html).toContain("&lt;b&gt;Pwn&lt;/b&gt;");
+    for (const part of [subject, html, text]) {
+      expect(part).not.toContain("—");
+    }
+  });
+
+  it("carries no contact data, only the portal pointer", async () => {
+    await sendQuoteAcceptedNotice(AUDITOR, { id: "req-1", project_name: "Glacierswap" });
+
+    const [, html, , text] = sendMailMock.mock.calls[0] as string[];
+    for (const part of [html, text]) {
+      expect(part).toContain("audits/portal");
+      expect(part).not.toContain("@glacierswap");
+    }
   });
 });

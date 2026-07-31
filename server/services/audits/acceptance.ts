@@ -2,6 +2,7 @@ import { prisma } from "@/prisma/prisma";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { getAcceptanceParticipants } from "@/server/services/audits/visibility";
 import { sendNotSelectedNotice } from "@/server/services/audits/emails/sendNotSelectedNotice";
+import { sendQuoteAcceptedNotice } from "@/server/services/audits/emails/sendQuoteAcceptedNotice";
 
 export type AcceptResult =
   | { success: true; firm_name: string; quote_email: string }
@@ -66,14 +67,18 @@ export async function acceptQuote(
       meta: { firm_name: winner.auditor.firm_name, both_ways: true },
     });
 
-    const notices = await Promise.allSettled(
-      participants.losers.map((loser) =>
+    const notices = await Promise.allSettled([
+      sendQuoteAcceptedNotice(winner.auditor, {
+        id: requestId,
+        project_name: participants.project_name,
+      }),
+      ...participants.losers.map((loser) =>
         sendNotSelectedNotice(loser.auditor, { project_name: participants.project_name }),
       ),
-    );
+    ]);
     const failed = notices.filter((notice) => notice.status === "rejected").length;
     if (failed > 0) {
-      console.error(`[Audits] ${failed} not-selected notice(s) failed for ${requestId}`);
+      console.error(`[Audits] ${failed} acceptance notice(s) failed for ${requestId}`);
     }
   }
 
