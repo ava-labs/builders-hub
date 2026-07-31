@@ -8,10 +8,12 @@ import {
   bytesToHex,
   decodeL1WarpMessage,
   getPlatformTx,
+  getRewardUtxos,
   hexToNodeId,
   type DecodedL1WarpMessage,
   type L1InitialValidator,
   type PlatformUnsignedTx,
+  type RewardUtxo,
 } from "@/lib/pchain-node";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
@@ -77,6 +79,24 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // and the full-width initial-validator-set table); on a 404 it doubles
   // as the authoritative "does this tx exist on-chain at all?" check
   const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || isCreateChain || notFound);
+
+  // Reward payouts are minted directly into P-Chain state keyed by this
+  // tx — never as tx outputs — so the indexer's emittedUtxos is always
+  // empty here and only the node knows about them
+  const isRewardTx =
+    tx?.txType === "RewardValidatorTx" || tx?.txType === "RewardAutoRenewedValidatorTx";
+  const [rewardUtxos, setRewardUtxos] = useState<RewardUtxo[] | null>(null);
+  useEffect(() => {
+    if (!isRewardTx) return;
+    let cancelled = false;
+    getRewardUtxos(network, txHash).then((utxos) => {
+      if (!cancelled) setRewardUtxos(utxos);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRewardTx, network, txHash]);
+  const rewardTotal = rewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
 
   return (
     <ExplorerShell chain={chain} network={network}>
@@ -181,9 +201,25 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                   <SpecRow label="End">{formatTime(tx.endTimestamp)}</SpecRow>
                 )}
                 {tx.estimatedReward && <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>}
-                {tx.details?.rewardPaid !== undefined && (
-                  <SpecRow label="Reward Paid">{tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}</SpecRow>
-                )}
+                {/* A continuous validator's reward never commits/aborts:
+                    it restakes on every renewal, with any non-compounded
+                    share minted straight into state (the board below).
+                    The indexer's rewardPaid flag only means something for
+                    the legacy end-of-stake commit/abort vote. */}
+                {tx.details?.rewardPaid !== undefined &&
+                  (tx.txType === "RewardAutoRenewedValidatorTx" ? (
+                    <SpecRow label="Reward">
+                      {rewardUtxos === null
+                        ? "Restaked · compounds into the stake"
+                        : rewardUtxos.length
+                          ? `Restaked · ${formatAvax(rewardTotal)} paid out`
+                          : "Restaked · fully compounded"}
+                    </SpecRow>
+                  ) : (
+                    <SpecRow label="Reward Paid">
+                      {tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}
+                    </SpecRow>
+                  ))}
                 {tx.details?.stakingTxId && (
                   <SpecRow label="Staking Tx">
                     <HashChip value={tx.details.stakingTxId} href={`${base}/tx/${tx.details.stakingTxId}`} len={20} />
@@ -196,6 +232,29 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 ) : null}
               </SpecPlate>
             </Section>
+          )}
+
+          {/* the payout itself: state-minted UTXOs keyed by this tx */}
+          {isRewardTx && rewardUtxos !== null && rewardUtxos.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <Section label="Reward Payout">
+                <SpecPlate>
+                  {rewardUtxos.map((u) => (
+                    <SpecRow key={u.outputIndex} label={`UTXO #${u.outputIndex}`} align="start">
+                      <div className="flex flex-col items-end gap-1">
+                        <span>{formatAvax(u.amount)}</span>
+                        <AddrList base={base} addrs={u.addresses} />
+                      </div>
+                    </SpecRow>
+                  ))}
+                </SpecPlate>
+              </Section>
+              <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                Reward UTXOs are minted directly into P-Chain state under this transaction&apos;s
+                ID: they are not outputs of the transaction itself, so they come from the node
+                rather than the indexer.
+              </p>
+            </section>
           )}
 
           {/* Continuous staking (Granite auto-renew family) */}
