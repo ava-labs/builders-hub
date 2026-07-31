@@ -1,22 +1,29 @@
 import { cn } from "@/lib/utils";
 
-// Status is ALWAYS dot + label, never color alone. Dark hues sit one step
-// lighter to keep 4.5:1 (Foundations board).
-const REQUEST_STATUS: Record<string, { label: string; dot: string }> = {
-  draft: { label: "Draft", dot: "bg-zinc-400 dark:bg-zinc-500" },
-  collecting: { label: "Collecting quotes", dot: "bg-info dark:bg-info-soft" },
-  deciding: { label: "Quotes ready", dot: "bg-amber-500 dark:bg-amber-400" },
-  engaged: { label: "Engaged", dot: "bg-emerald-500 dark:bg-emerald-400" },
-  expired: { label: "Expired", dot: "bg-zinc-400 dark:bg-zinc-500" },
-  withdrawn: { label: "Withdrawn", dot: "bg-zinc-400 dark:bg-zinc-500" },
+// Status is ALWAYS dot + label, never color alone, rendered as the bordered
+// pill from the Foundations board. Hues per Foundations: collecting = green
+// (open), quotes ready = blue (info), closed/neutral = zinc; dark hues sit
+// one step lighter to keep 4.5:1.
+const NEUTRAL = "border-zinc-300 text-zinc-600 dark:border-white/15 dark:text-zinc-400";
+const GREEN =
+  "border-emerald-600/35 text-emerald-700 dark:border-emerald-400/35 dark:text-emerald-400";
+const BLUE = "border-info/35 text-info dark:border-info-soft/40 dark:text-info-soft";
+
+const REQUEST_STATUS: Record<string, { label: string; tone: string }> = {
+  draft: { label: "Draft", tone: NEUTRAL },
+  collecting: { label: "Collecting quotes", tone: GREEN },
+  deciding: { label: "Quotes ready", tone: BLUE },
+  engaged: { label: "Engaged", tone: NEUTRAL },
+  expired: { label: "Expired", tone: NEUTRAL },
+  withdrawn: { label: "Withdrawn", tone: NEUTRAL },
 };
 
-const QUOTE_STATUS: Record<string, { label: string; dot: string }> = {
-  submitted: { label: "Submitted", dot: "bg-info dark:bg-info-soft" },
-  accepted: { label: "Accepted", dot: "bg-emerald-500 dark:bg-emerald-400" },
-  not_selected: { label: "Not selected", dot: "bg-zinc-400 dark:bg-zinc-500" },
-  withdrawn: { label: "Withdrawn", dot: "bg-zinc-400 dark:bg-zinc-500" },
-  expired: { label: "Expired", dot: "bg-zinc-400 dark:bg-zinc-500" },
+const QUOTE_STATUS: Record<string, { label: string; tone: string }> = {
+  submitted: { label: "Submitted", tone: BLUE },
+  accepted: { label: "Accepted", tone: GREEN },
+  not_selected: { label: "Not selected", tone: NEUTRAL },
+  withdrawn: { label: "Withdrawn", tone: NEUTRAL },
+  expired: { label: "Expired", tone: NEUTRAL },
 };
 
 interface StatusBadgeProps {
@@ -29,17 +36,18 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, kind = "request", suffix, className }: StatusBadgeProps) {
   const map = kind === "quote" ? QUOTE_STATUS : REQUEST_STATUS;
-  const entry = map[status] ?? { label: status, dot: "bg-zinc-400 dark:bg-zinc-500" };
+  const entry = map[status] ?? { label: status, tone: NEUTRAL };
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-sm text-zinc-700 dark:text-zinc-300",
+        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        entry.tone,
         className,
       )}
     >
-      <span aria-hidden className={cn("h-1.5 w-1.5 shrink-0 rounded-full", entry.dot)} />
+      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />
       {entry.label}
-      {suffix ? <span className="text-zinc-500 dark:text-zinc-400">{suffix}</span> : null}
+      {suffix ? <span className="font-normal opacity-70">{suffix}</span> : null}
     </span>
   );
 }

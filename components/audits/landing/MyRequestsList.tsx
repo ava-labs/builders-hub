@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -17,9 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import type { OwnerRequestSummary } from "@/server/services/audits/visibility";
-import { StatusBadge } from "@/components/audits/shared/StatusBadge";
-import { CountdownChip } from "@/components/audits/shared/CountdownChip";
-import { formatIsoDate, truncate } from "@/components/audits/shared/format";
+import { RequestCard } from "@/components/audits/landing/RequestCard";
 
 type Filter = "all" | "collecting" | "deciding" | "closed" | "drafts";
 
@@ -38,24 +36,6 @@ const FILTER_LABELS: Record<Exclude<Filter, "all">, string> = {
   closed: "Closed",
   drafts: "Drafts",
 };
-
-const BADGE_SUFFIX: Record<string, string> = {
-  deciding: "· pick one",
-  engaged: "· auditor engaged",
-};
-
-const kUsd = (value: number) => `$${Math.round(value / 1000)}K`;
-
-function cardMeta(request: OwnerRequestSummary): string | null {
-  if (request.display_status === "collecting" && request.quote_count > 0) {
-    return `${request.quote_count} quotes in`;
-  }
-  if (request.quote_count > 0 && request.quote_price_range) {
-    const { min, max } = request.quote_price_range;
-    return `${request.quote_count} quotes · ${kUsd(min)}–${kUsd(max)}`;
-  }
-  return null;
-}
 
 export function MyRequestsList({
   requests,
@@ -100,7 +80,9 @@ export function MyRequestsList({
   const visible =
     filter === "all"
       ? requests
-      : requests.filter((request) => (FILTER_OF_STATUS[request.display_status] ?? "closed") === filter);
+      : requests.filter(
+          (request) => (FILTER_OF_STATUS[request.display_status] ?? "closed") === filter,
+        );
 
   const chips: { value: Filter; label: string; count: number }[] = [
     { value: "all", label: "All", count: requests.length },
@@ -110,7 +92,7 @@ export function MyRequestsList({
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="mx-auto max-w-[1040px] px-4 py-10">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Audit requests</h1>
@@ -137,8 +119,9 @@ export function MyRequestsList({
           ) : null}
           <Link
             href="/audits/new"
-            className="inline-flex h-11 items-center rounded-lg bg-zinc-900 px-4 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 md:h-10"
+            className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-deep md:h-10"
           >
+            <Plus aria-hidden className="h-4 w-4" />
             New request
           </Link>
         </div>
@@ -156,6 +139,7 @@ export function MyRequestsList({
               filter === chip.value
                 ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
                 : "border-zinc-300 text-zinc-600 hover:border-zinc-500 dark:border-white/15 dark:text-zinc-400 dark:hover:border-white/40",
+              chip.value === "drafts" && filter !== chip.value && "border-dashed",
             )}
           >
             {chip.label} <span className="opacity-70">{chip.count}</span>
@@ -164,93 +148,20 @@ export function MyRequestsList({
       </div>
 
       <ul className="mt-6 space-y-3">
-        {visible.map((request) => {
-          const href =
-            request.display_status === "draft"
-              ? `/audits/new?draft=${request.id}`
-              : `/audits/${request.id}`;
-          const meta = cardMeta(request);
-          return (
-            <li key={request.id}>
-              <Link
-                href={href}
-                className="block rounded-xl border border-zinc-200 bg-white p-5 transition-colors hover:border-zinc-400 dark:border-white/10 dark:bg-[#1F1F1F] dark:hover:border-white/25"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold">{request.project_name || "Untitled request"}</p>
-                  <span className="flex items-center gap-2">
-                    {meta ? (
-                      <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                        {meta}
-                      </p>
-                    ) : null}
-                    {request.display_status === "draft" ? (
-                      <button
-                        type="button"
-                        aria-label={`Delete draft ${request.project_name || "Untitled request"}`}
-                        title="Delete draft"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          setDeletingDraft(request);
-                        }}
-                        className="-m-2 cursor-pointer rounded-md p-2 text-zinc-400 transition-colors hover:text-brand dark:text-zinc-500 dark:hover:text-brand-soft"
-                      >
-                        <Trash2 aria-hidden className="h-4 w-4" />
-                      </button>
-                    ) : null}
-                  </span>
-                </div>
-                <StatusBadge
-                  className="mt-1.5"
-                  status={request.display_status}
-                  suffix={BADGE_SUFFIX[request.display_status]}
-                />
-                {request.description ? (
-                  <p className="mt-2 text-sm text-zinc-600 dark:text-[#A2AFB2]">
-                    {truncate(request.description)}
-                  </p>
-                ) : null}
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  {request.display_status === "collecting" && request.quote_deadline ? (
-                    <span>
-                      <CountdownChip deadline={request.quote_deadline} prefix="Quotes close" />{" "}
-                      · {formatIsoDate(request.quote_deadline)}
-                    </span>
-                  ) : null}
-                  {request.needed_by ? (
-                    <span>
-                      Needed by{" "}
-                      <span className="text-zinc-700 dark:text-zinc-300">
-                        {formatIsoDate(request.needed_by)}
-                      </span>
-                    </span>
-                  ) : null}
-                  {request.display_status === "draft" ? (
-                    <span>Edited {formatIsoDate(request.updated_at)} · continue editing</span>
-                  ) : null}
-                </div>
-              </Link>
-            </li>
-          );
-        })}
+        {visible.map((request, index) => (
+          <RequestCard
+            key={request.id}
+            request={request}
+            index={index}
+            onDeleteDraft={setDeletingDraft}
+          />
+        ))}
       </ul>
       {visible.length === 0 ? (
         <p className="mt-10 text-center text-sm text-zinc-500 dark:text-zinc-400">
           Nothing under this filter.
         </p>
       ) : null}
-
-      <p className="mt-10 text-center text-xs text-zinc-400 dark:text-zinc-500">
-        Quoting as a whitelisted security firm?{" "}
-        <Link
-          href="/audits/portal"
-          className="underline underline-offset-2 hover:text-zinc-700 dark:hover:text-zinc-300"
-        >
-          Open the auditor portal
-        </Link>
-        .
-      </p>
 
       <AlertDialog
         open={deletingDraft !== null}
