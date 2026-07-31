@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -11,7 +14,7 @@ import { cn } from "@/lib/utils";
 import type { AdminRequestRow } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
-import { formatIsoDate } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 
 const kUsd = (value: number) => `$${Math.round(value / 1000)}k`;
 
@@ -20,7 +23,15 @@ function SubsidyCell({ row }: { row: AdminRequestRow }) {
     return <span className="font-medium text-brand dark:text-brand-soft">Needs approval</span>;
   }
   if (row.subsidy_state === "approved") {
-    return <span>Approved {row.subsidy_pct}%</span>;
+    // Amount-first everywhere (locked 2026-07-30); pct is the view in brackets.
+    return row.subsidy_amount_usd !== null ? (
+      <span>
+        Approved {formatUsd(row.subsidy_amount_usd)}{" "}
+        <span className="text-zinc-500 dark:text-zinc-400">({row.subsidy_pct}%)</span>
+      </span>
+    ) : (
+      <span>Approved {row.subsidy_pct}%</span>
+    );
   }
   if (row.subsidy_state === "declined") {
     return <span className="text-zinc-500 dark:text-zinc-400">Declined</span>;
@@ -30,9 +41,13 @@ function SubsidyCell({ row }: { row: AdminRequestRow }) {
 
 /**
  * The requests table (design 1a). "Needs approval" rows carry a faint red
- * wash, the one place attention is steered, since there are no pings.
+ * wash, the one place attention is steered, since there are no pings. The
+ * whole row navigates to the drill-down; the title stays a real link for
+ * middle-click and keyboard users.
  */
 export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
+  const router = useRouter();
+
   if (rows.length === 0) {
     return (
       <p className="rounded-xl border border-zinc-200 p-6 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
@@ -59,7 +74,11 @@ export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
           {rows.map((row) => (
             <TableRow
               key={row.id}
-              className={cn(row.subsidy_state === "needs_approval" && "bg-brand/5")}
+              onClick={() => router.push(`/audits/admin/requests/${row.id}`)}
+              className={cn(
+                "cursor-pointer",
+                row.subsidy_state === "needs_approval" && "bg-brand/5",
+              )}
             >
               <TableCell>
                 <Link href={`/audits/admin/requests/${row.id}`} className="block">

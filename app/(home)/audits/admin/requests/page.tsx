@@ -18,7 +18,12 @@ export default async function AuditAdminRequestsPage({ searchParams }: AdminRequ
 
   return (
     <div className="mt-6 space-y-4">
-      <RequestsFilters />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <RequestsFilters />
+        <a href="/api/audits/admin/requests/export" target="_self" className="inline-flex h-10 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40">
+          Export CSV
+        </a>
+      </div>
       <RequestsTable rows={requests} />
     </div>
   );

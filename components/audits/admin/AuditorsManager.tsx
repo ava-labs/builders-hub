@@ -21,23 +21,36 @@ import {
   type PanelState,
 } from "@/components/audits/admin/AuditorDetailPanel";
 
+const PILL = "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium";
+const DOT = <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />;
+
 function StatusCell({
   auditor,
+  active,
   onResend,
 }: {
   auditor: AdminAuditorRow;
+  active: boolean;
   onResend: (auditor: AdminAuditorRow) => void;
 }) {
-  if (!auditor.active) {
-    return <span className="text-zinc-400 dark:text-zinc-500">Inactive</span>;
+  if (!active) {
+    return (
+      <span className={cn(PILL, "border-zinc-300 text-zinc-500 dark:border-white/15 dark:text-zinc-500")}>
+        {DOT}
+        Inactive
+      </span>
+    );
   }
   if (!auditor.first_login_at) {
     return (
-      <span className="text-amber-600 dark:text-amber-400">
-        Invited {formatIsoDate(auditor.invited_at)} ·{" "}
+      <span className="inline-flex flex-wrap items-center gap-2">
+        <span className={cn(PILL, "border-amber-600/35 text-amber-700 dark:border-amber-400/35 dark:text-amber-400")}>
+          {DOT}
+          Invited {formatIsoDate(auditor.invited_at)}
+        </span>
         <button
           type="button"
-          className="cursor-pointer underline underline-offset-2"
+          className="cursor-pointer text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
           onClick={(event) => {
             event.stopPropagation();
             onResend(auditor);
@@ -49,8 +62,8 @@ function StatusCell({
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
+    <span className={cn(PILL, "border-emerald-600/35 text-emerald-700 dark:border-emerald-400/35 dark:text-emerald-400")}>
+      {DOT}
       Active
     </span>
   );
@@ -60,6 +73,14 @@ function StatusCell({
 export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
   const router = useRouter();
   const [panel, setPanel] = useState<PanelState>(null);
+  // Optimistic active flips: the switch answers instantly, the server confirms
+  // via router.refresh(); an entry expires once props agree with it.
+  const [pendingActive, setPendingActive] = useState<Record<string, boolean>>({});
+
+  const effectiveActive = (auditor: AdminAuditorRow) =>
+    auditor.id in pendingActive && pendingActive[auditor.id] !== auditor.active
+      ? pendingActive[auditor.id]
+      : auditor.active;
 
   const counts = {
     active: auditors.filter((a) => a.active && a.first_login_at).length,
@@ -68,6 +89,7 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
   };
 
   const setActive = async (auditor: AdminAuditorRow, active: boolean) => {
+    setPendingActive((prev) => ({ ...prev, [auditor.id]: active }));
     const res = await fetch(`/api/audits/admin/auditors/${auditor.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -75,6 +97,7 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
     });
     const body = await res.json().catch(() => null);
     if (!res.ok || !body?.success) {
+      setPendingActive((prev) => ({ ...prev, [auditor.id]: auditor.active }));
       toast.error(body?.message ?? "That didn't work. Try again.");
       return;
     }
@@ -108,9 +131,14 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
             {counts.active} active · {counts.invited} invited · {counts.inactive} inactive
           </p>
         </div>
-        <Button onClick={() => setPanel({ mode: "add" })} className="h-11 md:h-10">
-          Add auditor
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="h-11 md:h-10">
+            <a href="/api/audits/admin/auditors/export" target="_self">Export CSV</a>
+          </Button>
+          <Button onClick={() => setPanel({ mode: "add" })} className="h-11 md:h-10">
+            Add auditor
+          </Button>
+        </div>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/10">
@@ -130,7 +158,7 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
               <TableRow
                 key={auditor.id}
                 onClick={() => setPanel({ mode: "edit", auditor })}
-                className={cn("cursor-pointer", !auditor.active && "opacity-60")}
+                className={cn("cursor-pointer", !effectiveActive(auditor) && "opacity-60")}
               >
                 <TableCell className="font-medium">{auditor.firm_name}</TableCell>
                 <TableCell className="font-mono text-xs">{auditor.quote_email}</TableCell>
@@ -144,11 +172,15 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
                 <TableCell className="text-sm" onClick={(event) => event.stopPropagation()}>
                   <span className="flex items-center gap-2.5">
                     <Switch
-                      checked={auditor.active}
+                      checked={effectiveActive(auditor)}
                       onCheckedChange={(next) => void setActive(auditor, next)}
-                      aria-label={`${auditor.active ? "Deactivate" : "Activate"} ${auditor.firm_name}`}
+                      aria-label={`${effectiveActive(auditor) ? "Deactivate" : "Activate"} ${auditor.firm_name}`}
                     />
-                    <StatusCell auditor={auditor} onResend={(a) => void resend(a)} />
+                    <StatusCell
+                      auditor={auditor}
+                      active={effectiveActive(auditor)}
+                      onResend={(a) => void resend(a)}
+                    />
                   </span>
                 </TableCell>
               </TableRow>

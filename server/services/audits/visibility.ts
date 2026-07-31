@@ -338,6 +338,7 @@ export interface AdminRequestRow {
   quote_price_range: { min: number; max: number } | null;
   subsidy_state: AdminSubsidyState;
   subsidy_pct: number | null;
+  subsidy_amount_usd: number | null;
   accepted_firm_price_usd: number | null;
   fanout_count: number;
 }
@@ -359,7 +360,7 @@ type AdminListRow = {
   quote_deadline: Date | null;
   user: { name: string | null; email: string | null };
   quotes: { price_usd: number; status: string }[];
-  subsidy_decisions: { state: string; pct: number }[];
+  subsidy_decisions: { state: string; pct: number; program_amount_usd: number }[];
   _count: { fanout_deliveries: number };
 };
 
@@ -392,6 +393,7 @@ function toAdminRow(row: AdminListRow): AdminRequestRow {
       prices.length > 0 ? { min: Math.min(...prices), max: Math.max(...prices) } : null,
     subsidy_state,
     subsidy_pct: latest?.pct ?? null,
+    subsidy_amount_usd: latest?.program_amount_usd ?? null,
     accepted_firm_price_usd: accepted?.price_usd ?? null,
     fanout_count: row._count.fanout_deliveries,
   };

@@ -151,3 +151,25 @@ export async function resolveAuditorByEmail(email: string): Promise<Auditor | nu
 
   return auditor;
 }
+
+/**
+ * Whitelist flip history for the CSV export. Flip events carry no auditor id,
+ * only meta.firm_name, so history is matched by firm name (rename caveat
+ * accepted for v1 reporting).
+ */
+export async function getAuditorStatusHistory(): Promise<Map<string, string[]>> {
+  const events = await prisma.auditEventLog.findMany({
+    where: { action: { in: ["auditor_reactivated", "auditor_deactivated"] } },
+    orderBy: { created_at: "asc" },
+    select: { action: true, created_at: true, meta: true },
+  });
+
+  return events.reduce<Map<string, string[]>>((map, event) => {
+    const meta = event.meta as Record<string, unknown> | null;
+    const firm = meta && typeof meta.firm_name === "string" ? meta.firm_name : "";
+    if (!firm) return map;
+    const verb = event.action === "auditor_deactivated" ? "deactivated" : "reactivated";
+    const entry = `${event.created_at.toISOString().slice(0, 10)} ${verb}`;
+    return new Map(map).set(firm, [...(map.get(firm) ?? []), entry]);
+  }, new Map());
+}
