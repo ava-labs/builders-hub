@@ -28,8 +28,8 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-20 sm:py-28">
-      <div aria-hidden className="mb-8 inline-flex flex-col items-start">
+    <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
+      <div aria-hidden className="mb-6 inline-flex flex-col items-start">
         <div className="flex">
           <span className="h-2.5 w-[30px] bg-brand" />
           <span className="h-2.5 w-[30px] bg-zinc-900 dark:bg-zinc-100" />
@@ -48,11 +48,11 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         <br />
         One request.
       </h1>
-      <p className="mt-6 max-w-2xl text-lg text-zinc-600 dark:text-[#A2AFB2]">
+      <p className="mt-4 max-w-2xl text-lg text-zinc-600 dark:text-[#A2AFB2]">
         Describe your scope once. Every security firm on the Ava Labs whitelist quotes it,
         privately. You compare, pick one, and the program can pay up to 75%.
       </p>
-      <div className="mt-8">
+      <div className="mt-6">
         <Link
           href="/audits/new"
           className="audits-sweep inline-flex h-12 items-center rounded-lg bg-brand px-6 text-sm font-semibold text-white transition-colors"
@@ -61,11 +61,27 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         </Link>
       </div>
 
-      <p className="mt-12 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+      <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         {meta.join(" · ")}
       </p>
 
-      <div className="mt-16 border-t border-zinc-200 pt-10 dark:border-white/10">
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-xl border border-zinc-200 py-3 pl-4 pr-3 dark:border-white/10">
+        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
+          For audit firms
+        </p>
+        <p className="text-sm text-zinc-600 dark:text-[#A2AFB2]">
+          On the whitelist? Requests arrive by email; quotes go in through the portal.
+        </p>
+        <span className="flex-1" />
+        <Link
+          href="/audits/portal"
+          className="inline-flex h-9 items-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40"
+        >
+          Open the auditor portal →
+        </Link>
+      </div>
+
+      <div className="mt-10 border-t border-zinc-200 pt-8 dark:border-white/10">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-900 dark:text-zinc-100">
           How it works
         </h2>
@@ -78,22 +94,6 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="mt-12 max-w-md rounded-xl border border-zinc-200 p-5 dark:border-white/10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-          For audit firms
-        </p>
-        <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-[#A2AFB2]">
-          On the Ava Labs whitelist? Fan-out requests arrive by email; sign in with your firm's
-          quote address to send private quotes.
-        </p>
-        <Link
-          href="/audits/portal"
-          className="mt-3.5 inline-flex h-9 items-center rounded-lg border border-zinc-300 px-3.5 text-sm font-medium transition-colors hover:border-zinc-500 dark:border-white/15 dark:hover:border-white/40"
-        >
-          Open the auditor portal →
-        </Link>
       </div>
     </div>
   );
