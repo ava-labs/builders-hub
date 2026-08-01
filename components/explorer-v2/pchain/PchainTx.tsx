@@ -8,11 +8,13 @@ import {
   bytesToHex,
   decodeL1WarpMessage,
   getCurrentValidators,
+  getL1Validator,
   getPlatformTx,
   getRewardUtxos,
   hexToNodeId,
   type DecodedL1WarpMessage,
   type L1InitialValidator,
+  type L1ValidatorInfo,
   type PlatformUnsignedTx,
   type RewardUtxo,
 } from "@/lib/pchain-node";
@@ -142,6 +144,23 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       cancelled = true;
     };
   }, [isContinuousStaker, network, tx?.nodeId]);
+  // an IncreaseL1ValidatorBalanceTx / DisableL1ValidatorTx row carries only
+  // the validationID — the node resolves it to the seat's nodeID while the
+  // validator is still active (removed seats error, and the row stays off)
+  const validationId = tx?.details?.validationId;
+  const [l1Seat, setL1Seat] = useState<L1ValidatorInfo | null>(null);
+  useEffect(() => {
+    setL1Seat(null);
+    if (!validationId || tx?.nodeId || isWarpOp) return;
+    let cancelled = false;
+    getL1Validator(network, validationId).then((v) => {
+      if (!cancelled) setL1Seat(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [validationId, tx?.nodeId, isWarpOp, network]);
+
   const initialStake = tx?.amountStaked?.reduce((sum, a) => sum + Number(a.amount || 0), 0) ?? 0;
   const restakedToDate =
     liveWeight !== null && initialStake > 0 && liveWeight > initialStake ? liveWeight - initialStake : null;
@@ -365,6 +384,16 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           {hasL1Validation && !isWarpOp && (
             <Section label="L1 Validation">
               <SpecPlate>
+                {l1Seat?.nodeID && (
+                  <SpecRow label="Node ID">
+                    <HashChip value={l1Seat.nodeID} href={`${base}/node/${l1Seat.nodeID}`} len={32} />
+                  </SpecRow>
+                )}
+                {l1Seat?.subnetID && !tx.subnetId && (
+                  <SpecRow label="Subnet ID">
+                    <SubnetChip base={base} subnetId={l1Seat.subnetID} />
+                  </SpecRow>
+                )}
                 {tx.details?.validationId && (
                   <SpecRow label="Validation ID">
                     <HashChip value={tx.details.validationId} len={32} />

@@ -171,6 +171,22 @@ export async function getSubnetInfo(network: string, subnetID: string): Promise<
   return rpc<SubnetInfo>(network, "platform.getSubnet", { subnetID });
 }
 
+export interface L1ValidatorInfo {
+  nodeID: string;
+  subnetID: string;
+  weight?: string | number;
+  /** nAVAX prepaid toward the continuous fee */
+  balance?: string | number;
+}
+
+/** Resolves an ACP-77 validationID to the seat's live nodeID/subnetID.
+ *  The node only answers while the seat is active — a removed validator
+ *  errors, which surfaces here as null. */
+export async function getL1Validator(network: string, validationID: string): Promise<L1ValidatorInfo | null> {
+  const r = await rpc<L1ValidatorInfo>(network, "platform.getL1Validator", { validationID });
+  return r?.nodeID ? r : null;
+}
+
 /** ACP-77 L1 validator fee market: `price` is the continuous fee every L1
  *  validator seat pays right now, in nAVAX per second, burned from the
  *  seat's prepaid balance. */
