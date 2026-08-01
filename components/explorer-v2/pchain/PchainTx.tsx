@@ -174,7 +174,16 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           staked: false,
         }))
       : [];
-  const flowEmitted = tx ? (rewardEmitted.length ? [...tx.emittedUtxos, ...rewardEmitted] : tx.emittedUtxos) : [];
+  // indexer serves reward payout UTXOs in emittedUtxos directly
+  // node fetch stays as a fallback
+  // dedupe by (txHash, outputIndex) so a UTXO present in both sources doesn't render twice
+  const emittedKeys = new Set((tx?.emittedUtxos ?? []).map((u) => `${u.txHash}:${u.outputIndex}`));
+  const rewardOnlyMissing = rewardEmitted.filter((u) => !emittedKeys.has(`${u.txHash}:${u.outputIndex}`));
+  const flowEmitted = tx
+    ? rewardOnlyMissing.length
+      ? [...tx.emittedUtxos, ...rewardOnlyMissing]
+      : tx.emittedUtxos
+    : [];
 
   return (
     <ExplorerShell chain={chain} network={network}>
