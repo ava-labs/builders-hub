@@ -44,6 +44,18 @@ export interface SubnetInfo {
   managerAddress?: string | null;
 }
 
+/** A live delegation riding a Primary Network validator; only present
+ *  when platform.getCurrentValidators is asked about specific nodeIDs. */
+export interface CurrentDelegator {
+  txID: string;
+  startTime: string;
+  endTime: string;
+  weight?: string;
+  /** nAVAX this delegation earns if it serves its full period */
+  potentialReward?: string;
+  rewardOwner?: PchainOwner;
+}
+
 /** platform.getCurrentValidators entry — L1 validators carry validationID
  *  and balance; legacy subnet validators carry txID/start/end instead.
  *  Primary Network validators additionally carry the reward plumbing the
@@ -53,7 +65,11 @@ export interface CurrentValidator {
   weight: string;
   balance?: string; // nAVAX
   validationID?: string;
+  txID?: string;
   startTime?: string;
+  /** nAVAX this validation earns if it serves its full period */
+  potentialReward?: string;
+  delegators?: CurrentDelegator[];
   publicKey?: string;
   remainingBalanceOwner?: PchainOwner;
   deactivationOwner?: PchainOwner;
