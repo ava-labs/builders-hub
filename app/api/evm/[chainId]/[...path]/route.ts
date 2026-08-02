@@ -31,7 +31,9 @@ async function fetchWithTimeout(url: string, timeoutMs = REQUEST_TIMEOUT_MS): Pr
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { signal: controller.signal, headers: { accept: "application/json" } });
+    // cache: "no-store"
+    // we actually want CDN layer cached via the response headers
+    return await fetch(url, { cache: "no-store", signal: controller.signal, headers: { accept: "application/json" } });
   } finally {
     clearTimeout(id);
   }
