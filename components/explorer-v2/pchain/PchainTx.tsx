@@ -57,7 +57,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       tx.details?.stakingTxId ||
       tx.details?.rewardPaid !== undefined)
   );
-  // continuous staking (Granite): the stake renews itself on a period,
+  // continuous staking (Helicon): the stake renews itself on a period,
   // optionally compounding rewards back in
   const hasContinuous = !!(
     tx &&
@@ -88,22 +88,26 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // empty here and only the node knows about them
   const isRewardTx =
     tx?.txType === "RewardValidatorTx" || tx?.txType === "RewardAutoRenewedValidatorTx";
+  const isClassicRewardTx = tx?.txType === "RewardValidatorTx";
+  const stakingTxId = tx?.details?.stakingTxId;
   const [rewardUtxos, setRewardUtxos] = useState<RewardUtxo[] | null>(null);
   useEffect(() => {
     if (!isRewardTx) return;
+    // classic reward UTXOs are minted under the staking tx they reward;
+    // Helicon auto-renew payouts are keyed by the reward tx itself
+    const key = isClassicRewardTx ? (stakingTxId ?? txHash) : txHash;
     let cancelled = false;
-    getRewardUtxos(network, txHash).then((utxos) => {
+    getRewardUtxos(network, key).then((utxos) => {
       if (!cancelled) setRewardUtxos(utxos);
     });
     return () => {
       cancelled = true;
     };
-  }, [isRewardTx, network, txHash]);
+  }, [isRewardTx, isClassicRewardTx, stakingTxId, network, txHash]);
   const rewardWithdrawn = rewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
 
   // the split needs the staker's compound ratio: withdrawn is the
   // (1 - c) share minted to the owner, so restaked = withdrawn * c/(1-c)
-  const stakingTxId = tx?.details?.stakingTxId;
   const [compoundShares, setCompoundShares] = useState<number | null>(null);
   useEffect(() => {
     if (tx?.txType !== "RewardAutoRenewedValidatorTx" || !stakingTxId) return;
@@ -160,6 +164,51 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       cancelled = true;
     };
   }, [validationId, tx?.nodeId, isWarpOp, network]);
+
+  // a classic staking tx's own reward: once the period ends the payout is
+  // minted as reward UTXOs keyed by THIS tx; while the stake is live only
+  // the node's current validator set knows the potential reward
+  const isDelegatorTx =
+    tx?.txType === "AddDelegatorTx" || tx?.txType === "AddPermissionlessDelegatorTx";
+  const isPrimaryStaker =
+    (isDelegatorTx || tx?.txType === "AddValidatorTx" || tx?.txType === "AddPermissionlessValidatorTx") &&
+    tx?.subnetId === PRIMARY_SUBNET_ID;
+  const stakeEnded = !!tx?.endTimestamp && tx.endTimestamp <= Date.now() / 1000;
+  const [stakeRewardUtxos, setStakeRewardUtxos] = useState<RewardUtxo[] | null>(null);
+  useEffect(() => {
+    setStakeRewardUtxos(null);
+    if (!isPrimaryStaker || !stakeEnded) return;
+    let cancelled = false;
+    getRewardUtxos(network, txHash).then((utxos) => {
+      if (!cancelled) setStakeRewardUtxos(utxos);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrimaryStaker, stakeEnded, network, txHash]);
+  const stakeRewardPaid = stakeRewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
+
+  const [potentialReward, setPotentialReward] = useState<number | null>(null);
+  useEffect(() => {
+    setPotentialReward(null);
+    if (!isPrimaryStaker || stakeEnded || !tx?.nodeId) return;
+    let cancelled = false;
+    getCurrentValidators(network, PRIMARY_SUBNET_ID, [tx.nodeId]).then((validators) => {
+      if (cancelled) return;
+      const v = validators?.[0];
+      if (!v) return;
+      const raw = isDelegatorTx
+        ? v.delegators?.find((d) => d.txID === txHash)?.potentialReward
+        : v.txID === txHash
+          ? v.potentialReward
+          : undefined;
+      const n = raw !== undefined ? Number(raw) : NaN;
+      if (Number.isFinite(n) && n > 0) setPotentialReward(n);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrimaryStaker, stakeEnded, isDelegatorTx, network, txHash, tx?.nodeId]);
 
   const initialStake = tx?.amountStaked?.reduce((sum, a) => sum + Number(a.amount || 0), 0) ?? 0;
   const restakedToDate =
@@ -297,7 +346,17 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 {tx.endTimestamp !== undefined && tx.endTimestamp > 0 && (
                   <SpecRow label="End">{formatTime(tx.endTimestamp)}</SpecRow>
                 )}
-                {tx.estimatedReward && <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>}
+                {/* the stake's own payout once it ended, the live potential
+                    reward until then, the indexer's estimate as fallback */}
+                {stakeRewardUtxos !== null ? (
+                  <SpecRow label="Reward">
+                    {stakeRewardUtxos.length ? formatAvax(stakeRewardPaid) : "None (aborted)"}
+                  </SpecRow>
+                ) : potentialReward !== null ? (
+                  <SpecRow label="Est. Reward">{formatAvax(potentialReward)}</SpecRow>
+                ) : tx.estimatedReward ? (
+                  <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>
+                ) : null}
                 {/* A continuous validator's reward never commits/aborts:
                     each renewal restakes the compound share and mints the
                     rest straight into state (shown in the fund flow). The
@@ -333,7 +392,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
             </Section>
           )}
 
-          {/* Continuous staking (Granite auto-renew family) */}
+          {/* Continuous staking (Helicon auto-renew family) */}
           {hasContinuous && (
             <Section label="Continuous Staking">
               <SpecPlate>
