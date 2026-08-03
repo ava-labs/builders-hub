@@ -254,8 +254,10 @@ describe("admin scope", () => {
     expect(overview.engaged_count).toBe(1);
     // 10% of accepted volume over engaged requests (28k -> 2.8k)
     expect(overview.fees_not_paid_usd).toBe(2800);
-    // engaged with no decision on file -> the amber tile (board 2a)
-    expect(overview.needs_approval_count).toBe(1);
+    // engaged with no decision on file -> the "Decide subsidy" tile
+    expect(overview.needs_subsidy_count).toBe(1);
+    // the approval gate's own queue is a separate number
+    expect(overview.pending_review_count).toBe(0);
   });
 
   it("filters by derived status and flags needs_approval", async () => {

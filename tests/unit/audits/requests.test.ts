@@ -39,7 +39,10 @@ vi.mock("@/prisma/prisma", () => ({
   },
 }));
 
-vi.mock("@/server/services/audits/fanout", () => ({
+// Only the send is mocked; toFanoutRequest is a pure mapper and the reopen
+// path depends on its real output shape.
+vi.mock("@/server/services/audits/fanout", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/services/audits/fanout")>()),
   deliverFanoutEmails: deliverFanoutEmailsMock,
 }));
 

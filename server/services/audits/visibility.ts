@@ -324,7 +324,9 @@ export interface AdminOverview {
   /** 10% of accepted volume over engaged requests: what Areta would have charged. */
   fees_not_paid_usd: number;
   /** Engaged requests with no subsidy decision on file (the amber tile, board 2a). */
-  needs_approval_count: number;
+  needs_subsidy_count: number;
+  /** Submissions waiting on the approval gate: nothing has been emailed yet. */
+  pending_review_count: number;
 }
 
 export type AdminSubsidyState = "needs_approval" | "approved" | "declined" | null;
@@ -457,8 +459,9 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     median_quote_usd: median,
     engaged_count: engaged.length,
     fees_not_paid_usd: Math.round(acceptedVolume * 0.1),
-    needs_approval_count: engaged.filter((entry) => entry.row.subsidy_decisions.length === 0)
+    needs_subsidy_count: engaged.filter((entry) => entry.row.subsidy_decisions.length === 0)
       .length,
+    pending_review_count: mapped.filter((entry) => entry.display === "pending_review").length,
   };
 }
 

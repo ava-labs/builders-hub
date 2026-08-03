@@ -8,9 +8,13 @@ const NEUTRAL = "border-zinc-300 text-zinc-600 dark:border-white/15 dark:text-zi
 const GREEN =
   "border-emerald-600/35 text-emerald-700 dark:border-emerald-400/35 dark:text-emerald-400";
 const BLUE = "border-info/35 text-info dark:border-info-soft/40 dark:text-info-soft";
+const AMBER = "border-amber-700/35 text-amber-700 dark:border-amber-400/35 dark:text-amber-400";
 
 const REQUEST_STATUS: Record<string, { label: string; tone: string }> = {
   draft: { label: "Draft", tone: NEUTRAL },
+  // Amber is the needs-action hue: this one is waiting on the program team.
+  pending_review: { label: "Awaiting approval", tone: AMBER },
+  rejected: { label: "Not approved", tone: NEUTRAL },
   collecting: { label: "Collecting quotes", tone: GREEN },
   deciding: { label: "Quotes ready", tone: BLUE },
   engaged: { label: "Engaged", tone: NEUTRAL },

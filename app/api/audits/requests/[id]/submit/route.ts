@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { RouteParams } from "@/lib/protectedRoute";
-import { submitRequestAndFanout } from "@/server/services/audits/fanout";
+import { submitRequestForReview } from "@/server/services/audits/fanout";
 import { applyRateLimit, DAY_MS, requireProjectUser } from "@/app/api/audits/utils";
 
 export async function POST(_request: NextRequest, context: RouteParams<{ id: string }>) {
@@ -14,7 +14,7 @@ export async function POST(_request: NextRequest, context: RouteParams<{ id: str
   const { id } = await context.params;
 
   try {
-    const result = await submitRequestAndFanout(id, caller.userId);
+    const result = await submitRequestForReview(id, caller.userId);
     if (!result.success && result.code === "not_found") {
       return NextResponse.json(
         { success: false, message: "Draft not found or already submitted." },
@@ -27,11 +27,9 @@ export async function POST(_request: NextRequest, context: RouteParams<{ id: str
         { status: 400 },
       );
     }
-    return NextResponse.json({
-      success: true,
-      auditorCount: result.auditorCount,
-      emailFailures: result.emailFailures,
-    });
+    // No counts to report: nothing has been sent to anyone yet, the request
+    // is queued for admin review.
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[Audits] submit failed:", err);
     return NextResponse.json(

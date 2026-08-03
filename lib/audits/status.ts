@@ -3,13 +3,25 @@
 // source of the allowed values, and display states are DERIVED at read time
 // so no cron ever has to flip a stored status.
 
-export const STORED_REQUEST_STATUSES = ["draft", "collecting", "engaged", "withdrawn"] as const;
+// "pending_review" is where every submission now lands: nothing reaches an
+// auditor until an admin approves it, so a bad request cannot spam the
+// whitelist. "rejected" is the terminal side of that decision.
+export const STORED_REQUEST_STATUSES = [
+  "draft",
+  "pending_review",
+  "rejected",
+  "collecting",
+  "engaged",
+  "withdrawn",
+] as const;
 export type StoredRequestStatus = (typeof STORED_REQUEST_STATUSES)[number];
 
 // "deciding" (quotes ready) and "expired" exist only at read time:
 // collecting past its deadline becomes deciding with quotes, expired without.
 export const DISPLAY_REQUEST_STATUSES = [
   "draft",
+  "pending_review",
+  "rejected",
   "collecting",
   "deciding",
   "engaged",
@@ -48,6 +60,8 @@ export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number];
 
 export const AUDIT_EVENT_ACTIONS = [
   "request_submitted",
+  "request_approved",
+  "request_rejected",
   "fanout_created",
   "quote_submitted",
   "quote_updated",

@@ -2,40 +2,101 @@ import { prisma } from "@/prisma/prisma";
 import { auditSubmitSchema } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { sendFanoutNotification } from "@/server/services/audits/emails/sendFanoutNotification";
+import type { FanoutRequest } from "@/server/services/audits/emails/sendFanoutNotification";
 
 const DAY = 24 * 60 * 60 * 1000;
 
 export type SubmitResult =
-  | { success: true; auditorCount: number; emailFailures: number }
+  | { success: true }
   | { success: false; code: "not_found" }
   | { success: false; code: "invalid"; errors: Record<string, string[] | undefined> };
 
-type TxOutcome =
+export type ApprovalResult =
+  | { success: true; auditorCount: number; emailFailures: number }
+  | { success: false; code: "not_found" };
+
+type SubmitOutcome =
   | { kind: "not_found" }
   | { kind: "invalid"; errors: Record<string, string[] | undefined> }
+  | { kind: "ok" };
+
+type ApproveOutcome =
+  | { kind: "not_found" }
   | {
       kind: "ok";
       auditors: { id: string; firm_name: string; quote_email: string }[];
-      request: {
-        project_name: string;
-        quote_deadline: Date;
-        services: string[];
-        nsloc: number | null;
-      };
+      request: FanoutRequest;
     };
 
+/** Everything the fan-out mail needs, selected once and reused. */
+const FANOUT_REQUEST_SELECT = {
+  id: true,
+  project_name: true,
+  quote_deadline: true,
+  services: true,
+  nsloc: true,
+  description: true,
+  scope: true,
+  project_types: true,
+  languages: true,
+  frameworks: true,
+  repos: true,
+  deployment_target: true,
+  multichain: true,
+  needed_by: true,
+  urgency: true,
+} as const;
+
+type FanoutRow = {
+  id: string;
+  project_name: string;
+  quote_deadline: Date | null;
+  services: string[];
+  nsloc: number | null;
+  description: string;
+  scope: string;
+  project_types: string[];
+  languages: string[];
+  frameworks: string[];
+  repos: unknown;
+  deployment_target: string;
+  multichain: boolean;
+  needed_by: Date | null;
+  urgency: string | null;
+};
+
+export function toFanoutRequest(row: FanoutRow): FanoutRequest {
+  return {
+    id: row.id,
+    project_name: row.project_name,
+    quote_deadline: row.quote_deadline,
+    services: row.services,
+    nsloc: row.nsloc,
+    description: row.description,
+    scope: row.scope,
+    project_types: row.project_types,
+    languages: row.languages,
+    frameworks: row.frameworks,
+    repo_count: Array.isArray(row.repos) ? row.repos.length : 0,
+    deployment_target: row.deployment_target,
+    multichain: row.multichain,
+    needed_by: row.needed_by,
+    urgency: row.urgency,
+  };
+}
+
 /**
- * Submission = one transaction (validate the stored row, flip it to
- * collecting, create one AuditFanoutDelivery per ACTIVE firm, log events),
- * then emails AFTER commit. An email failure NEVER fails the submission: it
- * degrades that delivery to email_status "failed", visible in the admin
- * drill-down. Quotes are not pre-created; auditors create their own.
+ * Submission validates the stored row and parks it in "pending_review".
+ * NOTHING reaches an auditor here: no delivery rows, no email. An admin has
+ * to approve first, which is what stops the whitelist being spammed by
+ * low-quality or hostile requests. The quote deadline is deliberately NOT
+ * stamped yet, so a slow review never eats into the firms' quoting window.
  */
-export async function submitRequestAndFanout(
+export async function submitRequestForReview(
   requestId: string,
   userId: string,
 ): Promise<SubmitResult> {
-  const outcome = await prisma.$transaction(async (tx): Promise<TxOutcome> => {
+  const outcome = await prisma.$transaction(async (tx): Promise<SubmitOutcome> => {
     // Owner + draft pinned in the where clause: nobody submits someone
     // else's request, and nothing already submitted can be resubmitted.
     const row = await tx.auditRequest.findFirst({
@@ -49,18 +110,61 @@ export async function submitRequestAndFanout(
       return { kind: "invalid", errors: parsed.error.flatten().fieldErrors };
     }
 
+    await tx.auditRequest.update({
+      where: { id: row.id },
+      data: {
+        status: "pending_review",
+        submitted_at: new Date(),
+        // Store the normalized (lowercased) contact email from the gate.
+        contact_email: parsed.data.contact_email,
+      },
+    });
+
+    await tx.auditEventLog.create({
+      data: {
+        request_id: row.id,
+        actor_type: "project_user",
+        actor_id: userId,
+        action: "request_submitted",
+        meta: { project_name: row.project_name },
+      },
+    });
+
+    return { kind: "ok" };
+  });
+
+  if (outcome.kind === "not_found") return { success: false, code: "not_found" };
+  if (outcome.kind === "invalid") return { success: false, code: "invalid", errors: outcome.errors };
+  return { success: true };
+}
+
+/**
+ * The admin decision that actually opens a request to the market: flip to
+ * collecting, START the quote window here (board B-4), create one delivery
+ * per ACTIVE firm, then email AFTER commit. An email failure NEVER fails the
+ * approval: it degrades that delivery to email_status "failed", visible in
+ * the drill-down. Quotes are not pre-created; auditors create their own.
+ */
+export async function approveRequestAndFanout(
+  requestId: string,
+  adminUserId: string,
+  adminName: string,
+): Promise<ApprovalResult> {
+  const outcome = await prisma.$transaction(async (tx): Promise<ApproveOutcome> => {
+    // Status pinned in the where clause: a second approval is a no-op, so a
+    // double click can never fan out twice.
+    const row = await tx.auditRequest.findFirst({
+      where: { id: requestId, status: "pending_review" },
+      select: FANOUT_REQUEST_SELECT,
+    });
+    if (!row) return { kind: "not_found" };
+
     const quote_deadline =
       row.quote_deadline ?? new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
 
     await tx.auditRequest.update({
-      where: { id: row.id },
-      data: {
-        status: "collecting",
-        submitted_at: new Date(),
-        quote_deadline,
-        // Store the normalized (lowercased) contact email from the gate.
-        contact_email: parsed.data.contact_email,
-      },
+      where: { id: row.id, status: "pending_review" },
+      data: { status: "collecting", quote_deadline },
     });
 
     const auditors = await tx.auditor.findMany({
@@ -79,10 +183,10 @@ export async function submitRequestAndFanout(
       data: [
         {
           request_id: row.id,
-          actor_type: "project_user",
-          actor_id: userId,
-          action: "request_submitted",
-          meta: { project_name: row.project_name },
+          actor_type: "admin",
+          actor_id: adminUserId,
+          action: "request_approved",
+          meta: { admin_name: adminName },
         },
         {
           request_id: row.id,
@@ -94,23 +198,43 @@ export async function submitRequestAndFanout(
       ],
     });
 
-    return {
-      kind: "ok",
-      auditors,
-      request: {
-        project_name: row.project_name,
-        quote_deadline,
-        services: row.services,
-        nsloc: row.nsloc,
-      },
-    };
+    return { kind: "ok", auditors, request: toFanoutRequest({ ...row, quote_deadline }) };
   });
 
   if (outcome.kind === "not_found") return { success: false, code: "not_found" };
-  if (outcome.kind === "invalid") return { success: false, code: "invalid", errors: outcome.errors };
 
   const { emailFailures } = await deliverFanoutEmails(requestId, outcome.auditors, outcome.request);
   return { success: true, auditorCount: outcome.auditors.length, emailFailures };
+}
+
+/**
+ * The other side of the decision. Writes nothing to any firm: a rejected
+ * request never had delivery rows to begin with. The reason is admin-side
+ * context on the trail, not project-facing copy.
+ */
+export async function rejectRequest(
+  requestId: string,
+  adminUserId: string,
+  adminName: string,
+  reason: string,
+): Promise<{ success: boolean }> {
+  const updated = await prisma.auditRequest.updateMany({
+    where: { id: requestId, status: "pending_review" },
+    data: { status: "rejected", closed_at: new Date() },
+  });
+  if (updated.count === 0) return { success: false };
+
+  await prisma.auditEventLog.create({
+    data: {
+      request_id: requestId,
+      actor_type: "admin",
+      actor_id: adminUserId,
+      action: "request_rejected",
+      meta: { admin_name: adminName, reason },
+    },
+  });
+
+  return { success: true };
 }
 
 /**
@@ -121,7 +245,7 @@ export async function submitRequestAndFanout(
 export async function deliverFanoutEmails(
   requestId: string,
   auditors: { id: string; firm_name: string; quote_email: string }[],
-  request: { project_name: string; quote_deadline: Date; services: string[]; nsloc: number | null },
+  request: FanoutRequest,
 ): Promise<{ emailFailures: number }> {
   const sends = await Promise.allSettled(
     auditors.map((auditor) => sendFanoutNotification(auditor, request)),

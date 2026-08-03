@@ -3,7 +3,8 @@ import { prisma } from "@/prisma/prisma";
 import { deriveRequestStatus } from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
-import { deliverFanoutEmails } from "@/server/services/audits/fanout";
+import { deliverFanoutEmails, toFanoutRequest } from "@/server/services/audits/fanout";
+import type { FanoutRequest } from "@/server/services/audits/emails/sendFanoutNotification";
 import type { AuditDraftInput } from "@/types/audits";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -67,12 +68,7 @@ type ReopenTxOutcome =
   | {
       kind: "ok";
       auditors: { id: string; firm_name: string; quote_email: string }[];
-      request: {
-        project_name: string;
-        quote_deadline: Date;
-        services: string[];
-        nsloc: number | null;
-      };
+      request: FanoutRequest;
     };
 
 /**
@@ -119,16 +115,7 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
       },
     });
 
-    return {
-      kind: "ok",
-      auditors,
-      request: {
-        project_name: row.project_name,
-        quote_deadline,
-        services: row.services,
-        nsloc: row.nsloc,
-      },
-    };
+    return { kind: "ok", auditors, request: toFanoutRequest({ ...row, quote_deadline }) };
   });
 
   if (outcome.kind !== "ok") return { success: false, code: outcome.kind };

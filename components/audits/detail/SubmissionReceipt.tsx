@@ -8,7 +8,6 @@ interface SubmissionReceiptProps {
   projectName: string;
   submittedAt: Date | null;
   quoteDeadline: Date | null;
-  fanoutCount: number;
 }
 
 const shortDate = (date: Date) =>
@@ -24,19 +23,20 @@ export function SubmissionReceipt({
   projectName,
   submittedAt,
   quoteDeadline,
-  fanoutCount,
 }: SubmissionReceiptProps) {
+  // Nothing has been emailed at this point: the approval gate means the
+  // program team sees the request before any firm does.
   const timeline = [
     {
       when: "NOW",
-      what: "Firms review your scope; quotes appear in My requests as they arrive.",
+      what: "The Ava Labs program team reviews your request, usually within one working day.",
     },
     {
-      when: quoteDeadline ? shortDate(new Date(quoteDeadline)) : "DEADLINE",
-      what: "Quote window closes (10 days). Firms can edit their quotes until then.",
+      when: "NEXT",
+      what: "Once approved, every whitelisted firm is notified and quotes appear in My requests as they arrive.",
     },
     {
-      when: "THEN",
+      when: quoteDeadline ? shortDate(new Date(quoteDeadline)) : "THEN",
       what: "You pick one quote; contacts are revealed both ways and the request closes.",
     },
   ];
@@ -53,10 +53,10 @@ export function SubmissionReceipt({
             Request #{requestId.slice(0, 6).toUpperCase()}
             {submittedAt ? ` · submitted ${formatIsoDateTime(submittedAt)}` : ""}
           </p>
-          <h1 className="v2-display relative mt-2 text-[26px] text-white">Request sent.</h1>
+          <h1 className="v2-display relative mt-2 text-[26px] text-white">Request submitted.</h1>
           <p className="relative mt-2 max-w-[56ch] text-[13px] leading-relaxed text-[#A2AFB2]">
-            {projectName} is now in front of all {fanoutCount} whitelisted firms. They were emailed
-            just now.
+            {projectName} is queued for review. Every whitelisted firm is notified the moment the
+            program team approves it, and nothing is sent before that.
           </p>
         </div>
 

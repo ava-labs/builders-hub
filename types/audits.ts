@@ -128,6 +128,15 @@ export const subsidyDecisionSchema = z.strictObject({
 });
 export type SubsidyDecisionInput = z.infer<typeof subsidyDecisionSchema>;
 
+// The gate that keeps the whitelist from being spammed: an admin approves a
+// submission before any firm hears about it. The reason is admin-side trail
+// context on a rejection, never shown to the project.
+export const requestReviewSchema = z.strictObject({
+  decision: z.enum(["approve", "reject"]),
+  reason: trimmed(2000).optional(),
+});
+export type RequestReviewInput = z.infer<typeof requestReviewSchema>;
+
 export const auditorCreateSchema = z.strictObject({
   firm_name: trimmed(MAX_NAME).min(1, "Firm name is required"),
   quote_email: normalizedEmail,

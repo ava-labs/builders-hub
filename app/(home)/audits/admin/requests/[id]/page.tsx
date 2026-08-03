@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { prisma } from "@/prisma/prisma";
 import { getAdminRequestDetail } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import { QuoteComparison } from "@/components/audits/admin/QuoteComparison";
 import { SubsidyWorksheet } from "@/components/audits/admin/SubsidyWorksheet";
+import { ReviewDecision } from "@/components/audits/admin/ReviewDecision";
 import { ActivityTrail } from "@/components/audits/admin/ActivityTrail";
 
 export default async function AuditAdminDrilldownPage({
@@ -22,6 +24,12 @@ export default async function AuditAdminDrilldownPage({
     (delivery) => delivery.email_status === "failed",
   );
   const latestDecision = detail.subsidy_decisions[0] ?? null;
+  // Pending requests have no delivery rows yet, so the panel counts the
+  // firms that WOULD be notified rather than the ones already notified.
+  const activeAuditorCount =
+    detail.display_status === "pending_review"
+      ? await prisma.auditor.count({ where: { active: true } })
+      : 0;
 
   return (
     <div className="mt-6">
@@ -84,7 +92,9 @@ export default async function AuditAdminDrilldownPage({
         </div>
 
         <div>
-          {accepted ? (
+          {detail.display_status === "pending_review" ? (
+            <ReviewDecision requestId={detail.id} fanoutTarget={activeAuditorCount} />
+          ) : accepted ? (
             <SubsidyWorksheet
               requestId={detail.id}
               firmName={accepted.firm_name}

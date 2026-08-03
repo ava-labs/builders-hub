@@ -20,18 +20,21 @@ import type { OwnerRequestSummary } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG } from "@/components/audits/shared/classes";
 import { RequestCard } from "@/components/audits/landing/RequestCard";
 
-type Filter = "all" | "collecting" | "deciding" | "closed" | "drafts";
+type Filter = "all" | "review" | "collecting" | "deciding" | "closed" | "drafts";
 
 const FILTER_OF_STATUS: Record<string, Exclude<Filter, "all">> = {
+  pending_review: "review",
   collecting: "collecting",
   deciding: "deciding",
   engaged: "closed",
   expired: "closed",
   withdrawn: "closed",
+  rejected: "closed",
   draft: "drafts",
 };
 
 const FILTER_LABELS: Record<Exclude<Filter, "all">, string> = {
+  review: "Awaiting approval",
   collecting: "Collecting quotes",
   deciding: "Quotes ready",
   closed: "Closed",
@@ -77,7 +80,7 @@ export function MyRequestsList({
       const key = FILTER_OF_STATUS[request.display_status] ?? "closed";
       return { ...acc, [key]: acc[key] + 1 };
     },
-    { collecting: 0, deciding: 0, closed: 0, drafts: 0 },
+    { review: 0, collecting: 0, deciding: 0, closed: 0, drafts: 0 },
   );
 
   const visible =

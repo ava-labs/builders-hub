@@ -27,7 +27,10 @@ export default async function AuditAdminLayout({ children }: { children: React.R
             No pings by design · this page is the feed
           </p>
         </div>
-        <AdminNav needsApprovalCount={overview.needs_approval_count} />
+        {/* Everything waiting on an admin: requests to let out plus subsidy
+            decisions. The program sends no pings, so this badge is the only
+            signal a queue exists (board O-3c option i). */}
+        <AdminNav needsApprovalCount={overview.pending_review_count + overview.needs_subsidy_count} />
         {children}
       </div>
     </main>

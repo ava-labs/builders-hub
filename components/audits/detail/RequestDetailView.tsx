@@ -257,6 +257,20 @@ export function RequestDetailView({
           />
         ) : null}
 
+        {status === "pending_review" ? (
+          <StateCard
+            title="Waiting for the program team to approve it."
+            body="Ava Labs reviews every request before it reaches the whitelist, usually within one working day. No firm has been notified yet, and the quote window starts on approval so you lose no time."
+          />
+        ) : null}
+
+        {status === "rejected" ? (
+          <StateCard
+            title="This request was not approved."
+            body="It was not sent to any firm. Contact the program team if you would like to know more, or start a new request with an updated scope."
+          />
+        ) : null}
+
         <RequestSummary detail={detail} />
       </div>
     </div>

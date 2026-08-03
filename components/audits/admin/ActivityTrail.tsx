@@ -35,6 +35,18 @@ function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
   switch (event.action) {
     case "request_submitted":
       return `Request submitted${typeof meta.project_name === "string" ? ` by ${meta.project_name}` : ""}`;
+    case "request_approved":
+      return ["Request approved for fan-out", admin ? `by ${admin}` : null]
+        .filter(Boolean)
+        .join(" · ");
+    case "request_rejected":
+      return [
+        "Request rejected",
+        admin ? `by ${admin}` : null,
+        typeof meta.reason === "string" && meta.reason ? meta.reason : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
     case "fanout_created":
       return `Fanned out to ${typeof meta.auditor_count === "number" ? meta.auditor_count : "all"} whitelisted firms${fanoutFirmsSuffix(fanoutFirms)}`;
     case "quote_submitted":

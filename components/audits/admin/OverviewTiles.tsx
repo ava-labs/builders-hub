@@ -16,10 +16,18 @@ export function OverviewTiles({ overview }: { overview: AdminOverview }) {
       sub: `${overview.open_closing_this_week} close this week`,
     },
     {
+      // "Needs approval" now belongs to the request gate, so the subsidy
+      // queue says what it actually is (Federico, 2026-08-03).
       label: "Needs approval",
-      value: String(overview.needs_approval_count),
+      value: String(overview.pending_review_count),
+      sub: "submitted, not sent out yet",
+      tone: overview.pending_review_count > 0 ? ("amber" as const) : undefined,
+    },
+    {
+      label: "Decide subsidy",
+      value: String(overview.needs_subsidy_count),
       sub: "engaged, no decision yet",
-      tone: overview.needs_approval_count > 0 ? ("amber" as const) : undefined,
+      tone: overview.needs_subsidy_count > 0 ? ("amber" as const) : undefined,
     },
     {
       label: "Quotes collected",

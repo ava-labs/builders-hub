@@ -24,13 +24,15 @@ export default async function AuditRequestPage({ params, searchParams }: AuditRe
 
   return (
     <main className="container relative max-w-[1400px]">
-      {submitted === "1" && detail.status === "collecting" ? (
+      {/* Submission now lands in pending_review, and the receipt is the
+          screen that explains the wait. Collecting stays valid so an
+          approved request keeps a shareable receipt URL. */}
+      {submitted === "1" && (detail.status === "pending_review" || detail.status === "collecting") ? (
         <SubmissionReceipt
           requestId={detail.id}
           projectName={detail.project_name || "Your request"}
           submittedAt={detail.submitted_at}
           quoteDeadline={detail.quote_deadline}
-          fanoutCount={detail.fanout_count}
         />
       ) : (
         <RequestDetailView detail={detail} userId={session.user.id} />
