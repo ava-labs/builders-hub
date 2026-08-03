@@ -32,7 +32,13 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
 
   return (
     <div className={`${CARD} space-y-4 p-5`}>
-      <p className={MONO_LABEL_SM}>Your request · what every firm received</p>
+      {/* Before approval no firm has received anything, and claiming
+          otherwise is the one line that makes the gate look broken. */}
+      <p className={MONO_LABEL_SM}>
+        {detail.status === "pending_review" || detail.status === "rejected"
+          ? "Your request · what firms will receive"
+          : "Your request · what every firm received"}
+      </p>
       {detail.description ? <SummaryRow label="Project">{detail.description}</SummaryRow> : null}
       {detail.scope ? (
         <SummaryRow label="Scope">

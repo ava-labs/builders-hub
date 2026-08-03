@@ -6,28 +6,23 @@ import { ROW_ENTER } from "@/components/audits/shared/motion";
 const kUsd = (value: number) => `$${(value / 1000).toFixed(value >= 100_000 ? 0 : 1)}k`;
 
 /** Stat tiles (design 1a + 2a). Every number is derived at read time; figures
- * live in the mono slot. "Needs approval" rides second so the 2-up mobile
- * grid promotes it next to open requests (board 2a). */
+ * live in the mono slot. The row is capped at SIX: a seventh wraps into an
+ * orphan on its own line. The two things that wait on an admin are therefore
+ * one "Waiting on you" tile whose sub-line carries the split, which also
+ * makes the queue louder than two half-empty tiles did. */
 export function OverviewTiles({ overview }: { overview: AdminOverview }) {
+  const waiting = overview.pending_review_count + overview.needs_subsidy_count;
   const tiles = [
+    {
+      label: "Waiting on you",
+      value: String(waiting),
+      sub: `${overview.pending_review_count} to approve · ${overview.needs_subsidy_count} to subsidize`,
+      tone: waiting > 0 ? ("amber" as const) : undefined,
+    },
     {
       label: "Open requests",
       value: String(overview.open_requests),
       sub: `${overview.open_closing_this_week} close this week`,
-    },
-    {
-      // "Needs approval" now belongs to the request gate, so the subsidy
-      // queue says what it actually is (Federico, 2026-08-03).
-      label: "Needs approval",
-      value: String(overview.pending_review_count),
-      sub: "submitted, not sent out yet",
-      tone: overview.pending_review_count > 0 ? ("amber" as const) : undefined,
-    },
-    {
-      label: "Decide subsidy",
-      value: String(overview.needs_subsidy_count),
-      sub: "engaged, no decision yet",
-      tone: overview.needs_subsidy_count > 0 ? ("amber" as const) : undefined,
     },
     {
       label: "Quotes collected",
