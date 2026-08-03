@@ -242,7 +242,17 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           staked: false,
         }))
       : [];
-  const flowEmitted = tx ? (rewardEmitted.length ? [...tx.emittedUtxos, ...rewardEmitted] : tx.emittedUtxos) : [];
+  // The indexer serves payout UTXOs in emittedUtxos directly (2026-08-03:
+  // classic reward txs too, parented to the staking tx with canonical
+  // indices). When the API returns ANY emitted UTXOs they are authoritative;
+  // the node fetch remains only as a fallback for un-reindexed history.
+  // (Per-key dedupe can't work here: API and node encode different parents
+  // for the same classic payout.)
+  const flowEmitted = tx
+    ? tx.emittedUtxos.length
+      ? tx.emittedUtxos
+      : rewardEmitted
+    : [];
 
   return (
     <ExplorerShell chain={chain} network={network}>
@@ -364,15 +374,40 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                     legacy end-of-stake commit/abort vote. */}
                 {tx.details?.rewardPaid !== undefined &&
                   (tx.txType === "RewardAutoRenewedValidatorTx" ? (
-                    <SpecRow label="Reward">
-                      {rewardUtxos === null
-                        ? "Restaked · compounds into the stake"
-                        : rewardUtxos.length === 0
-                          ? "Fully compounded into the stake"
-                          : rewardRestaked !== null
-                            ? `${formatAvax(rewardRestaked)} restaked · ${formatAvax(rewardWithdrawn)} withdrawn`
-                            : `Restaked · ${formatAvax(rewardWithdrawn)} withdrawn`}
-                    </SpecRow>
+                    rewardUtxos === null ? (
+                      <SpecRow label="Reward">Restaked · compounds into the stake</SpecRow>
+                    ) : rewardUtxos.length === 0 ? (
+                      <SpecRow label="Reward">Fully compounded into the stake</SpecRow>
+                    ) : rewardRestaked !== null ? (
+                      /* known compound ratio → break the cycle reward into
+                         its two destinations on separate lines */
+                      <>
+                        <SpecRow label="Cycle Reward">
+                          {formatAvax(rewardRestaked + rewardWithdrawn)}
+                        </SpecRow>
+                        <SpecRow label="Restaked">
+                          {formatAvax(rewardRestaked)}
+                          <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                            {compoundShares !== null
+                              ? `${(compoundShares / 10_000).toLocaleString("en-US", { maximumFractionDigits: 2 })}% auto-compounded into the stake`
+                              : "compounded into the stake"}
+                          </span>
+                        </SpecRow>
+                        <SpecRow label="Withdrawn">
+                          {formatAvax(rewardWithdrawn)}
+                          <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                            paid out to the reward owner
+                          </span>
+                        </SpecRow>
+                      </>
+                    ) : (
+                      <SpecRow label="Withdrawn">
+                        {formatAvax(rewardWithdrawn)}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          plus a restaked share (compound ratio unavailable)
+                        </span>
+                      </SpecRow>
+                    )
                   ) : (
                     <SpecRow label="Reward Paid">
                       {tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}
