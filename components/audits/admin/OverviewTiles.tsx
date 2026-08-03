@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { AdminOverview } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { ROW_ENTER } from "@/components/audits/shared/motion";
 
 const kUsd = (value: number) => `$${(value / 1000).toFixed(value >= 100_000 ? 0 : 1)}k`;
 
@@ -48,8 +49,14 @@ export function OverviewTiles({ overview }: { overview: AdminOverview }) {
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-      {tiles.map((tile) => (
-        <div key={tile.label} className={cn(CARD, "rounded-[10px] p-[13px_15px]")}>
+      {tiles.map((tile, index) => (
+        // Entrance stagger only (round-4 M4-A): the inbox recipe, no hover
+        // lift · these tiles are not clickable.
+        <div
+          key={tile.label}
+          className={cn(CARD, ROW_ENTER, "fill-mode-backwards rounded-[10px] p-[13px_15px]")}
+          style={{ animationDelay: `${index * 40}ms` }}
+        >
           <p className={MONO_LABEL_SM}>{tile.label}</p>
           <p
             className={cn(

@@ -125,8 +125,15 @@ export function QuoteComparison({
                     {formatIsoDate(quote.earliest_start)}
                     {outside ? <span aria-label="outside the requested window"> ⚠</span> : null}
                   </TableCell>
-                  <TableCell className="max-w-64">
-                    <span className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  {/* w-full + max-w-0 is the trick that makes a table cell
+                      actually shrink (auto layout ignores max-w-64), so the
+                      clamp can bite instead of running off the card edge
+                      (round-4 L4-3). */}
+                  <TableCell className="w-full min-w-56 max-w-0">
+                    <span
+                      className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400"
+                      title={outside ? undefined : quote.message}
+                    >
                       {outside ? "Start is outside the requested window" : quote.message}
                     </span>
                   </TableCell>
