@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { useAvaxUsd, usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
-import { txTypeLabel, type Address, type AddressTxs } from "@/lib/pchain-explorer";
+import { pchainApiPath, txTypeLabel, type Address, type AddressTx, type AddressTxs } from "@/lib/pchain-explorer";
 
 /* Address view: subject, then figures, then activity.
  *
@@ -48,9 +48,12 @@ const UTXO_PAGE = 50;
 /* Transaction paging. The type filter runs client-side because the address
    txs endpoint ignores a `type` param (unlike the /txs list endpoint), so
    the filter can only see what has been loaded, and the UI says so.
-   TX_MAX is the API's own ceiling: it clamps `limit` to 200. */
+   Paging is cursor-based: the endpoint's `truncated` flag is unreliable
+   (false even when `limit` clipped the window, which is why the old
+   Load more never appeared), but `before` works as a strict block-height
+   cursor, so each page fetches below the oldest loaded row instead of
+   refetching an ever-bigger window from the tip. */
 const TX_PAGE = 50;
-const TX_MAX = 200;
 
 /* ---- the summary table ----------------------------------------------
    A real table rather than a grid of stacked cells: labels in their own
@@ -112,18 +115,67 @@ function MetricTable({ rows }: { rows: MetricRow[] }) {
 export function PchainAddress({ chain, network, addr }: { chain: string; network: string; addr: string }) {
   const base = `/explorer/${network}/${chain}`;
   const { data: a, loading, error } = usePchainData<Address>(network, `address/${addr}`);
-  const [txLimit, setTxLimit] = useState(TX_PAGE);
   const { data: history, loading: txsLoading } = usePchainData<AddressTxs>(
     network,
     `address/${addr}/txs`,
-    { limit: txLimit },
+    { limit: TX_PAGE },
   );
+  // pages past the first, appended by the Load more cursor fetches
+  const [olderTxs, setOlderTxs] = useState<AddressTx[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
+  // client-side nav to another address must not carry the old pages over
+  useEffect(() => {
+    setOlderTxs([]);
+    setExhausted(false);
+  }, [network, addr]);
   // mainnet only: Fuji AVAX has no market value to quote
   const avaxUsd = useAvaxUsd(network === "mainnet");
   const [utxoLimit, setUtxoLimit] = useState(UTXO_PAGE);
   const [txType, setTxType] = useState("");
 
-  const txs = history?.txs ?? [];
+  // merged pages, deduped by hash: the cursor overlaps the boundary block
+  // on purpose (see loadOlder), so its rows arrive twice
+  const txs = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: AddressTx[] = [];
+    for (const t of [...(history?.txs ?? []), ...olderTxs]) {
+      if (seen.has(t.txHash)) continue;
+      seen.add(t.txHash);
+      merged.push(t);
+    }
+    return merged;
+  }, [history, olderTxs]);
+
+  async function loadOlder() {
+    const oldest = txs[txs.length - 1];
+    if (!oldest || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      // `before` is strictly-less-than on block height, which would skip a
+      // same-height sibling of the boundary row; +1 re-reads the boundary
+      // block instead and the dedupe above drops the rows already loaded
+      const fetchPage = async (before: number): Promise<AddressTx[]> => {
+        const res = await fetch(pchainApiPath(network, `address/${addr}/txs`, { limit: TX_PAGE, before }));
+        const page = res.ok ? ((await res.json()) as AddressTxs) : null;
+        return page?.txs ?? [];
+      };
+      const rows = await fetchPage(oldest.blockHeight + 1);
+      const known = new Set(txs.map((t) => t.txHash));
+      let fresh = rows.filter((t) => !known.has(t.txHash));
+      if (rows.length < TX_PAGE) {
+        // a short page is the end of the history
+        setExhausted(true);
+      } else if (!fresh.length) {
+        // pathological: the boundary block alone fills a page; step past it
+        fresh = (await fetchPage(oldest.blockHeight)).filter((t) => !known.has(t.txHash));
+        if (!fresh.length) setExhausted(true);
+      }
+      if (fresh.length) setOlderTxs((prev) => [...prev, ...fresh]);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   /* Filter options are derived from what this address has actually done,
      not from the global list of P-Chain tx types. Offering "Create Chain"
@@ -141,8 +193,9 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
   }, [txs]);
 
   const shownTxs = txType ? txs.filter((t) => t.txType === txType) : txs;
-  // more to fetch, and headroom under the API's 200-row ceiling
-  const canLoadMore = Boolean(history?.truncated) && txLimit < TX_MAX;
+  // more pages likely when the window is full; the endpoint's `truncated`
+  // flag can't signal it, so page fullness is the tell
+  const hasMore = !exhausted && txs.length >= TX_PAGE;
 
   const totalRaw = a ? Number(a.balance.total) : 0;
   const lockedRaw = a ? Number(a.balance.locked) : 0;
@@ -285,7 +338,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
           {/* ---------------- activity, full width ---------------- */}
           <section className="flex flex-col gap-4">
             <SectionHeader
-              label={`Transactions${history ? ` · ${shownTxs.length}${!txType && history.truncated ? "+" : ""}` : ""}`}
+              label={`Transactions${history ? ` · ${shownTxs.length}${!txType && hasMore ? "+" : ""}` : ""}`}
               action={
                 txType ? (
                   <button
@@ -355,19 +408,21 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
             {/* The filter is client-side, so "42 Export" means 42 of the rows
                 loaded so far, not of the address's whole history. Say that
                 plainly rather than letting a filtered count read as a total. */}
-            {history?.truncated && (
+            {(hasMore || olderTxs.length > 0) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                {canLoadMore && (
+                {hasMore && (
                   <button
-                    onClick={() => setTxLimit((n) => Math.min(TX_MAX, n + TX_PAGE))}
-                    className="border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+                    onClick={loadOlder}
+                    disabled={loadingMore}
+                    className="border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:cursor-wait disabled:opacity-60 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
                   >
-                    Load more
+                    {loadingMore ? "Loading…" : "Load more"}
                   </button>
                 )}
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  {txType ? "filtering the" : "showing the"} newest {formatNumber(txs.length)}
-                  {!canLoadMore && ", the most this endpoint returns"}
+                  {hasMore
+                    ? `${txType ? "filtering the" : "showing the"} newest ${formatNumber(txs.length)}`
+                    : `showing all ${formatNumber(txs.length)}`}
                 </span>
               </div>
             )}
