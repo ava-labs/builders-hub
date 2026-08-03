@@ -15,7 +15,10 @@ export function FirstRun({
         <>
           Competitive quotes.
           <br />
-          Zero fees.
+          {/* Same brand-word language as the landing hero (round-4 R4-A):
+              ink at rest, the recurring red sheen, a red full stop. */}
+          <span className="audits-word-fill">Zero fees</span>
+          <span className="text-brand">.</span>
         </>
       }
       body="Describe your scope once · every audit firm on the Ava Labs whitelist quotes it. You compare privately and pick one. Run by Ava Labs as a public good."

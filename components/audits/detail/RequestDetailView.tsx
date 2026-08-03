@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Clock } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -196,10 +197,22 @@ export function RequestDetailView({
 
         {status === "deciding" ? (
           <>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Window closed{detail.quote_deadline ? ` ${formatIsoDate(detail.quote_deadline)}` : ""}{" "}
-              · quotes visible only to you and program admins
-            </p>
+            {/* Same banner-card anatomy as CollectingBanner (round-4 R4-B):
+                the two sibling states speak in one voice. */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+              <Clock aria-hidden className="h-4 w-4 shrink-0 text-brand dark:text-brand-soft" />
+              <p className="text-sm">
+                <span className="font-medium">
+                  Window closed
+                  {detail.quote_deadline ? ` ${formatIsoDate(detail.quote_deadline)}` : ""}
+                </span>{" "}
+                <span className="text-zinc-500 dark:text-zinc-400">
+                  · quotes visible only to you and program admins
+                </span>
+              </p>
+              <span className="flex-1" />
+              <p className={MONO_LABEL_SM}>Pick one to reveal contacts</p>
+            </div>
             <QuotesPanel
               quotes={detail.quotes}
               userId={userId}

@@ -87,9 +87,18 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
                   "min-w-0 flex-1 leading-tight max-md:text-[9.5px] md:flex-none",
                 )}
               >
-                {step < WIZARD_STEPS.length - 1
-                  ? "Nothing is sent until step 4"
-                  : "Free · no fees · subsidy reviewed after quotes arrive"}
+                {step < WIZARD_STEPS.length - 1 ? (
+                  "Nothing is sent until step 4"
+                ) : (
+                  <>
+                    {/* The full sentence wraps four lines beside Submit at
+                        375 (round-4 R4-C); mobile keeps the short claim. */}
+                    <span className="sm:hidden">Free · no fees</span>
+                    <span className="hidden sm:inline">
+                      Free · no fees · subsidy reviewed after quotes arrive
+                    </span>
+                  </>
+                )}
               </p>
               <span className="hidden flex-1 md:block" />
               {step < WIZARD_STEPS.length - 1 ? (

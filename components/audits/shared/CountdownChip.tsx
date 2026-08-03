@@ -26,6 +26,9 @@ interface CountdownChipProps {
   palette?: "default" | "portal";
   /** Bordered dot-pill form (portal cards, board 1b); default stays inline text. */
   pill?: boolean;
+  /** Force the closed rendering regardless of the deadline: acceptance can
+      close a window early, before its timestamp passes. */
+  closed?: boolean;
   className?: string;
 }
 
@@ -40,14 +43,16 @@ const CLOSED_PILL = "border-zinc-300 text-zinc-600 dark:border-white/15 dark:tex
 /**
  * Live deadline countdown. Renders nothing until mounted (the mount gate from
  * components/ui/custom-countdown-banner.tsx) so server and client HTML never
- * disagree. Countdown urgency is the one red text moment: <=7 days turns
- * brand red.
+ * disagree. Inline text tiers with distance (round-4 X4-A): red <=3 days,
+ * amber 4-7, quiet ink beyond. The pill keeps red at <=7 days: portal triage
+ * reads a whole week as urgent.
  */
 export function CountdownChip({
   deadline,
   prefix,
   palette = "default",
   pill = false,
+  closed = false,
   className,
 }: CountdownChipProps) {
   const [now, setNow] = useState<Date | null>(null);
@@ -61,11 +66,13 @@ export function CountdownChip({
   if (!now) return null;
 
   const target = new Date(deadline);
-  const remaining = formatRemaining(target, now);
-  const urgent = target.getTime() - now.getTime() <= 7 * DAY;
+  const remaining = closed ? null : formatRemaining(target, now);
+  const msLeft = target.getTime() - now.getTime();
+  const urgent = msLeft <= 3 * DAY;
+  const soon = msLeft <= 7 * DAY;
 
   if (pill) {
-    const tone = !remaining ? CLOSED_PILL : urgent ? URGENT_PILL : CALM_PILL;
+    const tone = !remaining ? CLOSED_PILL : soon ? URGENT_PILL : CALM_PILL;
     return (
       <span
         className={cn(
@@ -87,7 +94,11 @@ export function CountdownChip({
         <span
           className={cn(
             "font-medium",
-            urgent ? URGENT_TEXT : palette === "portal" ? CALM_TEXT : "text-zinc-900 dark:text-zinc-100",
+            urgent
+              ? URGENT_TEXT
+              : soon || palette === "portal"
+                ? CALM_TEXT
+                : "text-zinc-900 dark:text-zinc-100",
           )}
         >
           {remaining}
