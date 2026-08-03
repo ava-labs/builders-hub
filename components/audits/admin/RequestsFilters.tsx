@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 const ALL = "all";
 
 const STATUS_OPTIONS = [
+  // First, because it is the only one that waits on an admin.
+  { value: "pending_review", label: "Awaiting approval" },
   { value: "collecting", label: "Collecting" },
   { value: "deciding", label: "Quotes ready" },
   { value: "engaged", label: "Engaged" },

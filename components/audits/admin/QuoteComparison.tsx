@@ -38,25 +38,40 @@ export function QuoteComparison({
   displayStatus,
   neededBy,
 }: QuoteComparisonProps) {
-  const headerMeta = [
-    ...(submittedAt ? [`fan-out ${formatIsoDate(submittedAt)}`] : []),
-    ...(quoteDeadline
-      ? [
-          `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatIsoDate(quoteDeadline)}`,
-        ]
-      : []),
-  ].join(" · ");
+  // Before approval there has been no fan-out and no window, so the usual
+  // "fan-out {date} · window closed {date}" line would state two things that
+  // never happened.
+  const awaitingReview = displayStatus === "pending_review";
+  const headerMeta = awaitingReview
+    ? [
+        ...(submittedAt ? [`submitted ${formatIsoDate(submittedAt)}`] : []),
+        "no firm notified yet",
+      ].join(" · ")
+    : [
+        ...(submittedAt ? [`fan-out ${formatIsoDate(submittedAt)}`] : []),
+        ...(quoteDeadline
+          ? [
+              `window ${displayStatus === "collecting" ? "closes" : "closed"} ${formatIsoDate(quoteDeadline)}`,
+            ]
+          : []),
+      ].join(" · ");
 
   if (quotes.length === 0) {
     return (
       <div className={CARD}>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-zinc-200 px-4 py-3 dark:border-white/10">
-          <p className="text-sm font-semibold">Quotes · 0 of {fanoutCount} firms responded</p>
+          <p className="text-sm font-semibold">
+            {awaitingReview ? "Quotes · awaiting approval" : `Quotes · 0 of ${fanoutCount} firms responded`}
+          </p>
           {headerMeta ? (
             <p className="text-xs text-zinc-500 dark:text-zinc-400">{headerMeta}</p>
           ) : null}
         </div>
-        <p className="p-5 text-sm text-zinc-500 dark:text-zinc-400">No quotes yet.</p>
+        <p className="p-5 text-sm text-zinc-500 dark:text-zinc-400">
+          {awaitingReview
+            ? "Firms can quote as soon as you approve this request."
+            : "No quotes yet."}
+        </p>
       </div>
     );
   }

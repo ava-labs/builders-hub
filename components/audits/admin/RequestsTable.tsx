@@ -99,7 +99,11 @@ export function RequestsTable({ rows }: { rows: AdminRequestRow[] }) {
                 {row.submitted_at ? formatIsoDate(row.submitted_at) : "·"}
               </TableCell>
               <TableCell className="font-mono text-xs">
-                {row.quote_deadline ? (
+                {/* A request awaiting approval has no window yet: it opens on
+                    approval, so "Closed" would be a lie either way. */}
+                {row.display_status === "pending_review" ? (
+                  <span className="text-zinc-500 dark:text-zinc-400">Starts on approval</span>
+                ) : row.quote_deadline ? (
                   row.display_status === "collecting" ? (
                     <span>
                       {formatIsoDate(row.quote_deadline)}{" "}

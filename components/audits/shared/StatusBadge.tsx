@@ -30,6 +30,12 @@ const QUOTE_STATUS: Record<string, { label: string; tone: string }> = {
   expired: { label: "Expired", tone: NEUTRAL },
 };
 
+/** "pending_review" -> "Pending review". */
+function humanize(status: string): string {
+  const spaced = status.replace(/_/g, " ").trim();
+  return spaced.length > 0 ? `${spaced[0].toUpperCase()}${spaced.slice(1)}` : status;
+}
+
 interface StatusBadgeProps {
   status: string;
   kind?: "request" | "quote";
@@ -48,7 +54,10 @@ export function StatusBadge({
   className,
 }: StatusBadgeProps) {
   const map = kind === "quote" ? QUOTE_STATUS : REQUEST_STATUS;
-  const mapped = map[status] ?? { label: status, tone: NEUTRAL };
+  // Stored statuses are snake_case; an unmapped one used to surface raw
+  // ("pending_review") straight into the UI. Humanize the fallback so a new
+  // status can never leak database vocabulary to a reader again.
+  const mapped = map[status] ?? { label: humanize(status), tone: NEUTRAL };
   const entry = { label: label ?? mapped.label, tone: mapped.tone };
   return (
     <span
