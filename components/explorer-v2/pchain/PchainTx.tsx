@@ -1081,6 +1081,15 @@ function UtxoColumn({ base, title, utxos, side }: { base: string; title: string;
                 spent in {truncate(u.consumingTxHash, 12)} →
               </Link>
             )}
+            {/* walk any UTXO backward through delegations/transfers */}
+            {u.txHash && side === "in" && (
+              <Link
+                href={`${base}/tx/${u.txHash}`}
+                className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
+              >
+                ← created in {truncate(u.txHash, 12)}
+              </Link>
+            )}
           </div>
         ))}
       </Board>
