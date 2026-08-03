@@ -360,7 +360,11 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
 
   const windowed = useMemo(() => (daily ?? []).slice(-RANGE_DAYS[range]), [daily, range]);
   const isHourly = range === "day";
-  const windowLabel = isHourly ? "last 48 hours" : RANGE_LABEL[range];
+  const windowLabel = isHourly
+    ? "last 48 hours"
+    : range === "all"
+      ? `${RANGE_LABEL.year} · longest window`
+      : RANGE_LABEL[range];
 
   // the window's story in three numbers: typical, spike, floor
   const stats = useMemo(() => {

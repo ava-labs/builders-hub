@@ -19,7 +19,7 @@ import {
   idInk,
   txToneText,
 } from "@/components/explorer-v2/ui";
-import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   usePrimaryMetrics,
   toSeries,
@@ -31,7 +31,7 @@ import { formatAvax, formatNumber, timeAgo, truncate } from "@/components/explor
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import type { Stats, TxSummary, BlockSummary } from "@/lib/pchain-explorer";
+import { txTypeLabel, type Stats, type TxSummary, type BlockSummary } from "@/lib/pchain-explorer";
 
 /* The /api/pchain-activity contract: staking money-flow, not tx counts.
    Rewards paid ride red (stake moving = the chain alive); stake about to
@@ -94,8 +94,10 @@ interface StatDef {
    in the metric's own unit — absolute heads, not percents */
 function levelDiff(points: SeriesPoint[], n: number): number | null {
   const cur = points[points.length - 1];
-  const prev = points[points.length - 1 - n];
-  if (!cur || !prev) return null;
+  // a window wider than the history (the ALL tick) reads from the first
+  // point: the diff becomes "since the series began"
+  const prev = points[Math.max(0, points.length - 1 - n)];
+  if (!cur || !prev || cur === prev) return null;
   return cur.value - prev.value;
 }
 
@@ -237,7 +239,7 @@ function MainnetChainStats({
     <ChainStatsBoard
       action={
         <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-          Last {RANGE_LABEL[clock]}
+          {rangeWindowLabel(clock)}
         </span>
       }
       cells={buildStatCells(s, totalStake, stakingRatio, base, {
@@ -511,7 +513,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                       {truncate(t.txHash, 22)}
                     </span>
                     <span className="min-w-0 text-left">
-                      <TxTypePill type={t.txType.replace(/Tx$/, "")} />
+                      <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                       {timeAgo(t.blockTimestamp)}

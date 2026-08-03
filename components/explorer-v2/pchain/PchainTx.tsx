@@ -7,11 +7,14 @@ import {
   PRIMARY_SUBNET_ID,
   bytesToHex,
   decodeL1WarpMessage,
+  getCurrentValidators,
   getPlatformTx,
+  getRewardUtxos,
   hexToNodeId,
   type DecodedL1WarpMessage,
   type L1InitialValidator,
   type PlatformUnsignedTx,
+  type RewardUtxo,
 } from "@/lib/pchain-node";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import {
@@ -77,6 +80,110 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // and the full-width initial-validator-set table); on a 404 it doubles
   // as the authoritative "does this tx exist on-chain at all?" check
   const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || isCreateChain || notFound);
+
+  // Reward payouts are minted directly into P-Chain state keyed by this
+  // tx, never as tx outputs, so the indexer's emittedUtxos is always
+  // empty here and only the node knows about them
+  const isRewardTx =
+    tx?.txType === "RewardValidatorTx" || tx?.txType === "RewardAutoRenewedValidatorTx";
+  const [rewardUtxos, setRewardUtxos] = useState<RewardUtxo[] | null>(null);
+  useEffect(() => {
+    if (!isRewardTx) return;
+    let cancelled = false;
+    getRewardUtxos(network, txHash).then((utxos) => {
+      if (!cancelled) setRewardUtxos(utxos);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isRewardTx, network, txHash]);
+  const rewardWithdrawn = rewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
+
+  // the split needs the staker's compound ratio: withdrawn is the
+  // (1 - c) share minted to the owner, so restaked = withdrawn * c/(1-c)
+  const stakingTxId = tx?.details?.stakingTxId;
+  const [compoundShares, setCompoundShares] = useState<number | null>(null);
+  useEffect(() => {
+    if (tx?.txType !== "RewardAutoRenewedValidatorTx" || !stakingTxId) return;
+    let cancelled = false;
+    fetch(`/api/pchain/${network}/tx/${stakingTxId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((staker: Tx | null) => {
+        if (!cancelled && typeof staker?.autoCompoundRewardShares === "number") {
+          setCompoundShares(staker.autoCompoundRewardShares);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [tx?.txType, stakingTxId, network]);
+  // avalanchego's PercentDenominator for reward shares
+  const SHARES_DENOM = 1_000_000;
+  const rewardRestaked =
+    compoundShares !== null && compoundShares > 0 && compoundShares < SHARES_DENOM && rewardWithdrawn > 0
+      ? Math.round((rewardWithdrawn * compoundShares) / (SHARES_DENOM - compoundShares))
+      : null;
+
+  // a live continuous validator carries its compounded stake in the
+  // current validator set: weight minus the original stake is every
+  // renewal's restake to date
+  const isContinuousStaker = tx?.txType === "AddAutoRenewedValidatorTx";
+  const [liveWeight, setLiveWeight] = useState<number | null>(null);
+  useEffect(() => {
+    if (!isContinuousStaker || !tx?.nodeId) return;
+    let cancelled = false;
+    getCurrentValidators(network, PRIMARY_SUBNET_ID, [tx.nodeId]).then((validators) => {
+      if (cancelled || !validators?.length) return;
+      const weight = Number(validators[0].weight);
+      if (Number.isFinite(weight) && weight > 0) setLiveWeight(weight);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isContinuousStaker, network, tx?.nodeId]);
+  const initialStake = tx?.amountStaked?.reduce((sum, a) => sum + Number(a.amount || 0), 0) ?? 0;
+  const restakedToDate =
+    liveWeight !== null && initialStake > 0 && liveWeight > initialStake ? liveWeight - initialStake : null;
+
+  // reward UTXOs join the fund flow as emitted outputs (the diagram
+  // already tones Reward* txs' outputs as rewards)
+  const rewardEmitted: Utxo[] =
+    tx && rewardUtxos?.length
+      ? rewardUtxos.map((u) => ({
+          addresses: u.addresses.map((a) => a.replace(/^P-/, "")),
+          utxoId: `${tx.txHash}:${u.outputIndex}`,
+          txHash: tx.txHash,
+          outputIndex: u.outputIndex,
+          blockTimestamp: tx.blockTimestamp,
+          blockNumber: tx.blockNumber,
+          assetId: "",
+          asset: {
+            assetId: "",
+            name: "Avalanche",
+            symbol: "AVAX",
+            denomination: 9,
+            amount: String(u.amount),
+          },
+          utxoType: "reward",
+          amount: String(u.amount),
+          platformLocktime: u.locktime,
+          threshold: u.threshold,
+          createdOnChainId: "",
+          consumedOnChainId: "",
+          staked: false,
+        }))
+      : [];
+  // indexer serves reward payout UTXOs in emittedUtxos directly
+  // node fetch stays as a fallback
+  // dedupe by (txHash, outputIndex) so a UTXO present in both sources doesn't render twice
+  const emittedKeys = new Set((tx?.emittedUtxos ?? []).map((u) => `${u.txHash}:${u.outputIndex}`));
+  const rewardOnlyMissing = rewardEmitted.filter((u) => !emittedKeys.has(`${u.txHash}:${u.outputIndex}`));
+  const flowEmitted = tx
+    ? rewardOnlyMissing.length
+      ? [...tx.emittedUtxos, ...rewardOnlyMissing]
+      : tx.emittedUtxos
+    : [];
 
   return (
     <ExplorerShell chain={chain} network={network}>
@@ -181,9 +288,52 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                   <SpecRow label="End">{formatTime(tx.endTimestamp)}</SpecRow>
                 )}
                 {tx.estimatedReward && <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>}
-                {tx.details?.rewardPaid !== undefined && (
-                  <SpecRow label="Reward Paid">{tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}</SpecRow>
-                )}
+                {/* A continuous validator's reward never commits/aborts:
+                    each renewal restakes the compound share and mints the
+                    rest straight into state (shown in the fund flow). The
+                    indexer's rewardPaid flag only means something for the
+                    legacy end-of-stake commit/abort vote. */}
+                {tx.details?.rewardPaid !== undefined &&
+                  (tx.txType === "RewardAutoRenewedValidatorTx" ? (
+                    rewardUtxos === null ? (
+                      <SpecRow label="Reward">Restaked · compounds into the stake</SpecRow>
+                    ) : rewardUtxos.length === 0 ? (
+                      <SpecRow label="Reward">Fully compounded into the stake</SpecRow>
+                    ) : rewardRestaked !== null ? (
+                      /* known compound ratio → break the cycle reward into
+                         its two destinations on separate lines */
+                      <>
+                        <SpecRow label="Cycle Reward">
+                          {formatAvax(rewardRestaked + rewardWithdrawn)}
+                        </SpecRow>
+                        <SpecRow label="Restaked">
+                          {formatAvax(rewardRestaked)}
+                          <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                            {compoundShares !== null
+                              ? `${(compoundShares / 10_000).toLocaleString("en-US", { maximumFractionDigits: 2 })}% auto-compounded into the stake`
+                              : "compounded into the stake"}
+                          </span>
+                        </SpecRow>
+                        <SpecRow label="Withdrawn">
+                          {formatAvax(rewardWithdrawn)}
+                          <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                            paid out to the reward owner
+                          </span>
+                        </SpecRow>
+                      </>
+                    ) : (
+                      <SpecRow label="Withdrawn">
+                        {formatAvax(rewardWithdrawn)}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          plus a restaked share (compound ratio unavailable)
+                        </span>
+                      </SpecRow>
+                    )
+                  ) : (
+                    <SpecRow label="Reward Paid">
+                      {tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}
+                    </SpecRow>
+                  ))}
                 {tx.details?.stakingTxId && (
                   <SpecRow label="Staking Tx">
                     <HashChip value={tx.details.stakingTxId} href={`${base}/tx/${tx.details.stakingTxId}`} len={20} />
@@ -225,6 +375,16 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                       ? "0% — rewards are fully paid out, nothing restakes"
                       : `${autoCompoundPct(tx)}% of each reward restakes`}
                   </SpecRow>
+                )}
+                {/* compounding shows up as stake weight: the live set's
+                    weight above the original stake is every renewal's
+                    restake so far (only visible while the validator is
+                    in the current set) */}
+                {liveWeight !== null && (
+                  <SpecRow label="Current Stake">{formatAvax(liveWeight)}</SpecRow>
+                )}
+                {restakedToDate !== null && (
+                  <SpecRow label="Restaked To Date">{formatAvax(restakedToDate)}</SpecRow>
                 )}
                 {tx.validatorAuthority?.length ? (
                   <SpecRow label="Config Authority" align="start">
@@ -372,7 +532,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
             />
             {!hasFundMovement({
               consumed: tx.consumedUtxos,
-              emitted: tx.emittedUtxos,
+              emitted: flowEmitted,
               burned: tx.amountBurned,
               importedFrom: tx.importedFrom,
               sourceChain: tx.details?.sourceChain,
@@ -385,7 +545,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
               <Board divide={false} className="px-5 py-6 md:px-6">
                 <FundFlowDiagram
                   consumed={tx.consumedUtxos}
-                  emitted={tx.emittedUtxos}
+                  emitted={flowEmitted}
                   burned={tx.amountBurned}
                   txType={tx.txType}
                   base={base}
@@ -397,8 +557,15 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
             ) : (
               <div className="grid gap-6 lg:grid-cols-2">
                 <UtxoColumn base={base} title={`Consumed · ${tx.consumedUtxos.length}`} utxos={tx.consumedUtxos} side="in" />
-                <UtxoColumn base={base} title={`Emitted · ${tx.emittedUtxos.length}`} utxos={tx.emittedUtxos} side="out" />
+                <UtxoColumn base={base} title={`Emitted · ${flowEmitted.length}`} utxos={flowEmitted} side="out" />
               </div>
+            )}
+            {rewardEmitted.length > 0 && (
+              <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                Reward UTXOs are minted directly into P-Chain state under this transaction&apos;s
+                ID rather than as transaction outputs, so they are read from the node, not the
+                indexer.
+              </p>
             )}
           </section>
         </div>

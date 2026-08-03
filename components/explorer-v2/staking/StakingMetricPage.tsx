@@ -469,7 +469,8 @@ function ApySheet({ base, network }: { base: string; network: string }) {
 function RewardsSheet({ base, network }: { base: string; network: string }) {
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
+  // the money-flow feed's longest window is a year: ALL clamps and says so
+  const rangeLabel = clock === "all" ? `${RANGE_LABEL.year} · longest window` : RANGE_LABEL[clock];
   const { data: metrics, failed } = usePrimaryMetrics();
   const { flow, failed: flowFailed } = useMoneyFlow(network, range);
 
@@ -675,7 +676,8 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
 function ExpirySheet({ base, network }: { base: string; network: string }) {
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  const rangeLabel = RANGE_LABEL[clock];
+  // the unlock schedule reaches a year ahead at most: ALL clamps and says so
+  const rangeLabel = clock === "all" ? `${RANGE_LABEL.year} · longest window` : RANGE_LABEL[clock];
   const { data: metrics } = usePrimaryMetrics();
   const { flow, failed } = useMoneyFlow(network, range);
 
