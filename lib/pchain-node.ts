@@ -69,6 +69,8 @@ export interface CurrentValidator {
   startTime?: string;
   /** nAVAX this validation earns if it serves its full period */
   potentialReward?: string;
+  /** percentage string (e.g. "2.0000") the validator keeps from delegator rewards */
+  delegationFee?: string;
   delegators?: CurrentDelegator[];
   publicKey?: string;
   remainingBalanceOwner?: PchainOwner;

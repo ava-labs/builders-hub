@@ -83,9 +83,9 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // as the authoritative "does this tx exist on-chain at all?" check
   const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || isCreateChain || notFound);
 
-  // Reward payouts are minted directly into P-Chain state keyed by this
-  // tx, never as tx outputs, so the indexer's emittedUtxos is always
-  // empty here and only the node knows about them
+  // Reward payouts are minted directly into P-Chain state, not as tx
+  // outputs. The indexer bridges them into emittedUtxos
+  // the node fetch remains the amount source here and fallback for pages this flow can't cover.
   const isRewardTx =
     tx?.txType === "RewardValidatorTx" || tx?.txType === "RewardAutoRenewedValidatorTx";
   const isClassicRewardTx = tx?.txType === "RewardValidatorTx";
@@ -188,9 +188,28 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   }, [isPrimaryStaker, stakeEnded, network, txHash]);
   const stakeRewardPaid = stakeRewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
 
+  // a delegation's payout mints two reward UTXOs: the delegator's NET reward
+  // (owned by the tx's reward addresses) and the validator's delegation-fee cut
+  // split by owner so the page can answer "what did I actually get, net of fee".
+  const rewardAddrSet = new Set((tx?.rewardAddresses ?? []).map((a) => a.replace(/^P-/, "")));
+  const stakeRewardNet =
+    isDelegatorTx && stakeRewardUtxos?.length && rewardAddrSet.size
+      ? stakeRewardUtxos
+          .filter((u) => u.addresses.some((a) => rewardAddrSet.has(a.replace(/^P-/, ""))))
+          .reduce((sum, u) => sum + u.amount, 0)
+      : null;
+  const stakeRewardFee =
+    stakeRewardNet !== null && stakeRewardNet > 0 && stakeRewardNet < stakeRewardPaid
+      ? stakeRewardPaid - stakeRewardNet
+      : null;
+
   const [potentialReward, setPotentialReward] = useState<number | null>(null);
+  // validator's fee percentage — turns the delegator's GROSS potential
+  // reward into the net estimate they'll actually receive
+  const [validatorFeePct, setValidatorFeePct] = useState<number | null>(null);
   useEffect(() => {
     setPotentialReward(null);
+    setValidatorFeePct(null);
     if (!isPrimaryStaker || stakeEnded || !tx?.nodeId) return;
     let cancelled = false;
     getCurrentValidators(network, PRIMARY_SUBNET_ID, [tx.nodeId]).then((validators) => {
@@ -204,6 +223,8 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           : undefined;
       const n = raw !== undefined ? Number(raw) : NaN;
       if (Number.isFinite(n) && n > 0) setPotentialReward(n);
+      const fee = v.delegationFee !== undefined ? Number(v.delegationFee) : NaN;
+      if (isDelegatorTx && Number.isFinite(fee) && fee >= 0 && fee <= 100) setValidatorFeePct(fee);
     });
     return () => {
       cancelled = true;
@@ -359,11 +380,41 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 {/* the stake's own payout once it ended, the live potential
                     reward until then, the indexer's estimate as fallback */}
                 {stakeRewardUtxos !== null ? (
-                  <SpecRow label="Reward">
-                    {stakeRewardUtxos.length ? formatAvax(stakeRewardPaid) : "None (aborted)"}
-                  </SpecRow>
+                  stakeRewardUtxos.length === 0 ? (
+                    <SpecRow label="Reward">None (aborted)</SpecRow>
+                  ) : stakeRewardNet !== null && stakeRewardFee !== null ? (
+                    /* delegation payout split by UTXO owner: what the
+                       delegator actually received vs the validator's cut */
+                    <>
+                      <SpecRow label="Reward Received">
+                        {formatAvax(stakeRewardNet)}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          net of delegation fee
+                        </span>
+                      </SpecRow>
+                      <SpecRow label="Delegation Fee">
+                        {formatAvax(stakeRewardFee)}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          paid to the validator
+                        </span>
+                      </SpecRow>
+                    </>
+                  ) : (
+                    <SpecRow label="Reward">{formatAvax(stakeRewardPaid)}</SpecRow>
+                  )
                 ) : potentialReward !== null ? (
-                  <SpecRow label="Est. Reward">{formatAvax(potentialReward)}</SpecRow>
+                  <SpecRow label="Est. Reward">
+                    {validatorFeePct !== null && potentialReward > 0 ? (
+                      <>
+                        {formatAvax(Math.round(potentialReward * (1 - validatorFeePct / 100)))}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          net of {validatorFeePct}% delegation fee
+                        </span>
+                      </>
+                    ) : (
+                      formatAvax(potentialReward)
+                    )}
+                  </SpecRow>
                 ) : tx.estimatedReward ? (
                   <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>
                 ) : null}
