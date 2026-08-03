@@ -130,8 +130,17 @@ export function PortalRequestDetail({
         <h1 className="text-2xl font-semibold tracking-tight">
           {view.project_name || "Untitled request"}
         </h1>
-        {view.window_open && view.quote_deadline ? (
-          <CountdownChip deadline={view.quote_deadline} prefix="Closes" palette="portal" />
+        {view.quote_deadline ? (
+          // The dot-pill the inbox cards speak in (round-4 A4-B). closed
+          // covers early close by acceptance: the deadline timestamp can
+          // still be in the future while the window is already shut.
+          <CountdownChip
+            deadline={view.quote_deadline}
+            prefix="Closes"
+            palette="portal"
+            pill
+            closed={!view.window_open}
+          />
         ) : (
           <span className="text-sm text-zinc-500 dark:text-zinc-400">Window closed</span>
         )}

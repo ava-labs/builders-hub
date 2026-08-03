@@ -77,7 +77,10 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
       {step === "email" ? (
         <>
           <h2 className="text-lg font-semibold">Sign in with one-time code</h2>
-          <p className="mt-1.5 text-sm text-zinc-600 dark:text-[#A2AFB2]">
+          {/* Fixed-dark card: every color below the heading is hard dark-safe.
+              Theme-branched classes here resolve against the ROOT theme and
+              rendered gray-on-ink in light mode (round-4 L4-1). */}
+          <p className="mt-1.5 text-sm text-[#A2AFB2]">
             Use your firm&apos;s quote email · the one your invites arrive on.
           </p>
           <form
@@ -108,7 +111,7 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
       ) : (
         <>
           <h2 className="text-lg font-semibold">Check your email</h2>
-          <p className="mt-1.5 text-sm text-zinc-600 dark:text-[#A2AFB2]">
+          <p className="mt-1.5 text-sm text-[#A2AFB2]">
             We sent a 6-digit code to <span className="font-mono">{email.trim().toLowerCase()}</span>.
           </p>
           <div className="mt-4 flex justify-center">
@@ -134,7 +137,7 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
             {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
             Sign in
           </Button>
-          <div className="mt-3 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
+          <div className="mt-3 flex items-center justify-between text-xs text-zinc-400">
             <span>Codes expire after 3 minutes.</span>
             <button
               type="button"
@@ -147,7 +150,7 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
           </div>
         </>
       )}
-      <p className="mt-5 border-t border-zinc-200 pt-4 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+      <p className="mt-5 border-t border-white/10 pt-4 text-xs text-zinc-400">
         Access is invite-only. Firms are vetted and added by the Ava Labs security team · there is
         no self-serve signup.
       </p>

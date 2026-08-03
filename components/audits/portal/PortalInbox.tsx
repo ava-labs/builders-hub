@@ -88,14 +88,28 @@ export function PortalInbox({
   const [tab, setTab] = useState<Tab>("all");
 
   if (items.length === 0) {
-    return (
+    // A deactivated firm with no history still needs the banner (the plain
+    // early return skipped it) and copy that stops promising emails that
+    // will never come (round-4 L4-2).
+    const empty = (
       <EmptyState
         panel
         art={false}
-        headline="No open requests right now"
-        body={`When an ecosystem project requests quotes, it lands here and you get an email at ${quoteEmail}.`}
-        footnote="Nothing to check · the email is the trigger"
+        headline={readOnly ? "No past activity on record" : "No open requests right now"}
+        body={
+          readOnly
+            ? "This firm had no requests or quotes before it was deactivated. New requests no longer fan out to it."
+            : `When an ecosystem project requests quotes, it lands here and you get an email at ${quoteEmail}.`
+        }
+        footnote={readOnly ? undefined : "Nothing to check · the email is the trigger"}
       />
+    );
+    if (!readOnly) return empty;
+    return (
+      <div className="py-10">
+        <DeactivatedBanner />
+        {empty}
+      </div>
     );
   }
 
@@ -203,6 +217,13 @@ export function PortalInbox({
                 <p className="mt-3 flex flex-wrap gap-x-3.5 gap-y-1 font-mono text-[11px] uppercase tracking-[0.04em]">
                   {meta.lead ? (
                     <span className="text-zinc-600 dark:text-[#A2AFB2]">{meta.lead}</span>
+                  ) : null}
+                  {meta.lead && meta.rest ? (
+                    // The strip separates every other segment with a middot;
+                    // this junction only had the flex gap (round-4 L4-4).
+                    <span aria-hidden className="text-zinc-400 dark:text-[#7A8689]">
+                      ·
+                    </span>
                   ) : null}
                   {meta.rest ? (
                     <span className="text-zinc-400 dark:text-[#7A8689]">{meta.rest}</span>
