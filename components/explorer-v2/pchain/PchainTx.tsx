@@ -8,11 +8,13 @@ import {
   bytesToHex,
   decodeL1WarpMessage,
   getCurrentValidators,
+  getL1Validator,
   getPlatformTx,
   getRewardUtxos,
   hexToNodeId,
   type DecodedL1WarpMessage,
   type L1InitialValidator,
+  type L1ValidatorInfo,
   type PlatformUnsignedTx,
   type RewardUtxo,
 } from "@/lib/pchain-node";
@@ -55,7 +57,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       tx.details?.stakingTxId ||
       tx.details?.rewardPaid !== undefined)
   );
-  // continuous staking (Granite): the stake renews itself on a period,
+  // continuous staking (Helicon): the stake renews itself on a period,
   // optionally compounding rewards back in
   const hasContinuous = !!(
     tx &&
@@ -81,27 +83,31 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   // as the authoritative "does this tx exist on-chain at all?" check
   const platformOp = usePlatformTx(network, txHash, isConvert || isWarpOp || isCreateChain || notFound);
 
-  // Reward payouts are minted directly into P-Chain state keyed by this
-  // tx, never as tx outputs, so the indexer's emittedUtxos is always
-  // empty here and only the node knows about them
+  // Reward payouts are minted directly into P-Chain state, not as tx
+  // outputs. The indexer bridges them into emittedUtxos
+  // the node fetch remains the amount source here and fallback for pages this flow can't cover.
   const isRewardTx =
     tx?.txType === "RewardValidatorTx" || tx?.txType === "RewardAutoRenewedValidatorTx";
+  const isClassicRewardTx = tx?.txType === "RewardValidatorTx";
+  const stakingTxId = tx?.details?.stakingTxId;
   const [rewardUtxos, setRewardUtxos] = useState<RewardUtxo[] | null>(null);
   useEffect(() => {
     if (!isRewardTx) return;
+    // classic reward UTXOs are minted under the staking tx they reward;
+    // Helicon auto-renew payouts are keyed by the reward tx itself
+    const key = isClassicRewardTx ? (stakingTxId ?? txHash) : txHash;
     let cancelled = false;
-    getRewardUtxos(network, txHash).then((utxos) => {
+    getRewardUtxos(network, key).then((utxos) => {
       if (!cancelled) setRewardUtxos(utxos);
     });
     return () => {
       cancelled = true;
     };
-  }, [isRewardTx, network, txHash]);
+  }, [isRewardTx, isClassicRewardTx, stakingTxId, network, txHash]);
   const rewardWithdrawn = rewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
 
   // the split needs the staker's compound ratio: withdrawn is the
   // (1 - c) share minted to the owner, so restaked = withdrawn * c/(1-c)
-  const stakingTxId = tx?.details?.stakingTxId;
   const [compoundShares, setCompoundShares] = useState<number | null>(null);
   useEffect(() => {
     if (tx?.txType !== "RewardAutoRenewedValidatorTx" || !stakingTxId) return;
@@ -142,6 +148,89 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       cancelled = true;
     };
   }, [isContinuousStaker, network, tx?.nodeId]);
+  // an IncreaseL1ValidatorBalanceTx / DisableL1ValidatorTx row carries only
+  // the validationID — the node resolves it to the seat's nodeID while the
+  // validator is still active (removed seats error, and the row stays off)
+  const validationId = tx?.details?.validationId;
+  const [l1Seat, setL1Seat] = useState<L1ValidatorInfo | null>(null);
+  useEffect(() => {
+    setL1Seat(null);
+    if (!validationId || tx?.nodeId || isWarpOp) return;
+    let cancelled = false;
+    getL1Validator(network, validationId).then((v) => {
+      if (!cancelled) setL1Seat(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [validationId, tx?.nodeId, isWarpOp, network]);
+
+  // a classic staking tx's own reward: once the period ends the payout is
+  // minted as reward UTXOs keyed by THIS tx; while the stake is live only
+  // the node's current validator set knows the potential reward
+  const isDelegatorTx =
+    tx?.txType === "AddDelegatorTx" || tx?.txType === "AddPermissionlessDelegatorTx";
+  const isPrimaryStaker =
+    (isDelegatorTx || tx?.txType === "AddValidatorTx" || tx?.txType === "AddPermissionlessValidatorTx") &&
+    tx?.subnetId === PRIMARY_SUBNET_ID;
+  const stakeEnded = !!tx?.endTimestamp && tx.endTimestamp <= Date.now() / 1000;
+  const [stakeRewardUtxos, setStakeRewardUtxos] = useState<RewardUtxo[] | null>(null);
+  useEffect(() => {
+    setStakeRewardUtxos(null);
+    if (!isPrimaryStaker || !stakeEnded) return;
+    let cancelled = false;
+    getRewardUtxos(network, txHash).then((utxos) => {
+      if (!cancelled) setStakeRewardUtxos(utxos);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrimaryStaker, stakeEnded, network, txHash]);
+  const stakeRewardPaid = stakeRewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
+
+  // a delegation's payout mints two reward UTXOs: the delegator's NET reward
+  // (owned by the tx's reward addresses) and the validator's delegation-fee cut
+  // split by owner so the page can answer "what did I actually get, net of fee".
+  const rewardAddrSet = new Set((tx?.rewardAddresses ?? []).map((a) => a.replace(/^P-/, "")));
+  const stakeRewardNet =
+    isDelegatorTx && stakeRewardUtxos?.length && rewardAddrSet.size
+      ? stakeRewardUtxos
+          .filter((u) => u.addresses.some((a) => rewardAddrSet.has(a.replace(/^P-/, ""))))
+          .reduce((sum, u) => sum + u.amount, 0)
+      : null;
+  const stakeRewardFee =
+    stakeRewardNet !== null && stakeRewardNet > 0 && stakeRewardNet < stakeRewardPaid
+      ? stakeRewardPaid - stakeRewardNet
+      : null;
+
+  const [potentialReward, setPotentialReward] = useState<number | null>(null);
+  // validator's fee percentage — turns the delegator's GROSS potential
+  // reward into the net estimate they'll actually receive
+  const [validatorFeePct, setValidatorFeePct] = useState<number | null>(null);
+  useEffect(() => {
+    setPotentialReward(null);
+    setValidatorFeePct(null);
+    if (!isPrimaryStaker || stakeEnded || !tx?.nodeId) return;
+    let cancelled = false;
+    getCurrentValidators(network, PRIMARY_SUBNET_ID, [tx.nodeId]).then((validators) => {
+      if (cancelled) return;
+      const v = validators?.[0];
+      if (!v) return;
+      const raw = isDelegatorTx
+        ? v.delegators?.find((d) => d.txID === txHash)?.potentialReward
+        : v.txID === txHash
+          ? v.potentialReward
+          : undefined;
+      const n = raw !== undefined ? Number(raw) : NaN;
+      if (Number.isFinite(n) && n > 0) setPotentialReward(n);
+      const fee = v.delegationFee !== undefined ? Number(v.delegationFee) : NaN;
+      if (isDelegatorTx && Number.isFinite(fee) && fee >= 0 && fee <= 100) setValidatorFeePct(fee);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrimaryStaker, stakeEnded, isDelegatorTx, network, txHash, tx?.nodeId]);
+
   const initialStake = tx?.amountStaked?.reduce((sum, a) => sum + Number(a.amount || 0), 0) ?? 0;
   const restakedToDate =
     liveWeight !== null && initialStake > 0 && liveWeight > initialStake ? liveWeight - initialStake : null;
@@ -174,15 +263,16 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           staked: false,
         }))
       : [];
-  // indexer serves reward payout UTXOs in emittedUtxos directly
-  // node fetch stays as a fallback
-  // dedupe by (txHash, outputIndex) so a UTXO present in both sources doesn't render twice
-  const emittedKeys = new Set((tx?.emittedUtxos ?? []).map((u) => `${u.txHash}:${u.outputIndex}`));
-  const rewardOnlyMissing = rewardEmitted.filter((u) => !emittedKeys.has(`${u.txHash}:${u.outputIndex}`));
+  // The indexer serves payout UTXOs in emittedUtxos directly (2026-08-03:
+  // classic reward txs too, parented to the staking tx with canonical
+  // indices). When the API returns ANY emitted UTXOs they are authoritative;
+  // the node fetch remains only as a fallback for un-reindexed history.
+  // (Per-key dedupe can't work here: API and node encode different parents
+  // for the same classic payout.)
   const flowEmitted = tx
-    ? rewardOnlyMissing.length
-      ? [...tx.emittedUtxos, ...rewardOnlyMissing]
-      : tx.emittedUtxos
+    ? tx.emittedUtxos.length
+      ? tx.emittedUtxos
+      : rewardEmitted
     : [];
 
   return (
@@ -287,7 +377,47 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 {tx.endTimestamp !== undefined && tx.endTimestamp > 0 && (
                   <SpecRow label="End">{formatTime(tx.endTimestamp)}</SpecRow>
                 )}
-                {tx.estimatedReward && <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>}
+                {/* the stake's own payout once it ended, the live potential
+                    reward until then, the indexer's estimate as fallback */}
+                {stakeRewardUtxos !== null ? (
+                  stakeRewardUtxos.length === 0 ? (
+                    <SpecRow label="Reward">None (aborted)</SpecRow>
+                  ) : stakeRewardNet !== null && stakeRewardFee !== null ? (
+                    /* delegation payout split by UTXO owner: what the
+                       delegator actually received vs the validator's cut */
+                    <>
+                      <SpecRow label="Reward Received">
+                        {formatAvax(stakeRewardNet)}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          net of delegation fee
+                        </span>
+                      </SpecRow>
+                      <SpecRow label="Delegation Fee">
+                        {formatAvax(stakeRewardFee)}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          paid to the validator
+                        </span>
+                      </SpecRow>
+                    </>
+                  ) : (
+                    <SpecRow label="Reward">{formatAvax(stakeRewardPaid)}</SpecRow>
+                  )
+                ) : potentialReward !== null ? (
+                  <SpecRow label="Est. Reward">
+                    {validatorFeePct !== null && potentialReward > 0 ? (
+                      <>
+                        {formatAvax(Math.round(potentialReward * (1 - validatorFeePct / 100)))}
+                        <span className="ml-2 text-zinc-400 dark:text-zinc-500">
+                          net of {validatorFeePct}% delegation fee
+                        </span>
+                      </>
+                    ) : (
+                      formatAvax(potentialReward)
+                    )}
+                  </SpecRow>
+                ) : tx.estimatedReward ? (
+                  <SpecRow label="Est. Reward">{formatAvax(tx.estimatedReward)}</SpecRow>
+                ) : null}
                 {/* A continuous validator's reward never commits/aborts:
                     each renewal restakes the compound share and mints the
                     rest straight into state (shown in the fund flow). The
@@ -348,7 +478,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
             </Section>
           )}
 
-          {/* Continuous staking (Granite auto-renew family) */}
+          {/* Continuous staking (Helicon auto-renew family) */}
           {hasContinuous && (
             <Section label="Continuous Staking">
               <SpecPlate>
@@ -399,6 +529,16 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
           {hasL1Validation && !isWarpOp && (
             <Section label="L1 Validation">
               <SpecPlate>
+                {l1Seat?.nodeID && (
+                  <SpecRow label="Node ID">
+                    <HashChip value={l1Seat.nodeID} href={`${base}/node/${l1Seat.nodeID}`} len={32} />
+                  </SpecRow>
+                )}
+                {l1Seat?.subnetID && !tx.subnetId && (
+                  <SpecRow label="Subnet ID">
+                    <SubnetChip base={base} subnetId={l1Seat.subnetID} />
+                  </SpecRow>
+                )}
                 {tx.details?.validationId && (
                   <SpecRow label="Validation ID">
                     <HashChip value={tx.details.validationId} len={32} />
@@ -990,6 +1130,15 @@ function UtxoColumn({ base, title, utxos, side }: { base: string; title: string;
                 className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
               >
                 spent in {truncate(u.consumingTxHash, 12)} →
+              </Link>
+            )}
+            {/* walk any UTXO backward through delegations/transfers */}
+            {u.txHash && side === "in" && (
+              <Link
+                href={`${base}/tx/${u.txHash}`}
+                className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
+              >
+                ← created in {truncate(u.txHash, 12)}
               </Link>
             )}
           </div>

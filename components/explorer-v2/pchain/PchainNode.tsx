@@ -34,7 +34,7 @@ import {
   getPrimaryTotalStake,
   type CurrentValidator,
 } from "@/lib/pchain-node";
-import { txTypeLabel, type NodeResponse, type ValidationsResponse } from "@/lib/pchain-explorer";
+import { txTypeLabel, type NodeResponse, type NodeStakingTx, type TxSummary, type ValidationsResponse } from "@/lib/pchain-explorer";
 
 /* The node page as one instrument, not an endless scroll: a bold summary
    strip, then two split views — what the validator IS (the spec plate)
@@ -201,6 +201,47 @@ export function PchainNode({
 
   const [showAllDelegators, setShowAllDelegators] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
+
+  const [olderHistory, setOlderHistory] = useState<NodeStakingTx[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<number | undefined>(undefined);
+  const [historyDone, setHistoryDone] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadOlderHistory = async () => {
+    if (historyDone || loadingOlder || !n) return;
+    setLoadingOlder(true);
+    try {
+      const seen = new Set([...n.history.map((h) => h.txHash), ...olderHistory.map((h) => h.txHash)]);
+      let cursor = historyCursor;
+      for (let hop = 0; hop < 4; hop++) {
+        const qs = new URLSearchParams({ node: nodeId, limit: "100" });
+        if (cursor !== undefined) qs.set("before", String(cursor));
+        const res = await fetch(`/api/pchain/${network}/txs?${qs}`);
+        const page: TxSummary[] = res.ok ? await res.json() : [];
+        if (page.length === 0) {
+          setHistoryDone(true);
+          break;
+        }
+        cursor = page[page.length - 1].blockHeight;
+        const fresh = page.filter((t) => !seen.has(t.txHash));
+        if (fresh.length > 0) {
+          setOlderHistory((o) => [
+            ...o,
+            ...fresh.map((t) => ({
+              txHash: t.txHash,
+              txType: t.txType,
+              blockTimestamp: t.blockTimestamp,
+              period: t.period,
+            })),
+          ]);
+          break;
+        }
+      }
+      setHistoryCursor(cursor);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+  const fullHistory = n ? [...n.history, ...olderHistory] : [];
 
   const uptimeSeries = useMemo(
     () =>
@@ -710,9 +751,9 @@ export function PchainNode({
                 {/* not the validation record (that's Past Validation Terms
                     above): this is the raw recent staking-tx feed, which on a
                     busy validator is all delegator additions */}
-                <SectionHeader label={`Recent staking activity · ${n.history.length}`} />
+                <SectionHeader label={`Recent staking activity · ${fullHistory.length}`} />
                 <Board>
-                  {(showAllHistory ? n.history : n.history.slice(0, LIST_CAP)).map((h) => (
+                  {(showAllHistory ? fullHistory : fullHistory.slice(0, LIST_CAP)).map((h) => (
                     <Link
                       key={h.txHash}
                       href={`${base}/tx/${h.txHash}`}
@@ -729,14 +770,23 @@ export function PchainNode({
                       </span>
                     </Link>
                   ))}
-                  {n.history.length > LIST_CAP && (
+                  {fullHistory.length > LIST_CAP && (
                     <ExpandRow
                       expanded={showAllHistory}
-                      count={n.history.length - LIST_CAP}
+                      count={fullHistory.length - LIST_CAP}
                       onClick={() => setShowAllHistory((v) => !v)}
                     />
                   )}
                 </Board>
+                {showAllHistory && !historyDone && (
+                  <button
+                    onClick={loadOlderHistory}
+                    disabled={loadingOlder}
+                    className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+                  >
+                    {loadingOlder ? "Loading…" : "Load older activity"}
+                  </button>
+                )}
               </section>
             )}
           </div>

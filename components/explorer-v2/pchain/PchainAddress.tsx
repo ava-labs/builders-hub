@@ -48,9 +48,9 @@ const UTXO_PAGE = 50;
 /* Transaction paging. The type filter runs client-side because the address
    txs endpoint ignores a `type` param (unlike the /txs list endpoint), so
    the filter can only see what has been loaded, and the UI says so.
-   TX_MAX is the API's own ceiling: it clamps `limit` to 200. */
+   Paging is cursor-based (?before=<blockHeight> from the response's
+   nextBefore), so history walks arbitrarily far back — no fixed ceiling. */
 const TX_PAGE = 50;
-const TX_MAX = 200;
 
 /* ---- the summary table ----------------------------------------------
    A real table rather than a grid of stacked cells: labels in their own
@@ -112,18 +112,40 @@ function MetricTable({ rows }: { rows: MetricRow[] }) {
 export function PchainAddress({ chain, network, addr }: { chain: string; network: string; addr: string }) {
   const base = `/explorer/${network}/${chain}`;
   const { data: a, loading, error } = usePchainData<Address>(network, `address/${addr}`);
-  const [txLimit, setTxLimit] = useState(TX_PAGE);
   const { data: history, loading: txsLoading } = usePchainData<AddressTxs>(
     network,
     `address/${addr}/txs`,
-    { limit: txLimit },
+    { limit: TX_PAGE },
   );
+  // older pages appended via the nextBefore cursor; each page is a stable URL
+  const [olderPages, setOlderPages] = useState<AddressTxs[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const lastPage = olderPages.length ? olderPages[olderPages.length - 1] : history;
+  const nextCursor = lastPage?.nextBefore;
+  const loadMoreTxs = async () => {
+    if (nextCursor === undefined || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `/api/pchain/${network}/address/${addr}/txs?limit=${TX_PAGE}&before=${nextCursor}`,
+      );
+      if (res.ok) {
+        const page: AddressTxs = await res.json();
+        setOlderPages((ps) => [...ps, page]);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  };
   // mainnet only: Fuji AVAX has no market value to quote
   const avaxUsd = useAvaxUsd(network === "mainnet");
   const [utxoLimit, setUtxoLimit] = useState(UTXO_PAGE);
   const [txType, setTxType] = useState("");
 
-  const txs = history?.txs ?? [];
+  const txs = useMemo(
+    () => [...(history?.txs ?? []), ...olderPages.flatMap((p) => p.txs)],
+    [history, olderPages],
+  );
 
   /* Filter options are derived from what this address has actually done,
      not from the global list of P-Chain tx types. Offering "Create Chain"
@@ -142,7 +164,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
 
   const shownTxs = txType ? txs.filter((t) => t.txType === txType) : txs;
   // more to fetch, and headroom under the API's 200-row ceiling
-  const canLoadMore = Boolean(history?.truncated) && txLimit < TX_MAX;
+  const canLoadMore = nextCursor !== undefined;
 
   const totalRaw = a ? Number(a.balance.total) : 0;
   const lockedRaw = a ? Number(a.balance.locked) : 0;
@@ -355,11 +377,12 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
             {/* The filter is client-side, so "42 Export" means 42 of the rows
                 loaded so far, not of the address's whole history. Say that
                 plainly rather than letting a filtered count read as a total. */}
-            {history?.truncated && (
+            {(canLoadMore || history?.truncated) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 {canLoadMore && (
                   <button
-                    onClick={() => setTxLimit((n) => Math.min(TX_MAX, n + TX_PAGE))}
+                    onClick={loadMoreTxs}
+                    disabled={loadingMore}
                     className="border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
                   >
                     Load more
@@ -367,7 +390,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                 )}
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                   {txType ? "filtering the" : "showing the"} newest {formatNumber(txs.length)}
-                  {!canLoadMore && ", the most this endpoint returns"}
+                  {!canLoadMore && ", the full recorded history"}
                 </span>
               </div>
             )}
