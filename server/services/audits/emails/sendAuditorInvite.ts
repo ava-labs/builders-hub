@@ -1,7 +1,6 @@
 import { sendMail } from "@/server/services/mail";
 import { renderAuditEmail } from "@/server/services/audits/emails/template";
-
-const PORTAL_URL = "https://build.avax.network/audits/portal";
+import { PORTAL_URL } from "@/server/services/audits/emails/links";
 
 export interface InviteAuditor {
   firm_name: string;
