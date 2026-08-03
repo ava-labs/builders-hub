@@ -25,7 +25,7 @@ import {
   TxTypePill,
   idInk,
 } from "@/components/explorer-v2/ui";
-import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { formatAvax, formatNumber, formatTime, timeAgo, timeUntil, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
 import {
@@ -201,6 +201,17 @@ export function PchainNode({
 
   const [showAllDelegators, setShowAllDelegators] = useState(false);
   const [showAllHistory, setShowAllHistory] = useState(false);
+
+  // Upstream sends delegators largest-stake-first. "Recent" reorders the
+  // same rows by start time, newest delegation on top: the reading that was
+  // lost when the list moved to stake order.
+  const [delegatorSort, setDelegatorSort] = useState<"stake" | "recent">("stake");
+  const delegators = useMemo(() => {
+    const list = n?.delegators ?? [];
+    return delegatorSort === "recent"
+      ? [...list].sort((a, b) => b.startTimestamp - a.startTimestamp)
+      : list;
+  }, [n, delegatorSort]);
 
   const [olderHistory, setOlderHistory] = useState<NodeStakingTx[]>([]);
   const [historyCursor, setHistoryCursor] = useState<number | undefined>(undefined);
@@ -707,38 +718,78 @@ export function PchainNode({
             {n.delegators.length > 0 && (
               <section className="flex min-w-0 flex-col gap-4">
                 <SectionHeader
-                  label={`Delegators · ${n.delegators.length}`}
+                  // the doc carries at most 500 delegators; on the busiest
+                  // validators say so rather than let 500 read as the total
+                  label={
+                    n.hasSnapshot && n.validator.delegatorCount > n.delegators.length
+                      ? `Delegators · top ${n.delegators.length} of ${formatNumber(n.validator.delegatorCount)}`
+                      : `Delegators · ${n.delegators.length}`
+                  }
                   action={
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      Σ reward{" "}
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatAvax(n.delegatorsPotentialReward, { compact: true })}
+                    <span className="flex shrink-0 items-center gap-4 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      <span className="flex items-center gap-2">
+                        {(["stake", "recent"] as const).map((k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setDelegatorSort(k)}
+                            className={`uppercase tracking-[0.14em] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 ${
+                              delegatorSort === k ? "font-bold text-zinc-900 dark:text-zinc-100" : ""
+                            }`}
+                          >
+                            {k} ↓
+                          </button>
+                        ))}
+                      </span>
+                      <span>
+                        Σ reward{" "}
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          {formatAvax(n.delegatorsPotentialReward, { compact: true })}
+                        </span>
                       </span>
                     </span>
                   }
                 />
                 <Board>
-                  {(showAllDelegators ? n.delegators : n.delegators.slice(0, LIST_CAP)).map((d) => (
+                  {(showAllDelegators ? delegators : delegators.slice(0, LIST_CAP)).map((d) => (
                     <Link
                       key={d.txId}
                       href={`${base}/tx/${d.txId}`}
                       className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                     >
-                      <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 16)}</span>
-                      <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                          {formatAvax(d.stakeAmount, { compact: true })}
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <span className={`truncate font-mono text-[12px] ${idInk}`}>
+                          {truncate(d.txId, 16)}
                         </span>
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                          +{formatAvax(d.potentialReward, { compact: true })}
+                        {/* when the stake unlocks: the date for planning, the
+                            countdown for a glance */}
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                          ends {formatTime(d.endTimestamp).slice(0, 10)} · {timeUntil(d.endTimestamp)}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-0.5">
+                        <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                            {formatAvax(d.stakeAmount, { compact: true })}
+                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            +{formatAvax(d.potentialReward, { compact: true })}
+                          </span>
+                        </div>
+                        {/* the reward above is gross; the split is what each
+                            party actually pockets at the fee this node set */}
+                        <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                          {formatAvax(d.potentialReward * (1 - n.validator.delegationFeePercent / 100), { compact: true })}{" "}
+                          net · {formatAvax(d.potentialReward * (n.validator.delegationFeePercent / 100), { compact: true })}{" "}
+                          fee
                         </span>
                       </div>
                     </Link>
                   ))}
-                  {n.delegators.length > LIST_CAP && (
+                  {delegators.length > LIST_CAP && (
                     <ExpandRow
                       expanded={showAllDelegators}
-                      count={n.delegators.length - LIST_CAP}
+                      count={delegators.length - LIST_CAP}
                       onClick={() => setShowAllDelegators((v) => !v)}
                     />
                   )}
@@ -765,9 +816,16 @@ export function PchainNode({
                         </span>
                         <TxTypePill type={h.txType} label={txTypeLabel(h.txType)} />
                       </div>
-                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                        {timeAgo(h.blockTimestamp)}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-4 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                        {/* the tx's stake weight: the number the bare hash was
+                            hiding. Older rows paged in from /txs lack it. */}
+                        {h.weight !== undefined && (
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                            {formatAvax(h.weight, { compact: true })}
+                          </span>
+                        )}
+                        <span>{timeAgo(h.blockTimestamp)}</span>
+                      </div>
                     </Link>
                   ))}
                   {fullHistory.length > LIST_CAP && (

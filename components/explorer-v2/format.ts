@@ -46,6 +46,17 @@ export function timeAgo(unixSecs: number | undefined): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
+/** timeAgo's forward-looking twin: "in 41d", "in 3h". A timestamp already
+ *  behind us reads "ended", since callers point this at stake end times. */
+export function timeUntil(unixSecs: number | undefined): string {
+  if (!unixSecs) return "—";
+  const s = Math.floor(unixSecs - Date.now() / 1000);
+  if (s <= 0) return "ended";
+  if (s < 3600) return `in ${Math.max(1, Math.floor(s / 60))}m`;
+  if (s < 86400) return `in ${Math.floor(s / 3600)}h`;
+  return `in ${Math.floor(s / 86400)}d`;
+}
+
 export function formatTime(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
   return new Date(unixSecs * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";
