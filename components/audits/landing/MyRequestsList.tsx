@@ -38,7 +38,17 @@ const FILTER_LABELS: Record<Exclude<Filter, "all">, string> = {
   drafts: "Drafts",
 };
 
-export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }) {
+export function MyRequestsList({
+  requests,
+  isAdmin = false,
+  isAuditor = false,
+}: {
+  requests: OwnerRequestSummary[];
+  /** Role doors ride here too, not only on first-run: an admin or auditor who
+      files a single request would otherwise never see them again. */
+  isAdmin?: boolean;
+  isAuditor?: boolean;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [deletingDraft, setDeletingDraft] = useState<OwnerRequestSummary | null>(null);
@@ -93,16 +103,36 @@ export function MyRequestsList({ requests }: { requests: OwnerRequestSummary[] }
             Quotes from the Ava Labs whitelist, free and private to you.
           </p>
         </div>
-        <Link
-          href="/audits/new"
-          className="audits-sweep group inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
-        >
-          <Plus
-            aria-hidden
-            className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
-          />
-          New request
-        </Link>
+        {/* Doors first, red CTA last: the outline buttons keep "one red CTA
+            per view" intact while giving role holders a way back. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {isAuditor ? (
+            <Link
+              href="/audits/portal"
+              className="inline-flex h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 md:h-10 dark:border-white/15 dark:hover:border-white/40"
+            >
+              Auditor portal
+            </Link>
+          ) : null}
+          {isAdmin ? (
+            <Link
+              href="/audits/admin"
+              className="inline-flex h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium transition-colors hover:border-zinc-500 md:h-10 dark:border-white/15 dark:hover:border-white/40"
+            >
+              Admin dashboard
+            </Link>
+          ) : null}
+          <Link
+            href="/audits/new"
+            className="audits-sweep group inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand px-4 text-sm font-semibold text-white transition-colors md:h-10"
+          >
+            <Plus
+              aria-hidden
+              className="h-4 w-4 transition-transform duration-200 group-hover:rotate-90"
+            />
+            New request
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2" role="group" aria-label="Filter requests">
