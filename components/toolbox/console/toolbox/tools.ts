@@ -75,7 +75,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Stake AVAX',
-    description: 'Stake AVAX on the Primary Network as a validator or delegator.',
+    description:
+      'Stake AVAX on the Primary Network as a validator or delegator, with fixed or auto-renewed (ACP-236) staking.',
     path: '/console/primary-network/stake',
     category: 'Primary Network',
     icon: HandCoins,
