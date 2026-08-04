@@ -886,8 +886,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                           error={(() => {
                             if (!endTime || !error) return null;
                             const d = Math.floor(new Date(endTime).getTime() / 1000) - Math.floor(Date.now() / 1000);
-                            if (d < config.minEndSeconds)
-                              return `Must be at least ${config.minEndLabel} from now`;
+                            if (d < config.minEndSeconds) return `Must be at least ${config.minEndLabel} from now`;
                             if (d > MAX_END_SECONDS) return 'Must be within 1 year';
                             return null;
                           })()}
