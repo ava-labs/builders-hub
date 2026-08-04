@@ -18,25 +18,25 @@ Options:
 curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -b ~/.local/bin
 
 # Install a specific version
-curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -v v0.2.0
+curl -sSfL https://build.avax.network/install/platform-cli | sh -s -- -v v2.0.1
 ```
 
-The script auto-detects your OS (Linux/macOS) and architecture (amd64/arm64), downloads the release tarball, verifies checksums, and installs the `platform` binary.
+The script auto-detects your OS (Linux/macOS) and architecture (amd64/arm64), downloads the release tarball, verifies checksums, and installs the `platform-cli` binary.
 
 Verify the installation:
 
 ```bash
-platform --help
+platform-cli --help
 ```
 
 ## Build from Source
 
-Requires **Go 1.24+** ([install Go](https://go.dev/dl/)).
+Requires **Go 1.25+** ([install Go](https://go.dev/dl/)).
 
 ```bash
 git clone https://github.com/ava-labs/platform-cli.git
 cd platform-cli
-go build -o platform .
+go build -o platform-cli .
 ```
 
 ### Ledger Support
@@ -44,7 +44,7 @@ go build -o platform .
 To build with Ledger hardware wallet support:
 
 ```bash
-go build -tags ledger -o platform .
+go build -tags ledger -o platform-cli .
 ```
 
 ## Global Flags
@@ -85,10 +85,10 @@ When a command needs a private key, Platform CLI checks these sources in order:
 
 ```bash
 # Fuji testnet (default)
-platform wallet balance --key-name mykey
+platform-cli wallet balance --key-name mykey
 
 # Mainnet
-platform wallet balance --key-name mykey --network mainnet
+platform-cli wallet balance --key-name mykey --network mainnet
 ```
 
 ### Custom RPC
@@ -97,10 +97,10 @@ For local networks or custom endpoints:
 
 ```bash
 # Local network
-platform wallet balance --key-name mykey --rpc-url http://127.0.0.1:9650
+platform-cli wallet balance --key-name mykey --rpc-url http://127.0.0.1:9650
 
 # Custom endpoint with explicit network ID
-platform wallet balance --key-name mykey --rpc-url https://my-node.example.com:9650 --network-id 5
+platform-cli wallet balance --key-name mykey --rpc-url https://my-node.example.com:9650 --network-id 5
 ```
 
 When using `--rpc-url`, the network ID is auto-detected from the node unless `--network-id` is specified.

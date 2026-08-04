@@ -1,7 +1,7 @@
 import { Session } from 'next-auth';
 import { withAuth, RouteParams } from "@/lib/protectedRoute";
 import { UpdateStatusMember } from "@/server/services/memberProject";
-import { isUserProjectMember } from "@/server/services/fileValidation";
+import { isProjectMemberOrInvitee } from "@/server/services/projectMembership";
 import { NextResponse } from "next/server";
 
 export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (request: Request, { params }, session: Session) => {
@@ -18,7 +18,7 @@ export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (reques
     }
 
     // Check if user is a member of the project
-    const isMember = await isUserProjectMember(session.user.id, project_id);
+    const isMember = await isProjectMemberOrInvitee(session.user.id, project_id);
     if (!isMember) {
       return NextResponse.json(
         { error: "Forbidden: You are not a member of this project" },

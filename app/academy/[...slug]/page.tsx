@@ -26,10 +26,16 @@ import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
 
+import { getAuthSession } from "@/lib/auth/authSession";
+import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
+import { AuthLoading } from "@/components/ui/auth-loading";
+import { AccessDenied } from "@/components/ui/access-denied";
+
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper";
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer";
 import AvalancheGoDocker from "@/components/toolbox/console/layer-1/AvalancheGoDockerL1";
 import CreateChain from "@/components/toolbox/console/layer-1/create/CreateChain";
+import CreateSubnet from "@/components/toolbox/console/layer-1/create/CreateSubnet";
 import ConvertSubnetToL1 from "@/components/toolbox/console/layer-1/create/ConvertSubnetToL1";
 import GenesisBuilder from "@/components/toolbox/console/layer-1/create/GenesisBuilder";
 import DeployExampleERC20 from "@/components/toolbox/console/ictt/setup/DeployExampleERC20";
@@ -56,6 +62,7 @@ const toolboxComponents = {
   CrossChainTransfer,
   GenesisBuilder,
   CreateChain,
+  CreateSubnet,
   AvalancheGoDocker,
   CreateManagedTestnetNode,
   ConvertToL1: ConvertSubnetToL1,
@@ -80,6 +87,18 @@ export default async function Page(props: {
   params: Promise<{ slug?: string[] }>;
 }) {
   const params = await props.params;
+
+  // Team1 Academy: defense-in-depth gating (proxy.ts already covers this).
+  if (params.slug?.[0] === "team1") {
+    const session = await getAuthSession();
+    if (!session?.user?.id) return <AuthLoading />;
+    if (!hasTeam1AcademyAccess(session.user.custom_attributes)) {
+      return (
+        <AccessDenied message="The Team1 Academy is only accessible to Team1 members and the DevRel team." />
+      );
+    }
+  }
+
   const page = academy.getPage(params.slug);
 
   if (!page) notFound();

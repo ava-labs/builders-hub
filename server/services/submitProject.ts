@@ -1,5 +1,5 @@
 import {
-  hasAtLeastOne,
+  isNonEmptyObject,
   requiredField,
   validateEntity,
   Validation,
@@ -8,9 +8,10 @@ import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/subm
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
-import { Project } from "@/types/project";
+import { MemberStatus, Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { sendSubmissionConfirmationMail } from "./registerForms";
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 
 /** Returns true when all required submission fields are filled in. */
 export function isProjectComplete(p: Partial<Project>): boolean {
@@ -49,15 +50,6 @@ function normalizeCategories(categories: string | string[] | undefined): string[
   return [];
 }
 
-// Type guard to check if a value is a non-empty object
-const isNonEmptyObject = (value: unknown): value is Record<string, unknown> => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.keys(value).length > 0
-  );
-};
 
 // Helper function to normalize deployed_addresses from JsonValue[] to Array<{ address: string; tag?: string }>
 function normalizeDeployedAddresses(
@@ -137,7 +129,7 @@ export async function createProject(
           members: {
             some: {
               user_id: projectData.user_id,
-              status: "Confirmed",
+              status: MemberStatus.CONFIRMED,
             },
           },
         },
@@ -153,7 +145,7 @@ export async function createProject(
         members: {
           some: {
             user_id: projectData.user_id,
-            status: "Confirmed",
+            status: MemberStatus.CONFIRMED,
           },
         },
       };
@@ -175,7 +167,7 @@ export async function createProject(
         where: {
           hackaton_id: projectData.hackaton_id,
           members: {
-            some: { user_id: projectData.user_id, status: "Confirmed" },
+            some: { user_id: projectData.user_id, status: MemberStatus.CONFIRMED },
           },
         },
         include: { members: true },
@@ -191,6 +183,7 @@ export async function createProject(
           short_description: projectData.short_description ?? "",
           full_description: projectData.full_description ?? "",
           tech_stack: projectData.tech_stack ?? "",
+          tech_stack_tags: Array.isArray(projectData.tech_stack_tags) ? projectData.tech_stack_tags : [],
           github_repository: projectData.github_repository ?? "",
           demo_link: projectData.demo_link ?? "",
           explanation: projectData.explanation ?? "",
@@ -226,6 +219,7 @@ export async function createProject(
         short_description: projectData.short_description ?? "",
         full_description: projectData.full_description ?? "",
         tech_stack: projectData.tech_stack ?? "",
+        tech_stack_tags: Array.isArray(projectData.tech_stack_tags) ? projectData.tech_stack_tags : [],
         github_repository: projectData.github_repository ?? "",
         demo_link: projectData.demo_link ?? "",
         is_preexisting_idea: projectData.is_preexisting_idea ?? false,
@@ -247,14 +241,20 @@ export async function createProject(
           ? { consent_sharing: projectData.consent_sharing }
           : {}),
         explanation: projectData.explanation ?? "",
-        origin: "Project submission",
+        // Only the mini-grant draft flow may set a non-default origin; every
+        // other caller keeps the historical "Project submission" value so a
+        // client can't write arbitrary origins to this shared endpoint.
+        origin:
+          (projectData as { origin?: string }).origin === MINI_GRANT_KEY
+            ? MINI_GRANT_KEY
+            : "Project submission",
         // Note: hackaton_id is handled via the hackathon relation below, not directly
         // Member created together with project
         members: {
           create: {
             user_id: projectData.user_id as string,
             role: "Member",
-            status: "Confirmed",
+            status: MemberStatus.CONFIRMED,
             email: (await tx.user.findUnique({
               where: { id: projectData.user_id as string },
               select: { email: true },
@@ -284,6 +284,31 @@ export async function createProject(
     maxWait: 5000, // Maximum 5 seconds waiting for lock
     timeout: 10000, // Maximum 10 seconds executing transaction
   });
+
+  // Spec: teammates who haven't confirmed by the time the hackathon STARTS are
+  // dropped, so the team auto-converts to however many members actually signed
+  // up by start_date — solo if none confirmed, otherwise a team of 2, 3, 4, …
+  // Triggered lazily on final submission — no cron needed. Idempotent because
+  // "Removed" rows are skipped on the next pass.
+  if (!isDraft && savedProject.hackaton_id) {
+    try {
+      const hackathon = await prisma.hackathon.findUnique({
+        where: { id: savedProject.hackaton_id },
+        select: { start_date: true },
+      });
+      const startMs = hackathon?.start_date
+        ? new Date(hackathon.start_date).getTime()
+        : NaN;
+      if (Number.isFinite(startMs) && Date.now() > startMs) {
+        await prisma.member.updateMany({
+          where: { project_id: savedProject.id, status: MemberStatus.PENDING },
+          data: { status: MemberStatus.REMOVED },
+        });
+      }
+    } catch (err) {
+      console.error("[Auto-convert] Failed to demote pending members:", err);
+    }
+  }
 
   // Send submission confirmation email once, outside the transaction,
   // when this is a final submit (not a draft save) and all required fields
@@ -377,6 +402,7 @@ export async function getProject(projectId: string): Promise<Project | null> {
     short_description: projectData.short_description,
     full_description: projectData.full_description ?? undefined,
     tech_stack: projectData.tech_stack ?? undefined,
+    tech_stack_tags: projectData.tech_stack_tags ?? undefined,
     github_repository: projectData.github_repository ?? undefined,
     demo_link: projectData.demo_link ?? undefined,
     is_preexisting_idea: projectData.is_preexisting_idea,

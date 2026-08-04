@@ -1,0 +1,36 @@
+---
+title: Unlink
+category: Privacy
+available: ["C-Chain"]
+description: Unlink adds private accounts to applications on existing chains — users own, send, receive, and interact with contracts without exposing balances, tokens, amounts, or transaction history, using zero-knowledge proofs.
+logo: /images/unlink.png
+developer: Unlink
+website: https://www.unlink.xyz/
+documentation: https://docs.unlink.xyz/
+---
+
+## Overview
+
+Unlink is a privacy protocol that adds private accounts to applications on existing blockchains. Users can own, send, receive, and interact with smart contracts without exposing balances, token types, amounts, or transaction history. It is not a separate chain or a token standard — it is a smart contract deployed on the chain itself (no bridge) plus a TypeScript SDK that generates the zero-knowledge proofs and signs operations.
+
+Where amount-only tools like eERC hide balances and amounts, Unlink closes the counterparty dimension — it hides *who transacts with whom*. Balances live inside the contract as encrypted UTXO notes, and every private operation is proven with a Groth16 zero-knowledge proof that the contract verifies without learning the sender, recipient, or amount of an internal transfer.
+
+## Features
+
+- **Counterparty, amount, and balance privacy** on internal transfers between private (`unlink1…`) accounts.
+- **Four operations** — `deposit`, `transfer`, `withdraw`, and `execute` (spend a private balance in an external EVM call, such as a DeFi action, and return the result to a private balance).
+- **Gasless private actions** — transfers and withdrawals are relayed by Unlink and `execute()` runs as a sponsored ERC-4337 UserOperation, so users need no native gas token.
+- **Flexible custody** — non-custodial browser integration (the spending key never leaves the browser) or a custodial server model.
+
+## Use Cases
+
+- Private payouts and payroll, and private stablecoin balances and transfers.
+- Treasury rebalancing and OTC / RFQ / market-maker settlement without exposing relationships or strategy.
+- Scoped funds for AI-agent wallets without leaking the spend graph.
+
+## Documentation
+
+- [Unlink website](https://www.unlink.xyz/)
+- [Unlink documentation](https://docs.unlink.xyz/)
+- SDK: `@unlink-xyz/sdk`
+- [Euler Finance private-DeFi demo](https://x.com/eulerfinance/status/2065449407986671906)

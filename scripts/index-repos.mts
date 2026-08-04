@@ -405,11 +405,12 @@ function chunkFile(content: string, filePath: string, repo: string): CodeChunk[]
 // Embedding Generation
 // ============================================================================
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 async function generateEmbeddings(chunks: CodeChunk[]): Promise<number[][]> {
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
   console.log(`🧠 Generating embeddings for ${chunks.length} chunks...`);
 
   const BATCH_SIZE = 100;

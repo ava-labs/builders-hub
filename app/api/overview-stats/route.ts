@@ -9,15 +9,19 @@ const SECONDS_PER_DAY = 24 * 60 * 60;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
-const METRICS_API_URL = process.env.METRICS_API_URL;
-if (!METRICS_API_URL) {
-  console.warn('METRICS_API_URL is not set — overview-stats endpoint will fail');
-}
+// Same default as total-ecosystem-validators — dev works without the env.
+const METRICS_API_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
 
+// days = daily buckets to pull from metrics-api (window + a 2-day buffer so
+// the newest complete bucket is never the edge one). secondsInRange divides
+// the summed txCount into tps and, over SECONDS_PER_DAY, gives the number of
+// daily buckets to sum — one source of truth per range.
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
   week: { days: 9, secondsInRange: 7 * SECONDS_PER_DAY },
-  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY }
+  month: { days: 32, secondsInRange: 30 * SECONDS_PER_DAY },
+  quarter: { days: 92, secondsInRange: 90 * SECONDS_PER_DAY },
+  year: { days: 367, secondsInRange: 365 * SECONDS_PER_DAY }
 } as const;
 
 type TimeRangeKey = keyof typeof TIME_RANGE_CONFIG;
@@ -32,6 +36,7 @@ interface ChainOverviewMetrics {
   activeAddresses: number;
   icmMessages: number;
   marketCap: number | null;
+  volume24h: number | null;
   validatorCount: number | string;
 }
 
@@ -133,7 +138,7 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     if (sorted.length === 0) return 0;
     if (sorted.length === 1) return sorted[0]?.value || 0;
     if (timeRange === 'day') return sorted[1]?.value || 0;
-    return sumValues(sorted, timeRange === 'week' ? 7 : 30);
+    return sumValues(sorted, config.secondsInRange / SECONDS_PER_DAY);
   } catch (error) {
     console.error(`[getTxCountData] Failed for chain ${chainId}:`, error);
     return 0;
@@ -143,10 +148,20 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
 async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - (30 * SECONDS_PER_DAY);
+
+    // active addresses is a distinct count, not a sum — the metrics-api only
+    // buckets it by day/week/month, so quarter and year (no wider bucket
+    // exists) read the monthly figure rather than an unsupported interval.
+    const isMonthly = timeRange === 'quarter' || timeRange === 'year';
+    const interval = isMonthly ? 'month' : timeRange;
+    // monthly buckets are stamped at month START and only complete months
+    // are served: a 30-day lookback contains none for most of the month
+    // (every chain read 0 from the 2nd onward), so the monthly read
+    // reaches back 65 days to always cover one full bucket
+    const startTimestamp = endTimestamp - ((isMonthly ? 65 : 30) * SECONDS_PER_DAY);
 
     const url = new URL(`${METRICS_API_URL}/v2/chains/${chainId}/metrics/activeAddresses`);
-    url.searchParams.set('timeInterval', timeRange);
+    url.searchParams.set('timeInterval', interval);
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
     url.searchParams.set('pageSize', '2');
@@ -167,7 +182,7 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
 
 async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<number> {
   try {
-    const daysToSum = timeRange === 'day' ? 1 : timeRange === 'week' ? 7 : 30;
+    const daysToSum = TIME_RANGE_CONFIG[timeRange].secondsInRange / SECONDS_PER_DAY;
     return await getChainICMCount(chainId, daysToSum);
   } catch (error) {
     console.error(`[getICMData] Failed for chain ${chainId}:`, error);
@@ -199,9 +214,10 @@ async function getValidatorCount(subnetId: string): Promise<number | string> {
 }
 
 const MARKET_CAP_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-let marketCapCache: { data: Record<string, number>; timestamp: number } | null = null;
+interface TokenMarketData { mcap: number; vol: number | null }
+let marketCapCache: { data: Record<string, TokenMarketData>; timestamp: number } | null = null;
 
-async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, number>> {
+async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, TokenMarketData>> {
   if (marketCapCache && Date.now() - marketCapCache.timestamp < MARKET_CAP_CACHE_DURATION) {
     return marketCapCache.data;
   }
@@ -215,7 +231,7 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
   try {
     const ids = coingeckoIds.join(',');
     const response = await fetchWithTimeout(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true`,
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true`,
       { headers: { 'Accept': 'application/json' } },
       10000
     );
@@ -223,12 +239,13 @@ async function fetchMarketCaps(chains: ChainInfo[]): Promise<Record<string, numb
     if (!response.ok) return marketCapCache?.data ?? {};
 
     const data = await response.json();
-    const result: Record<string, number> = {};
+    const result: Record<string, TokenMarketData> = {};
 
     for (const [coingeckoId, values] of Object.entries(data)) {
       const mcap = (values as any)?.usd_market_cap;
+      const vol = (values as any)?.usd_24h_vol;
       if (typeof mcap === 'number' && mcap > 0) {
-        result[coingeckoId] = mcap;
+        result[coingeckoId] = { mcap, vol: typeof vol === 'number' && vol > 0 ? vol : null };
       }
     }
 
@@ -265,6 +282,7 @@ async function fetchChainMetrics(chain: ChainInfo, timeRange: TimeRangeKey): Pro
       activeAddresses,
       icmMessages,
       marketCap: null,
+      volume24h: null,
       validatorCount,
     };
 
@@ -296,12 +314,13 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
         coingeckoToChainId.set(chain.coingeckoId, chain.chainId);
       }
     }
-    for (const [coingeckoId, mcap] of Object.entries(marketCaps)) {
+    for (const [coingeckoId, market] of Object.entries(marketCaps)) {
       const chainId = coingeckoToChainId.get(coingeckoId);
       if (chainId) {
         const chainMetric = chainMetrics.find(c => c.chainId === chainId);
         if (chainMetric) {
-          chainMetric.marketCap = mcap;
+          chainMetric.marketCap = market.mcap;
+          chainMetric.volume24h = market.vol;
         }
       }
     }

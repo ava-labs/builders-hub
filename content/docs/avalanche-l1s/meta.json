@@ -11,6 +11,7 @@
     "---Overview---",
     "index",
     "validator-manager/contract",
+    "validator-manager/registration-flow",
      "---Network Upgrades---",
     "...upgrade",
     "---EVM Configuration---",

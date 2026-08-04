@@ -80,6 +80,46 @@ Render smoke works with the ephemeral key. Transaction-executing flows
 [Fuji faucet](https://core.app/tools/testnet-faucet/) (C-Chain) and the
 console's C→P transfer tool for P-Chain balance.
 
+## Flow tier (real transactions)
+
+`e2e/flows/transactions.spec.ts` drives the console like a user and submits
+**real Fuji transactions**, verifying them on-chain. All tx tests live in
+this one file under a serial describe — they share the wallet's UTXO set, so
+they must never overlap; a serial file runs on a single worker even at
+`--workers=4`. Current flows:
+
+- **create L1** — Create Subnet → Create Chain; both txs verified `Committed`
+  and the chain cross-checked via `platform.getBlockchains`.
+- **C-Chain deploy** — deploys ExampleERC20 to Fuji C-Chain (ordinary EVM
+  `eth_sendTransaction`); verified with `eth_getCode` at the address.
+- **cross-chain transfer (C→P)** — real export + import, the import verified
+  `Committed`. The C-Chain export and P-Chain import are both *atomic* txs;
+  the shim signs them natively via `signAndIssueSingleKey` (sign the
+  `UnsignedTx` byte form, credential every input from `getSigIndices`), since
+  the SDK's hex re-sign path can't. The test self-heals leftover pending
+  UTXOs and reloads on a post-deploy `prepareExportTxn` stall.
+
+Transaction classes, by reach: P/X-Chain txs, ordinary C-Chain EVM deploys,
+and C-Chain *atomic* txs (cross-chain) all work today. Anything that
+transacts **on a freshly-created L1** (tokenomics precompiles, staking,
+validator mgmt) needs the L1 actually running (validator nodes) — out of
+scope for the funded-key-only harness.
+
+```bash
+QA_WALLET_KEY=0x... yarn e2e --grep "create-l1 click-through"
+```
+
+The whole tier skips itself when `QA_WALLET_KEY` is unset, so the
+deterministic smoke stays green in PR CI without secrets. Each run costs
+real (testnet) AVAX and leaves throwaway subnet/chain records on Fuji —
+run it locally or on a schedule, not per PR push.
+
+The shim resolves **subnet-auth** automatically: for P-Chain txs that
+modify a subnet (CreateChainTx, ConvertSubnetToL1Tx, AddSubnetValidatorTx,
+…) it parses the tx, fetches the owning CreateSubnetTx, and passes
+`subnetOwners`/`subnetAuth` to the SDK so the auth credential is signed —
+mirroring what real Core does wallet-side.
+
 ### Vercel previews
 
 The `builder-hub` project has deployment protection (SSO). Enable
@@ -93,6 +133,45 @@ yarn e2e
 ```
 
 The config sends the bypass header on every request automatically.
+
+## CI
+
+**`.github/workflows/academy-e2e.yml`** runs the full suite — render *and*
+transactions in one job — on every Vercel deployment (`deployment_status`):
+each preview deploy (every push to every branch) and the production deploy
+after merge, plus `workflow_dispatch` for an arbitrary URL.
+
+A single `yarn e2e --workers=4` runs both tiers, so the result is one
+`results.json` and one deduped report. What runs depends on which secrets
+are set:
+
+- `VERCEL_AUTOMATION_BYPASS_SECRET` — unlocks SSO-protected previews. If it's
+  absent, preview deploys can't be reached, so the job **skips** with a notice
+  (stays green) rather than failing — it doesn't red-flag PRs until an admin
+  configures it. Production deploys are public and need no bypass.
+- `QA_WALLET_KEY` — funded Fuji key that activates the transaction tier. If
+  it's absent, the flow tier skips and only the render smoke runs (the shim
+  falls back to an ephemeral key), so the job still passes.
+
+The flow tier (`e2e/flows/*`) is a serial describe, so its real-tx tests run
+one-at-a-time on a single worker even at `--workers=4`, while render specs
+parallelize across the rest.
+
+**Cost note:** with `QA_WALLET_KEY` set, transactions run on *every* deploy
+— each spends a little testnet AVAX and leaves a throwaway subnet/chain on
+Fuji. To restrict transactions to production deploys only, gate the run step
+(or split the flow into its own step) with
+`if: github.event.deployment.environment == 'Production'`.
+
+Static embed integrity (`yarn qa:check-embeds`) runs separately in
+`console-ci.yml`. Results, screenshots, and traces upload as the
+`academy-e2e-artifacts` workflow artifact.
+
+Failures are **deduped by root cause**: one broken component takes down
+every page embedding it, so the smoke spec tags zero-mount failures with
+the missing tool and `yarn qa:summary` (also an `always()` CI step)
+collapses them — "Tool failed to mount: TestSend, 3 pages affected" is one
+finding and one GitHub annotation, not three reworded ones.
 
 ## Artifacts
 

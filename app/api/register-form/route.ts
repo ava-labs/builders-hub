@@ -43,6 +43,22 @@ export const POST = withAuth(async (
     const body = await req.json();
     const { user_consents, ...registerData } = body ?? {};
 
+    const sessionEmail = session.user?.email;
+    if (!sessionEmail) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (
+      typeof registerData.email === "string" &&
+      registerData.email.trim() &&
+      registerData.email.trim().toLowerCase() !== sessionEmail.toLowerCase()
+    ) {
+      return NextResponse.json(
+        { error: "Forbidden: You can only register with your own account" },
+        { status: 403 }
+      );
+    }
+    registerData.email = sessionEmail;
+
     // Team1-organized events require explicit sharing consent unless the user
     // has already granted it on their profile. Enforce here so a crafted
     // client request can't bypass the registration form's required check.
@@ -81,27 +97,32 @@ export const POST = withAuth(async (
     }
     const newHackathon = await createRegisterForm(registerData, req);
 
+    const failedInvites = Array.isArray((newHackathon as any).failedInvites)
+      ? ((newHackathon as any).failedInvites as string[])
+      : [];
+
     return NextResponse.json(
       {
         message: 'registration form created',
         hackathon: newHackathon,
         referralAttributed: Boolean((newHackathon as any).referralAttributed),
+        ...(failedInvites.length > 0
+          ? {
+              warning:
+                'Your registration was saved, but some teammate invitations could not be sent. You can re-invite them from your project page.',
+              failedInvites,
+            }
+          : {}),
       },
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error POST /api/register-form:', error.message);
+    console.error('Error POST /api/register-form:', error.message, error.stack);
     const wrappedError = error as Error;
+    const isValidation = wrappedError.cause == 'ValidationError';
     return NextResponse.json(
-      {
-        error: {
-          message: wrappedError.message,
-          stack: wrappedError.stack,
-          cause: wrappedError.cause,
-          name: wrappedError.name
-        }
-      },
-      { status: wrappedError.cause == 'ValidationError' ? 400 : 500 }
+      { error: { message: isValidation ? wrappedError.message : 'Internal server error' } },
+      { status: isValidation ? 400 : 500 }
     );
   }
 });

@@ -1,5 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 import { ALLOWED_FILE_TYPES } from "@/constants/upload";
+import { isProjectMemberOrInvitee, memberIdentityWhere } from "./projectMembership";
+import { MemberStatus } from "@/types/project";
 
 /**
  * Maps MIME types to their expected file extensions
@@ -26,9 +28,10 @@ export function doesExtensionMatchMimeType(file: File): boolean {
   const name = file.name.toLowerCase();
   const dotIndex = name.lastIndexOf('.');
 
-  // No extension — trust the MIME type (common for programmatic uploads like base64 conversions)
+  // Reject files without a proper extension — a missing extension bypasses the
+  // extension-vs-MIME check and allows arbitrary content under a known MIME type.
   if (dotIndex === -1 || dotIndex === name.length - 1) {
-    return true;
+    return false;
   }
 
   const ext = name.slice(dotIndex);
@@ -83,7 +86,7 @@ export async function canUserDeleteFile(
   console.log("project found by image URL:", project);
   if (project) {
     // Verify if the user is a member of the project
-    const isMember = await isUserProjectMember(userId, project.id);
+    const isMember = await isProjectMemberOrInvitee(userId, project.id);
     return isMember;
   }
 
@@ -139,13 +142,8 @@ async function findProjectByHackathonAndUser(
       hackaton_id: hackathonId,
       members: {
         some: {
-          OR: [
-            { user_id: userId },
-            { email: user.email },
-          ],
-          status: {
-            not: "Removed",
-          },
+          ...memberIdentityWhere({ id: userId, email: user.email }),
+          status: { not: MemberStatus.REMOVED },
         },
       },
     },
@@ -165,18 +163,19 @@ async function findProjectByImageUrl(fileIdentifier: string): Promise<{ id: stri
   // Extract the file name from the URL if necessary
   const fileName = extractFileNameFromUrl(fileIdentifier);
 
+  // Use exact equality rather than substring `contains` matching.
+  // Substring matching allowed an attacker to create a project whose logo_url
+  // contained the victim's blob URL, causing the ownership check to pass for
+  // an arbitrary file.  Exact matching is strictly safer.
   const project = await prisma.project.findFirst({
     where: {
       OR: [
-        // Search by full URL
-        { logo_url: { contains: fileIdentifier } },
-        { cover_url: { contains: fileIdentifier } },
-        { small_cover_url: { contains: fileIdentifier } },
-        // Search by file name
-        { logo_url: { contains: fileName } },
-        { cover_url: { contains: fileName } },
-        { small_cover_url: { contains: fileName } },
-        // For screenshots (array), search if it contains the full URL or the name
+        { logo_url: fileIdentifier },
+        { cover_url: fileIdentifier },
+        { small_cover_url: fileIdentifier },
+        { logo_url: fileName },
+        { cover_url: fileName },
+        { small_cover_url: fileName },
         {
           screenshots: {
             hasSome: [fileIdentifier, fileName],
@@ -192,34 +191,6 @@ async function findProjectByImageUrl(fileIdentifier: string): Promise<{ id: stri
   return project;
 }
 
-/**
- * Verifies if a user is a member of a project
- */
-export async function isUserProjectMember(userId: string, projectId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-
-  if (!user) {
-    return false;
-  }
-
-  const member = await prisma.member.findFirst({
-    where: {
-      project_id: projectId,
-      OR: [
-        { user_id: userId },
-        { email: user.email },
-      ],
-      status: {
-        not: "Removed",
-      },
-    },
-  });
-
-  return !!member;
-}
 
 /**
  * Searches for a user profile that has the specified image

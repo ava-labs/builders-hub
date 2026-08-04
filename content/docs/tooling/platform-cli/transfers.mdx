@@ -19,13 +19,13 @@ These flags are mutually exclusive. Use `--amount-navax` when exact precision ma
 Send AVAX to another P-Chain address:
 
 ```bash
-platform transfer send --to P-fuji1abc123... --amount 10 --key-name mykey
+platform-cli transfer send --to P-fuji1abc123... --amount 10 --key-name mykey
 
 # With exact nAVAX amount
-platform transfer send --to P-fuji1abc123... --amount-navax 10000000000 --key-name mykey
+platform-cli transfer send --to P-fuji1abc123... --amount-navax 10000000000 --key-name mykey
 
 # On mainnet
-platform transfer send --to P-avax1abc123... --amount 100 --network mainnet --key-name mykey
+platform-cli transfer send --to P-avax1abc123... --amount 100 --network mainnet --key-name mykey
 ```
 
 ## Cross-Chain: P-Chain to C-Chain
@@ -33,7 +33,7 @@ platform transfer send --to P-avax1abc123... --amount 100 --network mainnet --ke
 Transfer AVAX from P-Chain to C-Chain in one step (handles export + import automatically):
 
 ```bash
-platform transfer p-to-c --amount 10 --key-name mykey
+platform-cli transfer p-to-c --amount 10 --key-name mykey
 ```
 
 Output:
@@ -52,7 +52,7 @@ Transfer complete!
 ## Cross-Chain: C-Chain to P-Chain
 
 ```bash
-platform transfer c-to-p --amount 5 --key-name mykey
+platform-cli transfer c-to-p --amount 5 --key-name mykey
 ```
 
 ## Manual Two-Step Transfers
@@ -61,10 +61,10 @@ For advanced use cases, perform export and import separately:
 
 ```bash
 # Step 1: Export
-platform transfer export --from p --to c --amount 10 --key-name mykey
+platform-cli transfer export --from p --to c --amount 10 --key-name mykey
 
 # Step 2: Import (after network confirmation)
-platform transfer import --from p --to c --key-name mykey
+platform-cli transfer import --from p --to c --key-name mykey
 ```
 
 The `--from` and `--to` flags accept `p` or `c`.
@@ -72,7 +72,7 @@ The `--from` and `--to` flags accept `p` or `c`.
 ## Checking Balances
 
 ```bash
-platform wallet balance --key-name mykey --network fuji
+platform-cli wallet balance --key-name mykey --network fuji
 ```
 
 ```
@@ -85,7 +85,7 @@ Balance: 100.000000000 AVAX
 The same private key derives different addresses on each chain:
 
 ```bash
-platform wallet address --key-name mykey
+platform-cli wallet address --key-name mykey
 ```
 
 ```

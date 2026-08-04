@@ -97,7 +97,7 @@ const dict: Record<EventsLang, Dict> = {
     // Buttons / misc
     "join.registered": "You're In",
     "join.chat": "Join the Hackathon Chat",
-    "join.default": "Join now",
+    "join.default": "Register / Join",
     "join.editRegistration": "Edit registration",
     "overview.learnMore": "LEARN MORE",
     "overview.hackathonTitleFallback": "Hackathon Title",
@@ -120,7 +120,7 @@ const dict: Record<EventsLang, Dict> = {
     "events.tabs.hackathons": "Hackathons",
     "events.tabs.workshops": "Workshops",
     "events.tabs.bootcamps": "Bootcamps",
-    "events.myHackathons": "My Hackathons",
+    "events.myHackathons": "Manage Hackathons",
     "events.emptyActive":
       "No upcoming or ongoing events at the moment. Join our Telegram community to be the first to know about new opportunities!",
     "events.joinTelegram": "Join Telegram Group",
@@ -204,6 +204,10 @@ const dict: Record<EventsLang, Dict> = {
       "Describe the tech stack, APIs, and integrations used.",
     "submission.step2.techStack.hint":
       'Mention any innovative solutions or "hacky" parts worth highlighting.',
+    "submission.step2.techStackTags.label": "Tech stack",
+    "submission.step2.techStackTags.placeholder": "Select the technologies you used",
+    "submission.step2.techStackTags.hint":
+      "Pick the main languages, frameworks, and tools from this event's list.",
     "submission.step2.github.label": "GitHub Repository",
     "submission.step2.github.placeholder":
       "Paste GitHub link (e.g., https://github.com/user/repo)",
@@ -288,6 +292,8 @@ const dict: Record<EventsLang, Dict> = {
     "submission.members.table.remove": "Remove Member",
     "submission.members.table.status.confirmed": "Confirmed",
     "submission.members.table.status.pending": "Pending",
+    "submission.members.invite.failed.title": "Could not send invitations",
+    "submission.members.invite.failed.retry": "Something went wrong. Please try again.",
     "submission.members.role.member": "Member",
     "submission.members.role.developer": "Developer",
     "submission.members.role.pm": "PM",
@@ -340,8 +346,15 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step1.country.label": "Country of Residence *",
     "reg.step1.country.placeholder": "Select your country",
     "reg.step1.country.hint": "This will help us bring in-person events closer to you.",
+    "reg.step1.country.locked.hint": "Country is locked after your first registration. Contact support if you need to change it.",
     "reg.step1.telegram.label": "Telegram Username *",
     "reg.step1.telegram.placeholder": "Enter your Telegram username (without @)",
+    "reg.step1.x.label": "X (Twitter) Handle",
+    "reg.step1.x.placeholder": "Enter your X handle (without @)",
+    "reg.step1.x.required.label": "X (Twitter) Handle *",
+    "reg.step1.github.label": "GitHub Handle",
+    "reg.step1.github.placeholder": "Enter your GitHub username",
+    "reg.step1.github.required.label": "GitHub Handle *",
     "reg.step1.roles.label": "Select all roles that apply.",
     "reg.step1.roles.university": "University Affiliate",
     "reg.step1.roles.university.placeholder": "Enter your university or institution name",
@@ -491,9 +504,13 @@ const dict: Record<EventsLang, Dict> = {
 
     // Invitation email
     "invitation.email.subject": "You're invited to collaborate on \"{projectName}\"",
+    "invitation.email.subjectHackathon": "{inviterName} invited you to {hackathonTitle}",
     "invitation.email.title": "You're Invited to Collaborate",
+    "invitation.email.titleHackathon": "You're invited to join a team",
     "invitation.email.body": "{inviterName} has invited you to join the project:",
+    "invitation.email.bodyHackathon": "{inviterName} added you as a teammate for",
     "invitation.email.cta": "Accept Invitation",
+    "invitation.email.ctaHackathon": "Sign in to confirm",
     "invitation.email.ignore": "If you did not expect this invitation, you can safely ignore this email.",
     "invitation.email.footer": "Avalanche Builder's Hub © 2025",
 
@@ -608,7 +625,7 @@ const dict: Record<EventsLang, Dict> = {
     // Buttons / misc
     "join.registered": "Ya estás dentro",
     "join.chat": "Únete al chat del hackathon",
-    "join.default": "Unirse ahora",
+    "join.default": "Registrarse / Unirse",
     "join.editRegistration": "Editar registro",
     "overview.learnMore": "SABER MÁS",
     "overview.hackathonTitleFallback": "Título del hackathon",
@@ -631,7 +648,7 @@ const dict: Record<EventsLang, Dict> = {
     "events.tabs.hackathons": "Hackathons",
     "events.tabs.workshops": "Workshops",
     "events.tabs.bootcamps": "Bootcamps",
-    "events.myHackathons": "Mis hackathons",
+    "events.myHackathons": "Gestionar hackathons",
     "events.emptyActive":
       "No hay eventos próximos o en curso por el momento. Únete a nuestra comunidad de Telegram para enterarte primero de nuevas oportunidades.",
     "events.joinTelegram": "Unirse al grupo de Telegram",
@@ -718,6 +735,10 @@ const dict: Record<EventsLang, Dict> = {
       "Describe el stack tecnológico, APIs e integraciones utilizadas.",
     "submission.step2.techStack.hint":
       'Menciona cualquier solución innovadora o partes "hacky" que valgan la pena destacar.',
+    "submission.step2.techStackTags.label": "Tecnologías",
+    "submission.step2.techStackTags.placeholder": "Selecciona las tecnologías que usaste",
+    "submission.step2.techStackTags.hint":
+      "Elige los lenguajes, frameworks y herramientas de la lista del evento.",
     "submission.step2.github.label": "Repositorio de GitHub",
     "submission.step2.github.placeholder":
       "Pega el link de GitHub (ej. https://github.com/usuario/repo)",
@@ -802,6 +823,8 @@ const dict: Record<EventsLang, Dict> = {
     "submission.members.table.remove": "Eliminar miembro",
     "submission.members.table.status.confirmed": "Confirmado",
     "submission.members.table.status.pending": "Pendiente",
+    "submission.members.invite.failed.title": "No se pudieron enviar las invitaciones",
+    "submission.members.invite.failed.retry": "Algo salió mal. Inténtalo de nuevo.",
     "submission.members.role.member": "Miembro",
     "submission.members.role.developer": "Desarrollador",
     "submission.members.role.pm": "PM",
@@ -854,8 +877,15 @@ const dict: Record<EventsLang, Dict> = {
     "reg.step1.country.label": "País de residencia *",
     "reg.step1.country.placeholder": "Selecciona tu país",
     "reg.step1.country.hint": "Esto nos ayudará a acercar eventos presenciales a tu ubicación.",
+    "reg.step1.country.locked.hint": "El país queda bloqueado tras tu primer registro. Contacta a soporte si necesitas cambiarlo.",
     "reg.step1.telegram.label": "Usuario de Telegram *",
     "reg.step1.telegram.placeholder": "Ingresa tu usuario de Telegram (sin @)",
+    "reg.step1.x.label": "Handle de X (Twitter)",
+    "reg.step1.x.placeholder": "Ingresa tu handle de X (sin @)",
+    "reg.step1.x.required.label": "Handle de X (Twitter) *",
+    "reg.step1.github.label": "Handle de GitHub",
+    "reg.step1.github.placeholder": "Ingresa tu usuario de GitHub",
+    "reg.step1.github.required.label": "Handle de GitHub *",
     "reg.step1.roles.label": "Selecciona todos los roles que apliquen.",
     "reg.step1.roles.university": "Afiliado universitario",
     "reg.step1.roles.university.placeholder": "Ingresa el nombre de tu universidad o institución",
@@ -1005,9 +1035,13 @@ const dict: Record<EventsLang, Dict> = {
 
     // Invitation email
     "invitation.email.subject": "Te invitaron a colaborar en \"{projectName}\"",
+    "invitation.email.subjectHackathon": "{inviterName} te invitó a {hackathonTitle}",
     "invitation.email.title": "Tienes una invitación para colaborar",
+    "invitation.email.titleHackathon": "Tienes una invitación de equipo",
     "invitation.email.body": "{inviterName} te ha invitado a unirte al proyecto:",
+    "invitation.email.bodyHackathon": "{inviterName} te agregó como compañero de equipo para",
     "invitation.email.cta": "Aceptar invitación",
+    "invitation.email.ctaHackathon": "Inicia sesión para confirmar",
     "invitation.email.ignore": "Si no esperabas esta invitación, puedes ignorar este correo.",
     "invitation.email.footer": "Avalanche Builder's Hub © 2025",
 

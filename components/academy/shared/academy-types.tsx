@@ -1,4 +1,4 @@
-export type AcademyPathType = 'avalanche' | 'entrepreneur' | 'blockchain';
+export type AcademyPathType = 'avalanche' | 'entrepreneur' | 'blockchain' | 'team1';
 
 type BlogFeature = {
     title: string;

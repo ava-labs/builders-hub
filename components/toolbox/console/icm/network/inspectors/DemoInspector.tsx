@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import DeployICMDemo from '@/components/toolbox/console/icm/test-connection/DeployICMDemo';
 import { useIcmSetupStore } from '@/components/toolbox/stores/icmSetupStore';
 import { useL1List, useSelectedL1, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
-import { getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { getToolboxStore, NO_CHAIN_SELECTED } from '@/components/toolbox/stores/toolboxStore';
 import { Note } from '@/components/toolbox/components/Note';
 import type { Address } from '@/components/toolbox/console/icm/network/types';
 
@@ -28,14 +28,14 @@ export function DemoInspector() {
     selectedL1 ? (s.chains[selectedL1.id]?.demoAddress ?? null) : null,
   );
 
-  const toolboxDemo = useMemo(() => {
-    if (!selectedL1) return null;
-    try {
-      return (getToolboxStore(selectedL1.id)().icmReceiverAddress ?? null) as Address | null;
-    } catch {
-      return null;
-    }
-  }, [selectedL1]);
+  // Store hooks can't live inside useMemo (Rules of Hooks) — subscribe
+  // unconditionally (sentinel store when nothing is selected). This also
+  // makes the value reactive: the memo version only refreshed when
+  // selectedL1 changed, not when the demo address landed in the store.
+  const toolboxDemoRaw = getToolboxStore(selectedL1?.id ?? NO_CHAIN_SELECTED)(
+    (s) => (s.icmReceiverAddress ?? null) as Address | null,
+  );
+  const toolboxDemo = selectedL1 ? toolboxDemoRaw : null;
 
   useEffect(() => {
     if (!selectedL1) return;

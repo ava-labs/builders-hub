@@ -1,0 +1,211 @@
+---
+title: Encrypted ERC (eERC)
+description: Privacy-preserving tokens on Avalanche using zero-knowledge proofs, partial homomorphic encryption, and the BabyJubJub curve.
+updated: 2026-04-15
+authors: [team1]
+icon: BookOpen
+---
+
+Before reading this page, work through the **[Encrypted ERC](https://build.avax.network/academy/encrypted-erc)** course on Avalanche Academy. This page explains the concepts and mechanics you need to reason about privacy-preserving tokens and help builders understand when and how to use them.
+
+## What Is an Encrypted Token
+
+A standard ERC-20 token stores balances as plain `uint256` values in a public mapping. Anyone with access to the blockchain can see exactly how many tokens any address holds. For many use cases, this public transparency is acceptable. For others, such as enterprise treasury management, private payroll, or confidential trading positions, it is a serious problem.
+
+An **encrypted token** stores balances as ciphertexts. The on-chain data is a pair of elliptic curve points rather than a readable number. Only the holder of the corresponding private key can decrypt their own balance. The contract never sees or stores the plaintext amounts, and transactions never reveal how much was transferred.
+
+The eERC standard achieves this while still allowing the contract to verify that transfers are valid. This is possible through two cryptographic techniques working together: **partial homomorphic encryption** allows the contract to update encrypted balances mathematically without decrypting them, and **zero-knowledge proofs** let users prove that a transfer is valid without revealing the amounts involved.
+
+## Cryptographic Foundations
+
+### Symmetric and Asymmetric Cryptography
+
+**Symmetric cryptography** uses the same key for both encryption and decryption. AES is a common example. It is fast but requires both parties to securely share the key beforehand, which is impractical in a trustless blockchain setting.
+
+**Asymmetric cryptography** uses a mathematically linked key pair: a public key and a private key. Anything encrypted with the public key can only be decrypted by the corresponding private key. This means anyone can encrypt a value for a recipient by using their public key, but only the recipient (who holds the private key) can read it. This is what eERC uses. Each user has a BabyJubJub key pair, and tokens are encrypted to a recipient's public key before being stored or transferred.
+
+### The BabyJubJub Curve
+
+**BabyJubJub** is a twisted Edwards elliptic curve designed specifically to be efficient inside zero-knowledge proof circuits. Its field arithmetic is aligned with the BN128 (alt_bn128) pairing curve used by Groth16 zk-SNARKs, which makes it dramatically cheaper to use inside ZK circuits compared to more general elliptic curves.
+
+**BLS** (Boneh-Lynn-Shacham), the signature scheme used in Avalanche's Warp Messaging, operates on a different curve (BLS12-381) and serves a completely different purpose: aggregating validator signatures for consensus. The two schemes are not interchangeable and are not competing designs. BabyJubJub is for privacy and ZK arithmetic; BLS12-381 is for validator signature aggregation.
+
+### ElGamal Encryption and EGCT
+
+eERC uses **ElGamal encryption** adapted to the BabyJubJub curve. To encrypt an amount `m` to a recipient with public key `P`:
+
+1. Choose a random scalar `r`.
+2. Compute `C1 = r * G` (where `G` is the curve's generator point).
+3. Compute `C2 = m * G + r * P`.
+4. The ciphertext is the pair `(C1, C2)`.
+
+The recipient can decrypt by computing `C2 - private_key * C1 = m * G`, and then solving for `m` (feasible for small balances using a lookup table). This encrypted pair is called an **EGCT (ElGamal CipherText)**.
+
+The critical property that makes this practical for token contracts is the **additive homomorphism**: if you add two ECGTs together point-wise, you get an encryption of the sum of the underlying values. The contract can update balances by adding ciphertexts without ever decrypting them.
+
+### PCT: Packed Ciphertext
+
+An EGCT consists of two elliptic curve points. A **PCT (Packed CipherText)** is simply the compact on-chain encoding of an EGCT. Each curve point is 32 bytes, so a PCT occupies 64 bytes. The `EncryptedUserBalances` contract stores one PCT per user as their encrypted balance.
+
+### Partial Homomorphic Encryption
+
+**Partial Homomorphic Encryption (PHE)** refers to an encryption scheme that supports one specific operation on ciphertexts without requiring decryption. ElGamal over BabyJubJub supports addition. This is all eERC needs: token transfers are additive operations (`new_balance = old_balance + received - sent`).
+
+The contract can evaluate `EGCT_balance + EGCT_transfer` and get `EGCT(balance + amount)` without ever knowing `balance` or `amount`. The math works on the encrypted values directly.
+
+### Zero-Knowledge Proofs
+
+A **Zero-Knowledge Proof (ZKP)** is a cryptographic protocol that lets one party (the prover) convince another (the verifier) that a statement is true without revealing any information beyond the truth of the statement itself.
+
+In eERC, ZKPs solve the problem of proving that a transfer is valid without revealing the amounts. The key properties a transfer proof must establish are:
+
+- The sender knows their own private key (they can decrypt their balance).
+- The sender's new balance after the transfer is non-negative (they are not spending more than they have).
+- The new ciphertexts for both sender and recipient are correctly computed.
+
+None of this requires revealing the actual balance or transfer amount. The proof just demonstrates that the math is consistent.
+
+eERC uses **Groth16 zk-SNARKs** implemented with Circom circuits. Groth16 was chosen for its fast on-chain verification, small proof size, and low gas cost.
+
+Users generate proofs **client-side** on their own device before submitting transactions. There is no centralized prover infrastructure.
+
+## Contract Architecture
+
+The eERC system uses several contracts working together:
+
+| Contract | Role |
+|---|---|
+| `EncryptedERC` | Main entry point. Handles mint, burn, transfer, deposit, and withdraw operations. |
+| `Registrar` | Stores user BabyJubJub public keys and manages auditor permissions. |
+| `EncryptedUserBalances` | Stores each user's encrypted balance (PCT) per token. |
+| `TokenTracker` | Used in Converter mode to link an existing ERC-20 to its encrypted wrapper. |
+| `ProofVerifier` | Verifies Groth16 zk-SNARK proofs for all operations on-chain. |
+
+## Standalone vs Converter
+
+There are two ways to create an eERC token, depending on whether an existing public ERC-20 is involved.
+
+**Standalone eERC** creates a brand new private token from scratch. There is no underlying public ERC-20. Supply is managed entirely through Mint and Burn operations. The entire supply history is confidential from the start. This mode is best when you want a token that has never been public and where total supply can be hidden.
+
+**Converter eERC** wraps an existing ERC-20 token. A `TokenTracker` contract links the existing token's address to the encrypted wrapper. Users move tokens into the private domain via Deposit (locking the public ERC-20 and receiving an encrypted balance) and out via Withdraw (burning the encrypted balance and unlocking the public ERC-20). This mode is useful when an existing token needs a private variant, or when users need to move between public and private representations.
+
+| Property | Standalone | Converter |
+|---|---|---|
+| Underlying ERC-20 | None | Required |
+| Supply management | Mint and Burn | Deposit and Withdraw |
+| Privacy from genesis | Yes | Partial (public token exists) |
+| Use case | Net-new private token | Private wrapper for an existing asset |
+
+## Initializing an eERC Contract
+
+Deploying an eERC system requires deploying the supporting contracts before the main one.
+
+For **Standalone**:
+1. Deploy the `Registrar` contract. This manages user public key storage and auditor permissions.
+2. Deploy the `ProofVerifier` contract with the Groth16 verification keys for all circuits.
+3. Deploy `EncryptedUserBalances` for storing encrypted balances.
+4. Deploy the `EncryptedERC` contract, pointing it to the Registrar, ProofVerifier, and EncryptedUserBalances addresses.
+
+For **Converter**, add one step after deploying the above:
+5. Deploy `TokenTracker` with the address of the existing ERC-20 token. Register the TokenTracker with the EncryptedERC contract.
+
+The codebase includes deployment scripts for both modes. On AvaCloud-managed L1s, eERC can be enabled through the AvaCloud portal.
+
+## Initializing a User
+
+Before a user can receive encrypted tokens, they must register their public key. This is a one-time setup step per address.
+
+1. The user generates a BabyJubJub key pair off-chain (for example, derived deterministically from their Ethereum private key so they do not have to manage a separate key).
+2. The user generates a **registration ZK proof** demonstrating knowledge of the private key corresponding to the public key, without revealing the private key.
+3. The user submits a transaction to the `Registrar` contract with their BabyJubJub public key and the registration proof.
+4. The `Registrar` verifies the proof and stores the public key on-chain, associated with the user's Ethereum address.
+
+After registration, anyone can encrypt tokens to this user by looking up their public key from the `Registrar`.
+
+## Mint vs Deposit
+
+These are the two ways new encrypted tokens can appear in a user's encrypted balance.
+
+**Mint** is used in **Standalone** mode. A privileged address (the contract owner or a designated minter) calls the mint function to create new tokens directly into the encrypted domain. The user provides a ZK proof for the encrypted amount. No ERC-20 is involved at any point. Mint is the only source of supply for Standalone tokens.
+
+**Deposit** is used in **Converter** mode. The user already holds public ERC-20 tokens. They approve the `TokenTracker` to spend their tokens, then call deposit. The TokenTracker locks the ERC-20 tokens and the `EncryptedERC` contract adds the equivalent encrypted amount to the user's on-chain encrypted balance. The public supply is visible; only the per-user encrypted balance is private.
+
+## How Balances Are Stored On-Chain
+
+In a standard ERC-20, balances are stored in a mapping as plaintext `uint256` values:
+
+```solidity
+mapping(address => uint256) private _balances;
+```
+
+In eERC, balances are stored as ElGamal ciphertexts (PCTs) in the `EncryptedUserBalances` contract. Each balance is a pair of BabyJubJub curve points encrypted to the user's registered public key. When tokens are received, the contract adds the incoming ciphertext to the stored ciphertext using homomorphic addition. The plaintext amount is never computed or stored.
+
+```
+stored_balance = add_points(stored_EGCT, incoming_EGCT)
+                = EGCT(existing_amount + incoming_amount)
+```
+
+This operation is done entirely in the contract's arithmetic without any private key or decryption. Only the user, using their private key off-chain, can compute the actual balance value.
+
+## ZK Proofs for Transfers
+
+A transfer from Alice to Bob works like this:
+
+1. Alice knows her current encrypted balance, her private key, the amount she wants to send, and Bob's registered public key.
+2. Alice computes two new ciphertexts off-chain:
+   - Her new balance: `EGCT_Alice(current_balance - amount)`
+   - Bob's new balance: `EGCT_Bob(current_balance + amount)` (added to his existing balance)
+3. Alice generates a **Groth16 Transfer proof** demonstrating:
+   - She knows her private key and can decrypt her current balance.
+   - The difference is non-negative (she has enough funds).
+   - The new ciphertexts are correctly computed for the right public keys.
+4. Alice submits the proof and the two new ciphertexts to the contract.
+5. The `ProofVerifier` contract verifies the Groth16 proof on-chain.
+6. If valid, the contract updates both Alice's and Bob's stored ciphertexts.
+
+The contract never knows the amount. Neither does Bob until he decrypts his new balance using his private key.
+
+## Burn vs Withdraw
+
+These are the two ways encrypted tokens exit a user's encrypted balance.
+
+**Burn** is used in **Standalone** mode. The user generates a ZK burn proof and submits it. The encrypted balance is reduced, the tokens are destroyed, and nothing is released to the public ERC domain because no public ERC token ever existed. Burn is used for permanently retiring tokens or for redemption mechanisms where the token lifecycle ends on-chain.
+
+**Withdraw** is used in **Converter** mode. The user generates a ZK withdraw proof and submits it. The `EncryptedERC` contract reduces the encrypted balance, and the `TokenTracker` releases the corresponding amount of locked ERC-20 tokens back to the user's address. The tokens move from the private domain back to the public ERC-20 domain.
+
+| Operation | Mode | Effect |
+|---|---|---|
+| Burn | Standalone | Encrypted balance reduced, tokens destroyed permanently |
+| Withdraw | Converter | Encrypted balance reduced, public ERC-20 tokens unlocked and returned |
+
+## Real-World Use Cases
+
+Encrypted tokens are useful in any situation where transaction amounts are sensitive but verifiability still matters.
+
+**Confidential enterprise payments**: A company paying contractors or employees in tokenized assets can use eERC so that salary or invoice amounts are not publicly visible on-chain. Auditors can be granted read access through the auditor key mechanism.
+
+**Regulated financial institutions**: Banks and asset managers operating under confidentiality obligations can use eERC for tokenized assets. The auditor key feature lets compliance teams decrypt balances for regulatory reporting without giving everyone public access.
+
+**Tokenized real-world assets (RWAs)**: Institutional counterparties trading tokenized securities or commodities often need to keep trade sizes confidential. eERC allows on-chain settlement while keeping amounts private from competitors.
+
+**Private DeFi positions**: Lending and trading protocols can use eERC to hide collateral amounts and borrow positions, reducing front-running risk and protecting user strategies.
+
+**Private person-to-person payments**: Individuals who want to transact without their financial history being publicly readable on-chain can use eERC for personal transfers.
+
+---
+
+## Key Takeaways
+
+- An encrypted token stores balances as ciphertexts instead of plaintext numbers. Only the holder can decrypt their own balance.
+- BabyJubJub is a ZK-friendly elliptic curve designed for efficient arithmetic inside Groth16 circuits. BLS (used in ICM) is a different curve for validator signature aggregation. The two serve unrelated purposes.
+- Symmetric encryption uses one shared key; asymmetric encryption uses a public/private key pair. eERC uses asymmetric encryption so senders can encrypt to a recipient's public key without needing a shared secret.
+- A Zero-Knowledge Proof lets a user prove a statement is true without revealing any underlying data. In eERC, transfer proofs prove validity without revealing amounts.
+- Partial Homomorphic Encryption supports one operation (addition) on ciphertexts without decryption. This allows the contract to update encrypted balances arithmetically.
+- EGCT (ElGamal CipherText) is the encrypted form of a token amount. PCT (Packed CipherText) is its compact on-chain encoding.
+- Standalone creates a net-new private token (Mint/Burn). Converter wraps an existing ERC-20 (Deposit/Withdraw).
+- Initializing a contract requires deploying Registrar, ProofVerifier, EncryptedUserBalances, and EncryptedERC in order. Converter mode also needs a TokenTracker.
+- User initialization requires generating a BabyJubJub key pair, creating a registration ZK proof, and submitting both to the Registrar.
+- Balances are stored as EGCT pairs on-chain and updated via homomorphic point addition. The contract never decrypts or stores plaintext amounts.
+- Transfer proofs use Groth16 and prove: valid private key knowledge, non-negative new balance, and correct ciphertext computation.
+- Burn destroys tokens permanently (Standalone). Withdraw returns them to the public ERC-20 domain (Converter).
+

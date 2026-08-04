@@ -1,25 +1,10 @@
 import { Project, ProjectHackathonInfo, ProjectMemberUser } from "@/types/showcase";
-import { Prisma, PrismaClient } from "@prisma/client";
-import { validateEntity, Validation } from "./base";
+import { Prisma } from "@prisma/client";
+import { Validation, isNonEmptyObject } from "./base";
+import { prisma } from "@/prisma/prisma";
+import { memberIdentityWhere } from "./projectMembership";
+import { MemberStatus } from "@/types/project";
 import { revalidatePath } from "next/cache";
-
-const prisma = new PrismaClient();
-
-// website/socials are Json? columns the careers flow sends but the showcase
-// Project type doesn't model; read them off the raw payload and only persist
-// when present so we never overwrite them with an empty value.
-const isNonEmptyObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" &&
-  value !== null &&
-  !Array.isArray(value) &&
-  Object.keys(value).length > 0;
-
-export const projectValidations: Validation[] = [
-  // { field: "project_name", message: "Please provide a name for the project.", validation: (project: Project) => requiredField(project, "title") },
-];
-
-export const validateProject = (project: Partial<Project>): Validation[] =>
-  validateEntity(projectValidations, project);
 
 export class ValidationError extends Error {
   public details: Validation[];
@@ -199,14 +184,16 @@ export async function getProject(id: string): Promise<Project> {
   return project;
 }
 
-export async function createProject(
+/**
+ * Create a standalone project from an explicit member list (the /projects/new
+ * directory flow). Distinct from `createProject` in submitProject.ts, which
+ * creates-or-updates *the caller's* project for a hackathon and always makes the
+ * caller its sole confirmed member. The two used to share the name `createProject`
+ * and were trivial to confuse.
+ */
+export async function createProjectWithMembers(
   projectData: Partial<Project>
 ): Promise<Project> {
-  const errors = validateProject(projectData);
-  console.log(errors);
-  if (errors.length > 0) {
-    throw new ValidationError("Validation failed", errors);
-  }
   const extra = projectData as { website?: unknown; socials?: unknown };
   const newProject = await prisma.project.create({
     data: {
@@ -246,52 +233,6 @@ export async function createProject(
   return projectData as Project;
 }
 
-export async function updateProject(
-  id: string,
-  projectData: Partial<Project>
-): Promise<Project> {
-  const errors = validateProject(projectData);
-  console.log(errors);
-  if (errors.length > 0) {
-    throw new ValidationError("Validation failed", errors);
-  }
-
-  const existingProject = await prisma.project.findUnique({
-    where: { id },
-  });
-  if (!existingProject) {
-    throw new Error("Project not found");
-  }
-
-  await prisma.project.update({
-    where: { id },
-    data: {
-      project_name: projectData.project_name ?? "",
-      short_description: projectData.short_description ?? "",
-      cover_url: projectData.cover_url ?? "",
-      demo_link: projectData.demo_link ?? "",
-      demo_video_link: projectData.demo_video_link ?? "",
-      full_description: projectData.full_description ?? "",
-      github_repository: projectData.github_repository ?? "",
-      logo_url: projectData.logo_url ?? "",
-      screenshots: projectData.screenshots ?? [],
-      tech_stack: projectData.tech_stack ?? "",
-      tracks: projectData.tracks ?? [],
-      members: {
-        create: projectData.members?.map((member) => ({
-          user_id: member.user_id,
-          role: member.role,
-          status: member.status,
-        })),
-      },
-      updated_at: new Date(),
-    },
-  });
-  revalidatePath(`/api/projects/${projectData.id}`);
-  revalidatePath("/api/projects/");
-  return projectData as Project;
-}
-
 export async function CheckInvitation(invitationId: string, user_id: string) {
   const user = await prisma.user.findUnique({
     where: { id: user_id },
@@ -299,13 +240,9 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
   });
   const member = await prisma.member.findFirst({
     where: {
-      OR: [
-        { id: invitationId, user_id: user_id },
-        { id: invitationId, email: user?.email },
-      ],
-      status: {
-        not: "Removed",
-      },
+      id: invitationId,
+      ...memberIdentityWhere({ id: user_id, email: user?.email }),
+      status: { not: MemberStatus.REMOVED },
     },
     include: {
       project: true,
@@ -316,8 +253,8 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
     where: {
       members: {
         some: {
-          OR: [{ user_id: user_id }, { email: user?.email }],
-          status: "Confirmed",
+          ...memberIdentityWhere({ id: user_id, email: user?.email }),
+          status: MemberStatus.CONFIRMED,
           NOT: {
             project_id: member?.project?.id,
           },
@@ -332,7 +269,7 @@ export async function CheckInvitation(invitationId: string, user_id: string) {
 
   const isValid =
     existingConfirmedProject == null &&
-    member?.status == "Pending Confirmation";
+    member?.status == MemberStatus.PENDING;
 
   return {
     invitation: {
@@ -375,8 +312,14 @@ export async function GetProjectByHackathonAndUser(
   }
   let project_id = "";
   if (invitation_id != "") {
+    // The invitation must belong to the caller. Looking the member row up by id
+    // alone returned any project to anyone holding a member id — and member ids
+    // travel in invitation URLs, so they leak into inboxes and referrer headers.
     const invitation = await prisma.member.findFirst({
-      where: { id: invitation_id },
+      where: {
+        id: invitation_id,
+        ...memberIdentityWhere(user),
+      },
     });
 
     project_id = invitation?.project_id??"";
@@ -394,10 +337,8 @@ export async function GetProjectByHackathonAndUser(
       hackaton_id,
       members: {
         some: {
-          OR: [{ user_id: user.id }, { email: user.email }],
-          status: {
-            in: ["Confirmed", "Pending Confirmation"],
-          },
+          ...memberIdentityWhere(user),
+          status: { in: [MemberStatus.CONFIRMED, MemberStatus.PENDING] },
         },
       },
     },

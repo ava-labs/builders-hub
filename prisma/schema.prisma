@@ -110,6 +110,7 @@ model User {
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
   posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
+  grant_applications         GrantApplication[]        @relation("GrantApplicationUser")
 }
 
 model VerificationToken {
@@ -155,6 +156,7 @@ model Project {
   short_description   String
   full_description    String?             @default("")
   tech_stack          String?             @default("")
+  tech_stack_tags     String[]            @default([])
   github_repository   String?             @default("")
   demo_link           String?             @default("")
   logo_url            String?             @default("")
@@ -191,6 +193,7 @@ model Project {
   ProjectRepository   ProjectRepository[]
   evaluations         Evaluation[]
   jobListings         JobListing[]
+  grant_applications  GrantApplication[]  @relation("GrantApplicationProject")
 }
 
 model Member {
@@ -358,20 +361,33 @@ model ReferralAttribution {
 }
 
 model FaucetClaim {
-  id                  String   @id @default(uuid())
+  id                  String        @id @default(uuid())
   user_id             String
   faucet_type         String
   chain_id            String?
   destination_address String
   amount              String
   tx_hash             String?
-  created_at          DateTime @default(now()) @db.Timestamptz(3)
-  user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  coupon_id           String?
+  created_at          DateTime      @default(now()) @db.Timestamptz(3)
+  user                User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  coupon              FaucetCoupon? @relation(fields: [coupon_id], references: [id], onDelete: SetNull)
 
   @@index([user_id])
   @@index([destination_address])
   @@index([created_at])
   @@index([faucet_type, chain_id])
+  @@index([coupon_id])
+}
+
+model FaucetCoupon {
+  id         String        @id @default(uuid())
+  code       String        @unique
+  active     Boolean       @default(true)
+  expires_at DateTime?     @db.Timestamptz(3)
+  note       String?
+  created_at DateTime      @default(now()) @db.Timestamptz(3)
+  claims     FaucetClaim[]
 }
 
 model ChatConversation {
@@ -485,6 +501,46 @@ model OAuthCode {
   user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([expires_at])
+}
+
+model Retro9000ReturningApplication {
+  id                                  String   @id @default(uuid())
+  email                               String   @unique
+  project_name                        String
+  project_type                        String
+  project_vertical                    String
+  project_website                     String?
+  project_x_handle                    String?
+  project_github                      String
+  project_hq                          String
+  project_continent                   String
+  media_kit                           String
+  previous_retro9000_snapshot_funding String?
+  requested_funding_range             String
+  eligibility_and_metrics             String
+  requested_grant_size_budget         String
+  changes_since_last_snapshot         String
+  first_name                          String
+  last_name                           String
+  pseudonym                           String?
+  role                                String
+  x_account                           String
+  telegram                            String
+  linkedin                            String?
+  github                              String?
+  country                             String?
+  other_url                           String?
+  bio                                 String
+  kyb_willing                         String
+  gdpr                                Boolean  @default(false)
+  marketing_consent                   Boolean  @default(false)
+  created_at                          DateTime @default(now()) @db.Timestamptz(3)
+  updated_at                          DateTime @updatedAt @db.Timestamptz(3)
+
+  @@index([created_at])
+  @@index([project_name])
+  @@index([project_vertical])
+  @@index([requested_funding_range])
 }
 
 model ResearchProposalApplication {
@@ -688,4 +744,18 @@ model JobListing {
   @@unique([source, external_id])
   @@index([source, is_active, posted_at])
   @@index([project_id])
+}
+
+model GrantApplication {
+  id          String   @id @default(uuid())
+  program_key String
+  user_id     String
+  project_id  String
+  created_at  DateTime @default(now()) @db.Timestamptz(3)
+  updated_at  DateTime @updatedAt @db.Timestamptz(3)
+  user        User     @relation("GrantApplicationUser", fields: [user_id], references: [id], onDelete: Cascade)
+  project     Project  @relation("GrantApplicationProject", fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@unique([program_key, project_id])
+  @@index([user_id])
 }

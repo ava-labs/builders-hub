@@ -15,6 +15,7 @@ import {
 import { BadgeCheck } from "lucide-react";
 import { Feedback } from "@/components/ui/feedback";
 import posthog from "posthog-js";
+import { formatBlogDate } from "@/utils/formatBlogDate";
 
 export const dynamicParams = false;
 
@@ -107,9 +108,7 @@ export default async function Page(props: {
           <div>
             <p className="mb-1 text-sm text-muted-foreground">On</p>
             <p className="font-medium">
-              {new Date(
-                (page.data.date as string) ?? page.url
-              ).toDateString()}
+              {formatBlogDate(page.data.date as string | Date)}
             </p>
           </div>
 

@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState, type ComponentProps, Children, typ
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { cn } from '@/lib/cn';
 import { createProcessor, type Processor } from '@/components/ai/markdown-processor';
+import { isSafeHref } from '@/components/chat/safe-href';
 import Link from 'fumadocs-core/link';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import dynamic from 'next/dynamic';
@@ -103,6 +104,13 @@ function removeThinkingPatterns(content: string): string {
   return cleaned;
 }
 
+function SafeLink({ href, children, ...props }: ComponentProps<'a'>) {
+  if (!isSafeHref(href)) {
+    return <span {...props}>{children}</span>;
+  }
+  return <Link href={href!} {...props}>{children}</Link>;
+}
+
 function Pre(props: ComponentProps<'pre'>) {
   const code = Children.only(props.children) as ReactElement;
   const codeProps = code.props as ComponentProps<'code'>;
@@ -126,7 +134,7 @@ function Markdown({ text }: { text: string }) {
       if (!result && text) {
         processor ??= createProcessor();
         result = await processor
-          .process(text, { ...defaultMdxComponents, pre: Pre, a: Link, img: undefined })
+          .process(text, { ...defaultMdxComponents, pre: Pre, a: SafeLink, img: undefined })
           .catch(() => text);
         markdownCache.set(text, result);
       }

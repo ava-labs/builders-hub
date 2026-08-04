@@ -53,6 +53,26 @@ export interface TopReferrerRow {
   totalReferrals: number;
 }
 
+export interface ReferrerMonthlyRow {
+  referrerId: string;
+  month: string;
+  builderHubSignups: number;
+  eventRegistrations: number;
+  hackathonRegistrations: number;
+  grantApplications: number;
+  totalReferrals: number;
+}
+
+export interface TeamReferrerMonthlyRow {
+  teamId: string;
+  month: string;
+  builderHubSignups: number;
+  eventRegistrations: number;
+  hackathonRegistrations: number;
+  grantApplications: number;
+  totalReferrals: number;
+}
+
 export interface TopTeamReferrerRow {
   teamId: string;
   team: string;
@@ -61,6 +81,21 @@ export interface TopTeamReferrerRow {
   hackathonRegistrations: number;
   grantApplications: number;
   totalReferrals: number;
+}
+
+export type SocialPlatform = "x" | "linkedin" | "github" | "telegram";
+
+export interface SocialCompletionStat {
+  platform: SocialPlatform;
+  label: string;
+  count: number;
+  pct: number;
+}
+
+export interface SocialCompletionDepthRow {
+  linkCount: number;
+  users: number;
+  pct: number;
 }
 
 export interface BuilderInsightsData {
@@ -89,8 +124,12 @@ export interface BuilderInsightsData {
   signupsByReferrer: ReferrerSignupPoint[];
   eventParticipants: EventParticipantPoint[];
   topReferrers: TopReferrerRow[];
+  topReferrersMonthly: ReferrerMonthlyRow[];
   topTeamReferrers: TopTeamReferrerRow[];
+  topTeamReferrersMonthly: TeamReferrerMonthlyRow[];
   referralTargets: ReferralTargetPreset[];
+  socialCompletion: SocialCompletionStat[];
+  socialCompletionDepth: SocialCompletionDepthRow[];
 }
 
 function toNumber(value: bigint | number | null | undefined): number {
@@ -223,7 +262,9 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     userGeneratedRows,
     activeEventRows,
     topReferrerRows,
+    referrerMonthlyRows,
     topTeamReferrerRows,
+    teamMonthlyRows,
     rollingVisitsRows,
     monthlyVisitsRows,
     consoleUsersRows,
@@ -231,6 +272,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     totalHackathonSubmissions,
     topCountryRows,
     returningVisitorsRows,
+    socialCompletionRows,
+    socialDepthRows,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
@@ -277,13 +320,14 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
                h."title" AS "event",
                h."start_date" AS "startDate",
                h."end_date" AS "endDate",
-               COUNT(DISTINCT u."id")::bigint AS "participants",
+               -- Participants = total team members across the hackathon's teams
+               -- (number of teams, then people per team). Counts member rows
+               -- directly so email-only invitees without an account still count.
+               COUNT(DISTINCT m."id")::bigint AS "participants",
                COUNT(DISTINCT p."id")::bigint AS "projects"
         FROM "Hackathon" h
         LEFT JOIN "Project" p ON p."hackaton_id" = h."id"
         LEFT JOIN "Member" m ON m."project_id" = p."id"
-        LEFT JOIN "User" u ON u."id" = m."user_id"
-          OR (m."user_id" IS NULL AND m."email" IS NOT NULL AND LOWER(u."email") = LOWER(m."email"))
         WHERE COALESCE(h."event", 'hackathon') = 'hackathon'
           AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
         GROUP BY h."id", h."title", h."start_date", h."end_date"
@@ -378,6 +422,39 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     `,
     prisma.$queryRaw<
       Array<{
+        referrerId: string;
+        month: Date;
+        builderHubSignups: bigint;
+        eventRegistrations: bigint;
+        hackathonRegistrations: bigint;
+        grantApplications: bigint;
+        totalReferrals: bigint;
+      }>
+    >`
+      SELECT attribution."user_id_referrer" AS "referrerId",
+             date_trunc('month', attribution."created_at")::date AS "month",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'hackathon_registration'
+                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
+             )::bigint AS "eventRegistrations",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'build_games_application'
+                  OR (
+                    attribution."target_type" = 'hackathon_registration'
+                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
+                  )
+             )::bigint AS "hackathonRegistrations",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
+             COUNT(*)::bigint AS "totalReferrals"
+      FROM "ReferralAttribution" attribution
+      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
+      WHERE attribution."user_id_referrer" IS NOT NULL
+      GROUP BY 1, 2
+      ORDER BY 2 DESC
+    `,
+    prisma.$queryRaw<
+      Array<{
         teamId: string;
         builderHubSignups: bigint;
         eventRegistrations: bigint;
@@ -407,6 +484,39 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       GROUP BY attribution."team_id_referrer"
       ORDER BY "totalReferrals" DESC
       LIMIT 20
+    `,
+    prisma.$queryRaw<
+      Array<{
+        teamId: string;
+        month: Date;
+        builderHubSignups: bigint;
+        eventRegistrations: bigint;
+        hackathonRegistrations: bigint;
+        grantApplications: bigint;
+        totalReferrals: bigint;
+      }>
+    >`
+      SELECT attribution."team_id_referrer" AS "teamId",
+             date_trunc('month', attribution."created_at")::date AS "month",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'hackathon_registration'
+                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
+             )::bigint AS "eventRegistrations",
+             COUNT(*) FILTER (
+               WHERE attribution."target_type" = 'build_games_application'
+                  OR (
+                    attribution."target_type" = 'hackathon_registration'
+                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
+                  )
+             )::bigint AS "hackathonRegistrations",
+             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
+             COUNT(*)::bigint AS "totalReferrals"
+      FROM "ReferralAttribution" attribution
+      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
+      WHERE attribution."team_id_referrer" IS NOT NULL
+      GROUP BY 1, 2
+      ORDER BY 2 DESC
     `,
     runHogQL<{ latest: number | null; previous: number | null }>({
       projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
@@ -438,6 +548,30 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
       query: RETURNING_VISITORS_HOGQL,
     }),
+    prisma.$queryRaw<
+      Array<{ x: bigint; linkedin: bigint; github: bigint; telegram: bigint }>
+    >`
+      SELECT
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("x_account"), '') IS NOT NULL)::bigint AS "x",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("linkedin_account"), '') IS NOT NULL)::bigint AS "linkedin",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("github_account"), '') IS NOT NULL)::bigint AS "github",
+        COUNT(*) FILTER (WHERE NULLIF(TRIM("telegram_account"), '') IS NOT NULL)::bigint AS "telegram"
+      FROM "User"
+    `,
+    prisma.$queryRaw<Array<{ linkCount: number; users: bigint }>>`
+      SELECT "linkCount", COUNT(*)::bigint AS "users"
+      FROM (
+        SELECT (
+          (CASE WHEN NULLIF(TRIM("x_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("linkedin_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("github_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+          + (CASE WHEN NULLIF(TRIM("telegram_account"), '') IS NOT NULL THEN 1 ELSE 0 END)
+        ) AS "linkCount"
+        FROM "User"
+      ) depth
+      GROUP BY "linkCount"
+      ORDER BY "linkCount" ASC
+    `,
   ]);
 
   let cumulative = 0;
@@ -554,6 +688,29 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     };
   });
 
+  const pctOfTotal = (n: number) => (totalAccounts > 0 ? (n / totalAccounts) * 100 : 0);
+
+  const socialCounts = socialCompletionRows[0];
+  const xCount = toNumber(socialCounts?.x);
+  const linkedinCount = toNumber(socialCounts?.linkedin);
+  const githubCount = toNumber(socialCounts?.github);
+  const telegramCount = toNumber(socialCounts?.telegram);
+  const socialCompletion: SocialCompletionStat[] = [
+    { platform: "x", label: "X", count: xCount, pct: pctOfTotal(xCount) },
+    { platform: "linkedin", label: "LinkedIn", count: linkedinCount, pct: pctOfTotal(linkedinCount) },
+    { platform: "github", label: "GitHub", count: githubCount, pct: pctOfTotal(githubCount) },
+    { platform: "telegram", label: "Telegram", count: telegramCount, pct: pctOfTotal(telegramCount) },
+  ];
+
+  const depthByCount = new Map<number, number>();
+  for (const row of socialDepthRows) {
+    depthByCount.set(Number(row.linkCount), toNumber(row.users));
+  }
+  const socialCompletionDepth: SocialCompletionDepthRow[] = [0, 1, 2, 3, 4].map((linkCount) => {
+    const users = depthByCount.get(linkCount) ?? 0;
+    return { linkCount, users, pct: pctOfTotal(users) };
+  });
+
   return {
     totalAccounts,
     userGeneratedReferralImpact,
@@ -595,9 +752,27 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       grantApplications: toNumber(row.grantApplications),
       totalReferrals: toNumber(row.totalReferrals),
     })),
+    topReferrersMonthly: referrerMonthlyRows.map((row) => ({
+      referrerId: row.referrerId,
+      month: formatMonth(row.month),
+      builderHubSignups: toNumber(row.builderHubSignups),
+      eventRegistrations: toNumber(row.eventRegistrations),
+      hackathonRegistrations: toNumber(row.hackathonRegistrations),
+      grantApplications: toNumber(row.grantApplications),
+      totalReferrals: toNumber(row.totalReferrals),
+    })),
     topTeamReferrers: topTeamReferrerRows.map((row) => ({
       teamId: row.teamId,
       team: formatTeamLabel(row.teamId),
+      builderHubSignups: toNumber(row.builderHubSignups),
+      eventRegistrations: toNumber(row.eventRegistrations),
+      hackathonRegistrations: toNumber(row.hackathonRegistrations),
+      grantApplications: toNumber(row.grantApplications),
+      totalReferrals: toNumber(row.totalReferrals),
+    })),
+    topTeamReferrersMonthly: teamMonthlyRows.map((row) => ({
+      teamId: row.teamId,
+      month: formatMonth(row.month),
       builderHubSignups: toNumber(row.builderHubSignups),
       eventRegistrations: toNumber(row.eventRegistrations),
       hackathonRegistrations: toNumber(row.hackathonRegistrations),
@@ -609,6 +784,8 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ...activeEventTargets,
       ...ACTIVE_GRANT_TARGETS,
     ],
+    socialCompletion,
+    socialCompletionDepth,
   };
 }
 

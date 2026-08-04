@@ -69,7 +69,7 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
 
   function buildConvertCliCommand() {
     const parts = [
-      `platform subnet convert-l1`,
+      `platform-cli subnet convert-to-l1`,
       `--subnet-id ${selection.subnetId || '<subnet-id>'}`,
       `--chain-id ${validatorManagerChainID || '<chain-id>'}`,
       `--manager ${validatorManagerAddress || '<address>'}`,

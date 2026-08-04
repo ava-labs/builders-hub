@@ -1,28 +1,20 @@
 import { generate6DigitCode } from '@/lib/auth/authOptions';
 import { prisma } from '@/prisma/prisma';
-import sgMail from '@sendgrid/mail';
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY as string);
+import { sendMail } from '@/server/services/mail';
 
 export async function sendOTP(email: string) {
   const code = generate6DigitCode();
-  await prisma.verificationToken.upsert({
-    where: { identifier_token: { identifier: email, token: code } },
-    update: {
-      token: code,
-      expires: new Date(Date.now() + 3 * 60 * 1000),
-    },
-    create: {
+  // Delete any existing OTPs for this email so only one valid code exists at a time.
+  // The old upsert keyed on (identifier, token) never matched (token is random) and
+  // silently accumulated unlimited live codes, enabling brute-force attacks.
+  await prisma.verificationToken.deleteMany({ where: { identifier: email } });
+  await prisma.verificationToken.create({
+    data: {
       identifier: email,
       token: code,
       expires: new Date(Date.now() + 3 * 60 * 1000),
     },
   });
-
-  const from = {
-    email: process.env.EMAIL_FROM as string,
-    name: "Avalanche Builder's Hub"
-  };
 
   if (process.env.NODE_ENV === 'development') {
     console.log('\n' + '='.repeat(50));
@@ -35,12 +27,7 @@ export async function sendOTP(email: string) {
     return;
   }
 
-  const msg = {
-    to: email,
-    from: from,
-    subject: 'Verify Your Account',
-    text: `Your verification code is: ${code}. It expires in 3 minutes.`,
-    html: `
+  const html = `
     <div style="background-color: #18181B; color: white; font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border-radius: 8px; border: 1px solid #EF4444; text-align: center;">
       <h2 style="color: white; font-size: 20px; margin-bottom: 16px;"> Verify Your Account</h2>
       
@@ -57,12 +44,7 @@ export async function sendOTP(email: string) {
         <p style="font-size: 12px; color: #A1A1AA;">Avalanche Builder's Hub © 2025</p>
       </div>
     </div>
-  `,
-  };
+  `;
 
-  try {
-    await sgMail.send(msg);
-  } catch (error) {
-    throw new Error(`Error sending email: \n${error}`);
-  }
+  await sendMail(email, html, 'Verify Your Account', `Your verification code is: ${code}. It expires in 3 minutes.`);
 }

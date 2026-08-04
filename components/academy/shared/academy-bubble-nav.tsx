@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Users } from 'lucide-react';
+import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
 
 const AVALANCHE_LOGO_SRC =
     "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche_Logomark_Red.svg";
@@ -66,6 +68,7 @@ const academyItems = [
     { id: "avalanche", label: "Avalanche L1", href: "/academy/avalanche-l1", icon: AvalancheLogo, iconSize: "w-7 h-7", padding: "14px" },
     { id: "blockchain", label: "Blockchain", href: "/academy/blockchain", icon: SolidityLogo, iconSize: "w-9 h-9", padding: "10px" },
     { id: "entrepreneur", label: "Entrepreneur", href: "/academy/entrepreneur", icon: GraduationCap, iconSize: "w-7 h-7", padding: "14px" },
+    { id: "team1", label: "Team1", href: "/academy/team1", icon: Users, iconSize: "w-7 h-7", padding: "14px" },
 ];
 
 function getActiveItem(pathname: string): string {
@@ -73,13 +76,16 @@ function getActiveItem(pathname: string): string {
         return "entrepreneur";
     } else if (pathname === "/academy/blockchain" || pathname.startsWith("/academy/blockchain/")) {
         return "blockchain";
+    } else if (pathname === "/academy/team1" || pathname.startsWith("/academy/team1/")) {
+        return "team1";
     } else if (
         pathname === "/academy" ||
         pathname === "/academy/avalanche-l1" ||
         pathname.startsWith("/academy/avalanche-l1/") ||
         (pathname.startsWith("/academy/") &&
             !pathname.startsWith("/academy/blockchain") &&
-            !pathname.startsWith("/academy/entrepreneur"))
+            !pathname.startsWith("/academy/entrepreneur") &&
+            !pathname.startsWith("/academy/team1"))
     ) {
         return "avalanche";
     }
@@ -92,7 +98,8 @@ function isMainAcademyPage(pathname: string): boolean {
         "/academy",
         "/academy/avalanche-l1",
         "/academy/blockchain",
-        "/academy/entrepreneur"
+        "/academy/entrepreneur",
+        "/academy/team1"
     ];
     return mainPages.includes(pathname);
 }
@@ -168,6 +175,11 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
 export function AcademyBubbleNav() {
     const pathname = usePathname();
     const router = useRouter();
+    const { data: session } = useSession();
+    const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
+    const visibleAcademyItems = canSeeTeam1
+        ? academyItems
+        : academyItems.filter((item) => item.id !== "team1");
     const [activeItem, setActiveItem] = useState(() => getActiveItem(pathname));
     const [isVisible, setIsVisible] = useState(() => isMainAcademyPage(pathname));
     const [showOnboarding, setShowOnboarding] = useState(false);
@@ -242,7 +254,7 @@ export function AcademyBubbleNav() {
             className="fixed left-3 top-1/2 -translate-y-1/2 z-30 hidden lg:block"
         >
             <div className="flex flex-col items-start gap-2">
-                {academyItems.map((item) => {
+                {visibleAcademyItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = activeItem === item.id;
 

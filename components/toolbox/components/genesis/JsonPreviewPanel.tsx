@@ -11,6 +11,10 @@ interface JsonPreviewPanelProps {
   title?: string;
   highlightPath?: string;
   onHighlightChange?: (path: string | null) => void;
+  /** Download filename. Defaults to genesis.json for the genesis builder. */
+  fileName?: string;
+  /** Size budget for the progress bar. `null` hides the bar (no P-Chain limit applies). */
+  sizeLimitKiB?: number | null;
 }
 
 export function JsonPreviewPanel({
@@ -19,6 +23,8 @@ export function JsonPreviewPanel({
   title = 'Genesis Configuration',
   highlightPath,
   onHighlightChange: _onHighlightChange,
+  fileName = 'genesis.json',
+  sizeLimitKiB = 64,
 }: JsonPreviewPanelProps) {
   const [copied, setCopied] = useState(false);
   const [highlightedLine, setHighlightedLine] = useState<number | null>(null);
@@ -72,6 +78,10 @@ export function JsonPreviewPanel({
         'config.txAllowListConfig': { section: 'txAllowListConfig', offset: 0 },
         'config.feeManagerConfig': { section: 'feeManagerConfig', offset: 0 },
         'config.rewardManagerConfig': { section: 'rewardManagerConfig', offset: 0 },
+        'config.warpConfig': { section: 'warpConfig', offset: 0 },
+
+        // upgrade.json sections (L1 upgrade builder)
+        stateUpgrades: { section: 'stateUpgrades', offset: 0 },
 
         // Predeploy contracts
         'predeploy-proxy': { section: 'alloc', offset: 0 },
@@ -286,7 +296,7 @@ export function JsonPreviewPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'genesis.json';
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -296,8 +306,8 @@ export function JsonPreviewPanel({
   const jsonSize = new Blob([jsonData]).size;
   const isValidJson = jsonData && jsonData !== '' && !jsonData.startsWith('Error:');
   const jsonSizeKiB = jsonSize / 1024;
-  const maxSizeKiB = 64;
-  const percent = Math.min((jsonSizeKiB / maxSizeKiB) * 100, 100);
+  const maxSizeKiB = sizeLimitKiB;
+  const percent = maxSizeKiB ? Math.min((jsonSizeKiB / maxSizeKiB) * 100, 100) : 0;
   const statusText = !isValidJson
     ? 'Awaiting configuration'
     : percent >= 90
@@ -316,7 +326,9 @@ export function JsonPreviewPanel({
             <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{title}</h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               {isValidJson
-                ? `${jsonSizeKiB.toFixed(2)} KiB / ${maxSizeKiB} KiB • ${statusText}`
+                ? maxSizeKiB
+                  ? `${jsonSizeKiB.toFixed(2)} KiB / ${maxSizeKiB} KiB • ${statusText}`
+                  : `${jsonSizeKiB.toFixed(2)} KiB`
                 : 'Awaiting configuration'}
             </p>
           </div>
@@ -340,7 +352,7 @@ export function JsonPreviewPanel({
             </Button>
           </div>
         </div>
-        {isValidJson && (
+        {isValidJson && maxSizeKiB != null && (
           <div className="mt-2">
             <div className="w-full h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800">
               <div

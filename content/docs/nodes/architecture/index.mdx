@@ -30,7 +30,7 @@ AvalancheGo is written in Go and is designed to be modular, allowing developers 
 - **Chain manager**: Boots P/C/X, creates new chains on request, routes consensus messages.
 - **APIs**: HTTP/WS via `/ext/*`, with health/metrics, admin/info, and per-chain RPCs.
 - **Storage**: LevelDB (default), PebbleDB, or [Firewood](/docs/nodes/architecture/execution/firewood) (experimental), shared atomic UTXO memory for cross-chain transfers.
-- **Execution**: [Streaming Asynchronous Execution](/docs/nodes/architecture/execution/streaming-async-execution) (experimental) decouples consensus from execution for higher throughput.
+- **Execution**: [Continuous Execution](/docs/nodes/architecture/execution/continuous-execution) (experimental) decouples consensus from execution for higher throughput.
 
 ## Core Components
 
@@ -93,6 +93,6 @@ AvalancheGo separates concerns into distinct layers:
     Explore the P2P protocol and peer management system
   </Card>
   <Card title="Execution" href="/docs/nodes/architecture/execution">
-    Explore streaming async execution and the Firewood database
+    Explore Continuous Execution and the Firewood database
   </Card>
 </Cards>

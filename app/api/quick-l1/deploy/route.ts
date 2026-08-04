@@ -120,16 +120,30 @@ async function handlePost(
         { status: 503 },
       );
     }
-    // Tell the upstream which builders-hub origin to call back to for
-    // register-node — so preview deploys register nodes onto themselves
-    // rather than whatever `BUILDER_HUB_URL` the Railway env happens to
-    // point at. `nextUrl.origin` is whatever host the browser hit.
+    // Use the canonical BUILDER_HUB_URL env var rather than the inbound Host
+    // header (request.nextUrl.origin). On Vercel the Host header is forwarded
+    // verbatim, so a request with a spoofed Host would leak the shared secret
+    // to an attacker-controlled callback origin.
+    //
+    // Production falls back to the canonical origin so a missing env var
+    // cannot 503 every prod deploy. Previews still require the env var:
+    // falling back to prod there would point their register-node callbacks
+    // at the wrong origin.
+    const builderHubUrl =
+      process.env.BUILDER_HUB_URL ??
+      (process.env.VERCEL_ENV === 'production' ? 'https://build.avax.network' : undefined);
+    if (!builderHubUrl) {
+      return NextResponse.json(
+        { error: 'BUILDER_HUB_URL not configured on this server' },
+        { status: 503 },
+      );
+    }
     const res = await fetch(`${upstream.replace(/\/$/, '')}/deploy`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'x-quick-l1-secret': secret,
-        'x-builder-hub-url': request.nextUrl.origin,
+        'x-builder-hub-url': builderHubUrl,
       },
       body: JSON.stringify(body),
     });

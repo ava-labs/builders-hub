@@ -38,6 +38,8 @@ interface MiniNetworkDiagramProps {
   autoRotateSpeed?: number;
   className?: string;
   onChainClick?: (chain: MiniChainData) => void;
+  /** Hide the nebula background and bottom CTA bar (marketing surfaces). */
+  minimal?: boolean;
 }
 
 interface ChainNode {
@@ -137,6 +139,7 @@ export default function MiniNetworkDiagram({
   autoRotateSpeed = 0.15,
   className = "",
   onChainClick,
+  minimal = false,
 }: MiniNetworkDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -779,28 +782,43 @@ export default function MiniNetworkDiagram({
       className={`relative overflow-hidden ${className}`}
       style={{ width: containerSize, height: containerSize + BOTTOM_CONTROLS_HEIGHT }}
     >
-      {/* Background nebula gradient - contained within component */}
+      {/* Background nebula gradient - contained within component.
+          Two layers toggled via the `dark` class so SSR output is theme-independent
+          (reading resolvedTheme during render causes a hydration mismatch). */}
+      {!minimal && (
+      <>
       <div
-        className="absolute pointer-events-none overflow-hidden"
+        className="absolute pointer-events-none overflow-hidden dark:hidden"
         style={{
           width: '200%',
           height: '200%',
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          background: isDarkMode
-            ? `
-              radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(139, 92, 246, 0.06) 30%, transparent 50%),
-              radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.04) 30%, transparent 50%),
-              radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.03) 30%, transparent 50%)
-            `
-            : `
-              radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 30%, transparent 50%),
-              radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.10) 0%, rgba(6, 182, 212, 0.03) 30%, transparent 50%),
-              radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.08) 0%, rgba(236, 72, 153, 0.02) 30%, transparent 50%)
-            `,
+          background: [
+            "radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.12) 0%, rgba(139, 92, 246, 0.04) 30%, transparent 50%)",
+            "radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.10) 0%, rgba(6, 182, 212, 0.03) 30%, transparent 50%)",
+            "radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.08) 0%, rgba(236, 72, 153, 0.02) 30%, transparent 50%)",
+          ].join(", "),
         }}
       />
+      <div
+        className="absolute pointer-events-none overflow-hidden hidden dark:block"
+        style={{
+          width: '200%',
+          height: '200%',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: [
+            "radial-gradient(ellipse 35% 30% at 45% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(139, 92, 246, 0.06) 30%, transparent 50%)",
+            "radial-gradient(ellipse 30% 25% at 60% 55%, rgba(6, 182, 212, 0.15) 0%, rgba(6, 182, 212, 0.04) 30%, transparent 50%)",
+            "radial-gradient(ellipse 25% 35% at 48% 65%, rgba(236, 72, 153, 0.12) 0%, rgba(236, 72, 153, 0.03) 30%, transparent 50%)",
+          ].join(", "),
+        }}
+      />
+      </>
+      )}
       <canvas
         ref={canvasRef}
         width={dimensions.width * dpr}
@@ -830,9 +848,10 @@ export default function MiniNetworkDiagram({
       )}
       
       {/* Bottom bar with CTAs */}
+      {!minimal && (
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2">
         <a
-          href="/stats/overview"
+          href="/explorer/mainnet"
           className="px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-[11px] font-medium hover:opacity-80 transition-opacity"
         >
           View Stats
@@ -844,6 +863,7 @@ export default function MiniNetworkDiagram({
           Explorer
         </a>
       </div>
+      )}
     </div>
   );
 }

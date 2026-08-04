@@ -291,7 +291,11 @@ export default function GeneralComponent({
                     teamName={teamName}
                   />
                 )}
-                {step === 2 && <SubmitStep2 />}
+                {step === 2 && (
+                  <SubmitStep2
+                    availableTechStack={hackathon?.content?.tech_stack_options ?? []}
+                  />
+                )}
                 {step === 3 && <SubmitStep3 />}
                 <Separator />
                 <StepNavigation

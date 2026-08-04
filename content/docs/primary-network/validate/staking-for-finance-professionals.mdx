@@ -227,57 +227,74 @@ For detailed technical implementation support, refer to the [How to Stake](/docs
 
 ---
 
-## Coming Soon: Continuous Staking (ACP-236)
+## Auto-Renewed Staking (ACP-236)
 
-<Callout type="info" title="Proposed — Not Yet Live">
-[ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking) is currently in **Proposed** status. The features below will require a network upgrade to implement. This section is provided for planning purposes.
+<Callout type="info" title="Live on Fuji, not yet on Mainnet">
+[ACP-236: Auto-Renewed Staking](/docs/acps/236-auto-renewed-staking) activated on Fuji with the Helicon upgrade on July 28, 2026 at 15:00 UTC. Mainnet activation is not yet scheduled.
 </Callout>
 
-### What Is Continuous Staking?
+### What Is Auto-Renewed Staking?
 
-ACP-236 proposes a mechanism allowing validators to remain staked indefinitely without manually resubmitting staking transactions at each period's end. Instead of committing to a fixed end time, validators would specify a **cycle duration** and an **auto-renew policy**.
+An auto-renewed validator does not commit to a fixed end time. Instead it specifies a **cycle duration** and an **auto-compound percentage**. At each cycle boundary the P-Chain settles that cycle's rewards and immediately starts another cycle, provided the validator met the uptime requirement and has not been configured to exit.
 
-### Key Changes from Current System
+### Key Changes from Fixed-Term Staking
 
-| Aspect | Current System | With ACP-236 |
-|--------|----------------|--------------|
-| **Staking Duration** | Fixed end time; must re-stake manually | Automatic renewal at cycle end |
-| **Reward Handling** | All rewards returned at period end | Configurable: auto-compound or withdraw |
-| **Exit Process** | Delegation simply ends | Submit `SetAutoRenewPolicyTx` to signal exit |
-| **Transaction Burden** | New transaction every staking period | One transaction, runs indefinitely |
-| **Uptime Tracking** | Measured over entire period | Reset each cycle |
+| Aspect | Fixed-term staking | Auto-renewed staking |
+|--------|--------------------|----------------------|
+| **Staking Duration** | Fixed end time; must re-stake manually | Renews at each cycle boundary with no further transactions |
+| **Reward Handling** | All rewards paid out at period end | Configurable per cycle: restake a percentage, withdraw the rest |
+| **Exit Process** | Stake expires at the end time you chose | Set the next cycle duration to `0`; exit takes effect at the next boundary |
+| **Transaction Burden** | New transaction every staking period | One transaction, plus optional configuration updates |
+| **Uptime Tracking** | Measured over the entire period | Measured per cycle and reset each cycle |
 
 ### New Transaction Types
 
-ACP-236 introduces three new P-Chain transactions:
+ACP-236 introduces three P-Chain transactions:
 
 | Transaction | Purpose |
 |-------------|---------|
-| `AddContinuousValidatorTx` | Create a continuous validator with cycle duration and auto-renew policy |
-| `SetAutoRenewPolicyTx` | Modify the auto-renew policy or signal exit at cycle end |
-| `RewardContinuousValidatorTx` | Issued by block builders to process cycle rewards |
+| `AddAutoRenewedValidatorTx` | Create an auto-renewed validator with a cycle duration and auto-compound percentage |
+| `SetAutoRenewedValidatorConfigTx` | Update the auto-compound percentage or the next cycle duration, including setting it to `0` to exit |
+| `RewardAutoRenewedValidatorTx` | Issued by block builders at each cycle boundary to settle rewards and either renew or remove the validator |
 
-### Auto-Renew Rewards Policy
+### Auto-Compound Percentage
 
-The `AutoRenewRewardsShares` field (expressed in millionths) controls what happens to rewards at each cycle end:
+The `AutoCompoundRewardShares` field (expressed in millionths, maximum `1,000,000`) controls how much of each cycle's rewards is restaked:
 
 | Value | Behavior |
 |-------|----------|
 | `0` | Restake principal only; withdraw 100% of rewards |
 | `300,000` | Restake 30% of rewards; withdraw 70% |
 | `1,000,000` | Restake 100% of rewards (full compounding) |
-| `MaxUint64` | Signal to exit at current cycle end |
 
-### Benefits for Financial Professionals
+Restaked rewards raise the validator's weight for the following cycle, so returns compound without any manual action. If the new weight would exceed the maximum validator stake, only the remaining capacity is restaked and the excess is paid out.
 
-- **Reduced Operational Burden** — Fewer transactions to sign and manage
-- **Automatic Compounding** — Rewards can auto-restake each cycle
-- **Enhanced Security** — Less frequent key signing reduces exposure risk
-- **Flexible Exit** — Can signal exit mid-cycle; takes effect at cycle end
-- **Simpler Treasury Management** — Set-and-forget staking operations
+### Renewal Is Conditional
+
+<Callout type="warn" title="Missing the uptime requirement forces an exit">
+Renewal is not guaranteed. At each cycle boundary the validator must meet the uptime requirement to be eligible for rewards. A validator that misses it is removed at that boundary rather than renewed, and **forfeits the current cycle's rewards**.
+
+Every auto-renewed cycle starts after Helicon activation, so the requirement is **90%** ([ACP-267](/docs/acps/267-uptime-requirement-increase)), not the 80% that applies to validations started before activation.
+
+Principal is always returned, since Avalanche has no slashing. Rewards restaked during earlier cycles and any pending delegation commission are also returned.
+</Callout>
+
+### Exiting
+
+To stop renewing, submit `SetAutoRenewedValidatorConfigTx` with a cycle duration of `0`. The validator finishes its current cycle, then principal and all rewards are paid out and it leaves the validator set. You can submit this at any point during a cycle, but it never takes effect before the cycle boundary: there is no early withdrawal, so liquidity still has to be planned in whole cycles.
+
+Only the address set as the validator authority when the validator was created can change its configuration or signal an exit. Treat that address with the same care as the staking key.
+
+### Operational Implications
+
+- **Reduced operational burden.** Staying staked no longer requires a transaction per period.
+- **Automatic compounding.** Rewards restake each cycle at the percentage you set.
+- **Reduced key exposure.** Fewer signing events over the life of a position.
+- **Cycle length bounds.** A cycle must be at least the network minimum (12 hours on Fuji, 48 hours on Mainnet once Helicon activates there) and at most the maximum staking duration of one year.
+- **Uptime discipline matters more.** A single cycle that misses the uptime requirement ends the position rather than simply skipping a reward.
 
 ### Impact on Delegators
 
-<Callout type="warn" title="No Continuous Delegation">
-ACP-236 applies to **validators only**. Delegators cannot delegate continuously because there is no guarantee a validator will continue beyond their current cycle. Delegation constraints remain unchanged: your delegation period must fit within the validator's current cycle.
+<Callout type="warn" title="No Auto-Renewed Delegation">
+ACP-236 applies to **validators only**. Delegators cannot auto-renew, because there is no guarantee a validator will continue beyond its current cycle. Delegation constraints are unchanged: your delegation period must fit within the validator's current cycle.
 </Callout>

@@ -5,7 +5,7 @@ description: Operate production Avalanche Primary Network validators on AWS with
 
 This guide covers deploying and operating Avalanche Primary Network validators — the nodes that validate the P-Chain, X-Chain, and C-Chain. These validators participate in Avalanche consensus and earn staking rewards.
 
-**AWS only**. **Staking minimum**: 2,000 AVAX (mainnet), 1 AVAX (Fuji). **Bootstrap time**: 2–4 hours via state-sync. **Cost**: ~$326/month per validator.
+**AWS only**. **Staking minimum**: 2,000 AVAX (mainnet), 1 AVAX (Fuji). **Bootstrap time**: 2–4 hours via state-sync. **Cost**: ~$292/month per validator.
 
 <Callout type="warn">
 Primary Network workflows are currently supported on **AWS only**. The instances require high-performance NVMe storage for the full chain database.
@@ -23,8 +23,8 @@ flowchart TB
     subgraph AWS["AWS Cloud"]
         subgraph VPC["VPC"]
             subgraph Validators["Primary Validators"]
-                PV1[Validator 1 i4i.xlarge 937GB NVMe]
-                PV2[Validator 2 i4i.xlarge 937GB NVMe]
+                PV1[Validator 1 i7i.xlarge 937GB NVMe]
+                PV2[Validator 2 i7i.xlarge 937GB NVMe]
             end
 
             subgraph Monitoring["Monitoring"]
@@ -59,7 +59,7 @@ flowchart TB
 | Aspect | L1 Deployment | Primary Network |
 |--------|---------------|-----------------|
 | Chain sync | Partial P-Chain headers only | Full P/X/C chain data |
-| Instance type | c6a.xlarge (general compute) | i4i.xlarge (NVMe-optimized) |
+| Instance type | c6a.xlarge (general compute) | i7i.xlarge (NVMe-optimized) |
 | Storage | EBS gp3 volumes | 937GB local NVMe |
 | Bootstrap time | Minutes (partial sync) | 2–4 hours (state-sync) |
 | Cloud support | AWS, GCP, Azure | AWS only |
@@ -76,7 +76,7 @@ flowchart TB
 make primary-infra CLOUD=aws
 ```
 
-This uses a **separate Terraform state** from the L1 deployment (`terraform/primary-network/aws/`), creating i4i.xlarge instances with 937GB NVMe drives.
+This uses a **separate Terraform state** from the L1 deployment (`terraform/primary-network/aws/`), creating i7i.xlarge instances with 937GB NVMe drives.
 
 Edit `terraform/primary-network/aws/terraform.tfvars` before running:
 
@@ -230,10 +230,10 @@ make migrate-validator CLOUD=aws SOURCE=primary-validator-1 TARGET=migration-tar
 
 | Component | Instance | Storage | Monthly Estimate |
 |-----------|----------|---------|-----------------|
-| Primary Validator | i4i.xlarge | 937GB NVMe (included) | ~$310 |
+| Primary Validator | i7i.xlarge | 937GB NVMe (included) | ~$276 |
 | S3 + KMS (keys + snapshots) | — | ~1GB | ~$1 |
 | Monitoring | t3.small | 50GB EBS | ~$15 |
-| **Per validator total** | | | **~$326/mo** |
+| **Per validator total** | | | **~$292/mo** |
 
 ## Terraform Configuration Reference
 

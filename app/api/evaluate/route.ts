@@ -4,9 +4,10 @@ import { prisma } from "@/prisma/prisma";
 import {
   canAccessEvaluationTools,
   canEvaluateHackathon,
+  canReviewMiniGrants,
 } from "@/lib/auth/permissions";
-
-const ALLOWED_VERDICTS = ["top", "strong", "maybe", "weak", "reject"];
+import { MINI_GRANT_KEY } from "@/lib/grants/programs";
+import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +58,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!ALLOWED_VERDICTS.includes(verdict)) {
+    if (!isVerdict(verdict)) {
       return NextResponse.json(
         { error: `verdict must be one of: ${ALLOWED_VERDICTS.join(", ")}` },
         { status: 400 },
@@ -88,8 +89,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (formDataId) {
-      // Legacy Build Games / FormData-attached path.
-      if (!canAccessEvaluationTools(session.user.custom_attributes)) {
+      // Legacy Build Games / FormData-attached path. Mini-grant submissions
+      // share this path but are scoped to devrel + assigned mini-grant judges.
+      const formData = await prisma.formData.findUnique({
+        where: { id: formDataId },
+        select: { origin: true },
+      });
+      if (!formData) {
+        return NextResponse.json({ error: "Submission not found" }, { status: 404 });
+      }
+
+      const allowed =
+        formData.origin === MINI_GRANT_KEY
+          ? await canReviewMiniGrants(session)
+          : canAccessEvaluationTools(session.user.custom_attributes);
+      if (!allowed) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 

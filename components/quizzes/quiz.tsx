@@ -263,7 +263,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
           )}
         </div>
         <div className="space-y-3">
-          {shuffledIndices.map((originalIndex, displayIndex) => (
+          {shuffledIndices.filter(idx => idx < quizInfo.options.length).map((originalIndex, displayIndex) => (
             <div
               key={`option-${originalIndex}`}
               className={`flex items-center p-3 rounded-lg border transition-colors cursor-pointer ${

@@ -10,9 +10,9 @@ import {
   sendWelcomeEmail,
 } from '@/server/services/validator-alert-check';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
+import { isValidEmail } from "@/lib/email";
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
@@ -71,12 +71,11 @@ export async function POST(req: NextRequest) {
     if (body.balance_threshold_days !== undefined && (!Number.isInteger(body.balance_threshold_days) || body.balance_threshold_days < 1 || body.balance_threshold_days > 365)) {
       return NextResponse.json({ error: 'Balance threshold days must be between 1 and 365.' }, { status: 400 });
     }
-    if (body.email !== undefined && !EMAIL_REGEX.test(body.email)) {
-      return NextResponse.json({ error: 'Invalid email address.' }, { status: 400 });
-    }
-
-    const email = body.email ?? session.user.email;
-    if (!email || !EMAIL_REGEX.test(email)) {
+    // Recipient is always bound to the authenticated session email. We deliberately
+    // ignore any client-supplied body.email to prevent an authenticated user from
+    // directing transactional emails to arbitrary recipients from our trusted domain.
+    const email = session.user.email;
+    if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: 'A valid email address is required.' }, { status: 400 });
     }
 

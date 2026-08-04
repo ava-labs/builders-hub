@@ -64,6 +64,10 @@ async function handleDeleteNode(subnetId: string, nodeIndex: number): Promise<Ne
       }
     });
 
+    if (!nodeRegistration) {
+      return jsonError(404, 'Node not found or access denied');
+    }
+
     try {
       const { deletedExternally } = await builderHubDeleteNode(subnetId, nodeIndex);
       if (nodeRegistration) {

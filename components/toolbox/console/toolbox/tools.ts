@@ -75,7 +75,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Stake AVAX',
-    description: 'Stake AVAX on the Primary Network as a validator or delegator.',
+    description:
+      'Stake AVAX on the Primary Network as a validator or delegator, with fixed or auto-renewed (ACP-236) staking.',
     path: '/console/primary-network/stake',
     category: 'Primary Network',
     icon: HandCoins,
@@ -156,6 +157,17 @@ const TOOLS_RAW: ToolCard[] = [
     category: 'Create & Deploy',
     icon: LayoutDashboard,
   },
+  {
+    name: 'Upgrade JSON Builder',
+    description: 'Generate upgrade.json for precompile and state upgrades on an Avalanche L1.',
+    path: '/console/layer-1/upgrade',
+    category: 'Create & Deploy',
+    icon: Wrench,
+    subSteps: [
+      { name: 'Select L1', path: '/console/layer-1/upgrade/select-l1' },
+      { name: 'Upgrade JSON', path: '/console/layer-1/upgrade/upgrade-json' },
+    ],
+  },
 
   // ── Permissioned L1s ─────────────────────────────────────
   {
@@ -218,6 +230,13 @@ const TOOLS_RAW: ToolCard[] = [
     name: 'Remove Expired Registration',
     description: 'Clean up validators with expired registrations.',
     path: '/console/permissioned-l1s/remove-expired-validator-registration',
+    category: 'Permissioned L1s',
+    icon: SquareMinus,
+  },
+  {
+    name: 'Remove Legacy Subnet Validators',
+    description: 'Clear pre-conversion Subnet validators that block Warp quorum on a converted L1.',
+    path: '/console/permissioned-l1s/remove-legacy-validators',
     category: 'Permissioned L1s',
     icon: SquareMinus,
   },
@@ -336,15 +355,15 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Explorer Setup',
-    description: 'Deploy a block explorer for your L1.',
+    description: 'Deploy a Blockscout block explorer for your L1 via Terraform, Kubernetes, or Docker.',
     path: '/console/layer-1/explorer-setup',
     category: 'L1 Management',
     icon: Telescope,
   },
   {
-    name: 'Performance Monitor',
-    description: 'Monitor your L1 node performance and health.',
-    path: '/console/layer-1/performance-monitor',
+    name: 'Monitoring Setup',
+    description: 'Stand up Prometheus + Grafana dashboards for your nodes via Terraform, Kubernetes, or Docker.',
+    path: '/console/layer-1/monitoring-setup',
     category: 'L1 Management',
     icon: Activity,
   },
@@ -681,3 +700,10 @@ export const CATEGORY_ORDER = [
   'Encrypted ERC',
   'Utilities',
 ];
+
+/* URL anchor for a category section on /console/toolbox, so each section is
+   directly linkable (e.g. from the console dropdown):
+   'Create & Deploy' → /console/toolbox#create-deploy */
+export function categoryAnchor(category: string): string {
+  return category.toLowerCase().replace(/&/g, ' ').trim().replace(/\s+/g, '-');
+}

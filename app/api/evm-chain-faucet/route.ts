@@ -96,9 +96,10 @@ async function transferEVMTokens(
   });
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  // A state-changing request must be a POST. Reading the parameters from JSON
   let claimId: string | null = null;
-  
+
   try {
     const session = await getAuthSession();
     if (!session?.user?.id) {
@@ -115,9 +116,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const searchParams = request.nextUrl.searchParams;
-    const destinationAddress = searchParams.get('address');
-    const chainIdParam = searchParams.get('chainId');
+    let body: { address?: unknown; chainId?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json(
+        { success: false, message: 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+
+    const destinationAddress = typeof body.address === 'string' ? body.address : null;
+    const chainIdParam =
+      typeof body.chainId === 'string' || typeof body.chainId === 'number'
+        ? String(body.chainId)
+        : null;
 
     if (!destinationAddress) {
       return NextResponse.json(

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T20:01:22.492Z",
+  "generatedAt": "2026-08-04T20:32:02.681Z",
   "surfaces": [
     {
       "kind": "academy-page",
@@ -212,6 +212,13 @@
           "name": "CreateChain",
           "importPath": "@/components/toolbox/console/layer-1/create/CreateChain",
           "resolved": "components/toolbox/console/layer-1/create/CreateChain.tsx",
+          "exists": true,
+          "via": "global-map"
+        },
+        {
+          "name": "CreateSubnet",
+          "importPath": "@/components/toolbox/console/layer-1/create/CreateSubnet",
+          "resolved": "components/toolbox/console/layer-1/create/CreateSubnet.tsx",
           "exists": true,
           "via": "global-map"
         }
@@ -1854,9 +1861,27 @@
     },
     {
       "kind": "console-tool",
-      "route": "/console/layer-1/performance-monitor",
-      "file": "app/console/layer-1/performance-monitor/page.tsx",
-      "title": "Performance Monitor"
+      "route": "/console/layer-1/monitoring-setup",
+      "file": "app/console/layer-1/monitoring-setup/page.tsx",
+      "title": "Monitoring Setup"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/upgrade",
+      "file": "app/console/layer-1/upgrade/page.tsx",
+      "title": "Upgrade JSON Builder"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/upgrade/select-l1",
+      "file": "app/console/layer-1/upgrade/[step]/page.tsx",
+      "title": "Upgrade JSON Builder › Select L1"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/layer-1/upgrade/upgrade-json",
+      "file": "app/console/layer-1/upgrade/[step]/page.tsx",
+      "title": "Upgrade JSON Builder › Upgrade JSON"
     },
     {
       "kind": "console-tool",
@@ -1947,6 +1972,12 @@
       "route": "/console/permissioned-l1s/remove-expired-validator-registration",
       "file": "app/console/permissioned-l1s/remove-expired-validator-registration/page.tsx",
       "title": "Remove Expired Registration"
+    },
+    {
+      "kind": "console-tool",
+      "route": "/console/permissioned-l1s/remove-legacy-validators",
+      "file": "app/console/permissioned-l1s/remove-legacy-validators/page.tsx",
+      "title": "Remove Legacy Subnet Validators"
     },
     {
       "kind": "console-tool",

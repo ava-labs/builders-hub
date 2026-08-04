@@ -40,7 +40,7 @@ export function GasClockCard({ colors }: { colors: Colors }) {
           >
             ACP-176
           </Link>
-          {" "}introduced the gas rate R = 30M gas/sec. SAE uses R to convert gas consumed into elapsed time.
+          {" "}introduced the gas rate R = 30M gas/sec. Continuous Execution uses R to convert gas consumed into elapsed time.
         </p>
       </div>
       

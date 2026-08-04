@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
+import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateWebhook';
 import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
@@ -69,6 +70,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing course ID' }, { status: 400 });
     }
 
+    // Team1 Academy: only Team1 members and DevRel can generate certificates
+    // for team1-* courses.
+    if (typeof courseId === 'string' && courseId.startsWith('team1-')) {
+      const attrs = session.user.custom_attributes as string[] | undefined;
+      if (!hasTeam1AcademyAccess(attrs)) {
+        return NextResponse.json(
+          { error: 'Forbidden: Team1 Academy access required.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Get course configuration from centralized source
     const courseConfig = getCourseConfig();
     console.log('Certificate generation - courseId:', courseId);
@@ -79,6 +92,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         error: `No certificate template found for course: ${courseId}` 
       }, { status: 404 });
+    }
+
+    // Verify the user has actually completed this course before issuing a certificate.
+    // getCompletedCourseSlugs reads approved UserBadge records — a user cannot
+    // self-issue one of those without also passing the badge assignment checks.
+    const completedSlugs = await getCompletedCourseSlugs(session.user.id);
+    if (!completedSlugs.includes(courseId)) {
+      return NextResponse.json(
+        { error: 'Course not completed. Finish the course to earn your certificate.' },
+        { status: 403 }
+      );
     }
 
     const userName = sanitizeForWinAnsi(
@@ -137,12 +161,10 @@ export async function POST(req: NextRequest) {
     form.flatten();
     const pdfBytes = await pdfDoc.save();
     
-    // Trigger HubSpot webhook for certificate completion
-    // At this point we know email exists due to the check above
-    // Include the current courseId since badge assignment may not have persisted yet
-    const completedBefore = await getCompletedCourseSlugs(session.user.id);
-    const isNewCompletion = !completedBefore.includes(courseId);
-    const completedCourses = [...completedBefore];
+    // Trigger HubSpot webhook for certificate completion.
+    // completedSlugs was already fetched above; courseId is guaranteed to be in it.
+    const isNewCompletion = !completedSlugs.includes(courseId);
+    const completedCourses = [...completedSlugs];
     if (isNewCompletion) {
       completedCourses.push(courseId);
     }

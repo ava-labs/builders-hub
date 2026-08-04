@@ -25,6 +25,7 @@ import { VerdictBadge } from "./EvaluationPanel";
 import { JudgeLeaderboard } from "./JudgeLeaderboard";
 import { BulkAdvanceButton } from "./BulkAdvanceModal";
 import { ExportModal } from "./ExportModal";
+import { getEventConfig } from "./event-configs";
 import { STAGE_BADGE_COLORS, STAGE_LABELS } from "./colors";
 import type {
   SubmissionRow,
@@ -590,6 +591,7 @@ export function EvaluateDashboard({
             evaluations={mergedEvals}
             currentUserId={currentUserId}
             isDevrel={isDevrel}
+            showStages={Boolean(getEventConfig(selectedRow.origin)?.stageFields)}
             onClose={() => setExpandedId(null)}
             onEvaluationSaved={handleEvaluationSaved}
             onStageAdvanced={handleStageAdvanced}

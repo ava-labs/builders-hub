@@ -77,12 +77,27 @@ test.describe('academy/docs console-tool embeds', () => {
       // discrepancies are surfaced as annotations for the agent loop to
       // judge with interaction.
       const mounted = page.locator('[data-console-tool], [data-console-tool-gate], [data-console-flow]');
-      await expect
-        .poll(async () => mounted.count(), {
-          message: `no console tool/gate mounted on ${surface.route} (expected up to ${surface.tools!.length})`,
-          timeout: 20_000,
-        })
-        .toBeGreaterThanOrEqual(1);
+      try {
+        await expect
+          .poll(async () => mounted.count(), {
+            message: `no console tool/gate mounted on ${surface.route} (expected up to ${surface.tools!.length})`,
+            timeout: 20_000,
+          })
+          .toBeGreaterThanOrEqual(1);
+      } catch (e) {
+        // Machine-readable root-cause tag for the reporter + summarizer to
+        // group identical tool sets across pages (one broken component
+        // reports once, not N times). Rethrow the ORIGINAL error untouched
+        // so the stack trace still points at the assertion above, not here.
+        test.info().annotations.push({
+          type: 'missing-tools',
+          description: surface
+            .tools!.map((t) => t.name)
+            .sort()
+            .join(', '),
+        });
+        throw e;
+      }
 
       const mountedCount = await mounted.count();
       if (mountedCount < surface.tools!.length) {

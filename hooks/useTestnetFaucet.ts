@@ -41,7 +41,11 @@ export const useTestnetFaucet = () => {
 
     try {
       const faucetRequest = async () => {
-        const response = await fetch(`/api/evm-chain-faucet?address=${walletEVMAddress}&chainId=${chainId}`);
+        const response = await fetch(`/api/evm-chain-faucet`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address: walletEVMAddress, chainId }),
+        });
         const rawText = await response.text();
         
         let data;

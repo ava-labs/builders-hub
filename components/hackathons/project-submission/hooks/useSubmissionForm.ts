@@ -23,6 +23,9 @@ export const FormSchema = z
     tech_stack: z
       .string()
       .min(30, { message: 'tech stack must be at least 30 characters' }),
+    tech_stack_tags: z
+      .array(z.string())
+      .min(1, { message: 'Select at least one tech stack type' }),
 
     github_repository: z.preprocess(
       (val) => {
@@ -172,6 +175,8 @@ export const useSubmissionForm = (hackathonId: string) => {
       project_name: '',
       short_description: '',
       full_description: '',
+      tech_stack: '',
+      tech_stack_tags: [],
       tracks: [],
       is_preexisting_idea: false,
       github_repository: [],
@@ -395,7 +400,8 @@ export const useSubmissionForm = (hackathonId: string) => {
       project_name: project.project_name ?? '',
       short_description: project.short_description ?? '',
       full_description: project.full_description ?? '',
-      tech_stack: project.tech_stack ?? [],
+      tech_stack: project.tech_stack ?? '',
+      tech_stack_tags: Array.isArray(project.tech_stack_tags) ? project.tech_stack_tags : [],
       github_repository: project.github_repository ? project.github_repository.split(',').filter(Boolean) : [],
       explanation: project.explanation ?? '',
       demo_link: project.demo_link ? project.demo_link.split(',').filter(Boolean) : [],

@@ -1,6 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 
 import { ValidationError } from "./hackathons";
+import { memberIdentityWhere } from "./projectMembership";
 import { MemberStatus } from "@/types/project";
 
 export async function UpdateStatusMember(
@@ -58,7 +59,7 @@ export async function UpdateStatusMember(
     });
   }
 
-  checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
+  await checkIfUserIsMemberOfOtherProject(wasInOtherProject, member, project_id);
 
   return updatedMember;
 }
@@ -125,8 +126,28 @@ async function deleteProjectIfNoMembers(projectId: string) {
 }
 
 export async function GetMembersByProjectId(project_id: string) {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: project_id },
+      select: { hackathon: { select: { content: true } } },
+    });
+    const registrationDeadlineRaw =
+      (project?.hackathon?.content as any)?.registration_deadline ?? null;
+    if (registrationDeadlineRaw) {
+      const deadline = new Date(registrationDeadlineRaw);
+      if (Number.isFinite(deadline.getTime()) && Date.now() > deadline.getTime()) {
+        await prisma.member.updateMany({
+          where: { project_id, status: MemberStatus.PENDING },
+          data: { status: MemberStatus.REMOVED },
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[Members] Lazy pending-teammate cleanup failed:", err);
+  }
+
   const members = await prisma.member.findMany({
-    where: { project_id: project_id, status: { not: "Removed" } },
+    where: { project_id: project_id, status: { not: MemberStatus.REMOVED } },
     include: {
       user: {
         select: {
@@ -150,17 +171,31 @@ export async function GetMembersByProjectId(project_id: string) {
   }));
 }
 
-export async function UpdateRoleMember(member_id: string, role: string) {
+export async function UpdateRoleMember(member_id: string, role: string, project_id: string) {
   const updatedMember = await prisma.member.update({
-    where: { id: member_id },
+    where: { id: member_id, project_id },
     data: { role },
   });
   return updatedMember;
 }
 
 export async function GetProjectsByUserId(user_id: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: user_id },
+    select: { email: true },
+  });
+  const isCaller = (m: { user_id: string | null; email: string | null }) =>
+    m.user_id === user_id || (!!user?.email && m.email === user.email);
+
   const projects = await prisma.project.findMany({
-    where: { members: { some: { user_id: user_id } } },
+    where: {
+      members: {
+        some: {
+          ...memberIdentityWhere({ id: user_id, email: user?.email }),
+          status: { not: MemberStatus.REMOVED },
+        },
+      },
+    },
     include: {
       members: {
         include: {
@@ -193,6 +228,9 @@ export async function GetProjectsByUserId(user_id: string) {
   // Transform badges to match the expected format
   return projects.map((project) => ({
     ...project,
+    // The caller's own membership status, so clients can tell an accepted
+    // project from an invitation still awaiting confirmation.
+    my_member_status: project.members.find(isCaller)?.status ?? null,
     badges: project.badges?.map((projectBadge: any) => ({
       ...projectBadge,
       name: projectBadge.badge.name,

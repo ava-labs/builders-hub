@@ -1,0 +1,14 @@
+{
+  "title": "Team1 Soft Skills",
+  "icon": "Lightbulb",
+  "root": true,
+  "pages": [
+    "index",
+    "...01-communication-and-storytelling",
+    "...02-public-speaking-and-presentations",
+    "...03-networking-and-relationship-building",
+    "...04-active-listening-and-empathy",
+    "...05-leadership-in-decentralized-communities",
+    "quiz"
+  ]
+}

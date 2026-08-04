@@ -9,7 +9,7 @@ import {
   useSetTeleporterRegistryAddress,
   type L1ListItem,
 } from '@/components/toolbox/stores/l1ListStore';
-import { getToolboxStore } from '@/components/toolbox/stores/toolboxStore';
+import { getToolboxStore, NO_CHAIN_SELECTED } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { useWallet } from '@/components/toolbox/hooks/useWallet';
 import { Note } from '@/components/toolbox/components/Note';
@@ -60,9 +60,12 @@ export function RemoteInspector({ onPhaseChange, bridge, remote }: RemoteInspect
   // Heals user-created destination L1s where ICM was deployed but the
   // address never propagated to l1ListStore. The fallback chain matches
   // HomeInspector: toolbox > well-known > empty.
-  const destinationToolboxRegistry = destinationL1Id
-    ? getToolboxStore(destinationL1Id)((s: { teleporterRegistryAddress: string }) => s.teleporterRegistryAddress)
-    : '';
+  // The store hook must run unconditionally (Rules of Hooks): select from
+  // the sentinel store when no destination is chosen, discard the value.
+  const destinationToolboxRegistryRaw = getToolboxStore(destinationL1Id || NO_CHAIN_SELECTED)(
+    (s: { teleporterRegistryAddress: string }) => s.teleporterRegistryAddress,
+  );
+  const destinationToolboxRegistry = destinationL1Id ? destinationToolboxRegistryRaw : '';
   const defaultRegistry = (destinationToolboxRegistry || wellKnownRegistry || '') as Address;
   const setTeleporterRegistryOnDestinationL1 = useSetTeleporterRegistryAddress();
 

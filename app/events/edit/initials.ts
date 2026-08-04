@@ -68,6 +68,12 @@ export interface IDataContent {
   judging_guidelines: string;
   submission_deadline: string;
   registration_deadline: string;
+  team_size_min?: number;
+  team_size_max?: number;
+  tech_stack_options?: { name: string }[];
+  target_countries?: string[];
+  country?: string;
+  is_remote?: boolean;
   /**
    * NOTE: Typed as `any` here because this field is used directly with react-hook-form,
    * whose type inference collapses discriminated union fields to `unknown`, breaking
@@ -126,11 +132,17 @@ export const initialData: {
     judging_guidelines: "",
     submission_deadline: "",
     registration_deadline: "",
+    team_size_min: undefined,
+    team_size_max: undefined,
+    tech_stack_options: [],
+    target_countries: [],
+    country: undefined,
+    is_remote: false,
   },
   latest: {
     start_date: "",
     end_date: "",
-    timezone: "",
+    timezone: "UTC",
     banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/main_banner_template.png",
     icon: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/icon_template.png",
     small_banner: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Hackathon_assets/Template/small_banner_template.png",

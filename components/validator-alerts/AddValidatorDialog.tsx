@@ -25,7 +25,6 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
   const [open, setOpen] = useState(false);
   const [nodeId, setNodeId] = useState('');
   const [label, setLabel] = useState('');
-  const [email, setEmail] = useState(userEmail);
   const [uptimeAlert, setUptimeAlert] = useState(true);
   const [uptimeThreshold, setUptimeThreshold] = useState(95);
   const [versionAlert, setVersionAlert] = useState(true);
@@ -38,7 +37,6 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
   function resetForm() {
     setNodeId('');
     setLabel('');
-    setEmail(userEmail);
     setUptimeAlert(true);
     setUptimeThreshold(95);
     setVersionAlert(true);
@@ -63,7 +61,6 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
       const result = await onAdd({
         node_id: trimmedId,
         label: label.trim() || undefined,
-        email,
         uptime_alert: uptimeAlert,
         uptime_threshold: uptimeThreshold,
         version_alert: versionAlert,
@@ -129,10 +126,13 @@ export function AddValidatorDialog({ userEmail, onAdd }: AddValidatorDialogProps
             <Input
               id="alertEmail"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              value={userEmail}
+              readOnly
+              disabled
             />
+            <p className="text-xs text-muted-foreground">
+              Alerts are sent to your account email.
+            </p>
           </div>
 
           <div className="space-y-4 rounded-lg border border-border p-4">

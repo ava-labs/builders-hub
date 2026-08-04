@@ -15,20 +15,12 @@ import {
   triggerLoginComplete,
 } from '@/hooks/useLoginModal';
 import { hasCompleteBasicProfile } from '@/lib/profile/socialAccountValidation';
+import { PROTECTED_PATHS } from '@/lib/auth/protected-paths';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
   const { isOpen, closeLoginModal } = useLoginModalState();
   const pathname = usePathname();
-
-  const protectedPaths = [
-    "/events/registration-form",
-    "/events/project-submission",
-    "/showcase",
-    "/profile",
-    "/student-launchpad",
-    "/grants/",
-  ];
   const [showTerms, setShowTerms] = useState(false);
   const [showBasicProfile, setShowBasicProfile] = useState(false);
   // Store user ID separately so we can show modal even before useSession updates
@@ -242,7 +234,7 @@ export function LoginModalWrapper() {
       // Sign out only if user is not fully authenticated (clears pending/incomplete sessions).
       // Never sign out a user who was already authenticated before opening the modal.
       if (status !== "authenticated") {
-        const isOnProtectedPath = protectedPaths.some(path => pathname?.startsWith(path));
+        const isOnProtectedPath = PROTECTED_PATHS.some(path => pathname?.startsWith(path));
         signOut({ redirect: isOnProtectedPath, callbackUrl: "/" });
       }
     }

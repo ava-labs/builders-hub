@@ -157,10 +157,10 @@ export function StepCodeViewer({
       const blocks: CodeBlock[] = [];
 
       try {
-        if (displayStep.codeType === "typescript" && displayStep.code) {
-          // TypeScript: use inline code directly
+        if (displayStep.code) {
+          // Inline code: use directly, regardless of language
           blocks.push({
-            label: displayStep.filename || "code.ts",
+            label: displayStep.filename || (displayStep.codeType === "typescript" ? "code.ts" : "source"),
             code: displayStep.code,
           });
         } else if (displayStep.codeType === "solidity" && displayStep.sourceUrl) {

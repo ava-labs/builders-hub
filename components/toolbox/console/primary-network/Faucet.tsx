@@ -186,7 +186,7 @@ function ManualPChainFaucetInput() {
       <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">
         Using platform-cli? Paste your address from{' '}
         <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">
-          platform wallet balance
+          platform-cli wallet balance
         </code>{' '}
         &mdash; the{' '}
         <code className="bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 rounded text-[10px] font-mono">P-fuji1</code> prefix

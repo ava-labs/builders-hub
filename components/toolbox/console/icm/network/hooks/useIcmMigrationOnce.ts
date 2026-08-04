@@ -30,7 +30,9 @@ export function useIcmMigrationOnce(): MigrationState {
     for (const l1 of l1List as L1ListItem[]) {
       const existing = chains[l1.id];
       try {
-        const slice = getToolboxStore(l1.id)();
+        // Inside an effect: read store state imperatively — calling the
+        // bound store hook here would violate the Rules of Hooks.
+        const slice = getToolboxStore(l1.id).getState();
         const registryFromToolbox = (slice.teleporterRegistryAddress ?? '') as string;
         const demoFromToolbox = (slice.icmReceiverAddress ?? '') as string;
         const registryFromL1 = (l1.wellKnownTeleporterRegistryAddress ?? '') as string;

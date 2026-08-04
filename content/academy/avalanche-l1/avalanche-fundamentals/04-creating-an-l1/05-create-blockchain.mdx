@@ -1,7 +1,7 @@
 ---
 title: Create a Blockchain
-description: Learn how to configure a blockchain and create a record for it on the P-Chain by issuing a CreateChainTx transaction using the Builder Tooling.
-updated: 2025-03-13
+description: Learn how to create a Subnet and a blockchain record on the P-Chain by issuing the CreateSubnetTx and CreateChainTx transactions using the Builder Tooling.
+updated: 2026-07-13
 authors: [owenwahlgren]
 icon: SquareMousePointer
 ---
@@ -11,29 +11,41 @@ do this by issuing a `CreateSubnetTx` transaction. This will create a Subnet tha
 identified by the transaction hash of the `CreateSubnetTx` transaction.
 
 The `CreateSubnetTx` transaction only has a single parameter: The owner of the Subnet. The owner can
-add blockchains to the Subnet and convert it to an L1. With the conversion to an L1 the owner will loose it's
+add blockchains to the Subnet and convert it to an L1. With the conversion to an L1 the owner will lose its
 privileges. Therefore, the owner is only relevant during the creation time and does not have to be
-secured by a mulit-sig if a immediate conversion to an L1 is planned. We will just use your P-Chain
+secured by a multi-sig if an immediate conversion to an L1 is planned. We will just use your P-Chain
 address as the owner.
 
-Then you will issue the `CreateChainTx` on the P-Chain to create the blockchain record. The
-`CreateChainTx` transaction as the following parameters:
+Click `Create Subnet` below to issue the `CreateSubnetTx` transaction:
+
+<ToolboxMdxWrapper walletMode="c-chain">
+    <CreateSubnet />
+</ToolboxMdxWrapper>
+
+Next you will issue the `CreateChainTx` on the P-Chain to create the blockchain record. The
+`CreateChainTx` transaction has the following parameters:
 
 - `name`: The name of the chain
 - `subnetID`: The ID of the Subnet you want to add the chain to
 - `vmID`: The ID of the Virtual Machine that will be used to run the chain.
 - `genesisData`: The genesis configuration of the chain
 
+The tool below will use the Subnet you just created. Give your chain a name (or keep the suggested
+one) and leave the Virtual Machine set to Subnet EVM.
+
 The Genesis Builder tool allows us to configure many aspects of the blockchain like permissioning,
-it's tokenonomics and the transaction fee mechanism. 
+its tokenomics and the transaction fee mechanism. Feel free to browse through the different
+configuration options, but for now don't change any of the defaults.
 
-Feel free to browse through the different configuration options, but for now don't change any of the
-defaults and just click the `View Genesis JSON` button.
-
-Then click `Create Chain` This will create the P-Chain record for your blockchain and associate it
-with the Subnet created in the previous step. 
+Finally, click `Create Chain`. This will create the P-Chain record for your blockchain and associate it
+with the Subnet created in the step above.
 
 The blockchain will be uniquely identified by the transaction hash of the `CreateChainTx` transaction.
+
+<Callout type="info">
+If Core shows an "internal error" when you click `Create Chain` right after creating your Subnet,
+the Subnet may not have been indexed yet. Wait a minute and try again.
+</Callout>
 
 <ToolboxMdxWrapper walletMode="c-chain">
     <CreateChain embedded={true} />

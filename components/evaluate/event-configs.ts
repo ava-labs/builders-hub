@@ -191,6 +191,29 @@ export const EVENT_CONFIGS: Record<string, EventConfig> = {
       },
     ],
   },
+  grant_minigrant: {
+    formDataKey: "grant",
+    scoreCriteria: [
+      { key: "impact", label: "Ecosystem Impact" },
+      { key: "feasibility", label: "Technical Feasibility" },
+      { key: "team", label: "Team Strength" },
+      { key: "innovation", label: "Innovation" },
+    ],
+    applicationDetailSections: [
+      { title: "Application", fields: [
+        { key: "project_url", label: "Project URL" },
+        { key: "requested_amount_usd", label: "Requested Amount (USD)" },
+        { key: "summary", label: "Summary", long: true },
+        { key: "milestones", label: "Milestones", long: true },
+        { key: "why_grant", label: "Why You Deserve a Grant", long: true },
+        { key: "additional_url", label: "Additional Link" },
+      ]},
+      { title: "Contact", fields: [
+        { key: "x_profile", label: "X Profile" },
+        { key: "telegram", label: "Telegram" },
+      ]},
+    ],
+  },
 };
 
 export function getEventConfig(origin: string): EventConfig | null {

@@ -1,0 +1,159 @@
+---
+title: Avail Nexus
+category: Crosschain Solutions
+available: ["C-Chain"]
+description: "Avail Nexus is a cross-chain coordination layer that enables Avalanche apps to use funds from all major chains through plug-n-play widgets and SDKs. Builders can embed native funding flows directly into their apps, eliminating bridging friction and helping users move from wallet to action in just a few clicks."
+logo: /images/avail-nexus.svg
+developer: Avail
+website: https://www.availproject.org/
+documentation: https://docs.availproject.org/docs/nexus
+---
+
+## Overview
+
+Avalanche is home to some of the most innovative apps and builders in Web3, with infrastructure that continues to evolve for faster, smoother, and more scalable user experiences.
+
+As Avalanche's tooling ecosystem grows, one area of increasing focus is frictionless user onboarding: making it easier for users to get funded and take action directly within the apps they are already using.
+
+Avail Nexus helps Avalanche builders add native deposit flows that keep users in the app experience. Instead of sending users through external bridges, network switching, or separate gas-management steps, builders can let users deposit from supported chains directly into their Avalanche app flow.
+
+With Avail Nexus, apps can unlock smoother onboarding, higher activation, and seamless cross-chain fund access. Builders can choose between Nexus Widgets for faster drop-in integration or the Nexus SDK for more custom deposit flows.
+
+This guide gives Avalanche builders a practical starting point for understanding how Avail Nexus works, which integration path to choose, and how AI agents can help make Nexus integration faster and easier.
+
+Start here:
+
+- [Avail Nexus overview](https://docs.availproject.org/docs/nexus)
+- [Supported Chains & Tokens](https://docs.availproject.org/docs/nexus/supported-chains-and-tokens)
+
+## Why Multi-Chain Deposits Matter
+
+Users often arrive at an Avalanche app with funds on another chain. If the app sends them to an external bridge before they can take action, the experience becomes slower, more complex, and easier to abandon.
+
+Native deposit flows help reduce this friction by letting users fund their app experience from supported chains without leaving the app journey. This can help builders improve onboarding, increase activation, and make it easier for users to get started.
+
+Relevant docs:
+
+- [Deposit Widget](https://docs.availproject.org/docs/nexus/widgets/components/deposit)
+- [Supported Chains & Tokens](https://docs.availproject.org/docs/nexus/supported-chains-and-tokens)
+
+## What Avail Nexus Enables
+
+- **Multi-chain deposits**: Let users deposit from supported chains into Avalanche app flows.
+- **App-native funding**: Keep users inside the app instead of sending them to external bridge flows.
+- **Reduced bridge friction**: Minimize manual bridging, network switching, and fragmented onboarding.
+- **Improved activation**: Help users get funded and take action faster.
+- **Nexus Widgets**: Use pre-built React components for faster integration.
+- **Nexus SDK**: Build custom deposit, bridge, swap, and balance flows with a headless SDK.
+- **AI-assisted integration**: Use MCP and Agent Skills to help AI coding agents understand and integrate Nexus faster.
+
+Relevant docs:
+
+- [Nexus Widgets](https://docs.availproject.org/docs/nexus/widgets)
+- [Nexus Widgets Installation](https://docs.availproject.org/docs/nexus/widgets/get-started/installation)
+- [Nexus SDK Installation](https://docs.availproject.org/docs/nexus/nexus-sdk/get-started/installation)
+- [Nexus SDK Reference](https://docs.availproject.org/docs/nexus/nexus-sdk/reference)
+- [MCP & Agent Skills](https://docs.availproject.org/docs/nexus/widgets/mcp-and-agent-skills)
+
+## Choose Your Integration Path
+
+### Option 1: Nexus Widgets
+
+Use Nexus Widgets if you want a faster integration path with pre-built components.
+
+This is best for teams that want to add native deposit flows without building the full front-end experience from scratch. Builders can start with the Deposit widget and use the Widgets installation guide to scaffold a working app.
+
+Recommended docs:
+
+- [Nexus Widgets](https://docs.availproject.org/docs/nexus/widgets)
+- [Nexus Widgets Installation](https://docs.availproject.org/docs/nexus/widgets/get-started/installation)
+- [Deposit Widget](https://docs.availproject.org/docs/nexus/widgets/components/deposit)
+- [Widget Configurator](https://configurator.availproject.org/) — configure a widget visually and export code
+
+### Option 2: Nexus SDK
+
+Use the Nexus SDK if you want more control over the user experience and app logic.
+
+This is best for teams building custom deposit flows, custom interfaces, or deeper app-specific integrations. The SDK gives builders access to cross-chain operations, token bridging, swapping, and unified balance management.
+
+Recommended docs:
+
+- [Nexus SDK Installation](https://docs.availproject.org/docs/nexus/nexus-sdk/get-started/installation)
+- [Nexus SDK Setup](https://docs.availproject.org/docs/nexus/nexus-sdk/get-started/nexus-sdk-setup)
+- [Nexus SDK Reference](https://docs.availproject.org/docs/nexus/nexus-sdk/reference)
+
+## Suggested Integration Flow
+
+1. Identify where users currently need to fund the app.
+2. Review supported chains and tokens.
+3. Choose between Nexus Widgets and the Nexus SDK.
+4. Add the deposit flow inside the app experience.
+5. Test the flow in a demo or staging environment.
+6. Use MCP and Agent Skills to help AI coding agents speed up integration.
+7. Reach out to the Avail team for product or integration support.
+
+Helpful links:
+
+- [Supported Chains & Tokens](https://docs.availproject.org/docs/nexus/supported-chains-and-tokens)
+- [Nexus Widgets Installation](https://docs.availproject.org/docs/nexus/widgets/get-started/installation)
+- [Nexus SDK Installation](https://docs.availproject.org/docs/nexus/nexus-sdk/get-started/installation)
+- [MCP & Agent Skills](https://docs.availproject.org/docs/nexus/widgets/mcp-and-agent-skills)
+
+## Example User Flow
+
+1. A user opens an Avalanche app.
+2. The user chooses to deposit or fund their app account.
+3. The user selects the source chain and asset.
+4. Avail Nexus helps route the deposit flow from the selected source chain.
+5. The user receives funds in the Avalanche app experience.
+6. The user can continue directly to the intended app action.
+
+For implementation details, start with:
+
+- [Deposit Widget](https://docs.availproject.org/docs/nexus/widgets/components/deposit)
+- [Nexus SDK Reference](https://docs.availproject.org/docs/nexus/nexus-sdk/reference)
+
+## Use Cases for Avalanche Builders
+
+These are example use cases where multi-chain deposits can improve user onboarding:
+
+- **DeFi apps**: Let users fund swaps, lending, borrowing, trading, or yield flows from supported chains.
+- **Gaming apps**: Help users fund accounts, assets, or in-game actions without leaving the app.
+- **Consumer apps**: Reduce the steps users need to complete before using the app.
+- **Wallets and frontends**: Offer a cleaner funding experience across chains.
+- **Avalanche L1 apps**: Make it easier for users and liquidity to enter app-specific environments.
+
+## Resources
+
+Start here:
+
+- [Avail Nexus overview](https://docs.availproject.org/docs/nexus)
+- [Supported Chains & Tokens](https://docs.availproject.org/docs/nexus/supported-chains-and-tokens)
+
+For drop-in widgets:
+
+- [Nexus Widgets](https://docs.availproject.org/docs/nexus/widgets)
+- [Nexus Widgets Installation](https://docs.availproject.org/docs/nexus/widgets/get-started/installation)
+- [Deposit Widget](https://docs.availproject.org/docs/nexus/widgets/components/deposit)
+- [Widget Configurator](https://configurator.availproject.org/) — configure a widget visually and export code
+
+For custom SDK integrations:
+
+- [Nexus SDK Installation](https://docs.availproject.org/docs/nexus/nexus-sdk/get-started/installation)
+- [Nexus SDK Setup](https://docs.availproject.org/docs/nexus/nexus-sdk/get-started/nexus-sdk-setup)
+- [Nexus SDK Reference](https://docs.availproject.org/docs/nexus/nexus-sdk/reference)
+
+For AI-assisted integration:
+
+- [MCP & Agent Skills](https://docs.availproject.org/docs/nexus/widgets/mcp-and-agent-skills)
+
+Additional resources:
+
+- [Avail Nexus demo repository](https://github.com/availproject/avail-nexus-demo)
+- [Avail Discord](https://discord.com/invite/availproject)
+
+## Support
+
+For product or integration support, Avalanche builders can reach out to the Avail team.
+
+- [Contact Avail Team](https://calendly.com/d/d2cn-9mz-zqd/avail-deposit-chat-avalanche-builders)

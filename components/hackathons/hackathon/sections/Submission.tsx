@@ -37,6 +37,16 @@ export default function Submission({
     : null;
   const hasValidDeadline = submissionDeadlineDate !== null && !isNaN(submissionDeadlineDate.getTime());
 
+  const safeTimeZone = ((): string | undefined => {
+    if (!hackathon.timezone) return undefined;
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: hackathon.timezone });
+      return hackathon.timezone;
+    } catch {
+      return undefined;
+    }
+  })();
+
   return (
     <section className='py-16 text-black dark:text-white'>
       <h2 className='text-4xl font-bold' id='submission'>
@@ -147,7 +157,7 @@ export default function Submission({
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric',
-                    timeZone: hackathon.timezone,
+                    timeZone: safeTimeZone,
                   }).format(submissionDeadlineDate!)}
                 </b>
                 , at{' '}
@@ -156,7 +166,7 @@ export default function Submission({
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: true,
-                    timeZone: hackathon.timezone,
+                    timeZone: safeTimeZone,
                   }).format(submissionDeadlineDate!)}{' '}
                   {hackathon.timezone}
                 </b>

@@ -23,7 +23,7 @@ const toolboxInitialState = {
   poaManagerAddress: '',
 };
 
-export const getToolboxStore = (chainId: string) =>
+const createToolboxStore = (chainId: string) =>
   create(
     persist(
       combine(toolboxInitialState, (set, _get) => ({
@@ -55,6 +55,20 @@ export const getToolboxStore = (chainId: string) =>
     ),
   );
 
+// Singleton store per chain, mirroring getL1ListStore. Creating a fresh
+// store (and persist subscription) on every call re-subscribed components
+// each render and made hook identity unstable for anything keyed off it.
+const toolboxStoreSingletons = new Map<string, ReturnType<typeof createToolboxStore>>();
+
+export const getToolboxStore = (chainId: string) => {
+  let store = toolboxStoreSingletons.get(chainId);
+  if (!store) {
+    store = createToolboxStore(chainId);
+    toolboxStoreSingletons.set(chainId, store);
+  }
+  return store;
+};
+
 const noopSetter = () => {};
 
 const emptyToolboxState = {
@@ -75,13 +89,23 @@ const emptyToolboxState = {
   reset: noopSetter,
 };
 
+// Sentinel store key for "no chain selected (yet)". The store hook must be
+// called unconditionally — an early return that skips it means that when
+// the wallet connects (or a selection is made) while a component is
+// mounted, the extra subscription shifts React's hook order and crashes
+// the component (Rules of Hooks). The sentinel store is never written to,
+// so it never touches localStorage. Callers selecting from a maybe-empty
+// chain id should use `getToolboxStore(id || NO_CHAIN_SELECTED)` and
+// discard the result when the id is empty.
+export const NO_CHAIN_SELECTED = '__no-chain-selected__';
+
 export const useToolboxStore = () => {
   const selectedL1 = useSelectedL1();
   const chainId = selectedL1?.id;
-  // During bootstrap (no L1 selected), return an inert default state
-  // so we never create a store keyed by "".
+  const state = getToolboxStore(chainId ?? NO_CHAIN_SELECTED)();
+  // During bootstrap, expose inert state (noop setters) instead.
   if (!chainId) return emptyToolboxState;
-  return getToolboxStore(chainId)();
+  return state;
 };
 
 export function useViemChainStore() {

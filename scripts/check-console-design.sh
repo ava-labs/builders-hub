@@ -73,8 +73,8 @@ check_raw_anchors() {
       if echo "$line" | grep -q 'target='; then
         continue
       fi
-      # Skip in-page fragment anchors (href="#...")
-      if echo "$line" | grep -q 'href="#'; then
+      # Skip in-page fragment anchors (href="#..." or href={`#...`} / href={'#' ...})
+      if echo "$line" | grep -q 'href="#\|href={`#\|href={'"'"'#'; then
         continue
       fi
       errors=$((errors + 1))
