@@ -212,8 +212,6 @@ const NETWORK_CONFIG = {
       { label: '1 month', days: 30 },
       { label: '3 months', days: 90 },
     ],
-    // TODO(helicon-mainnet): auto-renewed staking is not activated on Mainnet yet;
-    // these become live when the gate in the staking-mode picker is lifted.
     minPeriodHours: 48,
     periodPresets: [
       { label: '2 weeks', hours: 336 },
@@ -252,7 +250,7 @@ const metadata: ConsoleToolMetadata = {
       <Link href="/docs/acps/236-auto-renewed-staking" className="text-primary hover:underline">
         AddAutoRenewedValidatorTx
       </Link>{' '}
-      for auto-renewed staking (ACP-236, Fuji).
+      for auto-renewed staking (ACP-236).
     </>
   ),
   toolRequirements: [WalletRequirementsConfigKey.WalletConnected],
@@ -287,8 +285,6 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
   const config = onFuji ? NETWORK_CONFIG.fuji : NETWORK_CONFIG.mainnet;
   const networkName = onFuji ? 'Fuji' : 'Mainnet';
   const isAutoRenew = stakingMode === 'autoRenew';
-  // TODO(helicon-mainnet): flip to true for all networks once Helicon activates on Mainnet.
-  const autoRenewAvailable = onFuji;
   const isUpdateMode = existingValidator?.kind === 'autoRenewed' && existingValidator.isAuthority;
 
   // Once a NodeID is entered, check whether it is already an active validator:
@@ -404,7 +400,6 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
     }
 
     if (isAutoRenew) {
-      if (!autoRenewAvailable) return 'Auto-renewed staking (ACP-236) is only available on Fuji';
       const hours = Number(periodHours);
       if (!Number.isFinite(hours) || hours < config.minPeriodHours || hours > MAX_PERIOD_HOURS) {
         return `Cycle period must be between ${config.minPeriodHours} hours and 1 year`;
@@ -802,7 +797,6 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                         </button>
                         <button
                           type="button"
-                          disabled={!autoRenewAvailable}
                           onClick={() => {
                             setStakingMode('autoRenew');
                             setError(null);
@@ -811,17 +805,12 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                             isAutoRenew
                               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                               : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                          } ${!autoRenewAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          }`}
                         >
                           <div className="font-medium text-sm">Auto-Renewed</div>
                           <div className="text-xs text-zinc-500">Restakes each cycle (ACP-236)</div>
                         </button>
                       </div>
-                      {!autoRenewAvailable && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                          Auto-renewed staking (Helicon upgrade) is not yet activated on Mainnet — available on Fuji.
-                        </p>
-                      )}
                     </div>
 
                     <Input
@@ -886,8 +875,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
                           error={(() => {
                             if (!endTime || !error) return null;
                             const d = Math.floor(new Date(endTime).getTime() / 1000) - Math.floor(Date.now() / 1000);
-                            if (d < config.minEndSeconds)
-                              return `Must be at least ${config.minEndLabel} from now`;
+                            if (d < config.minEndSeconds) return `Must be at least ${config.minEndLabel} from now`;
                             if (d > MAX_END_SECONDS) return 'Must be within 1 year';
                             return null;
                           })()}
