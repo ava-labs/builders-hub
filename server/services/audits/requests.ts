@@ -59,6 +59,31 @@ export async function deleteDraft(userId: string, requestId: string): Promise<Mu
   return result.count === 0 ? { success: false, code: "not_found" } : { success: true };
 }
 
+/**
+ * Pull a request back out of the review queue. Nothing has been sent to any
+ * firm at this point, so the safe and useful move is not deletion but a
+ * return to draft: the project fixes whatever was wrong and resubmits, or
+ * deletes the draft outright with the affordance that already exists there.
+ */
+export async function returnToDraft(
+  userId: string,
+  requestId: string,
+): Promise<MutationResult> {
+  const result = await prisma.auditRequest.updateMany({
+    where: { id: requestId, user_id: userId, status: "pending_review" },
+    data: { status: "draft", submitted_at: null },
+  });
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  await logAuditEvent(prisma, {
+    request_id: requestId,
+    actor_type: "project_user",
+    actor_id: userId,
+    action: "request_returned_to_draft",
+  });
+  return { success: true };
+}
+
 export type ReopenResult =
   | { success: true; auditorCount: number; emailFailures: number }
   | { success: false; code: "not_found" | "not_reopenable" | "already_reopened" };

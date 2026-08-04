@@ -35,6 +35,8 @@ function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
   switch (event.action) {
     case "request_submitted":
       return `Request submitted${typeof meta.project_name === "string" ? ` by ${meta.project_name}` : ""}`;
+    case "request_returned_to_draft":
+      return "Taken back to drafts by the project";
     case "request_approved":
       return ["Request approved for fan-out", admin ? `by ${admin}` : null]
         .filter(Boolean)

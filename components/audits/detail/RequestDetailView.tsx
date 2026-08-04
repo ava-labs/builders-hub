@@ -40,6 +40,57 @@ function metaStrip(detail: OwnerRequestDetail): string {
   return parts.filter(Boolean).join(" · ");
 }
 
+/** Nothing has been sent yet, so the exit from review is editing, not a
+    terminal withdrawal: back to draft, resubmit when it is right. */
+function ReturnToDraftButton({ requestId }: { requestId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  const cancel = async () => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/audits/requests/${requestId}/return-to-draft`, {
+        method: "POST",
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        toast.error(body?.message ?? "We couldn't reopen this request for editing.");
+        return;
+      }
+      toast.success("Back in your drafts. Edit and submit it again when you're ready.");
+      router.push(`/audits/new?draft=${requestId}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="sm" className="h-10">
+          Cancel and edit request
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className={AUDITS_DIALOG}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Take this request back to drafts?</AlertDialogTitle>
+          <AlertDialogDescription>
+            It leaves the review queue and becomes an editable draft again. No firm has seen it, so
+            nothing is lost. Submit it again whenever you are ready, or delete the draft from My
+            requests if you have changed your plans.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Leave it in review</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} onClick={() => void cancel()}>
+            Back to drafts
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 function WithdrawButton({ requestId }: { requestId: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -261,6 +312,7 @@ export function RequestDetailView({
           <StateCard
             title="Waiting for the program team to approve it."
             body="Ava Labs reviews every request before it reaches the whitelist, usually within one working day. No firm has been notified yet, and the quote window starts on approval so you lose no time."
+            action={<ReturnToDraftButton requestId={detail.id} />}
           />
         ) : null}
 

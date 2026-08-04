@@ -62,6 +62,7 @@ export const AUDIT_EVENT_ACTIONS = [
   "request_submitted",
   "request_approved",
   "request_rejected",
+  "request_returned_to_draft",
   "fanout_created",
   "quote_submitted",
   "quote_updated",

@@ -4,6 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -12,8 +22,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
-import { MONO_LABEL_META } from "@/components/audits/shared/classes";
-import { formatIsoDate } from "@/components/audits/shared/format";
+import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
+import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
 import { QuoteSummary } from "@/components/audits/portal/QuoteSummary";
 
 interface QuoteComposerProps {
@@ -55,6 +65,7 @@ export function QuoteComposer({
   const [message, setMessage] = useState(existing?.message ?? "");
   const [reaudit, setReaudit] = useState(existing?.reaudit_included ?? false);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   // Decided or closed with a quote on file: the form rests (design iteration
   // 2026-07-31). Closed with no quote needs no dead disabled form either.
@@ -106,6 +117,10 @@ export function QuoteComposer({
         return;
       }
       toast.success(body.updated ? "Quote updated." : "Quote sent.");
+      // Back to the inbox, where the card carries "You quoted $X" as durable
+      // proof. A toast is the only confirmation a firm gets otherwise, and a
+      // missed toast leaves them unsure the quote landed.
+      router.push("/audits/portal");
       router.refresh();
     } finally {
       setBusy(false);
@@ -222,13 +237,38 @@ export function QuoteComposer({
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-white/10 dark:bg-[#1F1F1F]/95 lg:static lg:border-t-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:lg:bg-transparent">
           <Button
             disabled={!editable || busy}
-            onClick={() => void submit()}
+            // A first send is what the firm came here to do; REPLACING a
+            // price already on the project's desk is the one that deserves a
+            // second tap.
+            onClick={() => (existing ? setConfirming(true) : void submit())}
             className="audits-sweep h-11 w-full bg-brand text-white"
           >
             {busy ? <Loader2 aria-hidden className="mr-2 h-4 w-4 animate-spin" /> : null}
             {existing ? "Update quote" : "Send quote"}
           </Button>
         </div>
+
+        <AlertDialog open={confirming} onOpenChange={setConfirming}>
+          <AlertDialogContent className={AUDITS_DIALOG}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Replace your quote?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {existing
+                  ? `The project currently sees ${formatUsd(existing.price_usd)} over ${existing.duration_weeks} week${existing.duration_weeks === 1 ? "" : "s"}. Saving replaces it with ${price ? formatUsd(Number.parseInt(price, 10) || 0) : "the new price"}${weeks ? ` over ${weeks} week${weeks === "1" ? "" : "s"}` : ""}.`
+                  : ""}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep the current quote</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-brand text-white hover:bg-brand-deep"
+                onClick={() => void submit()}
+              >
+                Replace it
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {editable

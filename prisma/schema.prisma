@@ -800,8 +800,10 @@ model AuditRequest {
   contact_email        String    @default("")
   contact_handle       String?
   contact_calendar_url String?
-  // Stored: draft | collecting | engaged | withdrawn. "deciding" and
-  // "expired" are derived at read time from quote_deadline + quote count.
+  // Stored: draft | pending_review | rejected | collecting | engaged |
+  // withdrawn. "deciding" and "expired" are derived at read time from
+  // quote_deadline + quote count. Plain text on purpose: the vocabulary lives
+  // in lib/audits/status.ts, so adding a state needs no migration.
   status               String    @default("draft")
   // Plain unique column, not a relation: an AuditRequest<->AuditQuote FK
   // cycle would complicate deletes. Integrity is enforced inside the
