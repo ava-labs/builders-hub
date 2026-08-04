@@ -21,6 +21,7 @@ export type PChainAction =
   | 'setL1ValidatorWeight'
   | 'increaseL1ValidatorBalance'
   | 'disableL1Validator'
+  | 'removeSubnetValidator'
   | 'exportCross'
   | 'importCross';
 export const PChainActionList = [
@@ -32,6 +33,7 @@ export const PChainActionList = [
   'setL1ValidatorWeight',
   'increaseL1ValidatorBalance',
   'disableL1Validator',
+  'removeSubnetValidator',
   'exportCross',
   'importCross',
 ];
@@ -91,6 +93,12 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
     successMessage: 'Validator disabled successfully',
     errorMessagePrefix: 'Failed to disable validator: ',
     eventType: 'validator_disabled',
+  },
+  removeSubnetValidator: {
+    loadingMessage: 'Signing RemoveSubnetValidatorTx with Core...',
+    successMessage: 'Legacy Subnet validator removed successfully',
+    errorMessagePrefix: 'Failed to remove Subnet validator: ',
+    eventType: 'subnet_validator_removed',
   },
   exportCross: {
     loadingMessage: 'Signing cross-chain export with Core...',

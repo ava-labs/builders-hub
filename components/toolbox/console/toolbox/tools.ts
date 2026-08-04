@@ -232,6 +232,13 @@ const TOOLS_RAW: ToolCard[] = [
     category: 'Permissioned L1s',
     icon: SquareMinus,
   },
+  {
+    name: 'Remove Legacy Subnet Validators',
+    description: 'Clear pre-conversion Subnet validators that block Warp quorum on a converted L1.',
+    path: '/console/permissioned-l1s/remove-legacy-validators',
+    category: 'Permissioned L1s',
+    icon: SquareMinus,
+  },
 
   // ── Permissionless L1s ───────────────────────────────────
   {
