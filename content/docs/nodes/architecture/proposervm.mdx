@@ -208,7 +208,7 @@ EOF
 
 docker run --rm -p 8080:8080 -p 8081:8081 \
   -v "$(pwd)/sig-agg-config.json:/config.json" \
-  avaplatform/signature-aggregator:signature-aggregator-v0.6.0-fuji \
+  avaplatform/signature-aggregator:v0.6.0-fuji \
   --config-file /config.json
 
 curl -s http://localhost:8080/aggregate-signatures \
