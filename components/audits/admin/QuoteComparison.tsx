@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import type { AdminRequestDetail } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
 
 /* zinc row hairlines + hover (ledger L-8): the ui/table defaults inject
    slate-tinted semantic tokens inside this zinc card. */
@@ -145,12 +146,15 @@ export function QuoteComparison({
                       clamp can bite instead of running off the card edge
                       (round-4 L4-3). */}
                   <TableCell className="w-full min-w-56 max-w-0">
-                    <span
-                      className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400"
-                      title={outside ? undefined : quote.message}
-                    >
-                      {outside ? "Start is outside the requested window" : quote.message}
-                    </span>
+                    <div className="flex items-start gap-2.5">
+                      <span
+                        className="line-clamp-2 min-w-0 flex-1 text-xs text-zinc-500 dark:text-zinc-400"
+                        title={outside ? undefined : quote.message}
+                      >
+                        {outside ? "Start is outside the requested window" : quote.message}
+                      </span>
+                      <QuoteDocLink url={quote.deal_doc_url} variant="cell" />
+                    </div>
                   </TableCell>
                 </TableRow>
               );

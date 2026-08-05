@@ -539,6 +539,9 @@ export async function getAdminRequestDetail(requestId: string) {
       duration_weeks: quote.duration_weeks,
       earliest_start: quote.earliest_start,
       message: quote.message,
+      // Admins decide subsidies against these quotes; the proposal doc is
+      // part of what they are subsidizing (round-5 6b).
+      deal_doc_url: quote.deal_doc_url,
       reaudit_included: quote.reaudit_included,
       status: quote.status,
       display_status: deriveQuoteDisplayStatus(quote.status, display_status),

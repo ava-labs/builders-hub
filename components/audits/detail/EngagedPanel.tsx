@@ -2,6 +2,7 @@ import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
 import { ContactHandle } from "@/components/audits/shared/ContactHandle";
+import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
 import { parseRepos } from "@/components/audits/wizard/types";
 
 type OwnerQuote = OwnerRequestDetail["quotes"][number];
@@ -96,6 +97,14 @@ export function EngagedPanel({
         <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
           {weeksLabel(acceptedQuote.duration_weeks)} · starts {formatIsoDate(acceptedQuote.earliest_start)}
           {acceptedQuote.reaudit_included ? " · re-audit included" : ""}
+          {/* The SOW matters most right here, at the off-platform handover
+              (round-5 6a); the winner's message stays in the archive below. */}
+          {acceptedQuote.deal_doc_url ? (
+            <>
+              {" · "}
+              <QuoteDocLink url={acceptedQuote.deal_doc_url} variant="meta" />
+            </>
+          ) : null}
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <ContactBox label="Their contact · revealed to you" lines={theirLines} />
