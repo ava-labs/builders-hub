@@ -27,7 +27,9 @@ import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/class
 import {
   formatIsoDate,
   formatUsd,
+  fromUtcCalendarDate,
   parseWholeNumber,
+  toUtcCalendarDate,
   weeksLabel,
 } from "@/components/audits/shared/format";
 import { QuoteSummary } from "@/components/audits/portal/QuoteSummary";
@@ -39,6 +41,8 @@ interface QuoteComposerProps {
   deadline: Date | null;
   /** Deactivated firms browse read-only; the composer never arms (N-4). */
   firmActive?: boolean;
+  /** Approved subsidy on a won request, shown in the resting summary. */
+  subsidy?: AuditorRequestView["subsidy"];
 }
 
 /**
@@ -52,6 +56,7 @@ export function QuoteComposer({
   windowOpen,
   deadline,
   firmActive = true,
+  subsidy,
 }: QuoteComposerProps) {
   const router = useRouter();
   const editable =
@@ -78,7 +83,7 @@ export function QuoteComposer({
 
   // Decided or closed with a quote on file: the form rests (design iteration
   // 2026-07-31). Closed with no quote needs no dead disabled form either.
-  if (!editable && existing) return <QuoteSummary quote={existing} />;
+  if (!editable && existing) return <QuoteSummary quote={existing} subsidy={subsidy} />;
   if (!firmActive && !existing) {
     return (
       <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 text-sm text-zinc-600 dark:border-white/10 dark:bg-white/[0.03] dark:text-[#A2AFB2]">
@@ -213,8 +218,10 @@ export function QuoteComposer({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={start ?? undefined}
-                  onSelect={(date) => setStart(date ?? null)}
+                  // Same calendar-date discipline as the wizard picker: what
+                  // the firm picks is the day the project sees.
+                  selected={start ? fromUtcCalendarDate(start) : undefined}
+                  onSelect={(date) => setStart(date ? toUtcCalendarDate(date) : null)}
                   disabled={(date) => date < today}
                 />
               </PopoverContent>

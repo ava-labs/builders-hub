@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseWholeNumber, weeksLabel } from "@/components/audits/shared/format";
+import {
+  formatIsoDate,
+  fromUtcCalendarDate,
+  parseWholeNumber,
+  toUtcCalendarDate,
+  weeksLabel,
+} from "@/components/audits/shared/format";
 import { normalizeUrlInput } from "@/types/audits";
 
 describe("parseWholeNumber", () => {
@@ -65,5 +71,28 @@ describe("normalizeUrlInput", () => {
   it("leaves empty input empty so autosave never invents a value", () => {
     expect(normalizeUrlInput("")).toBe("");
     expect(normalizeUrlInput("   ")).toBe("");
+  });
+});
+
+describe("calendar dates", () => {
+  it("stores the day that was picked, not the day before", () => {
+    // A picker hands back LOCAL midnight. Formatting that with toISOString
+    // showed the previous day for anyone east of Greenwich.
+    const pickedLocally = new Date(2026, 7, 18, 0, 0, 0);
+    expect(formatIsoDate(toUtcCalendarDate(pickedLocally))).toBe("2026-08-18");
+  });
+
+  it("survives a late-evening pick, which is where the old bug bit", () => {
+    const pickedLateLocal = new Date(2026, 7, 18, 23, 30, 0);
+    expect(formatIsoDate(toUtcCalendarDate(pickedLateLocal))).toBe("2026-08-18");
+  });
+
+  it("round-trips back to the same calendar day for the picker", () => {
+    const stored = new Date("2026-08-18T00:00:00.000Z");
+    const shown = fromUtcCalendarDate(stored);
+    expect(shown.getFullYear()).toBe(2026);
+    expect(shown.getMonth()).toBe(7);
+    expect(shown.getDate()).toBe(18);
+    expect(formatIsoDate(toUtcCalendarDate(shown))).toBe("2026-08-18");
   });
 });

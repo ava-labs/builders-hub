@@ -36,6 +36,27 @@ export function formatIsoDate(date: Date | string): string {
   return new Date(date).toISOString().slice(0, 10);
 }
 
+/**
+ * These two keep calendar dates calendar dates.
+ *
+ * A date picker hands back LOCAL midnight, and everything here renders with
+ * toISOString, which is UTC. East of Greenwich those disagree by a day: 18
+ * August picked at GMT+2 became 2026-08-17T22:00Z and displayed as the 17th,
+ * in the field, the tables and the emails alike.
+ *
+ * So a picked day is stored as UTC midnight of that calendar day, and a stored
+ * day is handed back to the picker as local midnight of the same calendar day.
+ * Server-rendered email and browser-rendered UI then agree, in every timezone.
+ */
+export function toUtcCalendarDate(picked: Date): Date {
+  return new Date(Date.UTC(picked.getFullYear(), picked.getMonth(), picked.getDate()));
+}
+
+export function fromUtcCalendarDate(stored: Date | string): Date {
+  const date = new Date(stored);
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 /** Date + time for "you just did this" moments (receipt eyebrow, board 3a). */
 export function formatIsoDateTime(date: Date | string): string {
   return new Date(date).toISOString().slice(0, 16).replace("T", " ");

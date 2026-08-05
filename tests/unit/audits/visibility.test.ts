@@ -9,6 +9,7 @@ const {
   deliveryFindUniqueMock,
   quoteFindManyMock,
   quoteFindUniqueMock,
+  subsidyFindFirstMock,
 } = vi.hoisted(() => ({
   requestFindManyMock: vi.fn(),
   requestFindFirstMock: vi.fn(),
@@ -18,6 +19,7 @@ const {
   deliveryFindUniqueMock: vi.fn(),
   quoteFindManyMock: vi.fn(),
   quoteFindUniqueMock: vi.fn(),
+  subsidyFindFirstMock: vi.fn(),
 }));
 
 vi.mock("@/prisma/prisma", () => ({
@@ -29,6 +31,9 @@ vi.mock("@/prisma/prisma", () => ({
     },
     auditor: {
       findMany: auditorFindManyMock,
+    },
+    auditSubsidyDecision: {
+      findFirst: subsidyFindFirstMock,
     },
     auditFanoutDelivery: {
       findMany: deliveryFindManyMock,
@@ -360,5 +365,51 @@ describe("auditor scope", () => {
     const pending = await getRequestForAuditor("aud-1", "req-1");
     expect(pending!.contacts).toBeNull();
     expect(requestFindUniqueMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("auditor scope · subsidy", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    deliveryFindUniqueMock.mockResolvedValue({ request_id: "req-1" });
+    requestFindFirstMock.mockResolvedValue({
+      id: "req-1",
+      status: "engaged",
+      quote_deadline: new Date("2026-08-09T12:00:00Z"),
+      quotes: [],
+    });
+    requestFindUniqueMock.mockResolvedValue({
+      contact_name: "Ada Stone",
+      contact_email: "ada@glacierswap.example",
+      contact_handle: null,
+      contact_calendar_url: null,
+    });
+  });
+
+  it("shows the winning firm an APPROVED subsidy", async () => {
+    quoteFindUniqueMock.mockResolvedValue({ id: "q-1", status: "accepted", price_usd: 12500 });
+    subsidyFindFirstMock.mockResolvedValue({ state: "approved", program_amount_usd: 3000, pct: 24 });
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.subsidy).toMatchObject({ program_amount_usd: 3000, pct: 24 });
+  });
+
+  it("hides a DECLINED subsidy: that is the program's business, not the firm's", async () => {
+    quoteFindUniqueMock.mockResolvedValue({ id: "q-1", status: "accepted", price_usd: 12500 });
+    subsidyFindFirstMock.mockResolvedValue({ state: "declined", program_amount_usd: 0, pct: 0 });
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.subsidy).toBeNull();
+  });
+
+  it("never looks up a subsidy for a firm that did not win", async () => {
+    quoteFindUniqueMock.mockResolvedValue({ id: "q-1", status: "not_selected", price_usd: 12500 });
+
+    const view = await getRequestForAuditor("aud-1", "req-1");
+
+    expect(view!.subsidy).toBeNull();
+    expect(subsidyFindFirstMock).not.toHaveBeenCalled();
   });
 });

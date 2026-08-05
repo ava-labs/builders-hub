@@ -229,6 +229,7 @@ export function PortalRequestDetail({
             windowOpen={view.window_open}
             deadline={view.quote_deadline}
             firmActive={firmActive}
+            subsidy={view.subsidy}
           />
         </div>
       </div>

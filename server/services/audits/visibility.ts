@@ -268,6 +268,10 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
 
   // Contacts reveal both ways only after acceptance.
   let contacts: AuditorContacts | null = null;
+  // The winning firm also sees the funding split: part of its fee may be
+  // coming from the program, which changes who it invoices. Latest decision
+  // only, and only for the firm that won.
+  let subsidy: { state: string; program_amount_usd: number; pct: number } | null = null;
   if (own_quote?.status === "accepted") {
     contacts = await prisma.auditRequest.findUnique({
       where: { id: requestId },
@@ -278,6 +282,14 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
         contact_calendar_url: true,
       },
     });
+    const decision = await prisma.auditSubsidyDecision.findFirst({
+      where: { request_id: requestId },
+      orderBy: { decided_at: "desc" },
+      select: { state: true, program_amount_usd: true, pct: true },
+    });
+    // A decline is the program's own business, not the firm's: only an
+    // approved subsidy changes anything for them.
+    subsidy = decision?.state === "approved" ? decision : null;
   }
 
   return {
@@ -295,6 +307,7 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
         }
       : null,
     contacts,
+    subsidy,
     window_open: isQuoteWindowOpen(request),
   };
 }

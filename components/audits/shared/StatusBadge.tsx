@@ -14,7 +14,9 @@ const REQUEST_STATUS: Record<string, { label: string; tone: string }> = {
   draft: { label: "Draft", tone: NEUTRAL },
   // Amber is the needs-action hue: this one is waiting on the program team.
   pending_review: { label: "Awaiting approval", tone: AMBER },
-  rejected: { label: "Not approved", tone: NEUTRAL },
+  // "Not approved" collided with the subsidy filter's "Declined"; a request
+  // is rejected, a subsidy is declined.
+  rejected: { label: "Rejected", tone: NEUTRAL },
   collecting: { label: "Collecting quotes", tone: GREEN },
   deciding: { label: "Quotes ready", tone: BLUE },
   engaged: { label: "Engaged", tone: NEUTRAL },

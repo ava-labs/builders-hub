@@ -14,7 +14,14 @@ const FOOT_BY_STATUS: Record<string, string> = {
  * Read-only state of the composer once the request is decided or the window
  * closed: the numbers stay visible, nothing is editable, no CTA.
  */
-export function QuoteSummary({ quote }: { quote: OwnQuote }) {
+export function QuoteSummary({
+  quote,
+  subsidy,
+}: {
+  quote: OwnQuote;
+  /** Set only on a won request with an approved subsidy. */
+  subsidy?: AuditorRequestView["subsidy"];
+}) {
   return (
     <div className={`${CARD} p-5`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -36,6 +43,20 @@ export function QuoteSummary({ quote }: { quote: OwnQuote }) {
         <p className="mt-3 border-l-2 border-zinc-200 pl-3 text-sm leading-relaxed text-zinc-600 dark:border-white/10 dark:text-[#A2AFB2]">
           {quote.message}
         </p>
+      ) : null}
+      {subsidy ? (
+        <div className="mt-4 rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-3">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400">
+            Program subsidy
+          </p>
+          <p className="mt-1.5 text-sm text-zinc-700 dark:text-zinc-300">
+            The Ava Labs audit program is covering{" "}
+            <span className="font-mono font-semibold">
+              {formatUsd(subsidy.program_amount_usd)}
+            </span>{" "}
+            of this engagement ({subsidy.pct}%). Your fee is unchanged; the project pays the rest.
+          </p>
+        </div>
       ) : null}
       <p className="mt-4 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10 dark:text-zinc-400">
         {FOOT_BY_STATUS[quote.status] ??

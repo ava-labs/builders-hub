@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { formatIsoDate } from "@/components/audits/shared/format";
+import {
+  formatIsoDate,
+  fromUtcCalendarDate,
+  toUtcCalendarDate,
+} from "@/components/audits/shared/format";
 import type { AuditWizardValues } from "@/components/audits/wizard/types";
 
 interface DateFieldProps {
@@ -68,8 +72,10 @@ export function DateField({
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={value ?? undefined}
-                  onSelect={(date) => field.onChange(date ?? null)}
+                  // Shown as the local calendar day, stored as UTC midnight of
+                  // that same day, so the two never drift apart.
+                  selected={value ? fromUtcCalendarDate(value) : undefined}
+                  onSelect={(date) => field.onChange(date ? toUtcCalendarDate(date) : null)}
                   disabled={(date) => date < today}
                 />
               </PopoverContent>
