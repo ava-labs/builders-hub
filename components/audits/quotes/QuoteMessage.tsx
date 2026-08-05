@@ -21,7 +21,10 @@ export function QuoteMessage({ message }: { message: string }) {
       <p className={MONO_LABEL_SM}>Their message</p>
       <p
         className={cn(
-          "mt-1 max-w-[78ch] text-sm leading-[1.65] text-zinc-800 dark:text-zinc-200",
+          // break-words: an unbroken run (a pasted URL, "aaaa…") must wrap
+          // inside the card; expanding the clamp removes the overflow clip
+          // that was hiding exactly that case (preview find, 2026-08-05).
+          "mt-1 max-w-[78ch] break-words text-sm leading-[1.65] text-zinc-800 dark:text-zinc-200",
           long && !expanded && "line-clamp-6",
         )}
       >

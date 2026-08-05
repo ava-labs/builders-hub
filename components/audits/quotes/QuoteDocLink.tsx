@@ -38,7 +38,7 @@ export function QuoteDocLink({ url, variant = "footer" }: QuoteDocLinkProps) {
           Read the proposal ↗
         </a>
         {host ? (
-          <span className="font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">
+          <span className="break-all font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-500 dark:text-zinc-400">
             {host}
           </span>
         ) : null}
