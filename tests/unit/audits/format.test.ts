@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseWholeNumber, weeksLabel } from "@/components/audits/shared/format";
+import { normalizeUrlInput } from "@/types/audits";
 
 describe("parseWholeNumber", () => {
   it("reads thousands separators the way a human types them", () => {
@@ -42,5 +43,27 @@ describe("weeksLabel", () => {
     expect(weeksLabel(0)).toBe("0 weeks");
     expect(weeksLabel(2)).toBe("2 weeks");
     expect(weeksLabel(12)).toBe("12 weeks");
+  });
+});
+
+describe("normalizeUrlInput", () => {
+  it("adds the scheme people should not have to type", () => {
+    expect(normalizeUrlInput("yourproject.com")).toBe("https://yourproject.com");
+    expect(normalizeUrlInput("  avax.network/docs  ")).toBe("https://avax.network/docs");
+  });
+
+  it("leaves an existing scheme exactly as written", () => {
+    expect(normalizeUrlInput("https://avax.network")).toBe("https://avax.network");
+    expect(normalizeUrlInput("http://legacy.example")).toBe("http://legacy.example");
+  });
+
+  it("repairs a half-typed scheme instead of doubling it", () => {
+    expect(normalizeUrlInput("https:/avax.network")).toBe("https://avax.network");
+    expect(normalizeUrlInput("//avax.network")).toBe("https://avax.network");
+  });
+
+  it("leaves empty input empty so autosave never invents a value", () => {
+    expect(normalizeUrlInput("")).toBe("");
+    expect(normalizeUrlInput("   ")).toBe("");
   });
 });

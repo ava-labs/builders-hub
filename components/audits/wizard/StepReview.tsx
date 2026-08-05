@@ -120,7 +120,7 @@ export function StepReview() {
                 Calendar link <span className="font-normal text-muted-foreground">· optional</span>
               </FormLabel>
               <FormControl>
-                <Input {...field} inputMode="url" placeholder="https://…" className="h-11 md:h-10" />
+                <Input {...field} inputMode="url" placeholder="cal.com/you" className="h-11 md:h-10" />
               </FormControl>
               <FormDescription>Lets the winning firm book a kickoff call directly.</FormDescription>
               <FormMessage />

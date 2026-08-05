@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormContext } from "react-hook-form";
 import { toast } from "sonner";
+import { normalizeUrlInput } from "@/types/audits";
 import {
   FormControl,
   FormDescription,
@@ -152,7 +153,19 @@ export function StepProject({ importProjectId }: StepProjectProps) {
                 Project website <span className="text-brand">*</span>
               </FormLabel>
               <FormControl>
-                <Input {...field} inputMode="url" placeholder="https://…" className="h-11 md:h-10" />
+                <Input
+                  {...field}
+                  inputMode="url"
+                  // The scheme is optional to type: normalized on blur so the
+                  // field shows exactly what gets saved.
+                  placeholder="yourproject.com"
+                  onBlur={(event) => {
+                    field.onBlur();
+                    const normalized = normalizeUrlInput(event.target.value);
+                    if (normalized !== event.target.value) field.onChange(normalized);
+                  }}
+                  className="h-11 md:h-10"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

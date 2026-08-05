@@ -115,8 +115,14 @@ export async function submitRequestForReview(
       data: {
         status: "pending_review",
         submitted_at: new Date(),
-        // Store the normalized (lowercased) contact email from the gate.
+        // Store the normalized values the gate produced, not the raw draft:
+        // the email lowercased, and the URLs with their scheme filled in, so
+        // a bare "avax.network" is not what firms end up clicking.
         contact_email: parsed.data.contact_email,
+        website: parsed.data.website,
+        doc_links: parsed.data.doc_links,
+        repos: parsed.data.repos,
+        contact_calendar_url: parsed.data.contact_calendar_url ?? null,
       },
     });
 

@@ -22,7 +22,7 @@ export function MultiLinkInput() {
             onChange={(event) =>
               update(links.map((l, i) => (i === index ? event.target.value : l)))
             }
-            placeholder="https://…"
+            placeholder="docs.yourproject.com/spec"
             inputMode="url"
             className="h-11 flex-1 md:h-10"
             aria-label={`Doc link ${index + 1}`}

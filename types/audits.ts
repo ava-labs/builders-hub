@@ -24,9 +24,27 @@ const normalizedEmail = z.preprocess(
   (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
   emailSchema,
 );
-const httpsUrl = trimmed(MAX_URL)
-  .min(1, "Link is required")
-  .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://");
+/**
+ * People type "avax.network", not "https://avax.network", and making them
+ * type the scheme is pure friction. A value that already carries one is left
+ * exactly as written, so http:// stays http://; a half-typed scheme is
+ * repaired rather than doubled ("https:/x" becomes https://x, not
+ * https://https:/x).
+ */
+export const normalizeUrlInput = (value: unknown) => {
+  if (typeof value !== "string") return value;
+  const raw = value.trim();
+  if (raw === "" || /:\/\//.test(raw)) return raw;
+  const bare = raw.replace(/^(https?:)?\/*/i, "");
+  return bare === "" ? raw : `https://${bare}`;
+};
+
+const httpsUrl = z.preprocess(
+  normalizeUrlInput,
+  trimmed(MAX_URL)
+    .min(1, "Link is required")
+    .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://"),
+);
 // z.coerce.date() would coerce null to 1970-01-01 (a valid Date), silently
 // passing a missing required date. Map nullish to undefined so it fails as
 // "required" instead.
@@ -153,8 +171,19 @@ export const auditorUpdateSchema = z.strictObject({
 export type AuditorUpdateInput = z.infer<typeof auditorUpdateSchema>;
 
 export const adminRequestFiltersSchema = z.object({
+  // Must track DISPLAY_REQUEST_STATUSES: a value missing here fails
+  // validation and the filter silently does nothing.
   status: z
-    .enum(["draft", "collecting", "deciding", "engaged", "expired", "withdrawn"])
+    .enum([
+      "draft",
+      "pending_review",
+      "rejected",
+      "collecting",
+      "deciding",
+      "engaged",
+      "expired",
+      "withdrawn",
+    ])
     .optional(),
   subsidy: z.enum(["none", "approved", "declined"]).optional(),
   deadline_before: z.coerce.date().optional(),
