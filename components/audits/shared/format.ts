@@ -86,3 +86,39 @@ export function formatQuoteRange(min: number, max: number): string {
 export function lowerFirst(text: string): string {
   return text.charAt(0).toLowerCase() + text.slice(1);
 }
+
+/** Display host for a proposal link ("docs.google.com"), so the reader knows
+    where the click goes. Empty on an unparsable value: legacy data must never
+    crash a view. */
+export function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+/** "+$1,500 vs lowest" under non-lowest prices (round-5 5b). Null for the
+    lowest quote itself: the "Lowest price" chip already marks it. */
+export function priceDeltaLabel(priceUsd: number, lowestUsd: number): string | null {
+  if (priceUsd <= lowestUsd) return null;
+  return `+${formatUsd(priceUsd - lowestUsd)} vs lowest`;
+}
+
+/** Clamp decision for quote messages: a character count, not a measurement,
+    so server and client render the same toggle (round-5 Q5-3). */
+export const MESSAGE_CLAMP_CHARS = 420;
+
+export function isLongMessage(text: string): boolean {
+  return text.length > MESSAGE_CLAMP_CHARS;
+}
+
+/** True when a quoted start lands after the request's needed-by date. The
+    boundary day itself is inside: starting ON the date still meets it. */
+export function isOutsideWindow(
+  earliestStart: Date | string,
+  neededBy: Date | string | null | undefined,
+): boolean {
+  if (!neededBy) return false;
+  return new Date(earliestStart).getTime() > new Date(neededBy).getTime();
+}

@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  MESSAGE_CLAMP_CHARS,
   formatIsoDate,
   fromUtcCalendarDate,
+  hostOf,
+  isLongMessage,
+  isOutsideWindow,
   parseWholeNumber,
+  priceDeltaLabel,
   toUtcCalendarDate,
   weeksLabel,
 } from "@/components/audits/shared/format";
@@ -94,5 +99,56 @@ describe("calendar dates", () => {
     expect(shown.getMonth()).toBe(7);
     expect(shown.getDate()).toBe(18);
     expect(formatIsoDate(toUtcCalendarDate(shown))).toBe("2026-08-18");
+  });
+});
+
+describe("priceDeltaLabel", () => {
+  it("labels non-lowest quotes with the concrete dollar gap", () => {
+    expect(priceDeltaLabel(36000, 34500)).toBe("+$1,500 vs lowest");
+    expect(priceDeltaLabel(44000, 34500)).toBe("+$9,500 vs lowest");
+  });
+
+  it("is silent for the lowest quote itself", () => {
+    // The "Lowest price" chip already marks it; a "+$0" line would be noise.
+    expect(priceDeltaLabel(34500, 34500)).toBeNull();
+    expect(priceDeltaLabel(30000, 34500)).toBeNull();
+  });
+});
+
+describe("isLongMessage", () => {
+  it("clamps only past the threshold, so short messages never grow a toggle", () => {
+    expect(isLongMessage("a".repeat(MESSAGE_CLAMP_CHARS))).toBe(false);
+    expect(isLongMessage("a".repeat(MESSAGE_CLAMP_CHARS + 1))).toBe(true);
+    expect(isLongMessage("")).toBe(false);
+  });
+});
+
+describe("hostOf", () => {
+  it("shows where a proposal link goes before the click", () => {
+    expect(hostOf("https://docs.google.com/document/d/abc")).toBe("docs.google.com");
+    expect(hostOf("https://www.notion.so/firm/sow")).toBe("notion.so");
+  });
+
+  it("never crashes a view on a value that does not parse", () => {
+    expect(hostOf("not a url")).toBe("");
+    expect(hostOf("")).toBe("");
+  });
+});
+
+describe("isOutsideWindow", () => {
+  it("flags starts after the needed-by date", () => {
+    expect(isOutsideWindow("2026-08-19", "2026-08-17")).toBe(true);
+  });
+
+  it("keeps the boundary day itself inside", () => {
+    // Starting ON the needed-by date still meets it (the shipped table's
+    // strict-greater semantics, now shared by all three views).
+    expect(isOutsideWindow("2026-08-17", "2026-08-17")).toBe(false);
+    expect(isOutsideWindow("2026-08-10", "2026-08-17")).toBe(false);
+  });
+
+  it("never fires without a needed-by date", () => {
+    expect(isOutsideWindow("2026-08-19", null)).toBe(false);
+    expect(isOutsideWindow("2026-08-19", undefined)).toBe(false);
   });
 });
