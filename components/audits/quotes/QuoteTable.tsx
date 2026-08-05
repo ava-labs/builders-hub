@@ -10,8 +10,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
+import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd, isOutsideWindow } from "@/components/audits/shared/format";
+import { QuoteDocLink } from "@/components/audits/quotes/QuoteDocLink";
 
 interface QuoteTableProps {
   quotes: OwnerQuote[];
@@ -27,9 +29,6 @@ const ROW = "border-zinc-200 hover:bg-zinc-50 dark:border-white/10 dark:hover:bg
 /** Comparison table · numbers-forward (design 1h). Bars in brand blue, never red. */
 export function QuoteTable({ quotes, neededBy = null, onAccept }: QuoteTableProps) {
   const highest = Math.max(...quotes.map((quote) => quote.price_usd));
-  const neededByTime = neededBy ? new Date(neededBy).getTime() : null;
-  const outOfWindow = (quote: OwnerQuote) =>
-    neededByTime !== null && new Date(quote.earliest_start).getTime() > neededByTime;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-white/10">
@@ -41,26 +40,36 @@ export function QuoteTable({ quotes, neededBy = null, onAccept }: QuoteTableProp
             <TableHead className={cn(MONO_LABEL_SM, "min-w-32")}>Vs highest</TableHead>
             <TableHead className={MONO_LABEL_SM}>Weeks</TableHead>
             <TableHead className={MONO_LABEL_SM}>Can start</TableHead>
+            <TableHead className={MONO_LABEL_SM}>Proposal</TableHead>
             {onAccept ? <TableHead aria-label="Accept" /> : null}
           </TableRow>
         </TableHeader>
         <TableBody>
           {quotes.map((quote) => {
             const isHighest = quotes.length > 1 && quote.price_usd === highest;
-            const outside = outOfWindow(quote);
+            const outside = isOutsideWindow(quote.earliest_start, neededBy);
             return (
               <TableRow key={quote.id} className={cn(ROW, isHighest && "opacity-75")}>
                 <TableCell className="px-4">
-                  <p className={cn("font-medium", outside && "text-zinc-600 dark:text-zinc-300")}>
-                    {quote.firm_name}
-                  </p>
-                  {outside ? (
-                    <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                      Start is outside your requested window
-                    </p>
-                  ) : quote.message ? (
-                    <p className="mt-0.5 max-w-64 truncate text-xs text-zinc-500 dark:text-zinc-400">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-medium">{quote.firm_name}</p>
+                    {quote.display_status !== "submitted" ? (
+                      <StatusBadge kind="quote" status={quote.display_status} />
+                    ) : null}
+                  </div>
+                  {/* The warning used to REPLACE the message here (round-5 t2);
+                      both render now, the message with its full text on title. */}
+                  {quote.message ? (
+                    <p
+                      title={quote.message}
+                      className="mt-0.5 max-w-64 truncate text-xs text-zinc-500 dark:text-zinc-400"
+                    >
                       {quote.message}
+                    </p>
+                  ) : null}
+                  {outside ? (
+                    <p className="mt-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-brand-deep dark:text-brand-soft">
+                      start outside your window
                     </p>
                   ) : null}
                 </TableCell>
@@ -87,6 +96,9 @@ export function QuoteTable({ quotes, neededBy = null, onAccept }: QuoteTableProp
                 >
                   {formatIsoDate(quote.earliest_start)}
                   {outside ? <span aria-label="outside your window"> ⚠</span> : null}
+                </TableCell>
+                <TableCell>
+                  <QuoteDocLink url={quote.deal_doc_url} variant="cell" />
                 </TableCell>
                 {onAccept ? (
                   <TableCell>

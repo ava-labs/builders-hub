@@ -76,9 +76,11 @@ export function QuotesPanel({
         <span className="flex-1" />
         <ViewSwitcher value={view} onChange={setView} />
       </div>
-      {view === "rows" && <QuoteRows quotes={quotes} onAccept={onAccept} />}
+      {/* Every view receives neededBy (round-5 5a): the out-of-window warning
+          was table-only, so rows/cards users and everyone on mobile missed it. */}
+      {view === "rows" && <QuoteRows quotes={quotes} neededBy={neededBy} onAccept={onAccept} />}
       {view === "table" && <QuoteTable quotes={quotes} neededBy={neededBy} onAccept={onAccept} />}
-      {view === "cards" && <QuoteCards quotes={quotes} onAccept={onAccept} />}
+      {view === "cards" && <QuoteCards quotes={quotes} neededBy={neededBy} onAccept={onAccept} />}
       {showAcceptNote ? (
         <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
           Accepting reveals contact details both ways, closes the request, and notifies the other
