@@ -17,10 +17,13 @@ export type PChainAction =
   | 'createChain'
   | 'convertToL1'
   | 'addPermissionlessValidator'
+  | 'addAutoRenewedValidator'
+  | 'setAutoRenewedValidatorConfig'
   | 'registerL1Validator'
   | 'setL1ValidatorWeight'
   | 'increaseL1ValidatorBalance'
   | 'disableL1Validator'
+  | 'removeSubnetValidator'
   | 'exportCross'
   | 'importCross';
 export const PChainActionList = [
@@ -28,10 +31,13 @@ export const PChainActionList = [
   'createChain',
   'convertToL1',
   'addPermissionlessValidator',
+  'addAutoRenewedValidator',
+  'setAutoRenewedValidatorConfig',
   'registerL1Validator',
   'setL1ValidatorWeight',
   'increaseL1ValidatorBalance',
   'disableL1Validator',
+  'removeSubnetValidator',
   'exportCross',
   'importCross',
 ];
@@ -68,6 +74,18 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
     errorMessagePrefix: 'Failed to add validator: ',
     eventType: 'validator_added',
   },
+  addAutoRenewedValidator: {
+    loadingMessage: 'Signing AddAutoRenewedValidatorTx with Core...',
+    successMessage: 'Auto-renewed validator added successfully',
+    errorMessagePrefix: 'Failed to add auto-renewed validator: ',
+    eventType: 'auto_renewed_validator_added',
+  },
+  setAutoRenewedValidatorConfig: {
+    loadingMessage: 'Signing SetAutoRenewedValidatorConfigTx with Core...',
+    successMessage: 'Auto-renewal config updated successfully',
+    errorMessagePrefix: 'Failed to update auto-renewal config: ',
+    eventType: 'auto_renewed_validator_config_set',
+  },
   registerL1Validator: {
     loadingMessage: 'Signing RegisterL1ValidatorTx with Core...',
     successMessage: 'Validator registered successfully',
@@ -91,6 +109,12 @@ const configs: Record<PChainAction, PChainNotificationConfig> = {
     successMessage: 'Validator disabled successfully',
     errorMessagePrefix: 'Failed to disable validator: ',
     eventType: 'validator_disabled',
+  },
+  removeSubnetValidator: {
+    loadingMessage: 'Signing RemoveSubnetValidatorTx with Core...',
+    successMessage: 'Legacy Subnet validator removed successfully',
+    errorMessagePrefix: 'Failed to remove Subnet validator: ',
+    eventType: 'subnet_validator_removed',
   },
   exportCross: {
     loadingMessage: 'Signing cross-chain export with Core...',

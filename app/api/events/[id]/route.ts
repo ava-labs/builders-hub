@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
-import { withAuthRole } from "@/lib/protectedRoute";
+import { withAuth } from "@/lib/protectedRoute";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { canEditEvent } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -35,9 +36,12 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PUT = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
+    if (!(await canEditEvent(session, id))) {
+      return NextResponse.json({ error: 'Forbidden', message: 'Access denied.' }, { status: 403 });
+    }
     const updateData = await req.json();
     const userId = session.user.id;
 
@@ -66,9 +70,12 @@ export const PUT = withAuthRole('devrel', async (req: NextRequest, context: any,
   }
 });
 
-export const PATCH = withAuthRole('devrel', async (req: NextRequest, context: any, session: any) => {
+export const PATCH = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const { id } = await context.params;
+    if (!(await canEditEvent(session, id))) {
+      return NextResponse.json({ error: 'Forbidden', message: 'Access denied.' }, { status: 403 });
+    }
     const updateData = await req.json();
     const userId = session.user.id;
 

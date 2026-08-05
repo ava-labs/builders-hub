@@ -34,7 +34,7 @@ import {
   getPrimaryTotalStake,
   type CurrentValidator,
 } from "@/lib/pchain-node";
-import { txTypeLabel, type NodeResponse, type ValidationsResponse } from "@/lib/pchain-explorer";
+import { txTypeLabel, type NodeResponse, type NodeStakingTx, type TxSummary, type ValidationsResponse } from "@/lib/pchain-explorer";
 
 /* The node page as one instrument, not an endless scroll: a bold summary
    strip, then two split views — what the validator IS (the spec plate)
@@ -200,7 +200,57 @@ export function PchainNode({
   }, [error, l1Only, l1Subnet, network, nodeId]);
 
   const [showAllDelegators, setShowAllDelegators] = useState(false);
+  // the API orders by stake DESC; "recent" re-sorts by
+  // delegation start so new delegations are findable again
+  const [delegatorSort, setDelegatorSort] = useState<"stake" | "recent">("stake");
   const [showAllHistory, setShowAllHistory] = useState(false);
+
+  const [olderHistory, setOlderHistory] = useState<NodeStakingTx[]>([]);
+  const [historyCursor, setHistoryCursor] = useState<number | undefined>(undefined);
+  const [historyDone, setHistoryDone] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const loadOlderHistory = async () => {
+    if (historyDone || loadingOlder || !n) return;
+    setLoadingOlder(true);
+    try {
+      const seen = new Set([...n.history.map((h) => h.txHash), ...olderHistory.map((h) => h.txHash)]);
+      let cursor = historyCursor;
+      for (let hop = 0; hop < 4; hop++) {
+        const qs = new URLSearchParams({ node: nodeId, limit: "100" });
+        if (cursor !== undefined) qs.set("before", String(cursor));
+        const res = await fetch(`/api/pchain/${network}/txs?${qs}`);
+        const page: TxSummary[] = res.ok ? await res.json() : [];
+        if (page.length === 0) {
+          setHistoryDone(true);
+          break;
+        }
+        cursor = page[page.length - 1].blockHeight;
+        const fresh = page.filter((t) => !seen.has(t.txHash));
+        if (fresh.length > 0) {
+          setOlderHistory((o) => [
+            ...o,
+            ...fresh.map((t) => ({
+              txHash: t.txHash,
+              txType: t.txType,
+              blockTimestamp: t.blockTimestamp,
+              period: t.period,
+            })),
+          ]);
+          break;
+        }
+      }
+      setHistoryCursor(cursor);
+    } finally {
+      setLoadingOlder(false);
+    }
+  };
+  const fullHistory = n ? [...n.history, ...olderHistory] : [];
+
+  const sortedDelegators = useMemo(() => {
+    const ds = [...(n?.delegators ?? [])];
+    if (delegatorSort === "recent") ds.sort((a, b) => b.startTimestamp - a.startTimestamp);
+    return ds; // API default is stake DESC
+  }, [n, delegatorSort]);
 
   const uptimeSeries = useMemo(
     () =>
@@ -668,32 +718,66 @@ export function PchainNode({
                 <SectionHeader
                   label={`Delegators · ${n.delegators.length}`}
                   action={
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      Σ reward{" "}
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {formatAvax(n.delegatorsPotentialReward, { compact: true })}
+                    <div className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      {(["stake", "recent"] as const).map((k) => (
+                        <button
+                          key={k}
+                          onClick={() => setDelegatorSort(k)}
+                          className={
+                            delegatorSort === k
+                              ? "font-bold text-zinc-900 underline underline-offset-4 dark:text-zinc-100"
+                              : "transition-colors hover:text-[#E6212F]"
+                          }
+                        >
+                          {k === "stake" ? "by stake" : "recent"}
+                        </button>
+                      ))}
+                      <span>
+                        Σ reward{" "}
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                          {formatAvax(n.delegatorsPotentialReward, { compact: true })}
+                        </span>
                       </span>
-                    </span>
+                    </div>
                   }
                 />
                 <Board>
-                  {(showAllDelegators ? n.delegators : n.delegators.slice(0, LIST_CAP)).map((d) => (
-                    <Link
-                      key={d.txId}
-                      href={`${base}/tx/${d.txId}`}
-                      className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
-                    >
-                      <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 16)}</span>
-                      <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                          {formatAvax(d.stakeAmount, { compact: true })}
-                        </span>
-                        <span className="text-emerald-600 dark:text-emerald-400">
-                          +{formatAvax(d.potentialReward, { compact: true })}
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
+                  {(showAllDelegators ? sortedDelegators : sortedDelegators.slice(0, LIST_CAP)).map((d) => {
+                    const feePct = n.validator?.delegationFeePercent ?? 0;
+                    const feeCut = Math.round(d.potentialReward * (feePct / 100));
+                    const net = d.potentialReward - feeCut;
+                    return (
+                      <Link
+                        key={d.txId}
+                        href={`${base}/tx/${d.txId}`}
+                        className="flex flex-col gap-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 16)}</span>
+                          <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                            <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                              {formatAvax(d.stakeAmount, { compact: true })}
+                            </span>
+                            <span
+                              className="text-emerald-600 dark:text-emerald-400"
+                              title="delegator's reward net of the validator's fee"
+                            >
+                              +{formatAvax(net, { compact: true })}
+                            </span>
+                            {feeCut > 0 && (
+                              <span title={`validator's ${feePct}% fee cut`}>
+                                fee {formatAvax(feeCut, { compact: true })}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap justify-between gap-x-4 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                          <span>started {timeAgo(d.startTimestamp)}</span>
+                          {d.endTimestamp > 0 && <span>ends {formatTime(d.endTimestamp)}</span>}
+                        </div>
+                      </Link>
+                    );
+                  })}
                   {n.delegators.length > LIST_CAP && (
                     <ExpandRow
                       expanded={showAllDelegators}
@@ -710,9 +794,9 @@ export function PchainNode({
                 {/* not the validation record (that's Past Validation Terms
                     above): this is the raw recent staking-tx feed, which on a
                     busy validator is all delegator additions */}
-                <SectionHeader label={`Recent staking activity · ${n.history.length}`} />
+                <SectionHeader label={`Recent staking activity · ${fullHistory.length}`} />
                 <Board>
-                  {(showAllHistory ? n.history : n.history.slice(0, LIST_CAP)).map((h) => (
+                  {(showAllHistory ? fullHistory : fullHistory.slice(0, LIST_CAP)).map((h) => (
                     <Link
                       key={h.txHash}
                       href={`${base}/tx/${h.txHash}`}
@@ -724,19 +808,33 @@ export function PchainNode({
                         </span>
                         <TxTypePill type={h.txType} label={txTypeLabel(h.txType)} />
                       </div>
-                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                        {timeAgo(h.blockTimestamp)}
-                      </span>
+                      <div className="flex shrink-0 items-center gap-4 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                        {(h.weight ?? 0) > 0 && (
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100">
+                            {formatAvax(h.weight!, { compact: true })}
+                          </span>
+                        )}
+                        <span>{timeAgo(h.blockTimestamp)}</span>
+                      </div>
                     </Link>
                   ))}
-                  {n.history.length > LIST_CAP && (
+                  {fullHistory.length > LIST_CAP && (
                     <ExpandRow
                       expanded={showAllHistory}
-                      count={n.history.length - LIST_CAP}
+                      count={fullHistory.length - LIST_CAP}
                       onClick={() => setShowAllHistory((v) => !v)}
                     />
                   )}
                 </Board>
+                {showAllHistory && !historyDone && (
+                  <button
+                    onClick={loadOlderHistory}
+                    disabled={loadingOlder}
+                    className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+                  >
+                    {loadingOlder ? "Loading…" : "Load older activity"}
+                  </button>
+                )}
               </section>
             )}
           </div>
