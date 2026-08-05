@@ -608,11 +608,18 @@ export async function getAcceptanceParticipants(requestId: string) {
 /** The accepted quote's price for the subsidy worksheet and decision. */
 export async function getAcceptedQuoteForAdmin(
   requestId: string,
-): Promise<{ id: string; price_usd: number; firm_name: string } | null> {
+): Promise<{ id: string; price_usd: number; firm_name: string; quote_email: string } | null> {
   const quote = await prisma.auditQuote.findFirst({
     where: { request_id: requestId, status: "accepted" },
-    include: { auditor: { select: { firm_name: true } } },
+    // quote_email so a subsidy decision can reach the engaged firm; it is the
+    // Auditor row's address, never anything the request supplied.
+    include: { auditor: { select: { firm_name: true, quote_email: true } } },
   });
   if (!quote) return null;
-  return { id: quote.id, price_usd: quote.price_usd, firm_name: quote.auditor.firm_name };
+  return {
+    id: quote.id,
+    price_usd: quote.price_usd,
+    firm_name: quote.auditor.firm_name,
+    quote_email: quote.auditor.quote_email,
+  };
 }

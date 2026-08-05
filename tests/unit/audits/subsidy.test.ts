@@ -2,13 +2,19 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { computeSubsidySplit } from "@/lib/audits/subsidy";
 import { subsidyDecisionSchema } from "@/types/audits";
 
-const { txRequestFindUniqueMock, txDecisionCreateMock, txEventCreateMock, acceptedQuoteMock } =
-  vi.hoisted(() => ({
-    txRequestFindUniqueMock: vi.fn(),
-    txDecisionCreateMock: vi.fn(),
-    txEventCreateMock: vi.fn(),
-    acceptedQuoteMock: vi.fn(),
-  }));
+const {
+  txRequestFindUniqueMock,
+  txDecisionCreateMock,
+  txEventCreateMock,
+  acceptedQuoteMock,
+  noticeMock,
+} = vi.hoisted(() => ({
+  txRequestFindUniqueMock: vi.fn(),
+  txDecisionCreateMock: vi.fn(),
+  txEventCreateMock: vi.fn(),
+  acceptedQuoteMock: vi.fn(),
+  noticeMock: vi.fn(),
+}));
 
 const tx = {
   auditRequest: { findUnique: txRequestFindUniqueMock },
@@ -24,6 +30,12 @@ vi.mock("@/prisma/prisma", () => ({
 
 vi.mock("@/server/services/audits/visibility", () => ({
   getAcceptedQuoteForAdmin: acceptedQuoteMock,
+}));
+
+// Without this the service reached the real mail client during tests and the
+// failure was swallowed by its own allSettled.
+vi.mock("@/server/services/audits/emails/sendSubsidyDecisionNotice", () => ({
+  sendSubsidyDecisionNotice: noticeMock,
 }));
 
 import { decideSubsidy } from "@/server/services/audits/subsidy";
@@ -76,9 +88,59 @@ describe("decideSubsidy", () => {
       id: "q-2",
       price_usd: 22222,
       firm_name: "Nordlicht Security",
+      quote_email: "quotes@nordlicht.example",
     });
     txDecisionCreateMock.mockResolvedValue({ id: "dec-1" });
     txEventCreateMock.mockResolvedValue({});
+    noticeMock.mockResolvedValue(undefined);
+  });
+
+  it("tells BOTH the project and the engaged firm", async () => {
+    txRequestFindUniqueMock.mockResolvedValue({
+      id: "req-1",
+      status: "engaged",
+      accepted_quote_id: "q-2",
+      project_name: "Glacierswap",
+      user: { email: "owner@glacierswap.example" },
+    });
+
+    await decideSubsidy("req-1", { state: "approved", program_amount_usd: 2500 }, ADMIN);
+
+    expect(noticeMock).toHaveBeenCalledTimes(2);
+    const audiences = noticeMock.mock.calls.map((call) => [call[0], call[2]]);
+    expect(audiences).toEqual(
+      expect.arrayContaining([
+        ["owner@glacierswap.example", "project"],
+        ["quotes@nordlicht.example", "auditor"],
+      ]),
+    );
+  });
+
+  it("still reaches the firm when the project has no account email", async () => {
+    txRequestFindUniqueMock.mockResolvedValue({
+      id: "req-1",
+      status: "engaged",
+      accepted_quote_id: "q-2",
+      project_name: "Glacierswap",
+      user: null,
+    });
+
+    await decideSubsidy("req-1", { state: "approved", program_amount_usd: 2500 }, ADMIN);
+
+    expect(noticeMock).toHaveBeenCalledTimes(1);
+    expect(noticeMock.mock.calls[0][2]).toBe("auditor");
+  });
+
+  it("records the decision even when both sends fail", async () => {
+    noticeMock.mockRejectedValue(new Error("sendgrid down"));
+
+    const result = await decideSubsidy(
+      "req-1",
+      { state: "approved", program_amount_usd: 2500 },
+      ADMIN,
+    );
+
+    expect(result).toMatchObject({ success: true, decision_id: "dec-1" });
   });
 
   it("APPENDS the exact amounts with a derived display percentage", async () => {

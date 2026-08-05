@@ -103,21 +103,25 @@ export async function decideSubsidy(
 
   // AFTER commit and non-fatal, like every other send in this program: a mail
   // failure must never undo a recorded decision. The admin sees the outcome
-  // in the trail either way.
-  if (committed.notify.email) {
-    try {
-      await sendSubsidyDecisionNotice(committed.notify.email, {
-        request_id: requestId,
-        project_name: committed.notify.project_name,
-        state: input.state,
-        program_amount_usd: split.program_amount_usd,
-        project_amount_usd: split.project_amount_usd,
-        pct,
-      });
-    } catch (error) {
-      console.error("[Audits] subsidy decision notice failed:", error);
-    }
-  }
+  // in the trail either way. Both sides hear it, and one recipient failing
+  // must not stop the other, hence allSettled over a shared try.
+  const notice = {
+    request_id: requestId,
+    project_name: committed.notify.project_name,
+    state: input.state,
+    program_amount_usd: split.program_amount_usd,
+    project_amount_usd: split.project_amount_usd,
+    pct,
+  };
+  const sends = await Promise.allSettled([
+    committed.notify.email
+      ? sendSubsidyDecisionNotice(committed.notify.email, notice, "project")
+      : Promise.resolve(),
+    sendSubsidyDecisionNotice(accepted.quote_email, notice, "auditor"),
+  ]);
+  sends
+    .filter((send): send is PromiseRejectedResult => send.status === "rejected")
+    .forEach((send) => console.error("[Audits] subsidy decision notice failed:", send.reason));
 
   return { success: true as const, decision_id: committed.decision_id };
 }

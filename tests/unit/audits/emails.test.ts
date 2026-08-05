@@ -214,3 +214,58 @@ describe("sendSubsidyDecisionNotice", () => {
     expect(html).toContain("&lt;b&gt;Pwn&lt;/b&gt;");
   });
 });
+
+describe("sendSubsidyDecisionNotice · auditor audience", () => {
+  const APPROVED = {
+    request_id: "req-1",
+    project_name: "Glacierswap",
+    state: "approved" as const,
+    program_amount_usd: 12000,
+    project_amount_usd: 12000,
+    pct: 50,
+  };
+
+  it("carries the same figures as the project's copy", async () => {
+    await sendSubsidyDecisionNotice("quotes@nordlicht.example", APPROVED, "auditor");
+
+    const [to, html, subject, text] = sendMailMock.mock.calls[0] as string[];
+    expect(to).toBe("quotes@nordlicht.example");
+    expect(subject).toContain("$12,000");
+    for (const part of [html, text]) {
+      expect(part).toContain("$12,000");
+      expect(part).toContain("50%");
+    }
+  });
+
+  it("never tells a firm that IT pays, and links to the portal not the requester page", async () => {
+    await sendSubsidyDecisionNotice("quotes@nordlicht.example", APPROVED, "auditor");
+
+    const [, html, , text] = sendMailMock.mock.calls[0] as string[];
+    for (const part of [html, text]) {
+      expect(part).not.toContain("You pay");
+      expect(part).toContain("audits/portal/requests/req-1");
+    }
+  });
+
+  it("reassures the firm on a decline, with no amounts", async () => {
+    await sendSubsidyDecisionNotice(
+      "quotes@nordlicht.example",
+      { ...APPROVED, state: "declined", program_amount_usd: 0, project_amount_usd: 24000, pct: 0 },
+      "auditor",
+    );
+
+    const [, html, subject, text] = sendMailMock.mock.calls[0] as string[];
+    for (const part of [subject, html, text]) {
+      expect(part).not.toContain("$");
+    }
+    expect(text).toContain("payment terms with the project stand");
+  });
+
+  it("still sends the project wording when no audience is given", async () => {
+    await sendSubsidyDecisionNotice("owner@glacierswap.example", APPROVED);
+
+    const [, html] = sendMailMock.mock.calls[0] as string[];
+    expect(html).toContain("You pay");
+    expect(html).not.toContain("audits/portal");
+  });
+});
