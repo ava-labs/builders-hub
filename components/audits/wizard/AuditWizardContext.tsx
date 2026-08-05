@@ -29,6 +29,11 @@ interface AuditWizardContextValue {
   saveAndExit: () => Promise<void>;
   submit: () => Promise<void>;
   submitting: boolean;
+  /** Step 4's consent checkbox, read by the shell to arm Submit. Deliberately
+      NOT autosaved: consent is given at the moment of sending, so resuming a
+      draft asks again. */
+  consent: boolean;
+  setConsent: (next: boolean) => void;
 }
 
 const AuditWizardContext = createContext<AuditWizardContextValue | null>(null);
@@ -49,6 +54,7 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
   const router = useRouter();
   const [step, setStepState] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [consent, setConsent] = useState(false);
 
   const form = useForm<AuditWizardValues>({
     // The resolver carries the SUBMIT-level rules; steps only ever trigger
@@ -107,7 +113,12 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
         toast.error("We couldn't save your draft, so nothing was submitted.");
         return;
       }
-      const res = await fetch(`/api/audits/requests/${draftId}/submit`, { method: "POST" });
+      const res = await fetch(`/api/audits/requests/${draftId}/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // The server refuses without it; the checkbox on step 4 is what sets it.
+        body: JSON.stringify({ contact_consent: true }),
+      });
       const body = await res.json().catch(() => null);
       if (!res.ok || !body?.success) {
         const errors = body?.errors as Record<string, string[] | undefined> | undefined;
@@ -144,6 +155,8 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       saveAndExit,
       submit,
       submitting,
+      consent,
+      setConsent,
     }),
     [
       form,
@@ -157,6 +170,7 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       saveAndExit,
       submit,
       submitting,
+      consent,
     ],
   );
 

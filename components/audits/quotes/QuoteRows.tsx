@@ -74,6 +74,19 @@ export function QuoteRows({ quotes, onAccept }: QuoteRowsProps) {
                 </p>
                 <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
                   {weeksLabel(quote.duration_weeks)} · starts {formatIsoDate(quote.earliest_start)}
+                  {quote.deal_doc_url ? (
+                    <>
+                      {" · "}
+                      <a
+                        href={quote.deal_doc_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100"
+                      >
+                        Proposal
+                      </a>
+                    </>
+                  ) : null}
                 </p>
                 {onAccept && quote.display_status === "submitted" ? (
                   <button

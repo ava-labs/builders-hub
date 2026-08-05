@@ -48,6 +48,7 @@ export async function upsertOwnQuote(
     duration_weeks: input.duration_weeks,
     earliest_start: input.earliest_start,
     message: input.message,
+    deal_doc_url: input.deal_doc_url ?? null,
     reaudit_included: input.reaudit_included,
   };
 

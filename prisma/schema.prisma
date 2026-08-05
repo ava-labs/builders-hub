@@ -800,6 +800,10 @@ model AuditRequest {
   contact_email        String    @default("")
   contact_handle       String?
   contact_calendar_url String?
+  // Stamped server-side at submission: the moment the project agreed its
+  // contact details could be shared with the whitelisted audit firms. Null on
+  // every row submitted before the checkbox existed.
+  contact_consent_at   DateTime? @db.Timestamptz(3)
   // Stored: draft | pending_review | rejected | collecting | engaged |
   // withdrawn. "deciding" and "expired" are derived at read time from
   // quote_deadline + quote count. Plain text on purpose: the vocabulary lives
@@ -862,6 +866,8 @@ model AuditQuote {
   duration_weeks   Int
   earliest_start   DateTime @db.Timestamptz(3)
   message          String
+  // Optional link to the firm's own proposal or scoping doc.
+  deal_doc_url     String?
   reaudit_included Boolean  @default(false)
   // submitted | accepted | not_selected | withdrawn ("expired" is display-only).
   status           String   @default("submitted")

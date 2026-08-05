@@ -35,7 +35,8 @@ const STEP_SUBLINES: (string | null)[] = [
 ];
 
 function WizardBody({ importProjectId }: { importProjectId: string | null }) {
-  const { step, setStep, goNext, goBack, saveDraftNow, submit, submitting } = useAuditWizard();
+  const { step, setStep, goNext, goBack, saveDraftNow, submit, submitting, consent } =
+    useAuditWizard();
 
   // Direction for the step entrance: compare against the last committed step.
   const prevStepRef = useRef(step);
@@ -128,7 +129,9 @@ function WizardBody({ importProjectId }: { importProjectId: string | null }) {
                   </Button>
                   <Button
                     type="button"
-                    disabled={submitting}
+                    // Consent is a precondition, not a warning: the server
+                    // refuses a submission without it either way.
+                    disabled={submitting || !consent}
                     onClick={() => void submit()}
                     className="audits-sweep h-11 bg-brand text-white md:h-10"
                   >

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { RouteParams } from "@/lib/protectedRoute";
 import { submitRequestForReview } from "@/server/services/audits/fanout";
+import { submitRequestSchema } from "@/types/audits";
 import { applyRateLimit, DAY_MS, requireProjectUser } from "@/app/api/audits/utils";
 
-export async function POST(_request: NextRequest, context: RouteParams<{ id: string }>) {
+export async function POST(request: NextRequest, context: RouteParams<{ id: string }>) {
   const { caller, error } = await requireProjectUser();
   if (error) return error;
   const limited = applyRateLimit("submit", caller.email, {
@@ -12,6 +13,25 @@ export async function POST(_request: NextRequest, context: RouteParams<{ id: str
   });
   if (limited) return limited;
   const { id } = await context.params;
+
+  // The checkbox in the wizard is the affordance; this is the gate. Consent
+  // must travel with the submission or nothing is sent.
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    body = null;
+  }
+  const consent = submitRequestSchema.safeParse(body);
+  if (!consent.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Confirm that your contact details can be shared with the audit firms.",
+      },
+      { status: 400 },
+    );
+  }
 
   try {
     const result = await submitRequestForReview(id, caller.userId);

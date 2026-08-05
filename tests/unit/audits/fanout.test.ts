@@ -261,3 +261,14 @@ describe("rejectRequest", () => {
     expect(eventCreateMock).not.toHaveBeenCalled();
   });
 });
+
+describe("consent", () => {
+  it("stamps the moment of submission, not draft time", async () => {
+    const before = Date.now();
+    await submitRequestForReview("req-1", OWNER);
+
+    const stamped = txRequestUpdateMock.mock.calls[0][0].data.contact_consent_at as Date;
+    expect(stamped).toBeInstanceOf(Date);
+    expect(stamped.getTime()).toBeGreaterThanOrEqual(before);
+  });
+});

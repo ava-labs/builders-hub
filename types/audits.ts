@@ -129,9 +129,23 @@ export const auditQuoteSchema = z.strictObject({
   duration_weeks: z.number().int().min(1).max(MAX_QUOTE_WEEKS),
   earliest_start: requiredDate("Pick the earliest start date"),
   message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
+  // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
+  // a pasted "docs.google.com/..." still resolves.
+  deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
   reaudit_included: z.boolean(),
 });
 export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
+
+/**
+ * Submission carries the consent explicitly rather than reading a stored
+ * flag: consent is given at the moment of sending, so it is re-affirmed on
+ * every submit and the server stamps the time itself.
+ */
+export const submitRequestSchema = z.strictObject({
+  contact_consent: z.literal(true, {
+    message: "Confirm that your contact details can be shared with the audit firms",
+  }),
+});
 
 export const acceptQuoteSchema = z.strictObject({
   quoteId: z.string().min(1),

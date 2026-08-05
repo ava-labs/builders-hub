@@ -50,6 +50,8 @@ export interface OwnerQuote {
   duration_weeks: number;
   earliest_start: Date;
   message: string;
+  /** The firm's own proposal or SOW, if it attached one. */
+  deal_doc_url: string | null;
   reaudit_included: boolean;
   status: string;
   display_status: DisplayQuoteStatus;
@@ -120,6 +122,7 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
     duration_weeks: quote.duration_weeks,
     earliest_start: quote.earliest_start,
     message: quote.message,
+    deal_doc_url: quote.deal_doc_url,
     reaudit_included: quote.reaudit_included,
     status: quote.status,
     display_status: deriveQuoteDisplayStatus(quote.status, display_status),
@@ -302,6 +305,7 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
           duration_weeks: own_quote.duration_weeks,
           earliest_start: own_quote.earliest_start,
           message: own_quote.message,
+          deal_doc_url: own_quote.deal_doc_url,
           reaudit_included: own_quote.reaudit_included,
           updated_at: own_quote.updated_at,
         }

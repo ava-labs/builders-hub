@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
+import { normalizeUrlInput } from "@/types/audits";
 import { MAX_QUOTE_WEEKS } from "@/lib/audits/constants";
 import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
 import {
@@ -74,6 +75,7 @@ export function QuoteComposer({
     existing ? new Date(existing.earliest_start) : null,
   );
   const [message, setMessage] = useState(existing?.message ?? "");
+  const [dealDoc, setDealDoc] = useState(existing?.deal_doc_url ?? "");
   const [reaudit, setReaudit] = useState(existing?.reaudit_included ?? false);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -128,6 +130,7 @@ export function QuoteComposer({
           duration_weeks: durationWeeks,
           earliest_start: start.toISOString(),
           message: message.trim(),
+          deal_doc_url: dealDoc.trim() || null,
           reaudit_included: reaudit,
         }),
       });

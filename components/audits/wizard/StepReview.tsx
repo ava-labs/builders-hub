@@ -2,6 +2,7 @@
 
 import { Check } from "lucide-react";
 import { useFormContext } from "react-hook-form";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   FormControl,
@@ -54,7 +55,7 @@ function summaryLines(values: AuditWizardValues): { label: string; line: string;
 
 export function StepReview() {
   const form = useFormContext<AuditWizardValues>();
-  const { setStep } = useAuditWizard();
+  const { setStep, consent, setConsent } = useAuditWizard();
   const values = form.watch();
 
   return (
@@ -164,6 +165,21 @@ export function StepReview() {
       </div>
 
       <FanoutNoticeCard />
+
+      {/* The consent gate. Placeholder wording until Legal supplies the final
+          text; the timestamp is stamped server-side at submission. */}
+      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 p-4 dark:border-white/10">
+        <Checkbox
+          checked={consent}
+          onCheckedChange={(next) => setConsent(next === true)}
+          className="mt-0.5"
+          aria-describedby="consent-copy"
+        />
+        <span id="consent-copy" className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+          I understand that my contact details in this request are shared with the vetted audit
+          firms on the Ava Labs whitelist, and with the winning firm once I accept a quote.
+        </span>
+      </label>
     </div>
   );
 }

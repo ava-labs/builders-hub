@@ -39,6 +39,18 @@ export function QuoteSummary({
           Re-audit of fixes included
         </p>
       ) : null}
+      {quote.deal_doc_url ? (
+        <p className="mt-2 text-sm">
+          <a
+            href={quote.deal_doc_url}
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            Your proposal document
+          </a>
+        </p>
+      ) : null}
       {quote.message ? (
         <p className="mt-3 border-l-2 border-zinc-200 pl-3 text-sm leading-relaxed text-zinc-600 dark:border-white/10 dark:text-[#A2AFB2]">
           {quote.message}
