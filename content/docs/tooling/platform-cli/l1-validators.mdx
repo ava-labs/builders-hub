@@ -3,7 +3,7 @@ title: L1 Validators
 description: Register, manage, and disable validators on L1 blockchains
 ---
 
-Once a subnet is converted to an L1, manage its validators with the `l1` commands. These operations use hex-encoded Warp messages for authorization.
+After you convert a subnet to an L1, manage its validators with the `l1` commands. These operations use hex-encoded Warp messages for authorization.
 
 ## Register Validator
 
@@ -35,7 +35,7 @@ platform-cli l1 set-validator-weight \
 
 ## Increase Validator Balance
 
-Top up a validator's balance for continuous fee payments:
+Add AVAX to a validator's balance for continuous fee payments:
 
 ```bash
 platform-cli l1 increase-validator-balance \
@@ -51,7 +51,7 @@ platform-cli l1 increase-validator-balance \
 
 ## Disable Validator
 
-Disable a validator and return remaining funds:
+Disable a validator and return its remaining funds:
 
 ```bash
 platform-cli l1 disable-validator \
