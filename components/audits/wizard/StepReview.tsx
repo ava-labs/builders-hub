@@ -72,6 +72,7 @@ export function StepReview() {
               <FormControl>
                 <Input {...field} autoComplete="name" className="h-11 md:h-10" />
               </FormControl>
+              <FormDescription>Who the winning firm will reach out to.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -101,12 +102,12 @@ export function StepReview() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Telegram or Slack{" "}
-                <span className="font-normal text-muted-foreground">· optional</span>
+                Telegram <span className="font-normal text-muted-foreground">· optional</span>
               </FormLabel>
               <FormControl>
                 <Input {...field} placeholder="@handle" className="h-11 md:h-10" />
               </FormControl>
+              <FormDescription>For quick questions during the audit.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

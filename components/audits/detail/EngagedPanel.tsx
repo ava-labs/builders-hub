@@ -1,6 +1,7 @@
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
+import { ContactHandle } from "@/components/audits/shared/ContactHandle";
 import { parseRepos } from "@/components/audits/wizard/types";
 
 type OwnerQuote = OwnerRequestDetail["quotes"][number];
@@ -59,9 +60,11 @@ export function EngagedPanel({
       </a>
     </span>,
     detail.contact_handle ? (
-      <span key="handle" className="block text-zinc-500 dark:text-zinc-400">
-        {detail.contact_handle}
-      </span>
+      <ContactHandle
+        key="handle"
+        handle={detail.contact_handle}
+        className="text-zinc-500 dark:text-zinc-400"
+      />
     ) : null,
     detail.contact_calendar_url ? (
       <a

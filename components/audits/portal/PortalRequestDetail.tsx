@@ -9,6 +9,7 @@ import { CARD, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared
 import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { SpecList, type SpecItem } from "@/components/audits/shared/SpecList";
 import { formatIsoDate } from "@/components/audits/shared/format";
+import { ContactHandle } from "@/components/audits/shared/ContactHandle";
 import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
 import { QuoteComposer } from "@/components/audits/portal/QuoteComposer";
 import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
@@ -167,7 +168,12 @@ export function PortalRequestDetail({
             >
               {view.contacts.contact_email}
             </a>
-            {view.contacts.contact_handle ? ` · ${view.contacts.contact_handle}` : ""}
+            {view.contacts.contact_handle ? (
+              <>
+                {" · "}
+                <ContactHandle handle={view.contacts.contact_handle} />
+              </>
+            ) : null}
             {view.contacts.contact_calendar_url ? (
               <>
                 {" · "}
