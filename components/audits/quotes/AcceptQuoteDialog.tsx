@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
 
 interface AcceptQuoteDialogProps {
   requestId: string;
@@ -72,7 +72,7 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
   const facts = quote
     ? [
         { label: "Price", value: formatUsd(quote.price_usd), strong: true },
-        { label: "Duration", value: `${quote.duration_weeks} weeks` },
+        { label: "Duration", value: weeksLabel(quote.duration_weeks) },
         { label: "Earliest start", value: formatIsoDate(quote.earliest_start) },
         { label: "Re-audit of fixes", value: quote.reaudit_included ? "Included" : "Not included" },
       ]

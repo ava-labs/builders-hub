@@ -23,7 +23,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
 import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import {
+  formatIsoDate,
+  formatUsd,
+  parseWholeNumber,
+  weeksLabel,
+} from "@/components/audits/shared/format";
 import { QuoteSummary } from "@/components/audits/portal/QuoteSummary";
 
 interface QuoteComposerProps {
@@ -66,6 +71,9 @@ export function QuoteComposer({
   const [reaudit, setReaudit] = useState(existing?.reaudit_included ?? false);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // Parsed the same way the save parses it, so the confirm dialog can never
+  // quote a different duration than the one about to be written.
+  const nextWeeks = parseWholeNumber(weeks);
 
   // Decided or closed with a quote on file: the form rests (design iteration
   // 2026-07-31). Closed with no quote needs no dead disabled form either.
@@ -90,8 +98,10 @@ export function QuoteComposer({
   today.setHours(0, 0, 0, 0);
 
   const submit = async () => {
-    const priceUsd = Number.parseInt(price, 10);
-    const durationWeeks = Number.parseInt(weeks, 10);
+    // Thousands separators are how people write prices; parsing them by hand
+    // is what turned "12,500" into 12.
+    const priceUsd = parseWholeNumber(price);
+    const durationWeeks = parseWholeNumber(weeks);
     if (!priceUsd || priceUsd < 1) return toast.error("Enter a price in whole US dollars.");
     if (!durationWeeks || durationWeeks < 1) return toast.error("Enter the duration in weeks.");
     if (!start) return toast.error("Pick the earliest start date.");
@@ -248,13 +258,15 @@ export function QuoteComposer({
           </Button>
         </div>
 
+        {/* Parsed here so the dialog quotes the same number the save will
+            send, separators and all. */}
         <AlertDialog open={confirming} onOpenChange={setConfirming}>
           <AlertDialogContent className={AUDITS_DIALOG}>
             <AlertDialogHeader>
               <AlertDialogTitle>Replace your quote?</AlertDialogTitle>
               <AlertDialogDescription>
                 {existing
-                  ? `The project currently sees ${formatUsd(existing.price_usd)} over ${existing.duration_weeks} week${existing.duration_weeks === 1 ? "" : "s"}. Saving replaces it with ${price ? formatUsd(Number.parseInt(price, 10) || 0) : "the new price"}${weeks ? ` over ${weeks} week${weeks === "1" ? "" : "s"}` : ""}.`
+                  ? `The project currently sees ${formatUsd(existing.price_usd)} over ${weeksLabel(existing.duration_weeks)}. Saving replaces it with ${formatUsd(parseWholeNumber(price) ?? 0)}${nextWeeks === null ? "" : ` over ${weeksLabel(nextWeeks)}`}.`
                   : ""}
               </AlertDialogDescription>
             </AlertDialogHeader>

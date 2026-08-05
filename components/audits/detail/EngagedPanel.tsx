@@ -1,6 +1,6 @@
 import type { OwnerRequestDetail } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
 import { parseRepos } from "@/components/audits/wizard/types";
 
 type OwnerQuote = OwnerRequestDetail["quotes"][number];
@@ -91,7 +91,7 @@ export function EngagedPanel({
           <p className="font-mono text-[19px] font-bold">{formatUsd(acceptedQuote.price_usd)}</p>
         </div>
         <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
-          {acceptedQuote.duration_weeks} weeks · starts {formatIsoDate(acceptedQuote.earliest_start)}
+          {weeksLabel(acceptedQuote.duration_weeks)} · starts {formatIsoDate(acceptedQuote.earliest_start)}
           {acceptedQuote.reaudit_included ? " · re-audit included" : ""}
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

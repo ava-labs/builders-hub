@@ -1,7 +1,7 @@
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
 
 type OwnQuote = NonNullable<AuditorRequestView["own_quote"]>;
 
@@ -24,7 +24,7 @@ export function QuoteSummary({ quote }: { quote: OwnQuote }) {
       <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <p className="font-mono text-2xl font-bold">{formatUsd(quote.price_usd)}</p>
         <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
-          {quote.duration_weeks} weeks · starts {formatIsoDate(quote.earliest_start)}
+          {weeksLabel(quote.duration_weeks)} · starts {formatIsoDate(quote.earliest_start)}
         </p>
       </div>
       {quote.reaudit_included ? (

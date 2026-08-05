@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { SUBSIDY_MAX_PCT, SUBSIDY_PCT_STEP } from "@/lib/audits/subsidy";
 import { BlocksArt } from "@/components/audits/shared/BlocksArt";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd, parseWholeNumber } from "@/components/audits/shared/format";
 
 interface SubsidyWorksheetProps {
   requestId: string;
@@ -129,8 +129,8 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
                 id="subsidy-amount"
                 value={String(amount)}
                 onChange={(event) => {
-                  const next = Number.parseInt(event.target.value.replaceAll(",", ""), 10);
-                  setAmount(Number.isNaN(next) ? 0 : Math.max(0, Math.min(cap, next)));
+                  const next = parseWholeNumber(event.target.value);
+                  setAmount(next === null ? 0 : Math.max(0, Math.min(cap, next)));
                 }}
                 inputMode="numeric"
                 aria-label="Program amount in US dollars"
@@ -139,10 +139,8 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
               <Input
                 value={String(pct)}
                 onChange={(event) => {
-                  const next = Number.parseInt(event.target.value, 10);
-                  setFromPct(
-                    Number.isNaN(next) ? 0 : Math.max(0, Math.min(SUBSIDY_MAX_PCT, next)),
-                  );
+                  const next = parseWholeNumber(event.target.value);
+                  setFromPct(next === null ? 0 : Math.max(0, Math.min(SUBSIDY_MAX_PCT, next)));
                 }}
                 inputMode="numeric"
                 aria-label="Program share percentage"

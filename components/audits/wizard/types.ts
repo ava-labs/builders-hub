@@ -1,6 +1,7 @@
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
 import type { AuditAttachment, AuditDraftInput } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
+import { parseWholeNumber } from "@/components/audits/shared/format";
 
 export const WIZARD_STEPS = ["Project", "Scope", "Timeline", "Review"] as const;
 
@@ -99,7 +100,9 @@ export function wizardDefaults(prefill: {
 
 /** Form values -> the autosave PATCH/POST body (types/audits auditDraftSchema). */
 export function toDraftPayload(values: AuditWizardValues): AuditDraftInput {
-  const nsloc = values.nsloc.trim() === "" ? null : Number.parseInt(values.nsloc, 10);
+  // "10,000" is how a human writes it, and firms price off this number, so a
+  // separator must not silently make it 10.
+  const nsloc = values.nsloc.trim() === "" ? null : parseWholeNumber(values.nsloc);
   return {
     source_project_id: values.source_project_id,
     project_name: values.project_name,

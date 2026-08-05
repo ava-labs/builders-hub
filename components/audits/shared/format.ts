@@ -8,6 +8,29 @@ export function formatUsd(amount: number): string {
   return usd.format(amount);
 }
 
+/** "1 week", "6 weeks". Durations are rendered in half a dozen places and
+    every one of them used to hardcode the plural. */
+export function weeksLabel(weeks: number): string {
+  return `${weeks} week${weeks === 1 ? "" : "s"}`;
+}
+
+/**
+ * Reads a whole number the way a human types one: "12,500", "12 500" and
+ * "$12,500" all mean 12500.
+ *
+ * Number.parseInt does NOT do this. It stops at the first separator, so
+ * parseInt("12,500") is 12, which silently turned a $12,500 quote into a $12
+ * one. Anything that is not a whole number after the separators come off
+ * returns null, so a typo surfaces as a validation error instead of quietly
+ * becoming a different amount.
+ */
+export function parseWholeNumber(value: string): number | null {
+  const stripped = value.replace(/[\s,_$]/g, "");
+  if (!/^\d+$/.test(stripped)) return null;
+  const parsed = Number.parseInt(stripped, 10);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
 /** Dates render as yyyy-mm-dd everywhere (mono meta strips in the designs). */
 export function formatIsoDate(date: Date | string): string {
   return new Date(date).toISOString().slice(0, 10);

@@ -6,7 +6,7 @@ import type { OwnerQuote } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { CARD } from "@/components/audits/shared/classes";
 import { HOVER_LIFT, ROW_ENTER } from "@/components/audits/shared/motion";
-import { formatIsoDate, formatUsd } from "@/components/audits/shared/format";
+import { formatIsoDate, formatUsd, weeksLabel } from "@/components/audits/shared/format";
 import { QuoteChipPill, chipsFor } from "@/components/audits/quotes/QuotesPanel";
 
 const initialsOf = (name: string) =>
@@ -73,7 +73,7 @@ export function QuoteRows({ quotes, onAccept }: QuoteRowsProps) {
                   {formatUsd(quote.price_usd)}
                 </p>
                 <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                  {quote.duration_weeks} weeks · starts {formatIsoDate(quote.earliest_start)}
+                  {weeksLabel(quote.duration_weeks)} · starts {formatIsoDate(quote.earliest_start)}
                 </p>
                 {onAccept && quote.display_status === "submitted" ? (
                   <button
