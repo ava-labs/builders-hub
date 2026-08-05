@@ -66,7 +66,7 @@ export function QuoteSummary({
             <span className="font-mono font-semibold">
               {formatUsd(subsidy.program_amount_usd)}
             </span>{" "}
-            of this engagement ({subsidy.pct}%). Your fee is unchanged; the project pays the rest.
+            of this engagement ({subsidy.pct}%).
           </p>
         </div>
       ) : null}

@@ -249,6 +249,26 @@ export function QuoteComposer({
           </p>
         </div>
 
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium" htmlFor="quote-deal-doc">
+            Proposal link <span className="font-normal text-muted-foreground">· optional</span>
+          </label>
+          <Input
+            id="quote-deal-doc"
+            value={dealDoc}
+            onChange={(event) => setDealDoc(event.target.value)}
+            // Normalized on blur so a pasted bare domain still resolves.
+            onBlur={(event) => setDealDoc(String(normalizeUrlInput(event.target.value)))}
+            inputMode="url"
+            placeholder="docs.google.com/document/..."
+            disabled={!editable || busy}
+            className="h-11"
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            Your own scoping doc or SOW, if you have one. The project sees it beside your quote.
+          </p>
+        </div>
+
         <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3 dark:border-white/10">
           <label className="text-sm" htmlFor="quote-reaudit">
             Re-audit of fixes included in this price
