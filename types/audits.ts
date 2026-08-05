@@ -10,6 +10,7 @@ import {
   AUDIT_LANGUAGES,
   AUDIT_PROJECT_TYPES,
   AUDIT_SERVICES,
+  MAX_QUOTE_WEEKS,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
 
@@ -125,7 +126,7 @@ export type AuditSubmitData = z.infer<typeof auditSubmitSchema>;
 
 export const auditQuoteSchema = z.strictObject({
   price_usd: z.number().int().min(1, "Price is required").max(100_000_000),
-  duration_weeks: z.number().int().min(1).max(52),
+  duration_weeks: z.number().int().min(1).max(MAX_QUOTE_WEEKS),
   earliest_start: requiredDate("Pick the earliest start date"),
   message: trimmed(MAX_LONG).min(1, "A message to the project is required"),
   reaudit_included: z.boolean(),

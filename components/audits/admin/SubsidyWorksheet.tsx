@@ -30,14 +30,22 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
   // The exact dollar amount is the source of truth (Federico 2026-07-30);
   // slider and percent are two views onto it.
   const cap = Math.floor((priceUsd * SUBSIDY_MAX_PCT) / 100);
-  const [amount, setAmount] = useState(
-    latest?.state === "approved" ? Math.min(cap, latest.program_amount_usd) : 0,
+  // The field holds RAW TEXT while an admin types. It used to mirror the
+  // parsed number straight back, which erased a comma the instant it was
+  // typed and made "1,250" impossible to enter. The number below is derived.
+  const [amountText, setAmountText] = useState(
+    String(latest?.state === "approved" ? Math.min(cap, latest.program_amount_usd) : 0),
   );
   const [busy, setBusy] = useState(false);
   // Decided worksheets rest (round-3 M3-C): the instrument stays one
   // disclosure away, decisions remain append-only.
   const [adjusting, setAdjusting] = useState(false);
+
+  const typedAmount = parseWholeNumber(amountText);
+  const amount = Math.max(0, Math.min(cap, typedAmount ?? 0));
   const pct = priceUsd > 0 ? Math.round((amount / priceUsd) * 100) : 0;
+  /** Slider and percent box write through here; the text field is the display. */
+  const setAmount = (next: number) => setAmountText(String(Math.max(0, Math.min(cap, next))));
   const setFromPct = (nextPct: number) =>
     setAmount(Math.min(cap, Math.round((priceUsd * nextPct) / 100)));
 
@@ -121,17 +129,17 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
         <div className="border-t border-zinc-200 px-3.5 py-3 dark:border-white/[0.08]">
           <div className="flex items-center justify-between gap-3">
             <label className="text-sm text-zinc-600 dark:text-[#A2AFB2]" htmlFor="subsidy-amount">
-              Program pays · type or drag
+              Program pays
             </label>
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-zinc-500">$</span>
               <Input
                 id="subsidy-amount"
-                value={String(amount)}
-                onChange={(event) => {
-                  const next = parseWholeNumber(event.target.value);
-                  setAmount(next === null ? 0 : Math.max(0, Math.min(cap, next)));
-                }}
+                value={amountText}
+                onChange={(event) => setAmountText(event.target.value)}
+                // Tidy up to the clamped number once they leave the field, so
+                // what stays on screen is what the Approve button will send.
+                onBlur={() => setAmountText(String(amount))}
                 inputMode="numeric"
                 aria-label="Program amount in US dollars"
                 className="h-9 w-24 px-2 text-right font-mono font-semibold tabular-nums"
@@ -139,8 +147,14 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
               <Input
                 value={String(pct)}
                 onChange={(event) => {
-                  const next = parseWholeNumber(event.target.value);
-                  setFromPct(next === null ? 0 : Math.max(0, Math.min(SUBSIDY_MAX_PCT, next)));
+                  // Digits only: a stray "." used to parse as null and zero
+                  // the whole subsidy mid-edit.
+                  const digits = event.target.value.replace(/\D/g, "");
+                  setFromPct(
+                    digits === ""
+                      ? 0
+                      : Math.min(SUBSIDY_MAX_PCT, Number.parseInt(digits, 10)),
+                  );
                 }}
                 inputMode="numeric"
                 aria-label="Program share percentage"

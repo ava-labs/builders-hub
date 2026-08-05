@@ -55,5 +55,8 @@ export const URGENCY_LABELS: Record<UrgencyOption, string> = {
 
 // Verbatim helper copy the designs repeat; kept here so screens cannot drift.
 export const QUOTE_DEADLINE_DEFAULT_DAYS = 10;
+/** A quote's duration ceiling: one year. Shared so the composer's message and
+    the schema's cap can never drift apart. */
+export const MAX_QUOTE_WEEKS = 52;
 export const QUOTE_DEADLINE_HELPER_COPY =
   "Defaulted to +10 days · the recommended window for competitive quotes.";

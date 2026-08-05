@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
+import { MAX_QUOTE_WEEKS } from "@/lib/audits/constants";
 import { AUDITS_DIALOG, MONO_LABEL_META } from "@/components/audits/shared/classes";
 import {
   formatIsoDate,
@@ -104,6 +105,11 @@ export function QuoteComposer({
     const durationWeeks = parseWholeNumber(weeks);
     if (!priceUsd || priceUsd < 1) return toast.error("Enter a price in whole US dollars.");
     if (!durationWeeks || durationWeeks < 1) return toast.error("Enter the duration in weeks.");
+    // The server caps a quote at a year. Say so here rather than letting the
+    // request come back as a bare "Validation failed".
+    if (durationWeeks > MAX_QUOTE_WEEKS) {
+      return toast.error(`A quote can run at most ${MAX_QUOTE_WEEKS} weeks (one year).`);
+    }
     if (!start) return toast.error("Pick the earliest start date.");
     if (!message.trim()) return toast.error("A message to the project is required.");
 
@@ -173,7 +179,9 @@ export function QuoteComposer({
               <Input
                 id="quote-weeks"
                 value={weeks}
-                onChange={(event) => setWeeks(event.target.value)}
+                // inputMode is only a mobile keyboard hint, so letters were
+                // typeable on desktop. A duration is digits, nothing else.
+                onChange={(event) => setWeeks(event.target.value.replace(/\D/g, ""))}
                 inputMode="numeric"
                 disabled={!editable || busy}
                 className="h-11 pr-16"
