@@ -2,11 +2,21 @@ import { prisma } from "@/prisma/prisma";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { getAcceptedQuoteForAdmin } from "@/server/services/audits/visibility";
+import { sendSubsidyDecisionNotice } from "@/server/services/audits/emails/sendSubsidyDecisionNotice";
 import type { SubsidyDecisionInput } from "@/types/audits";
 
 export type DecideSubsidyResult =
   | { success: true; decision_id: string }
   | { success: false; code: "invalid_state" | "over_cap" };
+
+/** What the transaction hands back: the decision plus who to notify. */
+type CommitOutcome =
+  | { success: false; code: "invalid_state" }
+  | {
+      success: true;
+      decision_id: string;
+      notify: { email: string | null; project_name: string };
+    };
 
 /**
  * Records a subsidy decision. APPEND-ONLY: every call creates a new row and
@@ -35,10 +45,18 @@ export async function decideSubsidy(
   const pct =
     accepted.price_usd > 0 ? Math.round((program_amount_usd / accepted.price_usd) * 100) : 0;
 
-  return prisma.$transaction(async (tx) => {
+  const committed = await prisma.$transaction(async (tx): Promise<CommitOutcome> => {
     const request = await tx.auditRequest.findUnique({
       where: { id: requestId },
-      select: { id: true, status: true, accepted_quote_id: true },
+      select: {
+        id: true,
+        status: true,
+        accepted_quote_id: true,
+        project_name: true,
+        // The account email, never the wizard's contact field: request input
+        // must not be able to aim program mail at a third party.
+        user: { select: { email: true } },
+      },
     });
     if (!request || request.status !== "engaged" || request.accepted_quote_id !== accepted.id) {
       return { success: false, code: "invalid_state" as const };
@@ -71,6 +89,35 @@ export async function decideSubsidy(
       },
     });
 
-    return { success: true as const, decision_id: decision.id };
+    return {
+      success: true as const,
+      decision_id: decision.id,
+      notify: {
+        email: request.user?.email ?? null,
+        project_name: request.project_name,
+      },
+    };
   });
+
+  if (!committed.success) return committed;
+
+  // AFTER commit and non-fatal, like every other send in this program: a mail
+  // failure must never undo a recorded decision. The admin sees the outcome
+  // in the trail either way.
+  if (committed.notify.email) {
+    try {
+      await sendSubsidyDecisionNotice(committed.notify.email, {
+        request_id: requestId,
+        project_name: committed.notify.project_name,
+        state: input.state,
+        program_amount_usd: split.program_amount_usd,
+        project_amount_usd: split.project_amount_usd,
+        pct,
+      });
+    } catch (error) {
+      console.error("[Audits] subsidy decision notice failed:", error);
+    }
+  }
+
+  return { success: true as const, decision_id: committed.decision_id };
 }

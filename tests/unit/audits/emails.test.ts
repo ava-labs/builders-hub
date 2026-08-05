@@ -7,9 +7,11 @@ import { sendFanoutNotification } from "@/server/services/audits/emails/sendFano
 import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
 import { sendNotSelectedNotice } from "@/server/services/audits/emails/sendNotSelectedNotice";
 import { sendQuoteAcceptedNotice } from "@/server/services/audits/emails/sendQuoteAcceptedNotice";
+import { sendSubsidyDecisionNotice } from "@/server/services/audits/emails/sendSubsidyDecisionNotice";
 
 const AUDITOR = { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" };
 const REQUEST = {
+  id: "req-1",
   project_name: "Glacierswap",
   quote_deadline: new Date("2026-08-09T12:00:00Z"),
   services: ["Smart contract audit (Solidity / Vyper)"],
@@ -139,5 +141,76 @@ describe("sendQuoteAcceptedNotice", () => {
       expect(part).toContain("audits/portal");
       expect(part).not.toContain("@glacierswap");
     }
+  });
+});
+
+describe("sendSubsidyDecisionNotice", () => {
+  const APPROVED = {
+    request_id: "req-1",
+    project_name: "Glacierswap",
+    state: "approved" as const,
+    program_amount_usd: 12000,
+    project_amount_usd: 12000,
+    pct: 50,
+  };
+
+  it("goes to the address the caller resolved, never to request input", async () => {
+    await sendSubsidyDecisionNotice("owner@glacierswap.example", APPROVED);
+
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(sendMailMock.mock.calls[0][0]).toBe("owner@glacierswap.example");
+  });
+
+  it("states the split and points at the project's OWN request page", async () => {
+    await sendSubsidyDecisionNotice("owner@glacierswap.example", APPROVED);
+
+    const [, html, subject, text] = sendMailMock.mock.calls[0] as string[];
+    expect(subject).toContain("$12,000");
+    for (const part of [html, text]) {
+      expect(part).toContain("$12,000");
+      expect(part).toContain("50%");
+      expect(part).toContain("/audits/req-1");
+      // The requester never lands in the auditor portal.
+      expect(part).not.toContain("audits/portal");
+    }
+  });
+
+  it("carries NO amounts when the subsidy was declined", async () => {
+    await sendSubsidyDecisionNotice("owner@glacierswap.example", {
+      ...APPROVED,
+      state: "declined",
+      program_amount_usd: 0,
+      project_amount_usd: 24000,
+      pct: 0,
+    });
+
+    const [, html, subject, text] = sendMailMock.mock.calls[0] as string[];
+    for (const part of [subject, html, text]) {
+      expect(part).not.toContain("$");
+      expect(part).not.toContain("—");
+    }
+    // It must still say the engagement is unaffected, which is the whole point.
+    expect(text).toContain("the audit goes ahead");
+  });
+
+  it("never names the deciding admin", async () => {
+    await sendSubsidyDecisionNotice("owner@glacierswap.example", APPROVED);
+
+    const [, html, , text] = sendMailMock.mock.calls[0] as string[];
+    for (const part of [html, text]) {
+      expect(part).not.toContain("Federico");
+      expect(part).not.toContain("decided_by");
+    }
+  });
+
+  it("neutralizes markup in the project name", async () => {
+    await sendSubsidyDecisionNotice("owner@glacierswap.example", {
+      ...APPROVED,
+      project_name: "<b>Pwn</b> Markets",
+    });
+
+    const [, html] = sendMailMock.mock.calls[0] as string[];
+    expect(html).not.toContain("<b>Pwn</b>");
+    expect(html).toContain("&lt;b&gt;Pwn&lt;/b&gt;");
   });
 });

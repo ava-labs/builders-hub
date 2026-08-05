@@ -31,3 +31,6 @@ export const PORTAL_URL = `${SITE_URL}/audits/portal`;
 
 /** Deep link to one request inside the auditor portal. */
 export const portalRequestUrl = (requestId: string) => `${PORTAL_URL}/requests/${requestId}`;
+
+/** The REQUESTING project's own view of a request (not the auditor portal). */
+export const ownerRequestUrl = (requestId: string) => `${SITE_URL}/audits/${requestId}`;
