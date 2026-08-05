@@ -10,7 +10,7 @@ Available on all commands:
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
 | `--network` | `-n` | Network: `fuji` or `mainnet` | `fuji` |
-| `--key-name` | | Load key from keystore by name | |
+| `--key-name` | | Load key from keystore by name (repeat or comma-separate to sign with multiple keys) | |
 | `--ledger` | | Use Ledger hardware wallet | `false` |
 | `--ledger-index` | | Ledger BIP44 address index | `0` |
 | `--rpc-url` | | Custom RPC URL (overrides `--network`) | |
@@ -260,13 +260,17 @@ Creates a new subnet owned by the wallet address. No additional flags required.
 ### subnet transfer-ownership
 
 ```bash
-platform-cli subnet transfer-ownership --subnet-id <id> --new-owner <address>
+platform-cli subnet transfer-ownership --subnet-id <id> --new-owner <address> [--new-owner <address> ...] [--threshold <n>] [--output-tx-path <file>]
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--subnet-id` | Subnet ID (required) |
-| `--new-owner` | New owner P-Chain address (required) |
+| `--new-owner` | New owner P-Chain address, bech32 or CB58 (required; repeat or comma-separate for a multisig owner) |
+| `--threshold` | Owner signatures required for future subnet changes (default `1`) |
+| `--output-tx-path` | Write a partially signed tx file instead of submitting (complete with `tx sign` / `tx commit`) |
+
+See [Multisig Owners](/docs/tooling/platform-cli/multisig) for multisig workflows.
 
 ### subnet convert-to-l1
 
@@ -347,6 +351,34 @@ platform-cli l1 disable-validator --validation-id <id>
 | Flag | Description |
 |------|-------------|
 | `--validation-id` | Validation ID to disable (required) |
+
+## tx
+
+Sign and submit partially signed transactions for multisig owners. See [Multisig Owners](/docs/tooling/platform-cli/multisig).
+
+### tx sign
+
+Add signatures with locally available keys; existing signatures are preserved and the file is updated in place.
+
+```bash
+platform-cli tx sign --tx-path <file>
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tx-path` | Transaction file to sign (required) |
+
+### tx commit
+
+Submit a fully signed transaction and wait for acceptance. Refuses under-signed transactions and lists the missing signers. No key is needed.
+
+```bash
+platform-cli tx commit --tx-path <file>
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tx-path` | Transaction file to submit (required) |
 
 ## chain
 

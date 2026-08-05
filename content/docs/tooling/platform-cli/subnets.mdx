@@ -32,6 +32,18 @@ platform-cli subnet transfer-ownership \
   --key-name mykey
 ```
 
+The new owner can also be a multisig. Repeat `--new-owner` for each address. Set `--threshold` to require multiple signatures for future subnet changes (for example, 2-of-3). Addresses can be bech32 (`P-avax1...`, `P-fuji1...`) or CB58. A transfer to an owner set you do not control cannot be undone.
+
+```bash
+platform-cli subnet transfer-ownership \
+  --subnet-id 2QYfFcfZ9... \
+  --new-owner P-fuji1aaa... --new-owner P-fuji1bbb... --new-owner P-fuji1ccc... \
+  --threshold 2 \
+  --key-name mykey
+```
+
+See [Multisig Owners](/docs/tooling/platform-cli/multisig) for signing later owner-gated transactions with multiple keys, including partial signing across machines.
+
 ## Add a Validator (Permissioned Subnet)
 
 Add a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must **already be a primary network validator**, and the subnet owner key authorizes the transaction.
