@@ -40,14 +40,37 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
   // Decided worksheets rest (round-3 M3-C): the instrument stays one
   // disclosure away, decisions remain append-only.
   const [adjusting, setAdjusting] = useState(false);
+  // A percentage an admin TYPED, kept verbatim so "32.5" does not snap to 33
+  // under their cursor. null means the box mirrors the dollars instead.
+  const [pctText, setPctText] = useState<string | null>(null);
 
   const typedAmount = parseWholeNumber(amountText);
   const amount = Math.max(0, Math.min(cap, typedAmount ?? 0));
+  /** The whole percentage that gets STORED: pct is a rounded view of dollars. */
   const pct = priceUsd > 0 ? Math.round((amount / priceUsd) * 100) : 0;
-  /** Slider and percent box write through here; the text field is the display. */
-  const setAmount = (next: number) => setAmountText(String(Math.max(0, Math.min(cap, next))));
-  const setFromPct = (nextPct: number) =>
-    setAmount(Math.min(cap, Math.round((priceUsd * nextPct) / 100)));
+  const clampAmount = (next: number) => Math.max(0, Math.min(cap, next));
+
+  /** Slider and dollar edits own the amount, so a typed percentage is dropped. */
+  const setAmount = (next: number) => {
+    setAmountText(String(clampAmount(next)));
+    setPctText(null);
+  };
+
+  /**
+   * Percentages accept a decimal ("32.5") because they are only an input
+   * device: the dollars they resolve to stay whole, which is the one number
+   * this program ever stores or pays.
+   */
+  const setFromPctText = (raw: string) => {
+    // One decimal point, digits either side, nothing else.
+    const cleaned = raw.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+    setPctText(cleaned);
+    if (cleaned.trim() === "") return setAmountText("0");
+    const parsed = Number.parseFloat(cleaned);
+    if (!Number.isFinite(parsed)) return;
+    const bounded = Math.max(0, Math.min(SUBSIDY_MAX_PCT, parsed));
+    setAmountText(String(clampAmount(Math.round((priceUsd * bounded) / 100))));
+  };
 
   const decide = async (state: "approved" | "declined") => {
     setBusy(true);
@@ -136,7 +159,14 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
               <Input
                 id="subsidy-amount"
                 value={amountText}
-                onChange={(event) => setAmountText(event.target.value)}
+                onChange={(event) => {
+                  // Whole dollars only. The cents are CUT, not stripped:
+                  // removing the point would read "12.50" as 1250, a
+                  // hundredfold error on a money field.
+                  const wholePart = event.target.value.split(".")[0];
+                  setAmountText(wholePart.replace(/[^\d,\s]/g, ""));
+                  setPctText(null);
+                }}
                 // Tidy up to the clamped number once they leave the field, so
                 // what stays on screen is what the Approve button will send.
                 onBlur={() => setAmountText(String(amount))}
@@ -145,17 +175,11 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
                 className="h-9 w-24 px-2 text-right font-mono font-semibold tabular-nums"
               />
               <Input
-                value={String(pct)}
-                onChange={(event) => {
-                  // Digits only: a stray "." used to parse as null and zero
-                  // the whole subsidy mid-edit.
-                  const digits = event.target.value.replace(/\D/g, "");
-                  setFromPct(
-                    digits === ""
-                      ? 0
-                      : Math.min(SUBSIDY_MAX_PCT, Number.parseInt(digits, 10)),
-                  );
-                }}
+                value={pctText ?? String(pct)}
+                onChange={(event) => setFromPctText(event.target.value)}
+                // Once focus leaves, the box shows the whole percentage that
+                // will actually be stored against the dollars.
+                onBlur={() => setPctText(null)}
                 inputMode="numeric"
                 aria-label="Program share percentage"
                 className="h-9 w-12 px-2 text-right font-mono tabular-nums"
@@ -165,7 +189,9 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
           </div>
           <Slider
             value={[pct]}
-            onValueChange={(value) => setFromPct(value[0] ?? 0)}
+            onValueChange={(value) =>
+              setAmount(Math.round((priceUsd * (value[0] ?? 0)) / 100))
+            }
             max={SUBSIDY_MAX_PCT}
             step={SUBSIDY_PCT_STEP}
             aria-label="Program share percentage"
