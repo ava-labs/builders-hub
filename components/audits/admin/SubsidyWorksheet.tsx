@@ -54,7 +54,15 @@ export function SubsidyWorksheet({ requestId, firmName, priceUsd, latest }: Subs
         toast.error(body?.message ?? "We couldn't record the decision.");
         return;
       }
-      toast.success(state === "approved" ? `Approved a ${pct}% subsidy.` : "Subsidy declined.");
+      toast.success(
+        state === "approved"
+          ? `Approved ${formatUsd(amount)} (${pct}%).`
+          : "Subsidy declined. The engagement is unaffected.",
+      );
+      // Collapse the disclosure so the worksheet rests as the decision
+      // summary again. Without this the form stays open over the decision it
+      // just recorded, which reads as if nothing happened.
+      setAdjusting(false);
       router.refresh();
     } finally {
       setBusy(false);
