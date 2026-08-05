@@ -19,7 +19,7 @@ Subnet created successfully!
 Subnet ID: 2QYfFcfZ9...
 ```
 
-The subnet owner is the wallet address used to create it. You need P-Chain AVAX balance to create subnets.
+The subnet owner is the wallet address that created it. You need P-Chain AVAX balance to create subnets.
 
 ## Transfer Subnet Ownership
 
@@ -46,7 +46,7 @@ See [Multisig Owners](/docs/tooling/platform-cli/multisig) for signing later own
 
 ## Add a Validator (Permissioned Subnet)
 
-Add a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must **already be a primary network validator**, and the subnet owner key authorizes the transaction.
+Add a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node must **already be a primary network validator**. The subnet owner key authorizes the transaction.
 
 ```bash
 platform-cli subnet add-validator \
@@ -57,15 +57,15 @@ platform-cli subnet add-validator \
   --key-name mykey
 ```
 
-The validation period must fall within the node's primary network validation window. `--weight` is the validator's sampling weight on the subnet (not a stake amount). To add validators to a subnet that has already been converted to an L1, use [`l1 register-validator`](/docs/tooling/platform-cli/l1-validators) instead.
+The validation period must fall within the node's primary network validation window. `--weight` is the validator's sampling weight on the subnet (not a stake amount). If the subnet is already an L1, use [`l1 register-validator`](/docs/tooling/platform-cli/l1-validators) instead.
 
 ## Convert Subnet to L1
 
-Convert a permissioned subnet to an L1 blockchain. This operation is **irreversible**.
+Convert a permissioned subnet to an L1 blockchain. This operation **cannot be undone**.
 
 ### Auto-Discovery Mode
 
-Provide validator node addresses and let the CLI fetch NodeID and BLS credentials:
+Provide validator node addresses. The CLI fetches the NodeID and BLS credentials:
 
 ```bash
 platform-cli subnet convert-to-l1 \
@@ -79,7 +79,7 @@ platform-cli subnet convert-to-l1 \
 
 ### Manual Mode
 
-Provide validator data explicitly (all lists must be comma-separated and aligned by index):
+Provide validator data explicitly. Comma-separate every list. Align the lists by index:
 
 ```bash
 platform-cli subnet convert-to-l1 \

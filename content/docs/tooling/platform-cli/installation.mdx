@@ -31,7 +31,7 @@ platform-cli --help
 
 ## Build from Source
 
-Requires **Go 1.24+** ([install Go](https://go.dev/dl/)).
+Building from source requires **Go 1.24+** ([install Go](https://go.dev/dl/)).
 
 ```bash
 git clone https://github.com/ava-labs/platform-cli.git
@@ -49,7 +49,7 @@ go build -tags ledger -o platform .
 
 ## Global Flags
 
-These flags are available on all commands:
+All commands accept these flags:
 
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
@@ -103,7 +103,7 @@ platform-cli wallet balance --key-name mykey --rpc-url http://127.0.0.1:9650
 platform-cli wallet balance --key-name mykey --rpc-url https://my-node.example.com:9650 --network-id 5
 ```
 
-When using `--rpc-url`, the network ID is auto-detected from the node unless `--network-id` is specified.
+If you use `--rpc-url` without `--network-id`, Platform CLI auto-detects the network ID from the node.
 
 ## Next Steps
 
