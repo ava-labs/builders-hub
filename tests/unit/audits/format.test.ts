@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  MESSAGE_CLAMP_CHARS,
   formatIsoDate,
   fromUtcCalendarDate,
   hostOf,
-  isLongMessage,
   isOutsideWindow,
   parseWholeNumber,
   priceDeltaLabel,
@@ -112,14 +110,6 @@ describe("priceDeltaLabel", () => {
     // The "Lowest price" chip already marks it; a "+$0" line would be noise.
     expect(priceDeltaLabel(34500, 34500)).toBeNull();
     expect(priceDeltaLabel(30000, 34500)).toBeNull();
-  });
-});
-
-describe("isLongMessage", () => {
-  it("clamps only past the threshold, so short messages never grow a toggle", () => {
-    expect(isLongMessage("a".repeat(MESSAGE_CLAMP_CHARS))).toBe(false);
-    expect(isLongMessage("a".repeat(MESSAGE_CLAMP_CHARS + 1))).toBe(true);
-    expect(isLongMessage("")).toBe(false);
   });
 });
 

@@ -105,14 +105,6 @@ export function priceDeltaLabel(priceUsd: number, lowestUsd: number): string | n
   return `+${formatUsd(priceUsd - lowestUsd)} vs lowest`;
 }
 
-/** Clamp decision for quote messages: a character count, not a measurement,
-    so server and client render the same toggle (round-5 Q5-3). */
-export const MESSAGE_CLAMP_CHARS = 420;
-
-export function isLongMessage(text: string): boolean {
-  return text.length > MESSAGE_CLAMP_CHARS;
-}
-
 /** True when a quoted start lands after the request's needed-by date. The
     boundary day itself is inside: starting ON the date still meets it. */
 export function isOutsideWindow(
