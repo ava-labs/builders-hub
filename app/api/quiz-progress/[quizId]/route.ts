@@ -1,29 +1,33 @@
 import { NextResponse } from "next/server";
 import { withAuth, type RouteParams } from "@/lib/protectedRoute";
+import { rateLimit } from "@/lib/rateLimit";
 import {
   upsertQuizResponse,
   QuizProgressValidationError,
 } from "@/server/services/quizProgress";
+import { quizResponseSchema } from "../schema";
 
-export const PUT = withAuth<RouteParams<{ quizId: string }>>(
-  async (request, context, session) => {
+export const PUT = rateLimit(
+  withAuth<RouteParams<{ quizId: string }>>(async (request, context, session) => {
     const { quizId } = await context.params;
 
-    let body: any;
+    let body: unknown;
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
+    const parsed = quizResponseSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid quiz response", issues: parsed.error.issues },
+        { status: 400 }
+      );
+    }
+
     try {
-      const response = await upsertQuizResponse(session.user.id, quizId, {
-        selectedAnswers: body?.selectedAnswers ?? [],
-        isAnswerChecked: Boolean(body?.isAnswerChecked),
-        isCorrect: Boolean(body?.isCorrect),
-        attemptCount: body?.attemptCount ?? 0,
-        lastAttemptAt: body?.lastAttemptAt ?? null,
-      });
+      const response = await upsertQuizResponse(session.user.id, quizId, parsed.data);
       return NextResponse.json({ response });
     } catch (error) {
       if (error instanceof QuizProgressValidationError) {
@@ -31,5 +35,6 @@ export const PUT = withAuth<RouteParams<{ quizId: string }>>(
       }
       throw error;
     }
-  }
+  }),
+  { windowMs: 60 * 1000, maxRequests: 30 }
 );
