@@ -5,20 +5,25 @@ import {
   figureDesktop,
   figureMobile,
   figureTexts,
+  rulerDesktop,
+  rulerMobile,
+  rulerTexts,
   seriesYAt,
   stairPoints,
   textFits,
   viewSeriesPoints,
   type FigureLayout,
+  type RulerLayout,
   type Zone,
 } from "../../../components/epoched-view/timeline-layouts";
 
 const LAYOUTS: readonly FigureLayout[] = [figureDesktop, figureMobile];
+const RULERS: readonly RulerLayout[] = [rulerDesktop, rulerMobile];
 
 const rectsOverlap = (a: Zone, b: Zone): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
-const inBounds = (z: Zone, layout: FigureLayout): boolean =>
+const inBounds = (z: Zone, layout: { viewBox: { w: number; h: number } }): boolean =>
   z.x >= 0 && z.y >= 0 && z.x + z.w <= layout.viewBox.w && z.y + z.h <= layout.viewBox.h;
 
 describe("figure layout zones (the label-lane law)", () => {
@@ -41,6 +46,48 @@ describe("figure layout zones (the label-lane law)", () => {
           ).toBe(false);
         }
       }
+    }
+  });
+});
+
+describe("ruler layout zones (the label-lane law)", () => {
+  it("keeps every declared zone inside its viewBox and pairwise disjoint", () => {
+    for (const layout of RULERS) {
+      const zones = Object.values(layout.zones);
+      for (const z of zones) {
+        expect(inBounds(z, layout), `${layout.kind}:${z.id}`).toBe(true);
+      }
+      for (let i = 0; i < zones.length; i += 1) {
+        for (let j = i + 1; j < zones.length; j += 1) {
+          expect(
+            rectsOverlap(zones[i], zones[j]),
+            `${layout.kind}: ${zones[i].id} overlaps ${zones[j].id}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("fits every ruler string in its zone", () => {
+    for (const layout of RULERS) {
+      for (const { text, zone } of rulerTexts(layout)) {
+        expect(
+          textFits(text, zone),
+          `${layout.kind}: "${text}" (${Math.round(
+            estimateTextWidth(text, zone.fontPx, zone.trackingEm),
+          )}px) exceeds zone ${zone.id} (${zone.w - 8}px)`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("orders the marks epoch < tip < live inside the axis span", () => {
+    for (const layout of RULERS) {
+      const m = layout.marks;
+      expect(m.epoch).toBeGreaterThan(layout.axisX0);
+      expect(m.epoch).toBeLessThan(m.tip);
+      expect(m.tip).toBeLessThan(m.live);
+      expect(m.live).toBeLessThan(layout.axisX1);
     }
   });
 });

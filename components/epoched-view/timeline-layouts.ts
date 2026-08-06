@@ -212,6 +212,108 @@ export function markGlossary(layout: FigureLayout): readonly GlossaryEntry[] {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* The heights ruler (round 3.3): three P-Chain heights on one axis     */
+/* ------------------------------------------------------------------ */
+
+export interface RulerLayout {
+  readonly kind: "desktop" | "mobile";
+  readonly viewBox: { readonly w: number; readonly h: number };
+  readonly axisY: number;
+  readonly axisX0: number;
+  readonly axisX1: number;
+  /** Marker centers on the axis; brk is the axis-break glyph. */
+  readonly marks: {
+    readonly epoch: number;
+    readonly brk: number;
+    readonly tip: number;
+    readonly live: number;
+  };
+  readonly zones: Readonly<Record<string, Zone>>;
+}
+
+export const rulerDesktop: RulerLayout = {
+  kind: "desktop",
+  viewBox: { w: 1000, h: 176 },
+  axisY: 100,
+  axisX0: 60,
+  axisX1: 940,
+  marks: { epoch: 200, brk: 430, tip: 660, live: 880 },
+  zones: {
+    nEpoch: zone("nEpoch", 110, 44, 180, 16, 11, 0.08),
+    nTip: zone("nTip", 570, 44, 180, 16, 11, 0.08),
+    nLive: zone("nLive", 790, 44, 180, 16, 11, 0.08),
+    rEpoch: zone("rEpoch", 110, 64, 180, 14, 9.5, 0),
+    rTip: zone("rTip", 570, 64, 180, 14, 9.5, 0),
+    rLive: zone("rLive", 790, 64, 180, 14, 9.5, 0),
+    vEpoch: zone("vEpoch", 110, 118, 180, 20, 15, 0),
+    vTip: zone("vTip", 570, 118, 180, 20, 15, 0),
+    vLive: zone("vLive", 790, 118, 180, 20, 15, 0),
+    footer: zone("footer", 200, 150, 600, 18, 10.5, 0.1),
+  },
+};
+
+/* Mobile drops the role lines; the footer carries the ordering law. */
+export const rulerMobile: RulerLayout = {
+  kind: "mobile",
+  viewBox: { w: 480, h: 176 },
+  axisY: 96,
+  axisX0: 24,
+  axisX1: 456,
+  marks: { epoch: 110, brk: 205, tip: 290, live: 420 },
+  zones: {
+    nEpoch: zone("nEpoch", 50, 40, 120, 14, 9.5, 0.06),
+    nTip: zone("nTip", 230, 40, 120, 14, 9.5, 0.06),
+    nLive: zone("nLive", 358, 40, 118, 14, 9.5, 0.06),
+    vEpoch: zone("vEpoch", 50, 110, 120, 18, 13, 0),
+    vTip: zone("vTip", 230, 110, 120, 18, 13, 0),
+    vLive: zone("vLive", 358, 110, 118, 18, 13, 0),
+    footer: zone("footer", 40, 140, 400, 16, 8.5, 0.08),
+  },
+};
+
+export type RulerMark = "epoch" | "tip" | "live";
+
+export const RULER_NAMES: Readonly<Record<RulerMark, string>> = {
+  epoch: "EPOCH HEIGHT",
+  tip: "TIP EMBEDS",
+  live: "P-CHAIN HEIGHT",
+};
+
+export const RULER_ROLES: Readonly<Record<RulerMark, string>> = {
+  epoch: "pins what warp verifies",
+  tip: "sets who may build next",
+  live: "live registry · climbing",
+};
+
+/** The worked example's Bridge-block row: the one row where all three differ. */
+export const RULER_VALUES: Readonly<Record<RulerMark, string>> = {
+  epoch: "291,012",
+  tip: "302,168",
+  live: "302,171",
+};
+
+export const RULER_FOOTER = "EPOCH HEIGHT ≤ TIP EMBEDS ≤ P-CHAIN HEIGHT · ALWAYS";
+
+const RULER_MARK_ORDER: readonly RulerMark[] = ["epoch", "tip", "live"];
+
+/** Every string the ruler renders, paired with the zone it must fit. */
+export function rulerTexts(
+  layout: RulerLayout,
+): ReadonlyArray<{ readonly text: string; readonly zone: Zone }> {
+  const z = layout.zones;
+  const cap = (k: RulerMark): string => k.charAt(0).toUpperCase() + k.slice(1);
+  const out: Array<{ text: string; zone: Zone }> = [];
+  for (const k of RULER_MARK_ORDER) {
+    out.push({ text: RULER_NAMES[k], zone: z[`n${cap(k)}`] });
+    const role = z[`r${cap(k)}`];
+    if (role) out.push({ text: RULER_ROLES[k], zone: role });
+    out.push({ text: RULER_VALUES[k], zone: z[`v${cap(k)}`] });
+  }
+  out.push({ text: RULER_FOOTER, zone: z.footer });
+  return out;
+}
+
 /** Every string the figure renders, paired with the zone it must fit. */
 export function figureTexts(
   layout: FigureLayout,

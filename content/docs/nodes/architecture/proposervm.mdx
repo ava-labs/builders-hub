@@ -234,7 +234,9 @@ A two validator subnet (weights 80 and 20) misses a network upgrade and converts
 
 The fix took one registration and one block: re-register the surviving 20 identity at weight 19 through the ValidatorManager. That identity was visible to both the frozen view and the live P-Chain, so it built the unlocking block. The block after that restored the epoch.
 
-| Phase | P-Chain height | Tip height | Epoch height | State |
+<HeightsRuler />
+
+| Phase | P-Chain height | Tip embeds | Epoch height | State |
 | --- | --- | --- | --- | --- |
 | Healthy | 291,020 | 291,012 | 291,012 | Blocks every few seconds |
 | Frozen (42 days) | 302,155 | 291,012 | 291,012 | Txs pending, zero builds |
