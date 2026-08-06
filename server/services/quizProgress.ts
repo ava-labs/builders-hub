@@ -15,6 +15,12 @@ export interface QuizResponsePayload {
 
 export interface QuizResponseDTO extends QuizResponsePayload {
   quizId: string;
+  /**
+   * Course ids this write completed (all quizzes now correct). Their academy
+   * badges have already been awarded server-side — completion no longer
+   * depends on the client making a separate badge call.
+   */
+  completedCourses?: string[];
 }
 
 export class QuizProgressValidationError extends Error {
@@ -149,27 +155,63 @@ export async function upsertQuizResponse(
     data,
   });
 
+  let row: Awaited<ReturnType<typeof prisma.quizResponse.findUnique>> = null;
   if (updated.count === 0) {
     // Either the row doesn't exist yet, or it exists and is frozen correct.
     try {
-      const created = await prisma.quizResponse.create({
+      row = await prisma.quizResponse.create({
         data: { user_id: userId, quiz_id: quizId, ...data },
       });
-      return toDTO(created);
     } catch (error) {
       if (!isUniqueViolation(error)) throw error;
       // Frozen row (or a concurrent create won the race): return what's stored.
     }
   }
 
-  const row = await prisma.quizResponse.findUnique({
-    where: { user_id_quiz_id: { user_id: userId, quiz_id: quizId } },
-  });
+  if (!row) {
+    row = await prisma.quizResponse.findUnique({
+      where: { user_id_quiz_id: { user_id: userId, quiz_id: quizId } },
+    });
+  }
   if (!row) {
     // Only reachable if the row was deleted between statements.
     throw new Error(`Quiz response disappeared during upsert: ${quizId}`);
   }
-  return toDTO(row);
+
+  const dto = toDTO(row);
+  if (row.is_correct) {
+    dto.completedCourses = await autoAwardCompletedCourses(userId, quizId);
+  }
+  return dto;
+}
+
+/**
+ * Server-driven course completion: after a correct write, award the academy
+ * badge for every course this quiz just completed. assignBadgeAcademy is
+ * transactional and idempotent (approved badges are skipped, concurrent
+ * writers race on the unique constraint inside its transaction), so the
+ * client's own badge call becomes a harmless duplicate rather than the
+ * mechanism completion depends on. A badge failure never fails the write —
+ * progress is stored either way and the award retries on the next correct
+ * write or the client call.
+ */
+async function autoAwardCompletedCourses(userId: string, quizId: string): Promise<string[]> {
+  const containingCourses = Object.entries(quizData.courses)
+    .filter(([, course]) => course.quizzes.includes(quizId))
+    .map(([courseId]) => courseId);
+
+  const completed: string[] = [];
+  for (const courseId of containingCourses) {
+    if (!(await hasCompletedCourse(userId, courseId))) continue;
+    completed.push(courseId);
+    try {
+      const { assignBadgeAcademy } = await import("./badge");
+      await assignBadgeAcademy({ userId, courseId } as Parameters<typeof assignBadgeAcademy>[0]);
+    } catch (error) {
+      console.error(`[quiz-progress] badge auto-award failed for ${courseId}:`, error);
+    }
+  }
+  return completed;
 }
 
 /**

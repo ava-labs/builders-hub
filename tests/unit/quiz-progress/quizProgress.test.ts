@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-const { dbMocks } = vi.hoisted(() => ({
+const { dbMocks, badgeMock } = vi.hoisted(() => ({
   dbMocks: {
     findUnique: vi.fn(),
     findMany: vi.fn(),
@@ -8,6 +8,11 @@ const { dbMocks } = vi.hoisted(() => ({
     create: vi.fn(),
     count: vi.fn(),
   },
+  badgeMock: vi.fn(),
+}));
+
+vi.mock('@/server/services/badge', () => ({
+  assignBadgeAcademy: badgeMock,
 }));
 
 vi.mock('@/prisma/prisma', () => ({
@@ -89,10 +94,14 @@ const payload = (over: Record<string, unknown> = {}) => ({
 
 beforeEach(() => {
   Object.values(dbMocks).forEach((m) => m.mockReset());
-  // Default: no existing row — updateMany matches nothing, create succeeds
+  badgeMock.mockReset();
+  // Default: no existing row — updateMany matches nothing, create succeeds,
+  // and the course is not yet complete (count 0)
   dbMocks.updateMany.mockResolvedValue({ count: 0 });
   dbMocks.create.mockImplementation(async ({ data }: any) => data);
   dbMocks.findUnique.mockResolvedValue(null);
+  dbMocks.count.mockResolvedValue(0);
+  badgeMock.mockResolvedValue({ success: true });
 });
 
 describe('upsertQuizResponse — server-side correctness recompute', () => {
@@ -188,6 +197,48 @@ describe('upsertQuizResponse — server-side correctness recompute', () => {
         isCorrect: false,
       })),
     ).rejects.toThrow(QuizProgressValidationError);
+  });
+});
+
+describe('upsertQuizResponse — server-driven course completion (auto-award)', () => {
+  it('awards the academy badge when a correct write completes a course', async () => {
+    dbMocks.count.mockResolvedValue(2); // both q1 and q2 now correct
+
+    const result = await upsertQuizResponse('user-1', 'q1', payload());
+
+    expect(result.completedCourses).toEqual(['course-a']);
+    expect(badgeMock).toHaveBeenCalledWith({ userId: 'user-1', courseId: 'course-a' });
+  });
+
+  it('does not award when the course is still incomplete', async () => {
+    dbMocks.count.mockResolvedValue(1); // q2 still missing
+
+    const result = await upsertQuizResponse('user-1', 'q1', payload());
+
+    expect(result.completedCourses).toEqual([]);
+    expect(badgeMock).not.toHaveBeenCalled();
+  });
+
+  it('does not even check completion for an incorrect write', async () => {
+    const result = await upsertQuizResponse('user-1', 'q1', payload({
+      selectedAnswers: [0],
+      isCorrect: false,
+      attemptCount: 1,
+    }));
+
+    expect(result.completedCourses).toBeUndefined();
+    expect(dbMocks.count).not.toHaveBeenCalled();
+    expect(badgeMock).not.toHaveBeenCalled();
+  });
+
+  it('stores the response even when the badge award fails', async () => {
+    dbMocks.count.mockResolvedValue(2);
+    badgeMock.mockRejectedValue(new Error('badge service down'));
+
+    const result = await upsertQuizResponse('user-1', 'q1', payload());
+
+    expect(result.isCorrect).toBe(true);
+    expect(result.completedCourses).toEqual(['course-a']);
   });
 });
 
