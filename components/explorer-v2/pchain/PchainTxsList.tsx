@@ -33,7 +33,29 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
   const [limit, setLimit] = useState(50);
   const [type, setType] = useState("");
   const { data, loading } = usePchainData<TxSummary[]>(network, "txs", { limit, type: type || undefined }, { refreshMs: LIVE_REFRESH_MS });
-  const txs = data ?? [];
+  /* Cursor paging: the live page keeps refreshing at the tip; older pages
+     are fetched once with ?before=<lastBlockHeight> and appended. */
+  const [older, setOlder] = useState<TxSummary[]>([]);
+  const [pagedOut, setPagedOut] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const live = data ?? [];
+  const seenHashes = new Set(live.map((t) => t.txHash));
+  const txs = [...live, ...older.filter((t) => !seenHashes.has(t.txHash))];
+  const loadOlder = async () => {
+    const last = txs[txs.length - 1];
+    if (!last || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const qs = new URLSearchParams({ limit: "50", before: String(last.blockHeight) });
+      if (type) qs.set("type", type);
+      const res = await fetch(`/api/pchain/${network}/txs?${qs}`);
+      const page: TxSummary[] = res.ok ? await res.json() : [];
+      if (page.length === 0) setPagedOut(true);
+      setOlder((o) => [...o, ...page]);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
   const activeLabel = TYPE_OPTIONS.find((o) => o.value === type)?.label ?? "All types";
 
   return (
@@ -47,6 +69,8 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
                 onClick={() => {
                   setType("");
                   setLimit(50);
+                  setOlder([]);
+                  setPagedOut(false);
                 }}
                 className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
               >
@@ -61,6 +85,8 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
           onChange={(v) => {
             setType(v);
             setLimit(50);
+                  setOlder([]);
+                  setPagedOut(false);
           }}
         />
         <Board className={cn(loading && txs.length > 0 && "opacity-60 transition-opacity")}>
@@ -101,6 +127,8 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
                   onClick={() => {
                     setType("");
                     setLimit(50);
+                  setOlder([]);
+                  setPagedOut(false);
                   }}
                   className="uppercase tracking-[0.12em] text-zinc-500 underline-offset-4 transition-colors hover:text-[#E6212F] hover:underline dark:text-zinc-400"
                 >
@@ -110,12 +138,13 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
             </div>
           )}
         </Board>
-        {!loading && txs.length >= limit && (
+        {!loading && txs.length >= limit && !pagedOut && (
           <button
-            onClick={() => setLimit((l) => l + 50)}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+            onClick={loadOlder}
+            disabled={loadingMore}
+            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
           >
-            Load more
+            {loadingMore ? "Loading…" : "Load more"}
           </button>
         )}
       </section>

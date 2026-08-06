@@ -44,6 +44,18 @@ export interface SubnetInfo {
   managerAddress?: string | null;
 }
 
+/** A live delegation riding a Primary Network validator; only present
+ *  when platform.getCurrentValidators is asked about specific nodeIDs. */
+export interface CurrentDelegator {
+  txID: string;
+  startTime: string;
+  endTime: string;
+  weight?: string;
+  /** nAVAX this delegation earns if it serves its full period */
+  potentialReward?: string;
+  rewardOwner?: PchainOwner;
+}
+
 /** platform.getCurrentValidators entry — L1 validators carry validationID
  *  and balance; legacy subnet validators carry txID/start/end instead.
  *  Primary Network validators additionally carry the reward plumbing the
@@ -53,7 +65,13 @@ export interface CurrentValidator {
   weight: string;
   balance?: string; // nAVAX
   validationID?: string;
+  txID?: string;
   startTime?: string;
+  /** nAVAX this validation earns if it serves its full period */
+  potentialReward?: string;
+  /** percentage string (e.g. "2.0000") the validator keeps from delegator rewards */
+  delegationFee?: string;
+  delegators?: CurrentDelegator[];
   publicKey?: string;
   remainingBalanceOwner?: PchainOwner;
   deactivationOwner?: PchainOwner;
@@ -169,6 +187,22 @@ export async function getPlatformTx(network: string, txID: string): Promise<Plat
 
 export async function getSubnetInfo(network: string, subnetID: string): Promise<SubnetInfo | null> {
   return rpc<SubnetInfo>(network, "platform.getSubnet", { subnetID });
+}
+
+export interface L1ValidatorInfo {
+  nodeID: string;
+  subnetID: string;
+  weight?: string | number;
+  /** nAVAX prepaid toward the continuous fee */
+  balance?: string | number;
+}
+
+/** Resolves an ACP-77 validationID to the seat's live nodeID/subnetID.
+ *  The node only answers while the seat is active — a removed validator
+ *  errors, which surfaces here as null. */
+export async function getL1Validator(network: string, validationID: string): Promise<L1ValidatorInfo | null> {
+  const r = await rpc<L1ValidatorInfo>(network, "platform.getL1Validator", { validationID });
+  return r?.nodeID ? r : null;
 }
 
 /** ACP-77 L1 validator fee market: `price` is the continuous fee every L1

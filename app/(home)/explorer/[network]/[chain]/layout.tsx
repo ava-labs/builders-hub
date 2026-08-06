@@ -1,8 +1,18 @@
 import { ReactNode } from "react";
-import { notFound } from "next/navigation";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
+import { Board } from "@/components/explorer-v2/ui";
 import { ChainExplorerLayoutClient } from "./layout.client";
+
+function ChainNotIndexed() {
+  return (
+    <Board divide={false} className="px-6 py-16 text-center">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
+        No data indexed yet for this chain
+      </p>
+    </Board>
+  );
+}
 
 interface ChainExplorerLayoutProps {
   children: ReactNode;
@@ -23,7 +33,8 @@ export default async function ChainExplorerLayout({
   const wantTestnet = network === "fuji" || network === "testnet";
   const candidates = l1ChainsData.filter((c) => c.slug === chainSlug) as L1Chain[];
   const chain = candidates.find((c) => (c.isTestnet === true) === wantTestnet) ?? candidates[0];
-  
+  const unindexed = chain?.isIndexed === false;
+
   // If chain found in static data, render with server-known props
   if (chain) {
     return (
@@ -41,7 +52,7 @@ export default async function ChainExplorerLayout({
         blockchainId={chain.blockchainId}
         sourcifySupport={(chain as L1Chain & { sourcifySupport?: boolean }).sourcifySupport}
       >
-        {children}
+        {unindexed ? <ChainNotIndexed /> : children}
       </ChainExplorerLayoutClient>
     );
   }

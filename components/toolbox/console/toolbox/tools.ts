@@ -75,7 +75,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Stake AVAX',
-    description: 'Stake AVAX on the Primary Network as a validator or delegator.',
+    description:
+      'Stake AVAX on the Primary Network as a validator or delegator, with fixed or auto-renewed (ACP-236) staking.',
     path: '/console/primary-network/stake',
     category: 'Primary Network',
     icon: HandCoins,
@@ -229,6 +230,13 @@ const TOOLS_RAW: ToolCard[] = [
     name: 'Remove Expired Registration',
     description: 'Clean up validators with expired registrations.',
     path: '/console/permissioned-l1s/remove-expired-validator-registration',
+    category: 'Permissioned L1s',
+    icon: SquareMinus,
+  },
+  {
+    name: 'Remove Legacy Subnet Validators',
+    description: 'Clear pre-conversion Subnet validators that block Warp quorum on a converted L1.',
+    path: '/console/permissioned-l1s/remove-legacy-validators',
     category: 'Permissioned L1s',
     icon: SquareMinus,
   },
