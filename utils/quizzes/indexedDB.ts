@@ -57,6 +57,8 @@ type QuizResponseValue = QuizDB["quizResponses"]["value"]
 // ---------------------------------------------------------------------------
 
 let syncPromise: Promise<void> | null = null
+// null = unknown, false = signed out (skip pushes instead of spamming 401s)
+let serverHasAccount: boolean | null = null
 
 function betterOf(a: QuizResponseValue, b: QuizResponseValue): QuizResponseValue {
   if (a.isCorrect !== b.isCorrect) return a.isCorrect ? a : b
@@ -88,7 +90,12 @@ function ensureSynced(): Promise<void> {
         const res = await fetch("/api/quiz-progress", {
           signal: AbortSignal.timeout(4000),
         })
-        if (!res.ok) return // 401 signed out, or transient — stay local
+        if (res.status === 401 || res.status === 403) {
+          serverHasAccount = false // signed out — stay local, skip later pushes
+          return
+        }
+        if (!res.ok) return // transient — stay local, retried next page load
+        serverHasAccount = true
         serverRows = (await res.json()).responses ?? []
       } catch {
         return // offline/timeout — stay local, retried on next page load
@@ -132,6 +139,7 @@ function ensureSynced(): Promise<void> {
 }
 
 async function pushResponse(quizId: string, response: QuizResponseValue): Promise<void> {
+  if (serverHasAccount === false) return // signed out — local-only, no 401 noise
   // Awaited (not fire-and-forget) so that when quiz.tsx awaits
   // saveQuizResponse before firing onQuizCompleted, the server already has
   // the row — the badge award's course-completion check depends on it. A
