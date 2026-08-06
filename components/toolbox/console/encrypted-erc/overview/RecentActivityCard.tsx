@@ -136,9 +136,10 @@ function StatusIcon({ status }: { status: TxRecord['status'] }) {
 
 function explorerLink(tx: TxRecord): string | undefined {
   if (!tx.txHash) return undefined;
+  // Fuji C-Chain isn't fully served by our explorer yet — keep it on Snowtrace.
   if (tx.network === 'fuji') return `https://testnet.snowtrace.io/tx/${tx.txHash}`;
   if (tx.network === 'mainnet' && (!tx.chainId || tx.chainId === 43114)) {
-    return `https://snowtrace.io/tx/${tx.txHash}`;
+    return `/explorer/mainnet/c-chain/tx/${tx.txHash}`;
   }
   return undefined;
 }
