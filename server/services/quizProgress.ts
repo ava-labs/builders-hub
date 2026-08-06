@@ -68,26 +68,24 @@ function computeStoredCorrect(quizId: string, payload: QuizResponsePayload): boo
   return setEquals(payload.selectedAnswers, variant.correctAnswers);
 }
 
+/**
+ * Quiz-content validation only — shape validation (types, bounds) lives in
+ * the Zod schemas at the API boundary. What stays here is everything that
+ * needs the quiz catalog: the id must exist, and the selection must fit the
+ * answered variant's option list (no out-of-range indices, no duplicates,
+ * which also caps the stored array at the variant's option count).
+ */
 function validatePayload(quizId: string, payload: QuizResponsePayload): void {
   if (!quizData.quizzes[quizId]) {
     throw new QuizProgressValidationError(`Unknown quiz id: ${quizId}`);
-  }
-  if (!Array.isArray(payload.selectedAnswers) ||
-      payload.selectedAnswers.some((x) => !Number.isInteger(x) || x < 0)) {
-    throw new QuizProgressValidationError("selectedAnswers must be non-negative integers");
   }
   const variant = answeredVariant(quizId, payload);
   const optionCount = variant?.options.length ?? 0;
   if (payload.selectedAnswers.some((x) => x >= optionCount)) {
     throw new QuizProgressValidationError("selectedAnswers out of range for this quiz");
   }
-  if (!Number.isInteger(payload.attemptCount) ||
-      payload.attemptCount < 0 || payload.attemptCount > MAX_ATTEMPTS) {
-    throw new QuizProgressValidationError(`attemptCount must be between 0 and ${MAX_ATTEMPTS}`);
-  }
-  if (payload.lastAttemptAt !== null &&
-      (typeof payload.lastAttemptAt !== "number" || payload.lastAttemptAt < 0)) {
-    throw new QuizProgressValidationError("lastAttemptAt must be a timestamp or null");
+  if (new Set(payload.selectedAnswers).size !== payload.selectedAnswers.length) {
+    throw new QuizProgressValidationError("selectedAnswers must not contain duplicates");
   }
 }
 
@@ -116,10 +114,20 @@ export async function getQuizProgressForUser(userId: string): Promise<QuizRespon
   return rows.map(toDTO);
 }
 
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: string }).code === "P2002"
+  );
+}
+
 /**
  * Upsert one quiz response. Correctness is recomputed server-side, and a row
  * that is already correct is frozen — later writes (including the client's
- * 24h auto-reset) never downgrade it.
+ * 24h auto-reset) never downgrade it. The freeze is enforced atomically: the
+ * update carries `is_correct: false` in its WHERE, so a concurrent writer can
+ * never overwrite a just-written correct row (read-then-write would race).
  */
 export async function upsertQuizResponse(
   userId: string,
@@ -127,13 +135,6 @@ export async function upsertQuizResponse(
   payload: QuizResponsePayload
 ): Promise<QuizResponseDTO> {
   validatePayload(quizId, payload);
-
-  const existing = await prisma.quizResponse.findUnique({
-    where: { user_id_quiz_id: { user_id: userId, quiz_id: quizId } },
-  });
-  if (existing?.is_correct) {
-    return toDTO(existing);
-  }
 
   const data = {
     selected_answers: payload.selectedAnswers,
@@ -143,11 +144,31 @@ export async function upsertQuizResponse(
     last_attempt_at: payload.lastAttemptAt ? new Date(payload.lastAttemptAt) : null,
   };
 
-  const row = await prisma.quizResponse.upsert({
-    where: { user_id_quiz_id: { user_id: userId, quiz_id: quizId } },
-    create: { user_id: userId, quiz_id: quizId, ...data },
-    update: data,
+  const updated = await prisma.quizResponse.updateMany({
+    where: { user_id: userId, quiz_id: quizId, is_correct: false },
+    data,
   });
+
+  if (updated.count === 0) {
+    // Either the row doesn't exist yet, or it exists and is frozen correct.
+    try {
+      const created = await prisma.quizResponse.create({
+        data: { user_id: userId, quiz_id: quizId, ...data },
+      });
+      return toDTO(created);
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      // Frozen row (or a concurrent create won the race): return what's stored.
+    }
+  }
+
+  const row = await prisma.quizResponse.findUnique({
+    where: { user_id_quiz_id: { user_id: userId, quiz_id: quizId } },
+  });
+  if (!row) {
+    // Only reachable if the row was deleted between statements.
+    throw new Error(`Quiz response disappeared during upsert: ${quizId}`);
+  }
   return toDTO(row);
 }
 

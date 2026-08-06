@@ -4,7 +4,8 @@ const { dbMocks } = vi.hoisted(() => ({
   dbMocks: {
     findUnique: vi.fn(),
     findMany: vi.fn(),
-    upsert: vi.fn(),
+    updateMany: vi.fn(),
+    create: vi.fn(),
     count: vi.fn(),
   },
 }));
@@ -14,7 +15,8 @@ vi.mock('@/prisma/prisma', () => ({
     quizResponse: {
       findUnique: dbMocks.findUnique,
       findMany: dbMocks.findMany,
-      upsert: dbMocks.upsert,
+      updateMany: dbMocks.updateMany,
+      create: dbMocks.create,
       count: dbMocks.count,
     },
   },
@@ -66,7 +68,7 @@ import {
   QuizProgressValidationError,
 } from '@/server/services/quizProgress';
 
-const upsertedRow = (over: Record<string, unknown> = {}) => ({
+const dbRow = (over: Record<string, unknown> = {}) => ({
   quiz_id: 'q1',
   selected_answers: [1],
   is_answer_checked: true,
@@ -76,28 +78,31 @@ const upsertedRow = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+const payload = (over: Record<string, unknown> = {}) => ({
+  selectedAnswers: [1],
+  isAnswerChecked: true,
+  isCorrect: true,
+  attemptCount: 0,
+  lastAttemptAt: null,
+  ...over,
+});
+
 beforeEach(() => {
   Object.values(dbMocks).forEach((m) => m.mockReset());
+  // Default: no existing row — updateMany matches nothing, create succeeds
+  dbMocks.updateMany.mockResolvedValue({ count: 0 });
+  dbMocks.create.mockImplementation(async ({ data }: any) => data);
   dbMocks.findUnique.mockResolvedValue(null);
-  dbMocks.upsert.mockImplementation(async ({ create }: any) => ({
-    quiz_id: create.quiz_id,
-    ...create,
-  }));
 });
 
 describe('upsertQuizResponse — server-side correctness recompute', () => {
   it('stores correct when the claim matches the base variant', async () => {
-    await upsertQuizResponse('user-1', 'q1', {
-      selectedAnswers: [1],
-      isAnswerChecked: true,
-      isCorrect: true,
-      attemptCount: 0,
-      lastAttemptAt: null,
-    });
+    const result = await upsertQuizResponse('user-1', 'q1', payload());
 
-    expect(dbMocks.upsert).toHaveBeenCalledWith(
+    expect(result.isCorrect).toBe(true);
+    expect(dbMocks.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({ is_correct: true }),
+        data: expect.objectContaining({ is_correct: true }),
       }),
     );
   });
@@ -105,105 +110,83 @@ describe('upsertQuizResponse — server-side correctness recompute', () => {
   it('validates against the alternate variant when attemptCount says so', async () => {
     // attemptCount 1 + correct claim → answered variant is alternates[0],
     // whose correctAnswers are [2] (base would require [0, 2])
-    await upsertQuizResponse('user-1', 'q2', {
+    const result = await upsertQuizResponse('user-1', 'q2', payload({
       selectedAnswers: [2],
-      isAnswerChecked: true,
-      isCorrect: true,
       attemptCount: 1,
-      lastAttemptAt: null,
-    });
+    }));
 
-    expect(dbMocks.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({ is_correct: true }),
-      }),
-    );
+    expect(result.isCorrect).toBe(true);
   });
 
   it('downgrades a correct claim whose answers do not match', async () => {
-    await upsertQuizResponse('user-1', 'q1', {
-      selectedAnswers: [0],
-      isAnswerChecked: true,
-      isCorrect: true, // client lies
-      attemptCount: 0,
-      lastAttemptAt: null,
-    });
+    const result = await upsertQuizResponse('user-1', 'q1', payload({
+      selectedAnswers: [0], // client lies about isCorrect
+    }));
 
-    expect(dbMocks.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({ is_correct: false }),
-      }),
-    );
+    expect(result.isCorrect).toBe(false);
   });
 
   it('never upgrades an incorrect claim even if the answers happen to match', async () => {
-    await upsertQuizResponse('user-1', 'q1', {
-      selectedAnswers: [1],
-      isAnswerChecked: true,
+    const result = await upsertQuizResponse('user-1', 'q1', payload({
       isCorrect: false,
       attemptCount: 1,
-      lastAttemptAt: null,
-    });
+    }));
 
-    expect(dbMocks.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        create: expect.objectContaining({ is_correct: false }),
-      }),
-    );
+    expect(result.isCorrect).toBe(false);
   });
 
-  it('freezes an already-correct row instead of overwriting it', async () => {
-    dbMocks.findUnique.mockResolvedValue(
-      upsertedRow({ is_correct: true, selected_answers: [1] }),
-    );
+  it('updates through a WHERE that excludes frozen-correct rows', async () => {
+    dbMocks.updateMany.mockResolvedValue({ count: 1 });
+    dbMocks.findUnique.mockResolvedValue(dbRow({ is_correct: false }));
 
-    const result = await upsertQuizResponse('user-1', 'q1', {
+    await upsertQuizResponse('user-1', 'q1', payload({ isCorrect: false }));
+
+    expect(dbMocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { user_id: 'user-1', quiz_id: 'q1', is_correct: false },
+      }),
+    );
+    expect(dbMocks.create).not.toHaveBeenCalled();
+  });
+
+  it('returns the frozen row when a concurrent/frozen write loses the race', async () => {
+    // updateMany matched nothing (row is frozen correct), create hits the
+    // unique constraint, the stored row is returned untouched
+    dbMocks.updateMany.mockResolvedValue({ count: 0 });
+    dbMocks.create.mockRejectedValue({ code: 'P2002' });
+    dbMocks.findUnique.mockResolvedValue(dbRow({ is_correct: true }));
+
+    const result = await upsertQuizResponse('user-1', 'q1', payload({
       selectedAnswers: [],
       isAnswerChecked: false,
       isCorrect: false,
-      attemptCount: 0,
-      lastAttemptAt: null,
-    });
+    }));
 
     expect(result.isCorrect).toBe(true);
-    expect(dbMocks.upsert).not.toHaveBeenCalled();
   });
 
   it('rejects unknown quiz ids', async () => {
     await expect(
-      upsertQuizResponse('user-1', 'nope', {
-        selectedAnswers: [0],
-        isAnswerChecked: true,
-        isCorrect: false,
-        attemptCount: 1,
-        lastAttemptAt: null,
-      }),
+      upsertQuizResponse('user-1', 'nope', payload({ isCorrect: false })),
     ).rejects.toThrow(QuizProgressValidationError);
   });
 
   it('rejects selectedAnswers outside the answered variant option range', async () => {
-    // attemptCount 1 + incorrect → answered variant is base q2 (6 options is
-    // fine) — but for q1 (4 options) index 4 is out of range
     await expect(
-      upsertQuizResponse('user-1', 'q1', {
-        selectedAnswers: [4],
-        isAnswerChecked: true,
+      upsertQuizResponse('user-1', 'q1', payload({
+        selectedAnswers: [4], // q1 has 4 options: valid indices 0-3
         isCorrect: false,
         attemptCount: 1,
-        lastAttemptAt: null,
-      }),
+      })),
     ).rejects.toThrow(QuizProgressValidationError);
   });
 
-  it('rejects attemptCount outside 0..3', async () => {
+  it('rejects duplicate selectedAnswers', async () => {
     await expect(
-      upsertQuizResponse('user-1', 'q1', {
-        selectedAnswers: [1],
-        isAnswerChecked: true,
+      upsertQuizResponse('user-1', 'q1', payload({
+        selectedAnswers: [1, 1],
         isCorrect: false,
-        attemptCount: 7,
-        lastAttemptAt: null,
-      }),
+      })),
     ).rejects.toThrow(QuizProgressValidationError);
   });
 });
@@ -212,7 +195,7 @@ describe('getQuizProgressForUser', () => {
   it('maps rows to the client-facing shape', async () => {
     const when = new Date('2026-08-06T12:00:00Z');
     dbMocks.findMany.mockResolvedValue([
-      upsertedRow({ quiz_id: 'q2', attempt_count: 2, last_attempt_at: when }),
+      dbRow({ quiz_id: 'q2', attempt_count: 2, last_attempt_at: when }),
     ]);
 
     const result = await getQuizProgressForUser('user-1');
