@@ -109,9 +109,7 @@ export function WalletPChain() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  const base = isTestnet
-                    ? 'https://subnets-test.avax.network/p-chain'
-                    : 'https://subnets.avax.network/p-chain';
+                  const base = `/explorer/${isTestnet ? 'fuji' : 'mainnet'}/p-chain`;
                   window.open(`${base}/address/${pChainAddress}`, '_blank');
                 }}
                 className="h-6 w-6 p-0 hover:bg-muted"

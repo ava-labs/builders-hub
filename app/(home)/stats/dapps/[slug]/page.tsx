@@ -699,7 +699,7 @@ export default function DAppDetailPage() {
                   {onChainData.contracts.map((address) => (
                     <a
                       key={address}
-                      href={`https://snowtrace.io/address/${address}`}
+                      href={`/explorer/mainnet/c-chain/address/${address}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group"

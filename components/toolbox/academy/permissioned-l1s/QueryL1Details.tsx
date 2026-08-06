@@ -141,7 +141,7 @@ export default function QueryL1Details() {
                                   {selection.subnet.l1ValidatorManagerDetails.contractAddress}
                                 </p>
                                 <a
-                                  href={`https://subnets.avax.network/c-chain/address/${selection.subnet.l1ValidatorManagerDetails.contractAddress}`}
+                                  href={`/explorer/mainnet/c-chain/address/${selection.subnet.l1ValidatorManagerDetails.contractAddress}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
@@ -163,7 +163,7 @@ export default function QueryL1Details() {
                                 {selection.subnet.l1ConversionTransactionHash}
                               </p>
                               <a
-                                href={`https://subnets.avax.network/p-chain/tx/${selection.subnet.l1ConversionTransactionHash}`}
+                                href={`/explorer/mainnet/p-chain/tx/${selection.subnet.l1ConversionTransactionHash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="ml-1 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"

@@ -161,7 +161,7 @@ function ValidatorBalanceIncrease({ onSuccess }: BaseConsoleToolProps) {
     setTimeout(() => setTxCopied(false), 2000);
   }, [validatorTxId]);
 
-  const explorerUrl = `https://${isTestnet ? 'subnets-test' : 'subnets'}.avax.network/p-chain/tx/${validatorTxId}`;
+  const explorerUrl = `/explorer/${isTestnet ? 'fuji' : 'mainnet'}/p-chain/tx/${validatorTxId}`;
   const isDisabled =
     loading || !validatorSelection.validationId || !amount || Number(amount) <= 0 || Number(amount) > pChainBalance;
 
