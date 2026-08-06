@@ -2,7 +2,7 @@
 
 import { ExternalLink } from "lucide-react";
 import type { FlowEntry } from "./types";
-import { formatAvax, formatGas, shortAddr, snowtraceUrl } from "./utils";
+import { addressExplorerUrl, formatAvax, formatGas, shortAddr } from "./utils";
 
 export function FlowTable({ title, entries, color }: { title: string; entries: FlowEntry[]; color: string }) {
   if (entries.length === 0) {
@@ -39,7 +39,7 @@ export function FlowTable({ title, entries, color }: { title: string; entries: F
                       )}
                       {entry.address !== "others" ? (
                         <a
-                          href={snowtraceUrl(entry.address)}
+                          href={addressExplorerUrl(entry.address)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-zinc-400 hover:text-blue-500 transition-colors inline-flex items-center gap-0.5"

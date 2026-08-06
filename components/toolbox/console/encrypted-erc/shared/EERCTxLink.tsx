@@ -5,8 +5,9 @@ const C_CHAIN_FUJI = 43113;
 const C_CHAIN_MAINNET = 43114;
 
 function getCChainTxUrl(chainId: number, txHash: string): string | null {
+  // Fuji C-Chain isn't fully served by our explorer yet — keep it on Snowtrace.
   if (chainId === C_CHAIN_FUJI) return `https://testnet.snowtrace.io/tx/${txHash}`;
-  if (chainId === C_CHAIN_MAINNET) return `https://snowtrace.io/tx/${txHash}`;
+  if (chainId === C_CHAIN_MAINNET) return `/explorer/mainnet/c-chain/tx/${txHash}`;
   return null;
 }
 
