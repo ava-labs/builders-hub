@@ -6,6 +6,7 @@
     "core-components",
     "consensus",
     "virtual-machines",
+    "proposervm",
     "networking",
     "...execution"
   ]
