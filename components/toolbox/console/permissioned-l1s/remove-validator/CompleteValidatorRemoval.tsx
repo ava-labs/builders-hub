@@ -22,6 +22,12 @@ import ValidatorManagerABI from '@/contracts/icm-contracts/compiled/ValidatorMan
 import { Check } from 'lucide-react';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
 import { CliAlternative } from '@/components/console/cli-alternative';
+import { ProposerVMPreflightCard } from '@/components/toolbox/console/shared/ProposerVMPreflightCard';
+import {
+  AggregationRemediation,
+  parseAggregationError,
+  type RemediationLink,
+} from '@/components/toolbox/hooks/contracts/parseAggregationError';
 
 interface CompleteValidatorRemovalProps {
   subnetIdL1: string;
@@ -73,6 +79,7 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
+  const [aggRemediation, setAggRemediation] = useState<RemediationLink[] | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [transactionHash, setTransactionHash] = useState<string | null>(null);
   const [pChainSignature, setPChainSignature] = useState<string | null>(null);
@@ -207,8 +214,11 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
       onSuccess(successMsg);
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorState(`Failed to complete validator removal: ${message}`);
-      onError(`Failed to complete validator removal: ${message}`);
+      const mapped = parseAggregationError(err);
+      setAggRemediation(mapped?.remediation ?? null);
+      const display = mapped?.message ?? `Failed to complete validator removal: ${message}`;
+      setErrorState(display);
+      onError(display);
     } finally {
       setIsProcessing(false);
     }
@@ -238,7 +248,15 @@ const CompleteValidatorRemoval: React.FC<CompleteValidatorRemovalProps> = ({
 
   return (
     <div className="space-y-3">
-      {error && <Alert variant="error">{error}</Alert>}
+      <ProposerVMPreflightCard requiredTxId={pChainTxId.trim() || null} />
+      {error && (
+        <Alert variant="error">
+          <div>
+            {error}
+            {aggRemediation && <AggregationRemediation items={aggRemediation} />}
+          </div>
+        </Alert>
+      )}
 
       {isLoadingOwnership && (
         <div className="text-sm text-zinc-500 dark:text-zinc-400">Checking contract ownership...</div>
