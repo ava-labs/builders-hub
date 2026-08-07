@@ -272,7 +272,7 @@ All numbers are illustrative.
 
 **Cause:** verification runs against the P-Chain height pinned by the verifying chain's epoch, which can trail the live P-Chain. If the validator set changed after that pinned height, the fresh signature does not match the set the verifier resolves. ACP-181 states it directly: the message constructor must account for the verifying chain's epoch height, which may be arbitrarily far behind.
 
-**Fix:** wait for the verifying chain to produce blocks past the change (the epoch advances one block after the seal). Then resend the identical message. The [validator registration flow](/docs/avalanche-l1s/validator-manager/registration-flow) documents the same failure shape on the registration completion path.
+**Fix:** produce blocks past the change, then resend the identical message. The procedure is in [warp delivery fails on an idle chain](#troubleshooting-warp-delivery-fails-on-an-idle-chain). The [validator registration flow](/docs/avalanche-l1s/validator-manager/registration-flow) documents the same failure shape on the registration completion path.
 
 </Accordion>
 </Accordions>
@@ -286,6 +286,50 @@ All numbers are illustrative.
 - Alert on production silence: `block_building_slot` climbs while `build_block_count` stays flat, and the tip age grows. These alerts catch this class in minutes instead of days.
 - Keep validator continuous fee balances funded: inactive weight cannot sign but still counts against every quorum.
 - Run current releases: the v1.15.0 line logs the offending parent P-Chain height when a node cannot determine its proposer slot.
+
+## Troubleshooting: warp delivery fails on an idle chain
+
+The frozen-chain deadlock above is the extreme case. A milder version hits chains that are alive but quiet: block production works, yet warp message delivery fails.
+
+**Symptom signature:**
+
+- `initializeValidatorSet` reverts, or a `completeValidatorRegistration` / weight update / removal call rejects a freshly aggregated message with `InvalidWarpMessage` (`0x6b2f19e9`).
+- The P-Chain transaction it depends on is confirmed.
+- The signature aggregation itself succeeded.
+
+**The rule:** delivery verifies signatures against the validator set at the height pinned by the receiving chain's current epoch. That epoch advances only when the chain produces blocks. On a quiet chain the pinned height predates your P-Chain transaction, so the verifier resolves a validator set that does not match the fresh signature.
+
+### Produce blocks to advance the view
+
+Any transaction produces a block. A zero-value transfer to your own address is the cheapest one:
+
+```bash
+cast send $YOUR_ADDRESS --value 0 \
+  --rpc-url https://<node>/ext/bc/<blockchainID>/rpc \
+  --private-key $PRIVATE_KEY
+```
+
+Two blocks are enough on a long-quiet chain. The first block seals the old epoch, whose duration D elapsed long ago. The next block starts a new epoch and adopts the sealer's embedded height. Your retried delivery transaction can be that next block: one self-transfer plus the retry often completes the pair.
+
+One case needs patience instead of transactions: an epoch that opened less than D ago (5 minutes on Fuji and Mainnet) cannot seal yet. Wait out the remainder, then send.
+
+Verify before and after with the epoch read from [the RPC surface](#the-rpc-surface):
+
+```bash
+curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"proposervm.getCurrentEpoch","params":{}}' \
+  https://<node>/ext/bc/<blockchainID>/proposervm
+```
+
+The pinned `pChainHeight` must reach or pass the height your P-Chain transaction landed in. Then resend the identical warp message.
+
+**Prerequisites and caveats:**
+
+- The sending account needs gas on the chain, and the Transactor Allowlist precompile (when enabled) must include it.
+- This advances **delivery** readiness only. It cannot fix signature **aggregation** failures: those depend on the signing validators' own P-Chain views and their online weight (see the legacy-validator pitfall above).
+- A ValidatorManager hosted on the C-Chain needs none of this. The C-Chain always produces blocks.
+
+The [Builder Console](/console/layer-1/advance-pchain-view) automates this procedure: it reads the epoch, computes the wait, sends the self-transfers, and verifies the result.
 
 ## Related
 
