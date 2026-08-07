@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Copy, Globe, Search } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { getL1ListStore, type L1ListItem } from '@/components/toolbox/stores/l1ListStore';
+import { classifyRpcUrlForPage, rpcUrlsEquivalent } from '@/components/toolbox/lib/rpcUrl';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { Input } from '../../components/Input';
 import { getBlockchainInfo, getChainDetails, getSubnetInfo } from '../../coreViem/utils/glacier';
@@ -151,10 +152,23 @@ function AddChainModalInner() {
       }
 
       setIsFetchingChainData(true);
-      if (!rpcUrl.startsWith('https://') && !rpcUrl.includes('localhost') && !rpcUrl.includes('127.0.0.1')) {
+      const urlClass = classifyRpcUrlForPage(
+        rpcUrl,
+        typeof window !== 'undefined' ? window.location.protocol : 'https:',
+      );
+      if (urlClass === 'mixed-content') {
         form.setError('rpcUrl', {
           type: 'validation',
-          message: 'The RPC URL must start with https:// or include localhost / 127.0.0.1',
+          message:
+            'Browsers block http:// requests to remote hosts from an https page (mixed content), so this URL cannot work from this site or your wallet page context. Put an HTTPS reverse proxy in front of the node (see the reverse proxy step in L1 Nodes setup). http://localhost stays fine for a node running on this machine.',
+        });
+        setIsFetchingChainData(false);
+        return;
+      }
+      if (urlClass === 'invalid') {
+        form.setError('rpcUrl', {
+          type: 'validation',
+          message: 'Enter a valid http(s) RPC URL, e.g. https://<host>/ext/bc/<blockchainID>/rpc',
         });
         setIsFetchingChainData(false);
         return;
@@ -188,12 +202,14 @@ function AddChainModalInner() {
         }
 
         const existingChain = checkChainExists(avalancheChainId, ethereumChainId);
-        if (existingChain) {
+        if (existingChain && rpcUrlsEquivalent(existingChain.rpcUrl, rpcUrl)) {
           form.setError('root', {
             type: 'duplicate',
             message: `This chain is already in your wallet as "${existingChain.name}".`,
           });
         } else {
+          // Same chain with a DIFFERENT URL is not a duplicate — it is the
+          // repair path for a stale stored URL (issue #4450).
           form.clearErrors('root');
         }
 
@@ -211,6 +227,44 @@ function AddChainModalInner() {
     fetchChainData();
   }, [rpcUrl, setValue, form, trigger, checkChainExists]);
 
+  // Wallet-side add + switch + store sync. Shared by the normal add path
+  // and the stale-URL repair path (which must not append to the l1 list).
+  const addChainToWalletAndSwitch = async (chainData: ChainData) => {
+    if (!walletClient) throw new Error('Wallet not connected');
+
+    const chainIdHex = `0x${chainData.evmChainId.toString(16)}`;
+
+    // wallet_addEthereumChain directly instead of viem's addChain —
+    // only this path forwards Core wallet's proprietary isTestnet flag.
+    // blockExplorerUrls is per EIP-3085 optional; when set, the wallet
+    // shows the same explorer link the in-app L1 dashboard treats as
+    // default (Firn for Quick L1 deploys).
+    const isCoreWallet = useWalletStore.getState().walletType === 'core';
+    await walletClient.request({
+      method: 'wallet_addEthereumChain',
+      params: [
+        {
+          chainId: chainIdHex,
+          chainName: chainData.name,
+          nativeCurrency: { name: chainData.coinName, symbol: chainData.coinName, decimals: 18 },
+          rpcUrls: [chainData.rpcUrl],
+          blockExplorerUrls: chainData.explorerUrl ? [chainData.explorerUrl] : undefined,
+          ...(isCoreWallet ? { isTestnet: chainData.isTestnet } : {}),
+        },
+      ] as any,
+    });
+
+    await walletClient.switchChain({ id: chainData.evmChainId });
+
+    // Sync walletChainId so downstream gates (ChainGate) observe the
+    // switch. wagmi's useChainId ignores chains not in wagmiConfig,
+    // so custom L1s would otherwise leave walletChainId stale.
+    const walletStore = useWalletStore.getState();
+    walletStore.setWalletChainId(chainData.evmChainId);
+    walletStore.setIsTestnet(chainData.isTestnet);
+    walletStore.setAvalancheNetworkID(chainData.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
+  };
+
   const addChainDirect = async (chainData: ChainData): Promise<boolean> => {
     if (!walletClient) {
       toast.error('Wallet not connected', 'Please connect your wallet first');
@@ -218,38 +272,7 @@ function AddChainModalInner() {
     }
 
     try {
-      const chainIdHex = `0x${chainData.evmChainId.toString(16)}`;
-
-      // wallet_addEthereumChain directly instead of viem's addChain —
-      // only this path forwards Core wallet's proprietary isTestnet flag.
-      // blockExplorerUrls is per EIP-3085 optional; when set, the wallet
-      // shows the same explorer link the in-app L1 dashboard treats as
-      // default (Firn for Quick L1 deploys).
-      const isCoreWallet = useWalletStore.getState().walletType === 'core';
-      await walletClient.request({
-        method: 'wallet_addEthereumChain',
-        params: [
-          {
-            chainId: chainIdHex,
-            chainName: chainData.name,
-            nativeCurrency: { name: chainData.coinName, symbol: chainData.coinName, decimals: 18 },
-            rpcUrls: [chainData.rpcUrl],
-            blockExplorerUrls: chainData.explorerUrl ? [chainData.explorerUrl] : undefined,
-            ...(isCoreWallet ? { isTestnet: chainData.isTestnet } : {}),
-          },
-        ] as any,
-      });
-
-      await walletClient.switchChain({ id: chainData.evmChainId });
-
-      // Sync walletChainId so downstream gates (ChainGate) observe the
-      // switch. wagmi's useChainId ignores chains not in wagmiConfig,
-      // so custom L1s would otherwise leave walletChainId stale.
-      const walletStore = useWalletStore.getState();
-      walletStore.setWalletChainId(chainData.evmChainId);
-      walletStore.setIsTestnet(chainData.isTestnet);
-      walletStore.setAvalancheNetworkID(chainData.isTestnet ? networkIDs.FujiID : networkIDs.MainnetID);
-
+      await addChainToWalletAndSwitch(chainData);
       getL1ListStore(chainData.isTestnet).getState().addL1(chainData);
       toast.success('Chain added successfully!', `${chainData.name} has been added to your wallet`);
       return true;
@@ -263,10 +286,49 @@ function AddChainModalInner() {
     try {
       const existingChain = checkChainExists(data.chainId, data.evmChainId);
       if (existingChain) {
-        form.setError('root', {
-          type: 'duplicate',
-          message: `This chain is already in your wallet as "${existingChain.name}".`,
-        });
+        if (rpcUrlsEquivalent(existingChain.rpcUrl, data.rpcUrl)) {
+          form.setError('root', {
+            type: 'duplicate',
+            message: `This chain is already in your wallet as "${existingChain.name}".`,
+          });
+          return;
+        }
+
+        // Repair: same chain, new RPC URL. Patch the console's stored entry
+        // in whichever network store actually holds it (the isTestnet field
+        // on older persisted entries is not trustworthy), and still run the
+        // wallet add: console-list presence does NOT imply the wallet has
+        // the chain (ChainGate opens this modal exactly when it doesn't).
+        // When the wallet does have it, wallets dedupe the add and keep
+        // their own stored URL — that case can only be fixed by the user.
+        const owningIsTestnet = [true, false].find((t) =>
+          getL1ListStore(t)
+            .getState()
+            .l1List.some((l: L1ListItem) => l.evmChainId === existingChain.evmChainId),
+        );
+        if (owningIsTestnet === undefined) {
+          form.setError('root', {
+            type: 'api',
+            message: 'Could not locate the stored chain entry to update. Remove the chain and add it again.',
+          });
+          return;
+        }
+        // The store that actually holds the entry is the one answer trusted
+        // for BOTH the patch and the wallet/network-context write —
+        // existingChain.isTestnet itself can be stale on old entries.
+        const repairedChainData: ChainData = { ...existingChain, rpcUrl: data.rpcUrl, isTestnet: owningIsTestnet };
+        getL1ListStore(owningIsTestnet).getState().updateL1(existingChain.evmChainId, { rpcUrl: data.rpcUrl });
+        try {
+          await addChainToWalletAndSwitch(repairedChainData);
+        } catch {
+          // Wallet add/switch is best-effort here; the console-side repair
+          // already applied and must not be reported as failed.
+        }
+        toast.info(
+          'Console RPC URL updated',
+          "If this chain already existed in your wallet, wallets keep their own stored URL — update it in the wallet's network settings (Core: Settings > Networks).",
+        );
+        closeModal({ success: true, chainData: repairedChainData });
         return;
       }
 
@@ -321,6 +383,8 @@ function AddChainModalInner() {
   const allowLookup = (options?.allowLookup ?? true) && !options?.rpcUrl;
   const rpcUrlError = errors.rpcUrl?.message;
   const rootError = errors.root?.message;
+  const existingForCurrent = checkChainExists(chainId, evmChainId);
+  const isRepair = !!existingForCurrent && !!rpcUrl && !rpcUrlsEquivalent(existingForCurrent.rpcUrl, rpcUrl);
   const submitDisabled =
     !chainName ||
     !coinName ||
@@ -328,7 +392,7 @@ function AddChainModalInner() {
     !chainId ||
     !evmChainId ||
     !!errors.root ||
-    !!checkChainExists(chainId, evmChainId);
+    (!!existingForCurrent && !isRepair);
 
   return (
     <Dialog.Root open={true} onOpenChange={() => closeModal({ success: false })}>
@@ -369,7 +433,6 @@ function AddChainModalInner() {
                     label="RPC URL"
                     value={field.value}
                     onChange={field.onChange}
-                    disabled={!!options?.rpcUrl}
                     placeholder="https://api.example.com/ext/bc/abc/rpc"
                     error={rpcUrlError}
                   />
@@ -503,6 +566,14 @@ function AddChainModalInner() {
                 {rootError}
               </div>
             )}
+
+            {isRepair && !rootError && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                Already in your wallet as &quot;{existingForCurrent?.name}&quot; with a different RPC URL. Submitting
+                updates the console&apos;s stored URL and switches to the chain; the wallet&apos;s own copy must be
+                updated in its network settings.
+              </div>
+            )}
           </form>
 
           <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -516,7 +587,7 @@ function AddChainModalInner() {
               disabled={submitDisabled}
               stickLeft
             >
-              Add Chain
+              {isRepair ? 'Update RPC URL' : 'Add Chain'}
             </Button>
           </div>
         </DialogContent>
