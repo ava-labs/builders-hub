@@ -29,6 +29,48 @@ export const BESU_TOKENS = {
   "--besu-highlight": "rgba(230,33,47,.06)", // highlighted table row
 } as const;
 
+/**
+ * Chart palette. VALIDATED — do not substitute values by eye.
+ *
+ * This is an EMPHASIS palette, not a categorical one: a single accent for
+ * Avalanche and a neutral ordinal ramp for everything else. The neutrals are
+ * meant to read as grey — that is the form working, not a defect.
+ *
+ * Verified with the dataviz validator (`validate_palette.js`):
+ *  - neutral ramps as `--ordinal`: ALL CHECKS PASS in both modes
+ *    (monotone lightness, adjacent ΔL ≥ 0.06, light end clears the surface,
+ *     single hue — 4° spread light, 6° dark)
+ *  - accent vs each neutral, `--pairs all`: CVD separation PASS
+ *    (worst ΔE 9.3 protan in both modes, above the 8.0 target),
+ *     normal-vision floor PASS (15.1 light, 16.2 dark)
+ *  - contrast WARN on the palest step (2.12:1 light on #FFFFFF, 2.86:1 dark on
+ *    #1f1f1f). That is a conditional relax, and the relief is mandatory: every
+ *    mark is direct-labelled AND a table view is always rendered. If you ever
+ *    remove the labels or the table, this palette is no longer compliant.
+ *
+ * Running the categorical checks against this set reports FAIL on the lightness
+ * band and chroma floor. That is expected — an ordinal ramp fails those by
+ * construction. Use `--ordinal` for the neutrals.
+ */
+export const BESU_CHART = {
+  light: {
+    /** Ordinal neutrals, darkest → lightest. */
+    neutral: ["#3F4E54", "#78868B", "#A8B4B8"],
+    accent: "#E6212F",
+    surface: "#FFFFFF",
+    /** 2px separator drawn between adjacent fills, per the mark spec. */
+    gap: "#FFFFFF",
+  },
+  dark: {
+    neutral: ["#C4CDD0", "#8A989D", "#5A686E"],
+    accent: "#FF5A63",
+    surface: "#1f1f1f",
+    gap: "#1f1f1f",
+  },
+} as const;
+
+export type BesuChartTheme = keyof typeof BESU_CHART;
+
 /** Layout constants. Container 1200px, gutter 40px, section rhythm 90px. */
 export const BESU_CONTAINER = "mx-auto max-w-[1200px] px-5 sm:px-10";
 

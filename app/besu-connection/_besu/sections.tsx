@@ -4,6 +4,7 @@ import {
   ALTERNATIVES,
   CONTROL,
   CTA,
+  DESTINATION,
   FOOTER,
   HERO,
   MECHANISM,
@@ -12,6 +13,7 @@ import {
   SUMMARY,
   VISIBILITY,
 } from "./content";
+import { MarketCapChart } from "./MarketCapChart";
 import { ButtonRow, RailHeading, SectionHeading, railLines } from "./primitives";
 import {
   BESU_CONTAINER,
@@ -21,11 +23,13 @@ import {
 } from "./tokens";
 
 /**
- * The nine sections of the Besu connection page. SELF-CONTAINED BY DESIGN.
+ * The ten sections of the Besu connection page. SELF-CONTAINED BY DESIGN.
  *
  * Only `next/image` is imported from outside this folder, and that is a
  * framework primitive rather than a Builder Hub component. Nothing here
- * depends on the host repo, so the page lifts out cleanly.
+ * depends on the host repo, so the page lifts out cleanly. That includes the
+ * chart: it is hand-drawn SVG and CSS rather than a charting library, so the
+ * folder still moves as a copy rather than a package install.
  *
  * The reference prototype had no responsive behaviour; the breakpoints below
  * come from the handoff's responsive notes. Below lg, four-column hairline
@@ -47,7 +51,9 @@ export function Header() {
           width={BESU_LOGO_SIZE.width}
           height={BESU_LOGO_SIZE.height}
           priority
-          className="block h-[22px] w-auto"
+          /* Shrinks below sm to buy room for the CTA label — see the note on
+             the CTA below. */
+          className="block h-[18px] w-auto sm:h-[22px]"
         />
         <nav
           className={`${FONT_MONO} flex items-center gap-4 text-[10px] font-medium tracking-[0.14em] text-[var(--besu-grey)] sm:gap-7`}
@@ -61,9 +67,14 @@ export function Header() {
               {link.label}
             </a>
           ))}
+          {/* The single ask, at 27 characters, is a tight fit in a sticky bar
+              that also carries the logo. Below sm it drops to 9px with reduced
+              tracking and padding; that fits a 360px viewport with ~12px to
+              spare and overflows below about 340px. Flagged rather than
+              shortened, because one label everywhere was the instruction. */}
           <a
             href={NAV_CTA.href}
-            className="bg-[var(--besu-red)] px-[14px] py-2 text-white transition-colors duration-150 hover:bg-[var(--besu-red-dark)]"
+            className="whitespace-nowrap bg-[var(--besu-red)] px-2.5 py-2 text-[9px] tracking-[0.08em] text-white transition-colors duration-150 hover:bg-[var(--besu-red-dark)] sm:px-[14px] sm:text-[10px] sm:tracking-[0.14em]"
           >
             {NAV_CTA.label}
           </a>
@@ -165,7 +176,59 @@ export function Summary() {
   );
 }
 
-/* ---------------- 4. Mechanism ---------------- */
+/* ---------------- 4. What the destination gives you ---------------- */
+
+/**
+ * Sells the destination, which is this page's job now that the mechanism
+ * argument lives at /solutions/patterns/external-evm-icm.
+ *
+ * The chart claims the full width because it is the centrepiece of the
+ * ecosystem argument; the other three items sit three-across in the same
+ * hairline grid the Visibility section uses. `MarketCapChart` is hand-drawn
+ * SVG with no state, so the page stays entirely server-rendered — there is no
+ * client boundary anywhere in this folder, and adding one should be a
+ * deliberate decision rather than a side effect.
+ */
+export function Destination() {
+  return (
+    <section className={`${BESU_CONTAINER} pt-[90px]`}>
+      <RailHeading rail={railLines(DESTINATION.rail)}>
+        <div className="mb-8">
+          <SectionHeading>{DESTINATION.heading}</SectionHeading>
+        </div>
+
+        <div className="border border-[var(--besu-hairline)] bg-white px-6 py-7 sm:px-8 sm:py-8">
+          <div
+            className={`${FONT_MONO} mb-[14px] text-[10px] font-medium tracking-[0.12em] text-[var(--besu-red)]`}
+          >
+            {DESTINATION.presence.eyebrow}
+          </div>
+          <p className="m-0 mb-8 max-w-[680px] text-[15px] leading-[1.7] text-[var(--besu-ink)] [text-wrap:pretty]">
+            {DESTINATION.presence.body}
+          </p>
+          <MarketCapChart theme="light" />
+        </div>
+
+        <div className="mt-px grid grid-cols-1 gap-px border border-[var(--besu-hairline)] bg-[var(--besu-hairline)] sm:grid-cols-2 lg:grid-cols-3">
+          {DESTINATION.items.map((item) => (
+            <div key={item.eyebrow} className="bg-white px-6 py-7">
+              <div
+                className={`${FONT_MONO} mb-[14px] text-[10px] font-medium tracking-[0.12em] text-[var(--besu-slate)]`}
+              >
+                {item.eyebrow}
+              </div>
+              <div className="text-[14px] leading-[1.65] text-[var(--besu-ink)] [text-wrap:pretty]">
+                {item.body}
+              </div>
+            </div>
+          ))}
+        </div>
+      </RailHeading>
+    </section>
+  );
+}
+
+/* ---------------- 5. Mechanism ---------------- */
 
 export function Mechanism() {
   return (
@@ -215,7 +278,7 @@ export function Mechanism() {
   );
 }
 
-/* ---------------- 5. Control (dark) ---------------- */
+/* ---------------- 6. Control (dark) ---------------- */
 
 export function Control() {
   return (
@@ -263,7 +326,7 @@ export function Control() {
   );
 }
 
-/* ---------------- 6. What remains visible ---------------- */
+/* ---------------- 7. What remains visible ---------------- */
 
 export function Visibility() {
   return (
@@ -306,7 +369,7 @@ export function Visibility() {
   );
 }
 
-/* ---------------- 7. Alternatives ---------------- */
+/* ---------------- 8. Alternatives ---------------- */
 
 export function Alternatives() {
   return (
@@ -379,7 +442,15 @@ export function Alternatives() {
           </div>
         </div>
 
-        <div className="mt-5 max-w-[760px] border-l-[3px] border-[var(--besu-red)] pl-4 text-[14px] leading-[1.7] text-[var(--besu-slate)] [text-wrap:pretty]">
+        {/* The concession comes first and carries the same type weight as the
+            pull note, on a neutral rule rather than the red one, so it reads
+            as a peer rather than a footnote. Order is the argument: here is
+            where they win, and here is why the trade is still right. */}
+        <div className="mt-5 max-w-[760px] border-l-[3px] border-[var(--besu-slate)] pl-4 text-[14px] leading-[1.7] text-[var(--besu-slate)] [text-wrap:pretty]">
+          {ALTERNATIVES.concession}
+        </div>
+
+        <div className="mt-4 max-w-[760px] border-l-[3px] border-[var(--besu-red)] pl-4 text-[14px] leading-[1.7] text-[var(--besu-slate)] [text-wrap:pretty]">
           {ALTERNATIVES.pullNote}
         </div>
       </RailHeading>
@@ -387,7 +458,7 @@ export function Alternatives() {
   );
 }
 
-/* ---------------- 8. CTA (dark) ---------------- */
+/* ---------------- 9. CTA (dark) ---------------- */
 
 export function Cta() {
   return (
@@ -426,7 +497,7 @@ export function Cta() {
   );
 }
 
-/* ---------------- 9. Footer ---------------- */
+/* ---------------- 10. Footer ---------------- */
 
 export function PageFooter() {
   return (

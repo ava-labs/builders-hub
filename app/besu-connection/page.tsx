@@ -2,6 +2,7 @@ import {
   Alternatives,
   Control,
   Cta,
+  Destination,
   Header,
   Hero,
   Mechanism,
@@ -29,6 +30,7 @@ export default function BesuConnectionPage() {
       <Header />
       <Hero />
       <Summary />
+      <Destination />
       <Mechanism />
       <Control />
       <Visibility />
