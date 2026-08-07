@@ -23,6 +23,7 @@ import { CoreWalletTransactionButton } from '@/components/toolbox/components/Cor
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { parsePChainError } from '@/components/toolbox/hooks/contracts';
 import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
+import { PCHAIN_COMMANDS } from '@/components/toolbox/console/shared/pchainCommands';
 
 // TypeScript code showing the P-Chain disable operation
 const DISABLE_VALIDATOR_CODE = `// Disable an L1 Validator directly on the P-Chain
@@ -394,7 +395,10 @@ function DisableValidator({ onSuccess }: BaseConsoleToolProps) {
           loadingText="Disabling Validator..."
           disabled={isProcessing || !selectedValidator || !isAuthorized || !coreWalletClient || !confirmedEmergency}
           className="w-full"
-          cliCommand={`avalanche validator disable --validation-id ${selectedValidator?.validationId || '<validation-id>'} --network ${isTestnet ? 'fuji' : 'mainnet'}`}
+          cliCommand={PCHAIN_COMMANDS.disableValidator({
+            validationId: selectedValidator?.validationId || '<validation-id>',
+            network: isTestnet ? 'fuji' : 'mainnet',
+          })}
         >
           Disable Validator
         </CoreWalletTransactionButton>
