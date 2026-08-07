@@ -44,7 +44,7 @@ async function getIndexedChains(): Promise<Number[]> {
 }
 
 interface BalanceUpdateCallbacks {
-  setBalance: (type: 'pChain' | 'cChain' | string, amount: number) => void;
+  setBalance: (type: 'pChain' | 'cChain' | string, amount: number | null) => void;
   setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => void;
   getState: () => {
     isTestnet?: boolean;
@@ -188,8 +188,9 @@ class BalanceService {
     }
   }
 
-  // L1 balance fetching
-  async fetchL1Balance(walletChainId: number, walletEVMAddress: string, publicClient: any): Promise<number> {
+  // L1 balance fetching. null = could not fetch (RPC unreachable / mixed
+  // content) — NOT the same as a real 0 balance (issue #4450).
+  async fetchL1Balance(walletChainId: number, walletEVMAddress: string, publicClient: any): Promise<number | null> {
     if (!walletEVMAddress || !walletChainId) return 0;
 
     try {
@@ -224,7 +225,7 @@ class BalanceService {
       }
     } catch (error) {
       console.error('Failed to fetch L1 balance:', error);
-      return 0;
+      return null;
     }
   }
 

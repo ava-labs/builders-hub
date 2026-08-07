@@ -4,6 +4,7 @@ import { useWalletStore } from './walletStore';
 import { localStorageComp, STORE_VERSION } from './utils';
 import { useMemo } from 'react';
 import { findL1ByEvmChainId } from '@/lib/console/l1-dashboard';
+import { patchL1ByEvmChainId, type L1ListPatch } from './l1ListPatch';
 
 export type FaucetThresholds = {
   threshold: number; // min balance threshold to trigger drip
@@ -178,6 +179,8 @@ export const getL1ListStore = (isTestnet: boolean) => {
             // when callers pass a wrong/stale flag (e.g. Glacier's mainnet
             // fallback for a brand-new Fuji L1).
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, { ...l1, isTestnet: true }] })),
+            updateL1: (evmChainId: number, patch: L1ListPatch) =>
+              set((state) => ({ l1List: patchL1ByEvmChainId(state.l1List, evmChainId, patch) })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
               set((state) => ({
@@ -216,6 +219,8 @@ export const getL1ListStore = (isTestnet: boolean) => {
           combine(l1ListInitialStateMainnet, (set, get) => ({
             // Force isTestnet=false to keep the mainnet store invariant.
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, { ...l1, isTestnet: false }] })),
+            updateL1: (evmChainId: number, patch: L1ListPatch) =>
+              set((state) => ({ l1List: patchL1ByEvmChainId(state.l1List, evmChainId, patch) })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
               set((state) => ({

@@ -11,9 +11,11 @@ interface HealthCheckResult {
 interface HealthCheckButtonProps {
   chainId: string;
   domain: string;
+  /** Fires after every check so parents can gate follow-up steps on a green proxy. */
+  onResult?: (result: { success: boolean }) => void;
 }
 
-const checkNodeHealth = async (chainId: string, domain: string): Promise<HealthCheckResult> => {
+export const checkNodeHealth = async (chainId: string, domain: string): Promise<HealthCheckResult> => {
   const processedDomain = nipify(domain);
   const baseUrl = 'https://' + processedDomain;
 
@@ -77,7 +79,7 @@ const checkNodeHealth = async (chainId: string, domain: string): Promise<HealthC
   }
 };
 
-export const HealthCheckButton = ({ chainId, domain }: HealthCheckButtonProps) => {
+export const HealthCheckButton = ({ chainId, domain, onResult }: HealthCheckButtonProps) => {
   const [isChecking, setIsChecking] = useState(false);
   const [healthCheckResult, setHealthCheckResult] = useState<HealthCheckResult | null>(null);
 
@@ -87,6 +89,7 @@ export const HealthCheckButton = ({ chainId, domain }: HealthCheckButtonProps) =
 
     const result = await checkNodeHealth(chainId, domain);
     setHealthCheckResult(result);
+    onResult?.({ success: result.success });
 
     setIsChecking(false);
   };
