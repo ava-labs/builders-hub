@@ -1,11 +1,13 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
+import { useQuizProgressSync } from '@/hooks/useQuizProgressSync';
 import quizData from './data';
 
 const QuizProgress: React.FC = () => {
   const [progress, setProgress] = useState<{ [quizId: string]: boolean }>({});
   const [isLoading, setIsLoading] = useState(true);
+  const syncVersion = useQuizProgressSync();
 
   useEffect(() => {
     async function loadProgress() {
@@ -21,7 +23,7 @@ const QuizProgress: React.FC = () => {
       setIsLoading(false);
     }
     loadProgress();
-  }, []);
+  }, [syncVersion]);
 
   if (isLoading) {
     return <div>Loading progress...</div>;

@@ -138,6 +138,28 @@ function ensureSynced(): Promise<void> {
   return syncPromise
 }
 
+let resyncInFlight: Promise<void> | null = null
+
+/**
+ * Re-run the account sync after the auth session changes without a page load
+ * (the login modal closes in place — no navigation, so the module state above
+ * survives). Discards the cached one-shot sync AND the cached signed-out
+ * verdict, so the pull sees the account's rows and later saves push again.
+ * Concurrent callers (every mounted quiz fires on the same login event)
+ * share one pass.
+ */
+export function resyncQuizProgress(): Promise<void> {
+  if (typeof window === "undefined") return Promise.resolve()
+  if (!resyncInFlight) {
+    syncPromise = null
+    serverHasAccount = null
+    resyncInFlight = ensureSynced().finally(() => {
+      resyncInFlight = null
+    })
+  }
+  return resyncInFlight
+}
+
 async function pushResponse(quizId: string, response: QuizResponseValue): Promise<void> {
   if (serverHasAccount === false) return // signed out — local-only, no 401 noise
   // Awaited (not fire-and-forget) so that when quiz.tsx awaits

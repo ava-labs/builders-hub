@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
+import { useQuizProgressSync } from '@/hooks/useQuizProgressSync';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 import quizData from '@/components/quizzes/data';
@@ -31,6 +32,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [correctlyAnsweredQuizzes, setCorrectlyAnsweredQuizzes] = useState(0);
   const [shouldShowCertificate, setShouldShowCertificate] = useState(false);
+  const syncVersion = useQuizProgressSync();
 
   useEffect(() => {
     const fetchQuizzes = () => {
@@ -70,7 +72,7 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
     if (quizzes.length > 0) {
       checkQuizCompletion();
     }
-  }, [quizzes]);
+  }, [quizzes, syncVersion]);
 
   useEffect(() => {
     if (totalQuizzes > 0 && correctlyAnsweredQuizzes === totalQuizzes) {
