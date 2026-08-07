@@ -16,12 +16,18 @@ import ExternalChainIcmDiagram from "@/components/landing-v2/ExternalChainIcmDia
 /* "Build yours in the Console" would imply this pattern is buildable  */
 /* today. It is not.                                                   */
 /*                                                                     */
-/* The status of the work is stated in the hero, above the fold, at    */
-/* every breakpoint, and the build/not-built table carries the same    */
-/* visual weight as every other panel on the page. Both are content    */
-/* requirements from the office that owns this copy, not styling       */
-/* preferences — don't demote either into an accordion, a tab, or a    */
-/* footnote.                                                           */
+/* The STATUS block in the hero is a content requirement from the      */
+/* office that owns this copy, not a styling preference: the maturity  */
+/* of the work must be readable above the fold at every breakpoint.    */
+/* Do not move it down the page, and do not demote it into an          */
+/* accordion, a tab, or a footnote.                                    */
+/*                                                                     */
+/* A per-component "what is built and what is not" table sat between   */
+/* the configuration list and the download until Andrea cut it on      */
+/* 2026-08-06. Two facts it carried are now stated nowhere on the      */
+/* page: that registry synchronisation is not designed, and that no    */
+/* Avalanche-to-Besu deployment has been demonstrated. If this page is */
+/* ever extended, that gap is the first thing to reconsider.           */
 /* ------------------------------------------------------------------ */
 
 /** The report itself is not in the repo yet. This is the agreed drop path;
@@ -50,24 +56,6 @@ const CONFIGURATION = [
   "Transaction, deployment and issuance rights permissioned by role at protocol level",
   "Signer sets and weights readable on-chain, so an auditor verifies the trust model rather than being told about it",
   "Message format and encryption chosen by the sender, since the payload is opaque to the protocol",
-];
-
-/** `live` drives the marker glyph only — never the type weight. The rows
- *  that say "not built" must read exactly as loudly as the rows that say
- *  "live in production", so the distinction is carried by form (solid vs
- *  outlined square) rather than by emphasis. */
-const STATUS_ROWS: { component: string; status: string; live: boolean }[] = [
-  { component: "Interchain Messaging between Avalanche networks", status: "Live in production", live: true },
-  { component: "Sender-restricted message delivery", status: "Live in production", live: true },
-  { component: "Role-based permissioning precompiles", status: "Live in production", live: true },
-  { component: "Extension to an external, non-Avalanche chain", status: "Designed, not built", live: false },
-  { component: "Registry synchronisation between the two chains", status: "Not designed", live: false },
-  {
-    component: "On-chain aggregated signature verification on the external chain",
-    status: "Requires confirmation per deployment",
-    live: false,
-  },
-  { component: "Demonstrated Avalanche to Besu deployment", status: "None", live: false },
 ];
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -106,14 +94,20 @@ export default function ExternalChainIcmPattern() {
             <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
           </motion.div>
 
-          {/* statement — the solutions hero grammar: display left, dek in the
-              right column, bottom-aligned so it meets the closing line */}
+          {/* statement — the solutions hero layout (title left, dek in the
+              right column, bottom-aligned so it meets the closing line), but
+              deliberately not the solutions hero voice; see the h1 below */}
           <motion.div className="pt-14 lg:pt-20" {...rise(0.08)}>
             <div className="lg:grid lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)] lg:gap-14">
-              <h1 className="v2-display text-3xl text-zinc-900 md:text-5xl xl:text-[3.25rem] dark:text-zinc-50">
-                <span className="block">Connecting an external EVM chain</span>
-                <span className="block">to Avalanche with</span>
-                <span className="block text-[#E6212F]">ICM attestors</span>
+              {/* .v2-heading, not .v2-display: Aeonik 500 and sentence case
+                  rather than heavy uppercase caps, and no red punch line.
+                  The house display grammar is a selling voice, and the whole
+                  argument of this page is that it is not selling anything.
+                  Consequence worth keeping: red now appears exactly once on
+                  the page, on the message in flight in the diagram — which
+                  is what the token is supposed to mean. */}
+              <h1 className="v2-heading text-2xl text-zinc-900 md:text-4xl xl:text-[2.75rem] dark:text-zinc-50">
+                Connecting an external EVM chain to Avalanche with ICM attestors
               </h1>
               <div className="lg:flex lg:flex-col lg:justify-end lg:border-l lg:border-zinc-200 lg:pl-10 dark:lg:border-zinc-800">
                 <p className="mt-8 max-w-2xl pb-1 text-base leading-relaxed text-zinc-600 lg:mt-0 lg:max-w-none lg:text-lg lg:leading-relaxed dark:text-zinc-300">
@@ -205,60 +199,7 @@ export default function ExternalChainIcmPattern() {
             </ul>
           </motion.div>
 
-          {/* the build/not-built ledger — same panel treatment, same type
-              scale and the same section rhythm as every other block above.
-              The live/not-live distinction is a glyph, never a weight. */}
-          <motion.div className="pt-20 lg:pt-28" {...rise(0.38)}>
-            <SectionLabel>WHAT IS BUILT AND WHAT IS NOT</SectionLabel>
-            <dl className="border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80">
-              <div className="hidden border-b border-zinc-200 px-5 py-3 md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:gap-8 md:px-8 dark:border-zinc-800">
-                <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                  COMPONENT
-                </span>
-                <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500">STATUS</span>
-              </div>
-              {STATUS_ROWS.map((row) => (
-                <div
-                  key={row.component}
-                  className="grid gap-2 border-b border-zinc-200 px-5 py-5 last:border-b-0 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] md:items-baseline md:gap-8 md:px-8 dark:border-zinc-800"
-                >
-                  <dt className="text-[15px] leading-relaxed text-zinc-900 dark:text-zinc-50">{row.component}</dt>
-                  <dd className="flex items-center gap-3">
-                    <span
-                      aria-hidden
-                      className={`h-2 w-2 shrink-0 ${
-                        row.live
-                          ? "bg-zinc-900 dark:bg-zinc-100"
-                          : "border border-zinc-400 bg-transparent dark:border-zinc-500"
-                      }`}
-                    />
-                    <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-900 dark:text-zinc-50">
-                      {row.status}
-                    </span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <div className="mt-4 flex flex-wrap items-center gap-x-8 gap-y-2">
-              <span className="flex items-center gap-2.5">
-                <span aria-hidden className="h-2 w-2 shrink-0 bg-zinc-900 dark:bg-zinc-100" />
-                <span className="font-mono text-[10px] tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-                  RUNNING IN PRODUCTION TODAY
-                </span>
-              </span>
-              <span className="flex items-center gap-2.5">
-                <span
-                  aria-hidden
-                  className="h-2 w-2 shrink-0 border border-zinc-400 bg-transparent dark:border-zinc-500"
-                />
-                <span className="font-mono text-[10px] tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-                  NOT RUNNING ANYWHERE
-                </span>
-              </span>
-            </div>
-          </motion.div>
-
-          <motion.div className="pt-20 pb-20 lg:pt-28 lg:pb-28" {...rise(0.42)}>
+          <motion.div className="pt-20 pb-20 lg:pt-28 lg:pb-28" {...rise(0.38)}>
             <SectionLabel>DOWNLOAD THE FULL ANALYSIS</SectionLabel>
             <div className="border-y border-zinc-200 bg-white/80 px-5 py-8 backdrop-blur-sm md:px-8 md:py-10 dark:border-zinc-800 dark:bg-zinc-950/80">
               <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-14">
