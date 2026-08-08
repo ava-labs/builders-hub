@@ -8,6 +8,7 @@ interface NetworkListProps {
   isNetworkActive: (network: L1ListItem) => boolean;
   onNetworkSelect: (network: L1ListItem) => void;
   onNetworkRemove?: (network: L1ListItem) => void;
+  onNetworkEditRpc?: (network: L1ListItem) => void;
   isEditMode: boolean;
 }
 
@@ -17,6 +18,7 @@ export function NetworkList({
   isNetworkActive,
   onNetworkSelect,
   onNetworkRemove,
+  onNetworkEditRpc,
   isEditMode,
 }: NetworkListProps) {
   return (
@@ -34,6 +36,7 @@ export function NetworkList({
           onSelect={onNetworkSelect}
           isEditMode={isEditMode}
           onRemove={onNetworkRemove}
+          onEditRpc={onNetworkEditRpc}
           balance={getNetworkBalance(network)}
         />
       ))}
