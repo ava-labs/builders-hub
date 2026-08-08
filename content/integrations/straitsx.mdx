@@ -1,15 +1,124 @@
 ---
 title: StraitsX
-category: Assets
+category: Payments
 available: ["C-Chain"]
-description: "StraitsX provides regulated stablecoins including XSGD (Singapore Dollar stablecoin), offering tokenized fiat currencies for Southeast Asian markets."
+description: "StraitsX is a Singapore-regulated stablecoin issuer and payments platform providing XSGD, XUSD and XIDR alongside Visa card issuing, fiat on and off ramp, and settlement infrastructure across Southeast Asia."
 logo: /images/straitsx.png
 developer: StraitsX
 website: https://www.straitsx.com/
-documentation: https://www.straitsx.com/
+documentation: https://docs.straitsx.com/
 ---
 
 ## Overview
 
-StraitsX is a regulated stablecoin issuer providing XSGD (Singapore Dollar stablecoin) and other tokenized fiat currencies for Southeast Asian markets. Compliant under Singapore's Payment Services Act with transparent reserve management, StraitsX lets users and businesses access stable digital representations of regional currencies on blockchain for cross-border payments, remittances, and financial services.
+StraitsX is a Singapore-regulated stablecoin issuer and payments platform. It issues XSGD, XUSD and XIDR, three fully reserved stablecoins pegged to the Singapore dollar, US dollar and Indonesian rupiah, and it operates the licensed infrastructure that connects them to bank rails, card networks and QR payment schemes across Southeast Asia.
 
+StraitsX is regulated by the Monetary Authority of Singapore. That licensing is what lets StraitsX run mint and redemption against local bank accounts, hold customer funds under Singapore safeguarding rules, and sponsor Visa card programs for partners that do not hold their own scheme membership. For a builder on Avalanche, StraitsX is the point where an on-chain balance becomes spendable money in Asia: a token on the C-Chain, a bank transfer in Singapore or Indonesia, or a card authorization at a merchant terminal.
+
+XSGD went live on Avalanche C-Chain in June 2024, making Avalanche the fifth network to carry the token.
+
+## Avalanche Support
+
+XSGD is deployed on Avalanche C-Chain as a standard ERC-20 token. Applications on the C-Chain can hold, transfer and integrate XSGD like any other C-Chain token, with the difference that redemption into Singapore dollars runs through a MAS-regulated issuer rather than an offshore counterparty.
+
+| Item | Value |
+| :--- | :--- |
+| Token | XSGD |
+| Network | Avalanche C-Chain |
+| Contract | `0xb2F85b7AB3c2b6f62DF06dE6aE7D09c010a5096E` |
+| Standard | ERC-20 |
+
+What this enables on Avalanche:
+
+- **SGD-Denominated Settlement**: Serve Singapore and the wider region without taking dollar FX exposure on every leg.
+- **Regulated Redemption**: End a C-Chain payment flow in a Singapore bank account through a licensed issuer.
+- **Card Funding**: Back real-world Visa spend from a C-Chain balance through StraitsX card issuing.
+- **Non-USD Stablecoin Liquidity**: Add a regulated SGD asset to pools, lending markets and structured products that need currency diversification.
+
+## Features
+
+- **Regulated Stablecoin Issuance**: XSGD, XUSD and XIDR issued directly by StraitsX under Singapore regulation and backed 1:1 by fiat reserves.
+- **Visa Card Issuing with BIN Sponsorship**: Launch a card program without holding scheme membership or sourcing a local banking partner.
+- **Stablecoin Card Settlement**: Prefund and settle card programs in stablecoins, including XUSD and XSGD, so treasury moves around the clock rather than on banking hours.
+- **Fiat On and Off Ramp**: Mint and redeem against SGD, USD and IDR bank rails, with virtual accounts for programmatic collection.
+- **QR Payment Acceptance**: Connectivity into Southeast Asian e-wallet issuers and network acquirers.
+- **Stablecoin Swap and OTC**: Instant swaps between supported stablecoins, plus an OTC desk for business-size flow.
+- **Multi-Chain Issuance**: The same token set deployed across Avalanche C-Chain, Ethereum, Polygon, Arbitrum, Base, Solana, Hedera, Zilliqa and the XRP Ledger.
+- **Wallet Tokenization**: Cards provision into Apple Pay, Google Pay and Samsung Pay, including in-app provisioning.
+- **Multi-BIN Architecture**: Extend a card program into additional Asian markets without rebuilding the issuing stack per country.
+- **API-First Integration**: Card, payment, payout, swap and blockchain APIs documented with a sandbox environment.
+
+## Stablecoins
+
+All three tokens are fully reserved and redeemable 1:1 through StraitsX. Reserves are held with regulated financial institutions in Singapore, with attestations published publicly.
+
+| Token | Peg | Networks |
+| :--- | :--- | :--- |
+| XSGD | Singapore dollar | Avalanche C-Chain, Ethereum, Polygon, Arbitrum, Base, Solana, Hedera, Zilliqa, XRP Ledger |
+| XUSD | US dollar | Ethereum, BNB Smart Chain, Solana |
+| XIDR | Indonesian rupiah | Ethereum, Polygon, Zilliqa |
+
+## Platform Capabilities
+
+### Card Issuing
+
+StraitsX issues Visa cards for partner programs and sponsors the BIN, so a fintech, exchange or wallet can launch without its own scheme membership.
+
+- **Virtual and Physical Cards**: Fully branded to the partner.
+- **Wallet Tokenization**: Apple Pay, Google Pay, Samsung Pay and wearables, with in-app provisioning.
+- **Stablecoin Prefunding**: Programs hold XUSD, XSGD or USDC with StraitsX, and authorizations draw from that balance.
+- **Fiat Prefunding**: Direct SGD and USD funding where a program prefers it.
+- **Multi-BIN Structure**: Expand into additional Asian markets on a single integration.
+
+Live programs include OKX Card in Singapore, RedotPay and Pionex.
+
+### Accept and Send
+
+Move money between fiat and stablecoins over bank rails StraitsX holds directly. Mint XSGD or XUSD from an SGD or USD transfer, redeem in the other direction, and use virtual accounts to attribute inbound collections automatically. This is the on and off ramp underneath most StraitsX partner flows in Singapore and Indonesia.
+
+### QR Payments
+
+Acceptance connectivity into Southeast Asian e-wallet issuers and network acquirers, which is how a stablecoin balance reaches a merchant that has never handled digital assets. Relevant in markets where QR, not cards, is the dominant consumer rail.
+
+### Swap and OTC
+
+Instant swaps between supported stablecoins at live rates for retail and business accounts, plus an OTC desk for size that would move an on-chain pool.
+
+## Use Cases
+
+- **Cross-Border Payments**: Settle a Singapore or Indonesia leg in a local-currency stablecoin instead of routing dollars through correspondent banks.
+- **Card Programs for Digital Asset Platforms**: Exchanges and wallets give users Visa acceptance funded from stablecoin balances rather than a fiat float.
+- **Regional Treasury**: Hold SGD exposure on-chain, move it around the clock, and redeem to a bank account when needed.
+- **On-Chain FX**: Convert between SGD and USD as two stablecoins from the same issuer, with 1:1 redemption on both sides.
+- **Merchant Settlement**: Pay Southeast Asian merchants into the QR rails they already use, funded from an on-chain balance.
+- **DeFi Collateral and Liquidity**: Use XSGD as a regulated non-USD stablecoin in pools, lending markets and structured products.
+
+## Getting Started
+
+To integrate StraitsX:
+
+1. **Scope the Requirement**: Stablecoin access only, on and off ramp, a card program, or a combination. Get in touch at [straitsx.com/contact](https://www.straitsx.com/contact).
+2. **Complete Onboarding**: Business KYB, and for card programs, program design covering card types, funding asset, target markets and branding.
+3. **Integrate**: Build against the card, payment and stablecoin APIs at [docs.straitsx.com](https://docs.straitsx.com/), with a sandbox for testing before production.
+4. **Fund and Settle**: Prefund in stablecoins or fiat and reconcile through the StraitsX business dashboard.
+5. **Go Live**: Card programs typically reach launch in 12 to 14 weeks from signed agreement.
+
+## Regulation and Compliance
+
+- Regulated by the Monetary Authority of Singapore.
+- Customer funds held under Singapore safeguarding requirements.
+- KYC, KYB and AML screening at onboarding, with ongoing transaction monitoring.
+- Card programs operated in line with Visa scheme requirements.
+- Reserve attestations published at [straitsx.com/trust](https://www.straitsx.com/trust).
+
+## Developer Resources
+
+| Resource | Link |
+| :--- | :--- |
+| API documentation | [docs.straitsx.com](https://docs.straitsx.com/) |
+| Card issuing documentation | [docs.straitsx.com/v1-CARDS](https://docs.straitsx.com/v1-CARDS/docs/introduction) |
+| Reserve attestations | [straitsx.com/trust](https://www.straitsx.com/trust) |
+| XSGD | [straitsx.com/xsgd](https://www.straitsx.com/xsgd) |
+| XUSD | [straitsx.com/xusd](https://www.straitsx.com/xusd) |
+| XIDR | [straitsx.com/xidr](https://www.straitsx.com/xidr) |
+| Contact | [straitsx.com/contact](https://www.straitsx.com/contact) |
