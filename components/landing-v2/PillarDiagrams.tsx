@@ -1,7 +1,7 @@
 import React from "react";
 
 /* ------------------------------------------------------------------ */
-/* Pillar diagrams — one small animated instrument per guarantee        */
+/* Pillar diagrams: one small animated instrument per guarantee         */
 /*                                                                      */
 /* Same drawing language as ArchitectureDiagram: hairline strokes,      */
 /* zinc structure, red reserved for the thing that is alive (a pulsing  */
@@ -20,7 +20,7 @@ const NODE_FILL = "fill-zinc-700 dark:fill-zinc-300";
    thin strip; the privacy seal is nearly square), so sharing one 480×360
    frame left some of them small and off-center in their stage. A tight
    box also raises the viewBox→viewport scale, so strokes, nodes, and
-   labels all render heavier — the boldness comes from the crop, not from
+   labels all render heavier. The boldness comes from the crop, not from
    retouching every element. max-w per diagram equalizes optical mass. */
 function svgProps(label: string, viewBox: string, sizeClass: string) {
   return {
@@ -31,7 +31,7 @@ function svgProps(label: string, viewBox: string, sizeClass: string) {
   };
 }
 
-/* Performance — a transaction leaves SUBMITTED, locks at FINAL. The    */
+/* Performance: a transaction leaves SUBMITTED, locks at FINAL. The     */
 /* lock ring pulses once per pass: settlement is an event, not a curve. */
 function PerformanceDiagram() {
   return (
@@ -56,7 +56,7 @@ function PerformanceDiagram() {
         <animate attributeName="opacity" values="0.35;0" keyTimes="0;1" dur="0.9s" repeatCount="indefinite" />
       </circle>
 
-      {/* not one transaction — a pipeline of them, each final in under a
+      {/* not one transaction but a pipeline of them, each final in under a
           second. The evenly staggered stream is the throughput story. */}
       {[0, 0.3, 0.6, 0.9, 1.2, 1.5].map((delay) => (
         <circle key={delay} cy={180} r={3.5} fill="#E6212F">
@@ -130,8 +130,8 @@ function InteropRing({
   );
 }
 
-/* Interoperability — one message relays around all three kinds of      */
-/* chain: public, permissioned, and private. The boundaries differ; the */
+/* Reach: one message relays around all three kinds of chain:           */
+/* public, permissioned, and private. The boundaries differ; the        */
 /* messaging doesn't.                                                   */
 function InteropDiagram() {
   return (
@@ -162,71 +162,10 @@ function InteropDiagram() {
   );
 }
 
-/* Privacy — a sealed chain; outside probes reach the boundary and die. */
-function PrivacyDiagram() {
-  // inner nodes on R=64 (64·sin60 = 55.43, 64·cos60 = 32)
-  const inner: [number, number][] = [
-    [0, -64],
-    [55.43, -32],
-    [55.43, 32],
-    [0, 64],
-    [-55.43, 32],
-    [-55.43, -32],
-  ];
-  // observers at R=170 / probe tips at the boundary R=122, pre-rounded
-  const probes: { ox: number; oy: number; bx: number; by: number; begin: string }[] = [
-    { ox: 387.22, oy: 95, bx: 345.66, by: 119, begin: "0s" },
-    { ox: 92.78, oy: 265, bx: 134.34, by: 241, begin: "2.3s" },
-    { ox: 210.48, oy: 12.58, bx: 218.82, by: 59.85, begin: "4.6s" },
-  ];
-  return (
-    <svg {...svgProps("A validator-only L1 invisible to outside observers", "82 2 316 304", "max-w-[460px]")}>
-      {/* the chain, alive inside its boundary */}
-      {inner.map(([dx, dy], i) => (
-        <g key={i}>
-          <line x1={240} y1={180} x2={240 + dx} y2={180 + dy} strokeWidth={1} className={HAIRLINE} />
-          <circle cx={240 + dx} cy={180 + dy} r={6} className={NODE_FILL} />
-        </g>
-      ))}
-      <circle cx={240} cy={180} r={20} strokeWidth={1.5} className={`fill-white ${STRONG} dark:fill-zinc-950`} />
-      <circle cx={240} cy={180} r={5} fill="#E6212F">
-        <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
-      </circle>
-
-      {/* sealed double boundary */}
-      <circle cx={240} cy={180} r={110} fill="none" strokeWidth={1.5} className={STRONG} />
-      <circle cx={240} cy={180} r={118} fill="none" strokeWidth={1} opacity={0.5} className={STRONG} />
-
-      {/* probes: appear, reach the boundary, find nothing, fade */}
-      {probes.map((p, i) => (
-        <g key={i} opacity={0}>
-          <animate
-            attributeName="opacity"
-            values="0;1;1;0;0"
-            keyTimes="0;0.1;0.45;0.6;1"
-            dur="7s"
-            begin={p.begin}
-            repeatCount="indefinite"
-          />
-          <circle cx={p.ox} cy={p.oy} r={4} className="fill-zinc-400 dark:fill-zinc-500" />
-          <line
-            x1={p.ox}
-            y1={p.oy}
-            x2={p.bx}
-            y2={p.by}
-            strokeDasharray="2 5"
-            strokeWidth={1}
-            className="stroke-zinc-400 dark:stroke-zinc-500"
-          />
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-/* Compliance — one gate in the boundary: the allowlisted transaction   */
-/* passes, the unknown one stops at the line.                           */
-function ComplianceDiagram() {
+/* Control: one gate in the boundary. The allowlisted transaction       */
+/* passes, the unknown one stops at the line; the permissioned chain    */
+/* lives sealed inside its own perimeter.                               */
+function ControlDiagram() {
   // 5 inner nodes on R=56 around (300,180), pre-rounded
   const inner: [number, number][] = [
     [300, 124],
@@ -290,14 +229,12 @@ function ComplianceDiagram() {
 
 export default function PillarDiagram({ slug }: { slug: string }) {
   switch (slug) {
+    case "control":
+      return <ControlDiagram />;
+    case "reach":
+      return <InteropDiagram />;
     case "performance":
       return <PerformanceDiagram />;
-    case "interoperability":
-      return <InteropDiagram />;
-    case "privacy":
-      return <PrivacyDiagram />;
-    case "compliance":
-      return <ComplianceDiagram />;
     default:
       return null;
   }
