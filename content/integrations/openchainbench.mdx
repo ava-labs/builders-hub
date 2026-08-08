@@ -1,0 +1,35 @@
+---
+title: OpenChainBench
+category: Analytics & Data
+available: ["C-Chain"]
+description: "OpenChainBench is an open, third-party benchmark that measures live latency of Avalanche public RPC endpoints from multiple regions."
+logo: /images/openchainbench.png
+developer: OpenChainBench
+website: https://openchainbench.com/
+documentation: https://openchainbench.com/methodology
+---
+
+## Overview
+
+OpenChainBench is an open benchmark that probes public no-key RPC endpoints from three regions every minute and publishes p50, p95 and p99 latency. The Avalanche C-Chain benchmark measures the endpoints commonly used by developers when picking a public fallback or comparing responsiveness.
+
+## Features
+
+- **Multi-region probing**: Endpoints are probed from three regions to surface region-dependent latency
+- **Open methodology**: Every measurement definition, probe interval, and provider list is documented and versioned
+- **Machine-readable APIs**: JSON, JSON-LD (`Dataset`, `StatisticalReport`), OpenAPI, and MCP surfaces for programmatic use
+- **CC-BY-4.0 data**: All measurements are freely re-usable with attribution
+
+## Documentation
+
+For methodology, provider lists, and API reference, visit the [OpenChainBench Methodology page](https://openchainbench.com/methodology) and the [Avalanche RPC benchmark](https://openchainbench.com/benchmarks/avalanche-rpc).
+
+## Use Cases
+
+- **Endpoint selection**: Compare public no-key Avalanche RPC endpoints when picking a fallback for a dApp
+- **Provider evaluation**: Reference third-party measurements when evaluating paid RPC providers
+- **Research**: Cite live latency data in blog posts, dashboards, and academic work under CC-BY-4.0
+
+## Conclusion
+
+OpenChainBench provides neutral, live latency measurements of Avalanche public RPC endpoints under an open methodology and permissive data license, useful for developers picking an endpoint and researchers comparing infrastructure.
