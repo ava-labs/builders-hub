@@ -10,7 +10,7 @@ Available on all commands:
 | Flag | Short | Description | Default |
 |------|-------|-------------|---------|
 | `--network` | `-n` | Network: `fuji` or `mainnet` | `fuji` |
-| `--key-name` | | Load key from keystore by name | |
+| `--key-name` | | Load key from keystore by name (repeat or comma-separate to sign with multiple keys) | |
 | `--ledger` | | Use Ledger hardware wallet | `false` |
 | `--ledger-index` | | Ledger BIP44 address index | `0` |
 | `--rpc-url` | | Custom RPC URL (overrides `--network`) | |
@@ -94,7 +94,7 @@ platform-cli keys delete --name <name> [--force]
 platform-cli keys default [--name <name>]
 ```
 
-Shows current default if `--name` is omitted. Sets default if `--name` is provided.
+Shows the current default if you omit `--name`. Sets the default if you provide `--name`.
 
 ## wallet
 
@@ -190,7 +190,7 @@ platform-cli validator add-permissionless --node-id <id> --stake <avax>
 | `--node-id` | Node ID (required) | |
 | `--stake` | Stake in AVAX (required) | |
 | `--duration` | Validation duration | `336h` |
-| `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
+| `--start` | Start time (RFC3339 or `now`). The network ignores this flag after Durango. Validation starts at tx acceptance | `now` |
 | `--delegation-fee` | Fee percentage (0.02 = 2%) | `0.02` |
 | `--reward-address` | Reward address | own address |
 | `--bls-public-key` | BLS public key hex (recommended) | |
@@ -208,7 +208,7 @@ platform-cli validator add-permissionless-delegator --node-id <id> --stake <avax
 | `--node-id` | Node ID to delegate to (required) | |
 | `--stake` | Stake in AVAX (required) | |
 | `--duration` | Delegation duration | `336h` |
-| `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
+| `--start` | Start time (RFC3339 or `now`). The network ignores this flag after Durango. Validation starts at tx acceptance | `now` |
 | `--reward-address` | Reward address | own address |
 
 ### validator add-auto-renewed
@@ -238,7 +238,7 @@ Adds an auto-renewed validator (`AddAutoRenewedValidatorTx`, ACP-236) that resta
 platform-cli validator set-auto-renewed-config --tx-id <id> --period <dur> --auto-compound <frac>
 ```
 
-Updates the next-cycle config of an auto-renewed validator (`SetAutoRenewedValidatorConfigTx`). Must be signed by the owner address set at add time.
+Updates the next-cycle config of an auto-renewed validator (`SetAutoRenewedValidatorConfigTx`). The owner address set at add time must sign the transaction.
 
 | Flag | Description |
 |------|-------------|
@@ -255,18 +255,22 @@ Updates the next-cycle config of an auto-renewed validator (`SetAutoRenewedValid
 platform-cli subnet create
 ```
 
-Creates a new subnet owned by the wallet address. No additional flags required.
+Creates a new subnet that the wallet address owns. This command needs no additional flags.
 
 ### subnet transfer-ownership
 
 ```bash
-platform-cli subnet transfer-ownership --subnet-id <id> --new-owner <address>
+platform-cli subnet transfer-ownership --subnet-id <id> --new-owner <address> [--new-owner <address> ...] [--threshold <n>] [--output-tx-path <file>]
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--subnet-id` | Subnet ID (required) |
-| `--new-owner` | New owner P-Chain address (required) |
+| `--new-owner` | New owner P-Chain address, bech32 or CB58 (required; repeat or comma-separate for a multisig owner) |
+| `--threshold` | Owner signatures required for future subnet changes (default `1`) |
+| `--output-tx-path` | Write a partially signed tx file instead of submitting (complete with `tx sign` / `tx commit`) |
+
+See [Multisig Owners](/docs/tooling/platform-cli/multisig) for multisig workflows.
 
 ### subnet convert-to-l1
 
@@ -300,7 +304,7 @@ Adds a validator to a permissioned subnet (`AddSubnetValidatorTx`). The node mus
 | `--subnet-id` | Subnet ID (required) | |
 | `--node-id` | Validator node ID, must already validate the primary network (required) | |
 | `--weight` | Validator sampling weight on the subnet (required, > 0) | |
-| `--start` | Start time (RFC3339 or `now`). Ignored post-Durango; validation starts at tx acceptance | `now` |
+| `--start` | Start time (RFC3339 or `now`). The network ignores this flag after Durango. Validation starts at tx acceptance | `now` |
 | `--duration` | Validation duration (must fall within the node's primary network validation period) | `336h` |
 
 ## l1
@@ -347,6 +351,34 @@ platform-cli l1 disable-validator --validation-id <id>
 | Flag | Description |
 |------|-------------|
 | `--validation-id` | Validation ID to disable (required) |
+
+## tx
+
+Sign and submit partially signed transactions for multisig owners. See [Multisig Owners](/docs/tooling/platform-cli/multisig).
+
+### tx sign
+
+Add signatures with locally available keys. The CLI keeps existing signatures and updates the file in place.
+
+```bash
+platform-cli tx sign --tx-path <file>
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tx-path` | Transaction file to sign (required) |
+
+### tx commit
+
+Submit a fully signed transaction and wait for acceptance. Refuses under-signed transactions and lists the missing signers. This command needs no key.
+
+```bash
+platform-cli tx commit --tx-path <file>
+```
+
+| Flag | Description |
+|------|-------------|
+| `--tx-path` | Transaction file to submit (required) |
 
 ## chain
 
