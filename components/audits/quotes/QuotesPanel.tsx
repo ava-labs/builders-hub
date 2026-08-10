@@ -9,23 +9,22 @@ import { QuoteTable } from "@/components/audits/quotes/QuoteTable";
 import { QuoteCards } from "@/components/audits/quotes/QuoteCards";
 import { AcceptQuoteDialog } from "@/components/audits/quotes/AcceptQuoteDialog";
 
-export type QuoteChip = { label: string; tone: "info" | "positive" };
+export type QuoteChip = { label: string };
 
 /**
- * Callout chips are objective facts only (lowest price, earliest start,
- * re-audit included): the marketplace never recommends a firm.
+ * Callout chips are objective facts only (lowest price, earliest start):
+ * the marketplace never recommends a firm.
  */
 export function chipsFor(quote: OwnerQuote, quotes: OwnerQuote[]): QuoteChip[] {
   const chips: QuoteChip[] = [];
   if (quotes.length > 1) {
     const lowest = Math.min(...quotes.map((q) => q.price_usd));
     const earliest = Math.min(...quotes.map((q) => new Date(q.earliest_start).getTime()));
-    if (quote.price_usd === lowest) chips.push({ label: "Lowest price", tone: "info" });
+    if (quote.price_usd === lowest) chips.push({ label: "Lowest price" });
     if (new Date(quote.earliest_start).getTime() === earliest) {
-      chips.push({ label: "Earliest start", tone: "info" });
+      chips.push({ label: "Earliest start" });
     }
   }
-  if (quote.reaudit_included) chips.push({ label: "Re-audit included", tone: "positive" });
   return chips;
 }
 
@@ -100,14 +99,8 @@ export function QuotesPanel({
 }
 
 export function QuoteChipPill({ chip }: { chip: QuoteChip }) {
-  const tone =
-    chip.tone === "positive"
-      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-      : "border-info/30 bg-info/10 text-info dark:text-info-soft";
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] ${tone}`}
-    >
+    <span className="inline-flex items-center rounded-full border border-info/30 bg-info/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-info dark:text-info-soft">
       {chip.label}
     </span>
   );

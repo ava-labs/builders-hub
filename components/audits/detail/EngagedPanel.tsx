@@ -96,7 +96,6 @@ export function EngagedPanel({
         </div>
         <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-zinc-500 dark:text-zinc-400">
           {weeksLabel(acceptedQuote.duration_weeks)} · starts {formatIsoDate(acceptedQuote.earliest_start)}
-          {acceptedQuote.reaudit_included ? " · re-audit included" : ""}
           {/* The SOW matters most right here, at the off-platform handover
               (round-5 6a); the winner's message stays in the archive below. */}
           {acceptedQuote.deal_doc_url ? (

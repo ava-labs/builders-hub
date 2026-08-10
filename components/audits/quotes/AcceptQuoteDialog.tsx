@@ -74,7 +74,6 @@ export function AcceptQuoteDialog({ requestId, quote, otherCount, onClose }: Acc
         { label: "Price", value: formatUsd(quote.price_usd), strong: true },
         { label: "Duration", value: weeksLabel(quote.duration_weeks) },
         { label: "Earliest start", value: formatIsoDate(quote.earliest_start) },
-        { label: "Re-audit of fixes", value: quote.reaudit_included ? "Included" : "Not included" },
       ]
     : [];
 

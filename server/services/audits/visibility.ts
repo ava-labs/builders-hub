@@ -52,7 +52,6 @@ export interface OwnerQuote {
   message: string;
   /** The firm's own proposal or SOW, if it attached one. */
   deal_doc_url: string | null;
-  reaudit_included: boolean;
   status: string;
   display_status: DisplayQuoteStatus;
   firm_name: string;
@@ -123,7 +122,6 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
     earliest_start: quote.earliest_start,
     message: quote.message,
     deal_doc_url: quote.deal_doc_url,
-    reaudit_included: quote.reaudit_included,
     status: quote.status,
     display_status: deriveQuoteDisplayStatus(quote.status, display_status),
     firm_name: quote.auditor.firm_name,
@@ -306,7 +304,6 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
           earliest_start: own_quote.earliest_start,
           message: own_quote.message,
           deal_doc_url: own_quote.deal_doc_url,
-          reaudit_included: own_quote.reaudit_included,
           updated_at: own_quote.updated_at,
         }
       : null,
@@ -542,7 +539,6 @@ export async function getAdminRequestDetail(requestId: string) {
       // Admins decide subsidies against these quotes; the proposal doc is
       // part of what they are subsidizing (round-5 6b).
       deal_doc_url: quote.deal_doc_url,
-      reaudit_included: quote.reaudit_included,
       status: quote.status,
       display_status: deriveQuoteDisplayStatus(quote.status, display_status),
       firm_name: quote.auditor.firm_name,

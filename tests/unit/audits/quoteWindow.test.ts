@@ -38,7 +38,6 @@ const INPUT = {
   duration_weeks: 4,
   earliest_start: new Date(Date.now() + 7 * DAY),
   message: "Fixed fee including a re-audit of fixes within 30 days.",
-  reaudit_included: true,
 };
 
 beforeEach(() => {

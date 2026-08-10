@@ -22,7 +22,6 @@ const quote = (over: Partial<OwnerQuote>): OwnerQuote => ({
   earliest_start: new Date("2026-08-12T00:00:00.000Z"),
   message: "Fixed fee including a re-audit of fixes within 30 days.",
   deal_doc_url: null,
-  reaudit_included: false,
   status: "submitted",
   display_status: "submitted",
   firm_name: "Ledgerproof Labs",

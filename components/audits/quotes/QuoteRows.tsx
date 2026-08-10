@@ -117,7 +117,7 @@ export function QuoteRows({ quotes, neededBy = null, onAccept }: QuoteRowsProps)
                   </div>
                 </div>
 
-                <div className="mt-3 grid rounded-[10px] border border-zinc-200 sm:grid-cols-3 dark:border-white/10">
+                <div className="mt-3 grid rounded-[10px] border border-zinc-200 sm:grid-cols-2 dark:border-white/10">
                   <TermCell label="Duration">{weeksLabel(quote.duration_weeks)}</TermCell>
                   <TermCell label="Can start" divided>
                     <span className={cn(outside && "text-brand-deep dark:text-brand-soft")}>
@@ -129,9 +129,6 @@ export function QuoteRows({ quotes, neededBy = null, onAccept }: QuoteRowsProps)
                         outside your window
                       </span>
                     ) : null}
-                  </TermCell>
-                  <TermCell label="Re-audit of fixes" divided>
-                    {quote.reaudit_included ? "Included" : "Not included"}
                   </TermCell>
                 </div>
 

@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { AuditorRequestView } from "@/server/services/audits/visibility";
@@ -76,7 +75,6 @@ export function QuoteComposer({
   );
   const [message, setMessage] = useState(existing?.message ?? "");
   const [dealDoc, setDealDoc] = useState(existing?.deal_doc_url ?? "");
-  const [reaudit, setReaudit] = useState(existing?.reaudit_included ?? false);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   // Parsed the same way the save parses it, so the confirm dialog can never
@@ -131,7 +129,6 @@ export function QuoteComposer({
           earliest_start: start.toISOString(),
           message: message.trim(),
           deal_doc_url: dealDoc.trim() || null,
-          reaudit_included: reaudit,
         }),
       });
       const body = await res.json().catch(() => null);
@@ -267,18 +264,6 @@ export function QuoteComposer({
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Your own scoping doc or SOW, if you have one. The project sees it beside your quote.
           </p>
-        </div>
-
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3 dark:border-white/10">
-          <label className="text-sm" htmlFor="quote-reaudit">
-            Re-audit of fixes included in this price
-          </label>
-          <Switch
-            id="quote-reaudit"
-            checked={reaudit}
-            onCheckedChange={setReaudit}
-            disabled={!editable || busy}
-          />
         </div>
 
         {/* Send quote at thumb reach below lg (board 1g); in-card from lg up. */}

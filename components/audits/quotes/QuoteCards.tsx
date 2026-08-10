@@ -91,12 +91,6 @@ export function QuoteCards({ quotes, neededBy = null, onAccept }: QuoteCardsProp
                 ) : null}
               </dd>
             </div>
-            <div className="flex items-baseline justify-between gap-4 border-t border-zinc-200 px-3.5 py-2.5 text-sm dark:border-white/[0.08]">
-              <dt className="text-zinc-600 dark:text-[#A2AFB2]">Re-audit of fixes</dt>
-              <dd className="font-mono text-[13px]">
-                {quote.reaudit_included ? "Included" : "Not included"}
-              </dd>
-            </div>
           </dl>
           {quote.message ? <QuoteMessage message={quote.message} /> : null}
           <div className="mt-3">

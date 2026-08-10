@@ -132,7 +132,6 @@ export const auditQuoteSchema = z.strictObject({
   // The firm's own proposal, scoping doc or SOW. Optional, and normalized so
   // a pasted "docs.google.com/..." still resolves.
   deal_doc_url: httpsUrl.nullable().optional().or(z.literal("").transform(() => null)),
-  reaudit_included: z.boolean(),
 });
 export type AuditQuoteInput = z.infer<typeof auditQuoteSchema>;
 

@@ -34,11 +34,6 @@ export function QuoteSummary({
           {weeksLabel(quote.duration_weeks)} · starts {formatIsoDate(quote.earliest_start)}
         </p>
       </div>
-      {quote.reaudit_included ? (
-        <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-emerald-700 dark:text-emerald-400">
-          Re-audit of fixes included
-        </p>
-      ) : null}
       {quote.deal_doc_url ? (
         <p className="mt-2 text-sm">
           <a
