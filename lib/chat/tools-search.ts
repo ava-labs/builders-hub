@@ -101,6 +101,13 @@ export const consoleTools: ConsoleTool[] = [
     description: 'Set up Prometheus and Grafana monitoring for your AvalancheGo nodes',
     keywords: ['monitoring', 'grafana', 'prometheus', 'metrics', 'health', 'node', 'tps', 'uptime', 'dashboard', 'docker', 'terraform', 'kubernetes'],
   },
+  {
+    title: 'Advance P-Chain View',
+    url: '/console/layer-1/advance-pchain-view',
+    category: 'Layer 1',
+    description: 'Produce blocks on an idle L1 so its ProposerVM epoch catches up and warp delivery verifies',
+    keywords: ['proposervm', 'epoch', 'stale', 'advance', 'self transfer', 'produce blocks', 'warp', 'InvalidWarpMessage', 'initializeValidatorSet', 'p-chain height', 'not enough blocks', 'idle chain'],
+  },
 
   // Testnet Infrastructure
   {

@@ -154,7 +154,7 @@ export function MyL1Card() {
           <div className="text-sm">
             <span className="text-muted-foreground">Balance: </span>
             <span className="font-medium text-foreground">
-              {balance.toFixed(4)} {currentL1.coinName}
+              {balance === null ? 'n/a' : balance.toFixed(4)} {currentL1.coinName}
             </span>
           </div>
           <span className="text-sm font-medium text-primary group-hover:underline">

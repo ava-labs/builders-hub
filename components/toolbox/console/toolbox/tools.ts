@@ -16,6 +16,7 @@ import {
   Coins,
   Droplets,
   Eye,
+  FastForward,
   GitMerge,
   HandCoins,
   Hexagon,
@@ -366,6 +367,13 @@ const TOOLS_RAW: ToolCard[] = [
     path: '/console/layer-1/monitoring-setup',
     category: 'L1 Management',
     icon: Activity,
+  },
+  {
+    name: 'Advance P-Chain View',
+    description: 'Produce blocks on an idle L1 so warp message delivery can verify against a current validator set.',
+    path: '/console/layer-1/advance-pchain-view',
+    category: 'L1 Management',
+    icon: FastForward,
   },
   {
     name: 'Fee Parameters',

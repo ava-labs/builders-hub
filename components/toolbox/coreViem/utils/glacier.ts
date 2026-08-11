@@ -324,3 +324,30 @@ export async function getNativeTokenBalance(chainId: string | number, address: s
   const data: GetNativeTokenBalanceResponse = await response.json();
   return data.nativeTokenBalance;
 }
+
+/**
+ * P-Chain block height a transaction landed in (Glacier `blockNumber` field),
+ * or null when it cannot be resolved (unknown tx, indexer lag, Glacier down).
+ * Callers treat null as "requirement unknown" and degrade, never throw.
+ */
+export async function getPChainTxBlockHeight(
+  txHash: string,
+  network: Network,
+  signal?: AbortSignal,
+): Promise<bigint | null> {
+  try {
+    const response = await fetch(`${endpoint}/v1/networks/${network}/blockchains/p-chain/transactions/${txHash}`, {
+      headers: { accept: 'application/json' },
+      signal,
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { blockNumber?: number | string };
+    const blockNumber = data?.blockNumber;
+    if (typeof blockNumber !== 'number' && (typeof blockNumber !== 'string' || blockNumber === '')) {
+      return null;
+    }
+    return BigInt(blockNumber);
+  } catch {
+    return null;
+  }
+}

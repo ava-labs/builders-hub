@@ -30,7 +30,10 @@ interface WalletState {
   balances: {
     pChain: number;
     cChain: number;
-    l1Chains: Record<string, number>; // Key: chainId, Value: balance
+    // Key: chainId. null = the balance could NOT be fetched (RPC unreachable,
+    // mixed content, ...) — deliberately distinct from 0, which is a real
+    // on-chain value. Rendering null as 0 sent funded users to faucets (#4450).
+    l1Chains: Record<string, number | null>;
   };
   isLoading: {
     pChain: boolean;
@@ -60,7 +63,7 @@ interface WalletActions {
   }) => void;
 
   // Balance actions - unified with chainId support
-  setBalance: (type: 'pChain' | 'cChain' | string, amount: number) => void;
+  setBalance: (type: 'pChain' | 'cChain' | string, amount: number | null) => void;
   setLoading: (type: 'pChain' | 'cChain' | string, loading: boolean) => void;
 
   // Legacy individual setters for backward compatibility
@@ -89,7 +92,7 @@ interface WalletActions {
   isCChainBalanceLoading: boolean;
 
   // New getters for L1 chains
-  getL1Balance: (chainId: string) => number;
+  getL1Balance: (chainId: string) => number | null;
   getL1Loading: (chainId: string) => boolean;
 
   getBootstrapped: () => boolean;
@@ -154,14 +157,14 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       }));
     },
 
-    setBalance: (type: 'pChain' | 'cChain' | string, amount: number) => {
+    setBalance: (type: 'pChain' | 'cChain' | string, amount: number | null) => {
       set((state) => {
         if (type === 'pChain' || type === 'cChain') {
-          // Handle static chain types
+          // Handle static chain types (these fetchers never produce null)
           return {
             balances: {
               ...state.balances,
-              [type]: amount,
+              [type]: amount ?? 0,
             },
           };
         } else {
@@ -247,16 +250,17 @@ export const useWalletStore = create<WalletStore>((set, get) => {
       return get().isLoading.cChain;
     },
 
-    // New getters for L1 chains
-    getL1Balance: (chainId: string) => {
-      return get().balances.l1Chains[chainId] || 0;
+    // New getters for L1 chains. null = balance could not be fetched;
+    // absent chainId also reads as null (never fetched yet).
+    getL1Balance: (chainId: string): number | null => {
+      return get().balances.l1Chains[chainId] ?? null;
     },
     getL1Loading: (chainId: string) => {
       return get().isLoading.l1Chains[chainId] || false;
     },
 
     // Legacy L1 methods for backward compatibility - delegate to unified methods
-    setL1Balance: (chainId: string, amount: number) => store.setBalance(chainId, amount),
+    setL1Balance: (chainId: string, amount: number | null) => store.setBalance(chainId, amount),
     setL1Loading: (chainId: string, loading: boolean) => store.setLoading(chainId, loading),
 
     getBootstrapped: () => get().bootstrapped,
@@ -315,6 +319,7 @@ export const useNetworkInfo = () => {
 // Wallet type selectors
 export const useWalletType = () => useWalletStore((state) => state.walletType);
 
-// Selector for specific L1 balance
-export const useL1Balance = (chainId: string) => useWalletStore((state) => state.balances.l1Chains[chainId] || 0);
+// Selector for specific L1 balance. null = could not be fetched (do not
+// render as 0 — see the l1Chains comment above).
+export const useL1Balance = (chainId: string) => useWalletStore((state) => state.balances.l1Chains[chainId] ?? null);
 export const useL1Loading = (chainId: string) => useWalletStore((state) => state.isLoading.l1Chains[chainId] || false);
