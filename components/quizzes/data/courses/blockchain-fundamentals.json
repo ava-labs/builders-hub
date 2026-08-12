@@ -637,6 +637,51 @@
       "hint": "Think about how a VM operates in a blockchain system.",
       "explanation": "A Virtual Machine (VM) in the context of blockchain is like a decentralized computer that can execute a program in a controlled environment. It defines the application-level logic of a blockchain.",
       "chapter": "Virtual Machines & Blockchains"
+    },
+    "201": {
+      "question": "Which function is used to allow another account to transfer tokens on your behalf?",
+      "options": [
+        "transfer()",
+        "approve()",
+        "transferFrom()",
+        "allowance()"
+      ],
+      "correctAnswers": [
+        1
+      ],
+      "hint": "This function sets an approval limit for token transfers by a third party.",
+      "explanation": "The approve() function allows another account to spend tokens on your behalf up to a specified amount.",
+      "chapter": "ERC-20 Tokens",
+      "alternates": [
+        {
+          "question": "Which ERC-20 function is called by a spender to move tokens from an owner's account after receiving approval?",
+          "options": [
+            "transfer()",
+            "approve()",
+            "balanceOf()",
+            "transferFrom()"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "This function allows a pre-approved third party to move tokens from someone else's account.",
+          "explanation": "The transferFrom() function is used by a spender to transfer tokens from an owner's account, provided the owner has previously called approve() to grant sufficient allowance. This two-step process (approve then transferFrom) is fundamental to ERC-20 token interactions with smart contracts."
+        },
+        {
+          "question": "Which ERC-20 function would you call to check how many tokens a specific address holds?",
+          "options": [
+            "totalSupply()",
+            "allowance()",
+            "approve()",
+            "balanceOf()"
+          ],
+          "correctAnswers": [
+            3
+          ],
+          "hint": "This is a read-only function that returns the token holdings for a given address.",
+          "explanation": "The balanceOf() function returns the number of tokens held by a specific address. It is a view function (read-only) and does not modify state. This is different from approve(), which sets spending permissions, and allowance(), which checks how much a spender can transfer on behalf of an owner."
+        }
+      ]
     }
   }
 }
