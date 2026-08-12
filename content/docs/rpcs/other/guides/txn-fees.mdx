@@ -50,7 +50,7 @@ Based off of this information, you can specify the `gasFeeCap` and `gasTipCap` t
 
 #### Base Fee[​](#base-fee)
 
-The base fee can go as low as 1 nAVAX (Gwei) and has no upper bound. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
+The base fee can go as low as 1 wei and has no upper bound. With the upcoming Helicon Upgrade (ACP-283), the minimum gas price will become a dynamic parameter adjustable by validators. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
 
 ### Atomic Transaction Fees[​](#atomic-transaction-fees)
 
