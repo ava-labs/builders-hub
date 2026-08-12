@@ -11,7 +11,10 @@ import { bulkQuizResponseSchema } from "./schema";
 
 export const GET = withAuth(async (_request, _context, session) => {
   const responses = await getQuizProgressForUser(session.user.id);
-  return NextResponse.json({ responses });
+  // userId lets the client-side sync detect an account switch on a shared
+  // browser and drop the previous account's local rows instead of
+  // backfilling them into this one.
+  return NextResponse.json({ responses, userId: session.user.id });
 });
 
 /**

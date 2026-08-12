@@ -20,17 +20,27 @@ vi.mock('idb', () => ({
     delete: async (name: string, key: string) => {
       store(name).delete(key);
     },
+    clear: async (name: string) => {
+      store(name).clear();
+    },
   })),
 }));
 
 // Simulated auth backend: flipping `authed` is the "user logged in through
 // the modal without a page load" moment — same JS module state survives.
-const auth = { authed: false, serverRows: [] as Array<Record<string, unknown>> };
+// `userId` mirrors the GET response's account identity used for the
+// cross-account guard.
+const auth = {
+  authed: false,
+  userId: 'user-a',
+  serverRows: [] as Array<Record<string, unknown>>,
+};
 
 const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
   const method = init?.method ?? 'GET';
   if (!auth.authed) return new Response(null, { status: 401 });
-  if (method === 'GET') return Response.json({ responses: auth.serverRows });
+  if (method === 'GET')
+    return Response.json({ responses: auth.serverRows, userId: auth.userId });
   return Response.json({ ok: true });
 });
 
@@ -52,6 +62,7 @@ beforeEach(() => {
   stores.clear();
   fetchMock.mockClear();
   auth.authed = false;
+  auth.userId = 'user-a';
   auth.serverRows = [];
   vi.stubGlobal('window', {});
   vi.stubGlobal('fetch', fetchMock);
@@ -125,5 +136,72 @@ describe('resyncQuizProgress — login without a page load (#4357 armin repro)',
     await mod.saveQuizResponse('q1', row());
     expect(putCalls()).toHaveLength(0); // the resync's 401 re-arms the skip
     expect(postCalls()).toHaveLength(0); // and no backfill was attempted
+  });
+});
+
+describe('cross-account boundary on a shared browser (#4469 alejandro repro)', () => {
+  it('does not backfill the previous account\'s rows into the next account', async () => {
+    const mod = await freshModule();
+
+    // User A signs in and answers q1 on this browser
+    auth.authed = true;
+    auth.userId = 'user-a';
+    await mod.resyncQuizProgress();
+    await mod.saveQuizResponse('q1', row());
+
+    // A signs out, then B signs in — no page load, module state survives
+    auth.authed = false;
+    await mod.resyncQuizProgress();
+    auth.authed = true;
+    auth.userId = 'user-b';
+    auth.serverRows = [{ quizId: 'q9', ...row() }];
+    fetchMock.mockClear();
+    await mod.resyncQuizProgress();
+
+    // B's session must never receive A's q1 (this was the badge-contamination path)
+    const bodies = postCalls().map(([, init]) => JSON.parse(init!.body as string));
+    expect(bodies.flat().map((r: { quizId: string }) => r.quizId)).not.toContain('q1');
+
+    // A's row is no longer readable under B; B's own server rows are
+    expect(await mod.getQuizResponse('q1')).toBeUndefined();
+    expect(await mod.getQuizResponse('q9')).toMatchObject({ isCorrect: true });
+  });
+
+  it('keeps local rows when the same account signs back in (expired session heals)', async () => {
+    const mod = await freshModule();
+
+    auth.authed = true;
+    auth.userId = 'user-a';
+    await mod.resyncQuizProgress();
+    await mod.saveQuizResponse('q1', row());
+
+    // Session expires; the row saved during the gap must still backfill for A
+    auth.authed = false;
+    await mod.resyncQuizProgress();
+    await mod.saveQuizResponse('q2', row());
+
+    auth.authed = true;
+    fetchMock.mockClear();
+    await mod.resyncQuizProgress();
+
+    const bodies = postCalls().map(([, init]) => JSON.parse(init!.body as string));
+    expect(bodies.flat().map((r: { quizId: string }) => r.quizId)).toContain('q2');
+    expect(await mod.getQuizResponse('q1')).toMatchObject({ isCorrect: true });
+  });
+
+  it('still adopts anonymous progress on the first sign-in ever on the device', async () => {
+    const mod = await freshModule();
+
+    // Never-signed-in browser: anonymous progress accumulates
+    await mod.getQuizResponse('q1');
+    await mod.saveQuizResponse('q1', row());
+
+    auth.authed = true;
+    auth.userId = 'user-b';
+    await mod.resyncQuizProgress();
+
+    // First account on the device adopts the anonymous rows (the #4357 backfill)
+    const bodies = postCalls().map(([, init]) => JSON.parse(init!.body as string));
+    expect(bodies.flat().map((r: { quizId: string }) => r.quizId)).toContain('q1');
   });
 });

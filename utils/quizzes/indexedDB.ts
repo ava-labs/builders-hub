@@ -19,17 +19,26 @@ interface QuizDB {
       totalCards: number
     }
   }
+  syncMeta: {
+    key: string
+    value: string
+  }
 }
 
 const dbName = "QuizDatabase"
 const quizStoreName = "quizResponses"
 const flashcardStoreName = "flashcardProgress"
+const syncMetaStoreName = "syncMeta"
+// syncMeta key holding the user id of the account the local rows belong to
+// (or were adopted by). Rows written while signed out have no owner until the
+// first signed-in sync claims them.
+const lastSyncedUserKey = "lastSyncedUserId"
 
 let dbPromise: Promise<IDBPDatabase<QuizDB>> | null = null
 
 function getDBPromise() {
   if (!dbPromise) {
-    dbPromise = openDB<QuizDB>(dbName, 2, {
+    dbPromise = openDB<QuizDB>(dbName, 3, {
       upgrade(db, oldVersion) {
         if (oldVersion < 1) {
           db.createObjectStore(quizStoreName)
@@ -37,6 +46,11 @@ function getDBPromise() {
         if (oldVersion < 2) {
           if (!db.objectStoreNames.contains(flashcardStoreName)) {
             db.createObjectStore(flashcardStoreName)
+          }
+        }
+        if (oldVersion < 3) {
+          if (!db.objectStoreNames.contains(syncMetaStoreName)) {
+            db.createObjectStore(syncMetaStoreName)
           }
         }
       },
@@ -86,6 +100,7 @@ function ensureSynced(): Promise<void> {
   if (!syncPromise) {
     syncPromise = (async () => {
       let serverRows: Array<QuizResponseValue & { quizId: string }>
+      let serverUserId: string | undefined
       try {
         const res = await fetch("/api/quiz-progress", {
           signal: AbortSignal.timeout(4000),
@@ -96,17 +111,31 @@ function ensureSynced(): Promise<void> {
         }
         if (!res.ok) return // transient — stay local, retried next page load
         serverHasAccount = true
-        serverRows = (await res.json()).responses ?? []
+        const payload = await res.json()
+        serverRows = payload.responses ?? []
+        serverUserId = payload.userId
       } catch {
         return // offline/timeout — stay local, retried on next page load
       }
 
       try {
+        const db = await getDBPromise()
+
+        // Account boundary: local rows belong to the account recorded at the
+        // last signed-in sync (anonymous rows are claimed by it below). If a
+        // different account is signed in now, those rows must not leak into
+        // it — neither through the backfill POST nor through reads that feed
+        // course-completion awards. Their owner's copy is already on the
+        // server, so dropping them here loses nothing.
+        const lastUser = await db.get(syncMetaStoreName, lastSyncedUserKey)
+        if (serverUserId && lastUser && lastUser !== serverUserId) {
+          await db.clear(quizStoreName)
+        }
+
         const local = await getAllLocalResponses()
         const server = new Map(serverRows.map((r) => [r.quizId, r]))
 
         // Server → local: adopt server rows that beat what we have
-        const db = await getDBPromise()
         for (const [quizId, remote] of server) {
           const mine = local.get(quizId)
           if (!mine || betterOf(remote, mine) === remote) {
@@ -129,6 +158,12 @@ function ensureSynced(): Promise<void> {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(toPush),
           })
+        }
+
+        // Record who the local rows belong to from here on. This also claims
+        // anonymous pre-login rows for the account that just adopted them.
+        if (serverUserId) {
+          await db.put(syncMetaStoreName, serverUserId, lastSyncedUserKey)
         }
       } catch (error) {
         console.error("[quiz-sync] initial sync failed:", error)
