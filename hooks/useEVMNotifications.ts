@@ -2,6 +2,8 @@ import { useWalletStore } from '@/components/toolbox/stores/walletStore';
 import { getTxHistoryStore } from '@/components/toolbox/stores/txHistoryStore';
 import { useConsoleLog } from './use-console-log';
 import { Chain, createPublicClient, http } from 'viem';
+import { classifyEvmTxError } from '@/components/toolbox/lib/evmErrors';
+import { ReceiptUnknownError, waitForReceiptWithWalletFallback } from '@/components/toolbox/lib/walletReceipt';
 import { usePathname } from 'next/navigation';
 import posthog from 'posthog-js';
 import l1ChainsData from '@/constants/l1-chains.json';
@@ -103,8 +105,13 @@ const useEVMNotifications = () => {
             txHash: hash,
           });
 
+          // The page's RPC can be blocked (mixed content) or stale while the
+          // wallet's works — a timed-out wait is NOT a failure verdict, the
+          // tx may have landed (issue #4450). The fallback asks the wallet's
+          // transport before deciding; an unresolvable outcome surfaces as
+          // ReceiptUnknownError and is handled as unknown in the catch below.
           const publicClient = createPublicClient({ chain: viemChain, transport: http() });
-          const receipt = await publicClient.waitForTransactionReceipt({ hash: hash as `0x${string}` });
+          const receipt = await waitForReceiptWithWalletFallback(publicClient, hash as `0x${string}`);
 
           // Update tx history store with confirmed/failed status
           const txHistoryState = getTxHistoryStore(Boolean(isTestnet)).getState();
@@ -173,19 +180,47 @@ const useEVMNotifications = () => {
         });
       })
       .catch((error) => {
-        const errorMessage = messages.error + error.message;
+        // Distinguish "definitely failed" from "outcome unknown": a receipt
+        // wait that could not be resolved either way must never be reported
+        // as a failure (the tx often succeeded, see issue #4450). Unknown
+        // outcomes can arrive from our own fallback (ReceiptUnknownError) or
+        // from a timeout inside the notified promise itself (e.g. an SDK's
+        // internal receipt wait), so classify rather than trust a flag.
+        const classified = classifyEvmTxError(error, {
+          rpcUrl: viemChain?.rpcUrls?.default?.http?.[0],
+          pageProtocol: typeof window !== 'undefined' ? window.location.protocol : undefined,
+        });
+        const receiptUnknown =
+          error instanceof ReceiptUnknownError ||
+          (error as Error)?.name === 'ReceiptUnknownError' ||
+          classified.kind === 'receipt-timeout';
+        const errorMessage = receiptUnknown
+          ? classified.message.startsWith("Couldn't confirm")
+            ? `${options.name}: ${classified.message}`
+            : `Couldn't confirm ${options.name}: ${classified.message}`
+          : messages.error + classified.message;
+        const unknownHash =
+          (error as { txHash?: string })?.txHash ??
+          classified.txHash ??
+          (error as { transactionHash?: string })?.transactionHash;
         store.updateNotification(notifId, {
           status: 'error',
           message: errorMessage,
+          ...(receiptUnknown && unknownHash && viemChain
+            ? { explorerUrl: getEVMExplorerUrl(unknownHash, viemChain) }
+            : {}),
         });
 
         // Update tx history store if a hash was captured before the error
-        // (error might occur during confirmation, not during signing)
-        getTxHistoryStore(Boolean(isTestnet)).getState().updateTxStatus(
-          error?.transactionHash || '',
-          'failed',
-          error.message,
-        );
+        // (error might occur during confirmation, not during signing).
+        // Unknown outcomes are NOT recorded as failed — that would be a lie.
+        if (!receiptUnknown) {
+          getTxHistoryStore(Boolean(isTestnet)).getState().updateTxStatus(
+            error?.transactionHash || '',
+            'failed',
+            error.message,
+          );
+        }
 
         addLog({ status: 'error', actionPath, data: { error: error.message, network: isTestnet ? 'testnet' : 'mainnet' } });
         posthog.capture('console_action_error', {

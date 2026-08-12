@@ -36,8 +36,8 @@ export const consoleTools: ConsoleTool[] = [
     title: 'Stake AVAX',
     url: '/console/primary-network/stake',
     category: 'Primary Network',
-    description: 'Stake AVAX to become a validator or delegate to existing validators',
-    keywords: ['stake', 'staking', 'validator', 'delegate', 'delegation', 'avax', 'rewards', 'earn'],
+    description: 'Stake AVAX to become a validator or delegate to existing validators, with fixed-duration or auto-renewed (ACP-236) staking',
+    keywords: ['stake', 'staking', 'validator', 'delegate', 'delegation', 'avax', 'rewards', 'earn', 'auto-renew', 'auto-renewed', 'continuous', 'auto-compound', 'acp-236', 'helicon', 'update', 'stop', 'set-config'],
   },
   {
     title: 'Testnet Faucet',
@@ -100,6 +100,13 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Layer 1',
     description: 'Set up Prometheus and Grafana monitoring for your AvalancheGo nodes',
     keywords: ['monitoring', 'grafana', 'prometheus', 'metrics', 'health', 'node', 'tps', 'uptime', 'dashboard', 'docker', 'terraform', 'kubernetes'],
+  },
+  {
+    title: 'Advance P-Chain View',
+    url: '/console/layer-1/advance-pchain-view',
+    category: 'Layer 1',
+    description: 'Produce blocks on an idle L1 so its ProposerVM epoch catches up and warp delivery verifies',
+    keywords: ['proposervm', 'epoch', 'stale', 'advance', 'self transfer', 'produce blocks', 'warp', 'InvalidWarpMessage', 'initializeValidatorSet', 'p-chain height', 'not enough blocks', 'idle chain'],
   },
 
   // Testnet Infrastructure
@@ -188,6 +195,24 @@ export const consoleTools: ConsoleTool[] = [
     category: 'Permissioned L1s',
     description: 'Temporarily disable a validator on your L1',
     keywords: ['disable', 'validator', 'pause', 'temporary', 'permissioned'],
+  },
+  {
+    title: 'Remove Legacy Subnet Validators',
+    url: '/console/permissioned-l1s/remove-legacy-validators',
+    category: 'Permissioned L1s',
+    description: 'Remove pre-conversion Subnet validators that block Warp quorum on a converted L1',
+    keywords: [
+      'legacy',
+      'subnet',
+      'validator',
+      'remove',
+      'quorum',
+      'threshold of stake',
+      'initializeValidatorSet',
+      'signature aggregation',
+      'RemoveSubnetValidatorTx',
+      'converted',
+    ],
   },
   {
     title: 'Change Validator Weight',

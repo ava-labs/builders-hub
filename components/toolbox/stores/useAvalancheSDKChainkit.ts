@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { Avalanche } from '@avalanche-sdk/chainkit';
 import { useWalletStore } from './walletStore';
+import { aggregateWithRetry } from '../utils/aggregationRetry';
 
 // Types for signature aggregation
 interface SignatureAggregationParams {
@@ -9,6 +10,11 @@ interface SignatureAggregationParams {
   signingSubnetId?: string;
   quorumPercentage?: number;
 }
+
+/** Per-attempt cap; the SDK itself has no timeout configured. Generous on
+ *  purpose (healthy aggregations take seconds): when it fires, the attempt
+ *  is not retried, because the raced request may still be in flight. */
+const AGGREGATION_ATTEMPT_TIMEOUT_MS = 60_000;
 
 interface SignatureAggregationResult {
   signedMessage: string;
@@ -72,8 +78,24 @@ export const useAvalancheSDKChainkit = (customNetwork?: 'mainnet' | 'fuji') => {
           signatureAggregatorRequest.signingSubnetId = signingSubnetId;
         }
 
-        const result = await sdk.data.signatureAggregator.aggregate({
-          signatureAggregatorRequest,
+        // Below-quorum results right after a P-Chain tx usually mean some
+        // validators' own P-Chain views lag; they self-heal, so retry a few
+        // times before surfacing the failure (see aggregationRetry.ts).
+        const result = await aggregateWithRetry(() => {
+          let timer: ReturnType<typeof setTimeout> | undefined;
+          const timeout = new Promise<never>((_, reject) => {
+            timer = setTimeout(
+              () =>
+                reject(
+                  new Error(`signature aggregation attempt timed out after ${AGGREGATION_ATTEMPT_TIMEOUT_MS / 1000}s`),
+                ),
+              AGGREGATION_ATTEMPT_TIMEOUT_MS,
+            );
+          });
+          return Promise.race([
+            sdk.data.signatureAggregator.aggregate({ signatureAggregatorRequest }),
+            timeout,
+          ]).finally(() => clearTimeout(timer));
         });
         return { signedMessage: result.signedMessage };
       } catch (error) {

@@ -29,8 +29,8 @@ export function shortAddr(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export function snowtraceUrl(addr: string): string {
-  return `https://snowtrace.io/address/${addr}`;
+export function addressExplorerUrl(addr: string): string {
+  return `/explorer/mainnet/c-chain/address/${addr}`;
 }
 
 export const CLASSIFICATION_CONFIG = {

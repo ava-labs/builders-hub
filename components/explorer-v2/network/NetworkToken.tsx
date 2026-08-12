@@ -515,7 +515,7 @@ export function NetworkToken() {
               <ArrowUpRight className="h-3 w-3 text-zinc-400 dark:text-zinc-500" />
             </a>
             <a
-              href="https://snowtrace.io/address/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
+              href="/explorer/mainnet/c-chain/address/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-1 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"

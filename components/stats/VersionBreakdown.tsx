@@ -13,26 +13,6 @@ export interface VersionBreakdownData {
   totalStakeString?: string;
 }
 
-// Color palette for version breakdown
-export const versionColors = [
-  "bg-blue-500 dark:bg-blue-600",
-  "bg-purple-500 dark:bg-purple-600",
-  "bg-pink-500 dark:bg-pink-600",
-  "bg-indigo-500 dark:bg-indigo-600",
-  "bg-cyan-500 dark:bg-cyan-600",
-  "bg-teal-500 dark:bg-teal-600",
-  "bg-emerald-500 dark:bg-emerald-600",
-  "bg-lime-500 dark:bg-lime-600",
-  "bg-yellow-500 dark:bg-yellow-600",
-  "bg-amber-500 dark:bg-amber-600",
-  "bg-orange-500 dark:bg-orange-600",
-  "bg-red-500 dark:bg-red-600",
-];
-
-export function getVersionColor(index: number): string {
-  return versionColors[index % versionColors.length];
-}
-
 // Compare semantic versions
 export function compareVersions(v1: string, v2: string): number {
   if (v1 === "Unknown") return -1;
@@ -295,13 +275,17 @@ interface VersionBreakdownInlineProps {
 }
 
 /**
- * Inline version breakdown for hero sections (shows top N versions)
+ * Inline version breakdown for hero sections (shows top N versions).
+ * Dots take their tone from versionTone, the same mapping the stacked bar
+ * paints with: this legend always sits under a VersionBarChart, so an
+ * index-rainbow here described a bar drawn in a different language.
  */
 export function VersionBreakdownInline({
   versions,
   minVersion,
   limit = 5,
 }: VersionBreakdownInlineProps) {
+  let belowRank = 0;
   return (
     <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8">
       <div className="flex items-center gap-2">
@@ -312,19 +296,32 @@ export function VersionBreakdownInline({
       {Object.entries(versions)
         .sort(([v1], [v2]) => compareVersions(v2, v1))
         .slice(0, limit)
-        .map(([version, data], index) => (
-          <div key={version} className="flex items-center gap-1.5">
-            <div
-              className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
-            />
-            <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
-              {version}
-            </span>
-            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              ({data.nodes})
-            </span>
-          </div>
-        ))}
+        .map(([version, data]) => {
+          const isAboveTarget = compareVersions(version, minVersion) >= 0;
+          return (
+            <div key={version} className="flex items-center gap-1.5">
+              <div
+                className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${versionTone(
+                  version,
+                  isAboveTarget,
+                  isAboveTarget ? 0 : belowRank++,
+                )}`}
+              />
+              <span
+                className={`text-xs sm:text-sm font-mono ${
+                  isAboveTarget
+                    ? "text-zinc-900 dark:text-zinc-100"
+                    : "text-zinc-500 dark:text-zinc-400"
+                }`}
+              >
+                {version}
+              </span>
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                ({data.nodes})
+              </span>
+            </div>
+          );
+        })}
     </div>
   );
 }

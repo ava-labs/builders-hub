@@ -58,14 +58,19 @@ export default function RemoveButton({
         }}
       >
         <TooltipTrigger asChild>
-          <button
-            type="button"
+          {/* span, not button: this component is rendered inside AccordionTrigger buttons and nested buttons are invalid HTML */}
+          <span
+            role="button"
+            tabIndex={0}
             onClick={handleTriggerClick}
-            className={`inline-flex items-center justify-center p-1.5 rounded-md hover:bg-red-500/10 text-zinc-500 dark:text-zinc-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/30 ${className}`}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') handleTriggerClick(e as unknown as React.MouseEvent)
+            }}
+            className={`cursor-pointer inline-flex items-center justify-center p-1.5 rounded-md hover:bg-red-500/10 text-zinc-500 dark:text-zinc-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500/30 ${className}`}
             aria-label={effectiveLabel}
           >
             <X size={size} strokeWidth={2} />
-          </button>
+          </span>
         </TooltipTrigger>
         <TooltipContent 
           side="right"

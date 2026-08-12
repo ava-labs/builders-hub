@@ -10,11 +10,11 @@ export default async function HackathonJudgesPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!canManageHackathonJudges(session)) {
+  const { id: hackathonId } = await params;
+  if (!(await canManageHackathonJudges(session, hackathonId))) {
     redirect("/");
   }
 
-  const { id: hackathonId } = await params;
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
     select: { id: true, title: true, start_date: true, end_date: true },

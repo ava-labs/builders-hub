@@ -16,6 +16,7 @@ import {
   Coins,
   Droplets,
   Eye,
+  FastForward,
   GitMerge,
   HandCoins,
   Hexagon,
@@ -75,7 +76,8 @@ const TOOLS_RAW: ToolCard[] = [
   },
   {
     name: 'Stake AVAX',
-    description: 'Stake AVAX on the Primary Network as a validator or delegator.',
+    description:
+      'Stake AVAX on the Primary Network as a validator or delegator, with fixed or auto-renewed (ACP-236) staking.',
     path: '/console/primary-network/stake',
     category: 'Primary Network',
     icon: HandCoins,
@@ -232,6 +234,13 @@ const TOOLS_RAW: ToolCard[] = [
     category: 'Permissioned L1s',
     icon: SquareMinus,
   },
+  {
+    name: 'Remove Legacy Subnet Validators',
+    description: 'Clear pre-conversion Subnet validators that block Warp quorum on a converted L1.',
+    path: '/console/permissioned-l1s/remove-legacy-validators',
+    category: 'Permissioned L1s',
+    icon: SquareMinus,
+  },
 
   // ── Permissionless L1s ───────────────────────────────────
   {
@@ -358,6 +367,13 @@ const TOOLS_RAW: ToolCard[] = [
     path: '/console/layer-1/monitoring-setup',
     category: 'L1 Management',
     icon: Activity,
+  },
+  {
+    name: 'Advance P-Chain View',
+    description: 'Produce blocks on an idle L1 so warp message delivery can verify against a current validator set.',
+    path: '/console/layer-1/advance-pchain-view',
+    category: 'L1 Management',
+    icon: FastForward,
   },
   {
     name: 'Fee Parameters',

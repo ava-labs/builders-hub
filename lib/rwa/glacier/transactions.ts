@@ -1,16 +1,11 @@
-import {
-  fetchErc20Transactions,
-  fetchErc20Balances,
-  AVALANCHE_C_CHAIN_ID,
-} from './client'
-import type { GlacierErc20Transfer } from './client'
+import { fetchStatsTransfers, fetchStatsBalance } from '../stats/client'
+import type { StatsTransfer } from '../stats/client'
 import { cache, CacheKeys } from './cache'
 import {
   ADDRESSES,
   USDC_TOKENS,
   normalizeAddress,
   isInternalAddress,
-  isTrackedUsdcToken,
 } from '../constants/addresses'
 import type { ParsedTransfer } from '../types'
 
@@ -18,39 +13,25 @@ function parseUsdcValue(value: string): bigint {
   return BigInt(value)
 }
 
-async function fetchAllTransfers(address: string): Promise<GlacierErc20Transfer[]> {
-  const allTransfers: GlacierErc20Transfer[] = []
-  let pageToken: string | undefined
-
-  do {
-    const response = await fetchErc20Transactions(
-      AVALANCHE_C_CHAIN_ID,
-      address,
-      100,
-      pageToken
-    )
-
-    const usdcTransfers = (response.transactions ?? []).filter((t) =>
-      isTrackedUsdcToken(t.erc20Token.address)
-    )
-
-    allTransfers.push(...usdcTransfers)
-    pageToken = response.nextPageToken
-  } while (pageToken)
-
-  return allTransfers
+// The Stats API is queried once per tracked USDC contract (native + bridged);
+// each call already returns only that token's transfers for the address.
+async function fetchAllTransfers(address: string): Promise<StatsTransfer[]> {
+  const perToken = await Promise.all(
+    USDC_TOKENS.map((token) => fetchStatsTransfers(address, token))
+  )
+  return perToken.flat()
 }
 
-function parseTransfers(transfers: GlacierErc20Transfer[]): ParsedTransfer[] {
+function parseTransfers(transfers: StatsTransfer[]): ParsedTransfer[] {
   return transfers.map((t) => ({
     txHash: t.txHash,
-    blockNumber: parseInt(t.blockNumber, 10),
-    timestamp: new Date(t.blockTimestamp * 1000),
-    from: normalizeAddress(t.from.address),
-    to: normalizeAddress(t.to.address),
-    amount: parseUsdcValue(t.value),
+    blockNumber: t.blockNumber,
+    timestamp: new Date(t.timestamp * 1000),
+    from: normalizeAddress(t.from),
+    to: normalizeAddress(t.to),
+    amount: parseUsdcValue(t.amount),
     isInternal:
-      isInternalAddress(t.from.address) && isInternalAddress(t.to.address),
+      isInternalAddress(t.from) && isInternalAddress(t.to),
   }))
 }
 
@@ -108,11 +89,14 @@ export async function getUsdcBalance(address: string): Promise<bigint> {
   if (cached && !cached.isStale) return cached.data
 
   try {
-    const response = await fetchErc20Balances(AVALANCHE_C_CHAIN_ID, address)
+    const balances = await Promise.all(
+      USDC_TOKENS.map((token) => fetchStatsBalance(address, token))
+    )
 
-    const totalBalance = (response.erc20TokenBalances ?? [])
-      .filter((b) => isTrackedUsdcToken(b.address))
-      .reduce((sum, b) => sum + parseUsdcValue(b.balance), BigInt(0))
+    const totalBalance = balances.reduce(
+      (sum, b) => sum + parseUsdcValue(b.balance),
+      BigInt(0)
+    )
 
     cache.set(cacheKey, totalBalance)
     return totalBalance

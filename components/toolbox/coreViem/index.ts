@@ -17,6 +17,7 @@ import { setL1ValidatorWeight } from './methods/setL1ValidatorWeight';
 import { SetL1ValidatorWeightParams } from './methods/setL1ValidatorWeight';
 import { increaseL1ValidatorBalance, IncreaseL1ValidatorBalanceParams } from './methods/increaseL1ValidatorBalance';
 import { disableL1Validator, DisableL1ValidatorParams } from './methods/disableL1Validator';
+import { removeSubnetValidator, RemoveSubnetValidatorParams } from './methods/removeSubnetValidator';
 import { ExtractChainInfoResponse } from './methods/extractChainInfo';
 
 // Re-export custom Avalanche EVM RPC methods that should be called on publicClient
@@ -38,6 +39,7 @@ export type CoreWalletClientType = Omit<AvalancheWalletClient, 'addChain'> & {
   setL1ValidatorWeight: (args: SetL1ValidatorWeightParams) => Promise<string>;
   increaseL1ValidatorBalance: (args: IncreaseL1ValidatorBalanceParams) => Promise<string>;
   disableL1Validator: (args: DisableL1ValidatorParams) => Promise<string>;
+  removeSubnetValidator: (args: RemoveSubnetValidatorParams) => Promise<string>;
   getEthereumChain: () => Promise<GetEthereumChainResponse>;
   extractChainInfo: (args: ExtractChainInfoParams) => Promise<ExtractChainInfoResponse>;
   getPChainBalance: () => Promise<bigint>;
@@ -112,6 +114,7 @@ export async function createCoreWalletClient(
     increaseL1ValidatorBalance: (args: IncreaseL1ValidatorBalanceParams) =>
       increaseL1ValidatorBalance(baseClient, args),
     disableL1Validator: (args: DisableL1ValidatorParams) => disableL1Validator(baseClient, args),
+    removeSubnetValidator: (args: RemoveSubnetValidatorParams) => removeSubnetValidator(baseClient, args),
     getEthereumChain: () => getEthereumChain(baseClient),
     extractChainInfo: (args: ExtractChainInfoParams) => extractChainInfo(baseClient, args),
     getPChainBalance: () => getPChainBalance(baseClient),

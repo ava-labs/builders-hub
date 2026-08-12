@@ -19,7 +19,7 @@ At a glance:
 
 ## Consensus & Blocks
 
-- Uses **Snowman++** via the ProposerVM (single proposer windows with fallback).
+- Uses **Snowman++** via the [ProposerVM](/docs/nodes/architecture/proposervm) (stake-sampled single-proposer slots; no post-Durango open-building fallback).
 - Blocks are built by [`vms/platformvm/block/builder`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/block/builder); block types include **Standard**, **Proposal** (with **Commit/Abort** options), and **Atomic** blocks.
 - State sync is supported for faster bootstrap; bootstrapping peers can be overridden via `CustomBeacons` in the P-Chain `ChainParameters`.
 
