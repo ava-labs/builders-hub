@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { chainOfId, crossChainTxUrl, crossChainAddressUrl } from "@/lib/crosschain-links";
 import {
   PRIMARY_SUBNET_ID,
   bytesToHex,
@@ -1084,7 +1085,7 @@ function autoCompoundPct(tx: Tx): string | null {
   return Number.isInteger(pct) ? String(pct) : pct.toFixed(2);
 }
 
-function UtxoColumn({ base, title, utxos, side }: { base: string; title: string; utxos: Utxo[]; side: "in" | "out" }) {
+export function UtxoColumn({ base, title, utxos, side }: { base: string; title: string; utxos: Utxo[]; side: "in" | "out" }) {
   return (
     <div className="flex flex-col gap-3">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -1117,30 +1118,52 @@ function UtxoColumn({ base, title, utxos, side }: { base: string; title: string;
               {u.addresses.map((a) => (
                 <Link
                   key={a}
-                  href={`${base}/address/${a}`}
+                  href={
+                    (side === "in" &&
+                      chainOfId(u.createdOnChainId) &&
+                      crossChainAddressUrl(base.split("/")[2], u.createdOnChainId, a)) ||
+                    `${base}/address/${a}`
+                  }
                   className="font-mono text-[11px] text-[#0061E2] underline-offset-2 hover:text-[#E6212F] hover:underline dark:text-[#5f9dff]"
                 >
                   {truncate(a, 14)}
                 </Link>
               ))}
             </div>
-            {u.consumingTxHash && side === "out" && (
-              <Link
-                href={`${base}/tx/${u.consumingTxHash}`}
-                className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
-              >
-                spent in {truncate(u.consumingTxHash, 12)} →
-              </Link>
-            )}
-            {/* walk any UTXO backward through delegations/transfers */}
-            {u.txHash && side === "in" && (
-              <Link
-                href={`${base}/tx/${u.txHash}`}
-                className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
-              >
-                ← created in {truncate(u.txHash, 12)}
-              </Link>
-            )}
+            {u.consumingTxHash && side === "out" && (() => {
+              // Exported outputs are claimed on ANOTHER chain — the API fills
+              // consumedOnChainId with the destination blockchain id, and the
+              // link must route to that chain's tx page (C-chain claims are
+              // atomic txs with their own detail route).
+              const net = base.split("/")[2];
+              const cross = chainOfId(u.consumedOnChainId);
+              const href =
+                (cross && cross !== "P-Chain" && crossChainTxUrl(net, u.consumedOnChainId, u.consumingTxHash)) ||
+                `${base}/tx/${u.consumingTxHash}`;
+              const verb = cross && cross !== "P-Chain" ? `claimed on ${cross} in` : "spent in";
+              return (
+                <Link
+                  href={href}
+                  className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
+                >
+                  {verb} {truncate(u.consumingTxHash, 12)} →
+                </Link>
+              );
+            })()}
+            {/* walk any UTXO backward through delegations/transfers — or, for
+                an atomic input, straight to the export on the source chain */}
+            {u.txHash && side === "in" && (() => {
+              const cross = chainOfId(u.createdOnChainId);
+              const net = base.split("/")[2];
+              const href =
+                (cross && crossChainTxUrl(net, u.createdOnChainId, u.txHash)) || `${base}/tx/${u.txHash}`;
+              const verb = cross ? `← exported from ${cross} in` : "← created in";
+              return (
+                <Link href={href} className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]">
+                  {verb} {truncate(u.txHash, 12)}
+                </Link>
+              );
+            })()}
           </div>
         ))}
       </Board>
