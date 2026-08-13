@@ -194,7 +194,7 @@ export function parseContractError(err: unknown): string {
 
   // Nonce errors
   if (raw.includes('nonce')) {
-    return 'Transaction nonce error. Please try again.';
+    return 'Transaction nonce error: the wallet signed with an already-used nonce. Retry the transaction; a fresh nonce is fetched from the chain automatically. Do not edit the nonce manually.';
   }
 
   // Check for known selectors and error names
