@@ -28,8 +28,16 @@ import {
 
 const PCHAIN_LOGO =
   "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg";
+const XCHAIN_LOGO =
+  "https://images.ctfassets.net/gcj8jwzm6086/5xiGm7IBR6G44eeVlaWrxi/1b253c4744a3ad21a278091e3119feba/xchain-square.svg";
 
 const cChain = (l1ChainsData as L1Chain[]).find((c) => c.slug === "c-chain");
+
+function systemChainLogo(slug?: string): string | undefined {
+  if (slug === "p-chain") return PCHAIN_LOGO;
+  if (slug === "x-chain") return XCHAIN_LOGO;
+  return undefined;
+}
 
 type SwitcherEntry = {
   slug: string;
@@ -104,6 +112,12 @@ function ChainSwitcher({
       href: "/explorer/mainnet/c-chain",
     },
     { slug: "p-chain", name: "Platform Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
+    {
+      slug: "x-chain",
+      name: "Exchange Chain",
+      logo: XCHAIN_LOGO,
+      href: `/explorer/${pchainNetwork}/x-chain`,
+    },
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
@@ -179,9 +193,9 @@ function ChainSwitcher({
         {!chainSlug ? (
           <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
         ) : (
-          (chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI) && (
+          (systemChainLogo(chainSlug) ?? chainLogoURI) && (
             <img
-              src={chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI}
+              src={systemChainLogo(chainSlug) ?? chainLogoURI}
               alt=""
               className="h-5 w-5 shrink-0 rounded-full object-contain"
             />
@@ -319,8 +333,10 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
       { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
     ];
-    // the staking + L1-economy feeds are mainnet-only
-    if (network === "mainnet") {
+    // the staking + L1-economy feeds are mainnet-only AND P-chain-only —
+    // the X-chain shares this kind (Overview/Blocks/Transactions) but has
+    // no staking surfaces
+    if (network === "mainnet" && chainSlug === "p-chain") {
       tabs.push(
         {
           label: "Staking",
@@ -360,11 +376,20 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       // list tabs mirror the P-Chain's; detail pages light their list
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
+        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) && !p.startsWith(`${base}/atomic`) },
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
       );
+      // cross-chain (shared-memory) txs exist only on the C-Chain — they ride
+      // in blockExtraData, invisible to eth_*, hence their own tab
+      if (chainSlug === "c-chain") {
+        tabs.push({
+          label: "Atomic",
+          href: `${base}/atomic`,
+          isActive: (p) => p.startsWith(`${base}/atomic`),
+        });
+      }
     }
     // who's on the chain: population charts for every catalog chain,
     // leaderboards where ClickHouse ingests it
