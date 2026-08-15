@@ -3,7 +3,7 @@ title: Avalanche C-Chain Throughput Increases as Validators Signal Higher Gas Ta
 description: Avalanche validators increase the C-Chain's target gas consumption by 30% thanks to the Octane upgrade, paving the way for higher throughput and future scaling optimizations.
 date: 2025-08-21
 authors: [AvaxDevelopers]
-topics: [Validators, Gas Target, Octane Upgrade, SAE, Firewood]
+topics: [Validators, Gas Target, Octane Upgrade, Continuous Execution, Firewood]
 comments: true
 ---
 
@@ -18,7 +18,7 @@ _Originally published by [@AvaxDevelopers](https://x.com/AvaxDevelopers/status/1
 - Avalanche validators increased the C-Chain's target gas consumption by 30 % from 1.6 M to 2.1 M gas/sec.  
 - The dynamic adjustments were enabled by the Octane upgrade, activated on April 6, 2025.  
 - The Avalanche Foundation plans to continue signaling incremental increases as network metrics allow.  
-- Future improvements like Streaming Asynchronous Execution (SAE) and Firewood Database integration aim to enable even larger increases.
+- Future improvements like Continuous Execution (formerly SAE) and Firewood Database integration aim to enable even larger increases.
 
 Avalanche's C-Chain has seen its throughput capacity increase by over 30% following validator action to raise the target gas
 consumption from 1.6 million to 2.1 million gas per second. The increase was made possible by the Octane upgrade that went live
@@ -29,7 +29,7 @@ and smart contract operations can be executed. For users of the chain, higher ga
 and also lower transaction fees. For validators and node operations, higher gas targets can mean increased demands on hardware and network
 infrastructure, which is closely monitored to ensure stability and reliability.
 The dynamic adjustments were enabled by the Octane upgrade, activated on April 6, 2025.
-Future improvements like Streaming Asynchronous Execution (SAE) and Firewood Database integration aim to enable even larger increases.
+Future improvements like Continuous Execution and Firewood Database integration aim to enable even larger increases.
 
 ---
 
@@ -50,8 +50,7 @@ Since the upgrade's activation, validators run by the Avalanche Foundation have 
 ![](https://qizat5l3bwvomkny.public.blob.vercel-storage.com/1.jpeg)
 
 The Avalanche Foundation plans to continue gradually increasing their validator preferences while monitoring network performance metrics.
-This approach aims to maximize C-Chain utilization within current infrastructure constraints. Upcoming optimizations like Streaming Asynchronous
-Execution and the Firewood Database integration are expected to enable further increases.
+This approach aims to maximize C-Chain utilization within current infrastructure constraints. Upcoming optimizations like Continuous Execution and the Firewood Database integration are expected to enable further increases.
 
 Other validator operators can set their gas target preferences to participate in determining the network's effective throughput capacity.
 This allows scaling decisions to reflect the technical assessment of the broader validator community.
@@ -105,9 +104,9 @@ These metrics remained within acceptable parameters throughout the increase, ind
 The 30% increase represents just the beginning of Avalanche's throughput expansion plans. Two major technical upgrades are in development that could
 enable even more significant capacity improvements:
 
-### Streaming Asynchronous Execution (SAE)  
+### Continuous Execution  
 
-As outlined in Avalanche Community Proposal ACP-194, SAE introduces a fundamental architectural change by separating block execution from the consensus
+As outlined in Avalanche Community Proposal ACP-194, Continuous Execution introduces a fundamental architectural change by separating block execution from the consensus
 process. This allows for a continuous execution thread that operates independently of consensus, enabling gas targets to align with average-case execution
 times rather than being constrained by worst-case scenarios.
 

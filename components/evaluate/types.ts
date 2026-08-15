@@ -1,4 +1,5 @@
-export type Verdict = "top" | "strong" | "maybe" | "weak" | "reject";
+export type { Verdict } from "@/lib/evaluate/verdicts";
+import type { Verdict } from "@/lib/evaluate/verdicts";
 
 export interface EvaluationData {
   id: string;

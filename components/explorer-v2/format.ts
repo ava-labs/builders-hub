@@ -20,9 +20,25 @@ export function formatNumber(n: number | undefined): string {
   return n === undefined || n === null ? "—" : n.toLocaleString("en-US");
 }
 
+/** nAVAX + a USD/AVAX rate → "$1,234.56". Returns undefined when there is no
+ *  rate to apply, so callers can omit the line entirely rather than render a
+ *  confident "$0.00" for a price we simply do not have. */
+export function formatUsd(nAvax: string | number | undefined, avaxUsd: number | null): string | undefined {
+  if (!avaxUsd || avaxUsd <= 0 || nAvax === undefined || nAvax === null || nAvax === "") return undefined;
+  const usd = (Number(nAvax) / 1e9) * avaxUsd;
+  if (Number.isNaN(usd)) return undefined;
+  // An empty bucket needs no fiat gloss: "$0.00" under "0 AVAX / 0.0%" is
+  // three ways of saying nothing.
+  if (usd === 0) return undefined;
+  // Sub-cent holdings are common on P-Chain change UTXOs; "<$0.01" beats
+  // rounding them to nothing.
+  if (usd > 0 && usd < 0.01) return "<$0.01";
+  return `$${usd.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function timeAgo(unixSecs: number | undefined): string {
   if (!unixSecs) return "—";
-  const s = Math.floor(Date.now() / 1000) - unixSecs;
+  const s = Math.floor(Date.now() / 1000 - unixSecs);
   if (s < 0) return "in the future";
   if (s < 60) return `${s}s ago`;
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;

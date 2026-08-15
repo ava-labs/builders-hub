@@ -388,7 +388,7 @@ function ConsoleDashboard() {
               Built on Avalanche
             </h3>
             <Link
-              href="/stats/overview"
+              href="/explorer/mainnet"
               className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             >
               View all →
@@ -505,7 +505,7 @@ function ConsoleDashboard() {
               <div className="space-y-0 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                 <SubLink href="/console/layer-1/validator-set" icon={Users} label="Validators" />
                 <SubLink href="/console/l1-tokenomics/fee-manager" icon={Settings} label="Tokenomics" />
-                <SubLink href="/console/layer-1/performance-monitor" icon={ChevronRight} label="Performance" />
+                <SubLink href="/console/layer-1/monitoring-setup" icon={ChevronRight} label="Monitoring" />
               </div>
             </BentoCard>
           </div>

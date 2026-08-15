@@ -1,6 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 
 import { ValidationError } from "./hackathons";
+import { memberIdentityWhere } from "./projectMembership";
 import { MemberStatus } from "@/types/project";
 
 export async function UpdateStatusMember(
@@ -136,8 +137,8 @@ export async function GetMembersByProjectId(project_id: string) {
       const deadline = new Date(registrationDeadlineRaw);
       if (Number.isFinite(deadline.getTime()) && Date.now() > deadline.getTime()) {
         await prisma.member.updateMany({
-          where: { project_id, status: "Pending Confirmation" },
-          data: { status: "Removed" },
+          where: { project_id, status: MemberStatus.PENDING },
+          data: { status: MemberStatus.REMOVED },
         });
       }
     }
@@ -146,7 +147,7 @@ export async function GetMembersByProjectId(project_id: string) {
   }
 
   const members = await prisma.member.findMany({
-    where: { project_id: project_id, status: { not: "Removed" } },
+    where: { project_id: project_id, status: { not: MemberStatus.REMOVED } },
     include: {
       user: {
         select: {
@@ -179,8 +180,22 @@ export async function UpdateRoleMember(member_id: string, role: string, project_
 }
 
 export async function GetProjectsByUserId(user_id: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: user_id },
+    select: { email: true },
+  });
+  const isCaller = (m: { user_id: string | null; email: string | null }) =>
+    m.user_id === user_id || (!!user?.email && m.email === user.email);
+
   const projects = await prisma.project.findMany({
-    where: { members: { some: { user_id: user_id } } },
+    where: {
+      members: {
+        some: {
+          ...memberIdentityWhere({ id: user_id, email: user?.email }),
+          status: { not: MemberStatus.REMOVED },
+        },
+      },
+    },
     include: {
       members: {
         include: {
@@ -213,6 +228,9 @@ export async function GetProjectsByUserId(user_id: string) {
   // Transform badges to match the expected format
   return projects.map((project) => ({
     ...project,
+    // The caller's own membership status, so clients can tell an accepted
+    // project from an invitation still awaiting confirmation.
+    my_member_status: project.members.find(isCaller)?.status ?? null,
     badges: project.badges?.map((projectBadge: any) => ({
       ...projectBadge,
       name: projectBadge.badge.name,

@@ -770,6 +770,21 @@
           "explanation": "After ownership transfer, the key validator management functions become permissionless through the Staking Manager: anyone can register as a validator by calling initiateValidatorRegistration with sufficient stake, anyone can delegate by calling initiateDelegatorRegistration, and validator removal follows staking period rules rather than owner discretion. The Staking Manager acts as a programmatic owner that opens these functions to the public but gates them with economic requirements (staking tokens) instead of permission requirements (being the owner)."
         }
       ]
+    },
+    "210": {
+      "question": "Which function is used to initialize the Validator set in the ValidatorManager contract?",
+      "options": [
+        "initializeValidatorRegistration()",
+        "deployProxyContract()",
+        "initializeValidatorSet()",
+        "setSubnetValidator()"
+      ],
+      "correctAnswers": [
+        2
+      ],
+      "hint": "Initialization of the Validator set is a critical step in setting up the ValidatorManager.",
+      "explanation": "The function `initializeValidatorSet` is called to initialize the Validator set in the ValidatorManager contract, setting up the starting Validators for the L1.",
+      "chapter": "Staking"
     }
   }
 }

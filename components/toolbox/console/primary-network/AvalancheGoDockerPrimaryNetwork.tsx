@@ -24,12 +24,15 @@ import {
 import { useNodeConfigHighlighting } from '@/components/toolbox/console/layer-1/useNodeConfigHighlighting';
 import { C_CHAIN_ID } from '@/components/toolbox/console/layer-1/create/config';
 import { useAddToWallet } from '@/hooks/useAddToWallet';
-import { nipify } from '@/components/toolbox/components/HostInput';
+import { buildNodeRpcUrl } from '@/components/toolbox/lib/rpcUrl';
 
 function AvalancheGoDockerPrimaryNetworkInner() {
   const { setHighlightPath, clearHighlight, highlightPath } = useGenesisHighlight();
   const [nodeType, setNodeType] = useState<'validator' | 'rpc' | 'archival'>('validator');
   const [domain, setDomain] = useState('');
+  // Same single-source-of-truth pattern as the L1 page (issue #4450): a
+  // remote node without a proxy domain has NO URL the wallet could reach.
+  const [nodeLocation, setNodeLocation] = useState<'remote' | 'local'>('remote');
   const [enableDebugTrace, setEnableDebugTrace] = useState<boolean>(false);
   const [adminApiEnabled, setAdminApiEnabled] = useState<boolean>(false);
   const [pruningEnabled, setPruningEnabled] = useState<boolean>(true);
@@ -1361,7 +1364,14 @@ sudo ufw status`
 
         {isRPC && (
           <Step>
-            <ReverseProxySetup domain={domain} setDomain={setDomain} chainId={C_CHAIN_ID} showHealthCheck={true} />
+            <ReverseProxySetup
+              domain={domain}
+              setDomain={setDomain}
+              chainId={C_CHAIN_ID}
+              showHealthCheck={true}
+              nodeLocation={nodeLocation}
+              setNodeLocation={setNodeLocation}
+            />
           </Step>
         )}
 
@@ -1377,7 +1387,8 @@ sudo ufw status`
                 <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
                   <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
                   <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
-                    {domain ? `https://${nipify(domain)}/ext/bc/C/rpc` : `http://localhost:9650/ext/bc/C/rpc`}
+                    {buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' }) ??
+                      'Enter the node IP or domain in the reverse proxy step above'}
                   </code>
                 </div>
                 <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
@@ -1389,9 +1400,11 @@ sudo ufw status`
               </div>
 
               <Button
-                onClick={() =>
-                  addToWallet({
-                    rpcUrl: domain ? `https://${nipify(domain)}/ext/bc/C/rpc` : `http://localhost:9650/ext/bc/C/rpc`,
+                onClick={() => {
+                  const rpcUrl = buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' });
+                  if (!rpcUrl) return;
+                  void addToWallet({
+                    rpcUrl,
                     chainName: selectedNetwork === 'fuji' ? 'Avalanche Fuji C-Chain' : 'Avalanche C-Chain',
                     chainId: selectedNetwork === 'fuji' ? 43113 : 43114,
                     nativeCurrency: {
@@ -1399,12 +1412,19 @@ sudo ufw status`
                       symbol: 'AVAX',
                       decimals: 18,
                     },
-                  })
-                }
-                disabled={isAddingToWallet}
+                  });
+                }}
+                disabled={isAddingToWallet || !buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' })}
               >
                 {isAddingToWallet ? 'Adding...' : 'Add to Wallet'}
               </Button>
+
+              {!buildNodeRpcUrl({ location: nodeLocation, domain, blockchainId: 'C' }) && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Your wallet can&apos;t reach localhost on a remote server. Enter the node&apos;s IP or domain in the
+                  reverse proxy step above, or choose &quot;This machine&quot; there if the node runs locally.
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">

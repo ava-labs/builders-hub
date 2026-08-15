@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import { CheckCircle, XCircle, Wallet, Loader2, CircleMinus } from 'lucide-react';
+import { CheckCircle, XCircle, Wallet, Loader2, CircleMinus, CircleHelp } from 'lucide-react';
 import { useWalletRequirements, WalletRequirementsConfigKey } from '../hooks/useWalletRequirements';
 import { useAccountRequirements, AccountRequirementsConfigKey } from '../hooks/useAccountRequirements';
 import { ConnectedWalletProvider } from '../contexts/ConnectedWalletContext';
@@ -136,6 +136,8 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
                     <CircleMinus className="h-5 w-5 text-gray-300" />
                   ) : requirement.waiting ? (
                     <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                  ) : requirement.unknown ? (
+                    <CircleHelp className="h-5 w-5 text-amber-500" />
                   ) : requirement.met ? (
                     <CheckCircle className="h-5 w-5 text-green-500" />
                   ) : (
@@ -144,6 +146,12 @@ export const CheckRequirements = ({ children, toolRequirements }: CheckRequireme
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{requirement.title}</p>
+                  {requirement.unknown && !requirement.waiting && !requirement.prerequisiteNotMet && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Can&apos;t verify: the chain&apos;s RPC did not respond. You can proceed; fix the RPC URL if
+                      actions fail.
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

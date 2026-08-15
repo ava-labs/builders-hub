@@ -28,6 +28,12 @@ import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { ProposerVMPreflightCard } from '@/components/toolbox/console/shared/ProposerVMPreflightCard';
+import {
+  AggregationRemediation,
+  parseAggregationError,
+  type RemediationLink,
+} from '@/components/toolbox/hooks/contracts/parseAggregationError';
 
 export type WeightUpdateType = 'ChangeWeight' | 'Delegation';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -89,6 +95,7 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
   const [delegationIDState, setDelegationIDState] = useState(delegationID || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
+  const [aggRemediation, setAggRemediation] = useState<RemediationLink[] | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [updateComplete, setUpdateComplete] = useState(false);
   const [pChainSignature, setPChainSignature] = useState<string | null>(null);
@@ -291,8 +298,11 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
       const message = err instanceof Error ? err.message : String(err);
 
       const errorPrefix = isDelegation ? 'Failed to complete delegation' : 'Failed to complete weight change';
-      setErrorState(`${errorPrefix}: ${message}`);
-      onError(`${errorPrefix}: ${message}`);
+      const mapped = parseAggregationError(err);
+      setAggRemediation(mapped?.remediation ?? null);
+      const display = mapped?.message ?? `${errorPrefix}: ${message}`;
+      setErrorState(display);
+      onError(display);
     } finally {
       setIsProcessing(false);
     }
@@ -343,7 +353,15 @@ const CompletePChainWeightUpdate: React.FC<CompletePChainWeightUpdateProps> = ({
 
   return (
     <div className="space-y-3">
-      {error && <Alert variant="error">{error}</Alert>}
+      <ProposerVMPreflightCard requiredTxId={pChainTxIdState.trim() || null} />
+      {error && (
+        <Alert variant="error">
+          <div>
+            {error}
+            {aggRemediation && <AggregationRemediation items={aggRemediation} />}
+          </div>
+        </Alert>
+      )}
 
       {/* Step 1: Enter P-Chain Transaction */}
       <div

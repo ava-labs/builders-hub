@@ -41,6 +41,7 @@ import {
   TELEGRAM_ACCOUNT_PATTERN,
   X_ACCOUNT_PATTERN,
 } from "@/lib/profile/socialAccountValidation";
+import { isValidEmail } from "@/lib/email";
 
 const optionalSocial = (pattern: RegExp, message: string) =>
   z
@@ -539,8 +540,7 @@ export function RegisterForm({
         );
         errors.__team = true;
       } else {
-        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const badIdx = cleanedTeammates.findIndex((e) => !emailRe.test(e));
+        const badIdx = cleanedTeammates.findIndex((e) => !isValidEmail(e));
         if (badIdx >= 0) {
           setTeamError(
             lang === "es"

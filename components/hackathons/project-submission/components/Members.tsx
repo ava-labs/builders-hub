@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { InvitationLinksMember } from "./InvitationLinksMember";
 import { t } from "@/lib/events/i18n";
+import { isValidEmail } from "@/lib/email";
 export default function MembersComponent({
   project_id,
   hackaton_id,
@@ -77,17 +78,13 @@ export default function MembersComponent({
   const { toast } = useToast();
 
   const handleAddEmail = () => {
-    if (newEmail && !emails.includes(newEmail) && validateEmail(newEmail)) {
+    if (newEmail && !emails.includes(newEmail) && isValidEmail(newEmail)) {
       setIsValidingEmail(true);
       setEmails((prev) => [...prev, newEmail]);
       setNewEmail("");
     }
   };
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
 
   const handleRemoveEmail = (email: string) => {
     setEmails(emails.filter((e) => e !== email));
@@ -131,6 +128,17 @@ export default function MembersComponent({
       setMembers(response.data);
     } catch (error) {
       console.error("Error sending invitations:", error);
+      // The route answers 400 (invalid / too many addresses) and 429 (rate limit).
+      // Without this the dialog just stops spinning and nothing visibly happens.
+      const serverMessage = axios.isAxiosError(error)
+        ? (error.response?.data?.message as string | undefined)
+        : undefined;
+      toast({
+        title: t(lang, "submission.members.invite.failed.title"),
+        description: serverMessage ?? t(lang, "submission.members.invite.failed.retry"),
+        variant: "destructive",
+        duration: 6000,
+      });
     } finally {
       setSendingInvitation(false);
     }
@@ -243,7 +251,7 @@ export default function MembersComponent({
             user_id: user_id,
             name: currentUserName || currentEmail,
             role: "Member",
-            status: "Confirmed",
+            status: MemberStatus.CONFIRMED,
           },
         ]);
       }
@@ -505,7 +513,7 @@ export default function MembersComponent({
                   </DropdownMenu>
                 </TableCell>
                 <TableCell>
-                  {member.status === "Confirmed"
+                  {member.status === MemberStatus.CONFIRMED
                     ? t(lang, "submission.members.table.status.confirmed")
                     : t(lang, "submission.members.table.status.pending")}
                 </TableCell>

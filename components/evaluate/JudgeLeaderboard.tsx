@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { X } from "lucide-react";
+import { VERDICTS } from "@/lib/evaluate/verdicts";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -34,7 +35,6 @@ interface JudgeStats {
   avgScore: number | null;
 }
 
-const VERDICTS: Verdict[] = ["top", "strong", "maybe", "weak", "reject"];
 
 const VERDICT_LABELS: Record<Verdict, string> = {
   top: "Top",

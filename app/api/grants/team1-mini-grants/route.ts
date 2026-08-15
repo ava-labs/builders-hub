@@ -7,6 +7,7 @@ import { MINI_GRANT_KEY, MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 import { ensureGrantHackathon } from "@/lib/grants/ensureHackathon";
 import { rateLimited } from "@/app/api/managed-testnet-nodes/utils";
 import { extractAndRecordReferral } from "@/server/services/referrals";
+import { MemberStatus } from "@/types/project";
 
 async function rateLimitIdentifier(): Promise<string> {
   if (process.env.NODE_ENV === "development") return "dev-user";
@@ -36,7 +37,7 @@ async function handlePost(request: NextRequest) {
   // Caller must be a confirmed member of the project they're submitting
   // (role-agnostic, matching the build-games stage-submit precedent).
   const project = await prisma.project.findFirst({
-    where: { id: projectId, members: { some: { user_id: userId, status: "Confirmed" } } },
+    where: { id: projectId, members: { some: { user_id: userId, status: MemberStatus.CONFIRMED } } },
     select: { id: true, hackaton_id: true },
   });
   if (!project) return NextResponse.json({ success: false, message: "You must be a confirmed member of this project to apply." }, { status: 403 });
@@ -51,14 +52,15 @@ async function handlePost(request: NextRequest) {
     );
   }
 
-  // One application per project: you can apply again, but with a different project.
+  // One application per project. The submitter may be any confirmed member, so
+  // don't phrase this as "you already applied" — a teammate may have.
   const existingApp = await prisma.grantApplication.findUnique({
     where: { program_key_project_id: { program_key: MINI_GRANT_KEY, project_id: projectId } },
     select: { id: true },
   });
   if (existingApp) {
     return NextResponse.json(
-      { success: false, message: "You've already applied with this project. Pick or create a different project to apply again." },
+      { success: false, message: "This project already has a Mini Grant application. Pick or create a different project to apply again." },
       { status: 409 },
     );
   }

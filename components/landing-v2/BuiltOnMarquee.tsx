@@ -129,7 +129,7 @@ export default function BuiltOnMarquee({ embedded = false }: { embedded?: boolea
         </p>
         <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
         <a
-          href="/stats/overview"
+          href="/explorer/mainnet"
           className="shrink-0 font-mono text-[11px] tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           VIEW ALL →

@@ -33,6 +33,14 @@ export const PCHAIN_COMMANDS = {
   disableValidator: (opts: { validationId: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli l1 disable-validator --validation-id ${opts.validationId} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
+  /**
+   * IssueRemoveSubnetValidatorTx: remove a legacy Subnet validator.
+   * Applies to validators added by AddSubnetValidatorTx, including leftovers
+   * on a Subnet that has since been converted to an L1.
+   */
+  removeSubnetValidator: (opts: { subnetId: string; nodeId: string; network: 'fuji' | 'mainnet'; keyName?: string }) =>
+    `platform-cli subnet remove-validator --subnet-id ${opts.subnetId} --node-id ${opts.nodeId} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+
   /** IssueCreateSubnetTx */
   createSubnet: (opts: { network: 'fuji' | 'mainnet'; keyName?: string }) =>
     `platform-cli subnet create --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,

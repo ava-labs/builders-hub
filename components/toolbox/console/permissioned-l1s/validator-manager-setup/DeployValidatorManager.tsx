@@ -21,6 +21,14 @@ import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedW
 import versions from '@/scripts/versions.json';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
+import { preflightRpc, formatPreflightError } from '@/components/toolbox/lib/rpcPreflight';
+import { classifyEvmTxError } from '@/components/toolbox/lib/evmErrors';
+import {
+  getReceiptViaWalletTransport,
+  ReceiptUnknownError,
+  waitForReceiptWithWalletFallback,
+} from '@/components/toolbox/lib/walletReceipt';
+import { useWalletRpcAdvisory } from '@/components/toolbox/hooks/useWalletRpcAdvisory';
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import { Check, BookOpen, GraduationCap } from 'lucide-react';
 import { ManualAddressInput } from './ManualAddressInput';
@@ -63,8 +71,32 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
   const walletClient = useResolvedWalletClient();
   const [isDeployingMessages, setIsDeployingMessages] = useState(false);
   const [isDeployingManager, setIsDeployingManager] = useState(false);
+  const [deployError, setDeployError] = useState<string | null>(null);
   const viemChain = useViemChainStore();
   const { notify } = useConsoleNotifications();
+  const walletRpcMismatchUrl = useWalletRpcAdvisory(viemChain);
+
+  const pageProtocol = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+
+  // Fail in seconds with a specific message instead of letting an
+  // unreachable RPC surface as a wallet-side gas estimation error three
+  // layers down (issue #4450).
+  async function assertRpcReachable(chain: NonNullable<typeof viemChain>) {
+    const rpcUrl = chain.rpcUrls.default.http[0];
+    const preflight = await preflightRpc(rpcUrl, chain.id, { pageProtocol });
+    if (!preflight.ok) throw new Error(formatPreflightError(preflight, rpcUrl, chain.id));
+  }
+
+  function runDeploy(deploy: () => Promise<void>) {
+    setDeployError(null);
+    void deploy().catch((err) => {
+      const classified = classifyEvmTxError(err, {
+        rpcUrl: viemChain?.rpcUrls.default.http[0],
+        pageProtocol,
+      });
+      setDeployError(classified.message);
+    });
+  }
 
   async function deployValidatorMessages() {
     if (!walletClient) throw new Error('Wallet not connected');
@@ -74,6 +106,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     setValidatorMessagesLibAddress('');
 
     try {
+      await assertRpcReachable(viemChain);
+
       await walletClient.addChain({ chain: viemChain });
       await walletClient.switchChain({ id: viemChain.id });
 
@@ -90,7 +124,10 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       const hash = await deployPromise;
       const chainClient = makePublicClientForChain(viemChain.rpcUrls.default.http[0], [], viemChain);
       if (!chainClient) throw new Error('Could not create public client for chain');
-      const receipt = await chainClient.waitForTransactionReceipt({ hash });
+      // A page-side timeout is not a verdict: the wallet's transport gets
+      // the final word before anything is reported (issue #4450's false
+      // "Timed out ... to be confirmed" was a successful deploy).
+      const receipt = await waitForReceiptWithWalletFallback(chainClient, hash);
       if (!receipt.contractAddress) {
         throw new Error('No contract address in receipt');
       }
@@ -112,6 +149,8 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
     setValidatorManagerAddress('');
 
     try {
+      await assertRpcReachable(viemChain);
+
       await walletClient.addChain({ chain: viemChain });
       await walletClient.switchChain({ id: viemChain.id });
 
@@ -132,7 +171,19 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
         viemChain ?? undefined,
       );
 
-      const { address } = await deployPromise;
+      let address: string;
+      try {
+        address = (await deployPromise).address;
+      } catch (err) {
+        // The SDK waits for the receipt on the page client; rescue a
+        // timed-out wait through the wallet transport before failing.
+        const classified = classifyEvmTxError(err);
+        const hash = classified.txHash;
+        if ((classified.kind !== 'receipt-timeout' && classified.kind !== 'rpc-unreachable') || !hash) throw err;
+        const rescued = await getReceiptViaWalletTransport(hash);
+        if (!rescued?.contractAddress) throw new ReceiptUnknownError(hash);
+        address = rescued.contractAddress;
+      }
       setValidatorManagerAddress(address);
       setCreateChainManagerAddress(address);
       onSuccess?.();
@@ -149,6 +200,16 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
       <div className="flex flex-col h-[500px] rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         {/* Scrollable content area */}
         <div className="flex-1 overflow-auto p-5 space-y-4">
+          {walletRpcMismatchUrl && viemChain && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+              Your wallet uses a different RPC URL for this chain (
+              <code className="break-all">{walletRpcMismatchUrl}</code>
+              ). Gas estimation and sending go through the wallet&apos;s URL: if a deploy fails with &quot;Unable to
+              calculate gas limit&quot;, update it in Core &gt; Settings &gt; Networks to{' '}
+              <code className="break-all">{viemChain.rpcUrls.default.http[0]}</code>.
+            </div>
+          )}
+
           {/* Step 1: Deploy Library */}
           <div
             className={`p-4 rounded-xl border transition-colors ${
@@ -201,15 +262,21 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployValidatorMessages}
-                    loading={isDeployingMessages}
-                    disabled={isDeployingMessages}
-                    className="mt-3"
-                  >
-                    Deploy Library
-                  </Button>
+                  <div className="mt-3 space-y-2">
+                    <Button
+                      variant="primary"
+                      onClick={() => runDeploy(deployValidatorMessages)}
+                      loading={isDeployingMessages}
+                      disabled={isDeployingMessages}
+                    >
+                      Deploy Library
+                    </Button>
+                    <ManualAddressInput
+                      value={validatorMessagesLibAddress}
+                      onChange={setValidatorMessagesLibAddress}
+                      label="Already deployed? Enter the address"
+                    />
+                  </div>
                 )}
               </div>
             </div>
@@ -294,19 +361,34 @@ function DeployValidatorContracts({ onSuccess }: BaseConsoleToolProps) {
                     />
                   </div>
                 ) : (
-                  <Button
-                    variant="primary"
-                    onClick={deployValidatorManager}
-                    loading={isDeployingManager}
-                    disabled={isDeployingManager || !step1Complete}
-                    className="mt-3"
-                  >
-                    Deploy Contract
-                  </Button>
+                  <div className="mt-3 space-y-2">
+                    <Button
+                      variant="primary"
+                      onClick={() => runDeploy(deployValidatorManager)}
+                      loading={isDeployingManager}
+                      disabled={isDeployingManager || !step1Complete}
+                    >
+                      Deploy Contract
+                    </Button>
+                    <ManualAddressInput
+                      value={validatorManagerAddress}
+                      onChange={(addr) => {
+                        setValidatorManagerAddress(addr);
+                        setCreateChainManagerAddress(addr);
+                      }}
+                      label="Already deployed? Enter the address"
+                    />
+                  </div>
                 )}
               </div>
             </div>
           </div>
+
+          {deployError && (
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400 break-words">
+              {deployError}
+            </div>
+          )}
         </div>
 
         {/* Fixed footer */}
