@@ -1118,14 +1118,14 @@ nav li > a {
 .docs-subnav-link[data-active="true"],
 .docs-subnav-link[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(24 24 27) !important; /* zinc-900 */
 }
 
 .dark .docs-subnav-link[data-active="true"],
 .dark .docs-subnav-link[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
@@ -1150,7 +1150,7 @@ nav a[aria-current="page"],
 nav button[data-active="true"],
 nav button[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(24 24 27) !important; /* zinc-900 */
   cursor: default !important;
 }
@@ -1160,7 +1160,7 @@ nav button[aria-current="page"] {
 .dark nav button[data-active="true"],
 .dark nav button[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
@@ -1170,7 +1170,7 @@ nav a[aria-current="page"]:hover,
 nav button[data-active="true"]:hover,
 nav button[aria-current="page"]:hover {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   transform: none !important;
   scale: 1 !important;
 }
@@ -1180,7 +1180,7 @@ nav button[aria-current="page"]:hover {
 .dark nav button[data-active="true"]:hover,
 .dark nav button[aria-current="page"]:hover {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   transform: none !important;
   scale: 1 !important;
 }

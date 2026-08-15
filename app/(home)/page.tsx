@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     title: 'Avalanche Builder Hub',
     description: HOME_DESCRIPTION,
     url: BASE_URL,
-    images: [{ url: '/api/og/home', width: 1280, height: 720, alt: 'Launch a network on Avalanche' }],
+    images: [{ url: '/api/og/home', width: 1280, height: 720, alt: 'Build a network on Avalanche' }],
   },
   twitter: {
     card: 'summary_large_image',
