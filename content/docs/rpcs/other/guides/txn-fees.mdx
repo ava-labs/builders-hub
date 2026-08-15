@@ -50,7 +50,27 @@ Based off of this information, you can specify the `gasFeeCap` and `gasTipCap` t
 
 #### Base Fee[​](#base-fee)
 
-The base fee can go as low as 1 wei and has no upper bound. With the upcoming Helicon Upgrade (ACP-283), the minimum gas price will become a dynamic parameter adjustable by validators. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
+Since the Fortuna upgrade activated [ACP-176](/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates) on April 8, 2025, the minimum base fee on the C-Chain is 1 wei, and there is no upper bound. Under normal load the base fee sits well below 1 nAVAX. You can use the [`eth_baseFee`](/docs/rpcs/c-chain#eth_basefee) and [eth\_maxPriorityFeePerGas](/docs/rpcs/c-chain#eth_maxpriorityfeepergas) API methods, or [Snowtrace's C-Chain Gas Tracker](https://snowtrace.io/gastracker), to estimate the gas price to use in your transactions.
+
+The minimum base fee has changed across network upgrades:
+
+| Minimum base fee | In effect | Introduced by |
+| --- | --- | --- |
+| 25 nAVAX | September 22, 2021 to December 16, 2024 | Apricot Phase 4 |
+| 1 nAVAX | December 16, 2024 to April 8, 2025 | Etna upgrade ([ACP-125](/docs/acps/125-basefee-reduction)) |
+| 1 wei | since April 8, 2025 | Fortuna upgrade ([ACP-176](/docs/acps/176-dynamic-evm-gas-limit-and-price-discovery-updates)) |
+
+With the Helicon upgrade (active on Fuji since July 28, 2026 at 15:00 UTC, not yet scheduled on Mainnet), [ACP-283](/docs/acps/283-dynamic-minimum-gas-price) makes the minimum gas price a dynamic parameter driven by stake-weighted validator preference. It starts at 1 wei at activation and moves only if validators prefer a different floor.
+
+<Callout type="info" title="Helicon also changes how transactions pay fees (ACP-194)">
+[Continuous Execution](/docs/acps/194-continuous-execution) decouples consensus from execution, which changes fee handling on networks where Helicon is active:
+
+- The `baseFeePerGas` field in block headers becomes a worst-case bound on the gas price at the start of the block's execution, not the realized price.
+- To be included, a transaction's sender must be able to cover the worst-case cost at inclusion time: the gas limit times the worst-case gas price, plus any transferred value.
+- Gas charged becomes `max(gasUsed, gasLimit / 2)`, so setting a gas limit more than twice the actual usage costs real money.
+
+See the [Helicon Upgrade page](/docs/primary-network/helicon-upgrade) for the full list of changes.
+</Callout>
 
 ### Atomic Transaction Fees[​](#atomic-transaction-fees)
 
