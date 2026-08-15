@@ -15,7 +15,7 @@ import {
   idInk,
 } from "@/components/explorer-v2/ui";
 import { cn } from "@/lib/utils";
-import { formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { ageOrDate, formatAvax, formatNumber, formatTime, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { useAvaxUsd, usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
 import { txTypeLabel, type Address, type AddressTxs } from "@/lib/pchain-explorer";
@@ -361,7 +361,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                       title={formatTime(t.blockTimestamp)}
                     >
                       <CellLabel>Age</CellLabel>
-                      {timeAgo(t.blockTimestamp)}
+                      <span title={ageOrDate(t.blockTimestamp).title}>{ageOrDate(t.blockTimestamp).text}</span>
                     </div>
                   </Link>
                 );

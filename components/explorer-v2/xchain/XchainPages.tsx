@@ -24,7 +24,7 @@ import {
   TypeFilterRail,
   idInk,
 } from "@/components/explorer-v2/ui";
-import { formatNumber, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { ageOrDate, formatNumber, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { useAvaxUsd } from "@/components/explorer-v2/pchain/hooks";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
@@ -62,14 +62,6 @@ function useXchain<T>(path: string | null, refreshMs?: number): { data: T | null
 }
 
 
-// lists show relative age for recent rows, but a DAG-era tx is thousands of
-// days old. after 45 days the calendar date says more. hovering always reveals
-// the full timestamp either way.
-function ageOrDate(ts: number): { text: string; title: string } {
-  const iso = new Date(ts * 1000).toISOString();
-  const days = (Date.now() / 1000 - ts) / 86400;
-  return { text: days > 45 ? iso.slice(0, 10) : timeAgo(ts), title: iso.replace("T", " ").slice(0, 19) + " UTC" };
-}
 interface XTxSummary {
   txHash: string;
   txType: string;

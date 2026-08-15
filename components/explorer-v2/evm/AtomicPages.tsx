@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { crossChainTxUrl } from "@/lib/crosschain-links";
 import { Board, SectionHeader, TxTypePill, idInk } from "@/components/explorer-v2/ui";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { formatNumber, timeAgo, truncate as truncFmt } from "@/components/explorer-v2/format";
+import { ageOrDate, formatNumber, timeAgo, truncate as truncFmt } from "@/components/explorer-v2/format";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
 import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
@@ -37,14 +37,6 @@ const trunc = (s: string, n = 16) => (s.length <= n ? s : `${s.slice(0, n)}…`)
 const navax = (v: string) => `${(Number(v) / 1e9).toLocaleString(undefined, { maximumFractionDigits: 9 })} AVAX`;
 
 
-// lists show relative age for recent rows, but a DAG-era tx is thousands of
-// days old. after 45 days the calendar date says more. hovering always reveals
-// the full timestamp either way.
-function ageOrDate(ts: number): { text: string; title: string } {
-  const iso = new Date(ts * 1000).toISOString();
-  const days = (Date.now() / 1000 - ts) / 86400;
-  return { text: days > 45 ? iso.slice(0, 10) : timeAgo(ts), title: iso.replace("T", " ").slice(0, 19) + " UTC" };
-}
 interface AtomicTxRow {
   txHash: string; txType: string; blockNumber: number; timestamp: number;
   sourceChain?: string; destinationChain?: string;

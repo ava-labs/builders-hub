@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
-import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { ageOrDate, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { txTypeLabel, type TxSummary } from "@/lib/pchain-explorer";
 
@@ -114,7 +114,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
               </div>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                {timeAgo(t.blockTimestamp)}
+                <span title={ageOrDate(t.blockTimestamp).title}>{ageOrDate(t.blockTimestamp).text}</span>
               </div>
             </Link>
           ))}
