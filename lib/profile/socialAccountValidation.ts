@@ -6,7 +6,7 @@ export const LINKEDIN_ACCOUNT_PATTERN = /^https?:\/\/(?:www\.)?linkedin\.com\/(?
 export const GITHUB_ACCOUNT_PATTERN = /^(?:[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}|https?:\/\/(?:www\.)?github\.com\/[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}\/?)$/i;
 export const TELEGRAM_ACCOUNT_PATTERN = /^@?[A-Za-z][A-Za-z0-9_]{4,31}$/;
 
-type BasicProfileShape = {
+export type BasicProfileShape = {
   name?: unknown;
   country?: unknown;
   user_type?: {

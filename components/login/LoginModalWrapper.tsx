@@ -296,8 +296,16 @@ export function LoginModalWrapper() {
                   <Dialog.Description>Complete basic profile information for your Builder Hub account.</Dialog.Description>
                 </VisuallyHidden>
                 <div className="px-5 py-5 overflow-y-auto" style={{ maxHeight: '90vh' }}>
+                  {/* Prefer the session's materialized id over a stored
+                      pending_* one: the profile PUT only accepts the
+                      session's own id, so saving against a stale pending id
+                      is a guaranteed 403 (#4388). */}
                   <BasicProfileSetup
-                    userId={(termsUserId || session?.user?.id)!}
+                    userId={
+                      (session?.user?.id && !session.user.id.startsWith('pending_')
+                        ? session.user.id
+                        : termsUserId || session?.user?.id)!
+                    }
                     onCompleteProfile={handleCompleteProfile}
                   />
                 </div>

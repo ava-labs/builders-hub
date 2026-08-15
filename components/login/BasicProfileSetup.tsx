@@ -37,6 +37,7 @@ import {
   TELEGRAM_ACCOUNT_PATTERN,
   X_ACCOUNT_PATTERN,
 } from '@/lib/profile/socialAccountValidation';
+import { saveBasicProfile } from '@/lib/profile/basicProfileSave';
 
 // Form schema. Social fields are optional; only name + country + at least
 // one role are required to complete the basic setup. When a social field is
@@ -103,6 +104,7 @@ interface BasicProfileSetupProps {
 
 export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSetupProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [githubConnected, setGithubConnected] = useState(false);
   const [xConnected, setXConnected] = useState(false);
   const pathname = usePathname();
@@ -199,6 +201,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
 
   const handleSave = async (data: BasicProfileFormValues) => {
     setIsSaving(true);
+    setSaveError(null);
     try {
       // Format data to match the API expected format
       const {
@@ -236,8 +239,26 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
         }
       };
 
-      // Save to API using extended profile endpoint
-      await axios.put(`/api/profile/extended/${userId}`, profileData);
+      // Save via the extracted flow: it resolves a still-pending user id
+      // through a session refresh before the PUT (a pending_* id always
+      // 403s), and only reports success when the server-confirmed profile
+      // passes the same completeness check that decides whether the modal
+      // reopens. Every failure becomes a visible message instead of a
+      // silently swallowed error (#4388).
+      const outcome = await saveBasicProfile(
+        {
+          userId,
+          refreshSession: update,
+          putProfile: async (id, payload) =>
+            (await axios.put(`/api/profile/extended/${id}`, payload)).data,
+        },
+        profileData,
+      );
+
+      if (!outcome.ok) {
+        setSaveError(outcome.message);
+        return;
+      }
 
       // Update session
       await update();
@@ -245,6 +266,7 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
       onCompleteProfile?.();
     } catch (error) {
       console.error('Error saving basic profile:', error);
+      setSaveError("Couldn't save your profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -711,6 +733,11 @@ export function BasicProfileSetup({ userId, onCompleteProfile }: BasicProfileSet
             </div>
 
             {/* Submit */}
+            {saveError && (
+              <p role="alert" className="pt-3 text-sm text-red-600 dark:text-red-400">
+                {saveError}
+              </p>
+            )}
             <div className="pt-4 sm:pt-5">
               <LoadingButton
                 type="submit"
