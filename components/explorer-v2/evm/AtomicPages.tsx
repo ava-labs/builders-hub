@@ -36,6 +36,15 @@ const link = "font-mono text-[12px] text-[#0061E2] underline-offset-2 hover:text
 const trunc = (s: string, n = 16) => (s.length <= n ? s : `${s.slice(0, n)}…`);
 const navax = (v: string) => `${(Number(v) / 1e9).toLocaleString(undefined, { maximumFractionDigits: 9 })} AVAX`;
 
+
+// lists show relative age for recent rows, but a DAG-era tx is thousands of
+// days old. after 45 days the calendar date says more. hovering always reveals
+// the full timestamp either way.
+function ageOrDate(ts: number): { text: string; title: string } {
+  const iso = new Date(ts * 1000).toISOString();
+  const days = (Date.now() / 1000 - ts) / 86400;
+  return { text: days > 45 ? iso.slice(0, 10) : timeAgo(ts), title: iso.replace("T", " ").slice(0, 19) + " UTC" };
+}
 interface AtomicTxRow {
   txHash: string; txType: string; blockNumber: number; timestamp: number;
   sourceChain?: string; destinationChain?: string;
@@ -67,18 +76,19 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
         transactions — they settle inside block extra data and carry Avalanche (CB58) ids.
       </p>
       <Board>
-        <div className="hidden grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+        <div className="hidden grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
           <span>Hash</span>
           <span>Type</span>
           <span>Counterpart</span>
           <span className="text-right">Amount</span>
           <span className="text-right">Block</span>
+          <span className="text-right">Age</span>
         </div>
         {rows.map((t) => (
           <Link
             key={t.txHash}
             href={`${base}/atomic-tx/${t.txHash}`}
-            className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+            className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
           >
             <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncFmt(t.txHash, 18)}</span>
             <span className="justify-self-start"><TxTypePill type={t.txType} label={t.txType} /></span>
@@ -90,6 +100,12 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
             </span>
             <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
               #{formatNumber(t.blockNumber)}
+            </span>
+            <span
+              title={ageOrDate(t.timestamp).title}
+              className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400"
+            >
+              {ageOrDate(t.timestamp).text}
             </span>
           </Link>
         ))}
@@ -204,7 +220,7 @@ export function AtomicTxDetail({ network, chainSlug, txHash }: { network: string
     [
       "Timestamp",
       <span key="ts" className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
-        {new Date(t.timestamp * 1000).toUTCString()} · {timeAgo(t.timestamp)}
+        {new Date(t.timestamp * 1000).toUTCString()} · {ageOrDate(t.timestamp).text}
       </span>,
     ],
     [

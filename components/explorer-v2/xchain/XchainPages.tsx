@@ -61,6 +61,15 @@ function useXchain<T>(path: string | null, refreshMs?: number): { data: T | null
   return { data, loading };
 }
 
+
+// lists show relative age for recent rows, but a DAG-era tx is thousands of
+// days old. after 45 days the calendar date says more. hovering always reveals
+// the full timestamp either way.
+function ageOrDate(ts: number): { text: string; title: string } {
+  const iso = new Date(ts * 1000).toISOString();
+  const days = (Date.now() / 1000 - ts) / 86400;
+  return { text: days > 45 ? iso.slice(0, 10) : timeAgo(ts), title: iso.replace("T", " ").slice(0, 19) + " UTC" };
+}
 interface XTxSummary {
   txHash: string;
   txType: string;
@@ -206,8 +215,11 @@ export function XchainHome({ network }: { network: string }) {
                     <TxTypePill type={t.txType} label={t.txType} />
                     <IndexedBadge src={t.timeSource} />
                   </span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    {timeAgo(t.timestamp)}
+                  <span
+                    title={ageOrDate(t.timestamp).title}
+                    className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400"
+                  >
+                    {ageOrDate(t.timestamp).text}
                   </span>
                 </Link>
               ))}
@@ -286,7 +298,7 @@ export function XchainTxsList({ network }: { network: string }) {
               </div>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                {timeAgo(t.timestamp)}
+                <span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span>
               </div>
             </Link>
           ))}
@@ -728,7 +740,7 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
                 </div>
                 <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                   <CellLabel>Age</CellLabel>
-                  {timeAgo(t.timestamp)}
+                  <span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span>
                 </div>
               </Link>
             ))}
@@ -863,7 +875,7 @@ export function XchainBlock({ network, height }: { network: string; height: stri
               >
                 <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 16)}</span>
                 <span className="justify-self-start"><TxTypePill type={t.txType} label={t.txType} /></span>
-                <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{timeAgo(t.timestamp)}</span>
+                <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{" "}<span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span></span>
               </Link>
             ))}
             {b.transactions.length === 0 && (
