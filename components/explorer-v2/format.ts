@@ -64,3 +64,14 @@ export function formatBytes(n: number | undefined): string {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** list-cell time: relative age for recent rows, the calendar date past 45
+ *  days, and the full UTC timestamp as a hover title.*/
+export function ageOrDate(ts: number): { text: string; title: string } {
+  const iso = new Date(ts * 1000).toISOString();
+  const days = (Date.now() / 1000 - ts) / 86400;
+  return {
+    text: days > 45 ? iso.slice(0, 10) : timeAgo(ts),
+    title: iso.replace("T", " ").slice(0, 19) + " UTC",
+  };
+}

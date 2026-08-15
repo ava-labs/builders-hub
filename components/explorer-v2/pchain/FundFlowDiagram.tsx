@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { formatAvax, truncate } from "@/components/explorer-v2/format";
 import { chainDisplayName, type AssetAmount, type ImportedFrom, type Utxo } from "@/lib/pchain-explorer";
-import { crossChainTxUrl } from "@/lib/crosschain-links";
+import { chainOfId, crossChainTxUrl } from "@/lib/crosschain-links";
 
 /**
  * Fund flow as a hand-rolled Sankey in the landing-v2 drafting-sheet idiom.
@@ -199,9 +199,13 @@ export function FundFlowDiagram({
       for (const f of ins) {
         const u = consumed.find((c) => f.key.startsWith(c.utxoId));
         if (!u || !u.txHash) continue;
-        const atomic = u.utxoType === "atomic-import" || u.utxoType === "IMPORTED" || (u.addresses ?? []).length === 0;
+        const atomic =
+          u.utxoType === "atomic-import" ||
+          u.utxoType === "IMPORTED" ||
+          (u.addresses ?? []).length === 0 ||
+          !!chainOfId(u.createdOnChainId);
         if (!atomic) continue;
-        f.href = crossChainTxUrl(network, sourceChain, u.txHash);
+        f.href = crossChainTxUrl(network, u.createdOnChainId || sourceChain, u.txHash);
         if (!f.sub && (u.addresses ?? []).length === 0) f.sub = `exported in ${truncate(u.txHash, 12)} →`;
       }
     }

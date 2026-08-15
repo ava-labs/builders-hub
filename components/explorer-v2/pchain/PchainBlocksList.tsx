@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
-import { formatBytes, formatNumber, timeAgo } from "@/components/explorer-v2/format";
+import { ageOrDate, formatBytes, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { pchainApiPath, type BlocksList, type BlockSummary } from "@/lib/pchain-explorer";
 import { LIVE_REFRESH_MS } from "./hooks";
 
@@ -142,7 +142,7 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
               </div>
               <div className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                {timeAgo(b.blockTimestamp)}
+                <span title={ageOrDate(b.blockTimestamp).title}>{ageOrDate(b.blockTimestamp).text}</span>
               </div>
             </div>
           ))}

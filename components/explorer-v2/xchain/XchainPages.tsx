@@ -24,7 +24,7 @@ import {
   TypeFilterRail,
   idInk,
 } from "@/components/explorer-v2/ui";
-import { formatNumber, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { ageOrDate, formatNumber, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { useAvaxUsd } from "@/components/explorer-v2/pchain/hooks";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
@@ -60,6 +60,7 @@ function useXchain<T>(path: string | null, refreshMs?: number): { data: T | null
   }, [path, refreshMs]);
   return { data, loading };
 }
+
 
 interface XTxSummary {
   txHash: string;
@@ -206,8 +207,11 @@ export function XchainHome({ network }: { network: string }) {
                     <TxTypePill type={t.txType} label={t.txType} />
                     <IndexedBadge src={t.timeSource} />
                   </span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    {timeAgo(t.timestamp)}
+                  <span
+                    title={ageOrDate(t.timestamp).title}
+                    className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400"
+                  >
+                    {ageOrDate(t.timestamp).text}
                   </span>
                 </Link>
               ))}
@@ -286,7 +290,7 @@ export function XchainTxsList({ network }: { network: string }) {
               </div>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                {timeAgo(t.timestamp)}
+                <span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span>
               </div>
             </Link>
           ))}
@@ -728,7 +732,7 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
                 </div>
                 <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                   <CellLabel>Age</CellLabel>
-                  {timeAgo(t.timestamp)}
+                  <span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span>
                 </div>
               </Link>
             ))}
@@ -863,7 +867,7 @@ export function XchainBlock({ network, height }: { network: string; height: stri
               >
                 <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 16)}</span>
                 <span className="justify-self-start"><TxTypePill type={t.txType} label={t.txType} /></span>
-                <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{timeAgo(t.timestamp)}</span>
+                <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{" "}<span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span></span>
               </Link>
             ))}
             {b.transactions.length === 0 && (
