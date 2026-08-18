@@ -25,7 +25,6 @@ import {
   Search,
   Bell,
   Gauge,
-  EyeOff,
   ShieldCheck,
   Landmark,
 } from 'lucide-react';
@@ -41,12 +40,12 @@ export const solutionsMenu: LinkItemType = {
       icon: <Landmark />,
       text: 'Why Avalanche',
       description:
-        'The guarantees enterprise chains are built on: performance, interoperability, privacy, and compliance.',
+        'The guarantees enterprise chains are built on: control, reach, and performance.',
       url: '/solutions',
       menu: {
-        // featured panel: the image leads, the four pillars stack in the
+        // featured panel: the image leads, the three pillars stack in the
         // right rail. .nav-featured + the :has() popover rules in global.css.
-        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-4',
+        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-3',
         banner: (
           <Image
             src="/nav/why-avalanche.webp"
@@ -59,43 +58,33 @@ export const solutionsMenu: LinkItemType = {
       },
     },
     {
-      icon: <Gauge />,
-      text: 'Performance',
+      icon: <ShieldCheck />,
+      text: 'Control',
       description:
-        'Sub-second, irreversible finality on dedicated blockspace.',
-      url: '/solutions/performance',
+        'Sovereignty over who validates, who transacts, and who can see the chain. Permissioning and privacy enforced by the protocol.',
+      url: '/solutions/control',
       menu: {
         className: 'lg:col-start-2 lg:row-start-1',
       },
     },
     {
       icon: <ArrowLeftRight />,
-      text: 'Interoperability',
+      text: 'Reach',
       description:
-        'Native messaging and asset transfer between public, permissioned, and private chains.',
-      url: '/solutions/interoperability',
+        'Native messaging and shared liquidity across public, permissioned, and private chains, with no third-party bridge in the path.',
+      url: '/solutions/reach',
       menu: {
         className: 'lg:col-start-2 lg:row-start-2',
       },
     },
     {
-      icon: <EyeOff />,
-      text: 'Privacy',
+      icon: <Gauge />,
+      text: 'Performance',
       description:
-        'Privacy configured to your requirements: closed networks, placed data, and the cryptography you choose.',
-      url: '/solutions/privacy',
+        'Sub-second, irreversible finality on dedicated blockspace.',
+      url: '/solutions/performance',
       menu: {
         className: 'lg:col-start-2 lg:row-start-3',
-      },
-    },
-    {
-      icon: <ShieldCheck />,
-      text: 'Compliance',
-      description:
-        'Permissioning enforced on-chain with allowlist precompiles.',
-      url: '/solutions/compliance',
-      menu: {
-        className: 'lg:col-start-2 lg:row-start-4',
       },
     },
   ],
