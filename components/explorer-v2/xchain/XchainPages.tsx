@@ -443,11 +443,25 @@ export function XchainTx({ network, txHash }: { network: string; txHash: string 
     emittedUtxos: XUtxo[];
     consumedUtxos: XUtxo[];
   }>(`/api/xchain/${network}/tx/${encodeURIComponent(txHash)}`);
+  // Genesis assets are identified by a CreateAssetTx id
+  // Probe the asset endpoint before declaring "not found"
+  const { data: assetFallback } = useXchain<{ assetId: string; name: string; symbol: string }>(
+    !loading && !tx ? `/api/xchain/${network}/asset/${encodeURIComponent(txHash)}` : null,
+  );
   if (loading || !tx) {
     return (
       <ExplorerShell chain="x-chain" network={network}>
         <Board divide={false} className="px-6 py-16 text-center">
-          <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{loading ? "Loading…" : "Transaction not found"}</span>
+          {assetFallback ? (
+            <span className="font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+              This ID is the X-chain asset {assetFallback.name} ({assetFallback.symbol}) — created at genesis, so no transaction page exists.{" "}
+              <Link href={`/explorer/${network}/x-chain/asset/${txHash}`} className={idInk}>
+                View asset →
+              </Link>
+            </span>
+          ) : (
+            <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{loading ? "Loading…" : "Transaction not found"}</span>
+          )}
         </Board>
       </ExplorerShell>
     );
@@ -875,6 +889,58 @@ export function XchainBlock({ network, height }: { network: string; height: stri
             )}
           </Board>
         </section>
+      </div>
+    </ExplorerShell>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Asset detail — registry row + lifetime figures. */
+
+export function XchainAsset({ network, assetId }: { network: string; assetId: string }) {
+  const { data: a, loading } = useXchain<{
+    assetId: string; name: string; symbol: string; denomination: number;
+    source: string; lifetimeHolders: number; lifetimeUtxos: number;
+  }>(`/api/xchain/${network}/asset/${encodeURIComponent(assetId)}`);
+  if (loading || !a) {
+    return (
+      <ExplorerShell chain="x-chain" network={network}>
+        <Board divide={false} className="px-6 py-16 text-center">
+          <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{loading ? "Loading…" : "Asset not found"}</span>
+        </Board>
+      </ExplorerShell>
+    );
+  }
+  const rows: [string, string][] = [
+    ["Name", a.name],
+    ["Symbol", a.symbol],
+    ["Denomination", String(a.denomination)],
+    ["Origin", a.source === "rpc" ? "Genesis (no creating transaction)" : "CreateAssetTx"],
+    ["Lifetime holders", formatNumber(a.lifetimeHolders)],
+    ["Lifetime UTXOs", formatNumber(a.lifetimeUtxos)],
+  ];
+  return (
+    <ExplorerShell chain="x-chain" network={network}>
+      <div className="flex flex-col gap-8">
+        <section className="flex flex-col gap-4">
+          <SectionHeader label="Asset" />
+          <SubjectHeadline value={a.assetId} copyLabel="Copy asset ID" />
+        </section>
+        <Board divide={false} className="border">
+          <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+            {rows.map(([k, v]) => (
+              <div key={k} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-6">
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{k}</span>
+                <span className="font-mono text-[13px] tabular-nums text-zinc-900 dark:text-zinc-100">{v}</span>
+              </div>
+            ))}
+          </div>
+        </Board>
+        {a.source !== "rpc" && (
+          <Link href={`/explorer/${network}/x-chain/tx/${a.assetId}`} className={`font-mono text-[11px] ${idInk}`}>
+            View creating transaction →
+          </Link>
+        )}
       </div>
     </ExplorerShell>
   );
