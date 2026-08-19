@@ -104,7 +104,7 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
     if (network === 'mainnet') {
       return `/explorer/mainnet/c-chain/${type}/${id}`;
     }
-    return `https://subnets-test.avax.network/c-chain/${type}/${id}`;
+    return `https://explorer-test.avax.network/c-chain/${type}/${id}`;
   };
 
   return {

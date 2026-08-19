@@ -19,7 +19,7 @@ If you are coordinating a network upgrade, you must schedule advance notice to e
 
 This tutorial will guide you through the process of doing various Avalanche L1 upgrades and changes. We will point out things to watch out for and precautions you need to be mindful about.
 
-General Upgrade Considerations[​](#general-upgrade-considerations "Direct link to heading")
+General Upgrade Considerations
 -------------------------------------------------------------------------------------------
 
 When operating an Avalanche L1, you should always keep in mind that Proof of Stake networks like Avalanche can only make progress if sufficient amount of validating nodes are connected and processing transactions. Each validator on an Avalanche L1 is assigned a certain `weight`, which is a numerical value representing the significance of the node in consensus decisions. On the Primary Network, weight is equal to the amount of AVAX staked on the node. On Avalanche L1s, weight is currently assigned by the Avalanche L1 owners when they issue the transaction adding a validator to the Avalanche L1.
@@ -32,7 +32,7 @@ You as an Avalanche L1 operator need to ensure that whatever you do, at least 80
 It is mandatory that the cumulative weight of all validators in the Avalanche L1 must be at least the value of [`snow-sample-size`](/docs/nodes/configure/configs-flags#--snow-sample-size-int) (default 20). For example, if there is only one validator in the Avalanche L1, its weight must be at least `snow-sample-size` . Hence, when assigning weight to the nodes, always use values greater than 20. Recall that a validator's weight can't be changed while it is validating, so take care to use an appropriate value.
 </Callout>
 
-Upgrading Avalanche L1 Validator Nodes[​](#upgrading-avalanche-l1-validator-nodes "Direct link to heading")
+Upgrading Avalanche L1 Validator Nodes
 -----------------------------------------------------------------------------------------------
 
 AvalancheGo, the node client that is running the Avalanche validators is under constant and rapid development. New versions come out often (roughly every two weeks), bringing added capabilities, performance improvements or security fixes. Updates are usually optional, but from time to time (much less frequently than regular updates) there will be an update that includes a mandatory network upgrade. Those upgrades are **MANDATORY** for every node running the Avalanche L1. Any node that does not perform the update before the activation timestamp will immediately stop working when the upgrade activates.
@@ -43,7 +43,7 @@ For a general guide on upgrading AvalancheGo check out [this tutorial](/docs/nod
 
 Continue the upgrade cycle until all the Avalanche L1 nodes are upgraded.
 
-Upgrading Avalanche L1 VM Plugin Binaries[​](#upgrading-avalanche-l1-vm-plugin-binaries "Direct link to heading")
+Upgrading Avalanche L1 VM Plugin Binaries
 -----------------------------------------------------------------------------------------------------
 
 Besides the AvalancheGo client itself, new versions get released for the VM binaries that run the blockchains on the Avalanche L1. On most Avalanche L1s, that is the [Subnet-EVM](https://github.com/ava-labs/subnet-evm), so this tutorial will go through the steps for updating the `subnet-evm` binary. The update process will be similar for updating any VM plugin binary.
@@ -101,7 +101,7 @@ Refer to the previous section on how to make sure node is healthy and connected 
 
 If you don't get the expected result, you can stop the `AvalancheGo`, examine and follow closely step-by-step of the above. You are free to remove files under `~/avalanche-node/plugins`, however, you should keep in mind that removing files is to remove an existing VM binary. You must put the correct VM plugin in place before you restart AvalancheGo.
 
-Network Upgrades[​](#network-upgrades "Direct link to heading")
+Network Upgrades
 ---------------------------------------------------------------
 
 Sometimes you need to do a network upgrade to change the configured rules in the genesis under which the Chain operates. In regular EVM, network upgrades are a pretty involved process that includes deploying the new EVM binary, coordinating the timed upgrade and deploying changes to the nodes. But since [Subnet-EVM v0.2.8](https://github.com/ava-labs/subnet-evm/releases/tag/v0.2.8), we introduced the long awaited feature to perform network upgrades by just using a few lines of JSON. Upgrades can consist of enabling/disabling particular precompiles, or changing their parameters. Currently available precompiles allow you to:
@@ -113,7 +113,7 @@ Sometimes you need to do a network upgrade to change the configured rules in the
 
 Please refer to [Customize an Avalanche L1](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) for a detailed discussion of possible precompile upgrade parameters.
 
-Summary[​](#summary "Direct link to heading")
+Summary
 ---------------------------------------------
 
 Vital part of Avalanche L1 maintenance is performing timely upgrades at all levels of the software stack running your Avalanche L1. We hope this tutorial will give you enough information and context to allow you to do those upgrades with confidence and ease. If you have additional questions or any issues, please reach out to us on [Discord](https://chat.avalabs.org/).

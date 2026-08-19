@@ -37,12 +37,12 @@ function parsePChainTransaction(rawTx: unknown): ParsedTx {
     18: { type: 'AdvanceTimeTx', description: 'Advances the chain timestamp' },
     19: { type: 'RewardValidatorTx', description: 'Rewards a validator' },
     20: { type: 'RemoveSubnetValidatorTx', description: 'Removes a validator from a Subnet' },
-    21: { type: 'TransformSubnetTx', description: 'Transforms a Subnet to a permissionless L1' },
+    21: { type: 'TransformSubnetTx', description: 'Transformed a Subnet into an Elastic Subnet, no longer accepted since Etna/ACP-77, so this only appears on historical transactions' },
     22: { type: 'AddPermissionlessValidatorTx', description: 'Adds a permissionless validator' },
     23: { type: 'AddPermissionlessDelegatorTx', description: 'Adds a permissionless delegator' },
     24: { type: 'TransferSubnetOwnershipTx', description: 'Transfers Subnet ownership' },
     25: { type: 'BaseTx', description: 'Base transaction (AVAX transfer on P-Chain)' },
-    33: { type: 'ConvertSubnetTx', description: 'Converts a Subnet to a Sovereign L1' },
+    33: { type: 'ConvertSubnetToL1Tx', description: 'Converts a Subnet to a Sovereign L1' },
   };
 
   let typeId: number | undefined;
@@ -248,7 +248,7 @@ export const blockchainTools: ToolDomain = {
     },
     {
       name: 'blockchain_lookup_chain',
-      description: 'Look up a blockchain by its ID — name, VM type, and subnet.',
+      description: 'Look up a blockchain by its ID — name, VM type, and Subnet/L1.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -358,7 +358,7 @@ export const blockchainTools: ToolDomain = {
                     chain: 'P-Chain',
                     transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
                     network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
-                    explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/p-chain/tx/${txHash}`,
+                    explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/p-chain/tx/${txHash}`,
                     note: net !== network
                       ? `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)`
                       : 'P-Chain transactions include validator operations, delegations, subnet creation, and L1 management',
@@ -394,7 +394,7 @@ export const blockchainTools: ToolDomain = {
                     transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
                     network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
                     ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
-                    explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/x-chain/tx/${txHash}`,
+                    explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/x-chain/tx/${txHash}`,
                   }),
                 }],
               };
@@ -449,7 +449,7 @@ export const blockchainTools: ToolDomain = {
       const isPrimaryNetwork = subnetId === P_CHAIN_ID;
 
       // Validate before querying: a missing or malformed id must not be echoed back as a real,
-      // zero-activity subnet (which produced ".../subnets/undefined" and non-deterministic counts).
+      // zero-activity Subnet/L1 (which produced ".../subnets/undefined" and non-deterministic counts).
       if (!subnetId) {
         return {
           content: [{ type: 'text', text: JSON.stringify({ found: false, error: 'subnetId is required (a cb58 Subnet ID, e.g. from platform_get_subnets).' }) }],
@@ -507,7 +507,7 @@ export const blockchainTools: ToolDomain = {
         }
 
         // Honest not-found: a non-primary id with no validators AND no blockchains is either
-        // nonexistent or actually a blockchain id — don't present it as a real empty subnet.
+        // nonexistent or actually a blockchain id — don't present it as a real empty Subnet/L1.
         if (!isPrimaryNetwork && validators.length === 0 && chains.length === 0) {
           return {
             content: [{
@@ -516,7 +516,7 @@ export const blockchainTools: ToolDomain = {
                 found: false,
                 subnetId,
                 network: networkLabel(isTestnet),
-                error: 'No subnet found with this ID on this network (no validators or blockchains). It may not exist, be on the other network (try network:"fuji"), or be a blockchain ID rather than a subnet ID.',
+                error: 'No Subnet/L1 found with this ID on this network (no validators or blockchains). It may not exist, be on the other network (try network:"fuji"), or be a blockchain ID rather than a Subnet ID.',
               }),
             }],
           };
@@ -534,12 +534,12 @@ export const blockchainTools: ToolDomain = {
               validators: validators.slice(0, 10),
               hasMoreValidators: validators.length > 10,
               chains,
-              explorerUrl: `https://subnets${isTestnet ? '-test' : ''}.avax.network/subnets/${subnetId}`,
+              explorerUrl: `https://explorer${isTestnet ? '-test' : ''}.avax.network/subnets/${subnetId}`,
             }),
           }],
         };
       } catch (err) {
-        return rpcErrorResult(err, 'Error looking up subnet');
+        return rpcErrorResult(err, 'Error looking up Subnet/L1');
       }
     },
 
@@ -594,7 +594,7 @@ export const blockchainTools: ToolDomain = {
               vmID: 'platformvm',
               vmName: 'Platform VM (P-Chain)',
               network: networkLabel(testnet),
-              explorerUrl: `https://subnets${testnet ? '-test' : ''}.avax.network/p-chain`,
+              explorerUrl: `https://explorer${testnet ? '-test' : ''}.avax.network/p-chain`,
               note: 'The P-Chain is the Primary Network platform chain; it is not listed by platform.getBlockchains.',
             }),
           }],
@@ -632,7 +632,7 @@ export const blockchainTools: ToolDomain = {
                   vmName: VM_NAMES[chain.vmID] || 'Custom VM',
                   network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
                   ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
-                  explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/${chainSlug(chain.name)}`,
+                  explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/${chainSlug(chain.name)}`,
                 }),
               }],
             };
@@ -723,7 +723,7 @@ export const blockchainTools: ToolDomain = {
                 ? (parseInt(String(v.potentialReward)) / 1e9).toFixed(4) + ' AVAX'
                 : undefined,
               network: networkLabel(isTestnet),
-              explorerUrl: `https://subnets${isTestnet ? '-test' : ''}.avax.network/validators/${nodeId}`,
+              explorerUrl: `https://explorer${isTestnet ? '-test' : ''}.avax.network/validators/${nodeId}`,
             }),
           }],
         };

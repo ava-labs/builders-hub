@@ -501,7 +501,7 @@ export function NetworkToken() {
               Native Token
             </span>
             <a
-              href="https://subnets.avax.network/x-chain/tx/FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z"
+              href="https://explorer.avax.network/x-chain/tx/FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 border border-zinc-200 px-2 py-1 transition-colors hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"

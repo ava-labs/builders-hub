@@ -458,10 +458,10 @@ function enrichChain(existingChain: L1Chain, glacierChain: GlacierChain): L1Chai
   if (glacierChain.explorerUrl) {
     const existingExplorers = updated.explorers || [];
     const hasGlacierExplorer = existingExplorers.some(
-      e => e.link.includes('subnets.avax.network') || e.link === glacierChain.explorerUrl
+      e => e.link.includes('explorer.avax.network') || e.link === glacierChain.explorerUrl
     );
     
-    if (!hasGlacierExplorer && glacierChain.explorerUrl.includes('subnets.avax.network')) {
+    if (!hasGlacierExplorer && glacierChain.explorerUrl.includes('explorer.avax.network')) {
       updated.explorers = [
         { name: 'Avalanche Explorer', link: glacierChain.explorerUrl },
         ...existingExplorers.filter(e => e.name !== 'Avalanche Explorer'),

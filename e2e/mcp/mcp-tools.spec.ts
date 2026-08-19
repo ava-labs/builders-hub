@@ -102,7 +102,7 @@ test.describe('MCP tools — data & blockchain lookups', () => {
     expect(env?.found).toBe(true);
     expect(String(env?.network)).toMatch(/fuji/i);
     expect(env?.vmName).toBe('Coreth (C-Chain, EVM)');
-    expect(env?.explorerUrl).toContain('subnets-test.avax.network/c-chain');
+    expect(env?.explorerUrl).toContain('explorer-test.avax.network/c-chain');
   });
 
   test('chainId 43114 resolves to Mainnet with the C-Chain explorer', async ({ request }) => {
@@ -111,7 +111,7 @@ test.describe('MCP tools — data & blockchain lookups', () => {
     expect(env?.found).toBe(true);
     expect(env?.network).toBe('Mainnet');
     expect(env?.vmName).toBe('Coreth (C-Chain, EVM)');
-    expect(env?.explorerUrl).toBe('https://subnets.avax.network/c-chain');
+    expect(env?.explorerUrl).toBe('https://explorer.avax.network/c-chain');
   });
 
   test('X-Chain reports the AVM vm name and x-chain explorer', async ({ request }) => {
