@@ -21,7 +21,7 @@ The following steps will guide you through deploying and configuring a `NativeTo
 
 Deploy the `NativeTokenStakingManager` implementation contract to your L1.
 
-[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/02-deploy-staking-manager)
+[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/03-deploy-staking-manager)
 
 </Step>
 <Step>
@@ -30,7 +30,7 @@ Deploy the `NativeTokenStakingManager` implementation contract to your L1.
 
 Deploy the `ExampleRewardCalculator` contract that will determine how staking rewards are distributed based on validator uptime.
 
-[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/03-deploy-reward-calculator)
+[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/04-deploy-reward-calculator)
 
 </Step>
 <Step>
@@ -39,7 +39,7 @@ Deploy the `ExampleRewardCalculator` contract that will determine how staking re
 
 Call the `initialize` function with `PoSValidatorManagerSettings` to configure staking parameters (minimum stake, duration, delegation fees, etc.).
 
-[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/04-initialize-staking-manager)
+[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/05-initialize-staking-manager)
 
 </Step>
 <Step>
@@ -48,7 +48,7 @@ Call the `initialize` function with `PoSValidatorManagerSettings` to configure s
 
 Add the Staking Manager address as an **Enabled** address on the Native Minter precompile so it can mint reward tokens.
 
-[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/05-enable-native-minter)
+[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/06-enable-native-minter)
 
 </Step>
 <Step>
@@ -57,7 +57,7 @@ Add the Staking Manager address as an **Enabled** address on the Native Minter p
 
 Transfer ownership of the Reward Manager precompile to the Staking Manager so it can distribute rewards to validators and delegators.
 
-[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/06-transfer-ownership)
+[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/07-transfer-ownership)
 
 </Step>
 <Step>
@@ -66,7 +66,7 @@ Transfer ownership of the Reward Manager precompile to the Staking Manager so it
 
 Read the contract state to verify all configuration parameters are set correctly.
 
-[Go to this step →](/academy/permissionless-l1s/05-staking-manager-setup/07-read-contract)
+[Go to this step →](/console/permissionless-l1s/native-staking-manager-setup/read-contract)
 
 </Step>
 </Steps>
