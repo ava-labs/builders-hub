@@ -382,7 +382,14 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                     reward until then, the indexer's estimate as fallback */}
                 {stakeRewardUtxos !== null ? (
                   stakeRewardUtxos.length === 0 ? (
-                    <SpecRow label="Reward">None (aborted)</SpecRow>
+                    <SpecRow label="Reward">
+                      {/* the chain records only the commit/abort vote. on the primary network
+                          the vote's sole input is the validator's observed uptime vs the 80% requirement. */}
+                      None (aborted)
+                      <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                        validator missed the 80% uptime vote at settlement — principal returned, reward forfeited
+                      </span>
+                    </SpecRow>
                   ) : stakeRewardNet !== null && stakeRewardFee !== null ? (
                     /* delegation payout split by UTXO owner: what the
                        delegator actually received vs the validator's cut */
@@ -463,6 +470,11 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                   ) : (
                     <SpecRow label="Reward Paid">
                       {tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}
+                      {!tx.details.rewardPaid && (
+                        <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                        validator missed the 80% uptime vote at settlement — principal returned, reward forfeited
+                      </span>
+                      )}
                     </SpecRow>
                   ))}
                 {tx.details?.stakingTxId && (
