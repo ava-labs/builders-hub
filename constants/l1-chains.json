@@ -331,7 +331,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/shrapnel"
+        "link": "https://explorer.avax.network/shrapnel"
       }
     ],
     "isTestnet": false,
@@ -419,7 +419,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/artery"
+        "link": "https://explorer.avax.network/artery"
       },
       {
         "name": "Snowtrace",
@@ -474,7 +474,7 @@
       },
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/c-chain"
+        "link": "https://explorer.avax.network/c-chain"
       },
       {
         "name": "SnowScan",
@@ -537,7 +537,7 @@
       },
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/beam"
+        "link": "https://explorer.avax.network/beam"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/beam/mainnet/rpc",
@@ -593,7 +593,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/blaze"
+        "link": "https://explorer.avax.network/blaze"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/blaze/mainnet/rpc",
@@ -644,7 +644,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/btic"
+        "link": "https://explorer.avax.network/btic"
       },
       {
         "name": "Snowtrace",
@@ -713,7 +713,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/coqnet"
+        "link": "https://explorer.avax.network/coqnet"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/coqnet/mainnet/rpc",
@@ -744,7 +744,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/cx"
+        "link": "https://explorer.avax.network/cx"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/cx/mainnet/rpc",
@@ -785,7 +785,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/defi-kingdoms"
+        "link": "https://explorer.avax.network/defi-kingdoms"
       },
       {
         "name": "Snowtrace",
@@ -852,7 +852,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/dexalot"
+        "link": "https://explorer.avax.network/dexalot"
       },
       {
         "name": "Snowtrace",
@@ -888,7 +888,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/dinari"
+        "link": "https://explorer.avax.network/dinari"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/dinari/mainnet/rpc",
@@ -956,7 +956,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/etx"
+        "link": "https://explorer.avax.network/etx"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/etx/mainnet/rpc",
@@ -988,7 +988,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/even"
+        "link": "https://explorer.avax.network/even"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/even/mainnet/rpc",
@@ -1020,7 +1020,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/feature"
+        "link": "https://explorer.avax.network/feature"
       },
       {
         "name": "Snowtrace",
@@ -1054,7 +1054,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/fifa"
+        "link": "https://explorer.avax.network/fifa"
       },
       {
         "name": "Snowtrace",
@@ -1088,7 +1088,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/frqtalnet"
+        "link": "https://explorer.avax.network/frqtalnet"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/frqtalnet/mainnet/rpc",
@@ -1142,7 +1142,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/gunzilla"
+        "link": "https://explorer.avax.network/gunzilla"
       },
       {
         "name": "Snowtrace",
@@ -1177,7 +1177,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/hashfire"
+        "link": "https://explorer.avax.network/hashfire"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/hashfire/mainnet/rpc",
@@ -1235,7 +1235,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/henesys"
+        "link": "https://explorer.avax.network/henesys"
       },
       {
         "name": "Snowtrace",
@@ -1268,7 +1268,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/innovo"
+        "link": "https://explorer.avax.network/innovo"
       },
       {
         "name": "Snowtrace",
@@ -1316,7 +1316,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/intersect"
+        "link": "https://explorer.avax.network/intersect"
       },
       {
         "name": "Snowtrace",
@@ -1341,7 +1341,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/kalichain"
+        "link": "https://explorer.avax.network/kalichain"
       },
       {
         "name": "Snowtrace",
@@ -1400,7 +1400,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/lamina1"
+        "link": "https://explorer.avax.network/lamina1"
       },
       {
         "name": "Snowtrace",
@@ -1428,7 +1428,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/lamina1id"
+        "link": "https://explorer.avax.network/lamina1id"
       },
       {
         "name": "Snowtrace",
@@ -1458,7 +1458,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/letsbuyhc"
+        "link": "https://explorer.avax.network/letsbuyhc"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/letsbuyhc/mainnet/rpc",
@@ -1490,7 +1490,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/loyal"
+        "link": "https://explorer.avax.network/loyal"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/loyal/mainnet/rpc",
@@ -1538,7 +1538,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/lylty"
+        "link": "https://explorer.avax.network/lylty"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/lylty/mainnet/rpc",
@@ -1618,7 +1618,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/numi"
+        "link": "https://explorer.avax.network/numi"
       },
       {
         "name": "Snowtrace",
@@ -1650,7 +1650,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/orange"
+        "link": "https://explorer.avax.network/orange"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/orange/mainnet/rpc",
@@ -1708,7 +1708,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/playa3ull"
+        "link": "https://explorer.avax.network/playa3ull"
       },
       {
         "name": "Snowtrace",
@@ -1744,7 +1744,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/plyr"
+        "link": "https://explorer.avax.network/plyr"
       },
       {
         "name": "Snowtrace",
@@ -1766,7 +1766,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/qr0723t1ms"
+        "link": "https://explorer.avax.network/qr0723t1ms"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/qr0723t1ms/mainnet/rpc",
@@ -1803,7 +1803,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/qchain"
+        "link": "https://explorer.avax.network/qchain"
       },
       {
         "name": "Snowtrace",
@@ -1838,7 +1838,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/uptn"
+        "link": "https://explorer.avax.network/uptn"
       },
       {
         "name": "Snowtrace",
@@ -1873,7 +1873,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/space"
+        "link": "https://explorer.avax.network/space"
       },
       {
         "name": "Snowtrace",
@@ -1928,7 +1928,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/straitsx"
+        "link": "https://explorer.avax.network/straitsx"
       },
       {
         "name": "Snowtrace",
@@ -1963,7 +1963,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/tgp"
+        "link": "https://explorer.avax.network/tgp"
       },
       {
         "name": "Snowtrace",
@@ -1996,7 +1996,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/tiltyard"
+        "link": "https://explorer.avax.network/tiltyard"
       },
       {
         "name": "Snowtrace",
@@ -2018,7 +2018,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/titan"
+        "link": "https://explorer.avax.network/titan"
       },
       {
         "name": "Snowtrace",
@@ -2058,7 +2058,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/tixchain"
+        "link": "https://explorer.avax.network/tixchain"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/tixchain/mainnet/rpc",
@@ -2082,7 +2082,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/trx"
+        "link": "https://explorer.avax.network/trx"
       },
       {
         "name": "Snowtrace",
@@ -2108,7 +2108,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/turf"
+        "link": "https://explorer.avax.network/turf"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/turf/mainnet/rpc",
@@ -2156,7 +2156,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/warp"
+        "link": "https://explorer.avax.network/warp"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/warp/mainnet/rpc",
@@ -2234,7 +2234,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/youmio"
+        "link": "https://explorer.avax.network/youmio"
       }
     ],
     "rpcUrl": "https://subnets.avax.network/youmio/mainnet/rpc",
@@ -2270,7 +2270,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets.avax.network/zeroonemai"
+        "link": "https://explorer.avax.network/zeroonemai"
       },
       {
         "name": "Snowtrace",
@@ -2499,7 +2499,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/alphayys"
+        "link": "https://explorer-test.avax.network/alphayys"
       }
     ],
     "isTestnet": true,
@@ -2693,7 +2693,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/armada"
+        "link": "https://explorer-test.avax.network/armada"
       }
     ],
     "isTestnet": true,
@@ -2810,7 +2810,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/avcdemo622"
+        "link": "https://explorer-test.avax.network/avcdemo622"
       }
     ],
     "isTestnet": true,
@@ -2841,7 +2841,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/c-chain"
+        "link": "https://explorer-test.avax.network/c-chain"
       }
     ],
     "isTestnet": true,
@@ -2902,7 +2902,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/beam"
+        "link": "https://explorer-test.avax.network/beam"
       }
     ],
     "isTestnet": true,
@@ -2949,7 +2949,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/blazetestn"
+        "link": "https://explorer-test.avax.network/blazetestn"
       }
     ],
     "isTestnet": true,
@@ -2990,7 +2990,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/btest"
+        "link": "https://explorer-test.avax.network/btest"
       }
     ],
     "isTestnet": true,
@@ -3031,7 +3031,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/soilnet"
+        "link": "https://explorer-test.avax.network/soilnet"
       }
     ],
     "isTestnet": true,
@@ -3084,7 +3084,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/caonabo"
+        "link": "https://explorer-test.avax.network/caonabo"
       }
     ],
     "isTestnet": true,
@@ -3137,7 +3137,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/chainvast"
+        "link": "https://explorer-test.avax.network/chainvast"
       }
     ],
     "isTestnet": true,
@@ -3386,7 +3386,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/dexalot"
+        "link": "https://explorer-test.avax.network/dexalot"
       }
     ],
     "isTestnet": true,
@@ -3411,7 +3411,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/defi-kingdoms"
+        "link": "https://explorer-test.avax.network/defi-kingdoms"
       }
     ],
     "isTestnet": true,
@@ -3435,7 +3435,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/dinarippr"
+        "link": "https://explorer-test.avax.network/dinarippr"
       }
     ],
     "isTestnet": true,
@@ -3464,7 +3464,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/dfnpaper"
+        "link": "https://explorer-test.avax.network/dfnpaper"
       }
     ],
     "isTestnet": true,
@@ -3494,7 +3494,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/dispatch"
+        "link": "https://explorer-test.avax.network/dispatch"
       }
     ],
     "isTestnet": true,
@@ -3565,7 +3565,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/dsrv2"
+        "link": "https://explorer-test.avax.network/dsrv2"
       }
     ],
     "isTestnet": true,
@@ -3643,7 +3643,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/echo"
+        "link": "https://explorer-test.avax.network/echo"
       }
     ],
     "isTestnet": true,
@@ -3678,7 +3678,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/egmtester"
+        "link": "https://explorer-test.avax.network/egmtester"
       }
     ],
     "isTestnet": true,
@@ -3748,7 +3748,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/etxtestnet"
+        "link": "https://explorer-test.avax.network/etxtestnet"
       }
     ],
     "isTestnet": true,
@@ -4085,7 +4085,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/tgp"
+        "link": "https://explorer-test.avax.network/tgp"
       }
     ],
     "isTestnet": true,
@@ -4132,7 +4132,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/hiva"
+        "link": "https://explorer-test.avax.network/hiva"
       }
     ],
     "isTestnet": true,
@@ -4163,7 +4163,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/hashfire"
+        "link": "https://explorer-test.avax.network/hashfire"
       }
     ],
     "isTestnet": true,
@@ -4186,7 +4186,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/hiss"
+        "link": "https://explorer-test.avax.network/hiss"
       }
     ],
     "isTestnet": true,
@@ -4227,7 +4227,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/impressedh"
+        "link": "https://explorer-test.avax.network/impressedh"
       }
     ],
     "isTestnet": true,
@@ -4258,7 +4258,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/innovomark"
+        "link": "https://explorer-test.avax.network/innovomark"
       }
     ],
     "isTestnet": true,
@@ -4283,7 +4283,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/instest"
+        "link": "https://explorer-test.avax.network/instest"
       }
     ],
     "isTestnet": true,
@@ -4367,7 +4367,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/jiritsutes"
+        "link": "https://explorer-test.avax.network/jiritsutes"
       }
     ],
     "isTestnet": true,
@@ -4438,7 +4438,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/jna"
+        "link": "https://explorer-test.avax.network/jna"
       }
     ],
     "isTestnet": true,
@@ -4614,7 +4614,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/ltmax"
+        "link": "https://explorer-test.avax.network/ltmax"
       }
     ],
     "isTestnet": true,
@@ -4848,7 +4848,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/modex"
+        "link": "https://explorer-test.avax.network/modex"
       }
     ],
     "isTestnet": true,
@@ -4877,7 +4877,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/mon"
+        "link": "https://explorer-test.avax.network/mon"
       }
     ],
     "isTestnet": true,
@@ -4941,7 +4941,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/monthlygra"
+        "link": "https://explorer-test.avax.network/monthlygra"
       }
     ],
     "isTestnet": true,
@@ -5018,7 +5018,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/naka"
+        "link": "https://explorer-test.avax.network/naka"
       }
     ],
     "isTestnet": true,
@@ -5047,7 +5047,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/nexustest"
+        "link": "https://explorer-test.avax.network/nexustest"
       }
     ],
     "isTestnet": true,
@@ -5076,7 +5076,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/northasset"
+        "link": "https://explorer-test.avax.network/northasset"
       }
     ],
     "isTestnet": true,
@@ -5105,7 +5105,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/northerncr"
+        "link": "https://explorer-test.avax.network/northerncr"
       }
     ],
     "isTestnet": true,
@@ -5136,7 +5136,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/numine"
+        "link": "https://explorer-test.avax.network/numine"
       }
     ],
     "isTestnet": true,
@@ -5173,7 +5173,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/orangetest"
+        "link": "https://explorer-test.avax.network/orangetest"
       }
     ],
     "isTestnet": true,
@@ -5272,7 +5272,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/pindora"
+        "link": "https://explorer-test.avax.network/pindora"
       }
     ],
     "isTestnet": true,
@@ -5477,7 +5477,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/qdev"
+        "link": "https://explorer-test.avax.network/qdev"
       }
     ],
     "isTestnet": true,
@@ -5818,7 +5818,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/qr0408t4ts"
+        "link": "https://explorer-test.avax.network/qr0408t4ts"
       }
     ],
     "isTestnet": true,
@@ -6234,7 +6234,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/quantinium"
+        "link": "https://explorer-test.avax.network/quantinium"
       }
     ],
     "isTestnet": true,
@@ -6739,7 +6739,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/space"
+        "link": "https://explorer-test.avax.network/space"
       }
     ],
     "isTestnet": true,
@@ -6786,7 +6786,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/washoku"
+        "link": "https://explorer-test.avax.network/washoku"
       }
     ],
     "isTestnet": true,
@@ -6976,7 +6976,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/testnetzer"
+        "link": "https://explorer-test.avax.network/testnetzer"
       }
     ],
     "isTestnet": true,
@@ -7011,7 +7011,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/thegrotto"
+        "link": "https://explorer-test.avax.network/thegrotto"
       }
     ],
     "isTestnet": true,
@@ -7040,7 +7040,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/criminalsa"
+        "link": "https://explorer-test.avax.network/criminalsa"
       }
     ],
     "isTestnet": true,
@@ -7065,7 +7065,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/tixchain"
+        "link": "https://explorer-test.avax.network/tixchain"
       }
     ],
     "isTestnet": true,
@@ -7088,7 +7088,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/tkavast1"
+        "link": "https://explorer-test.avax.network/tkavast1"
       }
     ],
     "isTestnet": true,
@@ -7312,7 +7312,7 @@
     "explorers": [
       {
         "name": "Avalanche Explorer",
-        "link": "https://subnets-test.avax.network/watr"
+        "link": "https://explorer-test.avax.network/watr"
       }
     ],
     "isTestnet": true,
