@@ -62,7 +62,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/c-chain',
+      explorerUrl: 'https://explorer-test.avax.network/c-chain',
       faucetThresholds: {
         threshold: 0.2,
         dripAmount: 0.5,
@@ -86,7 +86,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/echo',
+      explorerUrl: 'https://explorer-test.avax.network/echo',
       faucetThresholds: {
         threshold: 1.0,
         dripAmount: 2,
@@ -109,7 +109,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/dispatch',
+      explorerUrl: 'https://explorer-test.avax.network/dispatch',
       faucetThresholds: {
         threshold: 1.0,
         dripAmount: 2,
@@ -133,7 +133,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/dexalot',
+      explorerUrl: 'https://explorer-test.avax.network/dexalot',
       faucetThresholds: {
         threshold: 1.0,
         dripAmount: 2,
@@ -160,7 +160,7 @@ const l1ListInitialStateMainnet = {
         'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg',
       wellKnownTeleporterRegistryAddress: '0x7C43605E14F391720e1b37E49C78C4b03A488d98',
       hasBuilderHubFaucet: false,
-      explorerUrl: 'https://subnets.avax.network/c-chain',
+      explorerUrl: 'https://explorer.avax.network/c-chain',
     },
   ] as L1ListItem[],
 };

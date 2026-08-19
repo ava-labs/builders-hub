@@ -114,7 +114,7 @@ export default function ConsoleHistoryPage() {
     if (tx.type === 'pchain') return `/explorer/${tx.network}/p-chain/tx/${tx.txHash}`;
     if (tx.chainId === 43114) return `/explorer/mainnet/c-chain/tx/${tx.txHash}`;
     // Fuji C-Chain and custom L1s aren't fully served by our explorer yet.
-    const base = tx.network === 'mainnet' ? 'https://subnets.avax.network' : 'https://subnets-test.avax.network';
+    const base = tx.network === 'mainnet' ? 'https://explorer.avax.network' : 'https://explorer-test.avax.network';
     return `${base}/c-chain/tx/${tx.txHash}`;
   };
 

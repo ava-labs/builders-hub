@@ -31,7 +31,7 @@ export const Success = ({ label, value, isTestnet = true, xpChain = 'P', confirm
       // A base58 id on the C-Chain is an atomic (import/export) tx. Our EVM tx
       // route looks up hashes over `eth_getTransactionByHash`, which can't
       // resolve an atomic id, so this one case stays on the external explorer.
-      return `https://subnets${isTestnet ? '-test' : ''}.avax.network/c-chain/tx/${value}`;
+      return `https://explorer${isTestnet ? '-test' : ''}.avax.network/c-chain/tx/${value}`;
     }
     return null;
   };

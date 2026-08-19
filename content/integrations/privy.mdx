@@ -74,12 +74,12 @@ export const echo = defineChain({
     },
   },
   blockExplorers: {
-    default: {name: 'Explorer', url: 'https://subnets-test.avax.network/echo'},
+    default: {name: 'Explorer', url: 'https://explorer-test.avax.network/echo'},
   },
 });
 ```
 
-### Import Privy into Your App 
+### Import Privy into Your App
 
 After the React project is created, navigate to `page.tsx`. Inside the `Home` function, wrap your content with `PrivyProvider`.
 
@@ -216,7 +216,7 @@ const transfer = () => {
         "to": receiver, // destination address
         "from": address, // logged in user's embedded wallet address
     }).catch(() => {
-        // handle err 
+        // handle err
     });
 }
 ```

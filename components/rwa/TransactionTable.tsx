@@ -73,7 +73,7 @@ type SortDirection = 'asc' | 'desc'
 const EXPLORER_URLS: Record<Explorer, (hash: string) => string> = {
   bh: (hash) => `/explorer/mainnet/c-chain/tx/${hash}`,
   snowtrace: (hash) => `https://snowtrace.io/tx/${hash}`,
-  avalanche: (hash) => `https://subnets.avax.network/c-chain/tx/${hash}`,
+  avalanche: (hash) => `https://explorer.avax.network/c-chain/tx/${hash}`,
 }
 
 const EXPLORER_LABELS: Record<Explorer, string> = {

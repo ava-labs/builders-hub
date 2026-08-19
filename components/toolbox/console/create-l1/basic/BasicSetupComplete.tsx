@@ -52,7 +52,7 @@ const MOCK_USDC_SYMBOL = 'MockUSDC';
 type Network = 'fuji' | 'mainnet';
 
 function explorerBase(network: Network): string {
-  return network === 'fuji' ? 'https://subnets-test.avax.network' : 'https://subnets.avax.network';
+  return network === 'fuji' ? 'https://explorer-test.avax.network' : 'https://explorer.avax.network';
 }
 
 // C-Chain addresses resolve on our explorer only on mainnet (its address route

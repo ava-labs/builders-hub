@@ -24,7 +24,7 @@ const AVALANCHE_MAINNET: NetworkConfig = {
     decimals: 18,
   },
   rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
-  blockExplorerUrls: ['https://subnets.avax.network/c-chain'],
+  blockExplorerUrls: ['https://explorer.avax.network/c-chain'],
 };
 
 const AVALANCHE_FUJI: NetworkConfig = {
@@ -36,7 +36,7 @@ const AVALANCHE_FUJI: NetworkConfig = {
     decimals: 18,
   },
   rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
-  blockExplorerUrls: ['https://subnets-test.avax.network/c-chain'],
+  blockExplorerUrls: ['https://explorer-test.avax.network/c-chain'],
 };
 
 interface AddNetworkButtonInlineProps {

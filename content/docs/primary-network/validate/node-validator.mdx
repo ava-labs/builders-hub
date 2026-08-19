@@ -33,7 +33,7 @@ our [Discord](https://chat.avalabs.org/) to ask questions.
 You've completed [Run an Avalanche Node](/docs/nodes/run-a-node/from-source) and are familiar with
 [Avalanche's architecture](/docs/primary-network). In this
 tutorial, we use [AvalancheJS](/docs/tooling/avalanche-sdk) and
-[Avalanche's Postman collection](/docs/tooling/avalanche-postman) 
+[Avalanche's Postman collection](/docs/tooling/avalanche-postman)
 to help us make API calls.
 
 In order to ensure your node is well-connected, make sure that your node can
@@ -77,13 +77,13 @@ The response has your node's ID, the BLS key (public key) and the BLS signature 
 
 ### Add as a Validator
 
-Connect [Core extension](https://core.app) to [Core web](https://core.app), and go the 'Staking' tab. 
+Connect [Core extension](https://core.app) to [Core web](https://core.app), and go the 'Staking' tab.
 Here, choose 'Validate' from the menu.
 
-Fill out the staking parameters. They are explained in more detail in [this doc](/docs/primary-network/validate/how-to-stake). When you've 
+Fill out the staking parameters. They are explained in more detail in [this doc](/docs/primary-network/validate/how-to-stake). When you've
 filled in all the staking parameters and double-checked them, click `Submit Validation`. Make sure the staking period is at
 least 2 weeks, the delegation fee rate is at least 2%, and you're staking at
-least 2,000 AVAX on Mainnet (1 AVAX on Fuji Testnet). A full guide about this can be found 
+least 2,000 AVAX on Mainnet (1 AVAX on Fuji Testnet). A full guide about this can be found
 [here](https://support.avax.network/en/articles/8117267-core-web-how-do-i-validate-in-core-stake).
 
 You should see a success message, and your balance should be updated.
@@ -307,7 +307,7 @@ The response has your node's ID, the BLS key (public key) and the BLS signature 
 
 After retrieving this data, go to `examples/p-chain/validate.ts`.
 
-Replace the `nodeID`, `blsPublicKey` and `blsSignature` with your 
+Replace the `nodeID`, `blsPublicKey` and `blsSignature` with your
 own node's values.
 
 ![Replaced values](/images/validator-avalanchejs-2.png)
@@ -333,7 +333,7 @@ You can achieve this by adding the number of desired days to
 endTime.setDate(endTime.getDate() + 50);
 ```
 
-Now let's say you want the staking period to end on a specific 
+Now let's say you want the staking period to end on a specific
 date and time, for example May 15, 2024, at 11:20 AM.
 It can be achieved as shown in the code below.
 
@@ -433,8 +433,8 @@ laviniatalpas@Lavinias-MacBook-Pro avalanchejs % node --loader ts-node/esm examp
 
 We can check the transaction's status by running the example script with
 [`platform.getTxStatus`](/docs/rpcs/p-chain#platformgettxstatus)
-or looking up the validator directly on the 
-[explorer](https://subnets-test.avax.network/validators/NodeID-JXJNyJXhgXzvVGisLkrDiZvF938zJxnT5).
+or looking up the validator directly on the
+[explorer](https://explorer-test.avax.network/validators/NodeID-JXJNyJXhgXzvVGisLkrDiZvF938zJxnT5).
 
 ![Added Validator](/images/validator-avalanchejs-3.png)
 
