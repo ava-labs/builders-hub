@@ -19,12 +19,12 @@ Before we begin, you will need to have:
 
 Note: the tutorial uses AWS hosts, but Devnets can also be created and operated in other supported cloud providers, such as GCP.
 
-Create Avalanche L1s Configurations[​](#create-avalanche-l1s-configurations "Direct link to heading")
+Create Avalanche L1s Configurations
 -----------------------------------------------------------------------------------------
 
 For this section we will follow this [steps](/docs/tooling/avalanche-cli/cross-chain/teleporter-local-network#create-avalanche-l1s-configurations), to create two Teleporter-enabled Avalanche L1s, `<chain1>` and `<chain2>`.
 
-Create a Devnet and Deploy an Avalanche L1 in It[​](#create-a-devnet-and-deploy-a-avalanche-l1-in-it "Direct link to heading")
+Create a Devnet and Deploy an Avalanche L1 in It
 -----------------------------------------------------------------------------------------------------------------
 
 Let's use the `devnet wiz` command to create a devnet `<devnetName>` and deploy `<chain1>` in it.
@@ -32,7 +32,7 @@ Let's use the `devnet wiz` command to create a devnet `<devnetName>` and deploy 
 The devnet will be created in the `us-east-1` region of AWS, and will consist of 5 validators only.
 
 ```bash
-avalanche node devnet wiz <devnetName> <chain1> --aws --node-type default --region us-east-1 --num-validators 5 --num-apis 0 --enable-monitoring=false --default-validator-params 
+avalanche node devnet wiz <devnetName> <chain1> --aws --node-type default --region us-east-1 --num-validators 5 --num-apis 0 --enable-monitoring=false --default-validator-params
 
 Creating the devnet...
 
@@ -74,7 +74,7 @@ Notice some details here:
 
 CLI configures the Relayer to enable every Avalanche L1 to send messages to all other Avalanche L1s. If you add more Avalanche L1s to the Devnet, the Relayer will be automatically reconfigured.
 
-Checking Devnet Configuration and Relayer Logs[​](#checking-devnet-configuration-and-relayer-logs "Direct link to heading")
+Checking Devnet Configuration and Relayer Logs
 ---------------------------------------------------------------------------------------------------------------------------
 
 Execute `node list` command to get a list of the devnet nodes:
@@ -124,7 +124,7 @@ Apr 05 14:15:08 ip-172-31-47-187 awm-relayer[6886]: {"level":"info","timestamp":
 Apr 05 14:15:08 ip-172-31-47-187 awm-relayer[6886]: {"level":"info","timestamp":"2024-04-05T14:15:08.180Z","logger":"awm-relayer","caller":"main/main.go:295","msg":"Relayer initialized. Listening for messages to relay.","originBlockchainID":"fqcM24LNb3kTV7KD1mAvUJXYy5XunwP8mrE44YuNwPjgZHY6p"}
 ```
 
-Deploying the Second Avalanche L1[​](#deploying-the-second-avalanche-l1 "Direct link to heading")
+Deploying the Second Avalanche L1
 -------------------------------------------------------------------------------------
 
 Let's use the `devnet wiz` command again to deploy `<chain2>`.
@@ -132,7 +132,7 @@ Let's use the `devnet wiz` command again to deploy `<chain2>`.
 When deploying Avalanche L1 `<chain2>`, the two Teleporter contracts will not be deployed to C-Chain in Local Network as they have already been deployed when we deployed the first Avalanche L1.
 
 ```bash
-avalanche node devnet wiz <devnetName> <chain2> --default-validator-params 
+avalanche node devnet wiz <devnetName> <chain2> --default-validator-params
 
 Adding subnet into existing devnet <devnetName>...
 ...
@@ -163,7 +163,7 @@ Subnet <chain2> RPC URL: http://67.202.23.231:9650/ext/bc/7gKt6evRnkA2uVHRfmk9Wr
 ✓ Cluster information YAML file can be found at ~/.avalanche-cli/nodes/inventories/<devnetName>/clusterInfo.yaml at local host
 ```
 
-Verify Teleporter Is Successfully Set Up[​](#verify-teleporter-is-successfully-set-up "Direct link to heading")
+Verify Teleporter Is Successfully Set Up
 ---------------------------------------------------------------------------------------------------------------
 
 To verify that Teleporter is successfully, let's send a couple of cross messages:
@@ -186,10 +186,10 @@ Message successfully Teleported!
 
 You have Teleport-ed your first message in the Devnet!
 
-Obtaining Information on Teleporter Deploys[​](#obtaining-information-on-teleporter-deploys "Direct link to heading")
+Obtaining Information on Teleporter Deploys
 ---------------------------------------------------------------------------------------------------------------------
 
-### Obtaining Avalanche L1 Information[​](#obtaining-avalanche-l1-information "Direct link to heading")
+### Obtaining Avalanche L1 Information
 
 By executing `blockchain describe` on a Teleporter enabled Avalanche L1, the following relevant information can be found:
 
@@ -245,7 +245,7 @@ avalanche blockchain describe <chain1>
 ...
 ```
 
-### Obtaining C-Chain Information[​](#obtaining-c-chain-information "Direct link to heading")
+### Obtaining C-Chain Information
 
 Similar information can be found for C-Chain by using `primary describe`:
 
@@ -284,7 +284,7 @@ avalanche primary describe --cluster <devnetName>
 +------------------------------+--------------------------------------------------------------------+
 ```
 
-Controlling Relayer Execution[​](#controlling-relayer-execution "Direct link to heading")
+Controlling Relayer Execution
 -----------------------------------------------------------------------------------------
 
 CLI provides two commands to remotely control Relayer execution:

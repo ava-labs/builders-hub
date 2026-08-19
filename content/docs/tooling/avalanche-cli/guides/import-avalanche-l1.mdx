@@ -2,14 +2,14 @@
 title: Import an Avalanche L1
 description: Learn how to import an Avalanche-l1 into Avalanche-CLI.
 ---
-Context[​](#context "Direct link to heading")
+Context
 ---------------------------------------------
 
 In previous instances, Avalanche L1s might have been manually created through transaction issuance to node APIs, whether it was done using a local node or public API nodes. However, the current focus is on integrating Avalanche-CLI.
 
 To achieve this integration, this guide demonstrates the process of importing an Avalanche L1 to the Avalanche-CLI to enable better management of the Avalanche L1's configuration. This how-to uses the BEAM Avalanche L1 deployed on Fuji Testnet as the example Avalanche L1.
 
-Requirements[​](#requirements "Direct link to heading")
+Requirements
 -------------------------------------------------------
 
 For the import to work properly, you need:
@@ -19,7 +19,7 @@ For the import to work properly, you need:
 - The Avalanche L1's SubnetID
     
 
-Import the Avalanche L1[​](#import-the-avalanche-l1 "Direct link to heading")
+Import the Avalanche L1
 -----------------------------------------------------------------
 
 For these use cases, Avalanche-CLI now supports the `import public` command.
@@ -60,7 +60,7 @@ Use the arrow keys to navigate: ↓ ↑ → ←
   ▸ No
 ```
 
-### Nodes are Already Validating This Avalanche L1[​](#nodes-are-already-validating-this-avalanche-l1 "Direct link to heading")
+### Nodes are Already Validating This Avalanche L1
 
 If nodes already have been deployed, the wizard attempts to query such a node for detailed data like the VM version. This allows the tool to skip querying GitHub (or wherever the VM's repository is hosted) for the VM's version, but rather we'll get the exact version which is actually running on the node.
 
@@ -75,7 +75,7 @@ What is the ID of the subnet?: ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW
 
 The rest of the wizard is identical to the next section, except that there is no prompt for the VM version anymore.
 
-### Nodes Aren't Yet Validating this Avalanche L1, the Nodes API URL are Unknown, or Inaccessible (Firewalls)[​](#nodes-arent-yet-validating-this-avalanche-l1-the-nodes-api-url-are-unknown-or-inaccessible-firewalls "Direct link to heading")
+### Nodes Aren't Yet Validating this Avalanche L1, the Nodes API URL are Unknown, or Inaccessible (Firewalls)
 
 If you don't have a node's API URL at hand, or it's not reachable from the machine running Avalanche-CLI, or maybe no nodes have even been deployed yet because only the `CreateSubnet` transaction has been issued, for example, you can query the public APIs.
 
@@ -83,7 +83,7 @@ You can't know for sure what Avalanche L1 VM versions the validators are running
 
 Thus, at this point the wizard requests the Avalanche L1's ID, without which it can't know what to import. Remember the ID is different on different networks.
 
-From the [Testnet Avalanche L1 Explorer](https://subnets-test.avax.network/beam) you can see that BEAM's Avalanche L1 ID (SubnetID) is `ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW`:
+From the [Testnet Avalanche L1 Explorer](https://explorer-test.avax.network/beam) you can see that BEAM's Avalanche L1 ID (SubnetID) is `ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW`:
 
 ```
 ✔ What is the ID of the subnet?: ie1wUBR2bQDPkGCRf2CBVzmP55eSiyJsFYqeGXnTYt2r33aKW

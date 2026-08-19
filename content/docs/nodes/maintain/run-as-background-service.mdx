@@ -6,10 +6,10 @@ This page demonstrates how to set up a `avalanchego.service` file to enable a ma
 
 Make sure that AvalancheGo is already installed on your machine.
 
-Steps[​](#steps "Direct link to heading")
+Steps
 -----------------------------------------
 
-### Fuji Testnet Config[​](#fuji-testnet-config "Direct link to heading")
+### Fuji Testnet Config
 
 Run this command in your terminal to create the `avalanchego.service` file
 
@@ -43,9 +43,9 @@ TimeoutStartSec=10s
 StartLimitInterval=120s
 StartLimitBurst=5
 WorkingDirectory=/Your/Path/To/avalanchego
-ExecStart=/Your/Path/To/avalanchego/./avalanchego \  
+ExecStart=/Your/Path/To/avalanchego/./avalanchego \
    --network-id=fuji \
-   --api-metrics-enabled=true 
+   --api-metrics-enabled=true
 
 [Install]
 WantedBy=multi-user.target
@@ -59,7 +59,7 @@ Now, run:
 sudo systemctl daemon-reload
 ```
 
-### Mainnet Config[​](#mainnet-config "Direct link to heading")
+### Mainnet Config
 
 Run this command in your terminal to create the `avalanchego.service` file
 
@@ -99,7 +99,7 @@ Now, run:
 sudo systemctl daemon-reload
 ```
 
-Start the Node[​](#start-the-node "Direct link to heading")
+Start the Node
 -----------------------------------------------------------
 
 This command makes your node start automatically in case of a reboot, run it:

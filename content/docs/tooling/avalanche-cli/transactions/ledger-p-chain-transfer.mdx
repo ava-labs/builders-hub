@@ -21,13 +21,13 @@ This how-to guide focuses on transferring funds between ledger accounts.
 - [`Avalanche-CLI`](/docs/tooling/avalanche-cli) installed
 - Multiple Ledger devices [configured for Avalanche](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-mainnet#setting-up-your-ledger)
 
-Example: Sending All Funds From One Ledger to Another[​](#example-sending-all-funds-from-one-ledger-to-another "Direct link to heading")
+Example: Sending All Funds From One Ledger to Another
 ----------------------------------------------------------------------------------------------------------------------------------------
 
 - Source address: ledger A, index 2 (the web wallet shows 4.5 AVAX for this ledger)
 - Target address: ledger B, index 0 (the web wallet shows 0 AVAX for this ledger)
 
-### Determine Sender Address Index[​](#determine-sender-address-index "Direct link to heading")
+### Determine Sender Address Index
 
 A ledger can manage an infinite amount of addresses derived from a main private key. Because of this, many operations require the user to specify an address index.
 
@@ -61,7 +61,7 @@ To see p-chain addresses and balances for the first 6 indices in the ledger deri
 
 The address `P-avax10an3cucdfqru984pnvv6y0rspvvclz63e523m0` has 4.5 AVAX and is associated with index 2 of ledger A.
 
-### Determine Receiver Address Index[​](#determine-receiver-address-index "Direct link to heading")
+### Determine Receiver Address Index
 
 In this case the user wants to use index 0, the one CLI by default expects to contain funds.
 
@@ -83,7 +83,7 @@ avalanche key list --mainnet --ledger 0
 
 Target address to be used is `P-avax1r4aceznjkz8ch4pmpqrmkq4f3sl952mdrdt6xm`, containing 0 funds.
 
-### Send the Transfer[​](#send-the-transfer "Direct link to heading")
+### Send the Transfer
 
 A P-Chain to P-chain transfer is a two-part operation. There is no need for the two parts to be executed on the same machine, only for them to have some common params. For each part, the appropriate ledger (either source or target) must be connected to the machine executing it.
 
@@ -158,7 +158,7 @@ Use the arrow keys to navigate: ↓ ↑ → ←
 
 After this, the first part is completed:
 
-### Receive the Transfer[​](#receive-the-transfer "Direct link to heading")
+### Receive the Transfer
 
 In this step, Ledger B signs the transaction to receive the funds. It imports the funds on the X-Chain before exporting them back to the desired P-Chain address.
 
@@ -228,7 +228,7 @@ Issuing ExportTx X -> P
 Issuing ImportTx X -> P
 ```
 
-### Verifying Results of the Transfer Operation using `key list`[​](#verifying-results-of-the-transfer-operation-using-key-list "Direct link to heading")
+### Verifying Results of the Transfer Operation using `key list`
 
 First verify ledger A accounts. Connect ledger A and open the avalanche app:
 
@@ -282,7 +282,7 @@ With result:
 +--------+---------+-------------------------+-----------------------------------------------+---------+---------+
 ```
 
-### Recovery Steps[​](#recovery-steps "Direct link to heading")
+### Recovery Steps
 
 As a multi step operation, the receiving part of the transfer can have intermediate errors, due for example to temporal network connections on the client side.
 

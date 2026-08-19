@@ -6,7 +6,7 @@ title: Upgrade Your AvalancheGo Node
 Never miss a mandatory AvalancheGo upgrade again. Set up [Validator Alerts](/validator-alerts) on Builders Hub to receive email notifications when new versions are released, when your uptime drops, or when your stake is about to expire.
 </Callout>
 
-Backup Your Node[​](#backup-your-node "Direct link to heading")
+Backup Your Node
 ---------------------------------------------------------------
 
 Before upgrading your node, it is recommended you backup your staker files which are used to identify your node on the network. In the default installation, you can copy them by running following commands:
@@ -21,7 +21,7 @@ Then download `staker.crt` and `staker.key` files and keep them somewhere safe a
 
 If you use your node for development purposes and have keystore users on your node, you should back up those too.
 
-Node Installed Using the Installer Script[​](#node-installed-using-the-installer-script "Direct link to heading")
+Node Installed Using the Installer Script
 -----------------------------------------------------------------------------------------------------------------
 
 If you installed your node using the [installer script](/docs/nodes/run-a-node/using-install-script/installing-avalanche-go), to upgrade your node, just run the installer script again.
@@ -54,22 +54,22 @@ And that is it, your node is upgraded to the latest version.
 
 If you installed your node manually, proceed with the rest of the tutorial.
 
-Stop the Old Node Version[​](#stop-the-old-node-version "Direct link to heading")
+Stop the Old Node Version
 ---------------------------------------------------------------------------------
 
 After the backup is secured, you may start upgrading your node. Begin by stopping the currently running version.
 
-### Node Running from Terminal[​](#node-running-from-terminal "Direct link to heading")
+### Node Running from Terminal
 
 If your node is running in a terminal stop it by pressing `ctrl+c`.
 
-### Node Running as a Service[​](#node-running-as-a-service "Direct link to heading")
+### Node Running as a Service
 
 If your node is running as a service, stop it by entering: `sudo systemctl stop avalanchego.service`
 
 (your service may be named differently, `avalanche.service`, or similar)
 
-### Node Running in Background[​](#node-running-in-background "Direct link to heading")
+### Node Running in Background
 
 If your node is running in the background (by running with `nohup`, for example) then find the process running the node by running `ps aux | grep avalanche`. This will produce output like:
 
@@ -86,7 +86,7 @@ Downloading pre-built binary is easier and recommended if you're just looking to
 
 Building the node [from source](/docs/nodes/maintain/upgrade#build-from-source) is recommended if you're a developer looking to experiment and build on Avalanche.
 
-Download Pre-Built Binary[​](#download-pre-built-binary "Direct link to heading")
+Download Pre-Built Binary
 ---------------------------------------------------------------------------------
 
 If you want to download a pre-built binary instead of building it yourself, go to our [releases page](https://github.com/ava-labs/avalanchego/releases), and select the release you want (probably the latest one.)
@@ -99,24 +99,24 @@ In addition, or if you don't have a node ID, you can get release notifications f
 
 Under `Assets`, select the appropriate file.
 
-For MacOS:  
-Download: `avalanchego-macos-<VERSION>.zip`  
-Unzip: `unzip avalanchego-macos-<VERSION>.zip`  
+For MacOS:
+Download: `avalanchego-macos-<VERSION>.zip`
+Unzip: `unzip avalanchego-macos-<VERSION>.zip`
 The resulting folder, `avalanchego-<VERSION>`, contains the binaries.
 
-For Linux on PCs or cloud providers:  
-Download: `avalanchego-linux-amd64-<VERSION>.tar.gz`  
-Unzip: `tar -xvf avalanchego-linux-amd64-<VERSION>.tar.gz`  
+For Linux on PCs or cloud providers:
+Download: `avalanchego-linux-amd64-<VERSION>.tar.gz`
+Unzip: `tar -xvf avalanchego-linux-amd64-<VERSION>.tar.gz`
 The resulting folder, `avalanchego-<VERSION>-linux`, contains the binaries.
 
-For Linux on Arm64-based computers:  
-Download: `avalanchego-linux-arm64-<VERSION>.tar.gz`  
-Unzip: `tar -xvf avalanchego-linux-arm64-<VERSION>.tar.gz`  
+For Linux on Arm64-based computers:
+Download: `avalanchego-linux-arm64-<VERSION>.tar.gz`
+Unzip: `tar -xvf avalanchego-linux-arm64-<VERSION>.tar.gz`
 The resulting folder, `avalanchego-<VERSION>-linux`, contains the binaries.
 
 You are now ready to run the new version of the node.
 
-### Running the Node from Terminal[​](#running-the-node-from-terminal "Direct link to heading")
+### Running the Node from Terminal
 
 If you are using the pre-built binaries on MacOS:
 
@@ -132,7 +132,7 @@ If you are using the pre-built binaries on Linux:
 
 Add `nohup` at the start of the command if you want to run the node in the background.
 
-### Running the Node as a Service[​](#running-the-node-as-a-service "Direct link to heading")
+### Running the Node as a Service
 
 If you're running the node as a service, you need to replace the old binaries with the new ones.
 
@@ -142,7 +142,7 @@ cp -r avalanchego-<VERSION>-linux/* <DIRECTORY_WITH_OLD_BINARIES>
 
 and then restart the service with: `sudo systemctl start avalanchego.service`.
 
-Build from Source[​](#build-from-source "Direct link to heading")
+Build from Source
 -----------------------------------------------------------------
 
 First clone our GitHub repo (you can skip this step if you've done this before):
@@ -191,7 +191,7 @@ and check that the first 7 characters printed match the Latest commit field on o
 If you used the `git checkout tags/<tag>` then these first 7 characters should match commit hash of that tag.
 </Callout>
 
-Now build the binary: 
+Now build the binary:
 ```bash
 ./scripts/build.sh
 ```
