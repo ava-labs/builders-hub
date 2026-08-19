@@ -443,11 +443,25 @@ export function XchainTx({ network, txHash }: { network: string; txHash: string 
     emittedUtxos: XUtxo[];
     consumedUtxos: XUtxo[];
   }>(`/api/xchain/${network}/tx/${encodeURIComponent(txHash)}`);
+  // Genesis assets are identified by a CreateAssetTx id
+  // Probe the asset endpoint before declaring "not found"
+  const { data: assetFallback } = useXchain<{ assetId: string; name: string; symbol: string }>(
+    !loading && !tx ? `/api/xchain/${network}/asset/${encodeURIComponent(txHash)}` : null,
+  );
   if (loading || !tx) {
     return (
       <ExplorerShell chain="x-chain" network={network}>
         <Board divide={false} className="px-6 py-16 text-center">
-          <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{loading ? "Loading…" : "Transaction not found"}</span>
+          {assetFallback ? (
+            <span className="font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+              This ID is the X-chain asset {assetFallback.name} ({assetFallback.symbol}) — created at genesis, so no transaction page exists.{" "}
+              <Link href={`/explorer/${network}/x-chain/asset/${txHash}`} className={idInk}>
+                View asset →
+              </Link>
+            </span>
+          ) : (
+            <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{loading ? "Loading…" : "Transaction not found"}</span>
+          )}
         </Board>
       </ExplorerShell>
     );
