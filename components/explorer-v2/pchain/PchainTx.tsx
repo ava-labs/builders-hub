@@ -107,8 +107,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   }, [isRewardTx, isClassicRewardTx, stakingTxId, network, txHash]);
   const rewardWithdrawn = rewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
 
-  // the split needs the staker's compound ratio: withdrawn is the
-  // (1 - c) share minted to the owner, so restaked = withdrawn * c/(1-c)
+  // the compound ratio, for the label on the restaked row
   const [compoundShares, setCompoundShares] = useState<number | null>(null);
   useEffect(() => {
     if (tx?.txType !== "RewardAutoRenewedValidatorTx" || !stakingTxId) return;
@@ -125,11 +124,10 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       cancelled = true;
     };
   }, [tx?.txType, stakingTxId, network]);
-  // avalanchego's PercentDenominator for reward shares
-  const SHARES_DENOM = 1_000_000;
+
   const rewardRestaked =
-    compoundShares !== null && compoundShares > 0 && compoundShares < SHARES_DENOM && rewardWithdrawn > 0
-      ? Math.round((rewardWithdrawn * compoundShares) / (SHARES_DENOM - compoundShares))
+    tx?.restakedAmount !== undefined && Number.isFinite(Number(tx.restakedAmount))
+      ? Number(tx.restakedAmount)
       : null;
 
   // a live continuous validator carries its compounded stake in the
@@ -463,7 +461,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                       <SpecRow label="Withdrawn">
                         {formatAvax(rewardWithdrawn)}
                         <span className="ml-2 text-zinc-400 dark:text-zinc-500">
-                          plus a restaked share (compound ratio unavailable)
+                          plus a restaked share (not yet resolved)
                         </span>
                       </SpecRow>
                     )
