@@ -9,6 +9,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
+import { isUnindexedChain } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
 import {
   NETWORK_LABEL,
@@ -598,6 +599,7 @@ export function ExplorerSubnav({
 }: ExplorerSubnavProps) {
   const pathname = usePathname();
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
+  const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
 
   // the tab rail scrolls when the inventory outgrows the row — the edge
   // fades say so (a hard clip reads as "there is no ICM tab"). The mask
@@ -659,20 +661,38 @@ export function ExplorerSubnav({
           >
             {tabs.map((tab) => {
               const active = tab.isActive(pathname);
+              const cls = cn(
+                "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors",
+                active
+                  ? "text-zinc-900 dark:text-zinc-100"
+                  : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
+              );
+              const bar = active && (
+                <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--chain-accent,#E6212F)]" />
+              );
+
+              if (inert) {
+                return (
+                  <span
+                    key={tab.label}
+                    aria-disabled
+                    title="This chain isn't indexed yet"
+                    className={cn(cls, "cursor-not-allowed text-zinc-300 dark:text-zinc-700")}
+                  >
+                    {tab.label}
+                  </span>
+                );
+              }
+
               return (
                 <Link
                   key={tab.label}
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors",
-                    active
-                      ? "text-zinc-900 dark:text-zinc-100"
-                      : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
-                  )}
+                  className={cls}
                 >
                   {tab.label}
-                  {active && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--chain-accent,#E6212F)]" />}
+                  {bar}
                 </Link>
               );
             })}
