@@ -1,6 +1,7 @@
 import { L1Chain } from "@/types/stats";
 import { L1ListItem } from "@/components/toolbox/stores/l1ListStore";
 import { CB58ToHex } from "@avalanche-sdk/client/utils";
+import { aliasBase } from "@/lib/chain-alias";
 
 /**
  * Converts an L1ListItem (from localStorage/console) to L1Chain format (for explorer)
@@ -35,14 +36,14 @@ export function convertL1ListItemToL1Chain(item: L1ListItem): L1Chain {
 }
 
 /**
- * Generate a URL-safe slug from a chain name
+ * Generate a URL-safe slug from a chain name.
+ *
+ * Re-exported from lib/chain-alias so the console's locally-imported chains
+ * and the catalog agree on how a name becomes a URL. Custom chains are keyed
+ * by blockchain ID above and never claim a catalog alias, so they need only
+ * the base form — not `canonicalChainSlug`.
  */
-export function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
+export { aliasBase as generateSlug };
 
 /**
  * Find a custom chain by slug from L1ListItems
@@ -56,7 +57,7 @@ export function findCustomChainBySlug(
   slug: string
 ): L1ListItem | undefined {
   return items.find((item) => {
-    const generatedSlug = generateSlug(item.name);
+    const generatedSlug = aliasBase(item.name);
     return (
       generatedSlug === slug ||
       String(item.evmChainId) === slug ||

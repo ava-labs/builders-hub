@@ -245,6 +245,11 @@ export interface Tx {
   periodHuman?: string;
   autoCompoundRewardShares?: number;
   autoCompoundPercent?: number;
+  /** nAVAX compounded back into the stake by a RewardAutoRenewedValidatorTx.
+   * Read by the indexer off the validator's weight step: it is NOT derivable
+   * from the payout UTXOs, since avalanchego splits and floors the validation
+   * and delegatee rewards separately. */
+  restakedAmount?: string;
   validatorAuthority?: string[];
   details?: TxDetails;
   importedFrom?: ImportedFrom;
