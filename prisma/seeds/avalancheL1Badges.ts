@@ -48,6 +48,13 @@ const idMigrations: { oldId: string; newId: string; image_path: string }[] = [
   },
 ];
 
+// The Access Restriction course was split into two certificates (fundamentals +
+// advanced). The existing badge is kept and now requires both halves.
+const accessRestrictionSplitRequirements: BadgeRequirement[] = [
+  { id: "access-restriction-fundamentals", type: "course", points: 100, unlocked: false, course_id: "access-restriction-fundamentals", hackathon: null, description: "Complete the Access Restriction Fundamentals section" },
+  { id: "access-restriction-advanced", type: "course", points: 100, unlocked: false, course_id: "access-restriction-advanced", hackathon: null, description: "Complete the Access Restriction Advanced section" },
+];
+
 // New badges to create — numbered in correct course order
 const newBadges: NewBadge[] = [
   {
@@ -116,9 +123,7 @@ const newBadges: NewBadge[] = [
     description: "Completed the Access Restriction course",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Access_Restriction_Badge.png",
     category: "academy",
-    requirements: [
-      { id: "access-restriction", type: "course", points: 100, unlocked: false, course_id: "access-restriction", hackathon: null, description: "Complete the Access Restriction course" },
-    ],
+    requirements: accessRestrictionSplitRequirements,
   },
   {
     id: "1avalancheL1Academy-10academy-full-completion",
@@ -135,7 +140,7 @@ const newBadges: NewBadge[] = [
       { id: "permissionless-l1s", type: "course", points: 100, unlocked: false, course_id: "permissionless-l1s", hackathon: null, description: "Complete the Permissionless L1s course" },
       { id: "erc20-bridge", type: "course", points: 100, unlocked: false, course_id: "erc20-bridge", hackathon: null, description: "Complete the ERC-20 Bridge course" },
       { id: "native-token-bridge", type: "course", points: 100, unlocked: false, course_id: "native-token-bridge", hackathon: null, description: "Complete the Native Token Bridge course" },
-      { id: "access-restriction", type: "course", points: 100, unlocked: false, course_id: "access-restriction", hackathon: null, description: "Complete the Access Restriction course" },
+      ...accessRestrictionSplitRequirements,
     ],
   },
 ];
@@ -192,13 +197,18 @@ async function seedAvalancheL1Badges() {
     }
   }
 
-  // Step 3: Create new badges (idempotent — updates image + description if exists)
+  // Step 3: Create new badges (idempotent — updates image, description and
+  // requirements if exists; the seed is the source of truth for requirements)
   for (const badge of newBadges) {
     const existing = await prisma.badge.findUnique({ where: { id: badge.id } });
     if (existing) {
       await prisma.badge.update({
         where: { id: badge.id },
-        data: { image_path: badge.image_path, description: badge.description },
+        data: {
+          image_path: badge.image_path,
+          description: badge.description,
+          requirements: badge.requirements as any,
+        },
       });
       console.log(`  Updated: ${badge.name}`);
     } else {
@@ -213,6 +223,30 @@ async function seedAvalancheL1Badges() {
         },
       });
       console.log(`  Created: ${badge.name}`);
+    }
+  }
+
+  // Step 4: Access Restriction split — users who completed the course before
+  // the split have an evidence entry with course_id "access-restriction".
+  // Replace it with the two new requirements so their completion keeps counting.
+  const splitAffectedBadgeIds = [
+    "1avalancheL1Academy-9access-restriction",
+    "1avalancheL1Academy-10academy-full-completion",
+  ];
+  for (const badgeId of splitAffectedBadgeIds) {
+    const userBadges = await prisma.userBadge.findMany({ where: { badge_id: badgeId } });
+    for (const ub of userBadges) {
+      const evidence = (ub.evidence as any[]) || [];
+      if (!evidence.some((e) => e?.course_id === "access-restriction")) continue;
+      const migrated = [
+        ...evidence.filter((e) => e?.course_id !== "access-restriction"),
+        ...accessRestrictionSplitRequirements,
+      ];
+      await prisma.userBadge.update({
+        where: { id: ub.id },
+        data: { evidence: migrated },
+      });
+      console.log(`  Migrated legacy access-restriction evidence: user ${ub.user_id} on ${badgeId}`);
     }
   }
 
