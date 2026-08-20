@@ -544,7 +544,7 @@ function RewardsSheet({ base, network }: { base: string; network: string }) {
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={paidSeries} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
                   <SheetGrid />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
                   <RechartsTooltip
                     cursor={{ fill: "rgba(161,161,170,0.08)" }}
@@ -743,7 +743,7 @@ function ExpirySheet({ base, network }: { base: string; network: string }) {
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={series} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
                   <SheetGrid />
-                  <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} />
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dateTick} />
                   <YAxis yAxisId="day" domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
                   <YAxis yAxisId="cum" orientation="right" domain={[0, "dataMax"]} width={54} tickLine={false} axisLine={false} tick={AXIS_TICK} tickFormatter={(v: number) => fmtCompact(v)} />
                   <RechartsTooltip
