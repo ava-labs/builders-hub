@@ -69,16 +69,6 @@ for (const [courseId, data] of Object.entries(courseFiles)) {
   Object.assign(quizzes, data.quizzes);
 }
 
-// The Access Restriction course was split into two certificate halves, but the
-// learning tree still tracks the whole course under its original slug.
-courses['access-restriction'] = {
-  title: 'Access Restriction',
-  quizzes: [
-    ...courses['access-restriction-fundamentals'].quizzes,
-    ...courses['access-restriction-advanced'].quizzes,
-  ],
-};
-
 const quizData: QuizDataStructure = { courses, quizzes };
 export default quizData;
 

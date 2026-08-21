@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import type { CourseCompletionEntry } from './useCourseCompletion';
-
-// Split courses: the learning tree tracks the whole course under its original
-// slug, but badge requirements key on the certificate halves.
-const badgeCourseAlias: Record<string, string> = {
-  'access-restriction': 'access-restriction-fundamentals',
-};
+import { splitCourseSlugs, type CourseCompletionEntry } from './useCourseCompletion';
 
 export function useCourseBadges(
   completionMap: Map<string, boolean>,
@@ -48,16 +42,17 @@ export function useCourseBadges(
       await Promise.all(
         completedEntries.map(async ({ nodeId, courseSlug }) => {
           try {
-            const badgeSlug = badgeCourseAlias[courseSlug] ?? courseSlug;
-            const response = await fetch(`/api/badge?course_id=${badgeSlug}`);
+            const slugs = splitCourseSlugs[courseSlug] ?? [courseSlug];
+            const response = await fetch(`/api/badge?course_id=${slugs[0]}`);
             if (!response.ok) return;
             const data = await response.json();
-            // A course id can match several badges (per-course badge + the
-            // graduate badge) — the per-course badge has the fewest requirements.
+            // A course id can match several badges (its own + the Graduate
+            // badge, which lists every course) — the course's own badge is the
+            // one whose requirements all belong to this course.
             const badges = Array.isArray(data) ? data : [data];
-            const imagePath = badges.sort(
-              (a, b) => (a?.requirements?.length ?? 99) - (b?.requirements?.length ?? 99)
-            )[0]?.image_path;
+            const imagePath = badges.find(b =>
+              b?.requirements?.every((r: any) => slugs.includes(r?.course_id))
+            )?.image_path;
             if (imagePath) {
               map.set(nodeId, imagePath);
             }
