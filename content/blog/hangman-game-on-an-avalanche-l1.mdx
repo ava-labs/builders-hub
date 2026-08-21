@@ -1,0 +1,388 @@
+---
+title: "Building Your First Blockchain Game: Creating Hangman on an Avalanche L1"
+description: Learn how to build a fully on-chain Hangman game on an Avalanche Layer 1 blockchain using Solidity, React, and MetaMask.
+date: 2026-08-21
+authors:
+  - justingrierson
+topics:
+  - Avalanche L1
+  - Gaming
+  - Solidity
+  - React
+  - Smart Contracts
+  - Tutorial
+comments: true
+---
+
+# Building Your First Blockchain Game: Creating Hangman on an Avalanche L1
+
+## Why build a game on your own blockchain?
+
+One of the biggest misconceptions about blockchain games is that they **must** be deployed to a shared public network. While that's certainly possible, it isn't always the best choice.
+
+Games have very different requirements from decentralized finance (DeFi) applications. They often need fast transaction confirmation, predictable fees, custom game mechanics, and the flexibility to evolve over time. Sharing resources with thousands of unrelated applications can introduce unnecessary complexity and costs.
+
+This is exactly where **Avalanche Layer 1s (L1s)** shine.
+
+Instead of deploying your game onto someone else's blockchain, you can launch a blockchain designed specifically for your game. You control the validator set, define your own token economy, configure transaction fees, and tailor the network to your gameplay requirements.
+
+In this tutorial, we'll build a simple Hangman game—but don't let its simplicity fool you. Along the way you'll learn many of the core concepts behind decentralized game development, including smart contracts, wallet integration, blockchain state management, and secure game design.
+
+By the end, you'll have the foundation needed to build everything from Tic-Tac-Toe and Battleship to multiplayer strategy games and NFT-powered RPGs.
+
+---
+
+## What we're building
+
+```text
+                Player
+                   │
+                   ▼
+          React / Next.js Frontend
+                   │
+              MetaMask Wallet
+                   │
+                   ▼
+            Avalanche L1 Network
+                   │
+                   ▼
+        Solidity Hangman Contract
+                   │
+                   ▼
+           On-Chain Game State
+```
+
+The frontend provides the user interface.
+
+MetaMask signs transactions.
+
+The Avalanche L1 executes the game logic.
+
+The smart contract stores and verifies the game state.
+
+Unlike a traditional web game, there is no centralized server deciding who wins or loses. Every move is verified by the blockchain.
+
+---
+
+## Why Hangman?
+
+Blockchain tutorials often begin with tokens or voting applications. While these are useful, they don't demonstrate many of the challenges developers encounter when building interactive decentralized applications.
+
+Hangman introduces several important concepts:
+
+- Creating on-chain state
+- Managing multiple players
+- Updating data over time
+- Preventing cheating
+- Reading blockchain data from a frontend
+- Writing transactions from a wallet
+- Building a responsive user interface
+
+Although the rules are simple, the architecture is similar to many larger blockchain games.
+
+---
+
+## Step 1 — Launch an Avalanche L1
+
+The easiest way to create an Avalanche L1 is with the Avalanche Platform CLI.
+
+```bash
+platform-cli blockchain create
+```
+
+Choose:
+
+- **Virtual Machine:** EVM
+- **Consensus:** Proof of Stake
+- **Token Type:** Native Token
+
+For this tutorial we'll call our blockchain:
+
+```text
+Chain Name: HangmanChain
+
+Token Symbol: HANG
+```
+
+Start the blockchain:
+
+```bash
+platform-cli blockchain start
+```
+
+The CLI returns several important values:
+
+- RPC Endpoint
+- Chain ID
+- Native Token
+- Validator information
+
+Add the RPC endpoint and Chain ID to MetaMask.
+
+Congratulations—you've just launched your own blockchain.
+
+---
+
+## Step 2 — Create the Project
+
+We'll use Hardhat for compiling and deploying smart contracts.
+
+```bash
+mkdir avalanche-hangman
+cd avalanche-hangman
+
+npm init -y
+npm install --save-dev hardhat
+
+npx hardhat
+```
+
+Install OpenZeppelin Contracts.
+
+```bash
+npm install @openzeppelin/contracts
+```
+
+Your project should eventually look like:
+
+```text
+contracts/
+scripts/
+frontend/
+abi/
+README.md
+```
+
+---
+
+## Step 3 — Designing a Fair Game
+
+Everything stored on a blockchain is public.
+
+If we stored:
+
+```text
+AVALANCHE
+```
+
+inside our contract, every player could inspect the blockchain and immediately discover the answer.
+
+Instead we store:
+
+```text
+keccak256("AVALANCHE")
+```
+
+Hashes are one-way cryptographic functions.
+
+Everyone can verify the answer later, but nobody can determine the original word beforehand.
+
+This technique is known as the **commit-reveal pattern** and is widely used throughout blockchain development.
+
+---
+
+## Step 4 — Writing the Smart Contract
+
+Each game stores:
+
+- Game creator
+- Secret word hash
+- Letters guessed
+- Incorrect guesses
+- Maximum attempts
+- Winner
+- Game status
+
+The contract becomes the single source of truth.
+
+The frontend never decides whether a move is valid.
+
+Only the blockchain does.
+
+---
+
+## Step 5 — Deploy the Contract
+
+Compile:
+
+```bash
+npx hardhat compile
+```
+
+Deploy:
+
+```bash
+npx hardhat run scripts/deploy.js --network avalanche
+```
+
+After deployment you'll receive a contract address.
+
+```text
+0x1234...
+```
+
+Save this—you'll use it in your frontend.
+
+---
+
+## Step 6 — Build the Frontend
+
+Create a Next.js project.
+
+```bash
+npx create-next-app frontend
+```
+
+Install Ethers.js.
+
+```bash
+npm install ethers
+```
+
+The frontend has three responsibilities:
+
+- Display the game
+- Connect MetaMask
+- Send blockchain transactions
+
+Notice that it never determines whether a player has won.
+
+The blockchain always makes that decision.
+
+---
+
+## Step 7 — Connect MetaMask
+
+```javascript
+const provider = new ethers.BrowserProvider(window.ethereum);
+
+await provider.send("eth_requestAccounts", []);
+
+const signer = await provider.getSigner();
+```
+
+Every move requires the player to approve a transaction.
+
+---
+
+## Step 8 — Play the Game
+
+Player One creates a game.
+
+The application hashes the secret word before sending it to the blockchain.
+
+Player Two begins guessing letters.
+
+```
+A
+```
+
+Each guess becomes a blockchain transaction.
+
+If correct, the game state updates.
+
+If incorrect, the wrong guess counter increases.
+
+Every action is transparent and verifiable.
+
+---
+
+## Updating the Interface
+
+The frontend continuously reads the latest blockchain state.
+
+Example:
+
+```text
+A _ A _ A _ _ _ _
+```
+
+Since everyone reads from the same blockchain, every player sees exactly the same game state.
+
+---
+
+## Native Token Rewards
+
+Because you're running your own Avalanche L1, you control the token economy.
+
+Example:
+
+- Entry Fee: **1 HANG**
+- Winner receives **90%**
+- Treasury receives **10%**
+
+No administrator is required.
+
+Everything is handled automatically by the smart contract.
+
+---
+
+## Taking the Project Further
+
+### NFT Achievements
+
+Reward players for milestones:
+
+- First Victory
+- 100 Wins
+- Perfect Game
+- Daily Champion
+
+### Ranked Matchmaking
+
+Track:
+
+- Wins
+- Losses
+- Win Rate
+- Longest Streak
+
+### Multiplayer Challenges
+
+Challenge friends using wallet addresses.
+
+### AI Word Generator
+
+Generate words based on themes such as:
+
+- Programming Languages
+- Animals
+- Movies
+- Space
+- Avalanche Ecosystem Projects
+
+Only the hash is stored on-chain.
+
+### Cross-Chain Gaming
+
+Using **Avalanche Warp Messaging (AWM)** you could connect multiple Avalanche L1 gaming chains together.
+
+Imagine:
+
+- Hangman L1
+- Chess L1
+- Poker L1
+- RPG L1
+
+Achievements earned on one chain could unlock rewards on another, creating a truly interconnected gaming ecosystem.
+
+---
+
+# Final Thoughts
+
+Hangman may be a simple game, but it demonstrates many of the ideas behind modern blockchain applications.
+
+Throughout this tutorial you've learned how to:
+
+- Launch an Avalanche L1
+- Design a fair on-chain game
+- Write a Solidity smart contract
+- Connect MetaMask
+- Build a React frontend
+- Store game state on-chain
+- Reward players with a native token
+- Expand your game using Avalanche Warp Messaging
+
+Once you've completed this project, you'll have the skills to build far more advanced blockchain games—from Chess and Battleship to collectible card games and fully decentralized multiplayer worlds.
+
+Happy building!
