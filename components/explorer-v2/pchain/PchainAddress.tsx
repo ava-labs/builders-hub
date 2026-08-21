@@ -426,10 +426,17 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
                     {u.utxoKind}
                   </span>
                   <span>
-                    {u.staked && (
+                    {u.staked ? (
                       <span className="border border-[#E6212F]/40 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-[#E6212F]">
                         staked
                       </span>
+                    ) : (
+                      /* a stake output whose term has ended is spendable again, explain its status */
+                      (u.utxoKind === "stake" || u.utxoKind === "stakeable-locked") && (
+                        <span className="border border-zinc-300 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-[0.1em] text-zinc-400 dark:border-zinc-700 dark:text-zinc-500">
+                          returned
+                        </span>
+                      )
                     )}
                   </span>
                   <Link
