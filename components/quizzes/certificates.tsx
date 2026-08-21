@@ -109,11 +109,16 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const shareOnLinkedIn = () => {
     const organizationName = 'Avalanche';
     const organizationId = 19104188;
-    const certificationName = encodeURIComponent(quizData.courses[courseId].title);
+    const certificationName = encodeURIComponent(
+      quizData.courses[courseId].title
+    );
+  
     const issuedMonth = new Date().getMonth() + 1;
     const issuedYear = new Date().getFullYear();
-
-    return `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certificationName}&organizationId=${organizationId}&issueMonth=${issuedMonth}&issueYear=${issuedYear}&organizationName=${organizationName}`;
+  
+    return `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certificationName}&organizationId=${organizationId}&issueMonth=${issuedMonth}&issueYear=${issuedYear}&organizationName=${encodeURIComponent(
+      organizationName
+    )}`;
   };
 
   const shareOnTwitter = () => {
