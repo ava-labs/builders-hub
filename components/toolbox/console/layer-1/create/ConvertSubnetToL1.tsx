@@ -21,6 +21,8 @@ import Link from 'next/link';
 import { AlertTriangle } from 'lucide-react';
 import { CoreWalletTransactionButton } from '@/components/toolbox/components/CoreWalletTransactionButton';
 import { useSubmitPChainTx } from '@/components/toolbox/hooks/useSubmitPChainTx';
+import { Alert } from '@/components/toolbox/components/Alert';
+import { waitForPChainConfirmation } from '@/components/toolbox/utils/pchainConfirmation';
 
 const metadata: ConsoleToolMetadata = {
   title: 'Convert Subnet to L1',
@@ -63,6 +65,8 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
   const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
 
   const [isConverting, setIsConverting] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
 
   const { notify } = useConsoleNotifications();
   const { submitPChainTx } = useSubmitPChainTx();
@@ -98,10 +102,12 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
     if (!coreWalletClient) return;
 
     setConvertToL1TxId('');
+    setConvertError(null);
     setIsConverting(true);
 
+    let txID: string | null = null;
     try {
-      const txID = await submitPChainTx(async (client) => {
+      txID = await submitPChainTx(async (client) => {
         const convertSubnetToL1Tx = client.convertToL1({
           subnetId: selection.subnetId,
           chainId: validatorManagerChainID,
@@ -115,9 +121,21 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
         return convertSubnetToL1Tx;
       });
 
+      // Don't advance until the P-Chain actually accepts the conversion:
+      // everything downstream (initializeValidatorSet, Glacier lookups)
+      // reads state that only exists once this tx is Committed.
+      setIsConfirming(true);
+      await waitForPChainConfirmation(txID, isTestnet);
+
       setConvertToL1TxId(txID);
       onSuccess?.();
+    } catch (err) {
+      // Keep an issued-but-unconfirmed txID visible so the user can track
+      // it and paste it into the initialize step once it commits.
+      if (txID) setConvertToL1TxId(txID);
+      setConvertError((err as Error).message);
     } finally {
+      setIsConfirming(false);
       setIsConverting(false);
     }
   }
@@ -207,11 +225,13 @@ function ConvertToL1({ onSuccess }: BaseConsoleToolProps) {
               !selection.subnetId || !validatorManagerAddress || validators.length === 0 || selection.subnet?.isL1
             }
             loading={isConverting}
+            loadingText={isConfirming ? 'Waiting for P-Chain confirmation...' : 'Converting...'}
             className="w-full"
             cliCommand={buildConvertCliCommand()}
           >
             {selection.subnet?.isL1 ? 'Already Converted' : 'Convert to L1'}
           </CoreWalletTransactionButton>
+          {convertError && <Alert variant="error">{convertError}</Alert>}
         </Step>
       </Steps>
     </div>

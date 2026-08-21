@@ -15,7 +15,7 @@ It's very important that you have read and understood the previously linked docu
 
 This tutorial assumes that you have already [installed](/docs/tooling/avalanche-cli) Avalanche-CLI. It assumes you have already created and deployed an Avalanche L1 called `testblockchain`.
 
-Generate the Upgrade File[​](#generate-the-upgrade-file "Direct link to heading")
+Generate the Upgrade File
 ---------------------------------------------------------------------------------
 
 The [Precompiles](/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1#network-upgrades-enabledisable-precompiles) documentation describes what files the network upgrade requires, and where to place them.
@@ -214,7 +214,7 @@ So at this point you can either:
 - Export your upgrade bytes to a file, for installation on a validator running on another machine
 - Import a file into a different machine running Avalanche-CLI
 
-How To Upgrade a Local Network[​](#how-to-upgrade-a-local-network "Direct link to heading")
+How To Upgrade a Local Network
 -------------------------------------------------------------------------------------------
 
 The normal use case for this operation is that:
@@ -291,7 +291,7 @@ The next upgrade will go into effect 2023-03-31 09:00:00
 
 There is only so much the tool can do here for you. It installed the upgrade bytes _as-is_ as you configured respectively provided them to the tool. You should verify yourself that the upgrades were actually installed correctly, for example issuing some transactions - mind the timestamp!.
 
-Apply the Upgrade to a Public Node (Fuji or Mainnet)[​](#apply-the-upgrade-to-a-public-node-fuji-or-mainnet "Direct link to heading")
+Apply the Upgrade to a Public Node (Fuji or Mainnet)
 -------------------------------------------------------------------------------------------------------------------------------------
 
 For this scenario to work, you should also have deployed the Avalanche L1 to the public network (Fuji or Mainnet) with this tool. Otherwise, the tool won't know the details of the Avalanche L1, and won't be able to guide you.
@@ -371,7 +371,7 @@ To install the upgrade file on your validator:
 
 The instructions also show the content of your current upgrade file, so you can just select that if you wish. Or actually export the file.
 
-Export the Upgrade File[​](#export-the-upgrade-file "Direct link to heading")
+Export the Upgrade File
 -----------------------------------------------------------------------------
 
 If you have generated the upgrade file, you can export it:
@@ -392,7 +392,7 @@ File written successfully.
 
 You can now take that file and copy it to validator nodes, see preceding instructions.
 
-Import the Upgrade File[​](#import-the-upgrade-file "Direct link to heading")
+Import the Upgrade File
 -----------------------------------------------------------------------------
 
 You or someone else might have generated the file elsewhere, or on another machine. And now you want to install it on the validator machine, using Avalanche-CLI.

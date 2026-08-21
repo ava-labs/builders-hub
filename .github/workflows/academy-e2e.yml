@@ -10,11 +10,12 @@ name: Academy E2E
 #                      on-chain.
 #
 # Triggers:
-#   - Preview deployments    → every push to every branch/PR. Requires the
-#     VERCEL_AUTOMATION_BYPASS_SECRET Actions secret (previews sit behind
-#     SSO deployment protection).
 #   - Production deployment  → post-merge run against the live site.
 #   - workflow_dispatch      → run against an arbitrary URL on demand.
+#
+# Preview deployments are deliberately NOT tested: deployment_status fires on
+# every push to every branch, which made the suite run on all pushes — too
+# noisy. To smoke-test a preview, dispatch manually with its URL.
 #
 # Secrets:
 #   - VERCEL_AUTOMATION_BYPASS_SECRET — unlock SSO-protected previews. Injected
@@ -48,30 +49,20 @@ concurrency:
 jobs:
   smoke:
     name: Playwright smoke (${{ github.event.deployment.environment || 'manual' }})
-    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # Decide whether to run, and SKIP (not fail) when we legitimately can't:
-      #  - the e2e/ harness isn't on the deployed commit (branch predates it), or
-      #  - it's an SSO-protected Preview deploy and the bypass secret isn't
-      #    configured, so the suite can't reach the preview URL.
-      # Skipping keeps the check green with a notice instead of red-flagging
-      # every PR until a Vercel admin adds the secret.
+      # SKIP (not fail) when the e2e/ harness isn't on the deployed commit
+      # (branch predates it). Keeps the check green with a notice.
       - name: Decide whether to run
         id: gate
-        env:
-          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           if [ ! -f e2e/playwright.config.ts ]; then
             echo "::notice::e2e/ harness not present at this commit — skipping smoke"
-            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          if [ "${{ github.event.deployment.environment }}" = "Preview" ] && [ -z "$BYPASS" ]; then
-            echo "::notice::VERCEL_AUTOMATION_BYPASS_SECRET not set — preview deployments are SSO-protected, so the smoke suite can't reach them. Skipping. To enable preview smoke, turn on 'Protection Bypass for Automation' on the Vercel builder-hub project and add the secret to this repo's Actions secrets."
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
           echo "run=true" >> "$GITHUB_OUTPUT"
@@ -128,11 +119,9 @@ jobs:
         continue-on-error: true
         env:
           QA_TARGET_URL: ${{ steps.target.outputs.url }}
-          # Only fund the tx tier on PRODUCTION deploys (and manual dispatch).
-          # Preview/PR runs get an empty key → the flow tier skips itself and
-          # only the deterministic render+shim gate runs (fast, no testnet
-          # spend). Real tx flows then run post-merge against production.
-          QA_WALLET_KEY: ${{ (github.event.deployment.environment == 'Production' || github.event_name == 'workflow_dispatch') && secrets.QA_WALLET_KEY || '' }}
+          # Without the key the flow tier skips itself and only the
+          # deterministic render+shim gate runs (no testnet spend).
+          QA_WALLET_KEY: ${{ secrets.QA_WALLET_KEY }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: yarn e2e --workers=4
 

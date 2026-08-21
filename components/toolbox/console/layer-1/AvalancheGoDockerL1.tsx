@@ -40,7 +40,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAddToWallet } from '@/hooks/useAddToWallet';
-import { nipify } from '../../components/HostInput';
+import { buildNodeRpcUrl } from '../../lib/rpcUrl';
 import { useL1ListStore, type L1ListItem } from '../../stores/l1ListStore';
 import { networkIDs } from '@avalabs/avalanchejs';
 
@@ -118,6 +118,17 @@ function AvalanchegoDockerInner({
     if (forceNodeType) setNodeType(forceNodeType);
   }, [forceNodeType]);
   const [domain, setDomain] = useState('');
+  // Where the node runs. Remote is the default: this page's own setup
+  // commands target a server, and a remote node has NO localhost URL the
+  // console could honestly offer (issue #4450).
+  const [nodeLocation, setNodeLocation] = useState<'remote' | 'local'>('remote');
+  const [proxyHealthOk, setProxyHealthOk] = useState<boolean | null>(null);
+  // Set when the wallet already has this chain under a DIFFERENT RPC URL:
+  // the add call cannot fix that (wallets dedupe it), only the user can.
+  const [walletRpcMismatch, setWalletRpcMismatch] = useState<string | null>(null);
+  useEffect(() => {
+    setProxyHealthOk(null);
+  }, [domain]);
 
   // ── Advanced / chain config (consolidated reducer state) ──────
   // Track every cache/api/gossip/profiling knob via a single reducer instead
@@ -180,6 +191,15 @@ function AvalanchegoDockerInner({
   const isTestnet = selectedNetwork === 'fuji';
   const isRPC = nodeType === 'rpc' || nodeType === 'archival';
   const isValidator = nodeType === 'validator' || (nodeType === 'archival' && isTestnet);
+
+  // The one RPC URL for this node: display, the L1 list entry, and the
+  // wallet all read this value. Null when no correct URL exists yet
+  // (remote node without a proxy domain).
+  const nodeRpcUrl = buildNodeRpcUrl({
+    location: nodeLocation,
+    domain,
+    blockchainId: selectedRPCBlockchainId || chainId,
+  });
 
   const highlightedLines = useNodeConfigHighlighting(highlightPath, configJson);
 
@@ -342,6 +362,8 @@ function AvalanchegoDockerInner({
     setBlockchainInfo(null);
     setNodeType(forceNodeType ?? (walletIsTestnet ? 'archival' : 'validator'));
     setDomain('');
+    setNodeLocation('remote');
+    setProxyHealthOk(null);
     setSubnetIdError(null);
     setSelectedRPCBlockchainId('');
     setConfigJson('');
@@ -1350,6 +1372,9 @@ ls -la ~/avalanche-backup/staking/`}
                   setDomain={setDomain}
                   chainId={selectedRPCBlockchainId || chainId}
                   showHealthCheck={true}
+                  nodeLocation={nodeLocation}
+                  setNodeLocation={setNodeLocation}
+                  onHealthCheckResult={({ success }) => setProxyHealthOk(success)}
                 />
               </Step>
             )}
@@ -1366,9 +1391,7 @@ ls -la ~/avalanche-backup/staking/`}
                     <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-800">
                       <div className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">RPC Endpoint</div>
                       <code className="text-xs text-zinc-900 dark:text-zinc-100 break-all">
-                        {domain
-                          ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`
-                          : `http://localhost:9650/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`}
+                        {nodeRpcUrl ?? 'Enter the node IP or domain in the reverse proxy step above'}
                       </code>
                     </div>
                     {blockchainInfo?.evmChainId && (
@@ -1383,9 +1406,8 @@ ls -la ~/avalanche-backup/staking/`}
 
                   <Button
                     onClick={async () => {
-                      const rpcUrl = domain
-                        ? `https://${nipify(domain)}/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`
-                        : `http://localhost:9650/ext/bc/${selectedRPCBlockchainId || chainId}/rpc`;
+                      if (!nodeRpcUrl) return;
+                      const rpcUrl = nodeRpcUrl;
                       const evmChainId = blockchainInfo?.evmChainId;
                       const name = blockchainInfo?.blockchainName || 'Avalanche L1';
                       const isTestnetL1 = selectedNetwork === 'fuji';
@@ -1406,6 +1428,11 @@ ls -la ~/avalanche-backup/staking/`}
                             logoUrl: '',
                             genesisData: createChainGenesisData?.trim() || undefined,
                           });
+                        } else {
+                          // Re-running this step repairs a previously stored
+                          // URL (e.g. localhost written before the proxy
+                          // existed) instead of silently keeping it.
+                          l1ListStore.getState().updateL1(evmChainId, { rpcUrl });
                         }
                       }
 
@@ -1415,25 +1442,53 @@ ls -la ~/avalanche-backup/staking/`}
                       setWalletIsTestnet(isTestnetL1);
                       setAvalancheNetworkID(isTestnetL1 ? networkIDs.FujiID : networkIDs.MainnetID);
 
-                      const success = await addToWallet({
+                      const result = await addToWallet({
                         rpcUrl,
                         chainName: name,
                         chainId: evmChainId,
                         isTestnet: isTestnetL1,
                       });
+                      setWalletRpcMismatch(result.rpcUrlMismatch ? (result.walletRpcUrl ?? '') : null);
 
-                      if (success && evmChainId) {
+                      if (result.ok && evmChainId) {
                         setWalletChainId(evmChainId);
                         setTimeout(() => updateL1Balance(evmChainId.toString()), 800);
-                      } else if (!success) {
+                      } else if (!result.ok) {
                         setWalletIsTestnet(prevIsTestnet);
                         setAvalancheNetworkID(prevNetworkID);
                       }
                     }}
-                    disabled={isAddingToWallet}
+                    disabled={isAddingToWallet || !nodeRpcUrl}
                   >
                     {isAddingToWallet ? 'Adding...' : 'Add to Wallet & Switch'}
                   </Button>
+
+                  {!nodeRpcUrl && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Your wallet can&apos;t reach localhost on a remote server. Enter the node&apos;s IP or domain in
+                      the reverse proxy step above, or choose &quot;This machine&quot; there if the node runs locally.
+                    </p>
+                  )}
+                  {nodeRpcUrl && nodeLocation === 'remote' && proxyHealthOk !== true && (
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Tip: run the proxy health check above first, so you don&apos;t add an unreachable URL to your
+                      wallet.
+                    </p>
+                  )}
+                  {walletRpcMismatch !== null && nodeRpcUrl && (
+                    <div className="text-xs p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400">
+                      This chain is already in your wallet with a different RPC URL
+                      {walletRpcMismatch ? (
+                        <>
+                          {' '}
+                          (<code className="break-all">{walletRpcMismatch}</code>)
+                        </>
+                      ) : null}
+                      . Wallets don&apos;t let sites update it: open your wallet&apos;s network settings (Core: Settings
+                      &gt; Networks &gt; this chain) and set the RPC URL to{' '}
+                      <code className="break-all">{nodeRpcUrl}</code>.
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-3">

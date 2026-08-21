@@ -263,7 +263,7 @@ const { txID } = await pvmApi.issueSignedTx(validateTx.getSignedTx());
 </Tab>
 </Tabs>
 
-Either way, poll `pvmApi.getTxStatus({ txID })` until `Committed`, then watch your stake on the [explorer](https://subnets.avax.network/validators).
+Either way, poll `pvmApi.getTxStatus({ txID })` until `Committed`, then watch your stake on the [explorer](https://explorer.avax.network/validators).
 
 </Step>
 </Steps>
@@ -278,7 +278,7 @@ Either way, poll `pvmApi.getTxStatus({ txID })` until `Committed`, then watch yo
 
 ## Staking UX is about to get better
 
-Two ACPs currently moving through the proposal process would significantly improve the custodial staking story: [ACP-236](/docs/acps/236-continuous-staking) adds auto-renewal and auto-compounding so positions don't need to be manually re-established every period, and [ACP-273](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md) cuts the minimum stake duration to roughly two days. Same transaction flow as above — just better parameters.
+Two ACPs currently moving through the proposal process would significantly improve the custodial staking story: [ACP-236](/docs/acps/236-auto-renewed-staking) adds auto-renewal and auto-compounding so positions don't need to be manually re-established every period, and [ACP-273](https://github.com/avalanche-foundation/ACPs/blob/main/ACPs/273-reduce-minimum-staking-duration/README.md) cuts the minimum stake duration to roughly two days. Same transaction flow as above — just better parameters.
 
 ## Try it
 

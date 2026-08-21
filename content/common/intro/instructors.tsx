@@ -76,9 +76,9 @@ const instructors: Instructor[] = [
         name: "Nicolas Arnedo",
         title: "Developer Relations Engineer",
         image: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/builders-hub/instructors/nicolas-arnedo.jpeg",
-        x: "https://x.com/navilla_eth",
+        x: "https://x.com/nicolasarnedo",
         linkedin: "https://www.linkedin.com/in/nicolasarnedo/",
-        github: "https://github.com/navillanueva",
+        github: "https://github.com/nicolasarnedo99",
     },
     {
         name: "Michael Martin",

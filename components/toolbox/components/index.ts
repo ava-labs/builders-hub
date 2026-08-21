@@ -1,6 +1,5 @@
 export { AcknowledgementCallout } from './AcknowledgementCallout';
 export type { AcknowledgementCalloutType } from './AcknowledgementCallout';
-export { AddToWalletStep } from './AddToWalletStep';
 export { Alert } from './Alert';
 export { AllowlistRoleManager, AllowlistComponent } from './AllowListComponents';
 export type { AllowlistRoleManagerProps } from './AllowListComponents';

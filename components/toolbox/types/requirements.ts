@@ -45,6 +45,10 @@ export interface Requirement {
   icon: any;
   met: boolean;
   waiting: boolean;
+  /** True when the status could not actually be verified (e.g. the chain's
+   *  RPC is unreachable so the balance is unknown). `met` stays true so the
+   *  user is not blocked on a check nobody could run; render as advisory. */
+  unknown?: boolean;
   prerequisiteNotMet?: string; // Generic string to support both wallet and account requirement keys
   action: RequirementAction | null;
   alternativeActions?: RequirementAction[];

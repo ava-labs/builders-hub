@@ -39,14 +39,28 @@ const SEATS: { slug: string; y: number; phi: number }[] = [
   { slug: "hashfire", y: 610, phi: 5.0 },
 ];
 
+// the extended cast: extra live chains for roomier placements (the
+// explorer portal renders the globe much larger than the home slot)
+const EXTRA_SEATS: { slug: string; y: number; phi: number }[] = [
+  { slug: "fifa", y: 160, phi: 1.0 },
+  { slug: "numi", y: 340, phi: 2.6 },
+  { slug: "btic", y: 460, phi: 0.4 },
+  { slug: "plyr", y: 580, phi: 1.9 },
+];
+
 const chainBySlug = (slug: string) => l1ChainsData.find((c) => c.slug === slug);
 
-const SPOKES = SEATS.map((seat) => ({
-  ...seat,
-  rLat: Math.sqrt(Math.max(0, R * R - (seat.y - C) * (seat.y - C))),
-  logo: chainBySlug(seat.slug)?.chainLogoURI || "",
-  color: chainBySlug(seat.slug)?.color || "#E6212F",
-}));
+function buildSpokes(seats: { slug: string; y: number; phi: number }[]) {
+  return seats.map((seat) => ({
+    ...seat,
+    rLat: Math.sqrt(Math.max(0, R * R - (seat.y - C) * (seat.y - C))),
+    logo: chainBySlug(seat.slug)?.chainLogoURI || "",
+    color: chainBySlug(seat.slug)?.color || "#E6212F",
+  }));
+}
+
+const BASE_SPOKES = buildSpokes(SEATS);
+const EXTENDED_SPOKES = buildSpokes([...SEATS, ...EXTRA_SEATS]);
 
 const HUB = {
   logo: chainBySlug("c-chain")?.chainLogoURI || "",
@@ -59,14 +73,24 @@ interface Beam {
   outbound: boolean;
 }
 
-function spokeAt(spoke: (typeof SPOKES)[number], theta: number) {
+function spokeAt(spoke: (typeof BASE_SPOKES)[number], theta: number) {
   const a = spoke.phi + theta;
   const x = C + spoke.rLat * Math.sin(a);
   const depth = Math.cos(a); // 1 front, -1 back
   return { x, y: spoke.y, depth };
 }
 
-export default function NetworkGlobe() {
+export default function NetworkGlobe({
+  className = "pointer-events-none hidden items-center justify-end md:mr-10 md:flex lg:mr-24 xl:mr-36",
+  sizeClassName = "h-40 w-auto lg:h-48",
+  extended = false,
+}: {
+  className?: string;
+  sizeClassName?: string;
+  /** more chains on the surface — for placements that render the globe large */
+  extended?: boolean;
+} = {}) {
+  const spokes = extended ? EXTENDED_SPOKES : BASE_SPOKES;
   const [now, setNow] = useState(0);
   const beamsRef = useRef<Beam[]>([]);
   const lastSpawnRef = useRef(0);
@@ -87,7 +111,7 @@ export default function NetworkGlobe() {
         beamsRef.current = [
           ...beamsRef.current.filter((b) => elapsed - b.born < BEAM_MS),
           {
-            spoke: Math.floor(Math.random() * SPOKES.length),
+            spoke: Math.floor(Math.random() * spokes.length),
             born: elapsed,
             outbound: Math.random() < 0.5,
           },
@@ -98,18 +122,18 @@ export default function NetworkGlobe() {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [spokes.length]);
 
   const theta = (now / REV_MS) * 2 * Math.PI;
 
   // back-to-front paint order so near markers pass in front of far ones
-  const placed = SPOKES.map((spoke, i) => ({ spoke, i, ...spokeAt(spoke, theta) })).sort(
+  const placed = spokes.map((spoke, i) => ({ spoke, i, ...spokeAt(spoke, theta) })).sort(
     (a, b) => a.depth - b.depth
   );
 
   return (
-    <div aria-hidden className="pointer-events-none hidden items-center justify-end md:mr-10 md:flex lg:mr-24 xl:mr-36">
-      <svg viewBox="-1 -21 802 842" className="h-40 w-auto lg:h-48">
+    <div aria-hidden className={className}>
+      <svg viewBox="-1 -21 802 842" className={sizeClassName}>
         {/* the desk-globe tilt: an orthographic sphere rotated in-plane is
             still a sphere, so every orbit stays consistent under it */}
         <g transform={`rotate(18 ${C} ${C})`}>
@@ -140,7 +164,7 @@ export default function NetworkGlobe() {
         {beamsRef.current.map((beam) => {
           const p = (now - beam.born) / BEAM_MS;
           if (p < 0 || p >= 1) return null;
-          const spoke = SPOKES[beam.spoke];
+          const spoke = spokes[beam.spoke];
           const pos = spokeAt(spoke, theta);
           const [fx, fy, tx, ty] = beam.outbound ? [C, C, pos.x, pos.y] : [pos.x, pos.y, C, C];
           const head = Math.min(1, p * 1.3);

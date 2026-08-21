@@ -46,8 +46,10 @@ const KNOWN_ERRORS: Record<string, string> = {
   NodeAlreadyRegistered: 'This node is already registered as a validator.',
   '0x11327166': 'Invalid validation ID. The validator may not have been registered on the P-Chain yet.',
   InvalidValidationID: 'Invalid validation ID. The validator may not have been registered on the P-Chain yet.',
-  '0x6b2f19e9': 'Invalid warp message. Ensure the P-Chain transaction was successful and wait for confirmation.',
-  InvalidWarpMessage: 'Invalid warp message. Ensure the P-Chain transaction was successful and wait for confirmation.',
+  '0x6b2f19e9':
+    'Invalid warp message. The block was built against a P-Chain view that predates your transaction: confirm the P-Chain transaction succeeded, then produce blocks with the Advance P-Chain View tool (/console/layer-1/advance-pchain-view) and retry.',
+  InvalidWarpMessage:
+    'Invalid warp message. The block was built against a P-Chain view that predates your transaction: confirm the P-Chain transaction succeeded, then produce blocks with the Advance P-Chain View tool (/console/layer-1/advance-pchain-view) and retry.',
   '0x756b3ca9': 'This validator has already been registered.',
   ValidatorAlreadyRegistered: 'This validator has already been registered.',
   '0x1f0a1ec4': 'This validator cannot be removed in its current state.',
@@ -192,7 +194,7 @@ export function parseContractError(err: unknown): string {
 
   // Nonce errors
   if (raw.includes('nonce')) {
-    return 'Transaction nonce error. Please try again.';
+    return 'Transaction nonce error: the wallet signed with an already-used nonce. Retry the transaction; a fresh nonce is fetched from the chain automatically. Do not edit the nonce manually.';
   }
 
   // Check for known selectors and error names

@@ -3,13 +3,13 @@
 import { useState, useMemo, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ChevronRight, ExternalLink, Layers, Search, Star, X } from 'lucide-react';
+import { ChevronRight, ExternalLink, Layers, Link as LinkIcon, Search, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFavoriteTools } from '@/hooks/useFavoriteTools';
 import { useSubStepSearchToggle } from '@/hooks/useSubStepSearchToggle';
 import { boardContainer, boardItem } from '@/components/console/motion';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { TOOLS, CATEGORY_ORDER, type ToolCard } from './tools';
+import { TOOLS, CATEGORY_ORDER, categoryAnchor, type ToolCard } from './tools';
 
 // Star control rendered absolutely in the top-right of every toolbox tile.
 // Click toggles pin state in localStorage; mandatory paths render the star
@@ -470,10 +470,21 @@ export default function ToolboxBoard() {
               const rest = featured ? tools.filter((t) => t !== featured) : tools;
 
               return (
-                <section key={category}>
-                  {/* Section header — mimics the homepage's "Built on Avalanche" bar */}
+                // id + scroll-mt make every section deep-linkable
+                // (/console/toolbox#create-deploy); scroll-mt clears the
+                // sticky console header when the browser jumps to the hash.
+                <section key={category} id={categoryAnchor(category)} className="scroll-mt-24">
+                  {/* Section header — mimics the homepage's "Built on Avalanche" bar.
+                      The heading is a self-anchor: clicking it puts the section's
+                      deep link in the address bar for copying. */}
                   <div className="mb-4 flex items-center gap-3">
-                    <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{category}</h2>
+                    <Link
+                      href={`#${categoryAnchor(category)}`}
+                      className="group/anchor inline-flex items-center gap-1.5"
+                    >
+                      <h2 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{category}</h2>
+                      <LinkIcon className="h-3 w-3 text-zinc-400 opacity-0 transition-opacity group-hover/anchor:opacity-100 dark:text-zinc-500" />
+                    </Link>
                     <div className="h-px flex-1 bg-zinc-200/80 dark:bg-zinc-800" />
                     <span className="text-[11px] text-zinc-400 dark:text-zinc-500 tabular-nums">
                       {tools.length} {tools.length === 1 ? 'tool' : 'tools'}

@@ -4,6 +4,7 @@ import { prisma } from "@/prisma/prisma";
 import { deriveStatus } from "@/lib/grants/status";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import { canReviewMiniGrants } from "@/lib/auth/permissions";
+import { MemberStatus } from "@/types/project";
 
 type Params = RouteParams<{ id: string }>;
 
@@ -27,7 +28,7 @@ export const GET = withAuth<Params>(async (_req, ctx, session) => {
     session.user?.id === app.user_id || (await canReviewMiniGrants(session));
   if (!authorized) {
     const membership = await prisma.member.findFirst({
-      where: { project_id: app.project_id, user_id: session.user?.id, status: "Confirmed" },
+      where: { project_id: app.project_id, user_id: session.user?.id, status: MemberStatus.CONFIRMED },
       select: { id: true },
     });
     authorized = membership !== null;

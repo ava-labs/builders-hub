@@ -1,5 +1,8 @@
 import { TransactionLifecycle } from "@/components/sae/TransactionLifecycle";
 import { FirewoodPage } from "@/components/firewood/FirewoodPage";
+import { ValidatorFlowExplainer } from "@/components/validator-flow/ValidatorFlowExplainer";
+import { StaircaseFigure } from "@/components/epoched-view/StaircaseFigure";
+import { HeightsRuler } from "@/components/epoched-view/HeightsRuler";
 import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
@@ -100,6 +103,9 @@ export default async function Page(props: {
             StateGrowthChart,
             TransactionLifecycle,
             FirewoodPage,
+            ValidatorFlowExplainer,
+            StaircaseFigure,
+            HeightsRuler,
             AddNetworkButtonInline,
             File,
             Folder,

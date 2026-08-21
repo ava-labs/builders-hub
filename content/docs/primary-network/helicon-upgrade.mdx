@@ -1,0 +1,74 @@
+---
+title: Helicon Upgrade
+description: What the Helicon network upgrade changes on the C-Chain and P-Chain, when it activates on each network, and what validators need to do.
+---
+
+# Helicon Upgrade
+
+Helicon is a Primary Network upgrade that activates six Avalanche Community Proposals. It changes how the C-Chain executes blocks and prices gas, and it changes several Primary Network staking rules, including how long a validator can stake for, how much uptime it needs, and whether it has to re-stake at all.
+
+## Activation Status
+
+| Network | Activation | Status |
+|---------|------------|--------|
+| **Fuji** | July 28, 2026 at 15:00 UTC | Active |
+| **Mainnet** | Not yet scheduled | Pending |
+| Local and custom networks | Active from genesis | Active by default |
+
+<Callout type="warn" title="Fuji nodes must run a Helicon-capable release">
+Helicon activation on Fuji shipped in [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji). That release is Fuji-only and refuses to start against a Mainnet configuration. It also does not support C-Chain state sync once Helicon is active; a release that does is expected before Mainnet activation is scheduled.
+</Callout>
+
+## What Changes
+
+| ACP | Change | Chain |
+|-----|--------|-------|
+| [ACP-194](/docs/acps/194-continuous-execution) | Continuous Execution: consensus and execution are decoupled through a queue, and state roots are recorded after a delay | C-Chain |
+| [ACP-236](/docs/acps/236-auto-renewed-staking) | Auto-renewed staking: validators can renew automatically at the end of each cycle instead of expiring | P-Chain |
+| [ACP-267](/docs/acps/267-uptime-requirement-increase) | Validator uptime requirement rises from 80% to 90% | P-Chain |
+| [ACP-273](/docs/acps/273-reduce-minimum-staking-duration) | Minimum validator staking duration drops to 48 hours on Mainnet and 12 hours on Fuji | P-Chain |
+| [ACP-283](/docs/acps/283-dynamic-minimum-gas-price) | The C-Chain minimum gas price becomes dynamic, set by stake-weighted validator preference | C-Chain |
+| [ACP-285](/docs/acps/285-reduce-minimum-consumption-rate) | `MinConsumptionRate` drops from 10% to 7.5%, ramped over 90 days | P-Chain |
+
+## Staking Changes in Detail
+
+### Auto-Renewed Staking (ACP-236)
+
+A validator can now specify a cycle duration and an auto-compound percentage instead of a fixed end time. At each cycle boundary the P-Chain settles rewards and starts the next cycle automatically. Three transactions are involved: `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx`, and `RewardAutoRenewedValidatorTx`, the last of which is issued by block builders rather than by you.
+
+Renewal is conditional on reward eligibility, so a cycle that misses the uptime requirement ends the validation rather than renewing it. Delegation is unchanged and cannot auto-renew: a delegation must still fit inside the validator's current cycle.
+
+See [AVAX Staking for Professionals](/docs/primary-network/validate/staking-for-finance-professionals) for the operational detail.
+
+### Uptime Requirement (ACP-267)
+
+The threshold for earning rewards rises from 80% to 90%. This is not a genesis parameter change. The 90% figure is applied when the network decides reward eligibility for any Primary Network validation whose **start time** is at or after Helicon activation:
+
+- A validation that started before activation is still judged against 80%.
+- A validation that starts after activation needs 90%.
+- Every cycle of an auto-renewed validator starts after activation, so auto-renewed validators are always held to 90%.
+- Avalanche L1 validators are unaffected and keep the uptime requirement set by their own subnet transformation.
+
+The reward model is unchanged in every other respect. It remains all or nothing, there is no partial payout, and there is no slashing: a validator that misses the threshold forfeits rewards but keeps its principal.
+
+### Minimum Staking Duration (ACP-273)
+
+The minimum duration for a **Primary Network validator** drops from two weeks to 48 hours on Mainnet, and from 24 hours to 12 hours on Fuji. Custom networks default to one hour.
+
+Delegators are not affected and keep the existing minimum. The maximum staking duration is unchanged at one year.
+
+### Minimum Consumption Rate (ACP-285)
+
+`MinConsumptionRate`, the lower bound of the reward curve, drops from 10% to 7.5%. The change is phased in rather than applied at once: it ramps linearly over the 90 days following activation, and the rate applied to a staking period is the one in effect at that period's **start time**. A stake starting 45 days after activation therefore uses roughly 8.75%.
+
+`MaxConsumptionRate` is unchanged, so the effect is concentrated on short staking periods. See the [staking rewards formula](/docs/primary-network/validate/rewards-formula) for how the two bounds combine.
+
+## What You Need to Do
+
+**Validators on Fuji.** Upgrade to a Helicon-capable release. Then check that your node clears 90% uptime rather than 80%, since any validation you start now is judged against the higher threshold. Call [`info.uptime`](/docs/rpcs/other/info-rpc#infouptime) on your own node and cross-check against the [validator health dashboard](https://stats.avax.network/dashboard/validator-health-check/), because a single node's view of its own uptime can be misleading.
+
+**Validators on Mainnet.** Nothing is required yet. Mainnet activation is not scheduled, so plan for the uptime threshold to rise when it is.
+
+**C-Chain developers.** ACP-194 changes when state is available relative to block acceptance, and several C-Chain RPC namespaces are deprecated alongside it. Read [Streaming Asynchronous Execution](/docs/primary-network/streaming-async-execution) and the [v1.15.0-fuji release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji) before assuming existing behavior holds.
+
+**Exchanges and custodians.** The staking minimums and the uptime threshold both move. If you quote a two-week minimum staking period to users, that number becomes 48 hours on Mainnet at activation.

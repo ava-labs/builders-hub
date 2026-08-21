@@ -18,23 +18,52 @@ export interface ClickHouseResponse<T> {
   };
 }
 
-export async function queryClickHouse<T>(sql: string): Promise<ClickHouseResponse<T>> {
-  const response = await fetch(CLICKHOUSE_URL, {
-    method: 'POST',
-    headers: {
-      'X-ClickHouse-User': CLICKHOUSE_USER,
-      'X-ClickHouse-Key': CLICKHOUSE_PASSWORD,
-      'X-ClickHouse-Database': CLICKHOUSE_DATABASE,
-    },
-    body: sql.includes('FORMAT') ? sql : `${sql} FORMAT JSON`,
-  });
+// The server caps the readonly user at 4 concurrent queries
+// (users.d/zz-readonly-cap.xml on the box) and REJECTS the excess rather
+// than queueing it — a route that fires six statements in one Promise.all
+// fails instantly with TOO_MANY_SIMULTANEOUS_QUERIES. Every caller funnels
+// through this gate instead; 3 leaves headroom for other traffic sharing
+// the user.
+const MAX_CONCURRENT_QUERIES = 3;
+let inFlight = 0;
+const queryQueue: (() => void)[] = [];
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`ClickHouse query failed: ${errorText}`);
+async function acquireQuerySlot(): Promise<void> {
+  if (inFlight < MAX_CONCURRENT_QUERIES) {
+    inFlight++;
+    return;
   }
+  await new Promise<void>((resolve) => queryQueue.push(resolve));
+  inFlight++;
+}
 
-  return response.json();
+function releaseQuerySlot(): void {
+  inFlight--;
+  queryQueue.shift()?.();
+}
+
+export async function queryClickHouse<T>(sql: string): Promise<ClickHouseResponse<T>> {
+  await acquireQuerySlot();
+  try {
+    const response = await fetch(CLICKHOUSE_URL, {
+      method: 'POST',
+      headers: {
+        'X-ClickHouse-User': CLICKHOUSE_USER,
+        'X-ClickHouse-Key': CLICKHOUSE_PASSWORD,
+        'X-ClickHouse-Database': CLICKHOUSE_DATABASE,
+      },
+      body: sql.includes('FORMAT') ? sql : `${sql} FORMAT JSON`,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ClickHouse query failed: ${errorText}`);
+    }
+
+    return response.json();
+  } finally {
+    releaseQuerySlot();
+  }
 }
 
 // --- Validation helpers ---

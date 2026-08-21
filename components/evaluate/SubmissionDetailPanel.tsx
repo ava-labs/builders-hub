@@ -10,6 +10,7 @@ import { AdvanceStageControls } from "./AdvanceStageControls";
 import { getEventConfig } from "./event-configs";
 import type { SubmissionRow, EvaluationData, MemberApplication } from "./types";
 import type { EventConfig } from "./event-configs";
+import { MemberStatus } from "@/types/project";
 
 interface Props {
   row: SubmissionRow;
@@ -257,7 +258,7 @@ export function SubmissionDetailPanel({
                               {m.role}
                             </Badge>
                             <Badge
-                              variant={m.status === "Confirmed" ? "default" : "secondary"}
+                              variant={m.status === MemberStatus.CONFIRMED ? "default" : "secondary"}
                               className="text-xs"
                             >
                               {m.status}
@@ -384,7 +385,7 @@ function MemberApplicationSection({
             {member.role}
           </Badge>
           <Badge
-            variant={member.status === "Confirmed" ? "default" : "secondary"}
+            variant={member.status === MemberStatus.CONFIRMED ? "default" : "secondary"}
             className="text-xs"
           >
             {member.status}

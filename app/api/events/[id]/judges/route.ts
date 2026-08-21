@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
-import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { withAuth, type RouteParams } from "@/lib/protectedRoute";
+import { canManageHackathonJudges } from "@/lib/auth/permissions";
 
 type Params = RouteParams<{ id: string }>;
 
-export const GET = withAuthRole<Params>(
-  "devrel",
-  async (_request: NextRequest, context: Params) => {
+export const GET = withAuth<Params>(
+  async (_request: NextRequest, context: Params, session) => {
     const { id: hackathonId } = await context.params;
+    if (!(await canManageHackathonJudges(session, hackathonId))) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Access denied." },
+        { status: 403 },
+      );
+    }
 
     const judges = await prisma.hackathonJudge.findMany({
       where: { hackathon_id: hackathonId },
@@ -30,10 +36,15 @@ export const GET = withAuthRole<Params>(
   },
 );
 
-export const POST = withAuthRole<Params>(
-  "devrel",
+export const POST = withAuth<Params>(
   async (request: NextRequest, context: Params, session) => {
     const { id: hackathonId } = await context.params;
+    if (!(await canManageHackathonJudges(session, hackathonId))) {
+      return NextResponse.json(
+        { error: "Forbidden", message: "Access denied." },
+        { status: 403 },
+      );
+    }
     const body = (await request.json().catch(() => ({}))) as { userId?: string };
     const userId = body.userId?.trim();
     if (!userId) {

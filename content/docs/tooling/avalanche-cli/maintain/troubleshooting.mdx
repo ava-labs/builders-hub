@@ -3,7 +3,7 @@ title: Troubleshooting
 description: If you run into trouble deploying your Avalanche L1, use this document for tips to resolve common issues.
 ---
 
-Deployment Times Out[​](#deployment-times-out "Direct link to heading")
+Deployment Times Out
 -----------------------------------------------------------------------
 
 During a local deployment, your network may fail to start. Your error may look something like this:
@@ -42,7 +42,7 @@ If you're running a validator node on the same box you're using Avalanche-CLI, *
 </Callout>
 
 
-Incompatible RPC Version for Custom VM[​](#incompatible-rpc-version-for-custom-vm "Direct link to heading")
+Incompatible RPC Version for Custom VM
 -----------------------------------------------------------------------------------------------------------
 
 If you're locally deploying a custom VM, you may run into this error message.
@@ -68,14 +68,14 @@ AvalancheGo communicates with custom VMs over RPC using [gRPC](https://grpc.io/)
 
 Your custom VM's RPC version is set by the version of AvalancheGo that you import. By default, Avalanche-CLI creates local Avalalanche networks that run the latest AvalancheGo release.
 
-### Example[​](#example "Direct link to heading")
+### Example
 
 Here's an example with real numbers from the AvalancheGo compatibility page:
 
 - If the latest AvalancheGo release is version v1.10.11, then Avalanche-CLI deploys a network with RPC version 28.
 - For your deploy to be successful, your VM must also have RPC version 28. Because only AvalancheGo versions v1.10.9, v1.10.10 and v1.10.11 supports RPC version 28, your VM **must** import one of those versions.
 
-### Solution[​](#solution "Direct link to heading")
+### Solution
 
 Error: `RPCChainVM protocol version mismatch between AvalancheGo and Virtual Machine plugin`
 
@@ -93,7 +93,7 @@ You must upgrade to the latest AvalancheGo version when deploying publicly to Fu
 </Callout>
 
 
-### More Information[​](#more-information "Direct link to heading")
+### More Information
 
 Similar version matching is required in different tools on the ecosystem. Here is a compatibility table showing which RPCChainVM Version implements the more recent releases of AvalancheGo, Subnet-EVM, Precompile-EVM and HyperSDK.
 
@@ -122,7 +122,7 @@ You can view the full RPC compatibility broken down by release version for each 
 Updates to AvalancheGo's RPC version are **not** tied to its semantic version scheme. Minor AvalancheGo version bumps may include a breaking RPC version bump.
 </Callout>
 
-Fix for MacBook Air M1/M2: ‘Bad CPU type in executable' Error[​](#fix-for-macbook-air-m1m2-bad-cpu-type-in-executable-error "Direct link to heading")
+Fix for MacBook Air M1/M2: ‘Bad CPU type in executable' Error
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 
 When running `avalanche blockchain deploy` via the Avalanche-CLI, the terminal may throw an error that contains the following:

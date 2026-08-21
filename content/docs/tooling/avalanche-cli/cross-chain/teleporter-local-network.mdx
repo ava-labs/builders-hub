@@ -51,7 +51,7 @@ using latest teleporter version (v1.0.0)
 ✓ Successfully created subnet configuration
 ```
 
-Deploy the Avalanche L1s to Local Network[​](#deploy-the-avalanche-l1s-to-local-network "Direct link to heading")
+Deploy the Avalanche L1s to Local Network
 -----------------------------------------------------------------------------------------------------
 
 Let's deploy `<chain1>`:
@@ -158,10 +158,10 @@ Chain ID:         2
 Currency Symbol:  TOKEN2
 ```
 
-Verify Teleporter Is Successfully Set Up[​](#verify-teleporter-is-successfully-set-up "Direct link to heading")
+Verify Teleporter Is Successfully Set Up
 ---------------------------------------------------------------------------------------------------------------
 
-To verify that Teleporter is successfully, let's send a couple of cross messages (from C-Chain to chain1): 
+To verify that Teleporter is successfully, let's send a couple of cross messages (from C-Chain to chain1):
 
 ```bash
 avalanche teleporter sendMsg C-Chain chain1 "Hello World" --local
@@ -174,7 +174,7 @@ Waiting for message to be received at destination subnet subnet "chain1"
 Message successfully Teleported!
 ```
 
-To verify that Teleporter is successfully deployed, let's send a couple of cross-chain messages (from chain2 to chain1): 
+To verify that Teleporter is successfully deployed, let's send a couple of cross-chain messages (from chain2 to chain1):
 ```bash
 avalanche teleporter sendMsg chain2 chain1 "Hello World" --local
 ```
@@ -190,10 +190,10 @@ You have Teleport-ed your first message in the Local Network!
 
 Relayer related logs can be found at `~/.avalanche-cli/runs/awm-relayer.log`, and Relayer configuration can be found at `~/.avalanche-cli/runs/awm-relayer-config.json`
 
-Obtaining Information on Teleporter Deploys[​](#obtaining-information-on-teleporter-deploys "Direct link to heading")
+Obtaining Information on Teleporter Deploys
 ---------------------------------------------------------------------------------------------------------------------
 
-### Obtaining Avalanche L1 Information[​](#obtaining-avalanche-l1-information "Direct link to heading")
+### Obtaining Avalanche L1 Information
 
 By executing `blockchain describe` on a Teleporter enabled Avalanche L1, the following relevant information can be found:
 
@@ -248,7 +248,7 @@ avalanche blockchain describe <chain1>
 ...
 ```
 
-### Obtaining C-Chain Information[​](#obtaining-c-chain-information "Direct link to heading")
+### Obtaining C-Chain Information
 
 Similar information can be found for C-Chain by using `primary describe`:
 
@@ -287,7 +287,7 @@ avalanche primary describe --local
 +------------------------------+--------------------------------------------------------------------+
 ```
 
-Controlling Relayer Execution[​](#controlling-relayer-execution "Direct link to heading")
+Controlling Relayer Execution
 -----------------------------------------------------------------------------------------
 
 Besides having the option to not use a Relayer at Avalanche L1 creation time, the Relayer can be stopped and restarted on used request.

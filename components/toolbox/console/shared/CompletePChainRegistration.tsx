@@ -31,6 +31,12 @@ import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { Check } from 'lucide-react';
 import { StepFlowCard } from '@/components/toolbox/components/StepCard';
 import { generateCastSendCommand } from '@/components/toolbox/utils/castCommand';
+import { ProposerVMPreflightCard } from '@/components/toolbox/console/shared/ProposerVMPreflightCard';
+import {
+  AggregationRemediation,
+  parseAggregationError,
+  type RemediationLink,
+} from '@/components/toolbox/hooks/contracts/parseAggregationError';
 
 export type ManagerType = 'PoA' | 'PoS-Native' | 'PoS-ERC20';
 export type OwnerType = 'PoAManager' | 'StakingManager' | 'EOA' | null;
@@ -84,6 +90,7 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
   const [pChainTxIdState, setPChainTxIdState] = useState(pChainTxId || '');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setErrorState] = useState<string | null>(null);
+  const [aggRemediation, setAggRemediation] = useState<RemediationLink[] | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [pChainSignature, setPChainSignature] = useState<string | null>(null);
@@ -309,8 +316,11 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
     } catch (err: any) {
       const message = err instanceof Error ? err.message : String(err);
 
-      setErrorState(`Failed to complete validator registration: ${message}`);
-      onError(`Failed to complete validator registration: ${message}`);
+      const mapped = parseAggregationError(err);
+      setAggRemediation(mapped?.remediation ?? null);
+      const display = mapped?.message ?? `Failed to complete validator registration: ${message}`;
+      setErrorState(display);
+      onError(display);
     } finally {
       setIsProcessing(false);
     }
@@ -357,7 +367,15 @@ const CompletePChainRegistration: React.FC<CompletePChainRegistrationProps> = ({
 
   return (
     <div className="space-y-3">
-      {error && <Alert variant="error">{error}</Alert>}
+      <ProposerVMPreflightCard requiredTxId={pChainTxIdState.trim() || null} />
+      {error && (
+        <Alert variant="error">
+          <div>
+            {error}
+            {aggRemediation && <AggregationRemediation items={aggRemediation} />}
+          </div>
+        </Alert>
+      )}
 
       {/* Step 1: Enter P-Chain Transaction */}
       <StepFlowCard

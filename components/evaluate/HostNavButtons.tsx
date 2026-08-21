@@ -19,7 +19,7 @@ export async function HostNavButtons({ hackathonId }: Props) {
   if (!session?.user) return null;
 
   const [canManage, canEvaluate, canViewRegistrations] = await Promise.all([
-    Promise.resolve(canManageHackathonJudges(session)),
+    canManageHackathonJudges(session, hackathonId),
     canEvaluateHackathon(session, hackathonId),
     canViewEventRegistrations(session, hackathonId),
   ]);

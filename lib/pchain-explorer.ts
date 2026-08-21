@@ -8,7 +8,7 @@
 //
 // URL scheme (finalized, chain-family agnostic so L1s slot in later):
 //   /explorer/{network}/{chain}/{resource}
-//   network  = mainnet | fuji | devnet
+//   network  = mainnet | fuji
 //   chain    = p-chain (+ future L1 slugs)
 //   resource = "" (home) | blocks | block/{id} | txs | tx/{id}
 //              | address/{addr} | node/{nodeId} | validators
@@ -18,7 +18,7 @@ export const EXPLORER_API_BASE =
 
 // --- networks -------------------------------------------------------------
 
-export const PCHAIN_NETWORKS = ["mainnet", "fuji", "devnet"] as const;
+export const PCHAIN_NETWORKS = ["mainnet", "fuji"] as const;
 export type PchainNetwork = (typeof PCHAIN_NETWORKS)[number];
 
 export function isPchainNetwork(v: string): v is PchainNetwork {
@@ -28,7 +28,6 @@ export function isPchainNetwork(v: string): v is PchainNetwork {
 export const NETWORK_LABEL: Record<PchainNetwork, string> = {
   mainnet: "Mainnet",
   fuji: "Fuji",
-  devnet: "Devnet",
 };
 
 // --- chain registry (future L1 explorers register here) -------------------
@@ -53,6 +52,14 @@ export const EXPLORER_CHAINS: Record<string, ExplorerChain> = {
     networks: PCHAIN_NETWORKS,
     defaultNetwork: "mainnet",
   },
+  "x-chain": {
+    slug: "x-chain",
+    name: "X-Chain",
+    title: "Exchange Chain",
+    kind: "pchain",
+    networks: PCHAIN_NETWORKS,
+    defaultNetwork: "mainnet",
+  },
 };
 
 export function getExplorerChain(slug: string): ExplorerChain | undefined {
@@ -63,6 +70,7 @@ export function getExplorerChain(slug: string): ExplorerChain | undefined {
 // source/destination labels (import/export). Mirrors the server-side
 // wellKnownChains map.
 const WELL_KNOWN_CHAINS: Record<string, string> = {
+  "11111111111111111111111111111111LpoYY": "P-Chain",
   "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5": "C-Chain",
   "2oYMBNV4eNHyqk2fjjV5nVQLDbtmNJzq5s3qs3Lo6ftnC6FByM": "X-Chain",
   yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp: "C-Chain",
@@ -84,6 +92,24 @@ export function knownChainName(cb58?: string): string | undefined {
 // --- client fetch helper (same-origin proxy) ------------------------------
 
 /** Builds the same-origin proxy path for an explorer API call. */
+
+/* Unambiguous query shapes route with no API round-trip: block heights are
+   digits, NodeIDs and bech32 addresses carry their own prefixes. CB58 hashes
+   stay ambiguous (block vs tx) and need the search API. */
+export function classifyLocally(q: string): { type: "block" | "node" | "address"; id: string } | null {
+  if (/^\d+$/.test(q)) return { type: "block", id: q };
+  if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{30,}$/.test(q)) return { type: "node", id: q };
+  if (/^(P-)?(avax|fuji|custom)1[02-9ac-hj-np-z]{30,}$/i.test(q)) return { type: "address", id: q };
+  return null;
+}
+
+
+/* Glacier serves a generic AvaCloud placeholder when a chain has no brand
+   asset; surfaces that lead with artwork should treat those as no logo. */
+export function hasRealChainLogo(logoURI?: string | null): boolean {
+  return !!logoURI && !logoURI.includes("AvaCloud");
+}
+
 export function pchainApiPath(
   network: string,
   resource: string,
@@ -219,6 +245,11 @@ export interface Tx {
   periodHuman?: string;
   autoCompoundRewardShares?: number;
   autoCompoundPercent?: number;
+  /** nAVAX compounded back into the stake by a RewardAutoRenewedValidatorTx.
+   * Read by the indexer off the validator's weight step: it is NOT derivable
+   * from the payout UTXOs, since avalanchego splits and floors the validation
+   * and delegatee rewards separately. */
+  restakedAmount?: string;
   validatorAuthority?: string[];
   details?: TxDetails;
   importedFrom?: ImportedFrom;
@@ -275,6 +306,37 @@ export interface Address {
   utxoCount: number;
   fundedBy?: FundedBy;
   utxos: AddressUtxo[];
+}
+
+/* Display names for P-Chain tx types, shared by every surface that offers a
+   type filter so the chip on the list page and the chip on an address page
+   can't drift apart. Keys are the raw `txType` the API returns. */
+export const TX_TYPE_LABELS: Record<string, string> = {
+  AddPermissionlessValidatorTx: "Add Validator",
+  AddPermissionlessDelegatorTx: "Add Delegator",
+  AddValidatorTx: "Add Validator (legacy)",
+  AddDelegatorTx: "Add Delegator (legacy)",
+  AddSubnetValidatorTx: "Add Subnet Validator",
+  RemoveSubnetValidatorTx: "Remove Subnet Validator",
+  RewardValidatorTx: "Reward",
+  AddAutoRenewedValidatorTx: "Add Auto-Renew Validator",
+  SetAutoRenewedValidatorConfigTx: "Auto-Renew Config",
+  RewardAutoRenewedValidatorTx: "Auto-Renew Reward",
+  ImportTx: "Import",
+  ExportTx: "Export",
+  BaseTx: "Transfer",
+  CreateSubnetTx: "Create Subnet",
+  CreateChainTx: "Create Chain",
+  ConvertSubnetToL1Tx: "Convert to L1",
+  RegisterL1ValidatorTx: "Register L1 Validator",
+  SetL1ValidatorWeightTx: "Set L1 Validator Weight",
+  IncreaseL1ValidatorBalanceTx: "Increase L1 Balance",
+  DisableL1ValidatorTx: "Disable L1 Validator",
+};
+
+/** Display name for a tx type, falling back to the raw type minus its `Tx`. */
+export function txTypeLabel(txType: string): string {
+  return TX_TYPE_LABELS[txType] ?? txType.replace(/Tx$/, "");
 }
 
 export interface AddressTx {
@@ -349,6 +411,42 @@ export interface NodeResponse {
   uptimeHistory: { bucket: string; p50Uptime: number }[];
   proposedBlocks14d: number;
   nodeInfo?: { version: string; publicIp: string; benched: string[]; observedUptime: number };
+}
+
+/* Completed validation periods come from the Data API, not the explorer API
+   (whose node document caps `history` at 100 recent staking txs, which on a
+   busy validator are all delegator additions). Served by
+   app/api/pchain-validations/[network]/[nodeId]. */
+
+export interface ValidationPeriod {
+  txHash: string;
+  startTimestamp: number;
+  endTimestamp: number;
+  amountStaked: string;
+  delegationFeePercent: number;
+  delegatorCount: number;
+  amountDelegated: string;
+  /** nAVAX actually paid for the validator's own stake */
+  validationReward: string;
+  /** nAVAX actually paid out of the delegators' rewards as this node's fee */
+  delegationReward: string;
+  rewardTxHash?: string;
+  /** a term that closed without paying missed the uptime requirement */
+  rewarded: boolean;
+}
+
+export interface ValidationsResponse {
+  nodeId: string;
+  periods: ValidationPeriod[];
+  totals: {
+    periods: number;
+    validationReward: string;
+    delegationReward: string;
+    /** start of the earliest term on record: "validating since" */
+    firstStart: number | null;
+    /** terms that closed without a reward */
+    unrewarded: number;
+  };
 }
 
 export interface ValidatorSummary {

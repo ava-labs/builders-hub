@@ -59,9 +59,10 @@ export function useNetworkData() {
       };
     }
 
-    // Determine the appropriate balance based on network type
+    // Determine the appropriate balance based on network type.
+    // null = could not be fetched; render as unknown, never as 0 (#4450).
     const isCChain = currentNet.evmChainId === avalanche.id || currentNet.evmChainId === avalancheFuji.id;
-    const balance = isCChain ? cChainBalance : l1Balances[currentNet.evmChainId.toString()] || 0;
+    const balance = isCChain ? cChainBalance : (l1Balances[currentNet.evmChainId.toString()] ?? null);
 
     return {
       ...currentNet,
@@ -75,7 +76,7 @@ export function useNetworkData() {
     if (isCChain) {
       return cChainBalance;
     } else {
-      return l1Balances[network.evmChainId.toString()] || 0;
+      return l1Balances[network.evmChainId.toString()] ?? null;
     }
   };
 

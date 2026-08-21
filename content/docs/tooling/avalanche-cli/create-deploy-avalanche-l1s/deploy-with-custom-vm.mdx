@@ -5,12 +5,12 @@ description: Learn how to create an Avalanche L1 with a custom virtual machine a
 
 This tutorial walks through the process of creating an Avalanche L1 with a custom virtual machine and deploying it locally. Although the tutorial uses a fork of Subnet-EVM as an example, you can extend its lessons to support any custom VM binary.
 
-Fork Subnet-EVM[​](#fork-subnet-evm "Direct link to heading")
+Fork Subnet-EVM
 -------------------------------------------------------------
 
 Instead of building a custom VM from scratch, this tutorial starts with forking Subnet-EVM.
 
-### Clone Subnet-EVM[​](#clone-subnet-evm "Direct link to heading")
+### Clone Subnet-EVM
 
 First off, clone the Subnet-EVM repository into a directory of your choosing.
 
@@ -26,7 +26,7 @@ The repository cloning method used is HTTPS, but SSH can be used too:
 You can find more about SSH and how to use it [here](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/about-ssh).
 </Callout>
 
-### Modify and Build Subnet-EVM[​](#modify-and-build-subnet-evm "Direct link to heading")
+### Modify and Build Subnet-EVM
 
 To prove you're running your custom binary and not the stock Subnet-EVM included with Avalanche-CLI, you need to modify the Subnet-EVM binary by making a minor change.
 
@@ -53,7 +53,7 @@ Now build your custom binary by running:
 
 This command builds the binary and saves it at `./custom_vm.bin`.
 
-### Create a Custom Genesis[​](#create-a-custom-genesis "Direct link to heading")
+### Create a Custom Genesis
 
 To start a VM, you need to provide a genesis file. Here is a basic Subnet-EVM genesis that's compatible with your custom VM.
 This genesis includes the PoA Validator Manager, a Transparent Proxy and Proxy Admin as predeployed contracts.
@@ -156,7 +156,7 @@ the timestamp 1736356569 which is the time this tutorial was written. You should
 timestamp when you create your genesis file.
 </Callout>
 
-Create the Avalanche L1 Configuration[​](#create-the-avalanche-l1-configuration "Direct link to heading")
+Create the Avalanche L1 Configuration
 ---------------------------------------------------------------------------------------------
 
 Now that you have your binary, it's time to create the Avalanche L1 configuration. This tutorial uses `myblockchain` as it's Avalanche L1 name. Invoke the Avalanche L1 Creation Wizard with this command:
@@ -165,7 +165,7 @@ Now that you have your binary, it's time to create the Avalanche L1 configuratio
 avalanche blockchain create myblockchain
 ```
 
-### Choose Your VM[​](#choose-your-vm "Direct link to heading")
+### Choose Your VM
 
 Select `Custom` for your VM.
 
@@ -194,7 +194,7 @@ Which address do you want to enable as controller of ValidatorManager contract?:
 ```
 This key can add, remove and change weight of the validator set.
 
-### Enter the Path to Your Genesis[​](#enter-the-path-to-your-genesis "Direct link to heading")
+### Enter the Path to Your Genesis
 
 Enter the path to the genesis file you created in this [step](#create-a-custom-genesis).
 
@@ -213,7 +213,7 @@ Enter the path to the genesis file you created in this [step](#create-a-custom-g
 
 Select no for now as we can setup ICM after deployment.
 
-### Enter the Path to Your VM Binary[​](#enter-the-path-to-your-vm-binary "Direct link to heading")
+### Enter the Path to Your VM Binary
 ```bash
 ? How do you want to set up the VM binary?:
     Download and build from a git repository (recommended for cloud deployments)
@@ -226,7 +226,7 @@ Next, enter the path to your VM binary. This should be the path to the `custom_e
 ✔ Enter path to vm binary: ./custom_vm.bin
 ```
 
-### Wrapping Up[​](#wrapping-up "Direct link to heading")
+### Wrapping Up
 
 If all worked successfully, the command prints:
 ```bash
@@ -236,7 +236,7 @@ Run 'avalanche blockchain describe' to view all created addresses and what their
 
 Now it's time to deploy it.
 
-Deploy the Avalanche L1 Locally[​](#deploy-the-avalanche-l1-locally "Direct link to heading")
+Deploy the Avalanche L1 Locally
 ---------------------------------------------------------------------------------
 
 To deploy your Avalanche L1, run:
@@ -304,17 +304,17 @@ Waiting for http://127.0.0.1:9650/ext/bc/9FrNVEPkVpQyWDECQhEPDuT9oK98EhWQdg7anyp
 ✓ Subnet is successfully deployed Local Network
 ```
 
-Use the describe command to find your L1s RPC: 
+Use the describe command to find your L1s RPC:
 ```bash
 avalanche blockchain describe myblockchain
 ```
 
 You can use the `RPC URL` to connect to and interact with your Avalanche L1.
 
-Interact with Your Avalanche L1[​](#interact-with-your-avalanche-l1 "Direct link to heading")
+Interact with Your Avalanche L1
 ---------------------------------------------------------------------------------
 
-### Check the Version[​](#check-the-version "Direct link to heading")
+### Check the Version
 
 You can verify that your Avalanche L1 has deployed correctly by querying the local node to see what Avalanche L1s it's running. You need to use the [`getNodeVersion`](/docs/rpcs/other/info-rpc#infogetnodeversion) endpoint. Try running this curl command:
 
@@ -353,7 +353,7 @@ The command returns a list of all the VMs your local node is currently running a
 
 Your results may be slightly different, but you can see that in addition to the X-Chain's `avm`, the C-Chain's `evm`, and the P-Chain's `platform` VM, the node is running the custom VM with commit `c0fe6506a40da466285f37dd0d3c044f494cce32`.
 
-### Check a Balance[​](#check-a-balance "Direct link to heading")
+### Check a Balance
 
 If you used the default genesis, your custom VM has a prefunded address. You can verify its balance with a curl command. Make sure to substitute the command's URL with the `RPC URL` from your deployment output.
 
@@ -385,7 +385,7 @@ The balance is hex encoded, so this means the address has a balance of 1 million
 
 Note, this command doesn't work on all custom VMs, only VMs that implement the EVM's `eth_getBalance` interface.
 
-Next Steps[​](#next-steps "Direct link to heading")
+Next Steps
 ---------------------------------------------------
 
 You've now unlocked the ability to deploy custom VMs. Go build something cool!

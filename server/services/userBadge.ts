@@ -22,23 +22,28 @@ export async function getCompletedCourseSlugs(userId: string): Promise<string[]>
   const userBadges = await prisma.userBadge.findMany({
     where: {
       user_id: userId,
-      status: BadgeAwardStatus.approved,
+      status: { in: [BadgeAwardStatus.approved, BadgeAwardStatus.pending] },
     },
     include: {
       badge: true,
     },
   });
 
-  const courseSlugs: string[] = [];
+  // approved = all requirements completed; pending = only the courses recorded
+  // in evidence are completed (multi-certificate courses like Access Restriction).
+  const courseSlugs = new Set<string>();
   for (const ub of userBadges) {
     if (ub.badge.category !== 'academy') continue;
-    const requirements = ub.badge.requirements as any[];
-    for (const req of requirements) {
+    const completed =
+      ub.status === BadgeAwardStatus.approved
+        ? (ub.badge.requirements as any[])
+        : ((ub.evidence as any[]) || []);
+    for (const req of completed) {
       if (req?.course_id) {
-        courseSlugs.push(req.course_id);
+        courseSlugs.add(req.course_id);
       }
     }
   }
 
-  return courseSlugs;
+  return [...courseSlugs];
 }

@@ -2,10 +2,10 @@
 title: Banff Changes
 description: This document specifies the changes in Avalanche “Banff”, which was released in AvalancheGo v1.9.x.
 ---
-Block Changes[​](#block-changes "Direct link to heading")
+Block Changes
 ---------------------------------------------------------
 
-### Apricot[​](#apricot "Direct link to heading")
+### Apricot
 
 Apricot allows the following block types with the following content:
 
@@ -27,7 +27,7 @@ Each block has a header containing:
 - ParentID
 - Height
 
-### Banff[​](#banff "Direct link to heading")
+### Banff
 
 Banff allows the following block types with the following content:
 
@@ -62,9 +62,9 @@ So the two main differences with respect to Apricot are:
 - New Transaction types: _RemoveSubnetValidatorTx_, _TransformSubnetTx_, _AddPermissionlessValidatorTx_, and _AddPermissionlessDelegatorTx_ have been added into Standard Blocks.
 - Block timestamp is explicitly serialized into block header, to allow chain time update.
 
-### New Transactions[​](#new-transactions "Direct link to heading")
+### New Transactions
 
-#### RemoveSubnetValidatorTx[​](#removesubnetvalidatortx "Direct link to heading")
+#### RemoveSubnetValidatorTx
 
 ```
 type RemoveSubnetValidatorTx struct {
@@ -78,7 +78,7 @@ SubnetAuth verify.Verifiable `serialize:"true" json:"subnetAuthorization"`
 }
 ```
 
-#### TransformSubnetTx[​](#transformsubnettx "Direct link to heading")
+#### TransformSubnetTx
 
 ```
 type TransformSubnetTx struct {
@@ -157,7 +157,7 @@ SubnetAuth verify.Verifiable `serialize:"true" json:"subnetAuthorization"`
 }
 ```
 
-#### AddPermissionlessValidatorTx[​](#addpermissionlessvalidatortx "Direct link to heading")
+#### AddPermissionlessValidatorTx
 
 ```
 type AddPermissionlessValidatorTx struct {
@@ -180,7 +180,7 @@ type AddPermissionlessValidatorTx struct {
 }
 ```
 
-#### AddPermissionlessDelegatorTx[​](#addpermissionlessdelegatortx "Direct link to heading")
+#### AddPermissionlessDelegatorTx
 
 ```
 type AddPermissionlessDelegatorTx struct {
@@ -197,7 +197,7 @@ type AddPermissionlessDelegatorTx struct {
 }
 ```
 
-#### New TypeIDs[​](#new-typeids "Direct link to heading")
+#### New TypeIDs
 
 ```
 ApricotProposalBlock = 0

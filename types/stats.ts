@@ -93,11 +93,12 @@ export interface L1Chain {
   sourcifySupport?: boolean;
   isTestnet?: boolean;
   baasProviders?: BaasProvider[];
-  // Manual override. Set to false to force the "Not indexed yet" card on the chain
-  // card and stats page even when the metrics API returns data — useful during
-  // reindexing or when we don't want to surface stale/partial data.
-  // Omit or set to true to trust the live metrics probe.
+  // Whether this chain is entitled to the bare, unqualified URL alias
+  aliasVerified?: boolean;
+  // Whether the explorer has data for this chain
   isIndexed?: boolean;
+  // Pins isIndexed against the derivation above
+  isIndexedOverride?: boolean;
 }
 
 export type TimeRange = "30d" | "90d" | "1y" | "all";

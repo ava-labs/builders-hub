@@ -7,7 +7,7 @@ This tutorial walks you through the process of using Avalanche-CLI to create an 
 
 The first step of learning Avalanche L1 development is learning to use [Avalanche-CLI](https://github.com/ava-labs/avalanche-cli).
 
-Installation[​](#installation "Direct link to heading")
+Installation
 -------------------------------------------------------
 
 The fastest way to install the latest Avalanche-CLI binary is by running the install script:
@@ -37,7 +37,7 @@ Once you add it to your path, you should be able to call the program anywhere wi
 
 For more detailed installation instructions, see [Avalanche-CLI Installation](/docs/tooling/avalanche-cli).
 
-Create Your Avalanche L1 Configuration[​](#create-your-avalanche-l1-configuration "Direct link to heading")
+Create Your Avalanche L1 Configuration
 -----------------------------------------------------------------------------------------------
 
 This tutorial teaches you how to create an Ethereum Virtual Machine (EVM) based Avalanche L1. To do so, you use Subnet-EVM, Avalanche's L1 fork of the EVM. It supports airdrops, custom fee tokens, configurable gas parameters, and multiple stateful precompiles. To learn more, take a look at [Subnet-EVM](https://github.com/ava-labs/subnet-evm). The goal of your first command is to create a Subnet-EVM configuration.
@@ -55,7 +55,7 @@ The following sections walk through each question in the wizard.
 ### Choose Your VM
 
 ```bash
-? Which Virtual Machine would you like to use?: 
+? Which Virtual Machine would you like to use?:
   ▸ Subnet-EVM
     Custom VM
     Explain the difference
@@ -65,7 +65,7 @@ Select `Subnet-EVM`.
 ### Choose Validator Manager
 
 ```text
-? Which validator management type would you like to use in your blockchain?: 
+? Which validator management type would you like to use in your blockchain?:
   ▸ Proof Of Authority
     Proof Of Stake
     Explain the difference
@@ -73,14 +73,14 @@ Select `Subnet-EVM`.
 Select `Proof Of Authority`.
 
 ```text
-? Which address do you want to enable as controller of ValidatorManager contract?: 
+? Which address do you want to enable as controller of ValidatorManager contract?:
   ▸ Get address from an existing stored key (created from avalanche key create or avalanche key import)
     Custom
 ```
 Select `Get address from an existing stored key`.
 
 ```text
-? Which stored key should be used enable as controller of ValidatorManager contract?: 
+? Which stored key should be used enable as controller of ValidatorManager contract?:
   ▸ ewoq
     cli-awm-relayer
     cli-teleporter-deployer
@@ -98,7 +98,7 @@ To learn more about different validator management types, see [PoA vs PoS](/docs
 ### Choose Blockchain Configuration
 
 ```text
-? Do you want to use default values for the Blockchain configuration?: 
+? Do you want to use default values for the Blockchain configuration?:
   ▸ I want to use defaults for a test environment
     I want to use defaults for a production environment
     I don't want to use default values
@@ -111,7 +111,7 @@ This will automatically setup the configuration for a test environment, includin
 ### Enter Your Avalanche L1's ChainID
 
 ```text
-✗ Chain ID: 
+✗ Chain ID:
 ```
 
 Choose a positive integer for your EVM-style ChainID.
@@ -121,7 +121,7 @@ In production environments, this ChainID needs to be unique and not shared with 
 ### Token Symbol
 
 ```text
-✗ Token Symbol: 
+✗ Token Symbol:
 ```
 
 Enter a string to name your Avalanche L1's native token. The token symbol doesn't necessarily need to be unique. Example token symbols are AVAX, JOE, and BTC.

@@ -126,7 +126,7 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 			logo: avalancheChain?.chainLogoURI || 'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg',
 			color: '#e84142',
 			category: 'Primary Network',
-			link: '/stats/overview',
+			link: '/explorer/mainnet',
 			isPrimary: true,
 			tps: totalTps, // Aggregate TPS for pulse effect
 			validatorCount: typeof avalancheChain?.validatorCount === 'number' ? avalancheChain.validatorCount : undefined,
@@ -155,7 +155,7 @@ export const Sponsors = ({ globeData }: SponsorsProps) => {
 				logo,
 				color: l1Chain?.color || getCategoryColor(category) || stringToColor(chain.chainName),
 				category,
-				link: slug ? `/stats/l1/${slug}` : undefined,
+				link: slug ? `/explorer/mainnet/${slug}/accounts` : undefined,
 				isPrimary: false,
 				validatorCount: typeof chain.validatorCount === 'number' ? chain.validatorCount : undefined,
 				tps: chain.tps || 0,

@@ -124,7 +124,14 @@ async function handlePost(
     // header (request.nextUrl.origin). On Vercel the Host header is forwarded
     // verbatim, so a request with a spoofed Host would leak the shared secret
     // to an attacker-controlled callback origin.
-    const builderHubUrl = process.env.BUILDER_HUB_URL;
+    //
+    // Production falls back to the canonical origin so a missing env var
+    // cannot 503 every prod deploy. Previews still require the env var:
+    // falling back to prod there would point their register-node callbacks
+    // at the wrong origin.
+    const builderHubUrl =
+      process.env.BUILDER_HUB_URL ??
+      (process.env.VERCEL_ENV === 'production' ? 'https://build.avax.network' : undefined);
     if (!builderHubUrl) {
       return NextResponse.json(
         { error: 'BUILDER_HUB_URL not configured on this server' },

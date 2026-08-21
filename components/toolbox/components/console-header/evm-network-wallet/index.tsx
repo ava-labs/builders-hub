@@ -56,7 +56,9 @@ export function EvmNetworkWallet() {
               <div className="flex gap-2 items-center">
                 <span className="text-sm font-medium leading-none">{currentNetwork.name}</span>
                 <span className="text-xs text-muted-foreground leading-none">
-                  {`${typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} ${(currentNetwork as any).coinName}`}
+                  {currentNetwork.balance === null
+                    ? `n/a ${(currentNetwork as any).coinName}`
+                    : `${typeof currentNetwork.balance === 'string' ? parseFloat(currentNetwork.balance).toFixed(4) : (currentNetwork.balance || 0).toFixed(4)} ${(currentNetwork as any).coinName}`}
                 </span>
               </div>
             </div>

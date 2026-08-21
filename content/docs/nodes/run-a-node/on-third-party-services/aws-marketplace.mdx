@@ -17,22 +17,22 @@ description: Learn how to run a node on AWS Marketplace.
 
 With the intention of enabling developers and entrepreneurs to on-ramp into the Avalanche ecosystem with as little friction as possible, Ava Labs recently launched an offering to deploy an Avalanche Validator node via the AWS Marketplace. This tutorial will show the main steps required to get this node running and validating on the Avalanche Fuji testnet.
 
-Product Overview[​](#product-overview "Direct link to heading")
+Product Overview
 ---------------------------------------------------------------
 
 The Avalanche Validator node is available via [the AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-nd6wgi2bhhslg). There you'll find a high level product overview. This includes a product description, pricing information, usage instructions, support information and customer reviews. After reviewing this information you want to click the "Continue to Subscribe" button.
 
-Subscribe to This Software[​](#subscribe-to-this-software "Direct link to heading")
+Subscribe to This Software
 -----------------------------------------------------------------------------------
 
 Once on the "Subscribe to this Software" page you will see a button which enables you to subscribe to this AWS Marketplace offering. In addition you'll see Terms of service including the seller's End User License Agreement and the [AWS Privacy Notice](https://aws.amazon.com/privacy/). After reviewing these you want to click on the "Continue to Configuration" button.
 
-Configure This Software[​](#configure-this-software "Direct link to heading")
+Configure This Software
 -----------------------------------------------------------------------------
 
 This page lets you choose a fulfillment option and software version to launch this software. No changes are needed as the default settings are sufficient. Leave the `Fulfillment Option` as `64-bit (x86) Amazon Machine Image (AMI)`. The software version is the latest build of [the AvalancheGo full node](https://github.com/ava-labs/avalanchego/releases), `v1.9.5 (Dec 22, 2022)`, AKA `Banff.5`. This will always show the latest version. Also, the Region to deploy in can be left as `US East (N. Virginia)`. On the right you'll see the software and infrastructure pricing. Lastly, click the "Continue to Launch" button.
 
-Launch This Software[​](#launch-this-software "Direct link to heading")
+Launch This Software
 -----------------------------------------------------------------------
 
 Here you can review the launch configuration details and follow the instructions to launch the Avalanche Validator Node. The changes are very minor. Leave the action as "Launch from Website." The EC2 Instance Type should remain `c5.2xlarge`. The primary change you'll need to make is to choose a keypair which will enable you to `ssh` into the newly created EC2 instance to run `curl` commands on the Validator node. You can search for existing Keypairs or you can create a new keypair and download it to your local machine. If you create a new keypair you'll need to move the keypair to the appropriate location, change the permissions and add it to the OpenSSH authentication agent. For example, on MacOS it would look similar to the following:
@@ -61,7 +61,7 @@ Once these steps are complete you are ready to launch the Validator node on EC2.
 
 You now have an Avalanche node deployed on an AWS EC2 instance! Copy the `AMI ID` and click on the `EC2 Console` link for the next step.
 
-EC2 Console[​](#ec2-console "Direct link to heading")
+EC2 Console
 -----------------------------------------------------
 
 Now take the `AMI ID` from the previous step and input it into the search bar on the EC2 Console. This will bring you to the dashboard where you can find the EC2 instances public IP address.
@@ -70,10 +70,10 @@ Now take the `AMI ID` from the previous step and input it into the search bar on
 
 Copy that public IP address and open a Terminal or command line prompt. Once you have the new Terminal open `ssh` into the EC2 instance with the following command.
 
-Node Configuration[​](#node-configuration "Direct link to heading")
+Node Configuration
 -------------------------------------------------------------------
 
-### Switch to Fuji Testnet[​](#switch-to-fuji-testnet "Direct link to heading")
+### Switch to Fuji Testnet
 
 By default the Avalanche Node available through the AWS Marketplace syncs the Mainnet. If this is what you are looking for, you can skip this step.
 
@@ -81,7 +81,7 @@ For this tutorial you want to sync and validate the Fuji Testnet. Now that you'r
 
 First, confirm that the node is syncing the Mainnet by running the `info.getNetworkID` command.
 
-#### `info.getNetworkID` Request[​](#infogetnetworkid-request "Direct link to heading")
+#### `info.getNetworkID` Request
 
 ```bash
 curl -X POST --data '{
@@ -93,7 +93,7 @@ curl -X POST --data '{
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
 ```
 
-#### `info.getNetworkID` Response[​](#infogetnetworkid-response "Direct link to heading")
+#### `info.getNetworkID` Response
 
 The returned `networkID` will be 1 which is the network ID for Mainnet.
 
@@ -124,7 +124,7 @@ cat /etc/avalanchego/conf.json
 
 Edit that `/etc/avalanchego/conf.json` with your favorite text editor and change the value of the `"network-id"` property from `"mainnet"` to `"fuji"`. Once that's complete, save the file and restart the Avalanche node via `sudo systemctl restart avalanchego`. You can then call the `info.getNetworkID` endpoint to confirm the change was successful.
 
-#### `info.getNetworkID` Request[​](#infogetnetworkid-request-1 "Direct link to heading")
+#### `info.getNetworkID` Request
 
 ```bash
 curl -X POST --data '{
@@ -136,7 +136,7 @@ curl -X POST --data '{
 }' -H 'content-type:application/json;' 127.0.0.1:9650/ext/info
 ```
 
-#### `info.getNetworkID` Response[​](#infogetnetworkid-response-1 "Direct link to heading")
+#### `info.getNetworkID` Response
 
 The returned `networkID` will be 5 which is the network ID for Fuji.
 
@@ -152,7 +152,7 @@ The returned `networkID` will be 5 which is the network ID for Fuji.
 
 Next you run the `info.isBoostrapped` command to confirm if the Avalanche Validator node has finished bootstrapping.
 
-### `info.isBootstrapped` Request[​](#infoisbootstrapped-request "Direct link to heading")
+### `info.isBootstrapped` Request
 
 ```bash
 curl -X POST --data '{
@@ -167,7 +167,7 @@ curl -X POST --data '{
 
 Once the node is finished bootstrapping, the response will be:
 
-### `info.isBootstrapped` Response[​](#infoisbootstrapped-response "Direct link to heading")
+### `info.isBootstrapped` Response
 
 ```json
 {
@@ -179,10 +179,10 @@ Once the node is finished bootstrapping, the response will be:
 }
 ```
 
-**Note** that initially the response is `false` because the network is still syncing.  
+**Note** that initially the response is `false` because the network is still syncing.
 When you're adding your node as a Validator on the Avalanche Mainnet you'll want to wait for this response to return `true` so that you don't suffer from any downtime while validating. For this tutorial you're not going to wait for it to finish syncing as it's not strictly necessary.
 
-### `info.getNodeID` Request[​](#infogetnodeid-request "Direct link to heading")
+### `info.getNodeID` Request
 
 Next, you want to get the NodeID which will be used to add the node as a Validator. To get the node's ID you call the `info.getNodeID` jsonrpc endpoint.
 
@@ -198,7 +198,7 @@ curl --location --request POST 'http://127.0.0.1:9650/ext/info' \
 }'
 ```
 
-### `info.getNodeID` Response[​](#infogetnodeid-response "Direct link to heading")
+### `info.getNodeID` Response
 
 Take a note of the `nodeID` value which is returned as you'll need to use it in the next step when adding a validator via the Avalanche Web Wallet. In this case the `nodeID` is `NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5`
 
@@ -216,7 +216,7 @@ Take a note of the `nodeID` value which is returned as you'll need to use it in 
 }
 ```
 
-Add Node as Validator on Fuji via Core web[​](#add-node-as-validator-on-fuji-via-core-web "Direct link to heading")
+Add Node as Validator on Fuji via Core web
 -------------------------------------------------------------------------------------------------------------------
 
 For adding the new node as a Validator on the Fuji testnet's Primary Network you can use the [Core web](https://core.app/) [connected](https://support.avax.network/en/articles/6639869-core-web-how-do-i-connect-to-core-web) to [Core extension](https://core.app). If you don't have a Core extension already, check out this [guide](https://support.avax.network/en/articles/6100129-core-extension-how-do-i-create-a-new-wallet). If you'd like to import an existing wallet to Core extension, follow [these steps](https://support.avax.network/en/articles/6078933-core-extension-how-do-i-access-my-existing-account).
@@ -225,11 +225,11 @@ For adding the new node as a Validator on the Fuji testnet's Primary Network you
 
 Core web is a free, all-in-one command center that gives users a more intuitive and comprehensive way to view assets, and use dApps across the Avalanche network, its various Avalanche L1s, and Ethereum. Core web is optimized for use with the Core browser extension and Core mobile (available on both iOS & Android). Together, they are key components of the Core product suite that brings dApps, NFTs, Avalanche Bridge, Avalanche L1s, L2s, and more, directly to users.
 
-### Switching to Testnet Mode[​](#switching-to-testnet-mode "Direct link to heading")
+### Switching to Testnet Mode
 
 By default, Core web and Core extension are connected to Mainnet. For the sake of this demo, you want to connect to the Fuji Testnet.
 
-#### On Core Extension[​](#on-core-extension "Direct link to heading")
+#### On Core Extension
 
 Click the Tools icon in the sidebar, select Settings, and then toggle the Testnet Mode on.
 
@@ -237,7 +237,7 @@ Click the Tools icon in the sidebar, select Settings, and then toggle the Testne
 
 You can follow the same steps for switching back to Mainnet.
 
-#### On Core web[​](#on-core-web "Direct link to heading")
+#### On Core web
 
 Click on the Settings button top-right corner of the page, then toggle Testnet Mode on.
 
@@ -245,13 +245,13 @@ Click on the Settings button top-right corner of the page, then toggle Testnet M
 
 You can follow the same steps for switching back to Mainnet.
 
-### Adding the Validator[​](#adding-the-validator "Direct link to heading")
+### Adding the Validator
 
 <Callout title="Note">
-- Node ID: A unique ID derived from each individual node's staker certificate. Use the `NodeID` which was returned in the `info.getNodeID` response. In this example it's `NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5`  
+- Node ID: A unique ID derived from each individual node's staker certificate. Use the `NodeID` which was returned in the `info.getNodeID` response. In this example it's `NodeID-Q8Gfaaio9FAqCmZVEXDq9bFvNPvDi7rt5`
 - Staking End Date: Your AVAX tokens will be locked until this date.
-- Stake Amount: The amount of AVAX to lock for staking. On Mainnet, the minimum required amount is 2,000 AVAX. On Testnet the minimum required amount is 1 AVAAX.  
-- Delegation Fee: You will claim this % of the rewards from the delegators on your node.  
+- Stake Amount: The amount of AVAX to lock for staking. On Mainnet, the minimum required amount is 2,000 AVAX. On Testnet the minimum required amount is 1 AVAAX.
+- Delegation Fee: You will claim this % of the rewards from the delegators on your node.
 - Reward Address: A reward address is the destination address of the accumulated staking rewards.
 </Callout>
 
@@ -295,12 +295,12 @@ If you click on View on explorer, a new browser tab will open with the details o
 
 ![](/images/aws15.png)
 
-Confirm That the Node is a Pending Validator on Fuji[​](#confirm-that-the-node-is-a-pending-validator-on-fuji "Direct link to heading")
+Confirm That the Node is a Pending Validator on Fuji
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 As a last step you can call the `platform.getPendingvalidators` endpoint to confirm that the Avalanche node which was recently spun up on AWS is no in the pending validators queue where it will stay for 5 minutes.
 
-### `platform.getPendingValidators` Request[​](#platformgetpendingvalidators-request "Direct link to heading")
+### `platform.getPendingValidators` Request
 
 ```bash
 curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
@@ -316,7 +316,7 @@ curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
 }'
 ```
 
-### `platform.getPendingValidators` Response[​](#platformgetpendingvalidators-response "Direct link to heading")
+### `platform.getPendingValidators` Response
 
 ```json
 {
@@ -382,7 +382,7 @@ This will filter the response by the `nodeIDs` array which will save you time by
 
 After 5 minutes the node will officially start validating the Avalanche Fuji testnet and you will no longer see it in the response body for the `platform.getPendingValidators` endpoint. Now you will access it via the `platform.getCurrentValidators` endpoint.
 
-### `platform.getCurrentValidators` Request[​](#platformgetcurrentvalidators-request "Direct link to heading")
+### `platform.getCurrentValidators` Request
 
 ```bash
 curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
@@ -398,7 +398,7 @@ curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
 }'
 ```
 
-### `platform.getCurrentValidators` Response[​](#platformgetcurrentvalidators-response "Direct link to heading")
+### `platform.getCurrentValidators` Response
 
 ```json
 {
@@ -444,12 +444,12 @@ curl --location --request POST 'https://api.avax-test.network/ext/bc/P' \
 }
 ```
 
-Mainnet[​](#mainnet "Direct link to heading")
+Mainnet
 ---------------------------------------------
 
 All of these steps can be applied to Mainnet. However, the minimum required Avax token amounts to become a validator is 2,000 on the Mainnet. For more information, please read [this doc](/docs/primary-network/validate/how-to-stake#validators).
 
-Maintenance[​](#maintenance "Direct link to heading")
+Maintenance
 -----------------------------------------------------
 
 AWS one click is meant to be used in automated environments, not as an end-user solution. You can still manage it manually, but it is not as easy as an Ubuntu instance or using the script:
@@ -464,7 +464,7 @@ For a simple upgrade you would need to place the new binary at `/usr/local/bin/`
 
 You can also look at using [this guide](https://docs.aws.amazon.com/systems-manager/latest/userguide/automation-tutorial-update-ami.html), but that won't address updating the Avalanche L1, if you have one.
 
-Summary[​](#summary "Direct link to heading")
+Summary
 ---------------------------------------------
 
 Avalanche is the first decentralized smart contracts platform built for the scale of global finance, with near-instant transaction finality. Now with an Avalanche Validator node available as a one-click install from the AWS Marketplace developers and entrepreneurs can on-ramp into the Avalanche ecosystem in a matter of minutes. If you have any questions or want to follow up in any way please join our Discord server at [https://discord.gg/avax](https://discord.gg/avax/). For more developer resources please check out our [Developer Documentation](/docs).

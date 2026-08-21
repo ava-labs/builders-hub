@@ -111,16 +111,10 @@ export default function ConsoleHistoryPage() {
 
   const getTxExplorerUrl = (tx: TxRecord): string | null => {
     if (!tx.txHash) return null;
-    if (tx.type === 'pchain') {
-      const base = tx.network === 'mainnet' ? 'https://subnets.avax.network' : 'https://subnets-test.avax.network';
-      return `${base}/p-chain/tx/${tx.txHash}`;
-    }
-    // EVM tx — use built-in explorer path
-    if (tx.chainId === 43114 || tx.chainId === 43113) {
-      return `/explorer/avalanche-c-chain/tx/${tx.txHash}`;
-    }
-    // For custom L1 chains, link to subnets explorer with c-chain fallback
-    const base = tx.network === 'mainnet' ? 'https://subnets.avax.network' : 'https://subnets-test.avax.network';
+    if (tx.type === 'pchain') return `/explorer/${tx.network}/p-chain/tx/${tx.txHash}`;
+    if (tx.chainId === 43114) return `/explorer/mainnet/c-chain/tx/${tx.txHash}`;
+    // Fuji C-Chain and custom L1s aren't fully served by our explorer yet.
+    const base = tx.network === 'mainnet' ? 'https://explorer.avax.network' : 'https://explorer-test.avax.network';
     return `${base}/c-chain/tx/${tx.txHash}`;
   };
 

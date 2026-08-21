@@ -278,7 +278,7 @@ type VM struct {
 **How it Works:**
 1. Stake-weighted proposers are sampled for each height.
 2. Each proposer has a 5s slot (up to 6 slots) counted from the parent timestamp.
-3. Only the active proposer can build during its slot; after the final slot any validator may build.
+3. Only the active proposer can build during its slot; missed slots pass to the next sampled validator. Eligibility never opens beyond the validator set at the parent's embedded P-Chain height (the pre-Durango any-node fallback is gone); see [ProposerVM](/docs/nodes/architecture/proposervm).
 4. The wrapper enforces proposer signatures/timestamps before issuing to consensus.
 
 Snowman++ is enabled on all Primary Network chains (P-Chain, C-Chain, X-Chain) to pace block production without sacrificing liveness.

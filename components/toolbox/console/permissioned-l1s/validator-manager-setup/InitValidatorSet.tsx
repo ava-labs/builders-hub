@@ -32,6 +32,12 @@ import { ContractFunctionViewer } from '@/components/console/contract-function-v
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import versions from '@/scripts/versions.json';
+import { ProposerVMPreflightCard } from '@/components/toolbox/console/shared/ProposerVMPreflightCard';
+import {
+  AggregationRemediation,
+  parseAggregationError,
+  type RemediationLink,
+} from '@/components/toolbox/hooks/contracts/parseAggregationError';
 
 type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId: string };
 
@@ -57,6 +63,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const { aggregateSignature } = useAvalancheSDKChainkit();
   const [isInitializing, setIsInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aggRemediation, setAggRemediation] = useState<RemediationLink[] | null>(null);
   const [collectedData, setCollectedData] = useState<Record<string, any>>({});
   const [showDebugData, setShowDebugData] = useState(false);
   const selectedL1 = useSelectedL1();
@@ -116,7 +123,9 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     try {
       await aggPromise;
     } catch (err) {
-      setError((err as Error).message);
+      const mapped = parseAggregationError(err);
+      setAggRemediation(mapped?.remediation ?? null);
+      setError(mapped?.message ?? (err as Error).message);
     } finally {
       setIsAggregating(false);
     }
@@ -377,6 +386,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
             </div>
           </div>
 
+          <ProposerVMPreflightCard requiredTxId={conversionTxID.trim() || null} />
+
           {/* Step 2: Initialize Validator Set */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
@@ -456,6 +467,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
           {error && (
             <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
               <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+              {aggRemediation && <AggregationRemediation items={aggRemediation} />}
             </div>
           )}
 

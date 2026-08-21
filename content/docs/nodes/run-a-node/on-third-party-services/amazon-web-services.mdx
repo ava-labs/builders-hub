@@ -3,7 +3,7 @@ title: Amazon Web Services
 description: Learn how to run a node on Amazon Web Services.
 ---
 
-Introduction[​](#introduction "Direct link to heading")
+Introduction
 -------------------------------------------------------
 
 This tutorial will guide you through setting up an Avalanche node on [Amazon Web Services (AWS)](https://aws.amazon.com/). Cloud services like AWS are a good way to ensure that your node is highly secure, available, and accessible.
@@ -16,7 +16,7 @@ To get started, you'll need:
 
 This tutorial assumes your local machine has a Unix style terminal. If you're on Windows, you'll have to adapt some of the commands used here.
 
-Log Into AWS[​](#log-into-aws "Direct link to heading")
+Log Into AWS
 -------------------------------------------------------
 
 Signing up for AWS is outside the scope of this article, but Amazon has instructions [here](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account).
@@ -43,7 +43,7 @@ Click `Create key pair`. You should see a success message, and the key file shou
 
 ![Success message after creating a key pair.](/images/amazon5.png)
 
-Create a Security Group[​](#create-a-security-group "Direct link to heading")
+Create a Security Group
 -----------------------------------------------------------------------------
 
 An AWS Security Group defines what internet traffic can enter and leave your EC2 instance. Think of it like a firewall. Create a new Security Group by selecting **Security Groups** under the **Network & Security** drop-down.
@@ -64,7 +64,7 @@ Add a tag to the new security group with key `Name` and value`Avalanche Security
 
 Click `Create security group`. You should see the new security group in the list of security groups.
 
-Launch an EC2 Instance[​](#launch-an-ec2-instance "Direct link to heading")
+Launch an EC2 Instance
 ---------------------------------------------------------------------------
 
 Now you're ready to launch an EC2 instance. Go to the EC2 Dashboard and select **Launch instance**.
@@ -97,13 +97,13 @@ When setting up a node as a validator, it is crucial to select the appropriate A
 - As the staked amount increases, choose larger instance sizes to accommodate the additional workload. For every order of magnitude increase in stake, move up one instance size. For example, for a 20k AVAX stake, a 4xlarge instance is suitable.
 </Callout>
 
-### Optional: Using Reserved Instances[​](#optional-using-reserved-instances "Direct link to heading")
+### Optional: Using Reserved Instances
 
 By default, you will be charged hourly for running your EC2 instance. For a long term usage that is not optimal.
 
 You could save money by using a **Reserved Instance**. With a reserved instance, you pay upfront for an entire year of EC2 usage, and receive a lower per-hour rate in exchange for locking in. If you intend to run a node for a long time and don't want to risk service interruptions, this is a good option to save money. Again, do your own research before selecting this option.
 
-### Add Storage, Tags, Security Group[​](#add-storage-tags-security-group "Direct link to heading")
+### Add Storage, Tags, Security Group
 
 Click the **Next: Add Storage** button in the bottom right corner of the screen.
 
@@ -131,7 +131,7 @@ You should see a new pop up that confirms the instance is launching!
 
 ![Your instance is launching!](/images/amazon19.png)
 
-### Assign an Elastic IP[​](#assign-an-elastic-ip "Direct link to heading")
+### Assign an Elastic IP
 
 By default, your instance will not have a fixed IP. Let's give it a fixed IP through AWS's Elastic IP service. Go back to the EC2 dashboard. Under **Network & Security,** select **Elastic IPs**.
 
@@ -153,7 +153,7 @@ Select the instance you just created. This will associate the new Elastic IP wit
 
 ![Assign the Elastic IP to your EC2 instance.](/images/amazon24.png)
 
-Set Up AvalancheGo[​](#set-up-avalanchego "Direct link to heading")
+Set Up AvalancheGo
 -------------------------------------------------------------------
 
 Go back to the EC2 Dashboard and select `Running Instances`.
@@ -261,7 +261,7 @@ scp -r ubuntu@PUBLICIP:/home/ubuntu/.avalanchego/staking ~/aws_avalanche_backup
 
 Now your staking key and certificate are in directory `~/aws_avalanche_backup` . **The contents of this directory are secret.** You should hold this directory on storage not connected to the internet (like an external hard drive.)
 
-### Upgrading Your Node[​](#upgrading-your-node "Direct link to heading")
+### Upgrading Your Node
 
 AvalancheGo is an ongoing project and there are regular version upgrades. Most upgrades are recommended but not required. Advance notice will be given for upgrades that are not backwards compatible. To update your node to the latest version, SSH into your AWS instance as before and run the installer script again.
 
@@ -271,7 +271,7 @@ AvalancheGo is an ongoing project and there are regular version upgrades. Most u
 
 Your machine is now running the newest AvalancheGo version. To see the status of the AvalancheGo service, run `sudo systemctl status avalanchego.`
 
-Increase Volume Size[​](#increase-volume-size "Direct link to heading")
+Increase Volume Size
 -----------------------------------------------------------------------
 
 If you need to increase the volume size, follow these instructions from AWS:
@@ -279,7 +279,7 @@ If you need to increase the volume size, follow these instructions from AWS:
 - [Request modifications to your EBS volumes](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/requesting-ebs-volume-modifications.html)
 - [Extend a Linux file system after resizing a volume](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/recognize-expanded-volume-linux.html)
 
-Wrap Up[​](#wrap-up "Direct link to heading")
+Wrap Up
 ---------------------------------------------
 
 That's it! You now have an AvalancheGo node running on an AWS EC2 instance. We recommend setting up [node monitoring](/docs/nodes/maintain/monitoring)for your AvalancheGo node. We also recommend setting up AWS billing alerts so you're not surprised when the bill arrives. If you have feedback on this tutorial, or anything else, send us a message on [Discord](https://chat.avalabs.org/).

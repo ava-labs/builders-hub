@@ -57,8 +57,8 @@ interface ExplorerInputs {
   customExplorerUrl?: string;
 }
 
-const SUBNETS_HOST_TESTNET = 'subnets-test.avax.network';
-const SUBNETS_HOST_MAINNET = 'subnets.avax.network';
+const SUBNETS_HOST_TESTNET = 'explorer-test.avax.network';
+const SUBNETS_HOST_MAINNET = 'explorer.avax.network';
 // Firn-served per-L1 explorers live at `<8-char-slug>.firn.gg`. Detect the
 // host suffix rather than a full hostname so future tld variants (staging,
 // subdomains) still resolve. URL-parse with a try/catch — `customExplorerUrl`
@@ -97,7 +97,7 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
   // Surface third-party explorers only when they actually point at the
   // user's L1: C-Chain (universally indexed) or a wallet-configured
   // explorer URL. For a custom L1 with no configured explorer, the
-  // network-home fallbacks (snowtrace.io, subnets.avax.network) just dump
+  // network-home fallbacks (snowtrace.io, explorer.avax.network) just dump
   // the user on a generic search page, which is worse UX than not
   // surfacing them at all — Builder Hub Explorer alone handles the case.
   const showThirdParty = isCChain || !!customExplorerUrl;
@@ -133,7 +133,10 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
     options.push({
       id: 'builder-hub',
       label: 'Builder Hub Explorer',
-      url: `/explorer/${builderHubExplorerSlug(evmChainId)}`,
+      // Network-first URL: carry the chain's own testnet flag so a Fuji L1
+      // lands on /explorer/fuji/... instead of being defaulted to mainnet by
+      // a downstream normalizer (which then mislabels the page "MAINNET").
+      url: `/explorer/${isTestnet ? 'fuji' : 'mainnet'}/${builderHubExplorerSlug(evmChainId)}`,
       description: 'Native in-app blocks, txs, and addresses',
       internal: true,
     });
@@ -155,7 +158,7 @@ export function getExplorerOptions(input: ExplorerInputs): ExplorerOption[] {
     description:
       customPointsAtSubnets && customExplorerUrl
         ? 'Official Avalanche subnet explorer'
-        : 'Browse this L1 on subnets.avax.network',
+        : 'Browse this L1 on explorer.avax.network',
   });
 
   // 3. Snowtrace / Routescan. Native to C-Chain; for other L1s lands on

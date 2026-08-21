@@ -100,7 +100,7 @@ This upgrade activates **ACP-226**, introducing a dynamic adjustment mechanism f
 
 ### How It Works
 
-ACP-226 allows validators to dynamically adjust block times in response to network improvements, such as the upcoming Streaming Asynchronous Execution (SAE) and Firewood features. This flexibility enables:
+ACP-226 allows validators to dynamically adjust block times in response to network improvements, such as the upcoming Continuous Execution (formerly SAE) and Firewood features. This flexibility enables:
 
 - **Sub-second block times** - Significantly faster than the previous fixed intervals
 - **Continuous optimization** - Validators can adjust block times without network upgrades
@@ -125,7 +125,7 @@ This upgrade ensures that users benefit from:
 
 The Granite upgrade represents another significant step forward in Avalanche's evolution as a high-performance blockchain platform. By improving ICM reliability, enabling biometric authentication, and allowing dynamic block time adjustments, Avalanche continues to deliver the speed, flexibility, and scalability that developers need.
 
-As the network continues to evolve with upcoming features like Streaming Asynchronous Execution (SAE) and Firewood Database integration, these Granite improvements lay the foundation for even greater performance enhancements.
+As the network continues to evolve with upcoming features like Continuous Execution and Firewood Database integration, these Granite improvements lay the foundation for even greater performance enhancements.
 
 ---
 
@@ -167,10 +167,10 @@ A new struct has been added as part of ACP-181 to support epoched P-Chain views:
 Three new API methods have been added to support the Granite upgrade features:
 
 1. **`proposervm.GetProposedHeight`** - Returns this node's current proposer VM height.
-   - [Documentation](https://build.avax.network/docs/api-reference/proposervm-api#proposervmgetproposedheight)
+   - [Documentation](https://build.avax.network/docs/rpcs/other/proposervm-rpc#proposervmgetproposedheight)
 
 2. **`proposervm.GetCurrentEpoch`** - Returns the current epoch information.
-   - [Documentation](https://build.avax.network/docs/api-reference/proposervm-api#proposervmgetcurrentepoch)
+   - [Documentation](https://build.avax.network/docs/rpcs/other/proposervm-rpc#proposervmgetcurrentepoch)
 
 3. **`platform.GetAllValidatorsAt`** - Get the validators and their weights of all L1s and the Primary Network at a given P-Chain height.
    - [Documentation](https://build.avax.network/docs/api-reference/p-chain/api#platformgetallvalidatorsat)

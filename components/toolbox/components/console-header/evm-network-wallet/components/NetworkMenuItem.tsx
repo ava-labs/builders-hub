@@ -9,7 +9,8 @@ interface NetworkMenuItemProps {
   onSelect: (network: L1ListItem, tokenAddress?: string | null) => void;
   isEditMode?: boolean;
   onRemove?: (network: L1ListItem) => void;
-  balance?: number | string;
+  /** null = balance could not be fetched for this network. */
+  balance?: number | string | null;
 }
 
 const isCChain = (evmChainId: number | undefined) => {
@@ -24,7 +25,8 @@ export function NetworkMenuItem({
   onRemove,
   balance = 0,
 }: NetworkMenuItemProps) {
-  const formatBalance = (balance: number | string) => {
+  const formatBalance = (balance: number | string | null) => {
+    if (balance === null) return 'n/a';
     const num = typeof balance === 'string' ? parseFloat(balance) : balance;
     if (isNaN(num)) return '0';
     return num.toFixed(4);

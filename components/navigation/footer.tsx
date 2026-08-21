@@ -67,7 +67,7 @@ export function Footer() {
           <FooterSection title="AVALANCHE">
             <ul className="flex flex-col gap-2.5">
               <FooterLink href="https://github.com/ava-labs/audits" external>Audits</FooterLink>
-              <FooterLink href="https://subnets.avax.network/" external>Explorer</FooterLink>
+              <FooterLink href="/explorer">Explorer</FooterLink>
               <FooterLink href="https://github.com/ava-labs" external>GitHub</FooterLink>
               <FooterLink href="https://status.avax.network/" external>Network Status</FooterLink>
               <FooterLink href="https://avalabs.org/whitepapers" external>Whitepapers</FooterLink>
