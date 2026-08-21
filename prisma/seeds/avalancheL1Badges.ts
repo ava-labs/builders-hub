@@ -34,17 +34,27 @@ const BADGES_TO_DELETE = [
 ];
 
 // Existing badges that need their ID renumbered + image updated
-// Uses create → migrate userBadges → delete pattern for FK safety
-const idMigrations: { oldId: string; newId: string; image_path: string }[] = [
+// Uses create → migrate userBadges → delete pattern for FK safety.
+// name/requirements are only used when neither oldId nor newId exists
+// (fresh DBs without the production badges) to create the badge from scratch.
+const idMigrations: { oldId: string; newId: string; image_path: string; name: string; requirements: BadgeRequirement[] }[] = [
   {
     oldId: "1avalancheL1Academy-2avalanche-fundamentals",
     newId: "1avalancheL1Academy-1avalanche-fundamentals",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/Avalanche_Fundamentals_Badge.png",
+    name: "Avalanche Fundamentals",
+    requirements: [
+      { id: "avalanche-fundamentals", type: "course", points: 100, unlocked: false, course_id: "avalanche-fundamentals", hackathon: null, description: "Complete the Avalanche Fundamentals course" },
+    ],
   },
   {
     oldId: "1avalancheL1Academy-3interchain-messaging",
     newId: "1avalancheL1Academy-4interchain-messaging",
     image_path: "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/academy_badges/Avalanche%20L1/ICM_Badge.png",
+    name: "Interchain Messaging",
+    requirements: [
+      { id: "interchain-messaging", type: "course", points: 100, unlocked: false, course_id: "interchain-messaging", hackathon: null, description: "Complete the Interchain Messaging course" },
+    ],
   },
 ];
 
@@ -162,7 +172,7 @@ async function seedAvalancheL1Badges() {
 
   // Step 2: Migrate existing badges to new IDs + update images
   // Pattern: create new badge → migrate userBadge FKs → delete old badge
-  for (const { oldId, newId, image_path } of idMigrations) {
+  for (const { oldId, newId, image_path, name, requirements } of idMigrations) {
     const existing = await prisma.badge.findUnique({ where: { id: oldId } });
     if (existing) {
       await prisma.badge.create({
@@ -192,7 +202,18 @@ async function seedAvalancheL1Badges() {
         });
         console.log(`  Updated (already migrated): ${already.name}`);
       } else {
-        console.log(`  Skipped migrate (not found): ${oldId}`);
+        // Neither old nor new badge exists (fresh DB) — create from scratch
+        await prisma.badge.create({
+          data: {
+            id: newId,
+            name,
+            description: `Completed the ${name} course`,
+            image_path,
+            category: "academy",
+            requirements: requirements as any,
+          },
+        });
+        console.log(`  Created (no old badge to migrate): ${name} (${newId})`);
       }
     }
   }
