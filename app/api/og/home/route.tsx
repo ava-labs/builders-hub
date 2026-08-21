@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-const medium = fetch(new URL('../Geist-Medium.ttf', import.meta.url)).then((res) =>
+const display = fetch(new URL('../Aeonik-Black.ttf', import.meta.url)).then((res) =>
   res.arrayBuffer(),
 );
 
@@ -107,13 +107,13 @@ export async function GET(): Promise<ImageResponse> {
           <div
             style={{
               display: 'flex',
-              fontFamily: 'Geist-Medium',
+              fontFamily: 'Aeonik',
               fontSize: 104,
-              letterSpacing: -3,
+              letterSpacing: -1,
               color: '#18181b',
             }}
           >
-            LAUNCH A NETWORK<span style={{ color: '#E6212F', marginLeft: -8 }}>.</span>
+            BUILD A NETWORK<span style={{ color: '#E6212F', marginLeft: -6 }}>.</span>
           </div>
           <div
             style={{
@@ -168,7 +168,7 @@ export async function GET(): Promise<ImageResponse> {
       width: W,
       height: H,
       fonts: [
-        { name: 'Geist-Medium', data: await medium, weight: 600 },
+        { name: 'Aeonik', data: await display, weight: 900 },
         { name: 'Geist-Mono', data: await mono, weight: 500 },
       ],
     },
