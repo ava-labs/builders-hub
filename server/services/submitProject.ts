@@ -1,5 +1,5 @@
 import {
-  hasAtLeastOne,
+  isNonEmptyObject,
   requiredField,
   validateEntity,
   Validation,
@@ -8,7 +8,7 @@ import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/subm
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
-import { Project } from "@/types/project";
+import { MemberStatus, Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { sendSubmissionConfirmationMail } from "./registerForms";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
@@ -50,15 +50,6 @@ function normalizeCategories(categories: string | string[] | undefined): string[
   return [];
 }
 
-// Type guard to check if a value is a non-empty object
-const isNonEmptyObject = (value: unknown): value is Record<string, unknown> => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value) &&
-    Object.keys(value).length > 0
-  );
-};
 
 // Helper function to normalize deployed_addresses from JsonValue[] to Array<{ address: string; tag?: string }>
 function normalizeDeployedAddresses(
@@ -138,7 +129,7 @@ export async function createProject(
           members: {
             some: {
               user_id: projectData.user_id,
-              status: "Confirmed",
+              status: MemberStatus.CONFIRMED,
             },
           },
         },
@@ -154,7 +145,7 @@ export async function createProject(
         members: {
           some: {
             user_id: projectData.user_id,
-            status: "Confirmed",
+            status: MemberStatus.CONFIRMED,
           },
         },
       };
@@ -176,7 +167,7 @@ export async function createProject(
         where: {
           hackaton_id: projectData.hackaton_id,
           members: {
-            some: { user_id: projectData.user_id, status: "Confirmed" },
+            some: { user_id: projectData.user_id, status: MemberStatus.CONFIRMED },
           },
         },
         include: { members: true },
@@ -263,7 +254,7 @@ export async function createProject(
           create: {
             user_id: projectData.user_id as string,
             role: "Member",
-            status: "Confirmed",
+            status: MemberStatus.CONFIRMED,
             email: (await tx.user.findUnique({
               where: { id: projectData.user_id as string },
               select: { email: true },
@@ -310,8 +301,8 @@ export async function createProject(
         : NaN;
       if (Number.isFinite(startMs) && Date.now() > startMs) {
         await prisma.member.updateMany({
-          where: { project_id: savedProject.id, status: "Pending Confirmation" },
-          data: { status: "Removed" },
+          where: { project_id: savedProject.id, status: MemberStatus.PENDING },
+          data: { status: MemberStatus.REMOVED },
         });
       }
     } catch (err) {

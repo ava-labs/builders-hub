@@ -10,7 +10,7 @@ This how-to guide focuses on taking an already created Avalanche L1 configuratio
 - [Avalanche-CLI installed](/docs/tooling/avalanche-cli)
 - You have [created an Avalanche L1 configuration](/docs/tooling/avalanche-cli#create-your-avalanche-l1-configuration)
 
-Deploying Avalanche L1s Locally[​](#deploying-avalanche-l1s-locally "Direct link to heading")
+Deploying Avalanche L1s Locally
 ---------------------------------------------------------------------------------
 
 In the following commands, make sure to substitute the name of your Avalanche L1 configuration for `<blockchainName>`.
@@ -31,7 +31,7 @@ The command may take a couple minutes to run.
 
 Note: If you run `bash` on your shell and are running Avalanche-CLI on ARM64 on Mac, you will require Rosetta 2 to be able to deploy Avalanche L1s locally. You can download Rosetta 2 using `softwareupdate --install-rosetta` .
 
-### Results[​](#results "Direct link to heading")
+### Results
 
 If all works as expected, the command output should look something like this:
 
@@ -226,7 +226,7 @@ Executing Relayer
 
 You can use the deployment details to connect to and interact with your Avalanche L1.
 
-Deploying Avalanche L1s Locally[​](#deploying-avalanche-l1s-locally)
+Deploying Avalanche L1s Locally
 ---------------------------------------------------------------------------------
 
 To deploy your Avalanche L1, run:
@@ -238,7 +238,7 @@ avalanche blockchain deploy myblockchain
 Make sure to substitute the name of your Avalanche L1 if you used a different one than `myblockchain`.
 
 ```bash
-? Choose a network for the operation: 
+? Choose a network for the operation:
   ▸ Local Network
     Devnet
     Etna Devnet
@@ -472,7 +472,7 @@ Currency Symbol:  TST
 
 This tutorial uses Core.
 
-### Importing the Test Private Key[​](#importing-the-test-private-key)
+### Importing the Test Private Key
 
 <Callout type="warn">
 This address derives from a well-known private key. Anyone can steal funds sent to this address. Only use it on development networks that only you have access to. If you send production funds to this address, attackers may steal them instantly.
@@ -494,7 +494,7 @@ Next, rename the Core account to prevent confusion. On the `Imported` tab, click
 
 ![Rename Account](/images/deploy-subnet4.png)
 
-### Connect to the Avalanche L1[​](#connect-to-the-avalanche-l1)
+### Connect to the Avalanche L1
 
 Next, you need to add your Avalanche L1 to Core's networks.
 
@@ -510,7 +510,7 @@ If all worked as expected, your balance should read 1 million tokens. Your Avala
 
 ![Avalanche L1 in Core](/images/deploy-subnet7.png)
 
-## Deploying Multiple Avalanche L1s[​](#deploying-multiple-avalanche-l1s "Direct link to heading")
+## Deploying Multiple Avalanche L1s
 
 You may deploy multiple Avalanche L1s concurrently, but you can't deploy the same Avalanche L1 multiple times without resetting all deployed Avalanche L1 state.
 

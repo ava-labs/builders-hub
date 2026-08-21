@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Avalanche } from "@avalanche-sdk/chainkit";
+import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import {
   FUJI_VALIDATOR_DISCOVERY_URL,
   MAINNET_VALIDATOR_DISCOVERY_URL,
@@ -7,7 +7,9 @@ import {
 
 const PAGE_SIZE = 100;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const FETCH_TIMEOUT = 25000;
+// Generous timeout for our /v1 validators/l1Validators cold-start before their
+// state cache warms (warmer keeps them hot in steady state).
+const FETCH_TIMEOUT = 60000;
 const VERSION_FETCH_TIMEOUT = 10000;
 
 interface ValidatorData {
@@ -81,58 +83,44 @@ async function fetchValidatorVersions(network: "mainnet" | "fuji" = "mainnet"): 
   }
 }
 
+// Validator data now comes from our own P-chain read API (/v1/networks/{net}/…),
+// which serves Glacier-shape validator snapshots from ClickHouse — no Glacier
+// SDK. This route runs server-side, so it can hit the plain-HTTP EXPLORER_API_BASE
+// directly. Primary Network → /validators; L1 subnets → /l1Validators?subnetId=.
 async function fetchAllValidators(subnetId: string, versionMap: Map<string, string>, network: "mainnet" | "fuji" = "mainnet"): Promise<ValidatorData[]> {
-  const avalanche = new Avalanche({ network });
   const validators: ValidatorData[] = [];
+  const isPrimaryNetwork = subnetId === "11111111111111111111111111111111LpoYY";
+  const maxPages = 50;
+
+  const buildUrl = (pageToken?: string): string => {
+    const qs = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
+    if (pageToken) qs.set("pageToken", pageToken);
+    if (isPrimaryNetwork) {
+      qs.set("validationStatus", "active");
+      return `${EXPLORER_API_BASE}/v1/networks/${network}/validators?${qs.toString()}`;
+    }
+    qs.set("subnetId", subnetId);
+    qs.set("includeInactive", "false");
+    return `${EXPLORER_API_BASE}/v1/networks/${network}/l1Validators?${qs.toString()}`;
+  };
 
   try {
-    const isPrimaryNetwork = subnetId === "11111111111111111111111111111111LpoYY";
+    let pageToken: string | undefined;
+    for (let pageCount = 0; pageCount < maxPages; pageCount++) {
+      const res = await fetch(buildUrl(pageToken), { headers: { Accept: "application/json" } });
+      if (!res.ok) throw new Error(`validators upstream ${res.status}`);
+      const page = await res.json();
 
-    let result;
-    if (isPrimaryNetwork) {
-      // Use listValidators for Primary Network
-      result = await avalanche.data.primaryNetwork.listValidators({
-        pageSize: PAGE_SIZE,
-        validationStatus: "active",
-        subnetId: subnetId,
-        network,
-      });
-    } else {
-      // Use listL1Validators for L1 subnets
-      result = await avalanche.data.primaryNetwork.listL1Validators({
-        pageSize: PAGE_SIZE,
-        subnetId: subnetId,
-        network,
-        includeInactiveL1Validators: false,
-      });
-    }
-
-    let pageCount = 0;
-    const maxPages = 50;
-    
-    for await (const page of result) {
-      pageCount++;
-      
-      // Handle different response structures
-      // Both Primary Network and L1 validators use page.result.validators
-      let pageData: any[] = page.result?.validators || [];
-      
+      let pageData: any[] = Array.isArray(page?.validators) ? page.validators : [];
       // For L1 validators, keep zero balances so critical alerts can fire.
       if (!isPrimaryNetwork) {
-        pageData = pageData.filter((v: any) => Number.isFinite(v.remainingBalance) && v.remainingBalance >= 0);
+        pageData = pageData.filter((v: any) => Number.isFinite(Number(v.remainingBalance)) && Number(v.remainingBalance) >= 0);
       }
-      
-      if (!Array.isArray(pageData)) { 
-        console.warn(`Page ${pageCount}: pageData is not an array`, typeof pageData);
-        console.warn(`Available keys:`, Object.keys(page));
-        continue; 
-      }
-      
+
       const pageValidators = pageData.map((v: any) => {
         const version = versionMap.get(v.nodeId) || "Unknown";
-        
+
         if (isPrimaryNetwork) {
-          // Primary Network validator structure
           return {
             nodeId: v.nodeId,
             amountStaked: v.amountStaked || "0",
@@ -142,32 +130,32 @@ async function fetchAllValidators(subnetId: string, versionMap: Map<string, stri
             amountDelegated: v.amountDelegated || "0",
             version,
           };
-        } else {
-          // L1 validator structure - using weight as stake
-          return {
-            nodeId: v.nodeId,
-            amountStaked: v.weight?.toString() || "0",
-            delegationFee: "0", // L1 validators don't have delegation fees
-            validationStatus: "active",
-            delegatorCount: 0, // L1 validators don't have delegators in the same way
-            amountDelegated: "0",
-            validationId: v.validationId,
-            weight: v.weight,
-            remainingBalance: v.remainingBalance,
-            creationTimestamp: v.creationTimestamp,
-            blsCredentials: v.blsCredentials,
-            remainingBalanceOwner: v.remainingBalanceOwner,
-            deactivationOwner: v.deactivationOwner,
-            version,
-          };
         }
+        // L1 validator: /v1 returns weight as a decimal string; the UI sorts/sums
+        // it numerically, so coerce. remainingBalance is nAVAX.
+        return {
+          nodeId: v.nodeId,
+          amountStaked: String(v.weight ?? "0"),
+          delegationFee: "0",
+          validationStatus: "active",
+          delegatorCount: 0,
+          amountDelegated: "0",
+          validationId: v.validationId,
+          weight: Number(v.weight) || 0,
+          remainingBalance: Number(v.remainingBalance),
+          creationTimestamp: v.creationTimestamp,
+          blsCredentials: v.blsCredentials,
+          remainingBalanceOwner: v.remainingBalanceOwner,
+          deactivationOwner: v.deactivationOwner,
+          version,
+        };
       });
-      
-      validators.push(...pageValidators);     
-      if (pageCount >= maxPages) { break; }   
-      if (pageValidators.length < PAGE_SIZE) { break; }
+
+      validators.push(...pageValidators);
+      pageToken = page?.nextPageToken;
+      if (!pageToken || pageValidators.length < PAGE_SIZE) break;
     }
-    
+
     return validators;
   } catch (error: any) {
     console.error('Error fetching validators for subnet:', subnetId, error);

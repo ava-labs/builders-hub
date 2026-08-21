@@ -1,10 +1,20 @@
+import { isVerdict, type Verdict } from "@/lib/evaluate/verdicts";
+
 export const GRANT_STATUSES = ["submitted", "under_review", "approved", "rejected"] as const;
 export type GrantStatus = (typeof GRANT_STATUSES)[number];
 
-// How the 5-valued review verdict (FormData.final_verdict, set by the devrel in
-// the evaluate dashboard) maps onto the applicant-facing status.
-const APPROVED_VERDICTS = new Set(["top", "strong"]);
-const REJECTED_VERDICTS = new Set(["weak", "reject"]);
+// How the review verdict (FormData.final_verdict, set by the devrel in the
+// evaluate dashboard) maps onto the applicant-facing status. Keyed by Verdict, so
+// adding a verdict to the shared vocabulary fails the build here until it is
+// given a mapping, rather than silently reading back as "under_review".
+// null = decided-but-not-terminal: fall through to the evaluation-count rule.
+const STATUS_BY_VERDICT: Record<Verdict, GrantStatus | null> = {
+  top: "approved",
+  strong: "approved",
+  maybe: null,
+  weak: "rejected",
+  reject: "rejected",
+};
 
 /**
  * Effective application status, derived from the review outcome:
@@ -20,7 +30,15 @@ export function deriveStatus(
   finalVerdict: string | null | undefined,
   evaluationCount: number,
 ): GrantStatus {
-  if (finalVerdict && APPROVED_VERDICTS.has(finalVerdict)) return "approved";
-  if (finalVerdict && REJECTED_VERDICTS.has(finalVerdict)) return "rejected";
+  if (finalVerdict) {
+    if (!isVerdict(finalVerdict)) {
+      // Only reachable via a direct DB write or a vocabulary change that skipped
+      // this map. Don't guess an outcome — fall through, but say so.
+      console.error("[Grants] Unrecognized final_verdict, treating as undecided:", finalVerdict);
+    } else {
+      const status = STATUS_BY_VERDICT[finalVerdict];
+      if (status) return status;
+    }
+  }
   return evaluationCount > 0 ? "under_review" : "submitted";
 }

@@ -45,7 +45,7 @@ export default function DisplayNativeBalance({ onError: _onError }: DisplayNativ
     <div className="bg-zinc-50 dark:bg-zinc-900 p-4 rounded-lg">
       <p className="text-sm text-zinc-600 dark:text-zinc-400">Native Balance</p>
       <p className="text-xl font-semibold">
-        {nativeBalance.toFixed(4)} {nativeTokenSymbol}
+        {nativeBalance === null ? 'Unavailable' : `${nativeBalance.toFixed(4)} ${nativeTokenSymbol}`}
       </p>
     </div>
   );

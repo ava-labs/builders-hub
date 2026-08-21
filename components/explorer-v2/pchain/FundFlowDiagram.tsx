@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { formatAvax, truncate } from "@/components/explorer-v2/format";
 import { chainDisplayName, type AssetAmount, type ImportedFrom, type Utxo } from "@/lib/pchain-explorer";
+import { chainOfId, crossChainTxUrl } from "@/lib/crosschain-links";
 
 /**
  * Fund flow as a hand-rolled Sankey in the landing-v2 drafting-sheet idiom.
@@ -42,11 +43,14 @@ interface Flow {
   overflow?: number;
   label: string;
   sub?: string; // explicit sub-label (cross-chain / burn); else derived from address
+  href?: string; // explicit link (cross-chain claim); else derived from address
 }
 
 function build(utxos: Utxo[], side: "in" | "out", reward: boolean): Flow[] {
   const flows: Flow[] = utxos.map((u, i) => ({
-    key: `${side}-${u.utxoId || i}`,
+    // the index rides along because the indexer can emit the same utxoId
+    // twice (unmerged ReplacingMergeTree rows) — keys must survive that
+    key: `${side}-${u.utxoId || "u"}-${i}`,
     amount: Number(u.amount || 0),
     addresses: u.addresses ?? [],
     kind: side === "in" ? "input" : u.staked ? "staked" : reward ? "reward" : "transfer",
@@ -129,11 +133,11 @@ export function NoFundMovement({ txType }: { txType: string }) {
 function explainNoMovement(type: string): string {
   const t = type.toLowerCase();
   if (t.includes("rewardautorenew"))
-    return "Settles an auto-renewed staking cycle: the earned reward is compounded back into the validator's stake (or the cycle is closed out) as on-chain state. No UTXOs are created or spent.";
+    return "Settles an auto-renewed staking cycle: the earned reward compounds back into the validator's stake, and any non-compounded share is minted directly into state as a reward UTXO (see Reward Payout). Nothing flows through the transaction itself.";
   if (t.includes("reward"))
-    return "Marks the end of a validation period and settles its staking reward. When the reward is compounded or the period is aborted, the outcome is recorded as state and no UTXOs move.";
+    return "Marks the end of a validation period and settles its staking reward. Payouts are minted directly into state as reward UTXOs rather than moving through the transaction; an aborted vote mints nothing.";
   if (t.includes("setautorenew") || t.includes("config"))
-    return "Updates a validator's auto-renew configuration — staking period and compounding. It changes on-chain state only and moves no funds.";
+    return "Updates a validator's auto-renew configuration: staking period and compounding. It changes on-chain state only and moves no funds.";
   if (t.includes("advancetime"))
     return "Advances the P-Chain timestamp so scheduled staking events (validators starting/ending) can be processed. It carries no funds.";
   if (t.includes("disable"))
@@ -186,30 +190,70 @@ export function FundFlowDiagram({
     // source export id is embedded in the consumed UTXO; an export's counterpart
     // import isn't discoverable, so we show the destination chain only.)
     const isImport = !!importedFrom || !!sourceChain;
-    if (ins.length === 0) {
-      if (isImport) {
-        const exp = importedFrom?.exports?.[0];
-        const amt = importedFrom?.exports?.reduce((t, e) => t + Number(e.amount || 0), 0) || emittedTotal;
-        ins.push({
-          key: "xc-src",
-          amount: amt,
-          addresses: [],
-          kind: "crosschain",
-          label: importedFrom?.chainName ?? chainDisplayName(sourceChain) ?? "Cross-chain",
-          sub: exp?.evmSenders?.[0] ? truncate(exp.evmSenders[0], 12) : "imported →",
-        });
-      } else {
-        ins.push({ key: "src", amount: emittedTotal, addresses: [], kind: "input", label: "P-Chain", sub: "funds" });
+    const network = base.split("/")[2];
+    if (isImport) {
+      // every atomic input on an import came from the source chain — its
+      // utxo key embeds the originating export tx, so the left-side entry
+      // links straight to that tx (the address, when present, stays as the
+      // visible sub-label; the click-through is the origin).
+      for (const f of ins) {
+        const u = consumed.find((c) => f.key.startsWith(c.utxoId));
+        if (!u || !u.txHash) continue;
+        const atomic =
+          u.utxoType === "atomic-import" ||
+          u.utxoType === "IMPORTED" ||
+          (u.addresses ?? []).length === 0 ||
+          !!chainOfId(u.createdOnChainId);
+        if (!atomic) continue;
+        f.href = crossChainTxUrl(network, u.createdOnChainId || sourceChain, u.txHash);
+        if (!f.sub && (u.addresses ?? []).length === 0) f.sub = `exported in ${truncate(u.txHash, 12)} →`;
       }
     }
+    if (isImport && ins.length === 0) {
+      // the source ribbon fills the left side only when the import has no
+      // consumed rows of its own (P-chain atomic inputs are not local
+      // UTXOs); when consumed refs exist they already carry the origin
+      // link, and a second ribbon would just duplicate them.
+      const exp = importedFrom?.exports?.[0];
+      // fallback: an atomic input ref (no local owner data) embeds the
+      // originating export tx id; a local fee input (has owners) does not.
+      const atomicIn = consumed.find((u) => (u.addresses ?? []).length === 0);
+      const originTx = exp?.txHash ?? atomicIn?.txHash;
+      const amt =
+        importedFrom?.exports?.reduce((t, e) => t + Number(e.amount || 0), 0) ||
+        consumed.reduce((t, u) => t + Number(u.amount || 0), 0) ||
+        emittedTotal;
+      ins.unshift({
+        key: "xc-src",
+        amount: amt,
+        addresses: [],
+        kind: "crosschain",
+        label: importedFrom?.chainName ?? chainDisplayName(sourceChain) ?? "Cross-chain",
+        sub: originTx
+          ? `exported in ${truncate(originTx, 12)} →`
+          : exp?.evmSenders?.[0]
+            ? truncate(exp.evmSenders[0], 12)
+            : "imported →",
+        href: originTx ? crossChainTxUrl(network, sourceChain, originTx) : undefined,
+      });
+    } else if (ins.length === 0) {
+      ins.push({ key: "src", amount: emittedTotal, addresses: [], kind: "input", label: "P-Chain", sub: "funds" });
+    }
     if (destinationChain) {
+      // the exported outputs know their claim (consuming tx on the
+      // destination chain) — the node links to it and says so, exactly
+      // like the table view's "spent in" link
+      const claimed = emitted.find((u) => u.utxoType === "exported" || u.utxoType === "EXPORTED" ? u.consumingTxHash : false) ?? emitted.find((u) => u.consumingTxHash);
       outs.push({
         key: "xc-dst",
         amount: emittedTotal || 1,
         addresses: [],
         kind: "crosschain",
         label: chainDisplayName(destinationChain) ?? "Destination",
-        sub: "destination →",
+        sub: claimed?.consumingTxHash ? `claimed in ${truncate(claimed.consumingTxHash, 12)} →` : "destination →",
+        href: claimed?.consumingTxHash
+          ? crossChainTxUrl(network, claimed.consumedOnChainId || destinationChain, claimed.consumingTxHash)
+          : undefined,
       });
     }
 
@@ -331,6 +375,7 @@ function NodeLabel({
       )}
     </g>
   );
+  if (f.href) return <a href={f.href}>{g}</a>;
   return addr && !f.overflow ? <a href={`${base}/address/${addr}`}>{g}</a> : g;
 }
 

@@ -12,7 +12,7 @@ At a glance:
 
 ## Consensus & Block Production
 
-- Runs **Snowman++** via the ProposerVM wrapper; a stake-weighted proposer list gates each 5s window before falling back to anyone building.
+- Runs **Snowman++** via the [ProposerVM wrapper](/docs/nodes/architecture/proposervm); a stake-weighted proposer list gates each 5s slot, and since Durango there is no fallback that opens building to anyone.
 - Blocks are built by Coreth's block builder ([`graft/coreth/plugin/evm/block_builder.go`](https://github.com/ava-labs/avalanchego/blob/master/graft/coreth/plugin/evm/block_builder.go)), which applies EIP-1559 base fee rules and proposer-specific metadata.
 - Chain ID: Mainnet `43114`, Fuji `43113`. JSON-RPC is exposed at `/ext/bc/C/rpc` with optional WebSocket at `/ext/bc/C/ws`.
 

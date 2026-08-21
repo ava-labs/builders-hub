@@ -1,6 +1,38 @@
 import { avalancheRPC, nAvaxToAvax } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
+import { networkSchemaProp } from './lib/constants';
+import { PAGINATION_PROPS, paginateArrayField, rpcErrorResult } from './lib/tool-helpers';
+
+/**
+ * Every platform_get_* handler is the same shape: cache a P-Chain RPC call, JSON
+ * it, and turn a thrown error into an isError result. Only the cache key, TTL,
+ * method, params, and an optional post-processor (pagination or nAVAX transform)
+ * vary — those are the args here.
+ */
+async function runRpcTool(
+  network: Network,
+  cacheKey: string,
+  ttl: number,
+  method: string,
+  params: Record<string, unknown>,
+  post?: (result: unknown) => unknown,
+): Promise<ToolResult> {
+  try {
+    const result = await withCache(cacheKey, ttl, () => avalancheRPC(network, 'pchain', method, params));
+    return { content: [{ type: 'text', text: JSON.stringify(post ? post(result) : result) }] };
+  } catch (err) {
+    return rpcErrorResult(err, 'RPC error');
+  }
+}
+
+/** Append `${field}_avax` (nAVAX→AVAX) to an RPC result object. */
+const withAvax = (fields: Record<string, string>) => (result: unknown) => {
+  const raw = result as Record<string, unknown>;
+  const out: Record<string, unknown> = { ...raw };
+  for (const [avaxKey, srcKey] of Object.entries(fields)) out[avaxKey] = nAvaxToAvax(raw[srcKey] as string);
+  return out;
+};
 
 export const platformTools: ToolDomain = {
   tools: [
@@ -10,11 +42,7 @@ export const platformTools: ToolDomain = {
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
       },
     },
@@ -33,11 +61,7 @@ export const platformTools: ToolDomain = {
             enum: ['json', 'hex'],
             description: 'Encoding format for the block (default: json)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['blockID'],
       },
@@ -57,145 +81,117 @@ export const platformTools: ToolDomain = {
             enum: ['json', 'hex'],
             description: 'Encoding format for the block (default: json)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['height'],
       },
     },
     {
       name: 'platform_get_blockchains',
-      description: 'Get all blockchains that exist on the P-Chain',
+      description: 'Get all blockchains that exist on the P-Chain (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
+          ...PAGINATION_PROPS,
         },
       },
     },
     {
       name: 'platform_get_subnets',
-      description: 'Get information about subnets on the P-Chain',
+      description: 'Get information about Subnets/L1s on the P-Chain',
       inputSchema: {
         type: 'object',
         properties: {
           ids: {
             type: 'array',
             items: { type: 'string' },
-            description: 'Optional list of subnet IDs to filter by',
+            description: 'Optional list of Subnet IDs to filter by',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
+          ...PAGINATION_PROPS,
         },
       },
     },
     {
       name: 'platform_get_current_validators',
-      description: 'Get the current validators of a subnet',
+      description: 'Get the current validators of a Subnet/L1 (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query validators for (default: Primary Network)',
+            description: 'The Subnet ID to query validators for (default: Primary Network)',
           },
           nodeIDs: {
             type: 'array',
             items: { type: 'string' },
             description: 'Optional list of node IDs to filter by',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
+          ...PAGINATION_PROPS,
         },
       },
     },
     {
       name: 'platform_get_pending_validators',
-      description: 'Get the pending validators of a subnet (validators not yet validating)',
+      description: 'Get the pending validators of a Subnet/L1 (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query pending validators for (default: Primary Network)',
+            description: 'The Subnet ID to query pending validators for (default: Primary Network)',
           },
           nodeIDs: {
             type: 'array',
             items: { type: 'string' },
             description: 'Optional list of node IDs to filter by',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
+          ...PAGINATION_PROPS,
         },
       },
     },
     {
       name: 'platform_get_staking_asset_id',
-      description: 'Get the asset ID of the token used for staking on a subnet',
+      description: 'Get the asset ID of the token used for staking on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query the staking asset for (default: Primary Network)',
+            description: 'The Subnet ID to query the staking asset for (default: Primary Network)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
       },
     },
     {
       name: 'platform_get_min_stake',
-      description: 'Get the minimum staking amounts for validators and delegators on a subnet',
+      description: 'Get the minimum staking amounts for validators and delegators on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query minimum stake for (default: Primary Network)',
+            description: 'The Subnet ID to query minimum stake for (default: Primary Network)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
       },
     },
     {
       name: 'platform_get_total_stake',
-      description: 'Get the total amount staked on a subnet',
+      description: 'Get the total amount staked on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query total stake for (default: Primary Network)',
+            description: 'The Subnet ID to query total stake for (default: Primary Network)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
       },
     },
@@ -210,11 +206,7 @@ export const platformTools: ToolDomain = {
             items: { type: 'string' },
             description: 'List of P-Chain addresses to query (e.g. P-avax1...)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['addresses'],
       },
@@ -238,11 +230,7 @@ export const platformTools: ToolDomain = {
             type: 'string',
             description: 'If fetching atomic UTXOs, the chain they were exported from',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['addresses'],
       },
@@ -262,11 +250,7 @@ export const platformTools: ToolDomain = {
             enum: ['json', 'hex'],
             description: 'Encoding format for the transaction (default: json)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['txID'],
       },
@@ -281,36 +265,28 @@ export const platformTools: ToolDomain = {
             type: 'string',
             description: 'The CB58-encoded transaction ID',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['txID'],
       },
     },
     {
       name: 'platform_get_current_supply',
-      description: 'Get the current total supply of AVAX on a subnet',
+      description: 'Get the current total supply of AVAX on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query current supply for (default: Primary Network)',
+            description: 'The Subnet ID to query current supply for (default: Primary Network)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
       },
     },
     {
       name: 'platform_get_validators_at',
-      description: 'Get the validators and their weights of a subnet at a given P-Chain height',
+      description: 'Get the validators and their weights of a Subnet/L1 at a given P-Chain height',
       inputSchema: {
         type: 'object',
         properties: {
@@ -323,13 +299,9 @@ export const platformTools: ToolDomain = {
           },
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query validators for (default: Primary Network)',
+            description: 'The Subnet ID to query validators for (default: Primary Network)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            description: 'Avalanche network to query (default: mainnet)',
-          },
+          network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
         required: ['height'],
       },
@@ -337,340 +309,109 @@ export const platformTools: ToolDomain = {
   ],
 
   handlers: {
-    platform_get_height: async (args): Promise<ToolResult> => {
+    platform_get_height: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      try {
-        const result = await withCache(
-          `platform:height:${network}`,
-          CACHE_TTL.HEIGHT,
-          () => avalancheRPC(network, 'pchain', 'platform.getHeight', {})
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      return runRpcTool(network, `platform:height:${network}`, CACHE_TTL.HEIGHT, 'platform.getHeight', {});
     },
 
-    platform_get_block: async (args): Promise<ToolResult> => {
+    platform_get_block: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const blockID = args.blockID as string;
-      const encoding = (args.encoding as string) || 'json';
-      const params = { blockID, encoding };
-      try {
-        const result = await withCache(
-          `platform:block:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.IMMUTABLE,
-          () => avalancheRPC(network, 'pchain', 'platform.getBlock', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params = { blockID: args.blockID as string, encoding: (args.encoding as string) || 'json' };
+      return runRpcTool(network, `platform:block:${network}:${JSON.stringify(params)}`, CACHE_TTL.IMMUTABLE, 'platform.getBlock', params);
     },
 
-    platform_get_block_by_height: async (args): Promise<ToolResult> => {
+    platform_get_block_by_height: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const height = args.height as string;
-      const encoding = (args.encoding as string) || 'json';
-      const params = { height, encoding };
-      try {
-        const result = await withCache(
-          `platform:blockByHeight:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.IMMUTABLE,
-          () => avalancheRPC(network, 'pchain', 'platform.getBlockByHeight', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params = { height: args.height as string, encoding: (args.encoding as string) || 'json' };
+      return runRpcTool(network, `platform:blockByHeight:${network}:${JSON.stringify(params)}`, CACHE_TTL.IMMUTABLE, 'platform.getBlockByHeight', params);
     },
 
-    platform_get_blockchains: async (args): Promise<ToolResult> => {
+    platform_get_blockchains: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      try {
-        const result = await withCache(
-          `platform:blockchains:${network}`,
-          CACHE_TTL.CHAINS,
-          () => avalancheRPC(network, 'pchain', 'platform.getBlockchains', {})
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      return runRpcTool(network, `platform:blockchains:${network}`, CACHE_TTL.CHAINS, 'platform.getBlockchains', {}, (r) => paginateArrayField(r, 'blockchains', args));
     },
 
-    platform_get_subnets: async (args): Promise<ToolResult> => {
+    platform_get_subnets: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const ids = args.ids as string[] | undefined;
-      const params = { ids: ids || [] };
-      try {
-        const result = await withCache(
-          `platform:subnets:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.CHAINS,
-          () => avalancheRPC(network, 'pchain', 'platform.getSubnets', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params = { ids: (args.ids as string[] | undefined) || [] };
+      return runRpcTool(network, `platform:subnets:${network}:${JSON.stringify(params)}`, CACHE_TTL.CHAINS, 'platform.getSubnets', params, (r) => paginateArrayField(r, 'subnets', args));
     },
 
-    platform_get_current_validators: async (args): Promise<ToolResult> => {
+    platform_get_current_validators: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const subnetID = args.subnetID as string | undefined;
-      const nodeIDs = args.nodeIDs as string[] | undefined;
       const params: Record<string, unknown> = {};
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      if (nodeIDs !== undefined) params.nodeIDs = nodeIDs;
-      try {
-        const result = await withCache(
-          `platform:currentValidators:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.FEES,
-          () => avalancheRPC(network, 'pchain', 'platform.getCurrentValidators', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      if (args.nodeIDs !== undefined) params.nodeIDs = args.nodeIDs;
+      return runRpcTool(network, `platform:currentValidators:${network}:${JSON.stringify(params)}`, CACHE_TTL.FEES, 'platform.getCurrentValidators', params, (r) => paginateArrayField(r, 'validators', args));
     },
 
-    platform_get_pending_validators: async (args): Promise<ToolResult> => {
+    platform_get_pending_validators: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const subnetID = args.subnetID as string | undefined;
-      const nodeIDs = args.nodeIDs as string[] | undefined;
       const params: Record<string, unknown> = {};
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      if (nodeIDs !== undefined) params.nodeIDs = nodeIDs;
-      try {
-        const result = await withCache(
-          `platform:pendingValidators:${network}:${JSON.stringify(params)}`,
-          60 * 1000,
-          () => avalancheRPC(network, 'pchain', 'platform.getPendingValidators', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      if (args.nodeIDs !== undefined) params.nodeIDs = args.nodeIDs;
+      return runRpcTool(network, `platform:pendingValidators:${network}:${JSON.stringify(params)}`, 60 * 1000, 'platform.getPendingValidators', params, (r) => paginateArrayField(r, 'validators', args));
     },
 
-    platform_get_staking_asset_id: async (args): Promise<ToolResult> => {
+    platform_get_staking_asset_id: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const subnetID = args.subnetID as string | undefined;
       const params: Record<string, unknown> = {};
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      try {
-        const result = await withCache(
-          `platform:stakingAssetID:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.VALIDATORS,
-          () => avalancheRPC(network, 'pchain', 'platform.getStakingAssetID', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      return runRpcTool(network, `platform:stakingAssetID:${network}:${JSON.stringify(params)}`, CACHE_TTL.VALIDATORS, 'platform.getStakingAssetID', params);
     },
 
-    platform_get_min_stake: async (args): Promise<ToolResult> => {
+    platform_get_min_stake: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const subnetID = args.subnetID as string | undefined;
       const params: Record<string, unknown> = {};
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      try {
-        const raw = await withCache(
-          `platform:minStake:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.VALIDATORS,
-          () => avalancheRPC(network, 'pchain', 'platform.getMinStake', params)
-        ) as Record<string, unknown>;
-        const result = {
-          ...raw,
-          minValidatorStake_avax: nAvaxToAvax(raw.minValidatorStake as string),
-          minDelegatorStake_avax: nAvaxToAvax(raw.minDelegatorStake as string),
-        };
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      return runRpcTool(network, `platform:minStake:${network}:${JSON.stringify(params)}`, CACHE_TTL.VALIDATORS, 'platform.getMinStake', params, withAvax({ minValidatorStake_avax: 'minValidatorStake', minDelegatorStake_avax: 'minDelegatorStake' }));
     },
 
-    platform_get_total_stake: async (args): Promise<ToolResult> => {
+    platform_get_total_stake: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const subnetID = args.subnetID as string | undefined;
       const params: Record<string, unknown> = {};
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      try {
-        const raw = await withCache(
-          `platform:totalStake:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.FEES,
-          () => avalancheRPC(network, 'pchain', 'platform.getTotalStake', params)
-        ) as Record<string, unknown>;
-        const result = {
-          ...raw,
-          stake_avax: nAvaxToAvax(raw.stake as string),
-        };
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      return runRpcTool(network, `platform:totalStake:${network}:${JSON.stringify(params)}`, CACHE_TTL.FEES, 'platform.getTotalStake', params, withAvax({ stake_avax: 'stake' }));
     },
 
-    platform_get_balance: async (args): Promise<ToolResult> => {
+    platform_get_balance: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const addresses = args.addresses as string[];
-      const params = { addresses };
-      try {
-        const raw = await withCache(
-          `platform:balance:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.BALANCE,
-          () => avalancheRPC(network, 'pchain', 'platform.getBalance', params)
-        ) as Record<string, unknown>;
-        const result = {
-          ...raw,
-          balance_avax: nAvaxToAvax(raw.balance as string),
-        };
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params = { addresses: args.addresses as string[] };
+      return runRpcTool(network, `platform:balance:${network}:${JSON.stringify(params)}`, CACHE_TTL.BALANCE, 'platform.getBalance', params, withAvax({ balance_avax: 'balance' }));
     },
 
-    platform_get_utxos: async (args): Promise<ToolResult> => {
+    platform_get_utxos: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const addresses = args.addresses as string[];
-      const limit = args.limit as number | undefined;
-      const sourceChain = args.sourceChain as string | undefined;
-      const params: Record<string, unknown> = { addresses };
-      if (limit !== undefined) params.limit = limit;
-      if (sourceChain !== undefined) params.sourceChain = sourceChain;
-      try {
-        const result = await withCache(
-          `platform:utxos:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.BALANCE,
-          () => avalancheRPC(network, 'pchain', 'platform.getUTXOs', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params: Record<string, unknown> = { addresses: args.addresses as string[] };
+      if (args.limit !== undefined) params.limit = args.limit;
+      if (args.sourceChain !== undefined) params.sourceChain = args.sourceChain;
+      return runRpcTool(network, `platform:utxos:${network}:${JSON.stringify(params)}`, CACHE_TTL.BALANCE, 'platform.getUTXOs', params);
     },
 
-    platform_get_tx: async (args): Promise<ToolResult> => {
+    platform_get_tx: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const txID = args.txID as string;
-      const encoding = (args.encoding as string) || 'json';
-      const params = { txID, encoding };
-      try {
-        const result = await withCache(
-          `platform:tx:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.IMMUTABLE,
-          () => avalancheRPC(network, 'pchain', 'platform.getTx', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params = { txID: args.txID as string, encoding: (args.encoding as string) || 'json' };
+      return runRpcTool(network, `platform:tx:${network}:${JSON.stringify(params)}`, CACHE_TTL.IMMUTABLE, 'platform.getTx', params);
     },
 
-    platform_get_tx_status: async (args): Promise<ToolResult> => {
+    platform_get_tx_status: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const txID = args.txID as string;
-      const params = { txID };
-      try {
-        const result = await withCache(
-          `platform:txStatus:${network}:${JSON.stringify(params)}`,
-          5000,
-          () => avalancheRPC(network, 'pchain', 'platform.getTxStatus', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params = { txID: args.txID as string };
+      return runRpcTool(network, `platform:txStatus:${network}:${JSON.stringify(params)}`, 5000, 'platform.getTxStatus', params);
     },
 
-    platform_get_current_supply: async (args): Promise<ToolResult> => {
+    platform_get_current_supply: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const subnetID = args.subnetID as string | undefined;
       const params: Record<string, unknown> = {};
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      try {
-        const raw = await withCache(
-          `platform:currentSupply:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.FEES,
-          () => avalancheRPC(network, 'pchain', 'platform.getCurrentSupply', params)
-        ) as Record<string, unknown>;
-        const result = {
-          ...raw,
-          supply_avax: nAvaxToAvax(raw.supply as string),
-        };
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      return runRpcTool(network, `platform:currentSupply:${network}:${JSON.stringify(params)}`, CACHE_TTL.FEES, 'platform.getCurrentSupply', params, withAvax({ supply_avax: 'supply' }));
     },
 
-    platform_get_validators_at: async (args): Promise<ToolResult> => {
+    platform_get_validators_at: (args): Promise<ToolResult> => {
       const network = (args.network as Network) || 'mainnet';
-      const height = args.height as number | 'proposed';
-      const subnetID = args.subnetID as string | undefined;
-      const params: Record<string, unknown> = { height };
-      if (subnetID !== undefined) params.subnetID = subnetID;
-      try {
-        const result = await withCache(
-          `platform:validatorsAt:${network}:${JSON.stringify(params)}`,
-          CACHE_TTL.IMMUTABLE,
-          () => avalancheRPC(network, 'pchain', 'platform.getValidatorsAt', params)
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'RPC error' }],
-          isError: true,
-        };
-      }
+      const params: Record<string, unknown> = { height: args.height as number | 'proposed' };
+      if (args.subnetID !== undefined) params.subnetID = args.subnetID;
+      return runRpcTool(network, `platform:validatorsAt:${network}:${JSON.stringify(params)}`, CACHE_TTL.IMMUTABLE, 'platform.getValidatorsAt', params);
     },
   },
 };

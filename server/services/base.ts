@@ -16,3 +16,14 @@ export interface Validation {
     message: string;
     validation?: Function;
 }
+
+/**
+ * True for a plain object with at least one key. Used by the project services to
+ * decide whether to persist a Json? column (website/socials) or leave it alone,
+ * so an empty payload never overwrites stored links.
+ */
+export const isNonEmptyObject = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.keys(value).length > 0;

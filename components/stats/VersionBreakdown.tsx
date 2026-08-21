@@ -13,26 +13,6 @@ export interface VersionBreakdownData {
   totalStakeString?: string;
 }
 
-// Color palette for version breakdown
-export const versionColors = [
-  "bg-blue-500 dark:bg-blue-600",
-  "bg-purple-500 dark:bg-purple-600",
-  "bg-pink-500 dark:bg-pink-600",
-  "bg-indigo-500 dark:bg-indigo-600",
-  "bg-cyan-500 dark:bg-cyan-600",
-  "bg-teal-500 dark:bg-teal-600",
-  "bg-emerald-500 dark:bg-emerald-600",
-  "bg-lime-500 dark:bg-lime-600",
-  "bg-yellow-500 dark:bg-yellow-600",
-  "bg-amber-500 dark:bg-amber-600",
-  "bg-orange-500 dark:bg-orange-600",
-  "bg-red-500 dark:bg-red-600",
-];
-
-export function getVersionColor(index: number): string {
-  return versionColors[index % versionColors.length];
-}
-
 // Compare semantic versions
 export function compareVersions(v1: string, v2: string): number {
   if (v1 === "Unknown") return -1;
@@ -102,6 +82,22 @@ export function calculateVersionStats(
   };
 }
 
+/* Segment/legend tone, shared by the bar and its labels so they always
+   agree. Above-target stays the single health green; below-target versions
+   get a zinc ramp (newer = darker) so adjacent segments stay tellable
+   apart from each other AND from the empty track; Unknown clients get
+   amber — they're a "can't verify" flag, not just another old version. */
+function versionTone(version: string, isAboveTarget: boolean, belowRank: number): string {
+  if (isAboveTarget) return "bg-green-700 dark:bg-green-600";
+  if (version === "Unknown") return "bg-amber-400 dark:bg-amber-500";
+  const ramp = [
+    "bg-zinc-500 dark:bg-zinc-400",
+    "bg-zinc-400 dark:bg-zinc-500",
+    "bg-zinc-300 dark:bg-zinc-600",
+  ];
+  return ramp[Math.min(belowRank, ramp.length - 1)];
+}
+
 interface VersionBarChartProps {
   versionBreakdown: VersionBreakdownData;
   minVersion: string;
@@ -118,21 +114,19 @@ export function VersionBarChart({
   totalNodes,
   height = "h-6",
 }: VersionBarChartProps) {
+  let belowRank = 0;
   return (
-    <div className={`flex ${height} w-full rounded overflow-hidden bg-neutral-100 dark:bg-neutral-800`}>
+    <div className={`flex ${height} w-full gap-px overflow-hidden bg-zinc-100 dark:bg-zinc-900`}>
       {Object.entries(versionBreakdown.byClientVersion)
         .sort(([v1], [v2]) => compareVersions(v2, v1))
         .map(([version, data]) => {
           const percentage = totalNodes > 0 ? (data.nodes / totalNodes) * 100 : 0;
           const isAboveTarget = compareVersions(version, minVersion) >= 0;
+          const tone = versionTone(version, isAboveTarget, isAboveTarget ? 0 : belowRank++);
           return (
             <div
               key={version}
-              className={`h-full transition-all ${
-                isAboveTarget
-                  ? "bg-green-700 dark:bg-green-800"
-                  : "bg-gray-200 dark:bg-gray-500"
-              }`}
+              className={`h-full transition-all ${tone}`}
               style={{ width: `${percentage}%` }}
               title={`${version}: ${data.nodes} nodes (${percentage.toFixed(1)}%)`}
             />
@@ -162,7 +156,8 @@ export function VersionLabels({
 }: VersionLabelsProps) {
   const textSize = size === "sm" ? "text-xs" : "text-sm";
   const dotSize = size === "sm" ? "h-2 w-2" : "h-3 w-3";
-  
+  let belowRank = 0;
+
   return (
     <div className={`flex flex-wrap gap-x-2 gap-y-1 ${textSize}`}>
       {Object.entries(versionBreakdown.byClientVersion)
@@ -173,22 +168,22 @@ export function VersionLabels({
           return (
             <div key={version} className="flex items-center gap-1">
               <div
-                className={`${dotSize} rounded-full flex-shrink-0 ${
-                  isAboveTarget
-                    ? "bg-green-700 dark:bg-green-800"
-                    : "bg-gray-200 dark:bg-gray-500"
-                }`}
+                className={`${dotSize} rounded-full flex-shrink-0 ${versionTone(
+                  version,
+                  isAboveTarget,
+                  isAboveTarget ? 0 : belowRank++,
+                )}`}
               />
               <span
                 className={`font-mono ${
                   isAboveTarget
-                    ? "text-black dark:text-white"
-                    : "text-neutral-500 dark:text-neutral-500"
+                    ? "text-zinc-900 dark:text-zinc-100"
+                    : "text-zinc-400 dark:text-zinc-500"
                 }`}
               >
                 {version}
               </span>
-              <span className="text-neutral-500 dark:text-neutral-500">
+              <span className="text-zinc-400 dark:text-zinc-500">
                 ({data.nodes}{showPercentage ? ` - ${percentage.toFixed(1)}%` : ''})
               </span>
             </div>
@@ -221,21 +216,21 @@ export function VersionBreakdownCard({
   description = "Distribution of validator versions",
 }: VersionBreakdownCardProps) {
   return (
-    <Card className="border border-[#e1e2ea] dark:border-neutral-800 bg-[#fcfcfd] dark:bg-neutral-900 py-0">
+    <Card className="py-0 rounded-none shadow-none border-zinc-200 !bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:!bg-zinc-950/80">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-black dark:text-white">
+            <h3 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-900 dark:text-zinc-100">
               {title}
             </h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-400 mt-1">
+            <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
               {description}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <label
               htmlFor="version-select"
-              className="text-sm text-neutral-600 dark:text-neutral-400 whitespace-nowrap"
+              className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500 whitespace-nowrap"
             >
               Target Version:
             </label>
@@ -243,7 +238,7 @@ export function VersionBreakdownCard({
               id="version-select"
               value={minVersion}
               onChange={(e) => onVersionChange(e.target.value)}
-              className="px-3 py-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md text-sm text-black dark:text-white focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-colors"
+              className="px-3 py-1 bg-transparent border border-zinc-200 dark:border-zinc-800 font-mono text-[12px] text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-colors"
             >
               {availableVersions.map((version) => (
                 <option key={version} value={version}>
@@ -280,13 +275,17 @@ interface VersionBreakdownInlineProps {
 }
 
 /**
- * Inline version breakdown for hero sections (shows top N versions)
+ * Inline version breakdown for hero sections (shows top N versions).
+ * Dots take their tone from versionTone, the same mapping the stacked bar
+ * paints with: this legend always sits under a VersionBarChart, so an
+ * index-rainbow here described a bar drawn in a different language.
  */
 export function VersionBreakdownInline({
   versions,
   minVersion,
   limit = 5,
 }: VersionBreakdownInlineProps) {
+  let belowRank = 0;
   return (
     <div className="flex flex-wrap items-center gap-4 sm:gap-6 md:gap-8">
       <div className="flex items-center gap-2">
@@ -297,19 +296,32 @@ export function VersionBreakdownInline({
       {Object.entries(versions)
         .sort(([v1], [v2]) => compareVersions(v2, v1))
         .slice(0, limit)
-        .map(([version, data], index) => (
-          <div key={version} className="flex items-center gap-1.5">
-            <div
-              className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${getVersionColor(index)}`}
-            />
-            <span className="text-xs sm:text-sm font-mono text-zinc-700 dark:text-zinc-300">
-              {version}
-            </span>
-            <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              ({data.nodes})
-            </span>
-          </div>
-        ))}
+        .map(([version, data]) => {
+          const isAboveTarget = compareVersions(version, minVersion) >= 0;
+          return (
+            <div key={version} className="flex items-center gap-1.5">
+              <div
+                className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${versionTone(
+                  version,
+                  isAboveTarget,
+                  isAboveTarget ? 0 : belowRank++,
+                )}`}
+              />
+              <span
+                className={`text-xs sm:text-sm font-mono ${
+                  isAboveTarget
+                    ? "text-zinc-900 dark:text-zinc-100"
+                    : "text-zinc-500 dark:text-zinc-400"
+                }`}
+              >
+                {version}
+              </span>
+              <span className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+                ({data.nodes})
+              </span>
+            </div>
+          );
+        })}
     </div>
   );
 }

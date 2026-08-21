@@ -1,7 +1,7 @@
 import { Session } from 'next-auth';
 import { withAuth, RouteParams } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
-import { isUserProjectMember } from "@/server/services/fileValidation";
+import { isProjectMemberOrInvitee } from "@/server/services/projectMembership";
 import { z } from 'zod';
 import {
   GetMembersByProjectId,
@@ -20,7 +20,7 @@ export const GET = withAuth<RouteParams<{ project_id: string }>>(async (request,
     }
 
     // Check if user is a member of the project
-    const isMember = await isUserProjectMember(session.user.id, project_id);
+    const isMember = await isProjectMemberOrInvitee(session.user.id, project_id);
     if (!isMember) {
       return NextResponse.json(
         { error: "Forbidden: You are not a member of this project" },
@@ -64,7 +64,7 @@ export const PATCH = withAuth<RouteParams<{ project_id: string }>>(async (reques
     }
 
     // Check if user is a member of the project
-    const isMember = await isUserProjectMember(session.user.id, project_id);
+    const isMember = await isProjectMemberOrInvitee(session.user.id, project_id);
     if (!isMember) {
       return NextResponse.json(
         { error: "Forbidden: You are not a member of this project" },

@@ -1974,6 +1974,13 @@ html.embed-mode #nd-toc {
   letter-spacing: -0.01em;
 }
 
+.v2-heading {
+  font-family: "Aeonik", var(--font-sans), sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
 /* Brand display face per AvalancheVisualGuidelines_7.2.2026: Aeonik, all
    caps ("Headline alt: Aeonik Regular" is the sanctioned treatment; Black
    is primary and should replace Medium here when comms provides the cut). */

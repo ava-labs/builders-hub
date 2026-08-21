@@ -4,6 +4,7 @@ import { useWalletStore } from './walletStore';
 import { localStorageComp, STORE_VERSION } from './utils';
 import { useMemo } from 'react';
 import { findL1ByEvmChainId } from '@/lib/console/l1-dashboard';
+import { patchL1ByEvmChainId, type L1ListPatch } from './l1ListPatch';
 
 export type FaucetThresholds = {
   threshold: number; // min balance threshold to trigger drip
@@ -61,7 +62,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/c-chain',
+      explorerUrl: 'https://explorer-test.avax.network/c-chain',
       faucetThresholds: {
         threshold: 0.2,
         dripAmount: 0.5,
@@ -85,7 +86,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/echo',
+      explorerUrl: 'https://explorer-test.avax.network/echo',
       faucetThresholds: {
         threshold: 1.0,
         dripAmount: 2,
@@ -108,7 +109,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/dispatch',
+      explorerUrl: 'https://explorer-test.avax.network/dispatch',
       faucetThresholds: {
         threshold: 1.0,
         dripAmount: 2,
@@ -132,7 +133,7 @@ const l1ListInitialStateFuji = {
       wellKnownTeleporterRegistryAddress: '0xF86Cb19Ad8405AEFa7d09C778215D2Cb6eBfB228',
       hasBuilderHubFaucet: true,
       externalFaucetUrl: 'https://core.app/tools/testnet-faucet',
-      explorerUrl: 'https://subnets-test.avax.network/dexalot',
+      explorerUrl: 'https://explorer-test.avax.network/dexalot',
       faucetThresholds: {
         threshold: 1.0,
         dripAmount: 2,
@@ -159,7 +160,7 @@ const l1ListInitialStateMainnet = {
         'https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg',
       wellKnownTeleporterRegistryAddress: '0x7C43605E14F391720e1b37E49C78C4b03A488d98',
       hasBuilderHubFaucet: false,
-      explorerUrl: 'https://subnets.avax.network/c-chain',
+      explorerUrl: 'https://explorer.avax.network/c-chain',
     },
   ] as L1ListItem[],
 };
@@ -178,6 +179,8 @@ export const getL1ListStore = (isTestnet: boolean) => {
             // when callers pass a wrong/stale flag (e.g. Glacier's mainnet
             // fallback for a brand-new Fuji L1).
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, { ...l1, isTestnet: true }] })),
+            updateL1: (evmChainId: number, patch: L1ListPatch) =>
+              set((state) => ({ l1List: patchL1ByEvmChainId(state.l1List, evmChainId, patch) })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
               set((state) => ({
@@ -216,6 +219,8 @@ export const getL1ListStore = (isTestnet: boolean) => {
           combine(l1ListInitialStateMainnet, (set, get) => ({
             // Force isTestnet=false to keep the mainnet store invariant.
             addL1: (l1: L1ListItem) => set((state) => ({ l1List: [...state.l1List, { ...l1, isTestnet: false }] })),
+            updateL1: (evmChainId: number, patch: L1ListPatch) =>
+              set((state) => ({ l1List: patchL1ByEvmChainId(state.l1List, evmChainId, patch) })),
             removeL1: (l1Id: string) => set((state) => ({ l1List: state.l1List.filter((l) => l.id !== l1Id) })),
             setNativeCurrencyInfo: (chainId: number, info: { name: string; symbol: string; decimals: number }) => {
               set((state) => ({

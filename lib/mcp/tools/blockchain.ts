@@ -5,9 +5,11 @@
  * calling a non-existent /api/mcp/blockchain route.
  */
 
-import { avalancheRPC } from '../rpc';
+import { avalancheRPC, jsonRpcPost, isUpstreamUnavailable } from '../rpc';
 import { withCache, CACHE_TTL } from '../cache';
 import type { ToolDomain, ToolResult, Network } from '../types';
+import { P_CHAIN_ID, EVM_ID_TO_NETWORK, C_CHAIN_EVM_ID, VM_NAMES, networkSchemaProp, networkLabel } from './lib/constants';
+import { rpcErrorResult } from './lib/tool-helpers';
 
 // ---------------------------------------------------------------------------
 // P-Chain transaction parser (extracted from chat/route.ts)
@@ -35,12 +37,12 @@ function parsePChainTransaction(rawTx: unknown): ParsedTx {
     18: { type: 'AdvanceTimeTx', description: 'Advances the chain timestamp' },
     19: { type: 'RewardValidatorTx', description: 'Rewards a validator' },
     20: { type: 'RemoveSubnetValidatorTx', description: 'Removes a validator from a Subnet' },
-    21: { type: 'TransformSubnetTx', description: 'Transforms a Subnet to a permissionless L1' },
+    21: { type: 'TransformSubnetTx', description: 'Transformed a Subnet into an Elastic Subnet, no longer accepted since Etna/ACP-77, so this only appears on historical transactions' },
     22: { type: 'AddPermissionlessValidatorTx', description: 'Adds a permissionless validator' },
     23: { type: 'AddPermissionlessDelegatorTx', description: 'Adds a permissionless delegator' },
     24: { type: 'TransferSubnetOwnershipTx', description: 'Transfers Subnet ownership' },
     25: { type: 'BaseTx', description: 'Base transaction (AVAX transfer on P-Chain)' },
-    33: { type: 'ConvertSubnetTx', description: 'Converts a Subnet to a Sovereign L1' },
+    33: { type: 'ConvertSubnetToL1Tx', description: 'Converts a Subnet to a Sovereign L1' },
   };
 
   let typeId: number | undefined;
@@ -108,13 +110,7 @@ function parsePChainTransaction(rawTx: unknown): ParsedTx {
   const vmID = tx.vmID || unsignedTx.vmID;
   if (vmID) {
     details.vmID = vmID;
-    const vmNames: Record<string, string> = {
-      'jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq': 'AvalancheVM (EVM)',
-      'mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6': 'Timestamp VM',
-      'tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH': 'Subnet EVM',
-      'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy': 'Coreth (C-Chain)',
-    };
-    if (vmNames[String(vmID)]) details.vmName = vmNames[String(vmID)];
+    if (VM_NAMES[String(vmID)]) details.vmName = VM_NAMES[String(vmID)];
   }
 
   const rewardsOwner = tx.rewardsOwner || unsignedTx.rewardsOwner;
@@ -130,7 +126,7 @@ function parsePChainTransaction(rawTx: unknown): ParsedTx {
   if (subnetID && !nodeID && !chainName) return { type: 'CreateSubnetTx', description: 'Creates a new Subnet', details };
   if (nodeID) {
     if (stakeOutputs.length > 0) return { type: 'AddValidatorTx', description: 'Adds a validator to the network', details };
-    if (subnetID && subnetID !== '11111111111111111111111111111111LpoYY') {
+    if (subnetID && subnetID !== P_CHAIN_ID) {
       return { type: 'AddSubnetValidatorTx', description: 'Adds a validator to a Subnet', details };
     }
     return { type: 'ValidatorTx', description: 'Validator-related transaction', details };
@@ -204,148 +200,23 @@ const BASE_URLS: Record<Network, string> = {
 };
 
 async function evmRPC(network: Network, method: string, params: unknown[]): Promise<unknown> {
+  // Delegates to the shared helper so C-Chain EVM calls get the same retry/backoff
+  // and the HTML-response guard (a rate-limit page previously crashed JSON.parse here).
   const url = `${BASE_URLS[network]}/ext/bc/C/rpc`;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
-      signal: controller.signal,
-    });
-    const json = await res.json() as { result?: unknown; error?: { message: string } };
-    if (json.error) throw new Error(json.error.message);
-    return json.result;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// blockchain_get_native_balance
-// ---------------------------------------------------------------------------
-
-async function getNativeBalance(address: string, chainId: string): Promise<{
-  address: string;
-  chainId: string;
-  balance: string;
-  balanceFormatted: string;
-  symbol: string;
-}> {
-  const network: Network = chainId === '43113' ? 'fuji' : 'mainnet';
-  const result = await evmRPC(network, 'eth_getBalance', [address, 'latest']) as string;
-  const balanceWei = BigInt(result || '0x0');
-  const balanceEth = Number(balanceWei) / 1e18;
-  return {
-    address,
-    chainId,
-    balance: result,
-    balanceFormatted: balanceEth.toFixed(6),
-    symbol: 'AVAX',
-  };
-}
-
-// ---------------------------------------------------------------------------
-// blockchain_get_contract_info
-// ---------------------------------------------------------------------------
-
-async function getContractInfo(address: string, chainId: string): Promise<{
-  address: string;
-  chainId: string;
-  isContract: boolean;
-  name?: string;
-  symbol?: string;
-  ercType?: string;
-}> {
-  const network: Network = chainId === '43113' ? 'fuji' : 'mainnet';
-
-  // Check if it's a contract
-  const code = await evmRPC(network, 'eth_getCode', [address, 'latest']) as string;
-  const isContract = code !== '0x' && code !== '0x0' && code.length > 2;
-
-  if (!isContract) return { address, chainId, isContract: false };
-
-  // Try to get ERC20 name/symbol
-  try {
-    // name() selector: 0x06fdde03
-    const nameResult = await evmRPC(network, 'eth_call', [
-      { to: address, data: '0x06fdde03' },
-      'latest',
-    ]) as string;
-
-    // symbol() selector: 0x95d89b41
-    const symbolResult = await evmRPC(network, 'eth_call', [
-      { to: address, data: '0x95d89b41' },
-      'latest',
-    ]) as string;
-
-    if (nameResult && nameResult !== '0x') {
-      // Decode ABI-encoded string
-      const decodeString = (hex: string): string => {
-        try {
-          const data = hex.slice(2);
-          const offset = parseInt(data.slice(0, 64), 16) * 2;
-          const length = parseInt(data.slice(offset, offset + 64), 16) * 2;
-          const strHex = data.slice(offset + 64, offset + 64 + length);
-          return Buffer.from(strHex, 'hex').toString('utf8').replace(/\x00/g, '');
-        } catch {
-          return '';
-        }
-      };
-
-      const name = decodeString(nameResult);
-      const symbol = decodeString(symbolResult);
-
-      if (name) {
-        return { address, chainId, isContract: true, name, symbol, ercType: 'ERC20' };
-      }
-    }
-  } catch {
-    // Not an ERC20 or call failed
-  }
-
-  return { address, chainId, isContract: true };
+  return jsonRpcPost(url, method, params);
 }
 
 // ---------------------------------------------------------------------------
 // Tool domain
+//
+// NOTE: blockchain_get_native_balance / blockchain_get_contract_info /
+// blockchain_lookup_address were retired — they hit live public RPC (rate-
+// limited) and overlap onchain_lookup (Glacier-indexed). Use onchain_lookup for
+// balances, contract info, and address details.
 // ---------------------------------------------------------------------------
 
 export const blockchainTools: ToolDomain = {
   tools: [
-    {
-      name: 'blockchain_get_native_balance',
-      description: 'Get the native AVAX balance of an address on C-Chain',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'EVM address (0x...)' },
-          chainId: {
-            type: 'string',
-            description: 'Chain ID — "43114" for C-Chain mainnet, "43113" for Fuji testnet',
-            default: '43114',
-          },
-        },
-        required: ['address'],
-      },
-    },
-    {
-      name: 'blockchain_get_contract_info',
-      description: 'Check if an address is a contract and get its ERC20 name/symbol if applicable',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'EVM address (0x...)' },
-          chainId: {
-            type: 'string',
-            description: 'Chain ID — "43114" for C-Chain mainnet, "43113" for Fuji testnet',
-            default: '43114',
-          },
-        },
-        required: ['address'],
-      },
-    },
     {
       name: 'blockchain_lookup_transaction',
       description:
@@ -357,31 +228,9 @@ export const blockchainTools: ToolDomain = {
             type: 'string',
             description: 'Transaction hash (0x... for C-Chain, CB58 for P/X-Chain)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            default: 'mainnet',
-            description: 'Network to search',
-          },
+          network: networkSchemaProp({ withDefault: true, description: 'Network to search' }),
         },
         required: ['txHash'],
-      },
-    },
-    {
-      name: 'blockchain_lookup_address',
-      description:
-        'Look up an address — balance, contract info. Use when users paste an 0x address.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          address: { type: 'string', description: 'The address to look up (0x format)' },
-          chainId: {
-            type: 'string',
-            default: '43114',
-            description: 'Chain ID — "43114" for C-Chain mainnet, "43113" for Fuji testnet',
-          },
-        },
-        required: ['address'],
       },
     },
     {
@@ -392,27 +241,19 @@ export const blockchainTools: ToolDomain = {
         type: 'object',
         properties: {
           subnetId: { type: 'string', description: 'The Subnet ID' },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            default: 'mainnet',
-          },
+          network: networkSchemaProp({ withDefault: true }),
         },
         required: ['subnetId'],
       },
     },
     {
       name: 'blockchain_lookup_chain',
-      description: 'Look up a blockchain by its ID — name, VM type, and subnet.',
+      description: 'Look up a blockchain by its ID — name, VM type, and Subnet/L1.',
       inputSchema: {
         type: 'object',
         properties: {
           chainId: { type: 'string', description: 'The blockchain ID' },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            default: 'mainnet',
-          },
+          network: networkSchemaProp({ withDefault: true }),
         },
         required: ['chainId'],
       },
@@ -426,14 +267,10 @@ export const blockchainTools: ToolDomain = {
           nodeId: { type: 'string', description: 'Node ID (e.g. NodeID-...)' },
           subnetId: {
             type: 'string',
-            default: '11111111111111111111111111111111LpoYY',
+            default: P_CHAIN_ID,
             description: 'Subnet ID (default: Primary Network)',
           },
-          network: {
-            type: 'string',
-            enum: ['mainnet', 'fuji'],
-            default: 'mainnet',
-          },
+          network: networkSchemaProp({ withDefault: true }),
         },
         required: ['nodeId'],
       },
@@ -441,40 +278,6 @@ export const blockchainTools: ToolDomain = {
   ],
 
   handlers: {
-    // -------------------------------------------------------------------------
-    // blockchain_get_native_balance
-    // -------------------------------------------------------------------------
-    blockchain_get_native_balance: async (args): Promise<ToolResult> => {
-      const address = args.address as string;
-      const chainId = (args.chainId as string) || '43114';
-      try {
-        const result = await getNativeBalance(address, chainId);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error fetching balance' }],
-          isError: true,
-        };
-      }
-    },
-
-    // -------------------------------------------------------------------------
-    // blockchain_get_contract_info
-    // -------------------------------------------------------------------------
-    blockchain_get_contract_info: async (args): Promise<ToolResult> => {
-      const address = args.address as string;
-      const chainId = (args.chainId as string) || '43114';
-      try {
-        const result = await getContractInfo(address, chainId);
-        return { content: [{ type: 'text', text: JSON.stringify(result) }] };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error fetching contract info' }],
-          isError: true,
-        };
-      }
-    },
-
     // -------------------------------------------------------------------------
     // blockchain_lookup_transaction
     // -------------------------------------------------------------------------
@@ -486,6 +289,11 @@ export const blockchainTools: ToolDomain = {
 
       try {
         const isEVMHash = txHash.startsWith('0x') && txHash.length === 66;
+        // For the hash's format-appropriate chain(s), track whether we ever got a
+        // clean "not here" answer vs only transient RPC failures — so a throttle
+        // can't masquerade as a definitive not-found (see the final return below).
+        let sawDefinitiveMiss = false;
+        let sawTransient = false;
 
         if (isEVMHash) {
           // Try primary network C-Chain
@@ -519,7 +327,11 @@ export const blockchainTools: ToolDomain = {
                   }],
                 };
               }
-            } catch { /* try next */ }
+              sawDefinitiveMiss = true; // node answered: no such tx on this C-Chain
+            } catch (err) {
+              if (isUpstreamUnavailable(err)) sawTransient = true;
+              else sawDefinitiveMiss = true; // malformed-hash JSON-RPC error = definitive
+            }
           }
         }
 
@@ -546,8 +358,7 @@ export const blockchainTools: ToolDomain = {
                     chain: 'P-Chain',
                     transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
                     network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
-                    ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
-                    explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/p-chain/tx/${txHash}`,
+                    explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/p-chain/tx/${txHash}`,
                     note: net !== network
                       ? `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)`
                       : 'P-Chain transactions include validator operations, delegations, subnet creation, and L1 management',
@@ -555,7 +366,11 @@ export const blockchainTools: ToolDomain = {
                 }],
               };
             }
-          } catch { /* try X-Chain */ }
+            if (!isEVMHash) sawDefinitiveMiss = true; // P-Chain replied: no such tx
+          } catch (err) {
+            if (!isEVMHash && isUpstreamUnavailable(err)) sawTransient = true;
+            else if (!isEVMHash) sawDefinitiveMiss = true;
+          }
 
           // Try X-Chain
           try {
@@ -579,12 +394,34 @@ export const blockchainTools: ToolDomain = {
                     transaction: { txID: txHash, type: parsed.type, typeDescription: parsed.description, status: txStatus, ...parsed.details },
                     network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
                     ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
-                    explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/x-chain/tx/${txHash}`,
+                    explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/x-chain/tx/${txHash}`,
                   }),
                 }],
               };
             }
-          } catch { /* try next network */ }
+            if (!isEVMHash) sawDefinitiveMiss = true; // X-Chain replied: no such tx
+          } catch (err) {
+            if (!isEVMHash && isUpstreamUnavailable(err)) sawTransient = true;
+            else if (!isEVMHash) sawDefinitiveMiss = true;
+          }
+        }
+
+        // Nothing matched. Distinguish a real miss from "couldn't check": if the
+        // format-appropriate chain only failed transiently (throttle/timeout) and
+        // never returned a clean negative, do NOT claim not-found — that false-
+        // negative is exactly what a rate-limited RPC produced before this guard.
+        if (sawTransient && !sawDefinitiveMiss) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                found: false,
+                indeterminate: true,
+                error: 'Could not verify this transaction — the upstream RPC was rate-limited or unreachable, so this is NOT a confirmed "not found". Retry shortly, or use onchain_lookup (Glacier-indexed).',
+                txHash,
+              }),
+            }],
+          };
         }
 
         return {
@@ -598,51 +435,7 @@ export const blockchainTools: ToolDomain = {
           }],
         };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up transaction' }],
-          isError: true,
-        };
-      }
-    },
-
-    // -------------------------------------------------------------------------
-    // blockchain_lookup_address — fixed: no longer calls missing blockchain route
-    // -------------------------------------------------------------------------
-    blockchain_lookup_address: async (args): Promise<ToolResult> => {
-      const address = args.address as string;
-      const chainId = (args.chainId as string) || '43114';
-      try {
-        const [balance, contractInfo] = await Promise.allSettled([
-          getNativeBalance(address, chainId),
-          getContractInfo(address, chainId),
-        ]);
-
-        const b = balance.status === 'fulfilled' ? balance.value : null;
-        const c = contractInfo.status === 'fulfilled' ? contractInfo.value : null;
-
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify({
-              address,
-              chainId,
-              network: chainId === '43113' ? 'Fuji Testnet' : 'C-Chain Mainnet',
-              balance: b ? `${b.balanceFormatted} ${b.symbol}` : 'unknown',
-              isContract: c?.isContract || false,
-              contractInfo: c?.isContract
-                ? { name: c.name, symbol: c.symbol, ercType: c.ercType }
-                : null,
-              explorerUrl: chainId === '43113'
-                ? `https://testnet.snowtrace.io/address/${address}`
-                : `https://snowtrace.io/address/${address}`,
-            }),
-          }],
-        };
-      } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up address' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'Error looking up transaction');
       }
     },
 
@@ -650,9 +443,25 @@ export const blockchainTools: ToolDomain = {
     // blockchain_lookup_subnet
     // -------------------------------------------------------------------------
     blockchain_lookup_subnet: async (args): Promise<ToolResult> => {
-      const subnetId = args.subnetId as string;
+      const subnetId = String(args.subnetId ?? '').trim();
       const network = ((args.network as string) || 'mainnet') as Network;
       const isTestnet = network === 'fuji';
+      const isPrimaryNetwork = subnetId === P_CHAIN_ID;
+
+      // Validate before querying: a missing or malformed id must not be echoed back as a real,
+      // zero-activity Subnet/L1 (which produced ".../subnets/undefined" and non-deterministic counts).
+      if (!subnetId) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ found: false, error: 'subnetId is required (a cb58 Subnet ID, e.g. from platform_get_subnets).' }) }],
+          isError: true,
+        };
+      }
+      if (!isPrimaryNetwork && !/^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(subnetId)) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ found: false, subnetId, error: `"${subnetId}" is not a valid Subnet ID (expected a cb58-encoded id).` }) }],
+          isError: true,
+        };
+      }
 
       try {
         const [validatorsResult, chainsResult] = await Promise.allSettled([
@@ -697,26 +506,40 @@ export const blockchainTools: ToolDomain = {
             .map((c) => ({ id: c.id, name: c.name, vmID: c.vmID }));
         }
 
+        // Honest not-found: a non-primary id with no validators AND no blockchains is either
+        // nonexistent or actually a blockchain id — don't present it as a real empty Subnet/L1.
+        if (!isPrimaryNetwork && validators.length === 0 && chains.length === 0) {
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                found: false,
+                subnetId,
+                network: networkLabel(isTestnet),
+                error: 'No Subnet/L1 found with this ID on this network (no validators or blockchains). It may not exist, be on the other network (try network:"fuji"), or be a blockchain ID rather than a Subnet ID.',
+              }),
+            }],
+          };
+        }
+
         return {
           content: [{
             type: 'text',
             text: JSON.stringify({
+              found: true,
               subnetId,
-              network: isTestnet ? 'Fuji Testnet' : 'Mainnet',
-              isPrimaryNetwork: subnetId === '11111111111111111111111111111111LpoYY',
+              network: networkLabel(isTestnet),
+              isPrimaryNetwork,
               validatorCount: validators.length,
               validators: validators.slice(0, 10),
               hasMoreValidators: validators.length > 10,
               chains,
-              explorerUrl: `https://subnets${isTestnet ? '-test' : ''}.avax.network/subnets/${subnetId}`,
+              explorerUrl: `https://explorer${isTestnet ? '-test' : ''}.avax.network/subnets/${subnetId}`,
             }),
           }],
         };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up subnet' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'Error looking up Subnet/L1');
       }
     },
 
@@ -724,20 +547,62 @@ export const blockchainTools: ToolDomain = {
     // blockchain_lookup_chain
     // -------------------------------------------------------------------------
     blockchain_lookup_chain: async (args): Promise<ToolResult> => {
-      const chainId = args.chainId as string;
-      const network = ((args.network as string) || 'mainnet') as Network;
-      const isTestnet = network === 'fuji';
-      const altNetwork: Network = isTestnet ? 'mainnet' : 'fuji';
+      // Accept a blockchain id (cb58), a chain name (e.g. "C-Chain"), or a value under `value`.
+      // The old code matched only an exact `chainId`, so "C-Chain" or 43114 returned not-found.
+      const query = String(args.chainId ?? args.name ?? args.value ?? '').trim();
+      const explicitNet = args.network as Network | undefined;
+      const needle = query.toLowerCase();
+      // A numeric EVM chain id pins the network unambiguously (43113 = Fuji, 43114 = Mainnet).
+      // Without this, 43113 matched Mainnet C-Chain first and was mislabelled Mainnet.
+      const pinnedByEvmId = EVM_ID_TO_NETWORK[needle];
+      const network = (explicitNet || pinnedByEvmId || 'mainnet') as Network;
+      const altNetwork: Network = network === 'fuji' ? 'mainnet' : 'fuji';
+      // For a numeric EVM chain id the network is unambiguous — don't fall back to the other network.
+      const netsToSearch: Network[] = pinnedByEvmId && !explicitNet ? [network] : [network, altNetwork];
+      // Map short aliases / EVM ids to the canonical primary-chain name (getBlockchains keys on name).
+      const aliasName: Record<string, string> = {
+        [C_CHAIN_EVM_ID.mainnet]: 'c-chain', [C_CHAIN_EVM_ID.fuji]: 'c-chain', cchain: 'c-chain', c: 'c-chain',
+        xchain: 'x-chain', x: 'x-chain', pchain: 'p-chain', p: 'p-chain',
+      };
+      const wantName = aliasName[needle] ?? needle;
+      if (!query) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ found: false, error: 'Provide a blockchain id or name (e.g. chainId:"<cb58 id>" or name:"C-Chain").' }) }],
+          isError: true,
+        };
+      }
 
-      const vmNames: Record<string, string> = {
-        'jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq': 'AvalancheVM (EVM)',
-        'mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6': 'Timestamp VM',
-        'tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH': 'Subnet EVM',
-        'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy': 'Coreth (C-Chain VM)',
+      const chainSlug = (name: string): string => {
+        const n = (name || '').toLowerCase();
+        if (n === 'c-chain' || n === 'x-chain' || n === 'p-chain') return n;
+        return n.replace(/\s+/g, '-') || 'c-chain';
       };
 
+      // P-Chain is the Primary Network platform chain — it is NOT returned by
+      // platform.getBlockchains, so resolve it from canonical constants.
+      if (wantName === 'p-chain' || query === P_CHAIN_ID) {
+        const testnet = network === 'fuji';
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify({
+              found: true,
+              query,
+              chainId: P_CHAIN_ID,
+              name: 'P-Chain',
+              subnetId: P_CHAIN_ID,
+              vmID: 'platformvm',
+              vmName: 'Platform VM (P-Chain)',
+              network: networkLabel(testnet),
+              explorerUrl: `https://explorer${testnet ? '-test' : ''}.avax.network/p-chain`,
+              note: 'The P-Chain is the Primary Network platform chain; it is not listed by platform.getBlockchains.',
+            }),
+          }],
+        };
+      }
+
       try {
-        for (const net of [network, altNetwork] as Network[]) {
+        for (const net of netsToSearch) {
           const result = await withCache(
             `blockchain:blockchains:${net}`,
             CACHE_TTL.CHAINS,
@@ -745,7 +610,13 @@ export const blockchainTools: ToolDomain = {
           ) as { blockchains?: Array<{ id: string; name: string; subnetID: string; vmID: string }> };
 
           interface BlockchainRaw { id: string; name: string; subnetID: string; vmID: string }
-          const chain = (result?.blockchains || []).find((c: BlockchainRaw) => c.id === chainId);
+          const list = (result?.blockchains || []) as BlockchainRaw[];
+          const nameOf = (c: BlockchainRaw) => (c.name || '').toLowerCase();
+          const chain =
+            list.find((c) => c.id === query) ||
+            list.find((c) => nameOf(c) === wantName) ||
+            list.find((c) => nameOf(c) === needle) ||
+            (needle.length >= 2 ? list.find((c) => nameOf(c).startsWith(needle)) : undefined);
           if (chain) {
             const foundOnTestnet = net === 'fuji';
             return {
@@ -753,14 +624,15 @@ export const blockchainTools: ToolDomain = {
                 type: 'text',
                 text: JSON.stringify({
                   found: true,
-                  chainId,
+                  query,
+                  chainId: chain.id,
                   name: chain.name,
                   subnetId: chain.subnetID,
                   vmID: chain.vmID,
-                  vmName: vmNames[chain.vmID] || 'Custom VM',
+                  vmName: VM_NAMES[chain.vmID] || 'Custom VM',
                   network: foundOnTestnet ? 'Fuji Testnet' : 'Mainnet',
                   ...(net !== network ? { note: `Found on ${foundOnTestnet ? 'Fuji Testnet' : 'Mainnet'} (different from requested)` } : {}),
-                  explorerUrl: `https://subnets${foundOnTestnet ? '-test' : ''}.avax.network/c-chain`,
+                  explorerUrl: `https://explorer${foundOnTestnet ? '-test' : ''}.avax.network/${chainSlug(chain.name)}`,
                 }),
               }],
             };
@@ -770,14 +642,11 @@ export const blockchainTools: ToolDomain = {
         return {
           content: [{
             type: 'text',
-            text: JSON.stringify({ found: false, chainId, error: 'Chain not found on mainnet or testnet' }),
+            text: JSON.stringify({ found: false, query, error: 'Chain not found on mainnet or testnet (searched by id and name).' }),
           }],
         };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up chain' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'Error looking up chain');
       }
     },
 
@@ -786,7 +655,7 @@ export const blockchainTools: ToolDomain = {
     // -------------------------------------------------------------------------
     blockchain_lookup_validator: async (args): Promise<ToolResult> => {
       const nodeId = args.nodeId as string;
-      const subnetId = (args.subnetId as string) || '11111111111111111111111111111111LpoYY';
+      const subnetId = (args.subnetId as string) || P_CHAIN_ID;
       const network = ((args.network as string) || 'mainnet') as Network;
       const isTestnet = network === 'fuji';
 
@@ -818,7 +687,7 @@ export const blockchainTools: ToolDomain = {
                   stakeAmount: v.stakeAmount ? (parseInt(String(v.stakeAmount)) / 1e9).toFixed(4) + ' AVAX' : undefined,
                   startTime: v.startTime ? new Date(parseInt(String(v.startTime)) * 1000).toISOString() : undefined,
                   endTime: v.endTime ? new Date(parseInt(String(v.endTime)) * 1000).toISOString() : undefined,
-                  network: isTestnet ? 'Fuji Testnet' : 'Mainnet',
+                  network: networkLabel(isTestnet),
                 }),
               }],
             };
@@ -853,16 +722,13 @@ export const blockchainTools: ToolDomain = {
               potentialReward: v.potentialReward
                 ? (parseInt(String(v.potentialReward)) / 1e9).toFixed(4) + ' AVAX'
                 : undefined,
-              network: isTestnet ? 'Fuji Testnet' : 'Mainnet',
-              explorerUrl: `https://subnets${isTestnet ? '-test' : ''}.avax.network/validators/${nodeId}`,
+              network: networkLabel(isTestnet),
+              explorerUrl: `https://explorer${isTestnet ? '-test' : ''}.avax.network/validators/${nodeId}`,
             }),
           }],
         };
       } catch (err) {
-        return {
-          content: [{ type: 'text', text: err instanceof Error ? err.message : 'Error looking up validator' }],
-          isError: true,
-        };
+        return rpcErrorResult(err, 'Error looking up validator');
       }
     },
   },

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
+import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 
 export const dynamic = 'force-dynamic';
 
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 const STALE_DURATION = 24 * 60 * 60 * 1000; // 1 day
-const PAGE_SIZE = 100;
-const FETCH_TIMEOUT = 30000;
+// Generous timeout for our /v1 validators cold-start (state build) before its
+// cache warms; the warmer normally keeps it hot so this rarely bites.
+const FETCH_TIMEOUT = 60000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 
 interface ValidatorData {
@@ -28,38 +29,26 @@ let pendingRequest: Promise<ValidatorData[]> | null = null;
 let isRevalidating = false;
 
 async function fetchAllValidators(): Promise<ValidatorData[]> {
-  const avalanche = new Avalanche({ network: "mainnet" });
-  const validators: ValidatorData[] = [];
-  
-  const result = await avalanche.data.primaryNetwork.listValidators({
-    pageSize: PAGE_SIZE,
-    validationStatus: "active",
-    subnetId: "11111111111111111111111111111111LpoYY",
-    network: "mainnet",
+  // Primary-network validators from the explorer-shape snapshot — ONE fast
+  // response (the whole current set), instead of paginating ~30 pages of the
+  // heavy /v1 validators endpoint (~3s/page → ~90s → 504). Same source the
+  // P-chain /validators page uses.
+  const res = await fetch(`${EXPLORER_API_BASE}/api/mainnet/validators`, {
+    headers: { Accept: "application/json" },
   });
-
-  let pageCount = 0;
-  const maxPages = 50;
-  
-  for await (const page of result) {
-    pageCount++;
-    const pageData = page.result.validators || [];
-    if (!Array.isArray(pageData)) { continue; }
-    
-    const pageValidators = pageData.map((v: any) => ({
-      nodeId: v.nodeId,
-      amountStaked: v.amountStaked,
-      delegationFee: v.delegationFee,
-      validationStatus: v.validationStatus,
-      delegatorCount: v.delegatorCount || 0,
-      amountDelegated: v.amountDelegated || "0",
-    }));
-    
-    validators.push(...pageValidators);     
-    if (pageCount >= maxPages) { break; }   
-    if (pageValidators.length < PAGE_SIZE) { break; }
-  }
-  return validators;
+  if (!res.ok) throw new Error(`validators upstream ${res.status}`);
+  const j = await res.json();
+  const vs: any[] = Array.isArray(j?.validators) ? j.validators : [];
+  // Explorer shape → the Glacier-ish ValidatorData the UI expects. weight is the
+  // self-stake (nAVAX), delegatorWeight the delegated amount, both numbers.
+  return vs.map((v: any) => ({
+    nodeId: v.nodeId,
+    amountStaked: String(v.weight ?? "0"),
+    delegationFee: String(v.delegationFeePercent ?? "0"),
+    validationStatus: "active",
+    delegatorCount: v.delegatorCount || 0,
+    amountDelegated: String(v.delegatorWeight ?? "0"),
+  }));
 }
 
 async function fetchWithTimeout(): Promise<ValidatorData[]> {

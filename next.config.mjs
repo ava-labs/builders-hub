@@ -30,6 +30,11 @@ const config = {
         hostname: 'avatars.githubusercontent.com',
       },
       {
+        // DeFiLlama protocol icons (apps facet / dapp analytics)
+        protocol: 'https',
+        hostname: 'icons.llamao.fi',
+      },
+      {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
       },
@@ -73,12 +78,73 @@ const config = {
   },
   async redirects() {
     return [
+      // ── Console: performance monitor replaced by the monitoring setup tool ──
+      {
+        source: '/console/layer-1/performance-monitor',
+        destination: '/console/layer-1/monitoring-setup',
+        permanent: true,
+      },
+      // ── Explorer: legacy chain-first URLs → network-first scheme ──
+      // /explorer/{slug}/tx|block|address/... predate the [network] segment;
+      // the slug can't be a network name (or the chains directory), so the
+      // lookahead lets real network routes through untouched.
+      {
+        source: '/explorer/:slug((?!(?:mainnet|fuji|devnet|chains)/)[^/]+)/tx/:hash',
+        destination: '/explorer/mainnet/:slug/tx/:hash',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:slug((?!(?:mainnet|fuji|devnet|chains)/)[^/]+)/block/:blockNumber',
+        destination: '/explorer/mainnet/:slug/block/:blockNumber',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:slug((?!(?:mainnet|fuji|devnet|chains)/)[^/]+)/address/:address',
+        destination: '/explorer/mainnet/:slug/address/:address',
+        permanent: true,
+      },
+      // ── Chain stats dissolved into the explorer's subject tabs; the
+      //    Accounts tab is the piece that exists for every catalog chain ──
+      {
+        source: '/stats/l1/:slug/stats',
+        destination: '/explorer/mainnet/:slug/accounts',
+        permanent: true,
+      },
+      {
+        source: '/stats/l1/:slug',
+        destination: '/explorer/mainnet/:slug/accounts',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/stats',
+        destination: '/explorer/:network/:chain/accounts',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):
         // "Continuous Staking" (236-continuous-staking) → "Auto-Renewed Staking" (236-auto-renewed-staking)
         source: '/docs/acps/236-continuous-staking',
         destination: '/docs/acps/236-auto-renewed-staking',
+        permanent: true,
+      },
+      {
+        // ACP-194 was renamed upstream (avalanche-foundation/ACPs#295):
+        // "Streaming Asynchronous Execution" (194-streaming-asynchronous-execution) → "Continuous Execution" (194-continuous-execution)
+        source: '/docs/acps/194-streaming-asynchronous-execution',
+        destination: '/docs/acps/194-continuous-execution',
+        permanent: true,
+      },
+      {
+        // Renamed alongside the ACP-194 rebrand to "Continuous Execution"
+        source: '/docs/primary-network/streaming-async-execution',
+        destination: '/docs/primary-network/continuous-execution',
+        permanent: true,
+      },
+      {
+        // Renamed alongside the ACP-194 rebrand to "Continuous Execution"
+        source: '/docs/nodes/architecture/execution/streaming-async-execution',
+        destination: '/docs/nodes/architecture/execution/continuous-execution',
         permanent: true,
       },
       {
@@ -1769,6 +1835,25 @@ const config = {
         destination: "/docs/nodes/configure/configs-flags",
         permanent: true,
       },
+      // Legacy docs.avax.network IA. That domain is an alias for this app rather
+      // than a forward, so pre-migration paths 404 instead of redirecting. These
+      // three are linked from the upstream avalanche-foundation/ACPs READMEs,
+      // which are fetched into /docs/acps at build time.
+      {
+        source: "/nodes/configure/avalanchego-config-flags",
+        destination: "/docs/nodes/configure/configs-flags",
+        permanent: true,
+      },
+      {
+        source: "/docs/nodes/configure/avalanchego-config-flags",
+        destination: "/docs/nodes/configure/configs-flags",
+        permanent: true,
+      },
+      {
+        source: "/build/cross-chain/awm/overview",
+        destination: "/docs/cross-chain/avalanche-warp-messaging/overview",
+        permanent: true,
+      },
       // Docker node setup redirect
       {
         source: "/docs/nodes/operate/docker",
@@ -1831,17 +1916,79 @@ const config = {
       },
       {
         source: "/stats/token",
-        destination: "/stats/avax-token",
+        destination: "/explorer/mainnet/token",
         permanent: true,
       },
       {
         source: "/stats/tokens",
-        destination: "/stats/avax-token",
+        destination: "/explorer/mainnet/token",
         permanent: true,
       },
       {
         source: "/stats/primary-network/validators",
-        destination: "/stats/validators",
+        destination: "/explorer/mainnet/validators",
+        permanent: true,
+      },
+      // the stats section's network-scope pages moved into the explorer's
+      // All Networks scope (exact-path sources: /stats/dapps/:slug etc.
+      // keep their detail pages; validators moved wholesale)
+      {
+        source: "/stats",
+        destination: "/explorer/mainnet",
+        permanent: true,
+      },
+      {
+        source: "/stats/overview",
+        destination: "/explorer/mainnet",
+        permanent: true,
+      },
+      {
+        source: "/stats/chain-list",
+        destination: "/explorer/mainnet/chains",
+        permanent: true,
+      },
+      {
+        source: "/explorer/chains",
+        destination: "/explorer/mainnet/chains",
+        permanent: true,
+      },
+      {
+        source: "/stats/interchain-messaging",
+        destination: "/explorer/mainnet/icm",
+        permanent: true,
+      },
+      {
+        source: "/stats/validators",
+        destination: "/explorer/mainnet/validators",
+        permanent: true,
+      },
+      {
+        // Primary Network staking lives on the C-Chain's Validators tab
+        source: "/stats/validators/c-chain",
+        destination: "/explorer/mainnet/c-chain/validators",
+        permanent: true,
+      },
+      {
+        // node detail folded into the P-Chain explorer's node page
+        source: "/stats/validators/node/:nodeId",
+        destination: "/explorer/mainnet/p-chain/node/:nodeId",
+        permanent: true,
+      },
+      {
+        // per-L1 sets moved into each chain's own Validators tab (the
+        // exact c-chain and two-segment node rules above match first)
+        source: "/stats/validators/:slug",
+        destination: "/explorer/mainnet/:slug/validators",
+        permanent: true,
+      },
+      {
+        source: "/stats/dapps",
+        destination: "/explorer/mainnet/apps",
+        permanent: true,
+      },
+      {
+        source: "/stats/avax-token",
+        destination: "/explorer/mainnet/token",
         permanent: true,
       },
       {
@@ -2191,7 +2338,7 @@ const config = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://avatars.githubusercontent.com https://lh3.googleusercontent.com https://abs.twimg.com https://*.public.blob.vercel-storage.com https://images.ctfassets.net https://f005.backblazeb2.com https://explorer-binaryholdings.cogitus.io https://cdn.prod.website-files.com https://developers.avacloud.io https://dashboard-assets.dappradar.com",
               "font-src 'self'",
-              "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
+              "connect-src 'self' https://us.i.posthog.com https://app.posthog.com https://api.openai.com https://api.github.com https://www.googleapis.com https://api.hubapi.com https://api.dune.com https://glacier-api.avax.network https://data-api.avax.network https://accounts.google.com https://api.avax.network https://api.avax-test.network",
               "frame-src 'self' https://calendar.google.com https://www.google.com https://chromewebstore.google.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",

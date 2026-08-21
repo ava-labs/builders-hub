@@ -714,7 +714,7 @@ export default function CreateL1Questionnaire() {
                   selected={multisig}
                   onSelect={() => setMultisig(true)}
                   icon={<Users className="h-5 w-5" />}
-                  title="Gnosis Safe multisig"
+                  title="Safe multisig"
                   description={
                     vmLocation === 'c-chain'
                       ? 'Transfer ownership to a Safe on C-Chain. Production-ready security.'

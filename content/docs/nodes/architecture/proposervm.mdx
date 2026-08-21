@@ -1,0 +1,367 @@
+---
+title: "ProposerVM"
+description: "How the ProposerVM wrapper schedules block production from the P-Chain, and how to diagnose and recover an L1 that stopped producing blocks."
+---
+
+{/* NATIVE FILE: authored in builders-hub. Unlike generated pages (acps/, configs-flags, releases), this page is NOT produced by utils/remote-content. */}
+
+Every chain in an Avalanche node runs inside the [ProposerVM](https://github.com/ava-labs/avalanchego/tree/master/vms/proposervm). This wrapper connects the inner virtual machine (Subnet-EVM, Coreth, the PlatformVM itself) to Avalanche consensus and to the P-Chain. The wrapper decides **who may build the next block and when**, and it stamps every block with the P-Chain context of that decision. When an L1 stops producing blocks and the cause is hard to diagnose, the cause usually sits in this layer.
+
+<Callout title="At a glance">
+- The wrapper schedules block production from a **recorded view of the P-Chain**. Each block's builder embeds a recent P-Chain height. The validator set at the parent's embedded height decides who may build next.
+- Only a produced block advances the recorded view. Only validators visible in the tip's view may produce one. An idle chain's view stands still while the P-Chain moves on.
+- Chain healthy but producing nothing? Jump to [Troubleshooting: my L1 stopped producing blocks](#troubleshooting-my-l1-stopped-producing-blocks).
+</Callout>
+
+## How ProposerVM wraps your VM
+
+The ProposerVM intercepts the block pipeline: consensus talks to the wrapper, and the wrapper talks to your VM. Each wrapped block records two P-Chain heights with different jobs:
+
+| Value | What it is | Who consumes it | Moves when |
+| --- | --- | --- | --- |
+| Embedded height | A recent P-Chain height chosen by the block's builder | The proposer schedule: the validator set at the **parent's** embedded height decides who may build the next block | A new block is accepted |
+| Epoch | Number, start time, and a pinned P-Chain height, derived from the parent per [ACP-181](/docs/acps/181-p-chain-epoched-views) | The execution context: warp message verification and validator set reads inside the VM | A new block seals or advances the epoch |
+
+Do not confuse the two. Proposer eligibility comes from the parent's embedded height. The epoch height feeds the inner VM and warp verification. Every block carries both, and **both advance only when a block is produced.** An idle chain's view of the P-Chain stands still while the P-Chain itself moves on.
+
+## Proposer selection and slots
+
+For each height, the wrapper samples a stake-weighted proposer list from the validator set at the parent block's embedded P-Chain height ([`vms/proposervm/proposer/windower.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/proposer/windower.go)). Each sampled proposer owns one slot. If a slot passes without a block, the schedule moves to the next sampled validator. The constants, from `windower.go`:
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `WindowDuration` | 5s | One proposer slot |
+| `MaxVerifyWindows` / `MaxVerifyDelay` | 6 / 30s | How far past its slot a proposer's block still verifies |
+| `MaxBuildWindows` / `MaxBuildDelay` | 60 / 5 min | Pre-Durango only: when unsigned blocks became buildable by anyone |
+| `MaxLookAheadSlots` / `MaxLookAheadWindow` | 720 / 1h | How far ahead the build scheduler plans proposer slots |
+| Epoch duration D | 5 min (Fuji, Mainnet); 30s local default | Set per network; changing it requires a network upgrade |
+
+<Callout type="warn" title="No, building does not open up to everyone after the proposer windows">
+Older documentation (including AvalancheGo's own ProposerVM README) says that after the scheduled proposer windows elapse, any node may issue a block. The Durango upgrade removed that behavior: the unsigned-block fallback exists only in the pre-Durango code path. Today, if the validator set at the parent's embedded height contains no reachable live validator, no node ever builds a block. The only exception is an empty validator set at that height.
+</Callout>
+
+The practical consequence for validator set migrations: some operations change which identities exist on the P-Chain (a subnet to L1 conversion, a validator replacement, a long outage plus churn). Through any such operation, keep at least one identity from the current tip's embedded validator set alive until a new block lands. If you do not, the schedule rotates through validators that no longer exist, forever.
+
+## How a node decides to build
+
+**A node does not poll for build opportunities.** It computes when its next proposer slot arrives and sleeps until then (`WaitForEvent`). It plans up to 720 slots (one hour) ahead. Two properties follow:
+
+- A node that is **not in the validator set at the parent's embedded height** never calls the VM's `BuildBlock`. There is no error to log: from the node's point of view, it is simply never its turn. The `avalanche_meterchainvm_build_block_count` metric stays at exactly zero.
+- The gauge `avalanche_proposervm_block_building_slot` climbs by one for every 5 seconds of tip staleness. A reading of 27,000 means the tip is roughly a day and a half old. A chain can therefore look fully able to build (pending transactions, healthy node, live validator) and still produce nothing, with no error anywhere.
+
+## Epochs (ACP-181)
+
+[ACP-181](/docs/acps/181-p-chain-epoched-views) gave every chain a coarser, per-chain P-Chain clock: the epoch. The first block whose timestamp is at or past the epoch's start time plus D seals the epoch. The next block starts the new epoch, and the new epoch adopts the sealing block's embedded height. **Epochs never skip**: the first block after a gap advances the number by exactly one, no matter how long the gap. There is no upper bound on an epoch's duration.
+
+Two boundaries worth keeping sharp:
+
+- **Epochs feed verification context, not proposer sampling.** Warp message verification and in-VM validator set reads use the epoch's pinned height. The proposer schedule uses the parent's embedded height. The two heal at different moments after an outage: one block restores building, the next block restores the epoch.
+- Epoched views activated at the **Granite** upgrade (AvalancheGo v1.14.0). Before Granite, `proposervm.getCurrentEpoch` returns all zeros. The embedded height and the proposer schedule existed before epochs.
+
+## The RPC surface
+
+Each wrapped chain exposes two ProposerVM endpoints at `/ext/bc/<blockchainID>/proposervm` ([`vms/proposervm/service.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/proposervm/service.go)):
+
+| Method | Returns | Reading it under an outage |
+| --- | --- | --- |
+| `proposervm.getProposedHeight` | The P-Chain height this node would embed in the **next** block it builds | Looks current even on a frozen chain. **Do not use it to diagnose.** |
+| `proposervm.getCurrentEpoch` | The epoch the next block would carry: number, start time, pinned P-Chain height | On a long frozen chain the pinned height shows the tip's stale view |
+
+<Callout type="warn" title="/ext/bc/P/proposervm is the P-Chain's own wrapper">
+The P-Chain runs inside its own ProposerVM instance, so `/ext/bc/P/proposervm` answers for the P-Chain, not for your L1. Likewise `platform.getProposedHeight` (on `/ext/bc/P`) is the P-Chain's recommended height, also a different number. During an incident, you can read one of these and wrongly conclude that the L1's view is current. Always query the L1's own `/ext/bc/<blockchainID>/proposervm`.
+</Callout>
+
+No RPC reads an arbitrary historical block's embedded height. The two methods above are the whole per-chain surface. For validator sets at a historical height, use `platform.getValidatorsAt` (it accepts any depth and the keyword `proposed`).
+
+## Troubleshooting: my L1 stopped producing blocks
+
+The signature of a frozen ProposerVM view, all at once:
+
+- The mempool accepts transactions with correct nonces, and they stay pending.
+- The chain height is flat; the tip's timestamp ages.
+- `avalanche_meterchainvm_build_block_count` is exactly 0; `avalanche_proposervm_block_building_slot` climbs.
+- No errors in the logs, and **every** health check is green: bootstrapped, Validating, peers connected.
+
+<StaircaseFigure />
+
+### How a healthy view goes stale
+
+Three causes lead to the same frozen state. A **halt**: every validator goes offline for long enough. When the chain returns, its view is whatever the tip recorded before the halt. A **conversion on unsynced validators**: a subnet to L1 conversion hands the chain to a validator set that never synced it. The real history stays in the old nodes' databases, while the P-Chain now lists a new validator set. A **restore**: a database restored to an old tip brings back the old view, no matter how current the node's own P-Chain is.
+
+<Callout type="warn" title="Do not swap a pre-conversion database under a post-conversion validator">
+The database's tip embeds a P-Chain height from before the conversion, so its validator set is the old subnet's set. None of those identities exist on the P-Chain anymore. The chain will accept the history and then freeze exactly as described here. If you must restore pre-conversion data, plan the bridge registration below as part of the same maintenance window.
+</Callout>
+
+<Callout type="warn" title="The invariant">
+Only a produced block advances the recorded view. Only validators visible in the tip's view may produce one. If none of them is still a live P-Chain validator, block production halts indefinitely, and every health check stays green.
+</Callout>
+
+### Diagnose a frozen view
+
+<Steps>
+<Step>
+
+#### Check the tip's age
+
+```bash
+curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["latest", false]}' \
+  http://127.0.0.1:9650/ext/bc/<blockchainID>/rpc | jq -r '.result.timestamp'
+```
+
+If the tip is minutes old and the mempool is filling, treat it as this failure class until you prove otherwise.
+
+</Step>
+<Step>
+
+#### Read the frozen values
+
+```bash
+curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"proposervm.getCurrentEpoch","params":{}}' \
+  http://127.0.0.1:9650/ext/bc/<blockchainID>/proposervm
+```
+
+On a long frozen chain the returned `pChainHeight` is the tip's stale embedded height. Compare it against the live P-Chain (`platform.getProposedHeight` on `/ext/bc/P`). One caution: do **not** diagnose with `proposervm.getProposedHeight` on the chain endpoint. It reports the height this node would embed next, which looks current even while the chain is stuck.
+
+</Step>
+<Step>
+
+#### The decisive check: set intersection
+
+```bash
+curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"platform.getValidatorsAt","params":{"height":<FROZEN_HEIGHT>,"subnetID":"<SUBNET_ID>"}}' \
+  http://127.0.0.1:9650/ext/bc/P
+
+curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"platform.getValidatorsAt","params":{"height":"proposed","subnetID":"<SUBNET_ID>"}}' \
+  http://127.0.0.1:9650/ext/bc/P
+```
+
+If no NodeID appears in both answers, nobody may build: the deadlock is confirmed. Historical heights work at any depth (the node replays validator diffs backward from its current height). The only hard error is a request for a height above the node's own height. If the call fails, check `platform.getHeight` first.
+
+</Step>
+<Step>
+
+#### Confirm with the metrics
+
+```bash
+curl -s http://127.0.0.1:9650/ext/metrics \
+  | grep -E 'proposervm_block_building_slot|meterchainvm_build_block(_err)?_count'
+```
+
+`avalanche_proposervm_block_building_slot` climbs by one every 5 seconds of tip staleness. `avalanche_meterchainvm_build_block_count` flat at zero means the ProposerVM never asks the VM for a block. (The build counters exist only when the metered VM wrapper is enabled. If they are absent, that is configuration, not a symptom.)
+
+</Step>
+</Steps>
+
+### Recover
+
+The fix is one registration and one block. Put an identity **the frozen view already knows** back on the live P-Chain. Let it build once. The view then heals itself.
+
+<Callout title="Removals one day, an addition the next">
+The same conversion can need both directions. Legacy subnet validator entries linger after `ConvertSubnetToL1Tx` and inflate the warp signing quorum. You may need to **remove** them to unblock signature aggregation. A frozen embedded view needs one of those same-era identities **added back** to unblock block production. They are different mechanisms with opposite fixes: quorum arithmetic on today's set versus schedule visibility in the tip's old set.
+</Callout>
+
+<Steps>
+<Step>
+
+#### Choose a bridge identity
+
+Pick a validator from the **frozen height's** set (the first `getValidatorsAt` answer) whose staking and BLS keys you still control. A fresh NodeID cannot help: the schedule cannot see it.
+
+</Step>
+<Step>
+
+#### Keep the weight small
+
+Each churn period admits only a bounded fraction of total weight in changes (commonly 20 percent). The bridge validator needs to exist, not to carry power: if you register weight 19 next to an existing 100, you stay under the cap.
+
+</Step>
+<Step>
+
+#### Register it through your ValidatorManager
+
+Use the [Builder Console's add validator flow](/console/add-validator/initiate-registration) or the SDK. You initiate the registration on the chain that hosts your ValidatorManager. That chain must be producing blocks.
+
+<Callout type="warn" title="If the manager lives on the frozen chain itself">
+Then there is nowhere to send the registration transaction. An expert path exists because the P-Chain verifies only the aggregate BLS signature and the recorded conversion details, never chain liveness. Validators who hold their staking keys can sign the exact registration payload offline. This is delicate work, and no tooling exists for it. Escalate to your infrastructure provider or Ava Labs support, and treat prevention as the real fix.
+</Callout>
+
+</Step>
+<Step>
+
+#### If signature aggregation is flaky, run the aggregator locally
+
+```bash
+cat > sig-agg-config.json <<'EOF'
+{
+  "log-level": "debug",
+  "info-api":    { "base-url": "https://api.avax-test.network" },
+  "p-chain-api": { "base-url": "https://api.avax-test.network" },
+  "api-port": 8080,
+  "metrics-port": 8081,
+  "tracked-subnet-ids": ["<YOUR_SUBNET_ID>"]
+}
+EOF
+
+docker run --rm -p 8080:8080 -p 8081:8081 \
+  -v "$(pwd)/sig-agg-config.json:/config.json" \
+  avaplatform/signature-aggregator:v0.6.0-fuji \
+  --config-file /config.json
+
+curl -s http://localhost:8080/aggregate-signatures \
+  -H 'content-type: application/json' \
+  --data '{"message":"<HEX_UNSIGNED_WARP_MESSAGE>","signing-subnet-id":"<SUBNET_ID>","quorum-percentage":67}'
+```
+
+Use your own RPC endpoints if you have them (put API keys in the config's `http-headers` map, never inline in the URL). If you need to pin a P-Chain height in the request, the key is `pchain-height`. The upstream README's spelling `p-chain-height` does not work: the service silently ignores it and falls back to the proposed height.
+
+</Step>
+<Step>
+
+#### Watch the flip, then do the bookkeeping
+
+One block from the bridge validator restores block production. The epoch (and with it warp verification) catches up on the next block. Once blocks flow, send `completeValidatorRegistration` on the ValidatorManager so the contract records what the P-Chain already knows. Remove the bridge validator if you do not want to keep it.
+
+</Step>
+</Steps>
+
+### A worked example
+
+A two validator subnet (weights 80 and 20) misses a network upgrade and converts to an L1 with a single fresh node at weight 100. The fresh node was never synced. Alone in its validator set, it bootstraps against itself and decides that its own empty database is the network. It quietly builds a new chain from genesis, with perfectly normal logs. The operator notices that contracts are missing, stops the node, and restores the original database. Now the real history is back, but the restored tip predates the conversion. Its embedded height resolves the old set (weights 80 and 20), and neither of those is a P-Chain validator anymore. The only live validator (the 100) is invisible to the schedule. Transactions queue, build counters sit at zero, and the slot counter climbs.
+
+The fix took one registration and one block: re-register the surviving 20 identity at weight 19 through the ValidatorManager. That identity was visible to both the frozen view and the live P-Chain, so it built the unlocking block. The block after that restored the epoch.
+
+<HeightsRuler />
+
+| Phase | P-Chain height | Tip embeds | Epoch height | State |
+| --- | --- | --- | --- | --- |
+| Healthy | 291,020 | 291,012 | 291,012 | Blocks every few seconds |
+| Frozen (42 days) | 302,155 | 291,012 | 291,012 | Txs pending, zero builds |
+| Bridge block | 302,171 | 302,168 | 291,012 | Liveness restored |
+| Next block | 302,240 | 302,233 | 302,168 | Fully recovered |
+
+All numbers are illustrative.
+
+### Related pitfalls
+
+<Accordions type="single">
+<Accordion title="Legacy subnet validators still count toward the warp quorum after conversion">
+
+**Symptom:** right after a subnet to L1 conversion, the InitializeValidatorSet signature aggregation is stuck below the 67 percent threshold (for example 100 of 200 weight) no matter how often you retry.
+
+**Cause:** `ConvertSubnetToL1Tx` does not remove the legacy subnet validator entries from the P-Chain. Their weight stays in the quorum denominator, and offline or outdated nodes cannot sign. The same arithmetic applies to inactive L1 validators: a validator whose continuous fee balance ran out shows up as `NodeID-111111111111111111116DBWJs` with weight and a `null` public key. It inflates the denominator but cannot sign.
+
+**Fix:** remove the legacy subnet validator entries (RemoveSubnetValidatorTx, available via platform-cli), keep validator fee balances topped up, then retry the aggregation.
+
+</Accordion>
+<Accordion title="A sole unsynced validator quietly builds a fork">
+
+**Symptom:** after a conversion, the chain produces blocks, but heights and hashes disagree with explorers and with the old nodes, and pre-existing contracts read as empty.
+
+**Cause:** a node that is the only validator of a chain bootstraps against itself: it asks the only validator it knows (itself) for the network frontier, and the answer is its own local tip. With an unsynced database, that tip is genesis. The logs look completely normal because the bootstrap protocol ran and succeeded.
+
+**Fix:** stop the node. Take cold backups. Point the node at the real chain database. Then expect the frozen view deadlock described on this page as the next step. Conversion never touches chain state: the history is safe in the old nodes' databases.
+
+</Accordion>
+<Accordion title="A warp message fails verification right after being signed">
+
+**Symptom:** the destination rejects a freshly aggregated warp message as invalid, even though the signature just passed aggregation.
+
+**Cause:** verification runs against the P-Chain height pinned by the verifying chain's epoch, which can trail the live P-Chain. If the validator set changed after that pinned height, the fresh signature does not match the set the verifier resolves. ACP-181 states it directly: the message constructor must account for the verifying chain's epoch height, which may be arbitrarily far behind.
+
+**Fix:** produce blocks past the change, then resend the identical message. The procedure is in [warp delivery fails on an idle chain](#troubleshooting-warp-delivery-fails-on-an-idle-chain). The [validator registration flow](/docs/avalanche-l1s/validator-manager/registration-flow) documents the same failure shape on the registration completion path.
+
+</Accordion>
+</Accordions>
+
+### Prevention checklist
+
+- Before any `ConvertSubnetToL1Tx`, confirm the incoming validator is bootstrapped **for the chain** (not just the P-Chain) and that its tip hash matches an existing node at the same height.
+- Never leave a fresh sole validator alone with an empty database: it will build its own chain rather than wait.
+- Through every conversion or restore, keep at least one identity from the current tip's validator set registered on the P-Chain until a new block lands.
+- Take cold database backups before you swap data directories. Run the set intersection check before you declare a restore done.
+- Alert on production silence: `block_building_slot` climbs while `build_block_count` stays flat, and the tip age grows. These alerts catch this class in minutes instead of days.
+- Keep validator continuous fee balances funded: inactive weight cannot sign but still counts against every quorum.
+- Run current releases: the v1.15.0 line logs the offending parent P-Chain height when a node cannot determine its proposer slot.
+
+## Troubleshooting: warp delivery fails on an idle chain
+
+The frozen-chain deadlock above is the extreme case. A milder version hits chains that are alive but quiet: block production works, yet warp message delivery fails.
+
+**Symptom signature:**
+
+- `initializeValidatorSet` reverts, or a `completeValidatorRegistration` / weight update / removal call rejects a freshly aggregated message with `InvalidWarpMessage` (`0x6b2f19e9`).
+- The P-Chain transaction it depends on is confirmed.
+- The signature aggregation itself succeeded.
+
+**The rule:** delivery verifies signatures against the validator set at the height pinned by the receiving chain's current epoch. That epoch advances only when the chain produces blocks. On a quiet chain the pinned height predates your P-Chain transaction, so the verifier resolves a validator set that does not match the fresh signature.
+
+### Produce blocks to advance the view
+
+Any transaction produces a block. A zero-value transfer to your own address is the cheapest one:
+
+```bash
+cast send $YOUR_ADDRESS --value 0 \
+  --rpc-url https://<node>/ext/bc/<blockchainID>/rpc \
+  --private-key $PRIVATE_KEY
+```
+
+Two blocks are enough on a long-quiet chain. The first block seals the old epoch, whose duration D elapsed long ago. The next block starts a new epoch and adopts the sealer's embedded height. Your retried delivery transaction can be that next block: one self-transfer plus the retry often completes the pair.
+
+One case needs patience instead of transactions: an epoch that opened less than D ago (5 minutes on Fuji and Mainnet) cannot seal yet. Wait out the remainder, then send.
+
+Verify before and after with the epoch read from [the RPC surface](#the-rpc-surface):
+
+```bash
+curl -s -X POST -H 'content-type: application/json' \
+  --data '{"jsonrpc":"2.0","id":1,"method":"proposervm.getCurrentEpoch","params":{}}' \
+  https://<node>/ext/bc/<blockchainID>/proposervm
+```
+
+The pinned `pChainHeight` must reach or pass the height your P-Chain transaction landed in. Then resend the identical warp message.
+
+**Prerequisites and caveats:**
+
+- The sending account needs gas on the chain, and the Transactor Allowlist precompile (when enabled) must include it.
+- This advances **delivery** readiness only. It cannot fix signature **aggregation** failures: those depend on the signing validators' own P-Chain views and their online weight (see the legacy-validator pitfall above).
+- A ValidatorManager hosted on the C-Chain needs none of this. The C-Chain always produces blocks.
+
+The [Builder Console](/console/layer-1/advance-pchain-view) automates this procedure: it reads the epoch, computes the wait, sends the self-transfers, and verifies the result.
+
+## Related
+
+<Cards>
+  <Card
+    title="ACP-181: P-Chain Epoched Views"
+    description="The proposal that defines epochs, sealing, and advancement."
+    href="/docs/acps/181-p-chain-epoched-views"
+  />
+  <Card
+    title="ACP-151: Use current block P-Chain height as context"
+    description="The predecessor mechanism for the height handed to VMs."
+    href="/docs/acps/151-use-current-block-pchain-height-as-context"
+  />
+  <Card
+    title="Snowman++ in the consensus architecture"
+    description="Where proposer windows sit in the Snow* protocol family."
+    href="/docs/nodes/architecture/consensus"
+  />
+  <Card
+    title="ProposerVM RPC reference"
+    description="The upstream API reference for the wrapper's endpoints."
+    href="/docs/rpcs/other/proposervm-rpc"
+  />
+  <Card
+    title="Warp precompile"
+    description="How messages are verified against the ProposerVM's P-Chain height."
+    href="/docs/avalanche-l1s/precompiles/warp-messenger"
+  />
+  <Card
+    title="Validator Registration Flow"
+    description="The interactive explainer for adding a validator, including its failure modes."
+    href="/docs/avalanche-l1s/validator-manager/registration-flow"
+  />
+</Cards>

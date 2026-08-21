@@ -97,14 +97,14 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
 
   // Helper function to get explorer URL
   const getExplorerUrl = (id: string, type: 'tx' | 'address', network: string, chain: string = 'P'): string => {
-    const base = network === 'mainnet' 
-      ? 'https://subnets.avax.network' 
-      : 'https://subnets-test.avax.network';
-    
     if (chain === 'P') {
-      return `${base}/p-chain/${type}/${id}`;
+      return `/explorer/${network === 'mainnet' ? 'mainnet' : 'fuji'}/p-chain/${type}/${id}`;
     }
-    return `${base}/c-chain/${type}/${id}`;
+    // C-Chain is only fully served by our explorer on mainnet.
+    if (network === 'mainnet') {
+      return `/explorer/mainnet/c-chain/${type}/${id}`;
+    }
+    return `https://explorer-test.avax.network/c-chain/${type}/${id}`;
   };
 
   return {

@@ -1,21 +1,35 @@
 import { NextResponse } from 'next/server';
-import { Avalanche } from "@avalanche-sdk/chainkit";
-import { type ActiveValidatorDetails } from '@avalanche-sdk/chainkit/models/components/activevalidatordetails.js';
-import { type Subnet } from '@avalanche-sdk/chainkit/models/components/subnet.js';
+import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { type SimpleValidator, type ValidatorVersion, type SubnetStats } from '@/types/validator-stats';
 import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@/constants/validator-discovery';
 import l1ChainsData from "@/constants/l1-chains.json";
 
+// Minimal subnet shape consumed from our /v1 subnets endpoint (Glacier-shape).
+// blockchains is null (Go nil slice) for subnets that never created a chain.
+type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainName: string }[] | null };
+
 export const dynamic = 'force-dynamic';
+// The cold aggregate paginates all L1 validators + subnets (pageSize capped at
+// 100 upstream). Result is cached 24h with stale-while-revalidate, so only the
+// first request after expiry is slow — give it headroom so it can't 504 and
+// leave the cache empty.
+export const maxDuration = 60;
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 const VERSION_CACHE_DURATION = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 100;
-const FETCH_TIMEOUT = 10000;
-const CACHE_CONTROL_HEADER = 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=172800';
+// Our /v1 validator/subnet endpoints have a heavy cold-start (validators ~10s,
+// subnets ~60s) before their state cache warms; give each page fetch generous
+// headroom so a cold window doesn't abort and blank the whole aggregate. The
+// warmer keeps them hot, so the steady-state path is sub-second.
+const FETCH_TIMEOUT = 60000;
+// max-age=0: the CDN holds the day-long copy (s-maxage); browsers must
+// revalidate every time, so one bad response cached during an outage can't
+// pin a client's dashboards to a dash for 24 hours
+const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=172800';
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
-const subnetsCached: Partial<Record<string, { data: Subnet[]; timestamp: number; promise?: Promise<Subnet[]> }>> = {};
+const subnetsCached: Partial<Record<string, { data: SubnetInfo[]; timestamp: number; promise?: Promise<SubnetInfo[]> }>> = {};
 const validatorVersionsCached: Partial<Record<string, { data: Map<string, string>; timestamp: number }>> = {};
 const statsCached: Partial<Record<string, { data: SubnetStats[]; timestamp: number }>> = {};
 const revalidatingKeys = new Set<string>();
@@ -35,49 +49,61 @@ async function fetchWithTimeout(url: string, timeout: number = FETCH_TIMEOUT): P
   }
 }
 
-async function listClassicValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
-  const avalancheSDK = new Avalanche({ network });
-  const validators: SimpleValidator[] = [];
-  
-  const result = await avalancheSDK.data.primaryNetwork.listValidators({
-    pageSize: PAGE_SIZE,
-    network,
-    validationStatus: "active",
-  });
-
-  for await (const page of result) {
-    const activeValidators = page.result.validators as ActiveValidatorDetails[];
-    validators.push(...activeValidators.map(v => ({
-      nodeId: v.nodeId,
-      subnetId: v.subnetId,
-      weight: Number(v.amountStaked)
-    })));
+// Fetch every page of a /v1 list endpoint (pageToken pagination), collecting the
+// named array field. Server-side, so it hits the plain-HTTP EXPLORER_API_BASE
+// directly. Replaces the Glacier SDK's async pager.
+async function fetchAllPages<T>(path: string, field: string): Promise<T[]> {
+  const out: T[] = [];
+  let pageToken: string | undefined;
+  for (let i = 0; i < 200; i++) {
+    const sep = path.includes("?") ? "&" : "?";
+    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+    const res = await fetchWithTimeout(`${EXPLORER_API_BASE}${path}${sep}pageSize=${PAGE_SIZE}${tok}`);
+    if (!res.ok) throw new Error(`validators upstream ${res.status} for ${path}`);
+    const page = await res.json();
+    const arr: T[] = Array.isArray(page?.[field]) ? page[field] : [];
+    out.push(...arr);
+    pageToken = page?.nextPageToken;
+    if (!pageToken || arr.length < PAGE_SIZE) break;
   }
+  return out;
+}
 
-  return validators;
+async function listClassicValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
+  // Primary-network validators from the explorer-shape snapshot — ONE fast
+  // response (the whole current set), instead of paginating ~30 pages of the
+  // heavy /v1 validators endpoint (~3s/page → ~90s → 504). Same source the
+  // P-chain /validators page uses, so counts stay consistent.
+  const res = await fetchWithTimeout(`${EXPLORER_API_BASE}/api/${network}/validators`);
+  if (!res.ok) throw new Error(`validators upstream ${res.status}`);
+  const j = await res.json();
+  const vs: any[] = Array.isArray(j?.validators) ? j.validators : [];
+  return vs.map(v => ({
+    nodeId: v.nodeId,
+    subnetId: v.subnetId,
+    weight: Number(v.totalStake ?? v.weight),
+  }));
 }
 
 async function listL1Validators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
-  const avalancheSDK = new Avalanche({ network });
-  const validators: SimpleValidator[] = [];
-  
-  const result = await avalancheSDK.data.primaryNetwork.listL1Validators({
-    pageSize: PAGE_SIZE,
-    includeInactiveL1Validators: false,
-    network,
-  });
-
-  for await (const page of result) {
-    validators.push(...page.result.validators
-      .filter(v => v.remainingBalance > 0)
-      .map(v => ({
-        nodeId: v.nodeId,
-        subnetId: v.subnetId,
-        weight: v.weight
-      })));
-  }
-
-  return validators;
+  // Active L1 validators across all subnets from our P-chain read API.
+  //
+  // Upstream fixed 2026-07-24 (stats-api PR #8): the endpoint used to ship
+  // removed validators (weight-0 rows with stale balances — Coqnet reported
+  // 1,231 "active" vs 6 on the node) because the replay had ACP-77 removal
+  // and disable semantics inverted. The weight/balance filter below is kept
+  // as a cheap defense against regressions; post-fix it drops nothing the
+  // endpoint should have sent. Counts here are REGISTERED ACTIVE seats —
+  // remainingBalance is still gross of continuous-fee burn upstream, so
+  // drained-but-not-removed seats pass the balance check.
+  const vs = await fetchAllPages<any>(`/v1/networks/${network}/l1Validators?includeInactive=false`, "validators");
+  return vs
+    .filter(v => Number(v.weight) > 0 && Number(v.remainingBalance) > 0)
+    .map(v => ({
+      nodeId: v.nodeId,
+      subnetId: v.subnetId,
+      weight: Number(v.weight),
+    }));
 }
 
 async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleValidator[]> {
@@ -127,7 +153,7 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
   return promise;
 }
 
-async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
+async function getAllSubnets(network: "mainnet" | "fuji"): Promise<SubnetInfo[]> {
   const now = Date.now();
   const cache = subnetsCached[network];
 
@@ -141,17 +167,8 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<Subnet[]> {
 
   // Start new fetch
   const promise = (async () => {
-    const avalancheSDK = new Avalanche({ network });
-    const allSubnets: Subnet[] = [];
-    
-    const result = await avalancheSDK.data.primaryNetwork.listSubnets({
-      pageSize: PAGE_SIZE,
-      network,
-    });
-
-    for await (const page of result) {
-      allSubnets.push(...page.result.subnets);
-    }
+    // Subnet list (subnetId, isL1, blockchain names) from our P-chain read API.
+    const allSubnets = await fetchAllPages<SubnetInfo>(`/v1/networks/${network}/subnets`, "subnets");
 
     subnetsCached[network] = {
       data: allSubnets,
@@ -238,7 +255,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     subnetIsL1Map.set(subnet.subnetId, subnet.isL1);
     if (subnetAccumulators[subnet.subnetId]) continue;
     subnetAccumulators[subnet.subnetId] = {
-      name: subnet.blockchains.map(blockchain => blockchain.blockchainName).join('/'),
+      name: (subnet.blockchains ?? []).map(blockchain => blockchain.blockchainName).join('/') || `Subnet (${subnet.subnetId.slice(0, 8)}…)`,
       id: subnet.subnetId,
       byClientVersion: {},
       totalStake: 0n,

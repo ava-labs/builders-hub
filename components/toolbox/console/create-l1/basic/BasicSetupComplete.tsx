@@ -52,23 +52,29 @@ const MOCK_USDC_SYMBOL = 'MockUSDC';
 type Network = 'fuji' | 'mainnet';
 
 function explorerBase(network: Network): string {
-  return network === 'fuji' ? 'https://subnets-test.avax.network' : 'https://subnets.avax.network';
+  return network === 'fuji' ? 'https://explorer-test.avax.network' : 'https://explorer.avax.network';
 }
 
+// C-Chain addresses resolve on our explorer only on mainnet (its address route
+// reads history from a mainnet-pinned Glacier client), so Fuji keeps the
+// subnets link. P-Chain pages serve both networks.
 function cChainAddressUrl(addr: string, network: Network): string {
-  return `${explorerBase(network)}/c-chain/address/${addr}`;
+  return network === 'mainnet'
+    ? `/explorer/mainnet/c-chain/address/${addr}`
+    : `${explorerBase(network)}/c-chain/address/${addr}`;
 }
 
+// No subnet-detail route on our explorer yet — stays on the subnets explorer.
 function pChainSubnetUrl(id: string, network: Network): string {
   return `${explorerBase(network)}/subnets/${id}`;
 }
 
 function pChainBlockchainUrl(id: string, network: Network): string {
-  return `${explorerBase(network)}/blockchains/${id}`;
+  return `/explorer/${network}/p-chain/chain/${id}`;
 }
 
 function validatorNodeUrl(nodeId: string, network: Network): string {
-  return `${explorerBase(network)}/validators/${nodeId}`;
+  return `/explorer/${network}/p-chain/node/${nodeId}`;
 }
 
 function l1AddressUrl(rpcUrl: string, addr: string): string {

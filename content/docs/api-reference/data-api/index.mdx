@@ -10,11 +10,11 @@ The Data API provides web3 application developers with multi-chain data related 
 
 <img src="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=8de5972a10c0c85d6e54a310c3a8c2cc" alt="Data API" data-og-width="3126" width="3126" data-og-height="2807" height="2807" data-path="images/data-api.png" data-optimize="true" data-opv="3" srcset="https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=280&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=f26740e5df60f89cb7a2995bb1cf3f69 280w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=560&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=2c9319348ada91f26f8b315e4ca479c6 560w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=840&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=da79bcd6b56c5bba79bd3df8ec641d94 840w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=1100&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=e9bd34bb1bb349e2b3bc59f1805ca2d4 1100w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=1650&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=6b235051a376fd4d54720b9ad1ae346e 1650w, https://mintcdn.com/avalabs-47ea3976/0zR1yC86HIu3y3oi/images/data-api.png?w=2500&fit=max&auto=format&n=0zR1yC86HIu3y3oi&q=85&s=ce2f4992fd320a6dccf87677b63fb380 2500w" />
 
-The [Data API](/docs/api-reference/data-api), along with the [Metrics API](/docs/api-reference/metrics-api), are the engines behind the [Avalanche Explorer](https://subnets.avax.network/stats/) and the [Core wallet](https://core.app/en/). They are used to display transactions, logs, balances, NFTs, and more. The data and visualizations presented are all powered by these APIs, offering real-time and historical insights that are essential for building sophisticated, data-driven blockchain products.
+The [Data API](/docs/api-reference/data-api), along with the [Metrics API](/docs/api-reference/metrics-api), are the engines behind the [Avalanche Explorer](https://explorer.avax.network/stats/) and the [Core wallet](https://core.app/en/). They are used to display transactions, logs, balances, NFTs, and more. The data and visualizations presented are all powered by these APIs, offering real-time and historical insights that are essential for building sophisticated, data-driven blockchain products.
 
 ### Features
 
-* **Extensive L1 Support**: Gain access to data from over 100+ L1s across both mainnet and testnet. If an L1 is listed on the [Avalanche Explorer](https://subnets.avax.network/), you can query its data using the Data API.
+* **Extensive L1 Support**: Gain access to data from over 100+ L1s across both mainnet and testnet. If an L1 is listed on the [Avalanche Explorer](https://explorer.avax.network/), you can query its data using the Data API.
 * **Transactions and UTXOs**: easily retrieve details related to transactions, UTXOs, and token transfers from Avalanche EVMs, Ethereum, and Avalanche's Primary Network - the P-Chain, X-Chain and C-Chain.
 * **Blocks**: retrieve latest blocks and block details
 * **Balances**: fetch balances of native, ERC-20, ERC-721, and ERC-1155 tokens along with relevant metadata.
@@ -29,7 +29,7 @@ Avalanche’s architecture supports a diverse ecosystem of interconnected L1 blo
 * The Platform Chain (P-Chain)
 * The Exchange Chain (X-Chain)
 
-However, with the implementation of [ACP-77](/docs/acps/77-reinventing-subnets), this requirement will change. Subnet Validators will be able to operate independently of the Primary Network, allowing for more flexible and affordable Subnet creation and management.
+However, with the implementation of [ACP-77](/docs/acps/77-reinventing-subnets), this requirement has changed. Validators of an Avalanche L1 no longer validate the Primary Network, allowing for more flexible and affordable Avalanche L1 creation and management.
 
 The **Data API** supports a wide range of L1 blockchains (**over 100**) across both **mainnet** and **testnet**, including popular ones like Beam, DFK, Lamina1, Dexalot, Shrapnel, and Pulsar. In fact, every L1 you see on the [Avalanche Explorer](https://explorer.avax.network/) can be queried through the Data API. This list is continually expanding as we keep adding more L1s. For a full list of supported chains, visit [List chains](/docs/api-reference/data-api/evm-chains/supportedChains).
 

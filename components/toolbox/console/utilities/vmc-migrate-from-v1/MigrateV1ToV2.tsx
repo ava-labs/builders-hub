@@ -209,7 +209,7 @@ function MigrateV1ToV2({ onSuccess }: BaseConsoleToolProps) {
             <div className="space-y-2">
               <ResultField label="Transaction Hash" value={txHash} showCheck />
               <a
-                href={`https://subnets.avax.network/tx/${txHash}`}
+                href={`https://explorer.avax.network/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-blue-500 hover:underline flex items-center gap-1"

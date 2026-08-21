@@ -13,28 +13,28 @@ Use cases for ICM may include but is not limited to:
 - Token transfers between Avalanche L1s
 - State Sharding between multiple Avalanche L1s
 
-Elements of Cross-Avalanche L1 Communication[​](#elements-of-cross-avalanche-l1-communication "Direct link to heading")
+Elements of Cross-Avalanche L1 Communication
 -----------------------------------------------------------------------------------------------------------
 
 The communication consists of the following four steps:
 
 ![image showing four steps of cross-Avalanche L1 communication: Signing, aggregation, Delivery and Verification](/images/warp1.png)
 
-### Signing Messages on the Origin Avalanche L1[​](#signing-messages-on-the-origin-avalanche-l1 "Direct link to heading")
+### Signing Messages on the Origin Avalanche L1
 
 ICM is a low-level messaging protocol. Any type of data encoded in an array of bytes can be included in the message sent to another Avalanche L1. ICM uses the [BLS signature scheme](https://crypto.stanford.edu/~dabo/pubs/papers/BLSmultisig.html), which allows message recipients to verify the authenticity of these messages. Therefore, every validator on the Avalanche network holds a BLS key pair, consisting of a private key for signing messages and a public key that others can use to verify the signature.
 
-### Signature Aggregation on the Origin Avalanche L1[​](#signature-aggregation-on-the-origin-avalanche-l1 "Direct link to heading")
+### Signature Aggregation on the Origin Avalanche L1
 
 If the validator set of an Avalanche L1 is very large, this would result in the Avalanche L1's validators sending many signatures between them. One of the powerful features of BLS is the ability to aggregate many signatures of different signers in a single multi-signature. Therefore, validators of one Avalanche L1 can now individually sign a message and these signatures are then aggregated into a short multi-signature that can be quickly verified.
 
-### Delivery of Messages to the Destination Avalanche L1[​](#delivery-of-messages-to-the-destination-avalanche-l1 "Direct link to heading")
+### Delivery of Messages to the Destination Avalanche L1
 
 The messages do not pass through a central protocol or trusted entity, and there is no record of messages sent between Avalanche L1s on the primary network. This avoids a bottleneck in Avalanche L1-to-Avalanche L1 communication, and non-public Avalanche L1s can communicate privately.
 
 It is up to the Avalanche L1s and their users to determine how they want to transport data from the validators of the origin Avalanche L1 to the validators of the destination Avalanche L1 and what guarantees they want to provide for the transport.
 
-### Verification of Messages in the Destination Avalanche L1[​](#verification-of-messages-in-the-destination-avalanche-l1 "Direct link to heading")
+### Verification of Messages in the Destination Avalanche L1
 
 When an Avalanche L1 wants to process another Avalanche L1's message, it will look up both BLS Public Keys and stake of the origin Avalanche L1. The authenticity of the message can be verified using these public keys and the signature.
 
@@ -42,7 +42,7 @@ The combined weight of the validators that must be part of the BLS multi-signatu
 
 Since both the public keys and stake weights of all validators are recorded on the primary network's P-chain, they are readily accessible to any virtual machine run by the validators. Therefore, the Avalanche L1s do not need to communicate with each other about changes in their respective sets of validators, but can simply rely on the latest information on the P-Chain. Therefore, ICM introduces no additional trust assumption other than that the validators of the origin Avalanche L1 are participating honestly.
 
-Reference Implementation[​](#reference-implementation "Direct link to heading")
+Reference Implementation
 -------------------------------------------------------------------------------
 
 A Proof-of-Concept VM called [XSVM](https://github.com/ava-labs/xsvm) was created to demonstrate the power of ICM. XSVM enables simple ICM transfers between any two Avalanche L1s if run out-of-the-box.

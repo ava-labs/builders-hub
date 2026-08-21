@@ -2101,30 +2101,6 @@
   background: var(--pr-g-100);
   padding: 14px 4px 4px;
 }
-.profile .pr-chart svg {
-  display: block;
-  width: 100%;
-  height: 320px;
-}
-.profile .pr-chart__legend {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  padding: 8px 4px 2px;
-  font-family: var(--pr-mono);
-  font-size: 11px;
-  color: var(--pr-g-700);
-}
-.profile .pr-chart__legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.profile .pr-chart__legend-swatch {
-  width: 10px;
-  height: 2px;
-  border-radius: 2px;
-}
 
 /* Profile completion — per-platform adoption bars */
 .profile .pr-completion-bars {
@@ -2589,4 +2565,36 @@
 .profile .pr-switch--disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* Referral leaderboard controls (tab switch + month filter) */
+.profile .pr-leaderboard__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.profile .pr-leaderboard__controls .pr-seg {
+  flex: 1;
+  min-width: 0;
+}
+.profile .pr-month-select {
+  appearance: none;
+  height: 34px;
+  padding: 0 28px 0 12px;
+  border: 1px solid var(--pr-hairline);
+  border-radius: 8px;
+  background: var(--pr-g-100)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+    no-repeat right 10px center;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--pr-g-1000);
+  cursor: pointer;
+}
+:where(.dark) .profile .pr-month-select {
+  background-color: var(--pr-g-200);
+}
+.profile .pr-month-select:hover {
+  border-color: var(--pr-g-700);
 }
