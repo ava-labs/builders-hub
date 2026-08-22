@@ -773,6 +773,17 @@ html {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Audit marketplace brand tokens (Foundations.dc.html @theme block).
+     #E6212F is the current guideline red the legacy #e84142 consolidates to. */
+  --color-brand: #e6212f;
+  --color-brand-deep: #b20f2a;
+  --color-brand-soft: #ff7f7b;
+  --color-info: #0061e2;
+  --color-info-soft: #749dd3;
+  --color-bar: #3176d3;
+  --color-surface-dark: #121212;
+  --color-card-dark: #1f1f1f;
+  --color-ink-soft-dark: #a2afb2;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -2011,4 +2022,71 @@ html.embed-mode #nd-toc {
   font-weight: 800 900;
   font-style: normal;
   font-display: swap;
+}
+
+/* Audit marketplace: red-CTA hover sweep (house BrandButton pattern, mockup
+   board section 07). The light plane sweeps in behind the label; the label
+   flips to ink. Flattened by the prefers-reduced-motion reducer above. */
+.audits-sweep {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.audits-sweep::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #ebf0fa;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+.audits-sweep:hover::before {
+  transform: scaleX(1);
+}
+.audits-sweep:hover {
+  color: #1f1f1f;
+}
+
+/* The hero display word rests as INK (a fully red line over the red CTA
+   was too much red); the brand arrives as motion instead: a slow red
+   sheen sweeps through the letters left to right (~1.8s), then the word
+   rests ~4s before the next pass. Both loop endpoints show plain ink so
+   the restart is invisible. Reduced motion collapses to static ink (the
+   global reducer above); browsers without text clipping keep ink too.
+   The red full stop next to it is plain markup and stays in both cases. */
+.audits-word-fill {
+  --audits-ink: #09090b;
+}
+.dark .audits-word-fill {
+  --audits-ink: #fafafa;
+}
+@supports (-webkit-background-clip: text) {
+  .audits-word-fill {
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-image: linear-gradient(
+      100deg,
+      var(--audits-ink) 0%,
+      var(--audits-ink) 45%,
+      #e6212f 50%,
+      var(--audits-ink) 55%,
+      var(--audits-ink) 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 250% 100%;
+    background-position: 0% 0;
+    animation: audits-ink-sheen 6s ease-in-out infinite;
+  }
+  @keyframes audits-ink-sheen {
+    0% {
+      background-position: 100% 0;
+    }
+    30%,
+    100% {
+      background-position: 0% 0;
+    }
+  }
 }

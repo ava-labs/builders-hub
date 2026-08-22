@@ -111,6 +111,9 @@ model User {
   referralAttributions       ReferralAttribution[]     @relation("ReferralAttributionUser")
   posted_job_listings        JobListing[]              @relation("UserPostedJobListings")
   grant_applications         GrantApplication[]        @relation("GrantApplicationUser")
+  audit_requests             AuditRequest[]            @relation("AuditRequestUser")
+  auditors_created           Auditor[]                 @relation("AuditorCreatedBy")
+  audit_subsidy_decisions    AuditSubsidyDecision[]    @relation("AuditSubsidyDecider")
 }
 
 model VerificationToken {
@@ -194,6 +197,7 @@ model Project {
   evaluations         Evaluation[]
   jobListings         JobListing[]
   grant_applications  GrantApplication[]  @relation("GrantApplicationProject")
+  audit_requests      AuditRequest[]      @relation("AuditRequestSourceProject")
 }
 
 model Member {
@@ -758,4 +762,186 @@ model GrantApplication {
 
   @@unique([program_key, project_id])
   @@index([user_id])
+}
+
+// ---------------------------------------------------------------------------
+// Audit Marketplace. Status columns store plain strings; the allowed values
+// and all derived display states live in lib/audits/status.ts. Quote
+// visibility is a query-layer rule enforced by server/services/audits/
+// visibility.ts, the only module allowed to read AuditQuote.
+// ---------------------------------------------------------------------------
+
+model AuditRequest {
+  id                   String    @id @default(uuid())
+  user_id              String
+  source_project_id    String?
+  // Snapshot fields copied from the Project record at import time; the
+  // request must stay stable if the project is edited later. Text columns
+  // default to "" so a draft can hold any partial state: the submit schema
+  // (types/audits.ts auditSubmitSchema) is the completeness gate, not the DB.
+  project_name         String    @default("")
+  website              String    @default("")
+  description          String    @default("")
+  scope                String    @default("")
+  project_types        String[]  @default([])
+  deployment_target    String    @default("") // c_chain | own_l1 | fuji_only
+  multichain           Boolean   @default(false)
+  services             String[]  @default([])
+  repos                Json      @default("[]") // [{url, ref}]
+  languages            String[]  @default([])
+  frameworks           String[]  @default([])
+  nsloc                Int?
+  doc_links            String[]  @default([])
+  attachments          Json      @default("[]") // [{name, url, size}]
+  needed_by            DateTime? @db.Timestamptz(3)
+  quote_deadline       DateTime? @db.Timestamptz(3)
+  urgency              String? // within_3_weeks | within_6_weeks | flexible
+  contact_name         String    @default("")
+  contact_email        String    @default("")
+  contact_handle       String?
+  contact_calendar_url String?
+  // Stamped server-side at submission: the moment the project agreed its
+  // contact details could be shared with the whitelisted audit firms. Null on
+  // every row submitted before the checkbox existed.
+  contact_consent_at   DateTime? @db.Timestamptz(3)
+  // Stored: draft | pending_review | rejected | collecting | engaged |
+  // withdrawn. "deciding" and "expired" are derived at read time from
+  // quote_deadline + quote count. Plain text on purpose: the vocabulary lives
+  // in lib/audits/status.ts, so adding a state needs no migration.
+  status               String    @default("draft")
+  // Plain unique column, not a relation: an AuditRequest<->AuditQuote FK
+  // cycle would complicate deletes. Integrity is enforced inside the
+  // acceptance transaction.
+  accepted_quote_id    String?   @unique
+  submitted_at         DateTime? @db.Timestamptz(3)
+  closed_at            DateTime? @db.Timestamptz(3)
+  created_at           DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at           DateTime  @updatedAt @db.Timestamptz(3)
+
+  user              User                   @relation("AuditRequestUser", fields: [user_id], references: [id], onDelete: Cascade)
+  source_project    Project?               @relation("AuditRequestSourceProject", fields: [source_project_id], references: [id], onDelete: SetNull)
+  quotes            AuditQuote[]
+  subsidy_decisions AuditSubsidyDecision[]
+  fanout_deliveries AuditFanoutDelivery[]
+  events            AuditEventLog[]
+
+  @@index([user_id])
+  @@index([source_project_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+model Auditor {
+  id             String    @id @default(uuid())
+  firm_name      String
+  // ALWAYS stored lowercase (no citext in this database); every write path
+  // and the session resolver normalize with trim().toLowerCase().
+  quote_email    String    @unique
+  // Informational only: shown on the whitelist and quote headers, NEVER
+  // filters fan-out (locked product decision 1).
+  services       String[]  @default([])
+  active         Boolean   @default(true)
+  invited_at     DateTime  @default(now()) @db.Timestamptz(3)
+  first_login_at DateTime? @db.Timestamptz(3) // null = "Invited" state
+  deactivated_at DateTime? @db.Timestamptz(3)
+  attio_ref      String?
+  created_by     String?
+  created_at     DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at     DateTime  @updatedAt @db.Timestamptz(3)
+
+  creator           User?                 @relation("AuditorCreatedBy", fields: [created_by], references: [id], onDelete: SetNull)
+  quotes            AuditQuote[]
+  fanout_deliveries AuditFanoutDelivery[]
+
+  @@index([created_by])
+  @@index([active])
+  @@index([created_at])
+}
+
+model AuditQuote {
+  id               String   @id @default(uuid())
+  request_id       String
+  auditor_id       String
+  price_usd        Int
+  duration_weeks   Int
+  earliest_start   DateTime @db.Timestamptz(3)
+  message          String
+  // Optional link to the firm's own proposal or scoping doc.
+  deal_doc_url     String?
+  reaudit_included Boolean  @default(false)
+  // submitted | accepted | not_selected | withdrawn ("expired" is display-only).
+  status           String   @default("submitted")
+  created_at       DateTime @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime @updatedAt @db.Timestamptz(3)
+
+  request           AuditRequest           @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  auditor           Auditor                @relation(fields: [auditor_id], references: [id], onDelete: Cascade)
+  subsidy_decisions AuditSubsidyDecision[]
+
+  @@unique([request_id, auditor_id])
+  @@index([auditor_id])
+  @@index([created_at])
+}
+
+model AuditSubsidyDecision {
+  // Append-only: a new decision supersedes, latest by decided_at wins at
+  // read. Rows are never updated or deleted.
+  id                 String   @id @default(uuid())
+  request_id         String
+  quote_id           String
+  state              String // v1 writes approved | declined (vocabulary keeps none|requested|paid)
+  pct                Int      @default(0) // 0..75, cap enforced server-side
+  program_amount_usd Int      @default(0) // computed at decision time, stored
+  project_amount_usd Int      @default(0)
+  decided_by         String?
+  note               String?
+  decided_at         DateTime @default(now()) @db.Timestamptz(3)
+  created_at         DateTime @default(now()) @db.Timestamptz(3)
+
+  request AuditRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  quote   AuditQuote   @relation(fields: [quote_id], references: [id], onDelete: Cascade)
+  decider User?        @relation("AuditSubsidyDecider", fields: [decided_by], references: [id], onDelete: SetNull)
+
+  @@index([request_id])
+  @@index([quote_id])
+  @@index([decided_by])
+  @@index([created_at])
+}
+
+model AuditFanoutDelivery {
+  // One row per (request, auditor) at fan-out: the email audit trail and the
+  // auditor's inbox membership. Insert-only (ValidatorAlertLog precedent).
+  id               String    @id @default(uuid())
+  request_id       String
+  auditor_id       String
+  email_status     String    @default("queued") // queued | sent | failed
+  emailed_at       DateTime? @db.Timestamptz(3)
+  last_reminder_at DateTime? @db.Timestamptz(3)
+  created_at       DateTime  @default(now()) @db.Timestamptz(3)
+
+  request AuditRequest @relation(fields: [request_id], references: [id], onDelete: Cascade)
+  auditor Auditor      @relation(fields: [auditor_id], references: [id], onDelete: Cascade)
+
+  @@unique([request_id, auditor_id])
+  @@index([auditor_id])
+  @@index([created_at])
+}
+
+model AuditEventLog {
+  // Append-only by convention (ConsoleLog precedent): no update or delete
+  // path exists. Powers the admin drill-down activity trail; admins have no
+  // notifications, this is their feed.
+  id         String   @id @default(uuid())
+  request_id String? // null for whitelist events
+  actor_type String // project_user | auditor | admin | system
+  actor_id   String? // User.id or Auditor.id depending on actor_type
+  action     String
+  meta       Json     @default("{}")
+  created_at DateTime @default(now()) @db.Timestamptz(3)
+
+  request AuditRequest? @relation(fields: [request_id], references: [id], onDelete: Cascade)
+
+  @@index([request_id])
+  @@index([action])
+  @@index([created_at])
 }
