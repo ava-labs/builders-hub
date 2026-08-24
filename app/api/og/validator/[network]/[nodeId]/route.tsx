@@ -1,7 +1,7 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
 import { EXPLORER_API_BASE, NETWORK_LABEL, isPchainNetwork } from '@/lib/pchain-explorer';
+import { StatCell } from '@/utils/og/data-card';
+import { loadNodeFonts } from '@/utils/og/node-fonts';
 import {
   BrandRow,
   LedgerFooter,
@@ -18,19 +18,10 @@ import {
   clampText,
 } from '@/utils/og/sheet';
 
-// Node runtime, unlike the other og routes: the explorer API is plain HTTP on
-// a bare IP (see lib/pchain-explorer.ts), which edge fetch cannot reach
-// (outbound edge requests are upgraded to HTTPS). The pchain proxy route talks
-// to the same upstream from the Node runtime.
-
-// Literal process.cwd() joins so Vercel's file tracing bundles the fonts.
-async function loadNodeFonts() {
-  const [medium, mono] = await Promise.all([
-    readFile(join(process.cwd(), 'app/api/og/Geist-Medium.ttf')),
-    readFile(join(process.cwd(), 'app/api/og/GeistMono-Light.ttf')),
-  ]);
-  return { medium, mono };
-}
+// Node runtime, unlike the section-card og routes: the explorer API is plain
+// HTTP on a bare IP (see lib/pchain-explorer.ts), which edge fetch cannot
+// reach (outbound edge requests are upgraded to HTTPS). The pchain proxy
+// route talks to the same upstream from the Node runtime.
 
 // NodeID- prefix + CB58 payload (20-byte id + 4-byte checksum, base58: 32-33 chars).
 const NODE_ID_RE = /^NodeID-[1-9A-HJ-NP-Za-km-z]{32,33}$/;
@@ -81,36 +72,6 @@ function uptimeTone(uptime: number): string {
   if (uptime >= 98) return '#16a34a';
   if (uptime >= 90) return '#d97706';
   return OG_RED;
-}
-
-function StatCell({ label, value, valueColor }: { label: string; value: string; valueColor: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <div
-        style={{
-          display: 'flex',
-          fontFamily: 'Geist-Mono',
-          fontSize: 14,
-          letterSpacing: 2.5,
-          color: OG_FAINT,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          marginTop: 8,
-          fontFamily: 'Geist-Mono',
-          fontSize: 22,
-          letterSpacing: 1,
-          color: valueColor,
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  );
 }
 
 function ValidatorCard({
@@ -207,7 +168,6 @@ export async function GET(
 ): Promise<ImageResponse> {
   const { network, nodeId: rawNodeId } = await params;
   const nodeId = decodeURIComponent(rawNodeId);
-  const fonts = await loadNodeFonts();
 
   const validNetwork = isPchainNetwork(network) ? network : null;
   const validNodeId = NODE_ID_RE.test(nodeId);
@@ -222,10 +182,7 @@ export async function GET(
     {
       width: OG_WIDTH,
       height: OG_HEIGHT,
-      fonts: [
-        { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
-        { name: 'Geist-Mono', data: fonts.mono, weight: 500 },
-      ],
+      fonts: await loadNodeFonts(),
       headers: { 'cache-control': CACHE_CONTROL },
     },
   );
