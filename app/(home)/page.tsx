@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     // template cannot double the site name into og:title either.
     description: HOME_DESCRIPTION,
     url: BASE_URL,
-    images: [{ url: '/api/og/home?v=2', width: 1200, height: 630, alt: 'Launch a network on Avalanche' }],
+    images: [{ url: '/api/og/home?v=2', width: 1200, height: 630, alt: 'Build a network on Avalanche' }],
   },
   twitter: {
     card: 'summary_large_image',

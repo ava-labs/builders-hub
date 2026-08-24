@@ -1,5 +1,4 @@
 import { ImageResponse } from 'next/og';
-import { loadFonts } from '@/utils/og-image';
 import {
   BrandRow,
   LedgerFooter,
@@ -14,10 +13,18 @@ import {
 
 export const runtime = 'edge';
 
-// The homepage's statement card, on the shared drafting-sheet primitives.
-export async function GET(): Promise<ImageResponse> {
-  const fonts = await loadFonts();
+const display = fetch(new URL('../Aeonik-Black.ttf', import.meta.url)).then((res) =>
+  res.arrayBuffer(),
+);
 
+const mono = fetch(new URL('../GeistMono-Light.ttf', import.meta.url)).then((res) =>
+  res.arrayBuffer(),
+);
+
+// The homepage's statement card, on the shared drafting-sheet primitives.
+// Statement face and copy follow the design-investigation pass (Aeonik Black,
+// "BUILD A NETWORK."), sized for the 1200x630 canvas.
+export async function GET(): Promise<ImageResponse> {
   return new ImageResponse(
     (
       <SheetFrame>
@@ -34,13 +41,13 @@ export async function GET(): Promise<ImageResponse> {
           <div
             style={{
               display: 'flex',
-              fontFamily: 'Geist-Medium',
-              fontSize: 92,
-              letterSpacing: -3,
+              fontFamily: 'Aeonik',
+              fontSize: 98,
+              letterSpacing: -1,
               color: OG_INK,
             }}
           >
-            LAUNCH A NETWORK<span style={{ color: OG_RED, marginLeft: -8 }}>.</span>
+            BUILD A NETWORK<span style={{ color: OG_RED, marginLeft: -6 }}>.</span>
           </div>
           <div
             style={{
@@ -62,8 +69,8 @@ export async function GET(): Promise<ImageResponse> {
       width: OG_WIDTH,
       height: OG_HEIGHT,
       fonts: [
-        { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
-        { name: 'Geist-Mono', data: fonts.regular, weight: 500 },
+        { name: 'Aeonik', data: await display, weight: 900 },
+        { name: 'Geist-Mono', data: await mono, weight: 500 },
       ],
     },
   );
