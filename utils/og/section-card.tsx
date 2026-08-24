@@ -48,6 +48,10 @@ export function taglineFromPath(path: string): string {
  * mono caps description, dark ledger footer with the canonical path.
  */
 export function SectionCard({ title, description, path, icon }: SectionCardProps) {
+  const label = sectionFromPath(path);
+  // A label the title already contains (bare section cards like "Console")
+  // is noise; it earns its place only when the title carries content.
+  const showLabel = label.length > 0 && !title.toUpperCase().includes(label);
   return (
     <SheetFrame>
       <BrandRow />
@@ -61,11 +65,11 @@ export function SectionCard({ title, description, path, icon }: SectionCardProps
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, maxWidth: icon ? 810 : 1050 }}>
-          <SectionLabel text={sectionFromPath(path)} />
+          {showLabel ? <SectionLabel text={label} /> : null}
           <div
             style={{
               display: 'flex',
-              marginTop: 22,
+              marginTop: showLabel ? 22 : 0,
               fontFamily: 'Geist-Medium',
               fontSize: 58,
               letterSpacing: -1,
