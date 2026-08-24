@@ -28,6 +28,7 @@ const SECTION_TAGLINES: Record<string, string> = {
   stats: 'LIVE NETWORK DATA',
   explorer: 'BLOCKS · TRANSACTIONS · VALIDATORS',
   console: 'LAUNCH AND OPERATE L1S',
+  solutions: 'PERFORMANCE · INTEROP · PRIVACY · COMPLIANCE',
   university: 'STUDENTS · EDUCATORS · RESEARCH',
   showcase: 'PROJECTS FROM THE COMMUNITY',
   tools: 'DEVELOPER TOOLS',
@@ -49,9 +50,15 @@ export function taglineFromPath(path: string): string {
  */
 export function SectionCard({ title, description, path, icon }: SectionCardProps) {
   const label = sectionFromPath(path);
-  // A label the title already contains (bare section cards like "Console")
-  // is noise; it earns its place only when the title carries content.
-  const showLabel = label.length > 0 && !title.toUpperCase().includes(label);
+  // A label the title already carries (bare section cards like "Console", or
+  // "Documentation" under DOCS) is noise; it earns its place only when the
+  // title is real content. Redundant = title contains the label, or the
+  // title's first word shares the label's stem (DOCS vs DOCUMENTATION).
+  const normalizedTitle = title.trim().toUpperCase();
+  const stem = label.endsWith('S') ? label.slice(0, -1) : label;
+  const firstWord = normalizedTitle.split(/[^A-Z0-9-]/)[0] ?? '';
+  const showLabel =
+    label.length > 0 && !normalizedTitle.includes(label) && !firstWord.startsWith(stem);
   return (
     <SheetFrame>
       <BrandRow />

@@ -4,8 +4,7 @@ import { loadFonts, createOGResponse } from '@/utils/og-image';
 
 export const runtime = 'edge';
 
-// Bare card for /console, and per-tool cards via ?title= (the CONSOLE label
-// shows whenever the title is a tool name rather than "Console" itself).
+// Bare card for /solutions, and per-pillar cards via ?title=&description=.
 export async function GET(request: NextRequest): Promise<ImageResponse> {
   const { searchParams } = request.nextUrl;
   const title = searchParams.get('title');
@@ -14,11 +13,11 @@ export async function GET(request: NextRequest): Promise<ImageResponse> {
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: title ?? 'Console',
+    title: title ?? 'Solutions',
     description:
       description ??
-      'Launch and operate Avalanche L1s: create chains, manage validators, and run interchain tooling',
-    path: 'console',
+      'Performance, interoperability, privacy, and compliance: the four guarantees enterprise chains on Avalanche are built on',
+    path: 'solutions',
     fonts,
   });
 }
