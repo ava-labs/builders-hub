@@ -14,7 +14,8 @@ import {
 
 export const runtime = 'edge';
 
-// The homepage's statement card, on the shared drafting-sheet primitives.
+// The site-wide fallback card: every page without an explicit og:image serves
+// this via the createMetadata default (utils/metadata.ts).
 export async function GET(): Promise<ImageResponse> {
   const fonts = await loadFonts();
 
@@ -35,24 +36,24 @@ export async function GET(): Promise<ImageResponse> {
             style={{
               display: 'flex',
               fontFamily: 'Geist-Medium',
-              fontSize: 92,
-              letterSpacing: -3,
+              fontSize: 64,
+              letterSpacing: -1.5,
               color: OG_INK,
             }}
           >
-            LAUNCH A NETWORK<span style={{ color: OG_RED, marginLeft: -8 }}>.</span>
+            AVALANCHE BUILDER HUB<span style={{ color: OG_RED, marginLeft: -4 }}>.</span>
           </div>
           <div
             style={{
               display: 'flex',
-              marginTop: 32,
+              marginTop: 26,
               fontFamily: 'Geist-Mono',
               fontSize: 19,
               letterSpacing: 3,
               color: OG_MUTED,
             }}
           >
-            SUB-SECOND FINALITY · NATIVE INTEROP · PUBLIC, PERMISSIONED, OR PRIVATE
+            DOCS · ACADEMY · CONSOLE · EXPLORER · GRANTS
           </div>
         </div>
         <LedgerFooter left="BUILD.AVAX.NETWORK" right="ONE NETWORK · TWO WAYS TO BUILD" />

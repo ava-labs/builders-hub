@@ -7,9 +7,9 @@ export async function GET(): Promise<ImageResponse> {
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: 'Grants',
-    description: 'Explore grants and other funding opportunities for builders in the Avalanche ecosystem',
-    path: 'grants',
+    title: 'Console',
+    description: 'Launch and operate Avalanche L1s: create chains, manage validators, and run interchain tooling',
+    path: 'console',
     fonts,
   });
 }

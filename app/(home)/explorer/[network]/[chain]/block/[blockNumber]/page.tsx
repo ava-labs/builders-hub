@@ -30,9 +30,9 @@ export async function generateMetadata({ params }: BlockPageProps): Promise<Meta
   
   const image = {
     alt: title,
-    url: `/api/og/stats/${chainSlug}?${imageParams.toString()}`,
-    width: 1280,
-    height: 720,
+    url: `/api/og/stats/${chainSlug}?${imageParams.toString()}&v=2`,
+    width: 1200,
+    height: 630,
   };
   
   return {

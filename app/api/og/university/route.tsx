@@ -3,13 +3,15 @@ import { loadFonts, createOGResponse } from '@/utils/og-image';
 
 export const runtime = 'edge';
 
+// Referenced by app/(home)/university/layout.tsx; this route not existing was a
+// live 404 before the rebrand.
 export async function GET(): Promise<ImageResponse> {
   const fonts = await loadFonts();
 
   return createOGResponse({
-    title: 'Grants',
-    description: 'Explore grants and other funding opportunities for builders in the Avalanche ecosystem',
-    path: 'grants',
+    title: 'University',
+    description: 'Opportunities for students and educators to explore blockchain technology on Avalanche',
+    path: 'university',
     fonts,
   });
 }

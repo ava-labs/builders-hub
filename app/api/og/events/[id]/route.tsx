@@ -92,8 +92,8 @@ async function tryLoadImage(
         </div>
       ),
       {
-        width: 1280,
-        height: 720,
+        width: 1200,
+        height: 630,
         fonts: [
           { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
           { name: 'Geist-Mono', data: fonts.regular, weight: 500 },
