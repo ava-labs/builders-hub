@@ -1,10 +1,9 @@
+'use client';
+
 import BasicSetupForm from '@/components/toolbox/console/create-l1/basic/BasicSetupForm';
 import { CheckRequirements } from '@/components/toolbox/components/CheckRequirements';
 import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
 import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
-import { consoleToolMetadata } from "@/components/console/tool-metadata";
-
-export const metadata = consoleToolMetadata("/console/create-l1", "Create L1");
 
 /**
  * Basic Setup entry — gated behind the shared CheckRequirements guard
