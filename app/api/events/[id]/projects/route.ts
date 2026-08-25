@@ -3,9 +3,11 @@ import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
 import {
   canEvaluateHackathon,
+  hasAnyAttribute,
   verifyHackathonProjectsApiKey,
 } from "@/lib/auth/permissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
+import { projectHasNoLinks } from "@/lib/hackathons/project-links";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -62,12 +64,17 @@ export async function GET(request: NextRequest, context: Params) {
   if (internalAuthorized) {
     const session = await getAuthSession();
     const viewerId = session?.user?.id ?? null;
+    const isDevrel = hasAnyAttribute(session?.user?.custom_attributes, [
+      "devrel",
+    ]);
 
     const projects = await prisma.project.findMany({
       where: { hackaton_id: hackathonId },
       orderBy: { created_at: "asc" },
       select: {
         ...projectMetaSelect,
+        is_rejected: true,
+        deployed_addresses: true,
         members: {
           select: {
             id: true,
@@ -97,8 +104,14 @@ export async function GET(request: NextRequest, context: Params) {
       },
     });
 
+    // Hidden projects (rejected or link-less) must never reach non-devrel
+    // callers — same server-side filter as the evaluate page.
+    const visibleProjects = isDevrel
+      ? projects
+      : projects.filter((p) => !p.is_rejected && !projectHasNoLinks(p));
+
     const projectsForViewer = stripEvaluationsForViewer(
-      projects,
+      visibleProjects,
       hackathon.evaluation_phase,
       viewerId,
     );
