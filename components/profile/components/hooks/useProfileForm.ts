@@ -190,16 +190,17 @@ export function useProfileForm() {
     if (!gh && !x) return;
 
     const notify = (status: string, network: 'X' | 'GitHub', site: string) => {
+      const id = `link-${network}`;
       if (status === 'linked') {
-        sonnerToast.success(`${network} connected`);
+        sonnerToast.success(`${network} connected`, { id });
       } else if (status === 'already_linked') {
         sonnerToast.error(
           `That ${network} account is already linked to a different profile. ` +
             `Log in to ${site} with the account you want to connect, then try again.`,
-          { duration: 10000 },
+          { id, duration: 10000 },
         );
       } else {
-        sonnerToast.error(`Could not connect ${network}. Please try again.`);
+        sonnerToast.error(`Could not connect ${network}. Please try again.`, { id });
       }
     };
     // Defer past this commit's effect phase: sonner's <Toaster> (mounted after
