@@ -18,6 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 import { canAccessBuilderInsights } from '@/lib/auth/permissions';
 
 const AVATAR_PX = 30;
@@ -199,6 +200,27 @@ export function UserButton() {
             <DropdownMenuItem asChild className="cursor-pointer rounded-none px-3 py-2 text-sm focus:bg-zinc-100 focus:text-zinc-950 dark:focus:bg-zinc-900 dark:focus:text-zinc-50">
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
+            {
+              hasPermission(session?.user?.custom_attributes, { resource: "notification", action: "write" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/send-notifications'>Send notifications</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/events/edit'>Event Management</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              hasPermission(session?.user?.custom_attributes, { resource: "judge", action: "read" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/evaluate'>Evaluate Hackathons</Link>
+                </DropdownMenuItem>
+              )
+            }
             <DropdownMenuSeparator className="my-0 bg-zinc-200 dark:bg-zinc-800" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}

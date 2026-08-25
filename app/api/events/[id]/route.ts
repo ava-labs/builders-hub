@@ -45,6 +45,10 @@ export const PUT = withAuth(async (req: NextRequest, context: any, session: any)
     const updateData = await req.json();
     const userId = session.user.id;
 
+    const existing = await getHackathon(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean' && Object.keys(updateData).length === 1) {
       const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
       return NextResponse.json(updatedHackathon);
@@ -79,6 +83,10 @@ export const PATCH = withAuth(async (req: NextRequest, context: any, session: an
     const updateData = await req.json();
     const userId = session.user.id;
 
+    const existing = await getHackathon(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean') {
       const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
       return NextResponse.json(updatedHackathon);

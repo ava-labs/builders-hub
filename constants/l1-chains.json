@@ -865,10 +865,7 @@
       "logoUri": "https://images.ctfassets.net/gcj8jwzm6086/15KL2tZgiggSNEgHbrxG4C/5f9b3f91c0a7666cd3d26b4d273fa158/defikingdoms.png",
       "description": "JEWEL is the central token on the DFK Subnet and used to pay gas for all transactions. While it is not natively minted on the DFK Subnet, it is integral to the subnet's function."
     },
-    "isActive": true,
-    "isIndexed": false,
-    "aliasVerified": true,
-    "isIndexedOverride": false
+    "isActive": true
   },
   {
     "chainId": "96786",
@@ -2468,7 +2465,7 @@
   {
     "chainId": "36463",
     "chainName": "The Grotto",
-    "chainLogoURI": "/images/the-grotto.avif",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "blockchainId": "0x4d17dde28b48d8261d0e157ff214900e6575600325f02d6efb416eebdbde4ba9",
     "subnetId": "2qZWoi4PSG69vdYAQ9otTxMGmRh8YgAXEsm4HMbZZkMamibU76",
     "slug": "the-grotto",
@@ -3661,10 +3658,7 @@
       }
     ],
     "isTestnet": true,
-    "isActive": false,
-    "isIndexed": false,
-    "aliasVerified": true,
-    "isIndexedOverride": false
+    "isActive": false
   },
   {
     "chainId": "179202",
@@ -7457,7 +7451,7 @@
   {
     "chainId": "28066",
     "chainName": "The Grotto",
-    "chainLogoURI": "/images/the-grotto.avif",
+    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
     "blockchainId": "0x45a76304bee9ad1c4096708c8b6278658c6843a0f89768c5f361b016c2d369ec",
     "subnetId": "TpeVn2DWdvVvrjwD8PKtipqy5suNHLTewTGG2WngPNbKAqMfe",
     "slug": "the-grotto",

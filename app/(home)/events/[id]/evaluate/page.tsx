@@ -6,6 +6,7 @@ import {
   canManageEvaluationPhase,
   hasAnyAttribute,
 } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
 
@@ -120,8 +121,9 @@ export default async function HackathonEvaluatePage({
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
         viewerId={viewerId}
-        canPickWinners={isDevrel}
-        canManagePhase={canManageEvaluationPhase(session)}
+        canPickWinners={hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage" })}
+        canManagePhase={hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage" })}
+        isDevrel={isDevrel}
         initialPhase={hackathon.evaluation_phase}
         initialReviewed={reviewedCount}
         projects={projectsForViewer.map((p) => ({

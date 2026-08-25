@@ -88,6 +88,7 @@ type Props = {
   viewerId: string;
   canPickWinners: boolean;
   canManagePhase: boolean;
+  isDevrel: boolean;
   initialPhase: HackathonEvaluationPhase;
   initialReviewed: number;
   projects: Project[];
@@ -225,6 +226,7 @@ export function HackathonEvaluateDashboard({
   viewerId,
   canPickWinners,
   canManagePhase,
+  isDevrel,
   initialPhase,
   initialReviewed,
   projects: initialProjects,
@@ -459,8 +461,8 @@ export function HackathonEvaluateDashboard({
             </div>
             <div className="text-xs opacity-90">
               {isEvaluation
-                ? "Scores are hidden between judges until devrel moves to the picking phase."
-                : "All judges' scores are visible. Devrel can now select winners."}
+                ? "Scores are hidden between judges until an organizer moves to the picking phase."
+                : "All judges' scores are visible. An organizer can now select winners."}
             </div>
           </div>
         </div>
@@ -673,7 +675,7 @@ export function HackathonEvaluateDashboard({
         <SubmissionDetailPanel
           row={toSubmissionRow(openProject, hackathonId)}
           currentUserId={viewerId}
-          isDevrel={canPickWinners}
+          isDevrel={isDevrel}
           showStages={false}
           projectId={openProject.id}
           onClose={() => setOpenProjectId(null)}

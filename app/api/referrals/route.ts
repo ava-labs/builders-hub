@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
-import {
-  canGenerateReferralLinkForTarget,
-  canGenerateRestrictedReferralLinks,
-} from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 import { prisma } from "@/prisma/prisma";
 import {
   buildReferralUrl,
@@ -103,7 +100,7 @@ async function resolveReferralTarget(targetType: ReferralTargetType, body: any) 
 export async function GET(request: NextRequest) {
   const session = await getAuthSession();
 
-  if (!session?.user?.id || !canGenerateRestrictedReferralLinks(session.user.custom_attributes)) {
+  if (!session?.user?.id || !hasPermission(session.user.custom_attributes, { resource: "builder_insights", action: "write" })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 401 });
   }
 
@@ -135,7 +132,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid referral target type" }, { status: 400 });
   }
 
-  if (!canGenerateReferralLinkForTarget(session.user.custom_attributes, targetType)) {
+  if (targetType === "build_games_application") {
     return NextResponse.json({ error: "Forbidden" }, { status: 401 });
   }
 

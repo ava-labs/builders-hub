@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
 import { parseIsWinnerBody } from "@/lib/hackathons/evaluation-phase";
 import {
   SetWinner,
   WinnerOperationError,
 } from "@/server/services/set-project-winner";
+import { Session } from "next-auth";
 
 type Params = RouteParams<{ id: string }>;
 
-export const POST = withAuthRole<Params>(
-  "devrel",
-  async (request: NextRequest, context: Params, session) => {
+export const POST = withAuthPermission<Params>(
+  { resource: "event", action: "manage" },
+  async (request: NextRequest, context: Params, session: Session) => {
     const { id: projectId } = await context.params;
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 

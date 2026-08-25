@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { withAuth } from "@/lib/protectedRoute";
+import { hasPermission } from "@/lib/auth/roles";
 
 const MAX_RESULTS = 20;
 

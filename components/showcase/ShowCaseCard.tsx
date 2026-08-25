@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import NotFound from '@/app/not-found';
 import { useLoginCompleteListener } from '@/hooks/useLoginModal';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 type Props = {
   projects: Project[];
@@ -44,13 +45,9 @@ type Props = {
 
 // Helper function to check user permissions
 function checkUserPermissions(customAttributes: string[] = []) {
-  const hasShowcaseRole = customAttributes.includes('showcase');
-  const isDevrel = customAttributes.includes('devrel');
-  const hasHackathonCreator = customAttributes.includes('hackathonCreator');
-
   return {
-    hasShowcaseAccess: hasShowcaseRole || isDevrel,
-    hasExportAccess: hasHackathonCreator || isDevrel,
+    hasShowcaseAccess: hasPermission(customAttributes, { resource: "showcase", action: "read" }),
+    hasExportAccess: hasPermission(customAttributes, { resource: "showcase", action: "export" }),
   };
 }
 

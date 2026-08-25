@@ -4,6 +4,7 @@ import { prisma } from "@/prisma/prisma";
 import { EvaluateDashboard } from "@/components/evaluate/EvaluateDashboard";
 import type { SubmissionRow, EvaluationData } from "@/components/evaluate/types";
 import { canAccessEvaluationTools, canReviewMiniGrants } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/roles";
 import { MINI_GRANT_KEY, MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 
 function normalizeStringMap(value: unknown): Record<string, string> | null {
@@ -235,7 +236,7 @@ export default async function EvaluatePage({
       };
     });
 
-    const isDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
+    const isDevrel = hasPermission(session.user?.custom_attributes, { resource: "platform", action: "admin" });
 
     return (
       <main className="container relative px-2 py-4 lg:py-16">
