@@ -9,10 +9,10 @@ export const metadata: Metadata = createMetadata({
   description:
     "Takeaways and tutorials from building a network of fast, efficient, highly-optimized chains.",
   openGraph: {
-    images: "/api/og/blog",
+    images: "/api/og/blog?v=2",
   },
   twitter: {
-    images: "/api/og/blog",
+    images: "/api/og/blog?v=2",
   },
 });
 

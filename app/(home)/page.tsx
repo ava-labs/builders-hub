@@ -7,19 +7,21 @@ const HOME_DESCRIPTION =
   'Sovereign L1 networks with sub-second finality, native interoperability, and protocol-level privacy and compliance controls.';
 
 export const metadata: Metadata = {
-  title: 'Avalanche Builder Hub',
+  // `absolute` opts out of the root "%s | Avalanche Builder Hub" template,
+  // which otherwise doubles the name on the homepage.
+  title: { absolute: 'Avalanche Builder Hub' },
   description: HOME_DESCRIPTION,
   openGraph: {
-    title: 'Avalanche Builder Hub',
+    // No og title override: it inherits the absolute page title, so the root
+    // template cannot double the site name into og:title either.
     description: HOME_DESCRIPTION,
     url: BASE_URL,
-    images: [{ url: '/api/og/home', width: 1280, height: 720, alt: 'Build a network on Avalanche' }],
+    images: [{ url: '/api/og/home?v=2', width: 1200, height: 630, alt: 'Build a network on Avalanche' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Avalanche Builder Hub',
     description: HOME_DESCRIPTION,
-    images: ['/api/og/home'],
+    images: ['/api/og/home?v=2'],
   },
 };
 
