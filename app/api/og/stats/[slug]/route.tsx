@@ -18,7 +18,7 @@ export async function GET(
   return createOGResponse({
     title: title ?? `${slug} Stats`,
     description: description ?? `Real-time metrics and analytics for ${slug}`,
-    path: `stats/l1/${slug}`,
+    path: `explorer/${slug}`,
     fonts,
   });
 }
