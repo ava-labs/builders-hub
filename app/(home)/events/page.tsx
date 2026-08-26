@@ -12,10 +12,10 @@ export const metadata: Metadata = createMetadata({
   title: t(normalizeEventsLang(undefined), "meta.events.title"),
   description: t(normalizeEventsLang(undefined), "meta.eventsIndex.description"),
   openGraph: {
-    images: '/api/og/events',
+    images: '/api/og/events?v=2',
   },
   twitter: {
-    images: '/api/og/events',
+    images: '/api/og/events?v=2',
   },
 });
 

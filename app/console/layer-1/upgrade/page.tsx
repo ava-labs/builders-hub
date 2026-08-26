@@ -1,14 +1,10 @@
-'use client';
+import { consoleToolMetadata } from "@/components/console/tool-metadata";
+import UpgradeL1Page from "./page.client";
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// The interactive page is a client component (page.client.tsx), which cannot
+// export metadata; this server wrapper carries the tool's social card.
+export const metadata = consoleToolMetadata("/console/layer-1/upgrade");
 
 export default function Page() {
-  const router = useRouter();
-
-  useEffect(() => {
-    router.replace('/console/layer-1/upgrade/select-l1');
-  }, [router]);
-
-  return null;
+  return <UpgradeL1Page />;
 }
