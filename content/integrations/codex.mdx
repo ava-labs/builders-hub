@@ -1,0 +1,72 @@
+---
+title: Codex
+category: Analytics & Data
+available: ["C-Chain"]
+description: "Codex provides fast, reliable enriched onchain data through a real-time GraphQL API for token prices, charts, trades, and wallets on Avalanche."
+logo: /images/codex.png
+developer: Codex
+website: https://www.codex.io/
+documentation: https://docs.codex.io/
+---
+
+## Overview
+
+Codex is an enriched blockchain data API for real-time token prices, charts, transactions, and wallet data. Through a single GraphQL endpoint, it delivers sub-second, trading-ready data on Avalanche C-Chain alongside 80+ other networks, with queries for one-time fetches, WebSocket subscriptions for live-streamed data, and webhooks for backend notifications.
+
+## Features
+
+- **Token API**: Current and historical USD prices, OHLCV candlestick data, sparklines, and metadata for tokens on Avalanche C-Chain.
+- **Pair & Trading API**: Trading pair search and filtering by liquidity, volume, or token, with detailed pair stats and real-time buy/sell events.
+- **Wallet API**: Token holders with balances, top-holder concentration, wallet balances, and PnL data for any address.
+- **Real-Time Subscriptions**: WebSocket subscriptions for live price updates, trade events, and streaming chart data.
+- **Powerful Filters**: Discover trending tokens and active wallets by filtering on liquidity, volume, market cap, and more.
+- **Multi-Chain Coverage**: One unified API across 80+ networks, including Avalanche C-Chain and the DFK Chain Avalanche L1.
+- **TypeScript SDK**: Fully typed SDK for queries and subscriptions, plus a GraphQL explorer for testing requests.
+
+## Getting Started
+
+To begin using Codex:
+
+1. **Sign Up**: Create an account on the [Codex Dashboard](https://dashboard.codex.io/) and copy your API key.
+2. **Install the SDK**: Add the [Codex TypeScript SDK](https://github.com/Codex-Data/sdk) to your project:
+
+```bash
+npm install @codex-data/sdk
+```
+
+3. **Query Avalanche Data**: Use network ID `43114` to fetch data from Avalanche C-Chain:
+
+```typescript
+import { Codex } from "@codex-data/sdk";
+
+const sdk = new Codex(process.env.CODEX_API_KEY!);
+
+// Fetch token data for WAVAX on Avalanche C-Chain
+sdk.queries
+  .token({
+    input: {
+      address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", // WAVAX
+      networkId: 43114, // Avalanche C-Chain
+    },
+  })
+  .then(console.log);
+```
+
+You can also query the GraphQL API directly at `https://graph.codex.io/graphql` or test requests in the [Codex GraphQL Explorer](https://docs.codex.io/explore).
+
+## Documentation
+
+For detailed guides and the full API reference, visit the [Codex Documentation](https://docs.codex.io/).
+
+## Use Cases
+
+Codex serves a range of data needs on Avalanche:
+
+- **Trading Interfaces**: Power token pages and trading terminals with real-time prices, charts, and trade feeds.
+- **Portfolio & Wallet Apps**: Show balances, holdings, and PnL for wallets across Avalanche and other networks.
+- **Token Discovery**: Build trending lists and screeners with filters for liquidity, volume, and market cap.
+- **Analytics Dashboards**: Track pair stats, holder concentration, and DeFi activity on Avalanche C-Chain.
+
+## Conclusion
+
+Codex brings fast, reliable enriched data to Avalanche developers through a single GraphQL API, combining real-time queries, subscriptions, and webhooks to power trading apps, wallets, and analytics platforms.
