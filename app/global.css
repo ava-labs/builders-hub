@@ -29,7 +29,7 @@
   }
   50% {
     transform: scale(1.02);
-    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.12), 0 6px 8px -5px rgba(0, 0, 0, 0.1), 0 0 12px rgba(232, 65, 66, 0.1);
+    box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.12), 0 6px 8px -5px rgba(0, 0, 0, 0.1), 0 0 12px rgba(230, 33, 47, 0.1);
   }
   100% {
     transform: scale(1);
@@ -41,7 +41,7 @@
   :where(ul > li):not(
     :where([class~='not-prose'], [class~='not-prose'] *)
   )::marker {
-  color: #e84142;
+  color: #E6212F;
 }
 
 div.group\/accordion h3  {
@@ -402,74 +402,74 @@ svg.lucide.lucide-folder-open {
 
 .border-avax-red {
   --tw-border-opacity: 1;
-  border-color: #e84142;
+  border-color: #E6212F;
 }
 
 .bg-avax-red {
   --tw-bg-opacity: 1;
-  background-color: #e84142;
+  background-color: #E6212F;
 }
 
 .text-avax-red {
   --tw-text-opacity: 1;
-  color: #e84142;
+  color: #E6212F;
 }
 
 /* Avax red opacity variants */
 .bg-avax-red\/5 {
-  background-color: rgba(232, 65, 66, 0.05);
+  background-color: rgba(230, 33, 47, 0.05);
 }
 
 .bg-avax-red\/10 {
-  background-color: rgba(232, 65, 66, 0.1);
+  background-color: rgba(230, 33, 47, 0.1);
 }
 
 .bg-avax-red\/20 {
-  background-color: rgba(232, 65, 66, 0.2);
+  background-color: rgba(230, 33, 47, 0.2);
 }
 
 .border-avax-red\/30 {
-  border-color: rgba(232, 65, 66, 0.3);
+  border-color: rgba(230, 33, 47, 0.3);
 }
 
 .border-avax-red\/40 {
-  border-color: rgba(232, 65, 66, 0.4);
+  border-color: rgba(230, 33, 47, 0.4);
 }
 
 .border-avax-red\/60 {
-  border-color: rgba(232, 65, 66, 0.6);
+  border-color: rgba(230, 33, 47, 0.6);
 }
 
 .shadow-avax-red\/25 {
-  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow-color: rgba(230, 33, 47, 0.25);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
 .shadow-avax-red\/40 {
-  --tw-shadow-color: rgba(232, 65, 66, 0.4);
+  --tw-shadow-color: rgba(230, 33, 47, 0.4);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
 /* Additional hover background variants */
 .hover\:bg-avax-red\/5:hover {
-  background-color: rgba(232, 65, 66, 0.05) !important;
+  background-color: rgba(230, 33, 47, 0.05) !important;
 }
 
 .hover\:bg-avax-red\/10:hover {
-  background-color: rgba(232, 65, 66, 0.1) !important;
+  background-color: rgba(230, 33, 47, 0.1) !important;
 }
 
 .hover\:shadow-avax-red\/25:hover {
-  --tw-shadow-color: rgba(232, 65, 66, 0.25);
+  --tw-shadow-color: rgba(230, 33, 47, 0.25);
   --tw-shadow: var(--tw-shadow-colored);
 }
 
 .group:hover .group-hover\:bg-avax-red\/10 {
-  background-color: rgba(232, 65, 66, 0.1) !important;
+  background-color: rgba(230, 33, 47, 0.1) !important;
 }
 
 .group:hover .group-hover\:bg-avax-red\/20 {
-  background-color: rgba(232, 65, 66, 0.2) !important;
+  background-color: rgba(230, 33, 47, 0.2) !important;
 }
 
 .border-avax-green {
@@ -1118,14 +1118,14 @@ nav li > a {
 .docs-subnav-link[data-active="true"],
 .docs-subnav-link[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(24 24 27) !important; /* zinc-900 */
 }
 
 .dark .docs-subnav-link[data-active="true"],
 .dark .docs-subnav-link[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
@@ -1150,7 +1150,7 @@ nav a[aria-current="page"],
 nav button[data-active="true"],
 nav button[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(24 24 27) !important; /* zinc-900 */
   cursor: default !important;
 }
@@ -1160,7 +1160,7 @@ nav button[aria-current="page"] {
 .dark nav button[data-active="true"],
 .dark nav button[aria-current="page"] {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   color: rgb(250 250 250) !important; /* zinc-50 */
 }
 
@@ -1170,7 +1170,7 @@ nav a[aria-current="page"]:hover,
 nav button[data-active="true"]:hover,
 nav button[aria-current="page"]:hover {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   transform: none !important;
   scale: 1 !important;
 }
@@ -1180,7 +1180,7 @@ nav button[aria-current="page"]:hover {
 .dark nav button[data-active="true"]:hover,
 .dark nav button[aria-current="page"]:hover {
   background-color: transparent !important;
-  box-shadow: inset 0 -2px 0 0 #E84142 !important;
+  box-shadow: inset 0 -2px 0 0 #E6212F !important;
   transform: none !important;
   scale: 1 !important;
 }
@@ -1830,7 +1830,9 @@ html.embed-mode #nd-toc {
    under mandatory snapping. */
 @media (min-width: 1024px) and (min-height: 640px) {
   html.v2-snap {
-    scroll-snap-type: y mandatory;
+    /* proximity on middling viewports: it suggests the chapter rhythm but
+       never traps content that overflows the screen (WCAG 1.4.4 / 1.4.10) */
+    scroll-snap-type: y proximity;
     scroll-padding-top: 3.5rem;
   }
   html.v2-snap .v2-snap-section {
@@ -1839,6 +1841,12 @@ html.embed-mode #nd-toc {
   }
   html.v2-snap footer {
     scroll-snap-align: end;
+  }
+}
+@media (min-width: 1024px) and (min-height: 800px) {
+  html.v2-snap {
+    /* only comfortably tall viewports get the hard chapter-per-flick snap */
+    scroll-snap-type: y mandatory;
   }
 }
 

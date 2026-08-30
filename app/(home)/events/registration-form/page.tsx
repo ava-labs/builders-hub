@@ -36,10 +36,10 @@ export async function generateMetadata({
       title: hackathon.title,
       description: hackathon.description,
       openGraph: {
-        images: `/api/og/events/${id}`,
+        images: `/api/og/events/${id}?v=2`,
       },
       twitter: {
-        images: `/api/og/events/${id}`,
+        images: `/api/og/events/${id}?v=2`,
       },
     });
   } catch {
