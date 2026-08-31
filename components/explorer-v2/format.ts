@@ -51,6 +51,39 @@ export function formatTime(unixSecs: number | undefined): string {
   return new Date(unixSecs * 1000).toISOString().replace("T", " ").slice(0, 19) + " UTC";
 }
 
+export interface TimeLeft {
+  /** whole days remaining, floored */
+  days: number;
+  /** the tile figure: "73" while days remain, "18h 24m" under a day, "45m" under an hour */
+  value: string;
+  /** compact inline form with its unit: "73d" / "18h 24m" / "45m" */
+  short: string;
+  /** full breakdown plus the exact end moment, for a hover title */
+  precise: string;
+}
+
+/** Remaining term time from the end timestamp. A whole-day integer (the
+ *  indexer's daysLeft) reads "0" for the entire final day of a term; this
+ *  keeps days as the headline while they last, then hands over to hours
+ *  and minutes. `nowMs` is injectable for tests. */
+export function timeLeft(endTimestamp: number, nowMs = Date.now()): TimeLeft {
+  const secs = Math.max(0, Math.floor(endTimestamp - nowMs / 1000));
+  const days = Math.floor(secs / 86_400);
+  const hours = Math.floor((secs % 86_400) / 3_600);
+  const mins = Math.floor((secs % 3_600) / 60);
+  const subDay = hours >= 1 ? `${hours}h ${mins}m` : `${mins}m`;
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (days > 0 || hours > 0) parts.push(`${hours}h`);
+  parts.push(`${mins}m`);
+  return {
+    days,
+    value: days >= 1 ? formatNumber(days) : subDay,
+    short: days >= 1 ? `${formatNumber(days)}d` : subDay,
+    precise: `${parts.join(" ")} left · ends ${formatTime(endTimestamp)}`,
+  };
+}
+
 /** Middle-truncate a hash/address: "2VLRYb…xNxj" */
 export function truncate(v: string | undefined, len = 10): string {
   if (!v) return "";

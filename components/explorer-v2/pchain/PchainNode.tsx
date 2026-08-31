@@ -25,7 +25,7 @@ import {
   TxTypePill,
   idInk,
 } from "@/components/explorer-v2/ui";
-import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { formatAvax, formatNumber, formatTime, timeAgo, timeLeft, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
 import {
@@ -176,7 +176,7 @@ export function PchainNode({
     const span = v.endTimestamp - v.startTimestamp;
     const progressPct =
       span > 0 ? Math.min(100, Math.max(0, ((now - v.startTimestamp) / span) * 100)) : null;
-    return { maxTotal, capacity, sharePct, feeTake, totalTake, progressPct };
+    return { maxTotal, capacity, sharePct, feeTake, totalTake, progressPct, left: timeLeft(v.endTimestamp) };
   }, [n, networkStake]);
   // pre-Banff validators carry one rewardOwner; later ones split the pair
   const validationPayout = identity?.validationRewardOwner ?? identity?.rewardOwner;
@@ -385,9 +385,13 @@ export function PchainNode({
                   tone={p2p ? (p2p.miss_rate_14d === 0 ? "good" : p2p.miss_rate_14d < 5 ? "warn" : "bad") : undefined}
                 />
                 <Tile label="Proposed · 14d" value={formatNumber(p2p?.proposed_14d ?? n.proposedBlocks14d)} />
+                {/* the indexer's integer daysLeft reads "0" all through the final
+                    day, so derive from the end timestamp: days while they last,
+                    hours/minutes after, exact countdown + end moment on hover */}
                 <Tile
-                  label="Days left"
-                  value={formatNumber(n.validator.daysLeft)}
+                  label={stake && stake.left.days < 1 ? "Time left" : "Days left"}
+                  value={stake ? stake.left.value : formatNumber(n.validator.daysLeft)}
+                  title={stake?.left.precise}
                   sub={stake?.progressPct != null ? `${stake.progressPct.toFixed(0)}% of term elapsed` : undefined}
                 />
               </div>
@@ -514,8 +518,8 @@ export function PchainNode({
                     <div className="flex items-baseline justify-between gap-3 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
                       <span>{formatTime(n.validator.startTimestamp)}</span>
                       {stake?.progressPct != null && (
-                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                          {stake.progressPct.toFixed(1)}% · {formatNumber(n.validator.daysLeft)}d left
+                        <span className="font-bold text-zinc-900 dark:text-zinc-100" title={stake.left.precise}>
+                          {stake.progressPct.toFixed(1)}% · {stake.left.short} left
                         </span>
                       )}
                       <span>{formatTime(n.validator.endTimestamp)}</span>
@@ -1079,6 +1083,7 @@ function Tile({
   strong = false,
   tone,
   sub,
+  title,
 }: {
   label: string;
   value: string;
@@ -1087,6 +1092,8 @@ function Tile({
   tone?: "good" | "warn" | "bad";
   /** muted qualifier under the figure — a share, a cap, a count */
   sub?: string;
+  /** hover detail, shown as the native browser tooltip */
+  title?: string;
 }) {
   const toneCls =
     tone === "good"
@@ -1097,7 +1104,7 @@ function Tile({
           ? "text-[#E6212F]"
           : "text-zinc-900 dark:text-zinc-50";
   return (
-    <div className="flex flex-col gap-1.5 px-5 py-5 md:px-6">
+    <div title={title} className="flex flex-col gap-1.5 px-5 py-5 md:px-6">
       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
         {label}
       </span>
