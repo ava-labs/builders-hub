@@ -25,7 +25,7 @@ describe('deriveProposerVMUrl', () => {
 
   it('swaps the trailing rpc segment on a gateway URL', () => {
     expect(deriveProposerVMUrl('https://subnets.avax.network/echo/testnet/rpc')).toBe(
-      'https://subnets.avax.network/echo/testnet/proposervm',
+      'https://explorer.avax.network/echo/testnet/proposervm',
     );
   });
 

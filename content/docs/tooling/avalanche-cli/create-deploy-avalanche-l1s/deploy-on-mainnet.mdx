@@ -26,7 +26,7 @@ All IDs in this article are for illustration purposes only. They are guaranteed 
 - A [Ledger](https://www.ledger.com/) device
 - You've [created an Avalanche L1 configuration](/docs/tooling/avalanche-cli#create-your-avalanche-l1-configuration) and fully tested a [Fuji Testnet Avalanche L1 deployment](/docs/tooling/avalanche-cli/create-deploy-avalanche-l1s/deploy-on-fuji-testnet)
 
-### Setting up Your Ledger[​](#setting-up-your-ledger "Direct link to heading")
+### Setting up Your Ledger
 
 In the interest of security, all Avalanche-CLI `Mainnet` operations require the use of a connected Ledger device. You must unlock your Ledger and run the Avalanche App. See [How to Use Ledger](https://support.avax.network/en/articles/6150237-how-to-use-a-ledger-nano-s-or-nano-x-with-avalanche) for help getting set up.
 
@@ -54,7 +54,7 @@ The command prints the P-Chain address for `Mainnet`, `P-avax1ucykh6ls8thqpuwhg3
 You can use the `key list` command to get any Ledger address in the derivation sequence by changing the index parameter from `0` to the one desired, or to a list of them (for example: `2`, or `0,4,7`). Also, you can ask for addresses on `Mainnet` with the `--mainnet` parameter, and local networks with the `--local` parameter.
 </Callout>
 
-#### Funding the Ledger[​](#funding-the-ledger "Direct link to heading")
+#### Funding the Ledger
 
 A new Ledger device has no funds on the addresses it controls. You'll need to send funds to it by exporting them from C-Chain to the P-Chain using [Core web](https://core.app/) connected to [Core extension](https://core.app/).
 
@@ -62,7 +62,7 @@ You can load the Ledger's C-Chain address in Core extension, or load in a differ
 
 You can move test funds from the C-Chain to the P-Chain by clicking Stake on Core web , then Cross-Chain Transfer (find more details on [this tutorial](https://support.avax.network/en/articles/8133713-core-web-how-do-i-make-cross-chain-transfers-in-core-stake)).
 
-Deploy the Avalanche L1[​](#deploy-the-avalanche-l1 "Direct link to heading")
+Deploy the Avalanche L1
 -----------------------------------------------------------------
 
 <Callout title="Note">
@@ -202,9 +202,9 @@ You will be able to see information on the deployed L1 at the end of `avalanche 
 To get your new Avalanche L1 information, there are two options:
 
 - Call `avalanche blockchain describe` command or
-- Visit the [Avalanche L1 Explorer](https://subnets-test.avax.network/). The search best works by blockchain ID, so in this example, enter `2U7vNdB78xTiN6QtZ9aetfKoGtQhfeEPQG6QZC8bpq8QMf4cDx` into the search box and you should see your shiny new blockchain information.
+- Visit the [Avalanche L1 Explorer](https://explorer-test.avax.network/). The search best works by blockchain ID, so in this example, enter `2U7vNdB78xTiN6QtZ9aetfKoGtQhfeEPQG6QZC8bpq8QMf4cDx` into the search box and you should see your shiny new blockchain information.
 
-Add a Validator[​](#add-a-validator "Direct link to heading")
+Add a Validator
 -------------------------------------------------------------
 
 Before proceeding to add a validator to our Avalanche L1, we will need to have the validator's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/rpcs/other/info-rpc#infogetnodeid)
@@ -263,7 +263,7 @@ Transaction successful, transaction ID: r3tJ4Wr2CWA8AaticmFrKdKgAs5AhW2wwWTaQHRB
 
 This means the node is now a validator on the given Avalanche L1 on `Mainnet`!
 
-Going Live[​](#going-live "Direct link to heading")
+Going Live
 ---------------------------------------------------
 
 For the safety of your validators, you should setup dedicated API nodes to process transactions, but for test purposes, you can issue transactions directly to one of your validator's RPC interface.

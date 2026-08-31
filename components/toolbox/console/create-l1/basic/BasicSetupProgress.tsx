@@ -320,7 +320,7 @@ function txExplorerUrl(tx: TxRecord): string | null {
   if (tx.chain === 'p-chain') return `/explorer/${tx.network}/p-chain/tx/${tx.hash}`;
   if (tx.chain === 'c-chain') {
     return tx.network === 'fuji'
-      ? `https://subnets-test.avax.network/c-chain/tx/${tx.hash}`
+      ? `https://explorer-test.avax.network/c-chain/tx/${tx.hash}`
       : `/explorer/mainnet/c-chain/tx/${tx.hash}`;
   }
   return null;

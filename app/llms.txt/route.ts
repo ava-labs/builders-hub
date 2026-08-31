@@ -218,7 +218,7 @@ Additional resources and reference documentation:
 - [GitHub](https://github.com/ava-labs): Official Avalanche Labs repositories
 - [Discord](https://discord.gg/avalanche): Developer community
 - [Forum](https://forum.avax.network): Technical discussions
-- [Explorer](https://subnets.avax.network): Avalanche network explorer
+- [Explorer](https://explorer.avax.network): Avalanche network explorer
 `;
 
   return new Response(content, {

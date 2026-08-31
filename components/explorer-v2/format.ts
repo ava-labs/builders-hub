@@ -64,3 +64,13 @@ export function formatBytes(n: number | undefined): string {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** list-cell time: relative age only while it's under a day*/
+export function ageOrDate(ts: number): { text: string; title: string } {
+  const iso = new Date(ts * 1000).toISOString();
+  const ageSeconds = Date.now() / 1000 - ts;
+  return {
+    text: ageSeconds > 86400 ? iso.slice(0, 10) : timeAgo(ts),
+    title: iso.replace("T", " ").slice(0, 19) + " UTC",
+  };
+}

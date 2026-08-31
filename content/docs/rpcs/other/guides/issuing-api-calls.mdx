@@ -3,12 +3,12 @@ title: Issuing API Calls
 description: This guide explains how to make calls to APIs exposed by Avalanche nodes.
 ---
 
-Endpoints[​](#endpoints "Direct link to heading")
+Endpoints
 -------------------------------------------------
 
 An API call is made to an endpoint, which is a URL, made up of the base URI which is the address and the port of the node, and the path the particular endpoint the API call is on.
 
-### Base URL[​](#base-url "Direct link to heading")
+### Base URL
 
 The base of the URL is always:
 
@@ -27,7 +27,7 @@ If you're making RPC calls to remote nodes, then the instead of `127.0.0.1` you 
 <Callout type="warn">
 When setting up RPC access to a node, make sure you don't leave the `http-port` accessible to everyone! There are malicious actors that scan for nodes that have unrestricted access to their RPC port and then use those nodes for spamming them with resource-intensive queries which can knock the node offline. Only allow access to your node's RPC port from known IP addresses!
 </Callout>
-### Endpoint Path[​](#endpoint-path "Direct link to heading")
+### Endpoint Path
 
 Each API's documentation specifies what endpoint path a user should make calls to in order to access the API's methods.
 
@@ -41,22 +41,22 @@ So, in combining the base URL and the endpoint path we get the complete URL for 
 http://127.0.0.1:9650/ext/info
 ```
 
-Primary Network and Avalanche L1 RPC calls[​](#primary-network-and-avalanche-l1-rpc-calls "Direct link to heading")
+Primary Network and Avalanche L1 RPC calls
 -------------------------------------------------------------------------------------------------------
 
 Besides the APIs that are local to the node, like Admin or Metrics APIs, nodes also expose endpoints for talking to particular chains that are either part of the Primary Network (the X, P and C chains), or part of any Avalanche L1s the node might be syncing or validating.
 
 In general, chain endpoints are formatted as:
 
-### Primary Network Endpoints[​](#primary-network-endpoints "Direct link to heading")
+### Primary Network Endpoints
 
 The Primary Network consists of three chains: X, P and C chain. As those chains are present on every node, there are also convenient aliases defined that can be used instead of the full blockchainIDs. So, the endpoints look like:
 
-### C-Chain and Subnet-EVM Endpoints[​](#c-chain-and-subnet-evm-endpoints "Direct link to heading")
+### C-Chain and Subnet-EVM Endpoints
 
 C-Chain and many Avalanche L1s run a version of the EthereumVM (EVM). EVM exposes its own endpoints, which are also accessible on the node: JSON-RPC, and Websocket.
 
-#### JSON-RPC EVM Endpoints[​](#json-rpc-evm-endpoints "Direct link to heading")
+#### JSON-RPC EVM Endpoints
 
 To interact with C-Chain EVM via the JSON-RPC use the endpoint:
 
@@ -72,13 +72,13 @@ where `blockchainID` is the ID of the blockchain running the EVM. So for example
 http://127.0.0.1/ext/bc/q2aTwKuyzgs8pynF7UXBZCU7DejbZbZ6EUyHr3JQzYgwNPUPi/rpc
 ```
 
-Or for the WAGMI Avalanche L1 on the Fuji testnet:
+Or for the Echo Avalanche L1 on the Fuji testnet:
 
 ```
-http://127.0.0.1/ext/bc/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/rpc
+http://127.0.0.1/ext/bc/98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp/rpc
 ```
 
-#### Websocket EVM Endpoints[​](#websocket-evm-endpoints "Direct link to heading")
+#### Websocket EVM Endpoints
 
 To interact with C-Chain via the websocket endpoint, use:
 
@@ -98,7 +98,7 @@ Also, note that the [public API](/docs/rpcs#using-the-public-api-nodes) only sup
 </Callout>
 
 
-Making a JSON RPC Request[​](#making-a-json-rpc-request "Direct link to heading")
+Making a JSON RPC Request
 ---------------------------------------------------------------------------------
 
 Most of the built-in APIs use the [JSON RPC 2.0](https://www.jsonrpc.org/specification) format to describe their requests and responses. Such APIs include the Platform API and the X-Chain API.
@@ -138,7 +138,7 @@ curl -X POST --data '{
 
 That's it!
 
-### JSON RPC Success Response[​](#json-rpc-success-response "Direct link to heading")
+### JSON RPC Success Response
 
 If the call is successful, the response will look like this:
 
@@ -155,7 +155,7 @@ If the call is successful, the response will look like this:
 - `id` is the ID of the request that this response corresponds to.
 - `result` is the returned values of `getTxStatus`.
 
-### JSON RPC Error Response[​](#json-rpc-error-response "Direct link to heading")
+### JSON RPC Error Response
 
 If the API method invoked returns an error then the response will have a field `error` in place of `result`. Additionally, there is an extra field, `data`, which holds additional information about the error that occurred.
 
@@ -173,12 +173,12 @@ Such a response would look like:
 }
 ```
 
-Other API Formats[​](#other-api-formats "Direct link to heading")
+Other API Formats
 -----------------------------------------------------------------
 
 Some APIs may use a standard other than JSON RPC 2.0 to format their requests and responses. Such extension should specify how to make calls and parse responses to them in their documentation.
 
-Sending and Receiving Bytes[​](#sending-and-receiving-bytes "Direct link to heading")
+Sending and Receiving Bytes
 -------------------------------------------------------------------------------------
 
 Unless otherwise noted, when bytes are sent in an API call/response, they are in hex representation. However, Transaction IDs (TXIDs), ChainIDs, and subnetIDs are in [CB58](https://support.avalabs.org/en/articles/4587395-what-is-cb58) representation, a base-58 encoding with a checksum.

@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ArrowDown, ArrowUp, ArrowUpDown, CheckCircle2, Eye, EyeOff, Lock, Trophy, Unlock } from "lucide-react";
+import { countReviewProgress } from "@/lib/hackathons/project-links";
 import { SubmissionDetailPanel } from "./SubmissionDetailPanel";
 import type { EvaluationData, SubmissionRow, Verdict } from "./types";
 
@@ -78,6 +79,9 @@ type Project = {
   socials: unknown;
   is_winner: boolean | null;
   is_rejected: boolean;
+  // Derived server-side: the submission has no links at all, so it is hidden
+  // from judges automatically (no Restore — it heals itself if links appear).
+  auto_hidden: boolean;
   created_at: string;
   members: Member[];
   evaluations: Evaluation[];
@@ -261,9 +265,10 @@ export function HackathonEvaluateDashboard({
   const [phaseError, setPhaseError] = useState<string | null>(null);
 
   const isEvaluation = phase === HackathonEvaluationPhase.EVALUATION;
-  const totalProjects = projects.length;
-  const reviewedCount = useMemo(
-    () => projects.filter((p) => p.evaluations.length > 0).length,
+  // Hidden projects (rejected or auto-hidden) can never be reviewed by judges,
+  // so they must not count toward the phase gate.
+  const { reviewed: reviewedCount, total: totalProjects } = useMemo(
+    () => countReviewProgress(projects),
     [projects],
   );
   const reviewed = projects.length === 0 ? initialReviewed : reviewedCount;
@@ -311,10 +316,11 @@ export function HackathonEvaluateDashboard({
         return (av - bv) * dir;
       });
     })();
-    // Rejected projects always sink to the bottom
+    // Hidden projects (rejected or auto-hidden) always sink to the bottom
+    const isHidden = (p: Project) => p.is_rejected || p.auto_hidden;
     return [...base].sort((a, b) => {
-      if (a.is_rejected === b.is_rejected) return 0;
-      return a.is_rejected ? 1 : -1;
+      if (isHidden(a) === isHidden(b)) return 0;
+      return isHidden(a) ? 1 : -1;
     });
   }, [filtered, sort, viewerId]);
 
@@ -577,18 +583,19 @@ export function HackathonEvaluateDashboard({
               const mine = p.evaluations.find((e) => e.evaluator_id === viewerId);
               const evaluatedByMe = Boolean(mine);
               const isRejected = p.is_rejected;
+              const isHiddenRow = isRejected || p.auto_hidden;
               return (
                 <TableRow
                   key={p.id}
                   className={
                     "cursor-pointer relative " +
-                    (isRejected
+                    (isHiddenRow
                       ? "opacity-40 hover:opacity-60 transition-opacity"
                       : evaluatedByMe
                         ? "bg-emerald-50/40 dark:bg-emerald-500/5"
                         : "")
                   }
-                  onClick={() => !isRejected && setOpenProjectId(p.id)}
+                  onClick={() => !isHiddenRow && setOpenProjectId(p.id)}
                 >
                   <TableCell className="overflow-hidden">
                     <div className="flex items-center gap-3 min-w-0">
@@ -601,7 +608,7 @@ export function HackathonEvaluateDashboard({
                         <div className="flex items-center gap-2 min-w-0">
                           <div className={
                             "truncate text-sm font-medium " +
-                            (isRejected
+                            (isHiddenRow
                               ? "line-through text-zinc-400 dark:text-zinc-600"
                               : "text-zinc-900 dark:text-zinc-100")
                           }>
@@ -613,7 +620,13 @@ export function HackathonEvaluateDashboard({
                               Hidden
                             </span>
                           )}
-                          {!isRejected && evaluatedByMe && (
+                          {!isRejected && p.auto_hidden && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-500">
+                              <EyeOff className="size-3" />
+                              No links
+                            </span>
+                          )}
+                          {!isHiddenRow && evaluatedByMe && (
                             <span
                               title="You have evaluated this project"
                               className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
@@ -655,11 +668,15 @@ export function HackathonEvaluateDashboard({
                   </TableCell>
                   {canPickWinners && (
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <RejectControl
-                        isRejected={isRejected}
-                        isSaving={rejectSaving === p.id}
-                        onToggle={(next) => setIsRejected(p.id, next)}
-                      />
+                      {p.auto_hidden && !isRejected ? (
+                        <AutoHiddenLabel />
+                      ) : (
+                        <RejectControl
+                          isRejected={isRejected}
+                          isSaving={rejectSaving === p.id}
+                          onToggle={(next) => setIsRejected(p.id, next)}
+                        />
+                      )}
                     </TableCell>
                   )}
                 </TableRow>
@@ -710,6 +727,24 @@ export function HackathonEvaluateDashboard({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+function AutoHiddenLabel() {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex h-8 cursor-default items-center gap-1.5 px-3 text-xs font-medium text-zinc-400 dark:text-zinc-600">
+            <EyeOff className="size-3.5" />
+            Auto-hidden
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>
+          Hidden from judges automatically because the submission has no links.
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

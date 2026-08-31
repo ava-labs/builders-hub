@@ -167,15 +167,15 @@ function generateSuggestionsFromContent(keywords: string[], sections: Array<{ ti
     },
     'subnet': {
       'create': [
-        'What are the costs of creating a subnet?',
-        'How do I add validators to my subnet?',
-        'What VM options are available for subnets?',
-        'How do I configure subnet parameters?'
+        'What are the costs of creating an Avalanche L1?',
+        'How do I add validators to my Avalanche L1?',
+        'What VM options are available for Avalanche L1s?',
+        'How do I configure Avalanche L1 parameters?'
       ],
       'l1': [
         'What\'s the difference between Subnet and L1?',
         'How do I convert my Subnet to an L1?',
-        'What are the benefits of L1s over Subnets?',
+        'What happens to my existing validators after converting to an L1?',
         'Can L1s communicate with each other?'
       ]
     },

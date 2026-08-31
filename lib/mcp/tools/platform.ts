@@ -99,14 +99,14 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_subnets',
-      description: 'Get information about subnets on the P-Chain',
+      description: 'Get information about Subnets/L1s on the P-Chain',
       inputSchema: {
         type: 'object',
         properties: {
           ids: {
             type: 'array',
             items: { type: 'string' },
-            description: 'Optional list of subnet IDs to filter by',
+            description: 'Optional list of Subnet IDs to filter by',
           },
           network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
           ...PAGINATION_PROPS,
@@ -115,13 +115,13 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_current_validators',
-      description: 'Get the current validators of a subnet (paginated; use limit/offset)',
+      description: 'Get the current validators of a Subnet/L1 (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query validators for (default: Primary Network)',
+            description: 'The Subnet ID to query validators for (default: Primary Network)',
           },
           nodeIDs: {
             type: 'array',
@@ -135,13 +135,13 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_pending_validators',
-      description: 'Get the pending validators of a subnet (paginated; use limit/offset)',
+      description: 'Get the pending validators of a Subnet/L1 (paginated; use limit/offset)',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query pending validators for (default: Primary Network)',
+            description: 'The Subnet ID to query pending validators for (default: Primary Network)',
           },
           nodeIDs: {
             type: 'array',
@@ -155,13 +155,13 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_staking_asset_id',
-      description: 'Get the asset ID of the token used for staking on a subnet',
+      description: 'Get the asset ID of the token used for staking on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query the staking asset for (default: Primary Network)',
+            description: 'The Subnet ID to query the staking asset for (default: Primary Network)',
           },
           network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
@@ -169,13 +169,13 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_min_stake',
-      description: 'Get the minimum staking amounts for validators and delegators on a subnet',
+      description: 'Get the minimum staking amounts for validators and delegators on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query minimum stake for (default: Primary Network)',
+            description: 'The Subnet ID to query minimum stake for (default: Primary Network)',
           },
           network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
@@ -183,13 +183,13 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_total_stake',
-      description: 'Get the total amount staked on a subnet',
+      description: 'Get the total amount staked on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query total stake for (default: Primary Network)',
+            description: 'The Subnet ID to query total stake for (default: Primary Network)',
           },
           network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
@@ -272,13 +272,13 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_current_supply',
-      description: 'Get the current total supply of AVAX on a subnet',
+      description: 'Get the current total supply of AVAX on a Subnet/L1',
       inputSchema: {
         type: 'object',
         properties: {
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query current supply for (default: Primary Network)',
+            description: 'The Subnet ID to query current supply for (default: Primary Network)',
           },
           network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },
@@ -286,7 +286,7 @@ export const platformTools: ToolDomain = {
     },
     {
       name: 'platform_get_validators_at',
-      description: 'Get the validators and their weights of a subnet at a given P-Chain height',
+      description: 'Get the validators and their weights of a Subnet/L1 at a given P-Chain height',
       inputSchema: {
         type: 'object',
         properties: {
@@ -299,7 +299,7 @@ export const platformTools: ToolDomain = {
           },
           subnetID: {
             type: 'string',
-            description: 'The subnet ID to query validators for (default: Primary Network)',
+            description: 'The Subnet ID to query validators for (default: Primary Network)',
           },
           network: networkSchemaProp({ description: 'Avalanche network to query (default: mainnet)' }),
         },

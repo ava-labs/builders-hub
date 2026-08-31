@@ -12,7 +12,7 @@ Dive deeper into ICM contracts and kickstart your journey in building cross-chai
 
 This section walks through how to build an example cross-chain application on top of ICM contracts, recreating the `ExampleCrossChainMessenger` [contract](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example) that sends arbitrary string data from one chain to another. Note that this tutorial is meant for education purposes only. The resulting code is not intended for use in production environments.
 
-Step 1: Create Initial Contract[​](#step-1-create-initial-contract "Direct link to heading")
+Step 1: Create Initial Contract
 --------------------------------------------------------------------------------------------
 
 Create a new file called `MyExampleCrossChainMessenger.sol` in a new directory:
@@ -74,7 +74,7 @@ Finally, add the following struct and event declarations into the body of the co
     );
 ```
 
-Step 2: Integrating ICM Contracts[​](#step-2-integrating-teleporter-messenger "Direct link to heading")
+Step 2: Integrating ICM Contracts
 --------------------------------------------------------------------------------------------------------------
 
 Now that the initial empty `MyExampleCrossChainMessenger` is defined, it's time to integrate with `ITeleporterMessenger`, which will provide the functionality to deliver cross chain messages.
@@ -89,7 +89,7 @@ Create a state variable of `ITeleporterMessenger` type called `teleporterMesseng
     }
 ```
 
-Step 3: Send and Receive[​](#step-3-send-and-receive "Direct link to heading")
+Step 3: Send and Receive
 ------------------------------------------------------------------------------
 
 Now that `MyExampleCrossChainMessenger` has an instantiation of `ITeleporterMessenger`, the next step is to add in the functionality of sending and receiving arbitrary string data between chains.
@@ -216,7 +216,7 @@ With the sending side complete, the next step is to implement `ITeleporterReceiv
 
 The base of sending and receiving messages cross chain is complete. `MyExampleCrossChainMessenger` can now be expanded with functionality that saves the received messages, and allows users to query for the latest message received from a specified chain.
 
-Step 4: Storing the Message[​](#step-4-storing-the-message "Direct link to heading")
+Step 4: Storing the Message
 ------------------------------------------------------------------------------------
 
 Start by adding a map to the body of the contract, in which the key is the `sourceBlockchainID` and the value is the latest `message` sent from that chain. The `message` is of type `Message`, which is already declared in the contract.
@@ -255,7 +255,7 @@ Next, add a function to the contract called `getCurrentMessage` that allows user
     }
 ```
 
-Step 5: Upgrade Support[​](#step-5-upgrade-support "Direct link to heading")
+Step 5: Upgrade Support
 ----------------------------------------------------------------------------
 
 At this point, the contract is now fully usable, and can be used to send arbitrary string data between chains. However, there are a few more modifications that need to be made to support upgrades to ICM contracts. For a more in-depth explanation of how to support upgrades, see the Upgrades README [here](https://github.com/ava-labs/icm-services/blob/main/icm-contracts/avalanche/teleporter/registry/UPGRADING.md).
@@ -320,7 +320,7 @@ And finally, change `receiveTeleporterMessage` to `_receiveTeleporterMessage`, m
 
 `MyExampleCrossChainMessenger` is now a working cross-chain dApp built on top of ICM contracts! Full example [here](https://github.com/ava-labs/icm-services/tree/example-sequential-message-app/contracts/sequential-delivery-example).
 
-Step 6: Testing[​](#step-6-testing "Direct link to heading")
+Step 6: Testing
 ------------------------------------------------------------
 
 For testing, `scripts/local/e2e_test.sh` sets up a local test environment consisting of three avalanche-l1s deployed with ICM contracts, and a lightweight inline relayer implementation to facilitate cross chain message delivery. An end-to-end test for `ExampleCrossChainMessenger` is included in `tests/flows/example_messenger.go`, which performs the following:

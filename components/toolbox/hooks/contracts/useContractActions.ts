@@ -139,6 +139,23 @@ export function useContractActions(contractAddress: string | null, abi: Abi | re
       }
     }
 
+    // Pin the nonce to the chain's pending count. The wallet's internal
+    // nonce cache can lag right after a prior transaction mines (e.g. the
+    // ICTT approve immediately after a send), which makes it sign with an
+    // already-used nonce and fail with "nonce too low" / NONCE_EXPIRED.
+    // The chain RPC is the source of truth; best-effort, fall back to the
+    // wallet's own nonce if the read fails.
+    if (publicClient) {
+      try {
+        txConfig.nonce = await publicClient.getTransactionCount({
+          address: walletEVMAddress as `0x${string}`,
+          blockTag: 'pending',
+        });
+      } catch {
+        // RPC blip: let the wallet fill the nonce as before.
+      }
+    }
+
     const writePromise = walletClient.writeContract(txConfig);
 
     notify(

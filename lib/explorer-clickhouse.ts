@@ -330,6 +330,7 @@ const PCHAIN_NETWORK_IDS: Record<string, number> = {
 };
 
 export interface PchainRewardPoint {
+  /** UTC day, YYYY-MM-DD; display formatting is the client's job */
   date: string;
   /** AVAX minted to stakers that day */
   avax: number;
@@ -338,6 +339,7 @@ export interface PchainRewardPoint {
 }
 
 export interface PchainUnlockPoint {
+  /** UTC day, YYYY-MM-DD; display formatting is the client's job */
   date: string;
   /** AVAX whose staking period ends that day (validators + delegators) */
   avax: number;
@@ -447,7 +449,7 @@ export async function getPchainStakingSeries(
 
     const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
     const rewards = buildPastDates(days).map((iso) => ({
-      date: formatDayLabel(iso),
+      date: iso,
       avax: Number(rewardsByDay.get(iso)?.avax) || 0,
       payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
     }));
@@ -460,7 +462,7 @@ export async function getPchainStakingSeries(
       unlocksByDay.set(r.day, day);
     }
     const unlocks = buildFutureDates(days).map((iso) => ({
-      date: formatDayLabel(iso),
+      date: iso,
       avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
       stakers: unlocksByDay.get(iso)?.stakers ?? 0,
     }));

@@ -1,6 +1,7 @@
 import { type Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { SharedChatView } from '@/components/chat/shared-chat-view';
+import { createMetadata } from '@/utils/metadata';
 import { prisma } from '@/prisma/prisma';
 import Link from 'next/link';
 import { Clock, AlertCircle } from 'lucide-react';
@@ -28,27 +29,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     });
 
     if (!conversation || !conversation.is_shared) {
-      return {
+      return createMetadata({
         title: 'Shared Chat Not Found | Avalanche AI',
         description: 'This shared conversation could not be found.',
-      };
+      });
     }
 
     // Check expiration
     if (conversation.share_expires_at && conversation.share_expires_at < new Date()) {
-      return {
+      return createMetadata({
         title: 'Shared Chat Expired | Avalanche AI',
         description: 'This shared conversation link has expired.',
-      };
+      });
     }
 
-    return {
+    return createMetadata({
       title: `${conversation.title} | Avalanche AI`,
       description: `Shared conversation with Avalanche AI: ${conversation.title}`,
       openGraph: {
         title: `${conversation.title} | Avalanche AI`,
         description: `Shared conversation with Avalanche AI`,
         type: 'article',
+        url: `/chat/share/${token}`,
         siteName: 'Avalanche Builder Hub',
       },
       twitter: {
@@ -56,12 +58,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title: `${conversation.title} | Avalanche AI`,
         description: `Shared conversation with Avalanche AI`,
       },
-    };
+    });
   } catch {
-    return {
+    return createMetadata({
       title: 'Shared Chat | Avalanche AI',
       description: 'View a shared conversation with Avalanche AI',
-    };
+    });
   }
 }
 

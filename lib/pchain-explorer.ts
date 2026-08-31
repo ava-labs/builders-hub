@@ -52,6 +52,14 @@ export const EXPLORER_CHAINS: Record<string, ExplorerChain> = {
     networks: PCHAIN_NETWORKS,
     defaultNetwork: "mainnet",
   },
+  "x-chain": {
+    slug: "x-chain",
+    name: "X-Chain",
+    title: "Exchange Chain",
+    kind: "pchain",
+    networks: PCHAIN_NETWORKS,
+    defaultNetwork: "mainnet",
+  },
 };
 
 export function getExplorerChain(slug: string): ExplorerChain | undefined {
@@ -62,6 +70,7 @@ export function getExplorerChain(slug: string): ExplorerChain | undefined {
 // source/destination labels (import/export). Mirrors the server-side
 // wellKnownChains map.
 const WELL_KNOWN_CHAINS: Record<string, string> = {
+  "11111111111111111111111111111111LpoYY": "P-Chain",
   "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5": "C-Chain",
   "2oYMBNV4eNHyqk2fjjV5nVQLDbtmNJzq5s3qs3Lo6ftnC6FByM": "X-Chain",
   yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp: "C-Chain",
@@ -236,6 +245,11 @@ export interface Tx {
   periodHuman?: string;
   autoCompoundRewardShares?: number;
   autoCompoundPercent?: number;
+  /** nAVAX compounded back into the stake by a RewardAutoRenewedValidatorTx.
+   * Read by the indexer off the validator's weight step: it is NOT derivable
+   * from the payout UTXOs, since avalanchego splits and floors the validation
+   * and delegatee rewards separately. */
+  restakedAmount?: string;
   validatorAuthority?: string[];
   details?: TxDetails;
   importedFrom?: ImportedFrom;
