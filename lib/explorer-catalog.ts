@@ -36,3 +36,19 @@ export function findAliasClaimants(network: string, slug: string | undefined): L
       isBareAliasOf(slug, c.chainName),
   );
 }
+
+/**
+ * The chains worth listing: those whose validator set is still active.
+ *
+ * `isActive` is written by scripts/enrich-chains.ts --prune from the P-Chain's
+ * own view (getAllValidatorsAt at the proposed height), so it counts legacy
+ * Subnet validators as well as ACP-77 L1 seats. 68 of the 357 catalog entries
+ * are active on mainnet as of the last enrichment.
+ */
+export function activeChains(opts?: { testnet?: boolean }): L1Chain[] {
+  return CATALOG.filter((c) => {
+    if (c.isActive === false) return false;
+    if (opts?.testnet === undefined) return true;
+    return (c.isTestnet === true) === opts.testnet;
+  });
+}

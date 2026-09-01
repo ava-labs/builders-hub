@@ -75,3 +75,32 @@ export function useLiveValidatorCounts(network = "mainnet", enabled = true) {
   const live = useMemo(() => (subnets ? liveValidatorCounts(subnets) : null), [subnets]);
   return { live, failed: error };
 }
+
+/**
+ * Chain IDs our stats API indexes, for deciding whether a chain is worth
+ * offering as a destination.
+ *
+ * Returns null while loading and on failure — both mean "do not narrow the
+ * list", so a slow or broken fetch degrades to the full menu rather than an
+ * empty one.
+ */
+export function useIndexedChainIds(enabled = true) {
+  const [ids, setIds] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    fetch("/api/indexed-chains")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body: { indexed?: string[] | null } | null) => {
+        if (cancelled || !body?.indexed) return;
+        setIds(new Set(body.indexed));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return ids;
+}

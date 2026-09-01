@@ -10,6 +10,7 @@ import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import type { L1Chain } from "@/types/stats";
 
 /* The chain directory — every catalog chain with the three things a builder
@@ -66,7 +67,11 @@ function ChainLogo({ uri, name }: { uri?: string | null; name: string }) {
   );
 }
 
-export function NetworkChains() {
+export function NetworkChains({
+  indexedChainIds = null,
+}: {
+  indexedChainIds?: string[] | null;
+} = {}) {
   const [q, setQ] = useState("");
   const [net, setNet] = useState<NetFilter>("mainnet");
   const [showInactive, setShowInactive] = useState(false);
@@ -74,6 +79,13 @@ export function NetworkChains() {
   // a mainnet chain earns a default row only if its subnet has stake-backed
   // validators right now. The feed failing open beats an empty directory.
   const { live, failed } = useLiveValidatorCounts();
+
+  const indexedSet = useMemo(
+    () => (indexedChainIds ? new Set(indexedChainIds) : null),
+    [indexedChainIds],
+  );
+  const isIndexedByUs = (c: L1Chain) =>
+    indexedSet ? indexedSet.has(toStatsChainId(String(c.chainId))) : c.isIndexed !== false;
 
   const chains = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -198,10 +210,11 @@ export function NetworkChains() {
                 ))}
               {(live || failed || showInactive) && chains.map((c) => {
                 const liveCount = (c.subnetId && live?.get(c.subnetId)) || 0;
-                const explorerHref =
-                  c.rpcUrl && c.isIndexed !== false
-                    ? `/explorer/${c.isTestnet ? "fuji" : "mainnet"}/${c.slug}`
-                    : null;
+                // Link only where the explorer has something to show. A row
+                // for an unindexed chain still lists its RPC and chain ID
+                const explorerHref = isIndexedByUs(c)
+                  ? `/explorer/${c.isTestnet ? "fuji" : "mainnet"}/${c.slug}`
+                  : null;
                 return (
                   <tr key={`${c.slug}-${c.chainId}`} className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                     <td className={TD}>
