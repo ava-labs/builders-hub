@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createMetadata } from "@/utils/metadata";
 import { NetworkChains } from "@/components/explorer-v2/network/NetworkChains";
+import { fetchIndexedChainIds } from "@/lib/stats-coverage";
 
 const ogImage = { url: "/api/og/explorer", width: 1200, height: 630, alt: "Avalanche Explorer" };
 
@@ -27,5 +28,6 @@ export default async function NetworkChainsPage({
 }) {
   const { network } = await params;
   if (network !== "mainnet") redirect("/explorer/mainnet/chains");
-  return <NetworkChains />;
+  const indexed = await fetchIndexedChainIds();
+  return <NetworkChains indexedChainIds={indexed ? [...indexed] : null} />;
 }

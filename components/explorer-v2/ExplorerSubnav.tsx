@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
+import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { isUnindexedChain } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
 import {
@@ -81,6 +82,7 @@ function ChainSwitcher({
 
   // validate lazily, on first open (the shared feed dedupes the request)
   const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts("mainnet", open);
+  const indexedChainIds = useIndexedChainIds(open);
 
   // close on outside click or Escape
   useEffect(() => {
@@ -122,9 +124,29 @@ function ChainSwitcher({
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
-    const all = (l1ChainsData as L1Chain[]).filter(
-      (c) => c.isTestnet !== true && c.rpcUrl && hasRealChainLogo(c.chainLogoURI) && c.slug !== "c-chain",
+    const mainnet = (l1ChainsData as L1Chain[]).filter(
+      (c) => c.isTestnet !== true && c.slug !== "c-chain",
     );
+
+    if (indexedChainIds) {
+      const picked = mainnet
+        .filter((c) => indexedChainIds.has(toStatsChainId(String(c.chainId))))
+        .sort(
+          (a, b) =>
+            ((a.subnetId && liveValidators?.get(a.subnetId)) ?? 0) <
+            ((b.subnetId && liveValidators?.get(b.subnetId)) ?? 0)
+              ? 1
+              : -1,
+        );
+      return picked.map((c) => ({
+        slug: c.slug,
+        name: c.chainName,
+        logo: c.chainLogoURI,
+        href: `/explorer/mainnet/${c.slug}`,
+      }));
+    }
+
+    const all = mainnet.filter((c) => c.rpcUrl && hasRealChainLogo(c.chainLogoURI));
     let picked: L1Chain[];
     if (liveValidators) {
       picked = all
@@ -141,7 +163,7 @@ function ChainSwitcher({
       logo: c.chainLogoURI,
       href: `/explorer/mainnet/${c.slug}`,
     }));
-  }, [liveValidators, feedFailed]);
+  }, [liveValidators, feedFailed, indexedChainIds]);
 
   const q = filter.trim().toLowerCase();
   const matches = (e: SwitcherEntry) => !q || e.name.toLowerCase().includes(q) || e.slug.includes(q);

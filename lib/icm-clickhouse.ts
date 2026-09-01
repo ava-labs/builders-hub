@@ -8,6 +8,7 @@ import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { toClientEvmSigner } from "@x402/evm";
+import { statsApi } from "@/lib/stats-api";
 
 type L1ChainEntry = {
   chainId: string;
@@ -335,10 +336,18 @@ function sqlContractFees(days?: number): string {
 }
 
 async function refreshCache(): Promise<ICMCacheData> {
-  const [dailyIncoming, dailyOutgoing] = await Promise.all([
-    queryClickHouse<DailyIncoming>(sqlDailyIncoming()),
-    queryClickHouse<DailyOutgoing>(sqlDailyOutgoing()),
-  ]);
+  // One endpoint returns both directions; splitting them back out keeps the
+  // shapes the rest of this module already works with.
+  const body = await statsApi<{
+    days?: { chainId: number; day: string; incoming: number; outgoing: number }[];
+  }>("/icm-api/daily", QUERY_TIMEOUT_MS);
+  const rows = body?.days ?? [];
+  const dailyIncoming: DailyIncoming[] = rows
+    .filter((r) => r.incoming > 0)
+    .map((r) => ({ chain_id: r.chainId, day: r.day, incoming_count: r.incoming }));
+  const dailyOutgoing: DailyOutgoing[] = rows
+    .filter((r) => r.outgoing > 0)
+    .map((r) => ({ chain_id: r.chainId, day: r.day, outgoing_count: r.outgoing }));
 
   return {
     dailyIncoming,
@@ -350,7 +359,14 @@ async function refreshCache(): Promise<ICMCacheData> {
 }
 
 async function fetchCrossChainFlows(days: number): Promise<CrossChainFlow[]> {
-  const rawFlows = await queryClickHouse<RawCrossChainFlow>(sqlCrossChainFlows(days));
+  const flowsBody = await statsApi<{
+    flows?: { destChainId: number; sourceBlockchainHex: string; messageCount: number }[];
+  }>(`/icm-api/flows?days=${days}`, QUERY_TIMEOUT_MS);
+  const rawFlows: RawCrossChainFlow[] = (flowsBody?.flows ?? []).map((f) => ({
+    dest_chain_id: f.destChainId,
+    source_blockchain_hex: f.sourceBlockchainHex,
+    msg_count: f.messageCount,
+  }));
 
   const crossChainFlows: CrossChainFlow[] = [];
   for (const row of rawFlows) {
@@ -405,11 +421,15 @@ async function getICMCacheData(): Promise<ICMCacheData> {
 }
 
 async function refreshContractFeesCache(days?: number): Promise<ContractFeesCacheData> {
-  const contractFees = await queryClickHouseDirect<ContractFee>(
-    sqlContractFees(days),
-    CONTRACT_FEES_QUERY_TIMEOUT_MS
+  const feesBody = await statsApi<{ fees?: { day: string; feesPaid: string; txCount: number }[] }>(
+    days && days > 0 ? `/icm-api/contract-fees?days=${Math.ceil(days)}` : "/icm-api/contract-fees",
+    CONTRACT_FEES_QUERY_TIMEOUT_MS,
   );
-
+  const contractFees: ContractFee[] = (feesBody?.fees ?? []).map((f) => ({
+    day: f.day,
+    fees_paid: f.feesPaid,
+    tx_count: f.txCount,
+  }));
   return {
     contractFees,
     fetchedAt: Date.now(),

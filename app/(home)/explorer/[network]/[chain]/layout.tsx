@@ -5,22 +5,22 @@ import { L1Chain } from "@/types/stats";
 import { Board, BoardHeader } from "@/components/explorer-v2/ui";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { findAliasClaimants, resolveCatalogChain, wantsTestnet } from "@/lib/explorer-catalog";
+import { fetchChainCoverage, fetchIndexedChainIds, formatCoverageDate, isServedByStatsApi, toStatsChainId } from "@/lib/stats-coverage";
 import { ChainExplorerLayoutClient } from "./layout.client";
 
 /* The whole page body for a chain we don't index. */
 function ChainNotIndexed({ network, chainName }: { network: string; chainName: string }) {
   const pchain = `/explorer/${wantsTestnet(network) ? "fuji" : "mainnet"}/p-chain`;
   return (
-    <EvmShell network={network} search={false}>
+    <EvmShell network={network} search={false} subnav={false}>
       <Board divide={false}>
         <BoardHeader label="Not indexed" display />
         <div className="space-y-3 px-5 py-8 md:px-6 md:py-10">
           <p className="max-w-prose text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
-            The explorer has no data for{" "}
+            No data indexed yet for{" "}
             <span className="text-zinc-900 dark:text-zinc-100">{chainName}</span>. Blocks,
             transactions, accounts and gas history are all unavailable — this
-            chain publishes no public RPC endpoint and is not in our indexing
-            set.
+            chain is not in our indexing set.
           </p>
           <p className="max-w-prose text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-500">
             Its on-chain registration is still visible from the P-Chain, which is
@@ -36,6 +36,27 @@ function ChainNotIndexed({ network, chainName }: { network: string; chainName: s
         </div>
       </Board>
     </EvmShell>
+  );
+}
+
+function ChainDataStopped({ chainName, lastDataAt }: { chainName: string; lastDataAt: number }) {
+  return (
+    <div className="px-5 pt-5 md:px-6">
+      <Board divide={false}>
+        <BoardHeader label="Indexing stopped" display />
+        <div className="px-5 py-4 md:px-6">
+          <p className="max-w-prose text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+            Everything below is historical.{" "}
+            <span className="text-zinc-900 dark:text-zinc-100">{chainName}</span> has no
+            indexed activity after{" "}
+            <span className="text-zinc-900 dark:text-zinc-100">
+              {formatCoverageDate(lastDataAt)}
+            </span>
+            , so the latest blocks, transactions and balances are not current.
+          </p>
+        </div>
+      </Board>
+    </div>
   );
 }
 
@@ -100,9 +121,21 @@ export default async function ChainExplorerLayout({
 }: ChainExplorerLayoutProps) {
   const resolvedParams = await params;
   const { network, chain: chainSlug } = resolvedParams;
-
   const chain = resolveCatalogChain(network, chainSlug);
-  const unindexed = chain?.isIndexed === false;
+  const indexedIds = chain ? await fetchIndexedChainIds() : null;
+  const unindexed = chain
+    ? indexedIds
+      ? !indexedIds.has(toStatsChainId(chain.chainId))
+      : chain.isIndexed === false
+    : false;
+
+  // Only worth asking for a chain we do index — it distinguishes "live" from
+  // "has history but stopped", and an unindexed chain is neither.
+  const coverage =
+    chain && !unindexed && isServedByStatsApi(chain.chainId)
+      ? await fetchChainCoverage(chain.chainId)
+      : { status: "unknown" as const };
+  const stoppedAt = coverage.status === "historical" ? coverage.lastDataAt : undefined;
 
   // If chain found in static data, render with server-known props
   if (chain) {
@@ -124,7 +157,12 @@ export default async function ChainExplorerLayout({
         {unindexed ? (
           <ChainNotIndexed network={network} chainName={chain.chainName} />
         ) : (
-          children
+          <>
+            {stoppedAt !== undefined && (
+              <ChainDataStopped chainName={chain.chainName} lastDataAt={stoppedAt} />
+            )}
+            {children}
+          </>
         )}
       </ChainExplorerLayoutClient>
     );
