@@ -800,10 +800,8 @@ async function checkGlacierSupport(_chainId: string): Promise<boolean> {
 // which is our signal that the chain is not indexed yet. Chains served by the dedicated
 // metrics source are probed there (with their remapped id) instead of the shared API.
 async function checkChainIndexed(chainId: string): Promise<boolean> {
-  const dedicatedEvmChainId = resolveDedicatedMetricsChain(chainId);
-  const baseUrl = dedicatedEvmChainId ? DEDICATED_STATS_BASE_URL : process.env.METRICS_API_URL;
-  const resolvedChainId = dedicatedEvmChainId ?? chainId;
-  if (!baseUrl) return false;
+  const baseUrl = DEDICATED_STATS_BASE_URL;
+  const resolvedChainId = resolveDedicatedMetricsChain(chainId) ?? chainId;
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - 30 * 24 * 60 * 60;
