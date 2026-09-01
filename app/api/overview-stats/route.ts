@@ -78,6 +78,7 @@ interface OverviewMetrics {
     // Active L1s from P-Chain (source of truth). Falls back to enriched chain
     // count if P-Chain is unreachable.
     activeL1Count: number;
+    contributors: { txCount: number; activeAddresses: number; icmMessages: number };
   };
   timeRange: TimeRangeKey;
   last_updated: number;
@@ -140,10 +141,21 @@ function sumValues(sorted: MetricResult[], daysToSum: number): number {
  * Returns null if P-Chain is unreachable; the caller falls back rather than
  * publishing a count it did not verify.
  */
-let l1CountCache: { n: number; at: number } | null = null;
+let l1CountCache: { counts: Map<string, number>; at: number } | null = null;
+
+async function getPChainValidatorCounts(): Promise<Map<string, number> | null> {
+  const fresh = await loadPChainValidatorSets();
+  return fresh;
+}
+
 async function getActiveL1CountFromPChain(): Promise<number | null> {
+  const counts = await loadPChainValidatorSets();
+  return counts ? counts.size : null;
+}
+
+async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
   if (l1CountCache && Date.now() - l1CountCache.at < STATS_CONFIG.CACHE.SHORT_DURATION) {
-    return l1CountCache.n;
+    return l1CountCache.counts;
   }
   try {
     const res = await fetchWithTimeout(P_CHAIN_RPC, {
@@ -159,16 +171,17 @@ async function getActiveL1CountFromPChain(): Promise<number | null> {
     const body = await res.json();
     const sets = body?.result?.validatorSets;
     if (!sets || typeof sets !== 'object') throw new Error('unexpected p-chain response');
-    const n = Object.entries(sets).filter(
-      ([subnetId, set]) =>
-        subnetId !== PRIMARY_NETWORK_SUBNET_ID &&
-        Array.isArray((set as { validators?: unknown[] })?.validators) &&
-        ((set as { validators: unknown[] }).validators.length > 0),
-    ).length;
-    l1CountCache = { n, at: Date.now() };
-    return n;
+    const counts = new Map<string, number>();
+    for (const [subnetId, set] of Object.entries(sets)) {
+      if (subnetId === PRIMARY_NETWORK_SUBNET_ID) continue;
+      const validators = (set as { validators?: unknown[] })?.validators;
+      if (!Array.isArray(validators) || validators.length === 0) continue;
+      counts.set(subnetId, validators.length);
+    }
+    l1CountCache = { counts, at: Date.now() };
+    return counts;
   } catch (error) {
-    console.error('[getActiveL1CountFromPChain] failed:', error);
+    console.error('[loadPChainValidatorSets] failed:', error);
     return null;
   }
 }
@@ -225,15 +238,14 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
 
-    // active addresses is a distinct count, not a sum — the metrics-api only
-    // buckets it by day/week/month, so quarter and year (no wider bucket
-    // exists) read the monthly figure rather than an unsupported interval.
-    const isMonthly = timeRange === 'quarter' || timeRange === 'year';
+    // active addresses is a distinct count, not a sum — the API only buckets it
+    // by day/week/month, so quarter and year (no wider bucket exists) read the
+    // monthly figure rather than an unsupported interval.
+    //
+    // 'month' has to be in this set too. It asks for monthly buckets like the
+    // other two, so it needs the same widened lookback.
+    const isMonthly = timeRange === 'month' || timeRange === 'quarter' || timeRange === 'year';
     const interval = isMonthly ? 'month' : timeRange;
-    // monthly buckets are stamped at month START and only complete months
-    // are served: a 30-day lookback contains none for most of the month
-    // (every chain read 0 from the 2nd onward), so the monthly read
-    // reaches back 65 days to always cover one full bucket
     const startTimestamp = endTimestamp - ((isMonthly ? 65 : 30) * SECONDS_PER_DAY);
 
     const url = new URL(`${STATS_API_URL}/v2/chains/${toStatsChainId(chainId)}/metrics/activeAddresses`);
@@ -273,24 +285,9 @@ async function getICMData(chainId: string, timeRange: TimeRangeKey): Promise<Met
 
 async function getValidatorCount(subnetId: string): Promise<number | string> {
   if (!subnetId || subnetId === "N/A") return "N/A";
-
-  try {
-    const url = new URL(`${STATS_API_URL}/v2/networks/mainnet/metrics/validatorCount`);
-    url.searchParams.set('pageSize', '1');
-    url.searchParams.set('subnetId', subnetId);
-    
-    const response = await fetchWithTimeout(url.toString(), { headers: { 'Accept': 'application/json' } });
-    if (!response.ok) return "N/A";
-
-    const data = await response.json();
-    const value = data?.results?.[0]?.value;
-    return value ? Number(value) : "N/A";
-  } catch (error) {
-    if (error instanceof Error && error.name !== 'AbortError') {
-      console.error(`[getValidatorCount] Failed for subnet ${subnetId}:`, error);
-    }
-    return "N/A";
-  }
+  const counts = await getPChainValidatorCounts();
+  if (!counts) return "N/A";
+  return counts.get(subnetId) ?? 0;
 }
 
 const MARKET_CAP_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
@@ -407,14 +404,18 @@ async function fetchFreshDataInternal(timeRange: TimeRangeKey): Promise<Overview
     }
 
     const aggregated = chainMetrics.reduce((acc, chain) => {
-      acc.totalTxCount += chain.txCount ?? 0;
-      acc.totalActiveAddresses += chain.activeAddresses ?? 0;
-      acc.totalICMMessages += chain.icmMessages ?? 0;
+      if (chain.txCount !== null) { acc.totalTxCount += chain.txCount; acc.contributors.txCount++; }
+      if (chain.activeAddresses !== null) { acc.totalActiveAddresses += chain.activeAddresses; acc.contributors.activeAddresses++; }
+      if (chain.icmMessages !== null) { acc.totalICMMessages += chain.icmMessages; acc.contributors.icmMessages++; }
       acc.totalMarketCap += chain.marketCap ?? 0;
       if (typeof chain.validatorCount === 'number') acc.totalValidators += chain.validatorCount;
       if ((chain.txCount ?? 0) > 0 || (chain.activeAddresses ?? 0) > 0) acc.activeChains++;
       return acc;
-    }, { totalTxCount: 0, totalActiveAddresses: 0, totalICMMessages: 0, totalMarketCap: 0, totalValidators: 0, activeChains: 0 });
+    }, {
+      totalTxCount: 0, totalActiveAddresses: 0, totalICMMessages: 0,
+      totalMarketCap: 0, totalValidators: 0, activeChains: 0,
+      contributors: { txCount: 0, activeAddresses: 0, icmMessages: 0 },
+    });
 
     const covered = chainMetrics.filter((c) => c.txCount !== null || c.activeAddresses !== null).length;
 

@@ -47,6 +47,11 @@ function fmtMetric(v: number | null | undefined, metricsOk?: boolean) {
 
 const metricDesc = (a: number | null, b: number | null) => (b ?? -1) - (a ?? -1);
 
+function aggFigure(value: number, contributors: number | undefined) {
+  if (contributors === 0) return <StatDash />;
+  return <StatFigure value={value} />;
+}
+
 /* compact dollar figures: $2.8B, $78.4M */
 function fmtUsd(v: number | null | undefined): string {
   return typeof v === "number" && v > 0 ? `$${compact.format(v)}` : "—";
@@ -91,6 +96,7 @@ interface OverviewData {
     totalICMMessages: number;
     totalValidators: number;
     activeL1Count: number;
+    contributors?: { txCount: number; activeAddresses: number; icmMessages: number };
   };
 }
 
@@ -422,12 +428,16 @@ export function NetworkOverview() {
             <div className="-ml-px -mt-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 [&>div]:border-l [&>div]:border-t [&>div]:border-zinc-200 dark:[&>div]:border-zinc-800">
               <div>
                 <StatCell label="Transactions" live>
-                  {liveTxCount !== null ? <StatFigure value={liveTxCount} /> : <StatDash />}
+                  {liveTxCount !== null ? (
+                    aggFigure(liveTxCount, agg?.contributors?.txCount)
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
               </div>
               <div>
                 <StatCell label={liveTps !== null ? "TPS" : "Avg TPS"} live={liveTps !== null}>
-                  {liveTps !== null || agg ? (
+                  {liveTps !== null || (agg && agg.contributors?.txCount !== 0) ? (
                     <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
                       {(() => {
                         const tps = liveTps ?? agg!.totalTps;
@@ -441,12 +451,20 @@ export function NetworkOverview() {
               </div>
               <div>
                 <StatCell label="Active addresses">
-                  {agg ? <StatFigure value={agg.totalActiveAddresses} /> : <StatDash />}
+                  {agg ? (
+                    aggFigure(agg.totalActiveAddresses, agg.contributors?.activeAddresses)
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
               </div>
               <div>
                 <StatCell label="ICM messages" href="/explorer/mainnet/icm">
-                  {agg ? <StatFigure value={agg.totalICMMessages} /> : <StatDash />}
+                  {agg ? (
+                    aggFigure(agg.totalICMMessages, agg.contributors?.icmMessages)
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
               </div>
               <div>
