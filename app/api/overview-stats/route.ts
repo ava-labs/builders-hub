@@ -150,7 +150,8 @@ async function getPChainValidatorCounts(): Promise<Map<string, number> | null> {
 
 async function getActiveL1CountFromPChain(): Promise<number | null> {
   const counts = await loadPChainValidatorSets();
-  return counts ? counts.size : null;
+  if (!counts) return null;
+  return counts.size - (counts.has(PRIMARY_NETWORK_SUBNET_ID) ? 1 : 0);
 }
 
 async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
@@ -173,7 +174,6 @@ async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
     if (!sets || typeof sets !== 'object') throw new Error('unexpected p-chain response');
     const counts = new Map<string, number>();
     for (const [subnetId, set] of Object.entries(sets)) {
-      if (subnetId === PRIMARY_NETWORK_SUBNET_ID) continue;
       const validators = (set as { validators?: unknown[] })?.validators;
       if (!Array.isArray(validators) || validators.length === 0) continue;
       counts.set(subnetId, validators.length);

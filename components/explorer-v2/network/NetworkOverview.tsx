@@ -47,6 +47,9 @@ function fmtMetric(v: number | null | undefined, metricsOk?: boolean) {
 
 const metricDesc = (a: number | null, b: number | null) => (b ?? -1) - (a ?? -1);
 
+const validatorDesc = (a: number | string, b: number | string) =>
+  (typeof b === "number" ? b : -1) - (typeof a === "number" ? a : -1);
+
 function aggFigure(value: number, contributors: number | undefined) {
   if (contributors === 0) return <StatDash />;
   return <StatFigure value={value} />;
@@ -294,9 +297,9 @@ export function NetworkOverview() {
      network does, instead of a 24h average sitting still */
   const [liveTps, setLiveTps] = useState<number | null>(null);
 
-  const topApps = useTopApps(12);
+  const topApps = useTopApps(10);
   const rows = useMemo(
-    () => (data?.chains ?? []).slice().sort((a, b) => metricDesc(a.activeAddresses, b.activeAddresses)).slice(0, 12),
+    () => (data?.chains ?? []).slice().sort((a, b) => validatorDesc(a.validatorCount, b.validatorCount)).slice(0, 10),
     [data],
   );
 
