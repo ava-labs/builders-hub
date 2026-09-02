@@ -135,7 +135,14 @@ export async function updateExtendedProfile(
         throw new Error("User not found");
     }
 
-    if (profileData.username && profileData.username.trim() !== "") {
+    // Only check availability when the username actually changes — legacy
+    // duplicate user_names exist (no unique constraint), and re-submitting an
+    // unchanged name must never 409 or auto-save loops forever.
+    if (
+        profileData.username &&
+        profileData.username.trim() !== "" &&
+        profileData.username.trim() !== existingUser.user_name
+    ) {
         const available = await isUsernameAvailable(profileData.username.trim(), id);
         if (!available) {
             throw new ProfileValidationError("Username is already taken.", 409);
