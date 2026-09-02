@@ -11,6 +11,7 @@
 // does not exist yet. The two route consumers only sum `transferCount`,
 // so totals remain correct — only contract-role labeling is implicit.
 
+import { statsApi } from "@/lib/stats-api";
 import bs58 from 'bs58';
 import l1ChainsData from '@/constants/l1-chains.json';
 
@@ -232,7 +233,22 @@ let cache: IcttCache | null = null;
 let fetchPromise: Promise<IcttCache> | null = null;
 
 async function refreshCache(): Promise<IcttCache> {
-  const rows = await queryClickHouse();
+  const body = await statsApi<{
+    transfers?: {
+      sourceChainId: number;
+      contractAddress: string;
+      destBlockchainHex: string;
+      transferCount: number;
+      transferAmountRaw: string;
+    }[];
+  }>("/icm-api/ictt/transfers", QUERY_TIMEOUT_MS);
+  const rows: RawTransferRow[] = (body?.transfers ?? []).map((t) => ({
+    source_chain_id: String(t.sourceChainId),
+    contract_address: t.contractAddress,
+    dest_blockchain_hex: t.destBlockchainHex,
+    transfer_count: String(t.transferCount),
+    transfer_amount_raw: t.transferAmountRaw,
+  }));
   return {
     transfers: toIcttTransfers(rows),
     fetchedAt: Date.now(),

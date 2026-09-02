@@ -1,9 +1,8 @@
 // EVM chain explorer config + types + client helpers.
 //
-// The EVM explorer API is served over plain HTTP on an IP (same box as the
-// P-chain explorer API), so it is ONLY reached server-side via the proxy route
-// (app/api/evm/[chainId]/[...path]/route.ts) — never from the browser (the site
-// is HTTPS; mixed content would be blocked). Client code fetches the same-origin
+// The EVM explorer API is served by our stats API. It is reached server-side via the proxy route
+// (app/api/evm/[chainId]/[...path]/route.ts), which sidesteps CORS and keeps the
+// upstream host out of the browser. Client code fetches the same-origin
 // `/api/evm/{chainId}/...` paths via `evmApiPath()`.
 //
 // URL scheme (shared with P-chain, chain-family agnostic):
@@ -14,7 +13,7 @@
 //              | address/{addr} | address/{addr}/txs | address/{addr}/transfers
 
 export const EVM_API_BASE =
-  process.env.EXPLORER_API_URL || "http://44.221.18.159";
+  process.env.EXPLORER_API_URL || "https://stats-api.avax.network";
 
 // --- client fetch helper (same-origin proxy) ------------------------------
 
