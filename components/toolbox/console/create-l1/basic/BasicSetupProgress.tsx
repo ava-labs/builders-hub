@@ -312,13 +312,17 @@ function StepDot({ state }: { state: DotState }) {
 
 type StepState = 'done' | 'active' | 'pending';
 
-/** Subnets-explorer URL for a P-Chain or C-Chain tx. L1 txs return null
- *  (we don't have the rpcUrl until the deploy completes — users see
- *  full interop addresses on the recap screen anyway). */
+/** Explorer URL for a P-Chain or C-Chain tx. L1 txs return null (we don't have
+ *  the rpcUrl until the deploy completes — users see full interop addresses on
+ *  the recap screen anyway). Our own explorer serves P-Chain on both networks
+ *  and C-Chain on mainnet; Fuji C-Chain falls back to the subnets explorer. */
 function txExplorerUrl(tx: TxRecord): string | null {
-  const base = tx.network === 'fuji' ? 'https://subnets-test.avax.network' : 'https://subnets.avax.network';
-  if (tx.chain === 'p-chain') return `${base}/p-chain/tx/${tx.hash}`;
-  if (tx.chain === 'c-chain') return `${base}/c-chain/tx/${tx.hash}`;
+  if (tx.chain === 'p-chain') return `/explorer/${tx.network}/p-chain/tx/${tx.hash}`;
+  if (tx.chain === 'c-chain') {
+    return tx.network === 'fuji'
+      ? `https://explorer-test.avax.network/c-chain/tx/${tx.hash}`
+      : `/explorer/mainnet/c-chain/tx/${tx.hash}`;
+  }
   return null;
 }
 

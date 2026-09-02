@@ -14,7 +14,7 @@
  * - Adds new chains discovered in Glacier (only if their subnetID is active on P-Chain)
  * - Does NOT remove stale local entries
  *
- * Optional prune mode (explicit; non-destructive):
+ * Optional prune mode (explicit; entries are moved, never destroyed):
  * - `--prune` flags local entries based on their current P-Chain activity by
  *   writing `isActive: true` / `isActive: false`. No entry is ever deleted, so
  *   curated metadata (descriptions, socials, logos, coingeckoId, brand colors)
@@ -25,6 +25,14 @@
  * - If the P-Chain fetch fails, flagging is skipped (no activity changes on
  *   transient errors).
  * - `--dry-run` previews changes without writing to disk.
+ *
+ * Two normalization passes close every run, in both modes:
+ * - `enforceCanonicalSlugs` holds each entry to the alias invariant — an
+ *   unverified chain's slug must carry one of its own id fragments rather than
+ *   standing as a bare, claimable name (see lib/chain-alias.ts) — and keeps
+ *   slugs unique per network.
+ * - `deriveIndexedFlags` writes `isIndexed`, so chains the explorer has no data
+ *   for say so instead of rendering empty panels (see lib/chain-indexing.ts).
  *
  * Usage:
  * - `yarn enrich:chains`
@@ -39,6 +47,8 @@ import path from 'path';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '@noble/hashes/utils';
 import { base58 } from '@scure/base';
+import { canonicalChainSlug, hasChainRef, shortChainRef } from '../lib/chain-alias';
+import { deriveIsIndexed, fetchIndexedChainIds } from '../lib/chain-indexing';
 
 // CB58 utilities (same as components/tools/common/utils/cb58.ts)
 const CHECKSUM_LENGTH = 4;
@@ -79,13 +89,9 @@ function toHexBlockchainId(blockchainId: string): string {
   }
 }
 
-// Generate URL-safe slug from chain name
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
+// Slug minting lives in lib/chain-alias.ts, shared with the app. A chain's
+// name is self-declared, so only entries flagged `aliasVerified` get the bare
+// alias; everyone else carries an id fragment. See that module for why.
 
 interface NetworkTokenInfo {
   name: string;
@@ -159,6 +165,15 @@ interface L1Chain {
   // only consumers (RPC calls, explorer pages, faucet, etc.) skip non-EVM
   // chains while they still appear in counts and the network globe.
   isEvm?: boolean;
+  // Hand-maintained: only chains we acknowledge get the bare URL alias. This
+  // script never sets it — it only honors it when minting slugs. See
+  // lib/chain-alias.ts.
+  aliasVerified?: boolean;
+  // Derived by deriveIndexedFlags() below: false when the chain has neither an
+  // RPC URL nor metrics coverage, so its explorer pages show the "not indexed"
+  // notice rather than empty tabs. isIndexedOverride pins it.
+  isIndexed?: boolean;
+  isIndexedOverride?: boolean;
 }
 
 const GLACIER_API_ENDPOINT = 'https://glacier-api.avax.network';
@@ -200,6 +215,150 @@ const PROTECTED_CHAIN_IDS = new Set<string>([
   '43113', // Avalanche Fuji C-Chain (testnet)
 ]);
 
+/**
+ * Hold every entry to the alias invariant: an unverified chain's slug must
+ * carry one of its own id fragments rather than standing as a bare, claimable
+ * name, and no two same-network entries may share a slug.
+ *
+ * Deliberately conservative — a slug that already satisfies the invariant is
+ * left exactly as it is. Two reasons:
+ *
+ *   - A verified alias is a curated decision, not a derivation. `c-chain` for
+ *     "Avalanche C-Chain" and `aibmainnet` for "AIB Mainnet" are the slugs we
+ *     chose; re-minting them from the name would silently rename them.
+ *   - An entry accumulates identifiers over its life (a P-Chain stub gains a
+ *     blockchainId once Glacier lists it). Re-minting on the newest id would
+ *     move a live URL for no gain, so any of the chain's own fragments counts.
+ *
+ * That leaves three things it actually does: mint a slug for an entry that has
+ * none, demote an unverified entry sitting on a bare alias, and break
+ * same-network collisions. Idempotent — an unchanged catalog rewrites nothing.
+ *
+ * Note the asymmetry: revoking `aliasVerified` demotes the slug on the next
+ * run, but granting it does not promote one. Handing a chain the bare alias is
+ * the whole point of the flag, so it's a deliberate edit — set `slug` by hand
+ * in the same commit.
+ *
+ * Uniqueness matters beyond tidiness: the explorer resolves a URL with
+ * `chains.filter(c => c.slug === slug)` and picks the network-matching entry,
+ * so two same-network entries sharing a slug leaves one unreachable — whichever
+ * the sort happens to place second.
+ */
+function enforceCanonicalSlugs(chains: L1Chain[]): void {
+  const demoted: Array<{ from: string; to: string; chainName: string }> = [];
+  const minted: string[] = [];
+  const collisionBroken: string[] = [];
+  // Slugs are per-network: the catalog deliberately holds same-slug mainnet and
+  // Fuji entries for one chain, and the URL's network segment picks between them.
+  const takenByNetwork = new Map<string, Set<string>>();
+  const taken = (isTestnet: boolean | undefined): Set<string> => {
+    const key = isTestnet ? 'fuji' : 'mainnet';
+    let set = takenByNetwork.get(key);
+    if (!set) {
+      set = new Set<string>();
+      takenByNetwork.set(key, set);
+    }
+    return set;
+  };
+
+  for (const chain of chains) {
+    const used = taken(chain.isTestnet);
+    const previous = chain.slug;
+    let slug = previous;
+
+    if (!slug) {
+      slug = canonicalChainSlug(chain);
+      minted.push(`${chain.chainName} -> ${slug}`);
+    } else if (!chain.aliasVerified && !hasChainRef(slug, chain)) {
+      // An unverified chain holding an unqualified alias — either newly
+      // discovered, or its aliasVerified flag was just revoked.
+      slug = canonicalChainSlug(chain);
+      if (slug !== previous) demoted.push({ from: previous, to: slug, chainName: chain.chainName });
+    }
+
+    if (used.has(slug)) {
+      // Two entries on one network claiming the same slug. Duplicate catalog
+      // rows, or two verified entries curated onto the same alias. Qualify the
+      // loser so both stay addressable, and shout about it.
+      const base = slug;
+      const ref = shortChainRef(chain.blockchainId, chain.subnetId, chain.chainId);
+      slug = ref ? `${base}-${ref}` : `${base}-2`;
+      let n = 2;
+      while (used.has(slug)) slug = `${base}-${ref || 'dup'}-${n++}`;
+      collisionBroken.push(`${chain.chainName} (${chain.chainId}): ${base} -> ${slug}`);
+    }
+
+    chain.slug = slug;
+    used.add(slug);
+  }
+
+  const verified = chains.filter(c => c.aliasVerified).length;
+  console.log(`\n=== Alias enforcement ===`);
+  console.log(`Verified (bare alias):                 ${verified}`);
+  console.log(`Unverified (slug carries id fragment): ${chains.length - verified}`);
+  if (minted.length > 0) {
+    console.log(`\nSlugs minted for entries that had none: ${minted.length}`);
+    minted.forEach(m => console.log(`  + ${m}`));
+  }
+  if (demoted.length > 0) {
+    console.log(`\nUnqualified aliases demoted: ${demoted.length}`);
+    demoted.forEach(r => console.log(`  ~ ${r.chainName}: ${r.from} -> ${r.to}`));
+  }
+  if (minted.length === 0 && demoted.length === 0) {
+    console.log(`No slug changes (catalog already satisfies the invariant).`);
+  }
+  if (collisionBroken.length > 0) {
+    console.log(`\n⚠ Same-network slug collisions broken (check for duplicate entries):`);
+    collisionBroken.forEach(c => console.log(`  ! ${c}`));
+  }
+}
+
+/**
+ * Set `isIndexed` from what the explorer can actually serve — see
+ * lib/chain-indexing.ts for the rule and why it exists.
+ *
+ * `isIndexedOverride` pins the value against the derivation, for reindexing
+ * windows or data we'd rather not surface. A failed metrics fetch skips the
+ * pass entirely rather than guessing.
+ */
+async function deriveIndexedFlags(chains: L1Chain[]): Promise<void> {
+  console.log(`\nFetching indexed chain list from metrics API...`);
+  const known = await fetchIndexedChainIds();
+  console.log(`\n=== Indexing flags ===`);
+  if (!known) {
+    console.log(`Skipped: metrics chain list unavailable (existing isIndexed values kept).`);
+    return;
+  }
+  console.log(`Metrics API: ${known.mainnet.size} mainnet, ${known.fuji.size} Fuji chains indexed`);
+
+  let flaggedUnindexed = 0;
+  let flaggedIndexed = 0;
+  let pinned = 0;
+  const newlyUnindexed: string[] = [];
+
+  for (const chain of chains) {
+    if (chain.isIndexedOverride !== undefined) {
+      pinned++;
+      chain.isIndexed = chain.isIndexedOverride;
+      continue;
+    }
+
+    const indexed = deriveIsIndexed(chain, known);
+    if (!indexed && chain.isIndexed !== false) newlyUnindexed.push(`${chain.chainName} (${chain.slug})`);
+    chain.isIndexed = indexed;
+    if (indexed) flaggedIndexed++;
+    else flaggedUnindexed++;
+  }
+
+  console.log(`isIndexed=true:  ${flaggedIndexed}`);
+  console.log(`isIndexed=false: ${flaggedUnindexed}  (no RPC URL and no metrics coverage)`);
+  if (pinned > 0) console.log(`Pinned by isIndexedOverride: ${pinned}`);
+  if (newlyUnindexed.length > 0) {
+    console.log(`\nNewly flagged unindexed:`);
+    newlyUnindexed.forEach(n => console.log(`  - ${n}`));
+  }
+}
+
 function parseCliArgs(argv: string[]): CliOptions {
   const args = new Set(argv);
   return {
@@ -211,7 +370,7 @@ function parseCliArgs(argv: string[]): CliOptions {
 
 function printUsage(): void {
   console.log(`
-Usage: tsx ./scripts/enrich-chains.mts [options]
+Usage: tsx ./scripts/enrich-chains.ts [options]
 
 Options:
   --prune      Remove stale chains not present in Glacier public list (or now private)
@@ -319,13 +478,23 @@ function createPChainStubChain(
   isTestnet: boolean,
 ): L1Chain {
   const isEvm = blockchain.vmID === SUBNET_EVM_VM_ID;
+  const blockchainId = toHexBlockchainId(blockchain.id);
   return {
     chainId: blockchain.id,
     chainName: blockchain.name,
     chainLogoURI: '',
-    blockchainId: toHexBlockchainId(blockchain.id),
+    blockchainId,
     subnetId,
-    slug: generateSlug(blockchain.name) || `subnet-${subnetId.slice(0, 8).toLowerCase()}`,
+    // Auto-discovered, so unverified by definition: the slug carries the
+    // blockchain ID fragment rather than the name the chain claimed. Feed it
+    // the *stored* ids, so enforceCanonicalSlugs derives the same fragment on
+    // later runs and leaves the URL alone.
+    slug: canonicalChainSlug({
+      chainName: blockchain.name,
+      blockchainId,
+      subnetId,
+      chainId: blockchain.id,
+    }),
     color: colorFromSubnetId(subnetId),
     isTestnet,
     isActive: true,
@@ -458,10 +627,10 @@ function enrichChain(existingChain: L1Chain, glacierChain: GlacierChain): L1Chai
   if (glacierChain.explorerUrl) {
     const existingExplorers = updated.explorers || [];
     const hasGlacierExplorer = existingExplorers.some(
-      e => e.link.includes('subnets.avax.network') || e.link === glacierChain.explorerUrl
+      e => e.link.includes('explorer.avax.network') || e.link === glacierChain.explorerUrl
     );
     
-    if (!hasGlacierExplorer && glacierChain.explorerUrl.includes('subnets.avax.network')) {
+    if (!hasGlacierExplorer && glacierChain.explorerUrl.includes('explorer.avax.network')) {
       updated.explorers = [
         { name: 'Avalanche Explorer', link: glacierChain.explorerUrl },
         ...existingExplorers.filter(e => e.name !== 'Avalanche Explorer'),
@@ -490,6 +659,7 @@ async function main() {
 
   // Read existing l1-chains.json
   const chainsFilePath = path.join(process.cwd(), 'constants', 'l1-chains.json');
+  const inactiveFilePath = path.join(process.cwd(), 'constants', 'l1-chains-inactive.json');
 
   if (!fs.existsSync(chainsFilePath)) {
     console.error('l1-chains.json not found at:', chainsFilePath);
@@ -663,13 +833,26 @@ async function main() {
   // Create new L1Chain entries from Glacier chains. When prune gating is on,
   // these come from the P-Chain-active subset, so tag isActive: true.
   const createdChains: L1Chain[] = newGlacierChains.map(glacierChain => {
+    const blockchainId = glacierChain.platformChainId
+      ? toHexBlockchainId(glacierChain.platformChainId)
+      : undefined;
     const newChain: L1Chain = {
       chainId: glacierChain.chainId,
       chainName: glacierChain.chainName,
       chainLogoURI: glacierChain.chainLogoUri || '',
-      blockchainId: glacierChain.platformChainId ? toHexBlockchainId(glacierChain.platformChainId) : undefined,
+      blockchainId,
       subnetId: glacierChain.subnetId,
-      slug: generateSlug(glacierChain.chainName),
+      // Glacier listing is not acknowledgement — chain names there are
+      // customer-supplied too, so a new entry starts unverified. Promote it by
+      // adding `aliasVerified: true` (and the bare slug) to its catalog entry
+      // by hand. Minted from the *stored* ids so enforceCanonicalSlugs agrees
+      // on later runs and leaves the URL alone.
+      slug: canonicalChainSlug({
+        chainName: glacierChain.chainName,
+        blockchainId,
+        subnetId: glacierChain.subnetId,
+        chainId: glacierChain.chainId,
+      }),
       description: glacierChain.description || undefined,
       rpcUrl: glacierChain.rpcUrl || undefined,
       networkToken: glacierChain.networkToken ? {
@@ -737,6 +920,9 @@ async function main() {
   // Merge retained + new Glacier-derived + P-Chain stub chains.
   const finalChains = [...retainedChains, ...createdChains, ...pchainStubs];
 
+  enforceCanonicalSlugs(finalChains);
+  await deriveIndexedFlags(finalChains);
+
   // Sort chains: mainnet first, then testnet, alphabetically within each group
   finalChains.sort((a, b) => {
     // First sort by testnet status (mainnet first)
@@ -756,6 +942,23 @@ async function main() {
     console.log(`Entries flagged isActive=false: ${flaggedInactive.length} (metadata preserved)`);
   }
 
+  // Split inactive entries out of the catalog.
+  const shouldSplit = options.prune && activeSubnets.ok;
+  const keptChains = shouldSplit
+    ? finalChains.filter((c) => c.isActive !== false)
+    : finalChains;
+  const parkedChains = shouldSplit
+    ? finalChains.filter((c) => c.isActive === false)
+    : [];
+
+  if (shouldSplit) {
+    const mainnetKept = keptChains.filter((c) => c.isTestnet !== true).length;
+    console.log(
+      `Catalog: ${keptChains.length} active (${mainnetKept} mainnet), ` +
+        `${parkedChains.length} moved to ${path.basename(inactiveFilePath)}`,
+    );
+  }
+
   if (options.dryRun) {
     console.log(`\n⚠ Dry-run mode: no file changes written.`);
     return;
@@ -764,9 +967,40 @@ async function main() {
   // Write updated chains back to file
   fs.writeFileSync(
     chainsFilePath,
-    JSON.stringify(finalChains, null, 2) + '\n',
+    JSON.stringify(keptChains, null, 2) + '\n',
     'utf-8'
   );
+
+  if (shouldSplit) {
+    let previouslyParked: L1Chain[] = [];
+    if (fs.existsSync(inactiveFilePath)) {
+      try {
+        previouslyParked = JSON.parse(fs.readFileSync(inactiveFilePath, 'utf-8')) as L1Chain[];
+      } catch {
+        throw new Error(`${inactiveFilePath} exists but is not readable JSON; refusing to overwrite it`);
+      }
+    }
+    const keptIds = new Set(keptChains.map((c) => String(c.chainId)));
+    const merged = new Map<string, L1Chain>();
+    for (const c of [...previouslyParked, ...parkedChains]) {
+      const id = String(c.chainId);
+      if (keptIds.has(id)) continue; // it is active again
+      merged.set(id, c);
+    }
+    const parkedOut = [...merged.values()].sort((a, b) =>
+      a.isTestnet !== b.isTestnet
+        ? a.isTestnet
+          ? 1
+          : -1
+        : a.chainName.localeCompare(b.chainName),
+    );
+    fs.writeFileSync(
+      inactiveFilePath,
+      JSON.stringify(parkedOut, null, 2) + '\n',
+      'utf-8'
+    );
+    console.log(`Parked file: ${parkedOut.length} entries (${parkedChains.length} added this run)`);
+  }
 
   console.log(`\n✓ l1-chains.json updated successfully!\n`);
 }

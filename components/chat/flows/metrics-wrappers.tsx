@@ -121,9 +121,10 @@ interface OverviewStats {
     chainId: string;
     chainName: string;
     chainLogoURI: string;
-    txCount: number;
-    tps: number;
-    activeAddresses: number;
+    // null when the metrics source has no figure for the chain — never 0.
+    txCount: number | null;
+    tps: number | null;
+    activeAddresses: number | null;
     validatorCount: number | string;
     marketCap: number | null;
   }>;
@@ -163,9 +164,10 @@ export function OverviewStatsCard() {
 
   const { aggregated, chains } = data;
   // Sort chains by active addresses descending for the top chains list
+  // A chain with no figure is left out entirely rather than listed as zero.
   const topChains = [...chains]
-    .filter((c) => c.activeAddresses > 0)
-    .sort((a, b) => b.activeAddresses - a.activeAddresses)
+    .filter((c) => (c.activeAddresses ?? 0) > 0)
+    .sort((a, b) => (b.activeAddresses ?? 0) - (a.activeAddresses ?? 0))
     .slice(0, 8);
 
   return (
@@ -204,9 +206,9 @@ export function OverviewStatsCard() {
                   <span className="font-medium">{chain.chainName}</span>
                 </div>
                 <div className="flex items-center gap-4 text-muted-foreground text-xs">
-                  <span>{formatNumber(chain.activeAddresses)} addr</span>
-                  <span>{formatNumber(chain.txCount)} txns</span>
-                  <span>{chain.tps.toFixed(1)} tps</span>
+                  <span>{formatNumber(chain.activeAddresses ?? 0)} addr</span>
+                  {typeof chain.txCount === "number" && <span>{formatNumber(chain.txCount)} txns</span>}
+                  {typeof chain.tps === "number" && <span>{chain.tps.toFixed(1)} tps</span>}
                 </div>
               </div>
             ))}

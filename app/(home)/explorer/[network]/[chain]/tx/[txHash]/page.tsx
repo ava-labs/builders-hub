@@ -25,15 +25,13 @@ export async function generateMetadata({ params }: TxPageProps): Promise<Metadat
   const description = `View transaction details on ${chain.chainName} - status, value, gas, and more.`;
   const url = `/explorer/${resolvedParams.network}/${chainSlug}/tx/${txHash}`;
   
-  const imageParams = new URLSearchParams();
-  imageParams.set("title", title);
-  imageParams.set("description", description);
-  
+  // Live data card: the og route fetches the tx from the chain's RPC at
+  // scrape time (value, status, fee, block, time) with a branded fallback.
   const image = {
     alt: title,
-    url: `/api/og/stats/${chainSlug}?${imageParams.toString()}`,
-    width: 1280,
-    height: 720,
+    url: `/api/og/tx/${resolvedParams.network}/${chainSlug}/${txHash}`,
+    width: 1200,
+    height: 630,
   };
   
   return {

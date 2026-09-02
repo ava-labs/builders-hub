@@ -147,12 +147,16 @@ check_double_notify() {
 # primitives that own the pattern; there is no grandfather list.
 check_direct_viem_client() {
   # Permanent approval — foundational primitives that own the pattern.
+  # walletReceipt.ts is deliberately bespoke: a client on the WALLET's
+  # transport (not a chain RPC URL) for post-timeout receipt rescue — the
+  # wallet extension is exempt from the page's mixed-content policy (#4450).
   local approved_core=(
     "components/toolbox/hooks/useChainPublicClient.ts"
     "components/toolbox/hooks/usePublicClientForChain.ts"
     "components/toolbox/stores/walletStore.ts"
     "components/toolbox/lib/chainId.ts"
     "components/toolbox/services/balanceService.ts"
+    "components/toolbox/lib/walletReceipt.ts"
   )
 
   # This rule cares about the whole toolbox, not just console — so it

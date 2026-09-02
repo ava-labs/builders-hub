@@ -27,7 +27,7 @@ This tutorial assumes you have Ubuntu 20.04 or later running on your node. Other
 
 The system as described here **should not** be opened to the public internet. Neither Prometheus nor Grafana as shown here is hardened against unauthorized access. Make sure that both of them are accessible only over a secured proxy, local network, or VPN. Setting that up is beyond the scope of this tutorial, but exercise caution. Bad security practices could lead to attackers gaining control over your node! It is your responsibility to follow proper security practices.
 
-Monitoring Installer Script[​](#monitoring-installer-script "Direct link to heading")
+Monitoring Installer Script
 -------------------------------------------------------------------------------------
 
 In order to make node monitoring easier to install, we have made a script that does most of the work for you. To download and run the script, log into the machine the node runs on with a user that has administrator privileges and enter the following command:
@@ -63,7 +63,7 @@ Run without any options, script will download and install latest version of Aval
 
 Let's get to it.
 
-Step 1: Set up Prometheus [​](#step-1-set-up-prometheus- "Direct link to heading")
+Step 1: Set up Prometheus
 ----------------------------------------------------------------------------------
 
 Run the script to execute the first step:
@@ -121,7 +121,7 @@ You may need to do `sudo ufw allow 9090/tcp` if the firewall is on, and/or adjus
 
 If everything is OK, let's move on.
 
-Step 2: Install Grafana [​](#step-2-install-grafana- "Direct link to heading")
+Step 2: Install Grafana
 ------------------------------------------------------------------------------
 
 Run the script to execute the second step:
@@ -162,7 +162,7 @@ You may need to do `sudo ufw allow 3000/tcp` if the firewall is on, and/or adjus
 
 Prometheus and Grafana are now installed, we're ready for the next step.
 
-Step 3: Set up `node_exporter` [​](#step-3-set-up-node_exporter- "Direct link to heading")
+Step 3: Set up `node_exporter`
 ------------------------------------------------------------------------------------------
 
 In addition to metrics from AvalancheGo, let's set up monitoring of the machine itself, so we can check CPU, memory, network and disk usage and be aware of any anomalies. For that, we will use `node_exporter`, a Prometheus plugin.
@@ -222,7 +222,7 @@ Mind the spacing (leading spaces too)! You will need admin privileges to do that
 
 All that's left to do now is to provision the data source and install the actual dashboards that will show us the data.
 
-Step 4: Dashboards [​](#step-4-dashboards- "Direct link to heading")
+Step 4: Dashboards
 --------------------------------------------------------------------
 
 Run the script to install the dashboards:
@@ -271,7 +271,7 @@ Some graphs may take some time to populate fully, as they need a series of data 
 
 You can bookmark the main dashboard as it shows the most important information about the node at a glance. Every dashboard has a link to all the others as the first row, so you can move between them easily.
 
-Step 5: Additional Dashboards (Optional)[​](#step-5-additional-dashboards-optional "Direct link to heading")
+Step 5: Additional Dashboards (Optional)
 ------------------------------------------------------------------------------------------------------------
 
 Step 4 installs the basic set of dashboards that make sense to have on any node. Step 5 is for installing additional dashboards that may not be useful for every installation.
@@ -308,7 +308,7 @@ The dashboard variable is still named `subnet` for backward compatibility, but i
 
 After editing the values, press `Update` and then click `Save dashboard` button and confirm. Press the back arrow in the upper left corner to return to the dashboard. New values should now be selectable from the dropdown and data for the selected Avalanche L1 will be shown in the panels.
 
-Updating[​](#updating "Direct link to heading")
+Updating
 -----------------------------------------------
 
 Available node metrics are updated constantly, new ones are added and obsolete removed, so it is good a practice to update the dashboards from time to time, especially if you notice any missing data in panels. Updating the dashboards is easy, just run the script with no arguments, and it will refresh the dashboards with the latest available versions. Allow up to 30s for dashboards to update in Grafana.
@@ -323,7 +323,7 @@ If you added the optional extra dashboards (step 5), they will be updated as wel
 If you're experiencing broken or missing metrics in your dashboards, running an update is the recommended first step. The dashboards are regularly updated with new metrics and fixes. Recent updates include MeterVM metrics for C-Chain, improved trie operation metrics, and consolidated chain dashboards.
 </Callout>
 
-Advanced Dashboards[​](#advanced-dashboards "Direct link to heading")
+Advanced Dashboards
 ---------------------------------------------------------------------
 
 The [avalanche-monitoring repository](https://github.com/ava-labs/avalanche-monitoring/tree/main/grafana/dashboards) contains additional dashboards that are not installed by the script but can be manually imported into Grafana:
@@ -353,7 +353,7 @@ To use this dashboard, you must:
 2. Add Loki as a data source in Grafana
 3. Import the `logs.json` dashboard from the repository
 
-Summary[​](#summary "Direct link to heading")
+Summary
 ---------------------------------------------
 
 Using the script to install node monitoring is easy, and it gives you insight into how your node is behaving and what's going on under the hood. Also, pretty graphs!

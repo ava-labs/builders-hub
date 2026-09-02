@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { EVM_API_BASE } from "@/lib/evm-explorer";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 
 // Server-side proxy to the EVM chain explorer API (plain HTTP on an IP). The
 // browser calls same-origin `/api/evm/{chainId}/{...}`; this handler fetches
@@ -45,13 +46,15 @@ export async function GET(
 ) {
   const { chainId, path } = await params;
 
-  if (!/^\d+$/.test(chainId)) {
+  const upstreamChainId = toStatsChainId(chainId);
+
+  if (!/^\d+$/.test(upstreamChainId)) {
     return NextResponse.json({ error: `invalid chainId '${chainId}'` }, { status: 400 });
   }
 
   const resource = (path ?? []).map(encodeURIComponent).join("/");
   const search = req.nextUrl.search; // forward ?limit=, ?before=, ?q=, …
-  const upstream = `${EVM_API_BASE}/evm-api/${chainId}/${resource}${search}`;
+  const upstream = `${EVM_API_BASE}/evm-api/${upstreamChainId}/${resource}${search}`;
 
   try {
     const res = await fetchWithTimeout(upstream);

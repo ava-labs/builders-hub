@@ -4,7 +4,7 @@ import { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 
 interface NetworkListProps {
   availableNetworks: L1ListItem[];
-  getNetworkBalance: (network: L1ListItem) => number | string;
+  getNetworkBalance: (network: L1ListItem) => number | string | null;
   isNetworkActive: (network: L1ListItem) => boolean;
   onNetworkSelect: (network: L1ListItem) => void;
   onNetworkRemove?: (network: L1ListItem) => void;

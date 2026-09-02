@@ -4,7 +4,7 @@ title: Serialization Primitives
 
 Avalanche uses a simple, uniform, and elegant representation for all internal data. This document describes how primitive types are encoded on the Avalanche platform. Transactions are encoded in terms of these basic primitive types.
 
-Byte[​](#byte "Direct link to heading")
+Byte
 ---------------------------------------
 
 Bytes are packed as-is into the message payload.
@@ -18,7 +18,7 @@ Results in:
     [0x01]
 ```
 
-Short[​](#short "Direct link to heading")
+Short
 -----------------------------------------
 
 Shorts are packed in BigEndian format into the message payload.
@@ -32,7 +32,7 @@ Results in:
     [0x01, 0x02]
 ```
 
-Integer[​](#integer "Direct link to heading")
+Integer
 ---------------------------------------------
 
 Integers are 32-bit values packed in BigEndian format into the message payload.
@@ -46,7 +46,7 @@ Results in:
     [0x01, 0x02, 0x03, 0x04]
 ```
 
-Long Integers[​](#long-integers "Direct link to heading")
+Long Integers
 ---------------------------------------------------------
 
 Long integers are 64-bit values packed in BigEndian format into the message payload.
@@ -60,7 +60,7 @@ Results in:
     [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]
 ```
 
-IP Addresses[​](#ip-addresses "Direct link to heading")
+IP Addresses
 -------------------------------------------------------
 
 IP addresses are represented as 16-byte IPv6 format, with the port appended into the message payload as a Short. IPv4 addresses are padded with 12 bytes of leading 0x00s.
@@ -91,7 +91,7 @@ Results in:
     ]
 ```
 
-Fixed-Length Array[​](#fixed-length-array "Direct link to heading")
+Fixed-Length Array
 -------------------------------------------------------------------
 
 Fixed-length arrays, whose length is known ahead of time and by context, are packed in order.
@@ -114,7 +114,7 @@ Results in:
     [0x03, 0x04, 0x05, 0x06]
 ```
 
-Variable Length Array[​](#variable-length-array "Direct link to heading")
+Variable Length Array
 -------------------------------------------------------------------------
 
 The length of the array is prefixed in Integer format, followed by the packing of the array contents in Fixed Length Array format.
@@ -137,7 +137,7 @@ Results in:
     [0x00, 0x00, 0x00, 0x01, 0x03, 0x04, 0x05, 0x06]
 ```
 
-String[​](#string "Direct link to heading")
+String
 -------------------------------------------
 
 A String is packed similarly to a variable-length byte array. However, the length prefix is a short rather than an int. Strings are encoded in UTF-8 format.

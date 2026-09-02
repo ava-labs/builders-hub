@@ -280,7 +280,7 @@ export default function ValidatorBalanceUI() {
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-green-700 dark:text-green-300">Transaction</span>
                   <a
-                    href={`https://subnets-test.avax.network/p-chain/tx/${validatorTxId}`}
+                    href={`/explorer/fuji/p-chain/tx/${validatorTxId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 flex items-center gap-1"

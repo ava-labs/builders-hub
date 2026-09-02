@@ -22,7 +22,7 @@ All IDs in this article are for illustration purposes. They can be different in 
 
 - [`Avalanche-CLI`](https://github.com/ava-labs/avalanche-cli) installed
 
-Virtual Machine[​](#virtual-machine "Direct link to heading")
+Virtual Machine
 -------------------------------------------------------------
 
 Avalanche can run multiple blockchains. Each blockchain is an instance of a [Virtual Machine](/docs/primary-network/virtual-machines), much like an object in an object-oriented language is an instance of a class. That's, the VM defines the behavior of the blockchain.
@@ -32,12 +32,12 @@ Avalanche can run multiple blockchains. Each blockchain is an instance of a [Vir
 This chain implements the Ethereum Virtual Machine and supports Solidity smart contracts as well as most other Ethereum client features.
 
 
-Avalanche-CLI[​](#avalanche-cli "Direct link to heading")
+Avalanche-CLI
 ---------------------------------------------------------
 
 If not yet installed, install `Avalanche-CLI` following the tutorial at [Avalanche-CLI installation](/docs/tooling/avalanche-cli)
 
-### Private Key[​](#private-key "Direct link to heading")
+### Private Key
 
 All commands which issue a transaction require either a private key loaded into the tool, or a connected ledger device.
 
@@ -128,7 +128,7 @@ avalanche key list
 +-----------+-------------------------------+-------------------------------------------------+---------------+
 ```
 
-#### Funding the Key[​](#funding-the-key "Direct link to heading")
+#### Funding the Key
 
 <Callout type="warn">
 Do these steps only to follow this tutorial for `Fuji` addresses. To access the wallet for `Mainnet`, the use of a ledger device is strongly recommended.
@@ -142,7 +142,7 @@ Do these steps only to follow this tutorial for `Fuji` addresses. To access the 
 
 After following these 3 steps, your test key should now have a balance on the P-Chain on `Fuji` Testnet.
 
-Create an EVM Avalanche L1[​](#create-an-evm-avalanche-l1 "Direct link to heading")
+Create an EVM Avalanche L1
 -----------------------------------------------------------------------
 
 Creating an Avalanche L1 with `Avalanche-CLI` for `Fuji` works the same way as with a local network. In fact, the `create` commands only creates a specification of your Avalanche L1 on the local file system. Afterwards the Avalanche L1 needs to be _deployed_. This allows to reuse configs, by creating the config with the `create` command, then first deploying to a local network and successively to `Fuji` - and eventually to `Mainnet`.
@@ -287,7 +287,7 @@ avalanche blockchain describe testblockchain
 ```
 
 
-Deploy the Avalanche L1[​](#deploy-the-avalanche-l1 "Direct link to heading")
+Deploy the Avalanche L1
 -----------------------------------------------------------------
 
 <Callout title="Note">
@@ -357,9 +357,9 @@ You will be able to see information on the deployed L1 at the end of `avalanche 
 +--------------------+----------------------------------------------------+
 ```
 
-To get your new Avalanche L1 information, visit the [Avalanche L1 Explorer](https://subnets-test.avax.network/). The search best works by blockchain ID, so in this example, enter `2U7vNdB78xTiN6QtZ9aetfKoGtQhfeEPQG6QZC8bpq8QMf4cDx` into the search box and you should see your shiny new blockchain information.
+To get your new Avalanche L1 information, visit the [Avalanche L1 Explorer](https://explorer-test.avax.network/). The search best works by blockchain ID, so in this example, enter `2U7vNdB78xTiN6QtZ9aetfKoGtQhfeEPQG6QZC8bpq8QMf4cDx` into the search box and you should see your shiny new blockchain information.
 
-Add a Validator[​](#add-a-validator "Direct link to heading")
+Add a Validator
 -------------------------------------------------------------
 
 Before proceeding to add a validator to our Avalanche L1, we will need to have the validator's NodeID, BLS public key and proof of possession. These can be obtained by ssh into the node itself and run the `getNodeID` API specified [here](/docs/rpcs/other/info-rpc#infogetnodeid).
@@ -423,10 +423,10 @@ Next, select a key that can remove the validator:
 
 By the end of the command, you would have successfully added a new validator to the Avalanche L1 on Fuji Testnet!
 
-Appendix[​](#appendix "Direct link to heading")
+Appendix
 -----------------------------------------------
 
-### Connect with Core[​](#connect-with-core "Direct link to heading")
+### Connect with Core
 
 To connect Core (or MetaMask) with your blockchain on the new Avalanche L1 running on your local computer, you can add a new network on your Core wallet with the following values:
 

@@ -29,7 +29,7 @@ describe('getExplorerOptions', () => {
       url: '/explorer/fuji/avalanche-c-chain',
       internal: true,
     });
-    expect(options[1].url).toBe('https://subnets-test.avax.network');
+    expect(options[1].url).toBe('https://explorer-test.avax.network');
   });
 
   it('uses the c-chain slug for mainnet C-Chain', () => {
@@ -60,13 +60,13 @@ describe('getExplorerOptions', () => {
     const options = getExplorerOptions({
       evmChainId: 99999,
       isTestnet: true,
-      customExplorerUrl: 'https://subnets-test.avax.network/my-l1',
+      customExplorerUrl: 'https://explorer-test.avax.network/my-l1',
     });
 
     expect(options.map((o) => o.id)).toEqual(['builder-hub', 'subnets', 'snowtrace', 'avascan']);
     expect(options[1]).toMatchObject({
       id: 'subnets',
-      url: 'https://subnets-test.avax.network/my-l1',
+      url: 'https://explorer-test.avax.network/my-l1',
     });
   });
 

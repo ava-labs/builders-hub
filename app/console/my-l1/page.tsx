@@ -1,32 +1,10 @@
-'use client';
+import { consoleToolMetadata } from "@/components/console/tool-metadata";
+import MyL1DashboardPage from "./page.client";
 
-import { Suspense } from 'react';
-import { CheckRequirements } from '@/components/toolbox/components/CheckRequirements';
-import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
-import { AccountRequirementsConfigKey } from '@/components/toolbox/hooks/useAccountRequirements';
-import { DashboardBody } from './_components/DashboardBody';
+// The interactive page is a client component (page.client.tsx), which cannot
+// export metadata; this server wrapper carries the tool's social card.
+export const metadata = consoleToolMetadata("/console/my-l1", "My L1 Dashboard");
 
-function MyL1DashboardInner() {
-  return (
-    <CheckRequirements
-      toolRequirements={[
-        WalletRequirementsConfigKey.WalletConnected,
-        AccountRequirementsConfigKey.UserLoggedIn,
-      ]}
-    >
-      <DashboardBody />
-    </CheckRequirements>
-  );
-}
-
-export default function MyL1DashboardPage() {
-  // useSearchParams requires Suspense in Next 15+ for static-export safety.
-  // The fallback is intentionally null — DashboardBody owns its own skeleton
-  // via useLoadedOnce, so a Suspense-level skeleton would render briefly and
-  // get swapped for the inner one (double-flash).
-  return (
-    <Suspense fallback={null}>
-      <MyL1DashboardInner />
-    </Suspense>
-  );
+export default function Page() {
+  return <MyL1DashboardPage />;
 }

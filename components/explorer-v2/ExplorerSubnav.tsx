@@ -6,9 +6,11 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
+import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
+import { isUnindexedChain } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
 import {
   NETWORK_LABEL,
@@ -28,8 +30,16 @@ import {
 
 const PCHAIN_LOGO =
   "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg";
+const XCHAIN_LOGO =
+  "https://images.ctfassets.net/gcj8jwzm6086/5xiGm7IBR6G44eeVlaWrxi/1b253c4744a3ad21a278091e3119feba/xchain-square.svg";
 
 const cChain = (l1ChainsData as L1Chain[]).find((c) => c.slug === "c-chain");
+
+function systemChainLogo(slug?: string): string | undefined {
+  if (slug === "p-chain") return PCHAIN_LOGO;
+  if (slug === "x-chain") return XCHAIN_LOGO;
+  return undefined;
+}
 
 type SwitcherEntry = {
   slug: string;
@@ -72,6 +82,7 @@ function ChainSwitcher({
 
   // validate lazily, on first open (the shared feed dedupes the request)
   const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts("mainnet", open);
+  const indexedChainIds = useIndexedChainIds(open);
 
   // close on outside click or Escape
   useEffect(() => {
@@ -104,12 +115,38 @@ function ChainSwitcher({
       href: "/explorer/mainnet/c-chain",
     },
     { slug: "p-chain", name: "Platform Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
+    {
+      slug: "x-chain",
+      name: "Exchange Chain",
+      logo: XCHAIN_LOGO,
+      href: `/explorer/${pchainNetwork}/x-chain`,
+    },
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
-    const all = (l1ChainsData as L1Chain[]).filter(
-      (c) => c.isTestnet !== true && c.rpcUrl && hasRealChainLogo(c.chainLogoURI) && c.slug !== "c-chain",
+    const mainnet = (l1ChainsData as L1Chain[]).filter(
+      (c) => c.isTestnet !== true && c.slug !== "c-chain",
     );
+
+    if (indexedChainIds) {
+      const picked = mainnet
+        .filter((c) => indexedChainIds.has(toStatsChainId(String(c.chainId))))
+        .sort(
+          (a, b) =>
+            ((a.subnetId && liveValidators?.get(a.subnetId)) ?? 0) <
+            ((b.subnetId && liveValidators?.get(b.subnetId)) ?? 0)
+              ? 1
+              : -1,
+        );
+      return picked.map((c) => ({
+        slug: c.slug,
+        name: c.chainName,
+        logo: c.chainLogoURI,
+        href: `/explorer/mainnet/${c.slug}`,
+      }));
+    }
+
+    const all = mainnet.filter((c) => c.rpcUrl && hasRealChainLogo(c.chainLogoURI));
     let picked: L1Chain[];
     if (liveValidators) {
       picked = all
@@ -126,7 +163,7 @@ function ChainSwitcher({
       logo: c.chainLogoURI,
       href: `/explorer/mainnet/${c.slug}`,
     }));
-  }, [liveValidators, feedFailed]);
+  }, [liveValidators, feedFailed, indexedChainIds]);
 
   const q = filter.trim().toLowerCase();
   const matches = (e: SwitcherEntry) => !q || e.name.toLowerCase().includes(q) || e.slug.includes(q);
@@ -179,9 +216,9 @@ function ChainSwitcher({
         {!chainSlug ? (
           <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
         ) : (
-          (chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI) && (
+          (systemChainLogo(chainSlug) ?? chainLogoURI) && (
             <img
-              src={chainSlug === "p-chain" ? PCHAIN_LOGO : chainLogoURI}
+              src={systemChainLogo(chainSlug) ?? chainLogoURI}
               alt=""
               className="h-5 w-5 shrink-0 rounded-full object-contain"
             />
@@ -319,8 +356,10 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
       { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
     ];
-    // the staking + L1-economy feeds are mainnet-only
-    if (network === "mainnet") {
+    // the staking + L1-economy feeds are mainnet-only AND P-chain-only —
+    // the X-chain shares this kind (Overview/Blocks/Transactions) but has
+    // no staking surfaces
+    if (network === "mainnet" && chainSlug === "p-chain") {
       tabs.push(
         {
           label: "Staking",
@@ -360,11 +399,20 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       // list tabs mirror the P-Chain's; detail pages light their list
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) },
+        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) && !p.startsWith(`${base}/atomic`) },
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
       );
+      // cross-chain (shared-memory) txs exist only on the C-Chain — they ride
+      // in blockExtraData, invisible to eth_*, hence their own tab
+      if (chainSlug === "c-chain") {
+        tabs.push({
+          label: "Atomic",
+          href: `${base}/atomic`,
+          isActive: (p) => p.startsWith(`${base}/atomic`),
+        });
+      }
     }
     // who's on the chain: population charts for every catalog chain,
     // leaderboards where ClickHouse ingests it
@@ -573,6 +621,7 @@ export function ExplorerSubnav({
 }: ExplorerSubnavProps) {
   const pathname = usePathname();
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
+  const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
 
   // the tab rail scrolls when the inventory outgrows the row — the edge
   // fades say so (a hard clip reads as "there is no ICM tab"). The mask
@@ -634,20 +683,38 @@ export function ExplorerSubnav({
           >
             {tabs.map((tab) => {
               const active = tab.isActive(pathname);
+              const cls = cn(
+                "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors",
+                active
+                  ? "text-zinc-900 dark:text-zinc-100"
+                  : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
+              );
+              const bar = active && (
+                <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--chain-accent,#E6212F)]" />
+              );
+
+              if (inert) {
+                return (
+                  <span
+                    key={tab.label}
+                    aria-disabled
+                    title="This chain isn't indexed yet"
+                    className={cn(cls, "cursor-not-allowed text-zinc-300 dark:text-zinc-700")}
+                  >
+                    {tab.label}
+                  </span>
+                );
+              }
+
               return (
                 <Link
                   key={tab.label}
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors",
-                    active
-                      ? "text-zinc-900 dark:text-zinc-100"
-                      : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
-                  )}
+                  className={cls}
                 >
                   {tab.label}
-                  {active && <span aria-hidden className="absolute inset-x-0 bottom-0 h-[2px] bg-[var(--chain-accent,#E6212F)]" />}
+                  {bar}
                 </Link>
               );
             })}

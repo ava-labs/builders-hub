@@ -1,19 +1,19 @@
 ---
 title: X-Chain Migration
 ---
-Overview[​](#overview "Direct link to heading")
+Overview
 -----------------------------------------------
 
 This document summarizes all of the changes made to the X-Chain API to support Avalanche Cortina (v1.10.0), which migrates the X-Chain to run Snowman++. In summary, the core transaction submission and confirmation flow is unchanged, however, there are new APIs that must be called to index all transactions.
 
-Transaction Broadcast and Confirmation[​](#transaction-broadcast-and-confirmation "Direct link to heading")
+Transaction Broadcast and Confirmation
 -----------------------------------------------------------------------------------------------------------
 
 The transaction format on the X-Chain does not change in Cortina. This means that wallets that have already integrated with the X-Chain don't need to change how they sign transactions. Additionally, there is no change to the format of the [avm.issueTx](/docs/rpcs/x-chain#avmissuetx) or the [avm.getTx](/docs/rpcs/x-chain#avmgettx) API.
 
 However, the [avm.getTxStatus](/docs/rpcs/x-chain#avmgettxstatus) endpoint is now deprecated and its usage should be replaced with [avm.getTx](/docs/rpcs/x-chain#avmgettx) (which only returns accepted transactions for AvalancheGo >= v1.9.12). [avm.getTxStatus](/docs/rpcs/x-chain#avmgettxstatus) will still work up to and after the Cortina activation if you wish to migrate after the network upgrade has occurred.
 
-Vertex -> Block Indexing[​](#vertex---block-indexing "Direct link to heading")
+Vertex -> Block Indexing
 ------------------------------------------------------------------------------
 
 Before Cortina, indexing the X-Chain required polling the `/ext/index/X/vtx` endpoint to fetch new vertices. During the Cortina activation, a “stop vertex” will be produced using a [new codec version](https://github.com/ava-labs/avalanchego/blob/c27721a8da1397b218ce9e9ec69839b8a30f9860/snow/engine/avalanche/vertex/codec.go#L17-L18) that will contain no transactions. This new vertex type will be the [same format](https://github.com/ava-labs/avalanchego/blob/c27721a8da1397b218ce9e9ec69839b8a30f9860/snow/engine/avalanche/vertex/stateless_vertex.go#L95-L102) as previous vertices. To ensure historical data can still be accessed in Cortina, the `/ext/index/X/vtx` will remain accessible even though it will no longer be populated with chain data.
@@ -80,7 +80,7 @@ func main() {
 
 After Cortina activation, it will also be possible to fetch X-Chain blocks directly without enabling the Index API. You can use the [avm.getBlock](/docs/rpcs/x-chain#avmgetblock), [avm.getBlockByHeight](/docs/rpcs/x-chain#avmgetblockbyheight), and [avm.getHeight](/docs/rpcs/x-chain#avmgetheight) endpoints to do so. This, again, will be similar to the [P-Chain semantics](/docs/rpcs/p-chain#platformgetblock).
 
-Deprecated API Calls[​](#deprecated-api-calls "Direct link to heading")
+Deprecated API Calls
 -----------------------------------------------------------------------
 
 This long-term deprecation effort will better align usage of AvalancheGo with its purpose, to be a minimal and efficient runtime that supports only what is required to validate the Primary Network and Avalanche L1s. Integrators should make plans to migrate to tools and services that are better optimized for serving queries over Avalanche Network state and avoid keeping any keys on the node itself.
@@ -142,21 +142,21 @@ This deprecation ONLY applies to APIs that AvalancheGo exposes over the HTTP por
     - platform.getMaxStakeAmount
     - platform.getRewardUTXOs
 
-Cortina FAQ[​](#cortina-faq "Direct link to heading")
+Cortina FAQ
 -----------------------------------------------------
 
-### Do I Have to Upgrade my Node?[​](#do-i-have-to-upgrade-my-node "Direct link to heading")
+### Do I Have to Upgrade my Node?
 
 If you don't upgrade your validator to `v1.10.0` before the Avalanche Mainnet activation date, your node will be marked as offline and other nodes will report your node as having lower uptime, which may jeopardize your staking rewards.
 
-### Is There any Change in Hardware Requirements?[​](#is-there-any-change-in-hardware-requirements "Direct link to heading")
+### Is There any Change in Hardware Requirements?
 
 No.
 
-### Will Updating Decrease my Validator's Uptime?[​](#will-updating-decrease-my-validators-uptime "Direct link to heading")
+### Will Updating Decrease my Validator's Uptime?
 
 No. As a reminder, you can check your validator's estimated uptime using the [`info.uptime` API call](/docs/rpcs/other/info-rpc#infouptime).
 
-### I Think Something Is Wrong. What Should I Do?[​](#i-think-something-is-wrong-what-should-i-do "Direct link to heading")
+### I Think Something Is Wrong. What Should I Do?
 
 First, make sure that you've read the documentation thoroughly and checked the [FAQs](https://support.avax.network/en/). If you don't see an answer to your question, go to our [Discord](https://discord.com/invite/RwXY7P6) server and search for your question. If it has not already been asked, please post it in the appropriate channel.

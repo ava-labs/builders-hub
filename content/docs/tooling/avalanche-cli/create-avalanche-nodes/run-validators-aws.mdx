@@ -43,7 +43,7 @@ Instance type can be specified via `--node-type` parameter or via interactive me
 The command will ask which region you want to set up your cloud server in:
 
 ```bash
- Which AWS region do you want to set up your node in?: 
+ Which AWS region do you want to set up your node in?:
   ▸ us-east-1
     us-east-2
     us-west-1
@@ -54,7 +54,7 @@ The command will ask which region you want to set up your cloud server in:
 The command will next ask whether you want to set up monitoring for your nodes.
 
 ```bash
-  Do you want to set up a separate instance to host monitoring? (This enables you to monitor all your set up instances in one dashboard): 
+  Do you want to set up a separate instance to host monitoring? (This enables you to monitor all your set up instances in one dashboard):
   ▸ Yes
     No
 ```
@@ -75,7 +75,7 @@ Once the command has successfully completed, Avalanche-CLI outputs all the creat
 
 Avalanche-CLI also outputs the command that you can use to ssh into each cloud server node.
 
-Finally, if monitoring is set up, Avalanche-CLI will also output the Grafana link where the 
+Finally, if monitoring is set up, Avalanche-CLI will also output the Grafana link where the
 centralized dashboards and logs can be accessed.
 
 By the end of successful run of `create` command, Avalanche-CLI would have:
@@ -88,7 +88,7 @@ By the end of successful run of `create` command, Avalanche-CLI would have:
 
 Please note that Avalance CLI can be configured to use `ssh-agent` for ssh communication. In this case public key will be read from there and cloud server will be accessible using it. Yubikey hardware can be also used to store private ssh key. Please use official Yubikey documentation, for example \[[https://developers.yubico.com/PGP/SSH\_authentication/](https://developers.yubico.com/PGP/SSH_authentication/)\] for more details.
 
-Check Bootstrap Status[​](#check-bootstrap-status "Direct link to heading")
+Check Bootstrap Status
 ---------------------------------------------------------------------------
 
 <Callout title="Note">

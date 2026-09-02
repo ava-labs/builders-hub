@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Input } from './Input';
+import { isValidIPv4, nipify } from '../lib/rpcUrl';
 
-const IPV4_REGEX =
-  /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+// Canonical implementations moved to lib/rpcUrl.ts (pure, vitest-covered);
+// re-exported here so existing importers keep working.
+export { nipify };
+
 const DOMAIN_REGEX = /^[a-zA-Z0-9]([a-zA-Z0-9\-\.]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+$/;
-
-const isValidIPv4 = (value: string): boolean => {
-  return IPV4_REGEX.test(value);
-};
 
 const isValidDomain = (value: string): boolean => {
   return DOMAIN_REGEX.test(value);
@@ -23,18 +22,6 @@ const validateDomainOrIP = (value: string): string | null => {
   if (isValidDomain(value)) return null;
 
   return 'Please enter a valid domain name (e.g. example.com) or IP address (e.g. 1.2.3.4)';
-};
-
-export const nipify = (domain: string): string => {
-  if (isValidIPv4(domain)) {
-    // nip.io instead of sslip.io: as of 2026-05-21 sslip.io's shared
-    // Let's Encrypt zone is rate-limited (HTTP 429 "too many certificates"
-    // — 250k cert cap per registered domain over 168h), so Caddy retries
-    // forever on the docker-generated reverse proxy. nip.io resolves the
-    // same `<ip>.<domain>` → ip but lives under a non-rate-limited zone.
-    return `${domain}.nip.io`;
-  }
-  return domain;
 };
 
 interface HostInputProps {

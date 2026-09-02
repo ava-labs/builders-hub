@@ -81,7 +81,7 @@ Every failure below is real: each one has occurred in production support cases.
 
 **Cause:** the block proposer built the block against a P-Chain height that predates the registration, so predicate verification ran against an older validator set view.
 
-**Fix:** wait for the chain to progress and resend the identical transaction. The same calldata and access list succeed once the proposer's P-Chain view includes the registration.
+**Fix:** produce blocks so the chain's epoch catches up, then resend the identical transaction. The same calldata and access list succeed once the pinned P-Chain height includes the registration. Follow [the procedure on the ProposerVM page](/docs/nodes/architecture/proposervm#troubleshooting-warp-delivery-fails-on-an-idle-chain), or use the console's [Advance P-Chain View](/console/layer-1/advance-pchain-view) tool.
 
 </Accordion>
 </Accordions>

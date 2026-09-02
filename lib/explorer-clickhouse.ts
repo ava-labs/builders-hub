@@ -16,6 +16,7 @@
 
 import l1ChainsData from '@/constants/l1-chains.json';
 import { getContractInfo, PROTOCOL_SLUGS } from '@/lib/contracts';
+import { statsApi } from '@/lib/stats-api';
 
 export interface TransactionHistoryPoint {
   date: string;
@@ -111,21 +112,12 @@ function sqlCumulativeTxs(chainId: number): string {
 }
 
 async function fetchCumulativeFromCh(chainId: number): Promise<number> {
-  try {
-    const rows = await clickhouseFetch<CumulativeRow>(
-      sqlCumulativeTxs(chainId),
-      QUERY_TIMEOUT_MS,
-    );
-    if (rows.length === 0) return 0;
-    const n = Number(rows[0].cumulative_txs);
-    return Number.isFinite(n) ? n : 0;
-  } catch (err) {
-    console.error(
-      `[explorer-clickhouse] cumulative-txs query failed for chain ${chainId}:`,
-      err,
-    );
-    return 0;
-  }
+  const body = await statsApi<{ txCount?: number }>(
+    `/evm-api/${chainId}/cumulative-txs`,
+    QUERY_TIMEOUT_MS,
+  );
+  const n = Number(body?.txCount);
+  return Number.isFinite(n) ? n : 0;
 }
 
 /**
@@ -221,13 +213,16 @@ function formatDayLabel(isoDate: string): string {
 }
 
 async function fetchDailyFromCh(): Promise<DailyCache> {
-  let rows: DailyRow[];
-  try {
-    rows = await clickhouseFetch<DailyRow>(sqlDailyTxs(), QUERY_TIMEOUT_MS);
-  } catch (err) {
-    console.error('[explorer-clickhouse] daily-txs query failed:', err);
-    return { data: new Map(), fetchedAt: Date.now() };
-  }
+  const body = await statsApi<{ chains?: { chainId: number; day: string; txCount: number }[] }>(
+    `/evm-api/daily-txs?days=${DAILY_WINDOW_DAYS}`,
+    QUERY_TIMEOUT_MS,
+  );
+  if (!body?.chains) return { data: new Map(), fetchedAt: Date.now() };
+  const rows: DailyRow[] = body.chains.map((c) => ({
+    chain_id: c.chainId,
+    day: c.day,
+    tx_count: String(c.txCount),
+  }));
 
   // Group raw rows by chain_id into a day -> count map for fast lookup
   // during the pad step below.
@@ -330,6 +325,7 @@ const PCHAIN_NETWORK_IDS: Record<string, number> = {
 };
 
 export interface PchainRewardPoint {
+  /** UTC day, YYYY-MM-DD; display formatting is the client's job */
   date: string;
   /** AVAX minted to stakers that day */
   avax: number;
@@ -338,6 +334,7 @@ export interface PchainRewardPoint {
 }
 
 export interface PchainUnlockPoint {
+  /** UTC day, YYYY-MM-DD; display formatting is the client's job */
   date: string;
   /** AVAX whose staking period ends that day (validators + delegators) */
   avax: number;
@@ -447,7 +444,7 @@ export async function getPchainStakingSeries(
 
     const rewardsByDay = new Map(rewardRows.map((r) => [r.day, r]));
     const rewards = buildPastDates(days).map((iso) => ({
-      date: formatDayLabel(iso),
+      date: iso,
       avax: Number(rewardsByDay.get(iso)?.avax) || 0,
       payouts: Number(rewardsByDay.get(iso)?.payouts) || 0,
     }));
@@ -460,7 +457,7 @@ export async function getPchainStakingSeries(
       unlocksByDay.set(r.day, day);
     }
     const unlocks = buildFutureDates(days).map((iso) => ({
-      date: formatDayLabel(iso),
+      date: iso,
       avax: Math.round(unlocksByDay.get(iso)?.avax ?? 0),
       stakers: unlocksByDay.get(iso)?.stakers ?? 0,
     }));
@@ -551,58 +548,20 @@ export async function getPchainL1Ops(
   }
 
   try {
-    type OpRow = { day: string; tx_type: string; n: string };
-    type ConvRow = { month: string; n: string };
-    const [opRows, convRows] = await Promise.all([
-      clickhouseFetch<OpRow>(sqlPchainL1Ops(networkId, days), QUERY_TIMEOUT_MS),
-      clickhouseFetch<ConvRow>(sqlPchainL1Conversions(networkId), QUERY_TIMEOUT_MS),
-    ]);
+    const body = await statsApi<{
+      ops?: { date: string; register: number; setWeight: number; disable: number; topUp: number; convert: number }[];
+      conversions?: { month: string; cumulative: number }[];
+    }>(`/api/${network}/l1-ops?days=${days}`, QUERY_TIMEOUT_MS);
+    if (!body?.ops) throw new Error("l1-ops unavailable");
 
-    const byDay = new Map<string, PchainL1OpsPoint>();
-    for (const iso of buildPastDates(days)) {
-      byDay.set(iso, {
-        date: formatDayLabel(iso),
-        register: 0,
-        setWeight: 0,
-        disable: 0,
-        topUp: 0,
-        convert: 0,
-      });
-    }
-    const FIELD: Record<string, keyof Omit<PchainL1OpsPoint, "date">> = {
-      RegisterL1ValidatorTx: "register",
-      SetL1ValidatorWeightTx: "setWeight",
-      DisableL1ValidatorTx: "disable",
-      IncreaseL1ValidatorBalanceTx: "topUp",
-      ConvertSubnetToL1Tx: "convert",
+    const data: PchainL1Ops = {
+      ops: body.ops.map((o) => ({ ...o, date: formatDayLabel(o.date) })),
+      conversions: body.conversions ?? [],
     };
-    for (const r of opRows) {
-      const p = byDay.get(r.day);
-      const f = FIELD[r.tx_type];
-      if (p && f) p[f] += Number(r.n) || 0;
-    }
-
-    // continuous month axis from the first conversion to now — a
-    // cumulative curve must never skip a quiet month
-    const convByMonth = new Map(convRows.map((r) => [r.month.slice(0, 7), Number(r.n) || 0]));
-    const conversions: PchainL1ConversionPoint[] = [];
-    const months = [...convByMonth.keys()].sort();
-    if (months.length) {
-      let cum = 0;
-      const now = new Date().toISOString().slice(0, 7);
-      for (let d = new Date(`${months[0]}-01T00:00:00Z`); ; d.setUTCMonth(d.getUTCMonth() + 1)) {
-        const m = d.toISOString().slice(0, 7);
-        cum += convByMonth.get(m) ?? 0;
-        conversions.push({ month: m, cumulative: cum });
-        if (m >= now) break;
-      }
-    }
-
-    const data = { ops: [...byDay.values()], conversions };
     pchainL1OpsCache.set(cacheKey, { data, fetchedAt: Date.now() });
     return data;
   } catch (err) {
-    console.error("[explorer-clickhouse] pchain l1-ops query failed:", err);
+    console.error("[explorer-clickhouse] pchain l1-ops fetch failed:", err);
     return cached?.data ?? null;
   }
 }
@@ -714,27 +673,22 @@ export async function getCchainDailyActivity(
 
   const run = (async () => {
     try {
-      const [classified, totals] = await Promise.all([
-        clickhouseFetch<{ day: string; defi: string; nft: string; tokens: string }>(
-          sqlCchainClassified(days),
-          CCHAIN_ACTIVITY_TIMEOUT_MS,
-        ),
-        clickhouseFetch<{ day: string; total: string }>(sqlCchainDailyTotals(days), QUERY_TIMEOUT_MS),
-      ]);
-      const classifiedByDay = new Map(classified.map((r) => [r.day, r]));
-      const totalsByDay = new Map(totals.map((r) => [r.day, Number(r.total) || 0]));
+      const body = await statsApi<{
+        activity?: { day: string; defi: number; nft: number; tokens: number; other: number }[];
+      }>(`/evm-api/${CCHAIN_EVM_ID}/activity?days=${days}`, CCHAIN_ACTIVITY_TIMEOUT_MS);
+      if (!body?.activity) throw new Error("activity unavailable");
+
+      // The endpoint returns only days that had traffic; pad to the full
+      // window so the chart keeps a stable x-axis.
+      const byDay = new Map(body.activity.map((a) => [a.day, a]));
       const data = buildPastDates(days).map((iso) => {
-        const c = classifiedByDay.get(iso);
-        const defi = Number(c?.defi) || 0;
-        const nft = Number(c?.nft) || 0;
-        const tokens = Number(c?.tokens) || 0;
-        const total = totalsByDay.get(iso) ?? 0;
+        const a = byDay.get(iso);
         return {
           date: formatDayLabel(iso),
-          defi,
-          nft,
-          tokens,
-          other: Math.max(0, total - defi - nft - tokens),
+          defi: a?.defi ?? 0,
+          nft: a?.nft ?? 0,
+          tokens: a?.tokens ?? 0,
+          other: a?.other ?? 0,
         };
       });
       cchainActivityCache.set(days, { data, fetchedAt: Date.now() });
@@ -1201,43 +1155,35 @@ export async function getGasMarket(
 
   const fetchPromise = (async (): Promise<GasMarket | null> => {
     try {
-      const [
-        hourlyRows,
-        dailyRows,
-        consumerRows,
-        prevConsumerRows,
-        heatRows,
-        histRows,
-        selectorRows,
-        revertedRows,
-      ] = (await allLimited(3, [
-        () => clickhouseFetch(sqlGasHourly(evmChainId), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasDaily(evmChainId), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasConsumers(evmChainId, hours, 0), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasConsumers(evmChainId, hours * 2, hours), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasHeatmap(evmChainId, Math.max(7, rangeDays)), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasHistogram(evmChainId, hours), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasSelectors(evmChainId, hours), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlGasReverted(evmChainId, hours), QUERY_TIMEOUT_MS),
-      ] as (() => Promise<unknown>)[])) as [
-        { t: string; p25: number; p50: number; p75: number; p95: number; gas: string }[],
-        {
-          d: string;
-          p25: number;
-          p50: number;
-          p75: number;
-          p95: number;
-          gas: string;
-          utilPct: number;
-          blocks: string;
-        }[],
-        RawConsumerRow[],
-        RawConsumerRow[],
-        { dow: number; hour: number; p50: number }[],
-        { bucket: string; blocks: string }[],
-        { selector: string; gas: string; txs: string }[],
-        { gas: string; txs: string; revertedGas: string; revertedTxs: string }[],
-      ];
+      // Two endpoints: the fee time-series is range-independent and cached on
+      // its own, the demand side is windowed. Fetched together.
+      const [history, market] = await Promise.all([
+        statsApi<{
+          hourly?: { t: string; p25: number; p50: number; p75: number; p95: number; gas: string }[];
+          daily?: { t: string; p25: number; p50: number; p75: number; p95: number; gas: string; utilPct: number; blocks: number }[];
+        }>(`/evm-api/${evmChainId}/gas-history`, QUERY_TIMEOUT_MS),
+        statsApi<{
+          consumers?: RawConsumerRow[];
+          consumersPrevious?: RawConsumerRow[];
+          selectors?: { selector: string; gas: string; txs: number }[];
+          heatmap?: { dow: number; hour: number; p50: number }[];
+          histogram?: { bucket: string; blocks: number }[];
+          reverted?: { gas: string; txs: number; revertedGas: string; revertedTxs: number };
+        }>(`/evm-api/${evmChainId}/gas-market?days=${rangeDays}`, QUERY_TIMEOUT_MS),
+      ]);
+      // A 404 from gas-market means the chain is not indexed at all.
+      if (!market) return null;
+
+      const hourlyRows = history?.hourly ?? [];
+      const dailyRows = (history?.daily ?? []).map((r) => ({ ...r, d: r.t, blocks: String(r.blocks) }));
+      const consumerRows = market.consumers ?? [];
+      const prevConsumerRows = market.consumersPrevious ?? [];
+      const heatRows = market.heatmap ?? [];
+      const histRows = (market.histogram ?? []).map((h) => ({ bucket: h.bucket, blocks: String(h.blocks) }));
+      const selectorRows = (market.selectors ?? []).map((x) => ({ ...x, txs: String(x.txs) }));
+      const revertedRows = market.reverted
+        ? [{ ...market.reverted, txs: String(market.reverted.txs), revertedTxs: String(market.reverted.revertedTxs) }]
+        : [];
 
       if (dailyRows.length === 0 && hourlyRows.length === 0) return null;
 
@@ -1333,16 +1279,20 @@ export async function getGasHistory(evmChainId: number, days: GasHistoryDays): P
 
   const fetchPromise = (async (): Promise<GasDayPoint[]> => {
     try {
-      const rows = (await clickhouseFetch(sqlGasDaily(evmChainId, days), QUERY_TIMEOUT_MS)) as {
-        d: string;
-        p25: number;
-        p50: number;
-        p75: number;
-        p95: number;
-        gas: string;
-        utilPct: number;
-        blocks: string;
-      }[];
+      const body = await statsApi<{
+        daily?: { t: string; p25: number; p50: number; p75: number; p95: number; gas: string; utilPct: number; blocks: number }[];
+      }>(`/evm-api/${evmChainId}/gas-history`, QUERY_TIMEOUT_MS);
+      if (!body?.daily) throw new Error("gas-history unavailable");
+      const rows = body.daily.slice(-days).map((r) => ({
+        d: r.t,
+        p25: r.p25,
+        p50: r.p50,
+        p75: r.p75,
+        p95: r.p95,
+        gas: r.gas,
+        utilPct: r.utilPct,
+        blocks: String(r.blocks),
+      }));
       const data: GasDayPoint[] = rows.map((r) => ({
         d: r.d,
         p25: Number(r.p25) || 0,
@@ -1463,11 +1413,13 @@ export async function getAccountsActivity(
   const hours = rangeDays * 24;
   const fetchPromise = (async (): Promise<AccountsActivity | null> => {
     try {
-      const [calledRows, senderRows] = (await allLimited(2, [
-        () => clickhouseFetch(sqlAccountLeaders(evmChainId, hours, "to"), QUERY_TIMEOUT_MS),
-        () => clickhouseFetch(sqlAccountLeaders(evmChainId, hours, "from"), QUERY_TIMEOUT_MS),
-      ] as (() => Promise<unknown>)[])) as [RawLeaderRow[], RawLeaderRow[]];
-
+      const body = await statsApi<{
+        called?: RawLeaderRow[];
+        senders?: RawLeaderRow[];
+      }>(`/evm-api/${evmChainId}/accounts?days=${rangeDays}`, QUERY_TIMEOUT_MS);
+      if (!body) return null;
+      const calledRows = body.called ?? [];
+      const senderRows = body.senders ?? [];
       if (calledRows.length === 0 && senderRows.length === 0) return null;
 
       const data: AccountsActivity = {

@@ -286,12 +286,12 @@ type VM struct {
 1. Validators are sampled (by stake) to form a proposer list for the next block.
 2. Each proposer gets a 5s window; up to 6 windows are scheduled from the parent timestamp.
 3. Within their window, only the designated proposer can build a valid block.
-4. After the final window, any validator may propose, which preserves liveness if proposers are offline.
+4. If a proposer misses its window, the schedule moves to the next sampled validator in 5-second slots. Only validators in the set at the parent block's embedded P-Chain height are ever eligible: the pre-Durango fallback that opened production to any node after the final window no longer exists.
 
 **Benefits:**
 - **Predictable pacing**: Prevents multiple validators from racing the same height.
 - **Stake-weighted fairness**: Windows are derived from the subnet validator set.
-- **Graceful fallback**: Production opens to everyone after the final window.
+- **Liveness within the set**: An offline proposer only delays the next scheduled validator. If no validator from that set is still live on the P-Chain, production halts; see [ProposerVM](/docs/nodes/architecture/proposervm).
 
 ## Consensus Parameters
 

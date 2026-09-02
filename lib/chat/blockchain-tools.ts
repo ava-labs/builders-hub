@@ -22,12 +22,12 @@ const P_CHAIN_TX_TYPES: Record<number, { type: string; description: string }> = 
   18: { type: 'AdvanceTimeTx', description: 'Advances the chain timestamp' },
   19: { type: 'RewardValidatorTx', description: 'Rewards a validator' },
   20: { type: 'RemoveSubnetValidatorTx', description: 'Removes a validator from a Subnet' },
-  21: { type: 'TransformSubnetTx', description: 'Transforms a Subnet to a permissionless L1' },
+  21: { type: 'TransformSubnetTx', description: 'Transformed a Subnet into an Elastic Subnet, no longer accepted since Etna/ACP-77, so this only appears on historical transactions' },
   22: { type: 'AddPermissionlessValidatorTx', description: 'Adds a permissionless validator' },
   23: { type: 'AddPermissionlessDelegatorTx', description: 'Adds a permissionless delegator' },
   24: { type: 'TransferSubnetOwnershipTx', description: 'Transfers Subnet ownership' },
   25: { type: 'BaseTx', description: 'Base transaction (AVAX transfer on P-Chain)' },
-  33: { type: 'ConvertSubnetTx', description: 'Converts a Subnet to a Sovereign L1' },
+  33: { type: 'ConvertSubnetToL1Tx', description: 'Converts a Subnet to a Sovereign L1' },
 };
 
 function parsePChainTransaction(rawTx: any): { type: string; description: string; details: Record<string, any> } {
@@ -99,7 +99,7 @@ function parsePChainTransaction(rawTx: any): { type: string; description: string
     const vmNames: Record<string, string> = {
       'jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq': 'AvalancheVM (EVM)',
       'mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6': 'Timestamp VM',
-      'tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH': 'Subnet EVM',
+      'tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH': 'Subnet-EVM',
       'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy': 'Coreth (C-Chain)',
     };
     if (vmNames[vmID]) details.vmName = vmNames[vmID];
@@ -190,7 +190,7 @@ async function rpcCall(url: string, method: string, params: any) {
 }
 
 function explorerUrl(chain: string, type: 'tx' | 'subnet' | 'validator', id: string, isTestnet: boolean) {
-  const prefix = `https://subnets${isTestnet ? '-test' : ''}.avax.network`;
+  const prefix = `https://explorer${isTestnet ? '-test' : ''}.avax.network`;
   if (chain === 'C-Chain') return isTestnet ? `https://testnet.snowtrace.io/tx/${id}` : `https://snowtrace.io/tx/${id}`;
   if (type === 'subnet') return `${prefix}/subnets/${id}`;
   if (type === 'validator') return `${prefix}/validators/${id}`;
@@ -363,13 +363,13 @@ export const blockchainLookupSubnet = tool({
         explorerUrl: explorerUrl('', 'subnet', subnetId, isTestnet),
       };
     } catch (error) {
-      return { error: 'Failed to lookup subnet', details: String(error) };
+      return { error: 'Failed to lookup Subnet/L1', details: String(error) };
     }
   },
 });
 
 export const blockchainLookupChain = tool({
-  description: 'Look up a blockchain by its chain ID — name, subnet, VM type.',
+  description: 'Look up a blockchain by its chain ID — name, Subnet/L1, VM type.',
   inputSchema: z.object({
     chainId: z.string().describe('The blockchain/chain ID to look up'),
     network: z.enum(['mainnet', 'fuji']).default('mainnet'),
@@ -378,7 +378,7 @@ export const blockchainLookupChain = tool({
     const vmNames: Record<string, string> = {
       'jvYyfQTxGMJLuGWa55kdP2p2zSUYsQ5Raupu4TW34ZAUBAbtq': 'AvalancheVM (EVM)',
       'mgj786NP7uDwBCcq6YwThhaN8FLyybkCa4zBWTQbNgmK6k9A6': 'Timestamp VM',
-      'tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH': 'Subnet EVM',
+      'tGas3T58KzdjLHhBDMnH2TvrddhqTji5iZAMZ3RXs2NLpSnhH': 'Subnet-EVM',
       'srEXiWaHuhNyGwPUi444Tu47ZEDwxTWrbQiuD7FmgSAQ6X7Dy': 'Coreth (C-Chain VM)',
     };
 
@@ -396,7 +396,7 @@ export const blockchainLookupChain = tool({
           vmID: chain.vmID,
           vmName: vmNames[chain.vmID] || 'Custom VM',
           network: isTestnet ? 'Fuji Testnet' : 'Mainnet',
-          explorerUrl: `https://subnets${isTestnet ? '-test' : ''}.avax.network/c-chain`,
+          explorerUrl: `https://explorer${isTestnet ? '-test' : ''}.avax.network/c-chain`,
         };
       }
     }

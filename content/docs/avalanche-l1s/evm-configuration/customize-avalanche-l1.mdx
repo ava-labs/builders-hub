@@ -14,7 +14,7 @@ An Avalanche L1 created by or forked from [Subnet-EVM](https://github.com/ava-la
 - [Upgrade Configs](#network-upgrades-enabledisable-precompiles)
 - [Chain Configs](#avalanchego-chain-configs)
 
-Avalanche L1 Configs[​](#avalanche-l1-configs "Direct link to heading")
+Avalanche L1 Configs
 -----------------------------------------------------------
 
 an Avalanche L1 can customized by setting parameters for the following:
@@ -25,7 +25,7 @@ an Avalanche L1 can customized by setting parameters for the following:
 
 See [here](/docs/nodes/configure/avalanche-l1-configs) for more info.
 
-Genesis[​](#genesis "Direct link to heading")
+Genesis
 ---------------------------------------------
 
 Each blockchain has some genesis state when it's created. Each Virtual Machine defines the format and semantics of its genesis data.
@@ -76,17 +76,17 @@ The default genesis Subnet-EVM provided below has some well defined parameters:
 }
 ```
 
-### Chain Config[​](#chain-config "Direct link to heading")
+### Chain Config
 
 `chainID`: Denotes the ChainID of to be created chain. Must be picked carefully since a conflict with other chains can cause issues. One suggestion is to check with [chainlist.org](https://chainlist.org/) to avoid ID collision, reserve and publish your ChainID properly.
 
 You can use `eth_getChainConfig` RPC call to get the current chain config. See [here](/docs/rpcs/subnet-evm#eth_getchainconfig) for more info.
 
-#### Hard Forks[​](#hard-forks "Direct link to heading")
+#### Hard Forks
 
 `homesteadBlock`, `eip150Block`, `eip150Hash`, `eip155Block`, `byzantiumBlock`, `constantinopleBlock`, `petersburgBlock`, `istanbulBlock`, `muirGlacierBlock` are EVM hard fork activation times. Changing these may cause issues, so treat them carefully.
 
-#### Fee Config[​](#fee-config "Direct link to heading")
+#### Fee Config
 
 `gasLimit`: Sets the max amount of gas consumed per block. This restriction puts a cap on the amount of computation that can be done in a single block, which in turn sets a limit on the maximum gas usage allowed for a single transaction. For reference, C-Chain value is set to `15,000,000`.
 
@@ -112,11 +112,11 @@ If it is produced faster/slower, the block gas cost will be increased/decreased 
 If the `blockGasCostStep` is set to a very large number, it effectively requires block production to go no faster than the `targetBlockRate`. For example, if a block is produced two seconds faster than the target block rate, the block gas cost will increase by `2 * blockGasCostStep`.
 </Callout>
 
-#### Custom Fee Recipients[​](#custom-fee-recipients "Direct link to heading")
+#### Custom Fee Recipients
 
 See section [Setting a Custom Fee Recipient](#setting-a-custom-fee-recipient)
 
-### Alloc[​](#alloc "Direct link to heading")
+### Alloc
 
 The fields `nonce`, `timestamp`, `extraData`, `gasLimit`, `difficulty`, `mixHash`, `coinbase`, `number`, `gasUsed`, `parentHash` defines the genesis block header. The field `gasLimit` should be set to match the `gasLimit` set in the `feeConfig`. You do not need to change any of the other genesis header fields.
 
@@ -142,13 +142,13 @@ The fields `nonce`, `timestamp`, `extraData`, `gasLimit`, `difficulty`, `mixHash
 
 `number`: This is the number of the genesis block. This required to be `0x0` for the genesis. Otherwise it will error.
 
-### Genesis Examples[​](#genesis-examples "Direct link to heading")
+### Genesis Examples
 
 Another example of a genesis file can be found in the [networks folder](https://github.com/ava-labs/public-chain-assets/blob/1951594346dcc91682bdd8929bcf8c1bf6a04c33/chains/11111/genesis.json). Please remove `airdropHash` and `airdropAmount` fields if you want to start with it.
 
 Here are a few examples on how a genesis file is used: [scripts/run.sh](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/scripts/run.sh#L99)
 
-### Setting the Genesis Allocation[​](#setting-the-genesis-allocation "Direct link to heading")
+### Setting the Genesis Allocation
 
 Alloc defines addresses and their initial balances. This should be changed accordingly for each chain. If you don't provide any genesis allocation, you won't be able to interact with your new chain (all transactions require a fee to be paid from the sender's balance).
 
@@ -184,7 +184,7 @@ The above example yields the following genesis allocations (denominated in whole
 0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B: 49463 (0xa796504b1cb5a7c0000=49463000000000000000000 Wei)
 ```
 
-### Setting a Custom Fee Recipient[​](#setting-a-custom-fee-recipient "Direct link to heading")
+### Setting a Custom Fee Recipient
 
 By default, all fees are burned (sent to the black hole address with `"allowFeeRecipients": false`). However, it is possible to enable block producers to set a fee recipient (who will get compensated for blocks they produce).
 
@@ -198,7 +198,7 @@ To enable this feature, you'll need to add the following to your genesis file (u
 }
 ```
 
-#### Fee Recipient Address[​](#fee-recipient-address "Direct link to heading")
+#### Fee Recipient Address
 
 With `allowFeeRecipients` enabled, your validators can specify their addresses to collect fees. They need to update their EVM [chain config](#avalanchego-chain-configs) with the following to specify where the fee should be sent to.
 
@@ -214,12 +214,12 @@ If `allowFeeRecipients` feature is enabled on the Avalanche L1, but a validator 
 
 This mechanism can be also activated as a precompile. See [Changing Fee Reward Mechanisms](#changing-fee-reward-mechanisms) section for more details.
 
-Precompiles[​](#precompiles "Direct link to heading")
+Precompiles
 -----------------------------------------------------
 
 Subnet-EVM can provide custom functionalities with precompiled contracts. These precompiled contracts can be activated through `ChainConfig` (in genesis or as an upgrade).
 
-### AllowList Interface[​](#allowlist-interface "Direct link to heading")
+### AllowList Interface
 
 The `AllowList` interface is used by precompiles to check if a given address is allowed to use a precompiled contract. `AllowList` consist of three roles, `Admin`, `Manager` and `Enabled`. `Admin` can add/remove other `Admin` and `Enabled` addresses. `Manager` is introduced with Durango upgrade and can add/remove `Enabled` addresses, without the ability to add/remove `Admin` or `Manager` addresses. `Enabled` addresses can use the precompiled contract, but cannot modify other roles.
 
@@ -275,7 +275,7 @@ interface IAllowList {
 
 Note: `AllowList` is not an actual contract but just an interface. It's not callable by itself. This is used by other precompiles. Check other precompile sections to see how this works.
 
-### Restricting Smart Contract Deployers[​](#restricting-smart-contract-deployers "Direct link to heading")
+### Restricting Smart Contract Deployers
 
 If you'd like to restrict who has the ability to deploy contracts on your Avalanche L1, you can provide an `AllowList` configuration in your genesis or upgrade file:
 
@@ -292,7 +292,7 @@ In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the `A
 
 The `Stateful Precompile` contract powering the `ContractDeployerAllowList` adheres to the [AllowList Solidity interface](#allowlist-interface) at `0x0200000000000000000000000000000000000000` (you can load this interface and interact directly in Remix):
 
-- If you attempt to add a `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize1.png)   
+- If you attempt to add a `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize1.png)
 - If you attempt to deploy a contract but you are not an `Admin` not a `Enabled`, you will see something like: ![deploy fail](/images/customize2.png)
 - If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a uint256 with a value of 0, 1, or 2, corresponding to the roles `None`, `Enabled`, and `Admin` respectively.
 
@@ -300,7 +300,7 @@ The `Stateful Precompile` contract powering the `ContractDeployerAllowList` adhe
 If you remove all of the admins from the allow list, it will no longer be possible to update the allow list without modifying the Subnet-EVM to schedule a network upgrade.
 </Callout>
 
-#### Initial Contract Allow List Configuration[​](#initial-contract-allow-list-configuration "Direct link to heading")
+#### Initial Contract Allow List Configuration
 
 It's possible to enable this precompile with an initial configuration to activate its effect on activation timestamp. This provides a way to enable the precompile without an admin address to manage the deployer list. With this, you can define a list of addresses that are allowed to deploy contracts. Since there will be no admin address to manage the deployer list, it can only be modified through a network upgrade.
 
@@ -317,7 +317,7 @@ To use initial configuration, you need to specify addresses in `enabledAddresses
 
 This will allow only `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` to deploy contracts. For further information about precompile initial configurations see [Initial Precompile Configurations](#initial-precompile-configurations).
 
-### Restricting Who Can Submit Transactions[​](#restricting-who-can-submit-transactions "Direct link to heading")
+### Restricting Who Can Submit Transactions
 
 Similar to restricting contract deployers, this precompile restricts which addresses may submit transactions on chain. Like the previous section, you can activate the precompile by including an `AllowList` configuration in your genesis file:
 
@@ -336,15 +336,15 @@ In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the `A
 
 The `Stateful Precompile` contract powering the `TxAllowList` adheres to the [AllowList Solidity interface](#allowlist-interface) at `0x0200000000000000000000000000000000000002` (you can load this interface and interact directly in Remix):
 
-- If you attempt to add an `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize3.png)   
-- If you attempt to submit a transaction but you are not an `Admin`, `Manager` or not `Enabled`, you will see something like: `cannot issue transaction from non-allow listed address` 
+- If you attempt to add an `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize3.png)
+- If you attempt to submit a transaction but you are not an `Admin`, `Manager` or not `Enabled`, you will see something like: `cannot issue transaction from non-allow listed address`
 - If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a `uint256` with a value of 0, 1, 2 or 3 corresponding to the roles `None`, `Allowed`, `Admin` and `Manager` respectively.
 
 <Callout type="warn">
 If you remove all of the admins and managers from the allow list, it will no longer be possible to update the allow list without modifying the Subnet-EVM to schedule a network upgrade.
 </Callout>
 
-#### Initial TX Allow List Configuration[​](#initial-tx-allow-list-configuration "Direct link to heading")
+#### Initial TX Allow List Configuration
 
 It's possible to enable this precompile with an initial configuration to activate its effect on activation timestamp. This provides a way to enable the precompile without an admin address to manage the TX allow list. With this, you can define a list of addresses that are allowed to submit transactions.
 
@@ -361,7 +361,7 @@ Since there will be no admin address to manage the TX list, it can only be modif
 
 This will allow only `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` to submit transactions. For further information about precompile initial configurations see [Initial Precompile Configurations](#initial-precompile-configurations).
 
-### Minting Native Coins[​](#minting-native-coins "Direct link to heading")
+### Minting Native Coins
 
 You can mint native(gas) coins with a precompiled contract. In order to activate this feature, you can provide `nativeMinterConfig` in genesis:
 
@@ -407,7 +407,7 @@ Note that this uses `IAllowList` interface directly, meaning that it uses the sa
 EVM does not prevent overflows when storing the address balance. Overflows in balance opcodes are handled by setting the balance to maximum. However the same won't apply for API calls. If you try to mint more than the maximum balance, API calls will return the overflowed hex-balance. This can break external tooling. Make sure the total supply of native coins is always less than 2^256-1.
 </Callout>
 
-#### Initial Native Minter Configuration[​](#initial-native-minter-configuration "Direct link to heading")
+#### Initial Native Minter Configuration
 
 It's possible to enable this precompile with an initial configuration to activate its effect on activation timestamp. This provides a way to enable the precompile without an admin address to mint native coins. With this, you can define a list of addresses that will receive an initial mint of the native coin when this precompile activates. This can be useful for networks that require a one-time mint without specifying any admin addresses. To use initial configuration, you need to specify a map of addresses with their corresponding mint amounts in `initialMint` field in your genesis or upgrade file:
 
@@ -425,7 +425,7 @@ It's possible to enable this precompile with an initial configuration to activat
 
 In the amount field you can specify either decimal or hex string. This will mint 1000000000000000000 (equivalent of 1 Native Coin denominated as 10^18) to both addresses. Note that these are both in string format. "0xde0b6b3a7640000" hex is equivalent to 1000000000000000000. For further information about precompile initial configurations see [Initial Precompile Configurations](#initial-precompile-configurations).
 
-### Configuring Dynamic Fees[​](#configuring-dynamic-fees "Direct link to heading")
+### Configuring Dynamic Fees
 
 
 You can configure the parameters of the dynamic fee algorithm on chain using the `FeeConfigManager`. In order to activate this feature, you will need to provide the `FeeConfigManager` in the genesis:
@@ -513,7 +513,7 @@ In addition to the `AllowList` interface, the FeeConfigManager adds the followin
 
 You can also get the fee configuration at a block with the `eth_feeConfig` RPC method. For more information see [here](/docs/rpcs/subnet-evm#eth_feeconfig).
 
-#### Initial Fee Config Configuration[​](#initial-fee-config-configuration "Direct link to heading")
+#### Initial Fee Config Configuration
 
 It's possible to enable this precompile with an initial configuration to activate its effect on activation timestamp. This provides a way to define your fee structure to take effect at the activation.
 
@@ -539,18 +539,18 @@ To use the initial configuration, you need to specify the fee config in `initial
 
 This will set the fee config to the values specified in the `initialFeeConfig` field. For further information about precompile initial configurations see [Initial Precompile Configurations](#initial-precompile-configurations).
 
-### Avalanche Warp Messaging[​](#avalanche-warp-messaging "Direct link to heading")
+### Avalanche Warp Messaging
 
 <Callout type="warn">
 Currently Warp Precompile can only be activated in Mainnet after Durango occurs. Durango in Mainnet is set at 11 AM ET (4 PM UTC) on Wednesday, March 6th, 2024. If you plan to use Warp messaging in your own Subnet-EVM chain in Mainnet you should upgrade to AvalancheGo 1.11.11 or later and coordinate your precompile upgrade. Warp Config's "blockTimestamp" must be set after `1709740800`, Durango date (11 AM ET (4 PM UTC) on Wednesday, March 6th, 2024).
 </Callout>
 
-Contract Examples[​](#contract-examples "Direct link to heading")
+Contract Examples
 -----------------------------------------------------------------
 
 Subnet-EVM contains example contracts for precompiles under `/contracts`. It's a hardhat project with tests and tasks. For more information see [contract examples README](https://github.com/ava-labs/subnet-evm/tree/master/contracts#subnet-evm-contracts).
 
-Network Upgrades: Enable/Disable Precompiles[​](#network-upgrades-enabledisable-precompiles "Direct link to heading")
+Network Upgrades: Enable/Disable Precompiles
 ---------------------------------------------------------------------------------------------------------------------
 
 <Callout type="warn">
@@ -609,7 +609,7 @@ As a last resort measure, it is possible to abort or reconfigure a precompile up
 
 If aborting an upgrade becomes necessary, you can remove the precompile upgrade from `upgrade.json` from the end of the list of upgrades. As long as the blockchain has not accepted a block with a timestamp past that upgrade's timestamp, it will abort the upgrade for that node.
 
-### Example[​](#example "Direct link to heading")
+### Example
 
 ```json
 {
@@ -657,7 +657,7 @@ Notice that `precompileUpgrades` entry correctly reflects the changes. You can a
 
 That's it, your Avalanche L1 is all set and the desired upgrades will be activated at the indicated timestamp!
 
-### Initial Precompile Configurations[​](#initial-precompile-configurations "Direct link to heading")
+### Initial Precompile Configurations
 
 Precompiles can be managed by some privileged addresses to change their configurations and activate their effects. For example, the `feeManagerConfig` precompile can have `adminAddresses` which can change the fee structure of the network.
 
@@ -712,14 +712,14 @@ If you want to change the precompile initial configuration, you will need to fir
 
 See every precompile initial configuration in their relevant `Initial Configuration` sections under [Precompiles](#precompiles).
 
-AvalancheGo Chain Configs[​](#avalanchego-chain-configs "Direct link to heading")
+AvalancheGo Chain Configs
 ---------------------------------------------------------------------------------
 
 As described in [this doc](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt`, the config file for this chain is located at `{chain-config-dir}/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json`.
 
 For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/nodes/chain-configs/primary-network/c-chain) are applicable except [Avalanche Specific APIs](/docs/nodes/chain-configs/primary-network/c-chain#enabling-avalanche-specific-apis).
 
-### Priority Regossip[​](#priority-regossip "Direct link to heading")
+### Priority Regossip
 
 A transaction is "regossiped" when the node does not find the transaction in a block after `priority-regossip-frequency` (defaults to `1m`). By default, up to 16 transactions (max 1 per address) are regossiped to validators per minute.
 
@@ -742,7 +742,7 @@ By default, up to 32 transactions from priority addresses (max 16 per address) a
 }
 ```
 
-### Fee Recipient[​](#fee-recipient "Direct link to heading")
+### Fee Recipient
 
 This works together with [`allowFeeRecipients`](#setting-a-custom-fee-recipient) and [RewardManager precompile](/docs/avalanche-l1s/precompiles/reward-manager) to specify where the fees should be sent to.
 
@@ -758,7 +758,7 @@ With `allowFeeRecipients` enabled, validators can specify their addresses to col
 If `allowFeeRecipients` or `RewardManager` precompile is enabled on the Avalanche L1, but a validator doesn't specify a "feeRecipient", the fees will be burned in blocks it produces.
 </Callout>
 
-### Archival Node Configuration[​](#archival-node-configuration "Direct link to heading")
+### Archival Node Configuration
 
 Running an archival node that retains all historical state data requires specific configuration settings. Incorrect configuration can lead to historical data being pruned despite attempts to run in archival mode. Here are the key settings to configure:
 
@@ -802,7 +802,7 @@ When switching between database types (e.g., from LevelDB to PebbleDB), historic
 
 For information about all available configuration options and directory structures, see the [AvalancheGo Config Flags documentation](https://build.avax.network/docs/nodes/configure/configs-flags).
 
-Network Upgrades: State Upgrades[​](#network-upgrades-state-upgrades "Direct link to heading")
+Network Upgrades: State Upgrades
 ----------------------------------------------------------------------------------------------
 
 Subnet-EVM allows the network operators to specify a modification to state that will take place at the beginning of the first block with a timestamp greater than or equal to the one specified in the configuration.
@@ -854,7 +854,7 @@ The `upgrades.json` file shown below describes a network upgrade that will make 
 }
 ```
 
-Network Upgrades: Rescheduling Mandatory Network Upgrades[​](#network-upgrades-rescheduling-mandatory-network-upgrades "Direct link to heading")
+Network Upgrades: Rescheduling Mandatory Network Upgrades
 ------------------------------------------------------------------------------------------------------------------------------------------------
 
 A typical case when a network misses any mandatory activation would result in a network that is not able to operate. This is because validators/nodes running the old version would process transactions differently than nodes running the new version and end up different state. This would result in a fork in the network and new nodes would not be able to sync with the network. Normally this puts the chain in a halt and requires a hard fork to fix the issue. Starting with Subnet-EVM v0.6.3, you can reschedule mandatory activations like Durango via upgrade configs (upgrade.json in chain directory). This is a very advanced operation and should be done only if your network cannot operate going forward. The reschedule operation should be coordinated with your entire network nodes. Network upgrade overrides can be defined in the `upgrade.json` as follows:

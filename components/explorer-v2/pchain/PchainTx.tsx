@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { chainOfId, crossChainTxUrl, crossChainAddressUrl } from "@/lib/crosschain-links";
 import {
   PRIMARY_SUBNET_ID,
   bytesToHex,
@@ -106,8 +107,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
   }, [isRewardTx, isClassicRewardTx, stakingTxId, network, txHash]);
   const rewardWithdrawn = rewardUtxos?.reduce((sum, u) => sum + u.amount, 0) ?? 0;
 
-  // the split needs the staker's compound ratio: withdrawn is the
-  // (1 - c) share minted to the owner, so restaked = withdrawn * c/(1-c)
+  // the compound ratio, for the label on the restaked row
   const [compoundShares, setCompoundShares] = useState<number | null>(null);
   useEffect(() => {
     if (tx?.txType !== "RewardAutoRenewedValidatorTx" || !stakingTxId) return;
@@ -124,11 +124,10 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       cancelled = true;
     };
   }, [tx?.txType, stakingTxId, network]);
-  // avalanchego's PercentDenominator for reward shares
-  const SHARES_DENOM = 1_000_000;
+
   const rewardRestaked =
-    compoundShares !== null && compoundShares > 0 && compoundShares < SHARES_DENOM && rewardWithdrawn > 0
-      ? Math.round((rewardWithdrawn * compoundShares) / (SHARES_DENOM - compoundShares))
+    tx?.restakedAmount !== undefined && Number.isFinite(Number(tx.restakedAmount))
+      ? Number(tx.restakedAmount)
       : null;
 
   // a live continuous validator carries its compounded stake in the
@@ -332,7 +331,6 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 <SpecRow label="Timestamp">
                   {formatTime(tx.blockTimestamp)} · {timeAgo(tx.blockTimestamp)}
                 </SpecRow>
-                <SpecRow label="Value">{formatAvax(sumAmounts(tx.value))}</SpecRow>
                 {sumAmounts(tx.amountStaked) > 0 && (
                   <SpecRow label="Staked">{formatAvax(sumAmounts(tx.amountStaked))}</SpecRow>
                 )}
@@ -381,7 +379,14 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                     reward until then, the indexer's estimate as fallback */}
                 {stakeRewardUtxos !== null ? (
                   stakeRewardUtxos.length === 0 ? (
-                    <SpecRow label="Reward">None (aborted)</SpecRow>
+                    <SpecRow label="Reward">
+                      {/* the chain records only the commit/abort vote. on the primary network
+                          the vote's sole input is the validator's observed uptime vs the 80% requirement. */}
+                      None (aborted)
+                      <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                        validator missed the 80% uptime vote at settlement — principal returned, reward forfeited
+                      </span>
+                    </SpecRow>
                   ) : stakeRewardNet !== null && stakeRewardFee !== null ? (
                     /* delegation payout split by UTXO owner: what the
                        delegator actually received vs the validator's cut */
@@ -455,13 +460,18 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                       <SpecRow label="Withdrawn">
                         {formatAvax(rewardWithdrawn)}
                         <span className="ml-2 text-zinc-400 dark:text-zinc-500">
-                          plus a restaked share (compound ratio unavailable)
+                          plus a restaked share (not yet resolved)
                         </span>
                       </SpecRow>
                     )
                   ) : (
                     <SpecRow label="Reward Paid">
                       {tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}
+                      {!tx.details.rewardPaid && (
+                        <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                        validator missed the 80% uptime vote at settlement — principal returned, reward forfeited
+                      </span>
+                      )}
                     </SpecRow>
                   ))}
                 {tx.details?.stakingTxId && (
@@ -1084,7 +1094,7 @@ function autoCompoundPct(tx: Tx): string | null {
   return Number.isInteger(pct) ? String(pct) : pct.toFixed(2);
 }
 
-function UtxoColumn({ base, title, utxos, side }: { base: string; title: string; utxos: Utxo[]; side: "in" | "out" }) {
+export function UtxoColumn({ base, title, utxos, side }: { base: string; title: string; utxos: Utxo[]; side: "in" | "out" }) {
   return (
     <div className="flex flex-col gap-3">
       <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
@@ -1117,30 +1127,52 @@ function UtxoColumn({ base, title, utxos, side }: { base: string; title: string;
               {u.addresses.map((a) => (
                 <Link
                   key={a}
-                  href={`${base}/address/${a}`}
+                  href={
+                    (side === "in" &&
+                      chainOfId(u.createdOnChainId) &&
+                      crossChainAddressUrl(base.split("/")[2], u.createdOnChainId, a)) ||
+                    `${base}/address/${a}`
+                  }
                   className="font-mono text-[11px] text-[#0061E2] underline-offset-2 hover:text-[#E6212F] hover:underline dark:text-[#5f9dff]"
                 >
                   {truncate(a, 14)}
                 </Link>
               ))}
             </div>
-            {u.consumingTxHash && side === "out" && (
-              <Link
-                href={`${base}/tx/${u.consumingTxHash}`}
-                className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
-              >
-                spent in {truncate(u.consumingTxHash, 12)} →
-              </Link>
-            )}
-            {/* walk any UTXO backward through delegations/transfers */}
-            {u.txHash && side === "in" && (
-              <Link
-                href={`${base}/tx/${u.txHash}`}
-                className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
-              >
-                ← created in {truncate(u.txHash, 12)}
-              </Link>
-            )}
+            {u.consumingTxHash && side === "out" && (() => {
+              // Exported outputs are claimed on ANOTHER chain — the API fills
+              // consumedOnChainId with the destination blockchain id, and the
+              // link must route to that chain's tx page (C-chain claims are
+              // atomic txs with their own detail route).
+              const net = base.split("/")[2];
+              const cross = chainOfId(u.consumedOnChainId);
+              const href =
+                (cross && cross !== "P-Chain" && crossChainTxUrl(net, u.consumedOnChainId, u.consumingTxHash)) ||
+                `${base}/tx/${u.consumingTxHash}`;
+              const verb = cross && cross !== "P-Chain" ? `claimed on ${cross} in` : "spent in";
+              return (
+                <Link
+                  href={href}
+                  className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]"
+                >
+                  {verb} {truncate(u.consumingTxHash, 12)} →
+                </Link>
+              );
+            })()}
+            {/* walk any UTXO backward through delegations/transfers — or, for
+                an atomic input, straight to the export on the source chain */}
+            {u.txHash && side === "in" && (() => {
+              const cross = chainOfId(u.createdOnChainId);
+              const net = base.split("/")[2];
+              const href =
+                (cross && crossChainTxUrl(net, u.createdOnChainId, u.txHash)) || `${base}/tx/${u.txHash}`;
+              const verb = cross ? `← exported from ${cross} in` : "← created in";
+              return (
+                <Link href={href} className="font-mono text-[10px] text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]">
+                  {verb} {truncate(u.txHash, 12)}
+                </Link>
+              );
+            })()}
           </div>
         ))}
       </Board>

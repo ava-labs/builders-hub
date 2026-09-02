@@ -111,8 +111,11 @@ export const useAutomatedFaucet = () => {
   // check if user has sufficient balance for a given chain
   const checkSufficientBalance = useCallback((chainId: number): boolean => {
     const chain = l1List.find((c: L1ListItem) => c.evmChainId === chainId);
-    if (!chain?.faucetThresholds) return true; // assuming sufficient balance if thresholds are not set 
-    const balance = chainId === 43113 ? balances.cChain : (balances.l1Chains[chainId.toString()] || 0);
+    if (!chain?.faucetThresholds) return true; // assuming sufficient balance if thresholds are not set
+    const balance = chainId === 43113 ? balances.cChain : balances.l1Chains[chainId.toString()];
+    // null/undefined = balance unreadable — never auto-drip on an unknown
+    // balance (the account may be fully funded, issue #4450).
+    if (balance === null || balance === undefined) return true;
     return balance >= chain.faucetThresholds.threshold;
   }, [l1List, balances.cChain, balances.l1Chains]);
 
@@ -175,7 +178,7 @@ export const useAutomatedFaucet = () => {
       const hasLoadedBalances = walletEVMAddress && (
         balances.cChain > 0 || 
         balances.pChain > 0 || 
-        Object.values(balances.l1Chains).some(balance => balance > 0) ||
+        Object.values(balances.l1Chains).some(balance => (balance ?? 0) > 0) ||
         (!isLoading.cChain && !isLoading.pChain)
       );
 

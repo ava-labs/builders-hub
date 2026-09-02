@@ -120,6 +120,17 @@ const MAX_TOTAL_STAKE_NAVAX = 3_000_000 * 1e9;
 
 const LIST_CAP = 8;
 
+const SHARES_DENOM = 1_000_000n;
+
+function delegationFeeCut(gross: number, feePercent: number): bigint {
+  const g = BigInt(Math.max(0, Math.round(gross)));
+  const shares = BigInt(Math.round(feePercent * 10_000));
+  if (g === 0n || shares <= 0n) return 0n;
+  if (shares >= SHARES_DENOM) return g;
+  const delegatorNet = ((SHARES_DENOM - shares) * g) / SHARES_DENOM; // floors
+  return g - delegatorNet;
+}
+
 export function PchainNode({
   chain,
   network,
@@ -151,7 +162,15 @@ export function PchainNode({
     const maxTotal = Math.min(5 * v.weight, MAX_TOTAL_STAKE_NAVAX);
     const capacity = Math.max(0, maxTotal - v.totalStake);
     const sharePct = networkStake ? (v.totalStake / networkStake) * 100 : null;
-    const feeTake = n.delegatorsPotentialReward * (v.delegationFeePercent / 100);
+    // Split each delegation the way the chain does, then sum — not the other
+    // way round. avalanchego's reward.Split floors the DELEGATOR's side and
+    // gives the validator the remainder, per delegation:
+    //   net = floor((1e6 − shares) × gross / 1e6);  fee = gross − net
+    // A percentage multiply on the aggregate rounds the other way and lands a
+    // nAVAX off on each tile (2026-08-20: 23,065.1 vs the chain's 23,066).
+    const feeTake = Number(
+      n.delegators.reduce((sum, d) => sum + delegationFeeCut(d.potentialReward, v.delegationFeePercent), 0n),
+    );
     const totalTake = v.potentialReward + feeTake;
     const now = Date.now() / 1000;
     const span = v.endTimestamp - v.startTimestamp;
@@ -744,7 +763,7 @@ export function PchainNode({
                 <Board>
                   {(showAllDelegators ? sortedDelegators : sortedDelegators.slice(0, LIST_CAP)).map((d) => {
                     const feePct = n.validator?.delegationFeePercent ?? 0;
-                    const feeCut = Math.round(d.potentialReward * (feePct / 100));
+                    const feeCut = Number(delegationFeeCut(d.potentialReward, feePct));
                     const net = d.potentialReward - feeCut;
                     return (
                       <Link

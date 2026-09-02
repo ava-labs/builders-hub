@@ -28,7 +28,8 @@ export interface L1DashboardData {
 
   // Wallet info
   walletAddress: string;
-  balance: number;
+  /** null = balance could not be fetched from the chain's RPC. */
+  balance: number | null;
 
   // Setup progress
   setupProgress: {
@@ -114,7 +115,7 @@ export function useL1Dashboard(): L1DashboardData {
       return balances.cChain;
     }
     if (currentL1) {
-      return balances.l1Chains[effectiveChainId.toString()] || 0;
+      return balances.l1Chains[effectiveChainId.toString()] ?? null;
     }
     return 0;
   }, [isConnectedToCChain, currentL1, balances, effectiveChainId]);

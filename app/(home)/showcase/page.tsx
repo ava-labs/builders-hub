@@ -7,6 +7,17 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { hasShowcaseRole } from "@/lib/auth/roles";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AccessDenied } from "@/components/ui/access-denied";
+import type { Metadata } from "next";
+import { createMetadata } from "@/utils/metadata";
+
+const ogImage = { url: "/api/og/showcase", width: 1200, height: 630, alt: "Avalanche Showcase" };
+
+export const metadata: Metadata = createMetadata({
+  title: "Showcase",
+  description: "Projects built by the Avalanche community across hackathons and programs.",
+  openGraph: { url: "/showcase", images: ogImage },
+  twitter: { images: ogImage },
+});
 
 export default async function ShowCasePage({
   searchParams,

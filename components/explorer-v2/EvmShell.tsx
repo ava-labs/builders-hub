@@ -15,11 +15,18 @@ import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.
 export function EvmShell({
   network,
   aside,
+  search = true,
+  subnav = true,
   children,
 }: {
   network: string;
   /** Optional right-hand companion for the header (e.g. a live height figure). */
   aside?: React.ReactNode;
+  /** Set false where there is nothing to search — an unindexed chain has no
+   *  blocks, transactions or addresses to look up, so the box would only
+   *  promise a lookup that cannot resolve. */
+  search?: boolean;
+  subnav?: boolean;
   children: React.ReactNode;
 }) {
   const c = useChainContext();
@@ -35,13 +42,15 @@ export function EvmShell({
     >
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
-        <ExplorerSubnav
-          network={network}
-          chainSlug={c.chainSlug}
-          chainName={c.chainName}
-          chainLogoURI={c.chainLogoURI}
-          className="mb-8"
-        />
+        {subnav && (
+          <ExplorerSubnav
+            network={network}
+            chainSlug={c.chainSlug}
+            chainName={c.chainName}
+            chainLogoURI={c.chainLogoURI}
+            className="mb-8"
+          />
+        )}
         <Rise delay={0.05}>
           <header className="flex flex-col gap-6 pb-10">
             <ChainHeader
@@ -56,7 +65,7 @@ export function EvmShell({
               }
               aside={aside}
             />
-            <EvmSearchBox base={base} chainName={c.chainName} />
+            {search && <EvmSearchBox base={base} chainName={c.chainName} />}
           </header>
         </Rise>
         <Rise delay={0.14}>{children}</Rise>

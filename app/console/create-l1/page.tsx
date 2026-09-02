@@ -1,13 +1,10 @@
-'use client';
+import { consoleToolMetadata } from "@/components/console/tool-metadata";
+import CreateL1Page from "./page.client";
 
-import CreateL1Questionnaire from '@/components/toolbox/console/create-l1/CreateL1Questionnaire';
-import { CheckRequirements } from '@/components/toolbox/components/CheckRequirements';
-import { WalletRequirementsConfigKey } from '@/components/toolbox/hooks/useWalletRequirements';
+// The interactive page is a client component (page.client.tsx), which cannot
+// export metadata; this server wrapper carries the tool's social card.
+export const metadata = consoleToolMetadata("/console/create-l1", "Create L1");
 
 export default function Page() {
-  return (
-    <CheckRequirements toolRequirements={[WalletRequirementsConfigKey.WalletConnected]}>
-      <CreateL1Questionnaire />
-    </CheckRequirements>
-  );
+  return <CreateL1Page />;
 }

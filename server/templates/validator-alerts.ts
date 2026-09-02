@@ -1,7 +1,7 @@
 import { getUnsubscribeUrl } from '@/server/services/unsubscribe-token';
 import he from 'he';
 
-const EXPLORER_BASE = 'https://subnets.avax.network';
+const EXPLORER_BASE = 'https://explorer.avax.network';
 const GITHUB_RELEASE_BASE = 'https://github.com/ava-labs/avalanchego/releases/tag';
 
 const escapeHtml = he.escape.bind(he);

@@ -1,10 +1,10 @@
 // P-Chain explorer config + types + client.
 //
-// The explorer API is the dedicated P-chain read API (UTXO-shaped) served over
-// plain HTTP on an IP, so it is ONLY reached server-side via the proxy route
-// (app/api/pchain/[network]/[...path]/route.ts) — never from the browser (the
-// site is HTTPS; mixed content would be blocked). Client code fetches the
-// same-origin `/api/pchain/...` paths via the `pchainApi()` helper.
+// The explorer API is the dedicated P-chain read API (UTXO-shaped) served by our
+// stats API. It is reached server-side via the proxy route
+// (app/api/pchain/[network]/[...path]/route.ts), which sidesteps CORS and keeps
+// the upstream host out of the browser. Client code fetches the same-origin
+// `/api/pchain/...` paths via the `pchainApi()` helper.
 //
 // URL scheme (finalized, chain-family agnostic so L1s slot in later):
 //   /explorer/{network}/{chain}/{resource}
@@ -14,7 +14,31 @@
 //              | address/{addr} | node/{nodeId} | validators
 
 export const EXPLORER_API_BASE =
-  process.env.EXPLORER_API_URL || "http://44.221.18.159";
+  process.env.EXPLORER_API_URL || "https://stats-api.avax.network";
+
+export interface PchainRewardPoint {
+  /** UTC day, YYYY-MM-DD; display formatting is the client's job */
+  date: string;
+  /** AVAX minted to stakers that day. */
+  avax: number;
+  /** reward UTXOs created (≈ stake periods that ended) */
+  payouts: number;
+}
+
+export interface PchainUnlockPoint {
+  /** UTC day, YYYY-MM-DD; display formatting is the client's job */
+  date: string;
+  /** AVAX whose staking period ends that day (validators + delegators) */
+  avax: number;
+  /** stake entries ending */
+  stakers: number;
+}
+
+export interface PchainStakingSeries {
+  days?: number;
+  rewards: PchainRewardPoint[];
+  unlocks: PchainUnlockPoint[];
+}
 
 // --- networks -------------------------------------------------------------
 
@@ -52,6 +76,14 @@ export const EXPLORER_CHAINS: Record<string, ExplorerChain> = {
     networks: PCHAIN_NETWORKS,
     defaultNetwork: "mainnet",
   },
+  "x-chain": {
+    slug: "x-chain",
+    name: "X-Chain",
+    title: "Exchange Chain",
+    kind: "pchain",
+    networks: PCHAIN_NETWORKS,
+    defaultNetwork: "mainnet",
+  },
 };
 
 export function getExplorerChain(slug: string): ExplorerChain | undefined {
@@ -62,6 +94,7 @@ export function getExplorerChain(slug: string): ExplorerChain | undefined {
 // source/destination labels (import/export). Mirrors the server-side
 // wellKnownChains map.
 const WELL_KNOWN_CHAINS: Record<string, string> = {
+  "11111111111111111111111111111111LpoYY": "P-Chain",
   "2q9e4r6Mu3U68nU1fYjgbR6JvwrRx36CohpAX5UQxse55x1Q5": "C-Chain",
   "2oYMBNV4eNHyqk2fjjV5nVQLDbtmNJzq5s3qs3Lo6ftnC6FByM": "X-Chain",
   yH8D7ThNJkxmtkuv2jgBa4P1Rn3Qpr4pPr7QYNfcdoS6k6HWp: "C-Chain",
@@ -236,6 +269,11 @@ export interface Tx {
   periodHuman?: string;
   autoCompoundRewardShares?: number;
   autoCompoundPercent?: number;
+  /** nAVAX compounded back into the stake by a RewardAutoRenewedValidatorTx.
+   * Read by the indexer off the validator's weight step: it is NOT derivable
+   * from the payout UTXOs, since avalanchego splits and floors the validation
+   * and delegatee rewards separately. */
+  restakedAmount?: string;
   validatorAuthority?: string[];
   details?: TxDetails;
   importedFrom?: ImportedFrom;

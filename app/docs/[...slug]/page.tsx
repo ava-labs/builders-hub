@@ -1,6 +1,8 @@
 import { TransactionLifecycle } from "@/components/sae/TransactionLifecycle";
 import { FirewoodPage } from "@/components/firewood/FirewoodPage";
 import { ValidatorFlowExplainer } from "@/components/validator-flow/ValidatorFlowExplainer";
+import { StaircaseFigure } from "@/components/epoched-view/StaircaseFigure";
+import { HeightsRuler } from "@/components/epoched-view/HeightsRuler";
 import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
@@ -102,6 +104,8 @@ export default async function Page(props: {
             TransactionLifecycle,
             FirewoodPage,
             ValidatorFlowExplainer,
+            StaircaseFigure,
+            HeightsRuler,
             AddNetworkButtonInline,
             File,
             Folder,
@@ -169,7 +173,7 @@ export async function generateMetadata(props: {
 
   const image = {
     alt: "Banner",
-    url: `/api/og/docs/${params.slug[0]}?${imageParams.toString()}`,
+    url: `/api/og/docs/${params.slug[0]}?${imageParams.toString()}&v=2`,
     width: 1200,
     height: 630,
   };

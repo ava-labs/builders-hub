@@ -6,6 +6,10 @@ import {
   canEvaluateHackathon,
   canManageEvaluationPhase,
 } from "@/lib/auth/permissions";
+import {
+  countReviewProgress,
+  projectHasNoLinks,
+} from "@/lib/hackathons/project-links";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -17,16 +21,24 @@ async function loadPhaseWithCounts(hackathonId: string) {
   });
   if (!hackathon) return null;
 
-  const total = await prisma.project.count({
+  // Hidden projects (rejected or link-less) never reach judges, so only
+  // eligible projects count toward the review gate.
+  const projects = await prisma.project.findMany({
     where: { hackaton_id: hackathonId },
+    select: {
+      is_rejected: true,
+      github_repository: true,
+      demo_link: true,
+      demo_video_link: true,
+      website: true,
+      socials: true,
+      deployed_addresses: true,
+      evaluations: { select: { id: true }, take: 1 },
+    },
   });
-
-  const reviewedRows = await prisma.evaluation.findMany({
-    where: { project: { hackaton_id: hackathonId } },
-    select: { project_id: true },
-    distinct: ["project_id"],
-  });
-  const reviewed = reviewedRows.filter((r) => r.project_id !== null).length;
+  const { reviewed, total } = countReviewProgress(
+    projects.map((p) => ({ ...p, auto_hidden: projectHasNoLinks(p) })),
+  );
 
   return {
     phase: hackathon.evaluation_phase,
@@ -78,7 +90,10 @@ export async function POST(_request: NextRequest, context: Params) {
   if (current.total === 0 || current.reviewed < current.total) {
     return NextResponse.json(
       {
-        error: "Not all projects have been reviewed",
+        error:
+          current.total === 0
+            ? "No eligible projects to review — every submission is hidden or has no links"
+            : "Not all projects have been reviewed",
         reviewed: current.reviewed,
         total: current.total,
       },
