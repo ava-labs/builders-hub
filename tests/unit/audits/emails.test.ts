@@ -27,7 +27,20 @@ beforeEach(() => {
 });
 
 describe("sendFanoutNotification", () => {
-  it("sends to the auditor row's quote_email only", async () => {
+  it("sends to the quote email and every approved teammate", async () => {
+    await sendFanoutNotification(
+      { ...AUDITOR, members: [{ email: "alice@nordlicht.example" }] },
+      REQUEST,
+    );
+
+    expect(sendMailMock).toHaveBeenCalledTimes(2);
+    expect(sendMailMock.mock.calls.map((call) => call[0])).toEqual([
+      "quotes@nordlicht.example",
+      "alice@nordlicht.example",
+    ]);
+  });
+
+  it("still reaches a firm loaded without members at its quote email only", async () => {
     await sendFanoutNotification(AUDITOR, REQUEST);
 
     expect(sendMailMock).toHaveBeenCalledTimes(1);
@@ -91,15 +104,15 @@ describe("sendNotSelectedNotice", () => {
 });
 
 describe("sendAuditorInvite", () => {
-  it("sends the sign-in instruction to the firm's quote email", async () => {
-    await sendAuditorInvite(AUDITOR);
+  it("sends the sign-in instruction to the exact address being invited", async () => {
+    await sendAuditorInvite({ firm_name: AUDITOR.firm_name, email: AUDITOR.quote_email });
 
     expect(sendMailMock.mock.calls[0][0]).toBe("quotes@nordlicht.example");
     expect(htmlOf()).toContain('href="https://build.avax.network/audits/portal"');
   });
 
   it("neutralizes markup in the firm name and avoids em dashes", async () => {
-    await sendAuditorInvite({ ...AUDITOR, firm_name: "<b>Evil</b> Firm" });
+    await sendAuditorInvite({ firm_name: "<b>Evil</b> Firm", email: AUDITOR.quote_email });
 
     const [, html, subject, text] = sendMailMock.mock.calls[0] as [string, string, string, string];
     expect(html).not.toContain("<b>Evil</b>");

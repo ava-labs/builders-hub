@@ -81,7 +81,8 @@ export function SignInCard({ initialEmail = "" }: { initialEmail?: string }) {
               Theme-branched classes here resolve against the ROOT theme and
               rendered gray-on-ink in light mode (round-4 L4-1). */}
           <p className="mt-1.5 text-sm text-[#A2AFB2]">
-            Use your firm&apos;s quote email · the one your invites arrive on.
+            Use the email your invite arrived on · your firm&apos;s quote email or your own approved
+            address.
           </p>
           <form
             className="mt-4 space-y-3"

@@ -78,6 +78,8 @@ export const AUDIT_EVENT_ACTIONS = [
   "auditor_reactivated",
   "auditor_invite_resent",
   "auditor_first_login",
+  "auditor_member_added",
+  "auditor_member_removed",
 ] as const;
 export type AuditEventAction = (typeof AUDIT_EVENT_ACTIONS)[number];
 

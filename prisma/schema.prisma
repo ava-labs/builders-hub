@@ -113,6 +113,7 @@ model User {
   grant_applications         GrantApplication[]        @relation("GrantApplicationUser")
   audit_requests             AuditRequest[]            @relation("AuditRequestUser")
   auditors_created           Auditor[]                 @relation("AuditorCreatedBy")
+  auditor_members_added      AuditorMember[]           @relation("AuditorMemberAddedBy")
   audit_subsidy_decisions    AuditSubsidyDecision[]    @relation("AuditSubsidyDecider")
 }
 
@@ -852,10 +853,33 @@ model Auditor {
   creator           User?                 @relation("AuditorCreatedBy", fields: [created_by], references: [id], onDelete: SetNull)
   quotes            AuditQuote[]
   fanout_deliveries AuditFanoutDelivery[]
+  members           AuditorMember[]
 
   @@index([created_by])
   @@index([active])
   @@index([created_at])
+}
+
+model AuditorMember {
+  // An additional approved sign-in address for a whitelisted firm (Matthew,
+  // 2026-09-01: "an approved list of emails for their team"). A teammate signs
+  // in with their own address and lands in the firm's portal; every firm
+  // notice goes to them too. ALWAYS stored lowercase like Auditor.quote_email.
+  // One address belongs to one firm and never doubles as a firm's quote_email;
+  // the service enforces the cross-table half (no constraint can).
+  id             String    @id @default(uuid())
+  auditor_id     String
+  email          String    @unique
+  added_by       String?
+  invited_at     DateTime  @default(now()) @db.Timestamptz(3)
+  first_login_at DateTime? @db.Timestamptz(3) // null = invited, never signed in
+  created_at     DateTime  @default(now()) @db.Timestamptz(3)
+
+  auditor Auditor @relation(fields: [auditor_id], references: [id], onDelete: Cascade)
+  adder   User?   @relation("AuditorMemberAddedBy", fields: [added_by], references: [id], onDelete: SetNull)
+
+  @@index([auditor_id])
+  @@index([added_by])
 }
 
 model AuditQuote {
@@ -868,6 +892,11 @@ model AuditQuote {
   message          String
   // Optional link to the firm's own proposal or scoping doc.
   deal_doc_url     String?
+  // The approved email that most recently saved this quote. Revealed to the
+  // project as the firm's contact after acceptance (Federico 2026-09-02: a
+  // firm has no main address, the person who quoted is the contact). Null on
+  // quotes saved before team access existed; readers fall back to quote_email.
+  submitted_by_email String?
   reaudit_included Boolean  @default(false)
   // submitted | accepted | not_selected | withdrawn ("expired" is display-only).
   status           String   @default("submitted")

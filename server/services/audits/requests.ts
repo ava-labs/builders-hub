@@ -3,7 +3,12 @@ import { prisma } from "@/prisma/prisma";
 import { deriveRequestStatus } from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
-import { deliverFanoutEmails, toFanoutRequest } from "@/server/services/audits/fanout";
+import {
+  deliverFanoutEmails,
+  FANOUT_FIRM_SELECT,
+  toFanoutRequest,
+  type FanoutFirm,
+} from "@/server/services/audits/fanout";
 import type { FanoutRequest } from "@/server/services/audits/emails/sendFanoutNotification";
 import type { AuditDraftInput } from "@/types/audits";
 
@@ -92,7 +97,7 @@ type ReopenTxOutcome =
   | { kind: "not_found" | "not_reopenable" | "already_reopened" }
   | {
       kind: "ok";
-      auditors: { id: string; firm_name: string; quote_email: string }[];
+      auditors: FanoutFirm[];
       request: FanoutRequest;
     };
 
@@ -122,7 +127,7 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
 
     const auditors = await tx.auditor.findMany({
       where: { active: true },
-      select: { id: true, firm_name: true, quote_email: true },
+      select: FANOUT_FIRM_SELECT,
     });
     if (auditors.length > 0) {
       await tx.auditFanoutDelivery.createMany({

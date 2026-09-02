@@ -1,14 +1,19 @@
-import { sendMail } from "@/server/services/mail";
 import { renderAuditEmail } from "@/server/services/audits/emails/template";
 import { PORTAL_URL } from "@/server/services/audits/emails/links";
+import {
+  recipientsOf,
+  sendToFirm,
+  type FirmRecipient,
+} from "@/server/services/audits/emails/recipients";
 
 /**
  * Sent to each losing firm after acceptance. Plain by design: no reason, no
- * winner identity, no amounts, neutral CTA. Recipient is ALWAYS the Auditor
- * row's quote_email. Escaping lives in the shared template.
+ * winner identity, no amounts, neutral CTA. Recipients are ALWAYS the firm's
+ * quote email plus its approved teammates. Escaping lives in the shared
+ * template.
  */
 export async function sendNotSelectedNotice(
-  auditor: { firm_name: string; quote_email: string },
+  auditor: FirmRecipient,
   request: { project_name: string },
 ): Promise<void> {
   const subject = `«${request.project_name}» chose another provider`;
@@ -27,5 +32,5 @@ export async function sendNotSelectedNotice(
     ],
   });
 
-  await sendMail(auditor.quote_email, html, subject, text);
+  await sendToFirm(recipientsOf(auditor), html, subject, text);
 }

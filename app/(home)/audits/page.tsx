@@ -1,6 +1,7 @@
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canAdministerAuditProgram } from "@/lib/auth/permissions";
 import { prisma } from "@/prisma/prisma";
+import { findAuditorByEmail } from "@/server/services/audits/auditors";
 import { getOwnerRequests } from "@/server/services/audits/visibility";
 import { AuditsLanding } from "@/components/audits/landing/AuditsLanding";
 import { FirstRun } from "@/components/audits/landing/FirstRun";
@@ -15,16 +16,10 @@ export default async function AuditsPage() {
   const session = await getAuthSession();
 
   const email = session?.user?.email?.trim().toLowerCase();
-  // Pure Auditor lookup (no first_login_at stamping: that stays a portal-visit
-  // event) so whitelisted firms see their entry point from every state.
-  const isAuditor = email
-    ? Boolean(
-        await prisma.auditor.findFirst({
-          where: { quote_email: email, active: true },
-          select: { id: true },
-        }),
-      )
-    : false;
+  // Pure lookup (no first_login_at stamping: that stays a portal-visit event)
+  // so whitelisted firms and their approved teammates see the door.
+  const identity = email ? await findAuditorByEmail(email) : null;
+  const isAuditor = Boolean(identity?.auditor.active);
 
   return (
     <main className="container relative max-w-[1400px]">

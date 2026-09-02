@@ -89,6 +89,7 @@ describe("decideSubsidy", () => {
       price_usd: 22222,
       firm_name: "Nordlicht Security",
       quote_email: "quotes@nordlicht.example",
+      recipient_emails: ["quotes@nordlicht.example"],
     });
     txDecisionCreateMock.mockResolvedValue({ id: "dec-1" });
     txEventCreateMock.mockResolvedValue({});
@@ -114,6 +115,30 @@ describe("decideSubsidy", () => {
         ["quotes@nordlicht.example", "auditor"],
       ]),
     );
+  });
+
+  it("tells every approved address of the engaged firm", async () => {
+    txRequestFindUniqueMock.mockResolvedValue({
+      id: "req-1",
+      status: "engaged",
+      accepted_quote_id: "q-2",
+      project_name: "Glacierswap",
+      user: { email: "owner@glacierswap.example" },
+    });
+    acceptedQuoteMock.mockResolvedValue({
+      id: "q-2",
+      price_usd: 22222,
+      firm_name: "Nordlicht Security",
+      quote_email: "quotes@nordlicht.example",
+      recipient_emails: ["quotes@nordlicht.example", "alice@nordlicht.example"],
+    });
+
+    await decideSubsidy("req-1", { state: "approved", program_amount_usd: 2500 }, ADMIN);
+
+    const firmSends = noticeMock.mock.calls
+      .filter((call) => call[2] === "auditor")
+      .map((call) => call[0]);
+    expect(firmSends).toEqual(["quotes@nordlicht.example", "alice@nordlicht.example"]);
   });
 
   it("still reaches the firm when the project has no account email", async () => {

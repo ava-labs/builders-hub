@@ -83,9 +83,14 @@ const completeDraft = {
 const pendingRow = { ...completeDraft, status: "pending_review" };
 
 const ACTIVE_FIRMS = [
-  { id: "aud-1", firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" },
-  { id: "aud-2", firm_name: "Ledgerproof Labs", quote_email: "audits@ledgerproof.example" },
-  { id: "aud-3", firm_name: "Harborline", quote_email: "quotes@harborline.example" },
+  {
+    id: "aud-1",
+    firm_name: "Nordlicht Security",
+    quote_email: "quotes@nordlicht.example",
+    members: [{ email: "alice@nordlicht.example" }],
+  },
+  { id: "aud-2", firm_name: "Ledgerproof Labs", quote_email: "audits@ledgerproof.example", members: [] },
+  { id: "aud-3", firm_name: "Harborline", quote_email: "quotes@harborline.example", members: [] },
 ];
 
 beforeEach(() => {
@@ -169,6 +174,13 @@ describe("approveRequestAndFanout", () => {
     const result = await approveRequestAndFanout("req-1", ADMIN, ADMIN_NAME);
 
     expect(txAuditorFindManyMock.mock.calls[0][0].where).toMatchObject({ active: true });
+    // Teammates ride along in the same read so the mail reaches everyone approved.
+    expect(txAuditorFindManyMock.mock.calls[0][0].select).toMatchObject({
+      members: { select: { email: true } },
+    });
+    expect(sendFanoutMock.mock.calls[0][0]).toMatchObject({
+      members: [{ email: "alice@nordlicht.example" }],
+    });
     const created = txDeliveryCreateManyMock.mock.calls[0][0].data;
     expect(created).toHaveLength(3);
     expect(new Set(created.map((d: { auditor_id: string }) => d.auditor_id)).size).toBe(3);

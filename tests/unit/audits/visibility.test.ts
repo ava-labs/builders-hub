@@ -175,6 +175,52 @@ describe("getOwnerRequestDetail", () => {
     expect(detail!.fanout_count).toBe(12);
   });
 
+  it("reveals the teammate who saved the winning quote, falling back to the firm's quote email", async () => {
+    const quote = (submitted_by_email: string | null, members: { email: string }[] = []) => ({
+      id: "q-2",
+      status: "accepted",
+      price_usd: 30000,
+      duration_weeks: 3,
+      earliest_start: FUTURE,
+      message: "m",
+      reaudit_included: false,
+      submitted_by_email,
+      auditor: {
+        firm_name: "Ledgerproof Labs",
+        services: [],
+        quote_email: "audits@ledgerproof.example",
+        members,
+      },
+    });
+    const engaged = {
+      ...baseRequest,
+      status: "engaged",
+      accepted_quote_id: "q-2",
+      _count: { fanout_deliveries: 3 },
+      subsidy_decisions: [],
+    };
+
+    requestFindFirstMock.mockResolvedValue({
+      ...engaged,
+      quotes: [quote("bob@ledgerproof.example", [{ email: "bob@ledgerproof.example" }])],
+    });
+    const withSubmitter = await getOwnerRequestDetail(OWNER, "req-1");
+    expect(withSubmitter!.quotes[0].quote_email).toBe("bob@ledgerproof.example");
+
+    requestFindFirstMock.mockResolvedValue({ ...engaged, quotes: [quote(null)] });
+    const legacy = await getOwnerRequestDetail(OWNER, "req-1");
+    expect(legacy!.quotes[0].quote_email).toBe("audits@ledgerproof.example");
+
+    // The teammate who quoted has since been removed: never hand the project
+    // an address that can no longer sign in or receive the firm's notices.
+    requestFindFirstMock.mockResolvedValue({
+      ...engaged,
+      quotes: [quote("gone@ledgerproof.example", [{ email: "bob@ledgerproof.example" }])],
+    });
+    const removed = await getOwnerRequestDetail(OWNER, "req-1");
+    expect(removed!.quotes[0].quote_email).toBe("audits@ledgerproof.example");
+  });
+
   it("exposes the subsidy outcome without the deciding admin", async () => {
     requestFindFirstMock.mockResolvedValue({
       ...baseRequest,
@@ -289,6 +335,14 @@ describe("admin scope", () => {
         first_login_at: new Date("2026-05-12"),
         deactivated_at: null,
         attio_ref: "NL-114",
+        members: [
+          {
+            id: "mem-1",
+            email: "alice@nordlicht.example",
+            invited_at: new Date("2026-09-01"),
+            first_login_at: null,
+          },
+        ],
         _count: { fanout_deliveries: 9 },
         quotes: [
           { status: "accepted", created_at: new Date("2026-07-25") },
@@ -307,6 +361,10 @@ describe("admin scope", () => {
       won: 1,
     });
     expect(rows[0].last_quote_at).toEqual(new Date("2026-07-25"));
+    // Teammates ride on the row so the whitelist panel can list them.
+    expect(rows[0].members).toEqual([
+      expect.objectContaining({ id: "mem-1", email: "alice@nordlicht.example", first_login_at: null }),
+    ]);
   });
 });
 

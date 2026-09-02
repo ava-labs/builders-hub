@@ -176,7 +176,12 @@ export function AuditorsManager({ auditors }: { auditors: AdminAuditorRow[] }) {
                 )}
               >
                 <TableCell className="font-medium">{auditor.firm_name}</TableCell>
-                <TableCell className="font-mono text-xs">{auditor.quote_email}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {auditor.quote_email}
+                  {auditor.members.length > 0 ? (
+                    <span className={`${MONO_LABEL_META} ml-2`}>+{auditor.members.length} team</span>
+                  ) : null}
+                </TableCell>
                 <TableCell className="max-w-56">
                   <span
                     title={auditor.services.join(", ") || undefined}

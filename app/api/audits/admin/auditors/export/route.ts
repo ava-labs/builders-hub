@@ -19,6 +19,7 @@ export async function GET() {
       [
         "firm",
         "quote_email",
+        "team_emails",
         "services",
         "status",
         "invited_at",
@@ -34,6 +35,7 @@ export async function GET() {
       auditors.map((auditor) => [
         auditor.firm_name,
         auditor.quote_email,
+        auditor.members.map((member) => member.email).join("; "),
         auditor.services.join("; "),
         auditor.active ? (auditor.first_login_at ? "active" : "invited") : "inactive",
         auditor.invited_at,

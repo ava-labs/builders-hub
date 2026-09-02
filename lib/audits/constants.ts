@@ -58,5 +58,8 @@ export const QUOTE_DEADLINE_DEFAULT_DAYS = 10;
 /** A quote's duration ceiling: one year. Shared so the composer's message and
     the schema's cap can never drift apart. */
 export const MAX_QUOTE_WEEKS = 52;
+/** Approved teammate addresses per firm, on top of the quote email. Bounds the
+    invite blast radius of one admin mistake; raise here if a firm needs more. */
+export const AUDITOR_MEMBER_LIMIT = 10;
 export const QUOTE_DEADLINE_HELPER_COPY =
   "Defaulted to +10 days · the recommended window for competitive quotes.";

@@ -9,10 +9,17 @@ import { resolveAuditorByEmail } from "@/server/services/audits/auditors";
  * row) are the intended mechanism: auditors have no accounts. The Auditor
  * row rides into the handler; first_login_at is stamped by the resolver.
  * allowInactive opens READ routes to deactivated firms (round-3 N-4: their
- * history stays visible); writes never pass it.
+ * history stays visible); writes never pass it. `actorEmail` is the signed-in
+ * address itself (quote email or approved teammate) for attribution; the
+ * Auditor row is the firm.
  */
 export function withAuditor<TContext = unknown>(
-  handler: (request: NextRequest, context: TContext, auditor: Auditor) => Promise<NextResponse>,
+  handler: (
+    request: NextRequest,
+    context: TContext,
+    auditor: Auditor,
+    actorEmail: string,
+  ) => Promise<NextResponse>,
   options: { allowInactive?: boolean } = {},
 ) {
   return async function (request: NextRequest, context: TContext) {
@@ -37,6 +44,6 @@ export function withAuditor<TContext = unknown>(
         { status: 403 },
       );
     }
-    return handler(request, context, auditor);
+    return handler(request, context, auditor, email);
   };
 }

@@ -1,15 +1,19 @@
-import { sendMail } from "@/server/services/mail";
 import { renderAuditEmail } from "@/server/services/audits/emails/template";
 import { portalRequestUrl } from "@/server/services/audits/emails/links";
+import {
+  recipientsOf,
+  sendToFirm,
+  type FirmRecipient,
+} from "@/server/services/audits/emails/recipients";
 
 /**
  * Sent to the WINNING firm after acceptance (design iteration 2026-07-31:
  * previously only losers were notified). Portal link only: contacts reveal
- * inside the portal, so a forwarded email leaks nothing. Recipient is ALWAYS
- * the Auditor row's quote_email.
+ * inside the portal, so a forwarded email leaks nothing. Recipients are ALWAYS
+ * the firm's quote email plus its approved teammates.
  */
 export async function sendQuoteAcceptedNotice(
-  auditor: { firm_name: string; quote_email: string },
+  auditor: FirmRecipient,
   request: { id: string; project_name: string },
 ): Promise<void> {
   const requestUrl = portalRequestUrl(request.id);
@@ -30,5 +34,5 @@ export async function sendQuoteAcceptedNotice(
     ],
   });
 
-  await sendMail(auditor.quote_email, html, subject, text);
+  await sendToFirm(recipientsOf(auditor), html, subject, text);
 }

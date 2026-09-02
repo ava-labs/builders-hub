@@ -1,6 +1,7 @@
 import { prisma } from "@/prisma/prisma";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { getAcceptanceParticipants } from "@/server/services/audits/visibility";
+import { firmContact } from "@/server/services/audits/emails/recipients";
 import { sendNotSelectedNotice } from "@/server/services/audits/emails/sendNotSelectedNotice";
 import { sendQuoteAcceptedNotice } from "@/server/services/audits/emails/sendQuoteAcceptedNotice";
 
@@ -85,6 +86,8 @@ export async function acceptQuote(
   return {
     success: true,
     firm_name: winner?.auditor.firm_name ?? "",
-    quote_email: winner?.auditor.quote_email ?? "",
+    // The teammate who saved the winning quote is the contact (2026-09-02) while
+    // that address is still approved; otherwise the firm's quote email.
+    quote_email: winner ? firmContact(winner.auditor, winner.submitted_by_email) : "",
   };
 }

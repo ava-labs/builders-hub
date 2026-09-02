@@ -31,6 +31,8 @@ function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
   const firm = typeof meta.firm_name === "string" ? meta.firm_name : null;
   const price = typeof meta.price_usd === "number" ? formatUsd(meta.price_usd) : null;
   const admin = typeof meta.admin_name === "string" ? meta.admin_name : null;
+  // The approved address behind an auditor action (team emails, 2026-09-02).
+  const actor = typeof meta.actor_email === "string" ? meta.actor_email : null;
 
   switch (event.action) {
     case "request_submitted":
@@ -52,9 +54,13 @@ function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
     case "fanout_created":
       return `Fanned out to ${typeof meta.auditor_count === "number" ? meta.auditor_count : "all"} whitelisted firms${fanoutFirmsSuffix(fanoutFirms)}`;
     case "quote_submitted":
-      return ["Quote submitted", firm, price].filter(Boolean).join(" · ");
+      return ["Quote submitted", firm, actor ? `by ${actor}` : null, price]
+        .filter(Boolean)
+        .join(" · ");
     case "quote_updated":
-      return ["Quote updated", firm, price].filter(Boolean).join(" · ");
+      return ["Quote updated", firm, actor ? `by ${actor}` : null, price]
+        .filter(Boolean)
+        .join(" · ");
     case "quote_accepted":
       return ["Quote accepted", firm, price].filter(Boolean).join(" · ");
     case "contacts_revealed":

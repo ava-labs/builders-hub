@@ -1,4 +1,4 @@
-import { Prisma, type Auditor } from "@prisma/client";
+import { Prisma, type Auditor, type AuditorMember } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { logAuditEvent } from "@/server/services/audits/events";
 import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
@@ -19,17 +19,38 @@ export async function createAuditor(
 ): Promise<CreateAuditorResult> {
   let auditor: Auditor;
   try {
-    auditor = await prisma.auditor.create({
-      data: {
-        firm_name: input.firm_name,
-        quote_email: input.quote_email,
-        services: input.services,
-        attio_ref: input.attio_ref ?? null,
-        created_by: admin.id,
+    // Serializable so the cross-table clash check cannot race a concurrent
+    // teammate add: a conflicting pair fails with P2034 instead of giving one
+    // address two firms.
+    const created = await prisma.$transaction(
+      async (tx): Promise<Auditor | null> => {
+        // One address, one firm: a quote email may not double as a teammate
+        // address on any firm. The members table's unique index cannot see
+        // this table.
+        const memberClash = await tx.auditorMember.findUnique({
+          where: { email: input.quote_email },
+          select: { id: true },
+        });
+        if (memberClash) return null;
+        return tx.auditor.create({
+          data: {
+            firm_name: input.firm_name,
+            quote_email: input.quote_email,
+            services: input.services,
+            attio_ref: input.attio_ref ?? null,
+            created_by: admin.id,
+          },
+        });
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+    if (!created) return { success: false, code: "duplicate_email" };
+    auditor = created;
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2002" || error.code === "P2034")
+    ) {
       return { success: false, code: "duplicate_email" };
     }
     throw error;
@@ -37,7 +58,7 @@ export async function createAuditor(
 
   let inviteSent = true;
   try {
-    await sendAuditorInvite(auditor);
+    await sendAuditorInvite({ firm_name: auditor.firm_name, email: auditor.quote_email });
   } catch (error) {
     console.error("[Audits] invite send failed:", error);
     inviteSent = false;
@@ -107,7 +128,7 @@ export async function resendAuditorInvite(
 
   let inviteSent = true;
   try {
-    await sendAuditorInvite(auditor);
+    await sendAuditorInvite({ firm_name: auditor.firm_name, email: auditor.quote_email });
   } catch (error) {
     console.error("[Audits] invite resend failed:", error);
     inviteSent = false;
@@ -123,33 +144,65 @@ export async function resendAuditorInvite(
   return { success: true, inviteSent };
 }
 
+export interface AuditorIdentity {
+  auditor: Auditor;
+  /** Set when the address is an approved teammate rather than the quote email. */
+  member: AuditorMember | null;
+}
+
+/**
+ * Pure lookup, no stamping: the firm behind an address, whether it is the
+ * firm's quote email or one of its approved teammates. Quote email wins the
+ * tie by construction (the services keep the two sets disjoint).
+ */
+export async function findAuditorByEmail(email: string): Promise<AuditorIdentity | null> {
+  const normalized = email.trim().toLowerCase();
+  const byQuoteEmail = await prisma.auditor.findUnique({ where: { quote_email: normalized } });
+  if (byQuoteEmail) return { auditor: byQuoteEmail, member: null };
+
+  const member = await prisma.auditorMember.findUnique({
+    where: { email: normalized },
+    include: { auditor: true },
+  });
+  return member ? { auditor: member.auditor, member } : null;
+}
+
 /**
  * The auditor portal's identity resolution: session email -> whitelist row.
- * Sets first_login_at exactly once (the whitelist's Invited -> Active flip).
- * Callers gate on `active` themselves so a deactivated firm gets a clear 403
- * rather than a silent null.
+ * Sets first_login_at exactly once on the firm (the whitelist's Invited ->
+ * Active flip) and once on the teammate row when a teammate signs in, so the
+ * admin panel shows who has accepted their invite. Callers gate on `active`
+ * themselves so a deactivated firm gets a clear 403 rather than a silent null.
  */
 export async function resolveAuditorByEmail(email: string): Promise<Auditor | null> {
-  const auditor = await prisma.auditor.findUnique({
-    where: { quote_email: email.trim().toLowerCase() },
-  });
-  if (!auditor) return null;
+  const identity = await findAuditorByEmail(email);
+  if (!identity) return null;
 
-  if (auditor.active && !auditor.first_login_at) {
+  const actorEmail = identity.member?.email ?? identity.auditor.quote_email;
+  // Only an active firm's teammate counts as having accepted the invite; a
+  // deactivated firm's read-only visit must not flip the row to active.
+  if (identity.auditor.active && identity.member && !identity.member.first_login_at) {
+    await prisma.auditorMember.update({
+      where: { id: identity.member.id },
+      data: { first_login_at: new Date() },
+    });
+  }
+
+  if (identity.auditor.active && !identity.auditor.first_login_at) {
     const updated = await prisma.auditor.update({
-      where: { id: auditor.id },
+      where: { id: identity.auditor.id },
       data: { first_login_at: new Date() },
     });
     await logAuditEvent(prisma, {
       actor_type: "auditor",
-      actor_id: auditor.id,
+      actor_id: identity.auditor.id,
       action: "auditor_first_login",
-      meta: { firm_name: auditor.firm_name },
+      meta: { firm_name: identity.auditor.firm_name, actor_email: actorEmail },
     });
     return updated;
   }
 
-  return auditor;
+  return identity.auditor;
 }
 
 /**

@@ -1,14 +1,15 @@
-import { sendMail } from "@/server/services/mail";
 import { renderAuditEmail } from "@/server/services/audits/emails/template";
+import {
+  recipientsOf,
+  sendToFirm,
+  type FirmRecipient,
+} from "@/server/services/audits/emails/recipients";
 import type { AuditEmailDetail } from "@/server/services/audits/emails/template";
 import { PORTAL_URL, portalRequestUrl } from "@/server/services/audits/emails/links";
 import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants";
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
 
-export interface FanoutAuditor {
-  firm_name: string;
-  quote_email: string;
-}
+export type FanoutAuditor = FirmRecipient;
 
 export interface FanoutRequest {
   id: string;
@@ -101,8 +102,9 @@ function detailRows(request: FanoutRequest): AuditEmailDetail[] {
 
 /**
  * The fan-out notice sent to every ACTIVE whitelisted firm once a request is
- * approved. Recipient is ALWAYS the Auditor row's quote_email, never request
- * input. The firm's name means nothing to a reader, so the project name leads
+ * approved. Recipients are ALWAYS the firm's quote email plus its approved
+ * teammates (Auditor and AuditorMember rows), never request input. The firm's
+ * name means nothing to a reader, so the project name leads
  * at display size and the money question (how much work, what scope, by when)
  * sits in the raised panel. Copy rule: no em dashes anywhere, "·" separates
  * meta. Escaping lives in the shared template.
@@ -157,9 +159,9 @@ export async function sendFanoutNotification(
     secondaryCta: { label: "All open requests", href: PORTAL_URL, variant: "neutral" },
     footerLines: [
       "Your quote is private to the requesting project and the program team. Other firms never see it.",
-      "Your firm is on the Ava Labs whitelist · fan-out notices arrive at this address.",
+      "Your firm is on the Ava Labs whitelist · fan-out notices arrive at every approved address for your firm.",
     ],
   });
 
-  await sendMail(auditor.quote_email, html, subject, text);
+  await sendToFirm(recipientsOf(auditor), html, subject, text);
 }

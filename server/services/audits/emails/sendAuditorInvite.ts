@@ -2,18 +2,20 @@ import { sendMail } from "@/server/services/mail";
 import { renderAuditEmail } from "@/server/services/audits/emails/template";
 import { PORTAL_URL } from "@/server/services/audits/emails/links";
 
-export interface InviteAuditor {
+export interface InviteRecipient {
   firm_name: string;
-  quote_email: string;
+  /** The exact address being invited: the firm's quote email or a teammate. */
+  email: string;
 }
 
 /**
- * Sent when an admin adds a firm to the whitelist (and on resend). The
- * 6-digit OTP itself comes from the existing sign-in flow; this only carries
- * the instruction and the portal link. Recipient is ALWAYS the Auditor row's
- * quote_email. Escaping lives in the shared template.
+ * Sent when an admin adds a firm to the whitelist (and on resend), and when an
+ * admin approves a teammate address for a firm. The 6-digit OTP itself comes
+ * from the existing sign-in flow; this only carries the instruction and the
+ * portal link. Recipient is ALWAYS an Auditor or AuditorMember row's address.
+ * Escaping lives in the shared template.
  */
-export async function sendAuditorInvite(auditor: InviteAuditor): Promise<void> {
+export async function sendAuditorInvite(auditor: InviteRecipient): Promise<void> {
   const subject = "You've been added to the Avalanche audit marketplace";
   const text = [
     `${auditor.firm_name} is now on the Ava Labs audit whitelist.`,
@@ -31,5 +33,5 @@ export async function sendAuditorInvite(auditor: InviteAuditor): Promise<void> {
     ],
   });
 
-  await sendMail(auditor.quote_email, html, subject, text);
+  await sendMail(auditor.email, html, subject, text);
 }

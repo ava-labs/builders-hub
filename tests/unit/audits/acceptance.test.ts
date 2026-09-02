@@ -57,6 +57,7 @@ beforeEach(() => {
     winner: {
       price_usd: 28000,
       status: "accepted",
+      submitted_by_email: null,
       auditor: { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" },
     },
     losers: [
@@ -95,6 +96,48 @@ describe("acceptQuote", () => {
       firm_name: "Nordlicht Security",
       quote_email: "quotes@nordlicht.example",
     });
+  });
+
+  it("reveals the teammate who saved the winning quote as the contact", async () => {
+    participantsMock.mockResolvedValue({
+      project_name: "Glacierswap",
+      winner: {
+        price_usd: 28000,
+        status: "accepted",
+        submitted_by_email: "alice@nordlicht.example",
+        auditor: {
+          firm_name: "Nordlicht Security",
+          quote_email: "quotes@nordlicht.example",
+          members: [{ email: "alice@nordlicht.example" }],
+        },
+      },
+      losers: [],
+    });
+
+    const result = await acceptQuote("req-1", "q-2", OWNER);
+
+    expect(result).toMatchObject({ success: true, quote_email: "alice@nordlicht.example" });
+  });
+
+  it("never hands the project a teammate who has since been removed", async () => {
+    participantsMock.mockResolvedValue({
+      project_name: "Glacierswap",
+      winner: {
+        price_usd: 28000,
+        status: "accepted",
+        submitted_by_email: "gone@nordlicht.example",
+        auditor: {
+          firm_name: "Nordlicht Security",
+          quote_email: "quotes@nordlicht.example",
+          members: [],
+        },
+      },
+      losers: [],
+    });
+
+    const result = await acceptQuote("req-1", "q-2", OWNER);
+
+    expect(result).toMatchObject({ success: true, quote_email: "quotes@nordlicht.example" });
   });
 
   it("logs quote_accepted and contacts_revealed with firm and price", async () => {

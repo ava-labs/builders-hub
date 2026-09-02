@@ -15,5 +15,6 @@ export default async function AuditorInboxPage() {
 
   // Deactivated firms keep read-only access to their history (round-3 N-4).
   const items = await getAuditorInbox(auditor.id);
-  return <PortalInbox items={items} quoteEmail={auditor.quote_email} readOnly={!auditor.active} />;
+  // The signed-in address itself receives the notices (every approved address does).
+  return <PortalInbox items={items} notifyEmail={email} readOnly={!auditor.active} />;
 }

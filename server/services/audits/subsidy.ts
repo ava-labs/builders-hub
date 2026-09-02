@@ -117,7 +117,9 @@ export async function decideSubsidy(
     committed.notify.email
       ? sendSubsidyDecisionNotice(committed.notify.email, notice, "project")
       : Promise.resolve(),
-    sendSubsidyDecisionNotice(accepted.quote_email, notice, "auditor"),
+    ...accepted.recipient_emails.map((email) =>
+      sendSubsidyDecisionNotice(email, notice, "auditor"),
+    ),
   ]);
   sends
     .filter((send): send is PromiseRejectedResult => send.status === "rejected")

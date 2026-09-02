@@ -18,7 +18,7 @@ export type UpsertQuoteResult =
  * request only.
  */
 export async function upsertOwnQuote(
-  auditor: { id: string; firm_name: string; active: boolean },
+  auditor: { id: string; firm_name: string; active: boolean; actor_email: string },
   requestId: string,
   input: AuditQuoteInput,
 ): Promise<UpsertQuoteResult> {
@@ -49,6 +49,9 @@ export async function upsertOwnQuote(
     earliest_start: input.earliest_start,
     message: input.message,
     deal_doc_url: input.deal_doc_url ?? null,
+    // Who saved it: the approved address behind this session. Revealed to the
+    // project as the firm's contact once accepted (no main address per firm).
+    submitted_by_email: auditor.actor_email,
   };
 
   let updated = Boolean(existing);
@@ -82,7 +85,11 @@ export async function upsertOwnQuote(
     actor_type: "auditor",
     actor_id: auditor.id,
     action: updated ? "quote_updated" : "quote_submitted",
-    meta: { firm_name: auditor.firm_name, price_usd: input.price_usd },
+    meta: {
+      firm_name: auditor.firm_name,
+      price_usd: input.price_usd,
+      actor_email: auditor.actor_email,
+    },
   });
 
   return { success: true, updated };

@@ -24,8 +24,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { AUDIT_SERVICES } from "@/lib/audits/constants";
-import type { AdminAuditorRow } from "@/server/services/audits/visibility";
+import { AUDIT_SERVICES, AUDITOR_MEMBER_LIMIT } from "@/lib/audits/constants";
+import type { AdminAuditorMember, AdminAuditorRow } from "@/server/services/audits/visibility";
 import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
 import { AUDITS_DIALOG, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate } from "@/components/audits/shared/format";
@@ -57,11 +57,19 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
   const [quoteEmail, setQuoteEmail] = useState("");
   const [services, setServices] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  // Team emails keep the sheet open: this list is the truth while it is open,
+  // router.refresh() syncs the table underneath.
+  const [members, setMembers] = useState<AdminAuditorMember[]>([]);
+  const [memberEmail, setMemberEmail] = useState("");
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   useEffect(() => {
     setFirmName(auditor?.firm_name ?? "");
     setQuoteEmail(auditor?.quote_email ?? "");
     setServices(auditor?.services ?? []);
+    setMembers(auditor?.members ?? []);
+    setMemberEmail("");
+    setConfirmRemoveId(null);
   }, [auditor, state?.mode]);
 
   const finish = (message: string) => {
@@ -134,6 +142,64 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
       { method: "POST" },
       "OTP invite sent.",
     );
+  };
+
+  const addMember = async () => {
+    if (!auditor) return;
+    const email = memberEmail.trim().toLowerCase();
+    if (!email) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/audits/admin/auditors/${auditor.id}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        toast.error(body?.message ?? "That didn't work. Try again.");
+        return;
+      }
+      setMembers((prev) => [
+        ...prev,
+        {
+          id: body.member.id,
+          email: body.member.email,
+          invited_at: new Date(body.member.invited_at),
+          first_login_at: null,
+        },
+      ]);
+      setMemberEmail("");
+      toast.success(
+        body.inviteSent
+          ? `Invite sent to ${email}.`
+          : `${email} added. The invite email failed; ask them to sign in directly.`,
+      );
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const removeMember = async (member: AdminAuditorMember) => {
+    if (!auditor) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/audits/admin/auditors/${auditor.id}/members/${member.id}`, {
+        method: "DELETE",
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        toast.error(body?.message ?? "That didn't work. Try again.");
+        return;
+      }
+      setMembers((prev) => prev.filter((row) => row.id !== member.id));
+      setConfirmRemoveId(null);
+      toast.success(`${member.email} removed. They can no longer sign in.`);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -220,7 +286,9 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
                 className="h-11 font-mono text-[13px] md:h-10"
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                OTP sign-in links and fan-out emails go here.
+                {auditor
+                  ? "The whitelist address · notices go here and to every teammate below."
+                  : "OTP sign-in links and fan-out emails go here."}
               </p>
             </div>
           </div>
@@ -273,6 +341,79 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
               >
                 Send new OTP link
               </button>
+            </div>
+          ) : null}
+
+          {/* Team emails (2026-09-02): approved teammate addresses that sign in
+              to this firm's portal and receive every notice. Admin-managed. */}
+          {auditor ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Team emails{" "}
+                <span className="font-normal text-zinc-500 dark:text-zinc-400">
+                  · sign in and get every notice, same as the quote email
+                </span>
+              </p>
+              <ul className="divide-y divide-zinc-200 rounded-[10px] border border-zinc-200 dark:divide-white/[0.08] dark:border-white/10">
+                {members.length === 0 ? (
+                  <li className="px-3.5 py-2.5 text-sm text-zinc-500 dark:text-zinc-400">
+                    No teammates yet · only the quote email can sign in.
+                  </li>
+                ) : (
+                  members.map((member) => (
+                    <li key={member.id} className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
+                      <span className="min-w-0 flex-1 truncate font-mono text-[13px]">
+                        {member.email}
+                      </span>
+                      <span className={MONO_LABEL_META}>
+                        {member.first_login_at
+                          ? "active"
+                          : `invited ${formatIsoDate(member.invited_at)}`}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          confirmRemoveId === member.id
+                            ? void removeMember(member)
+                            : setConfirmRemoveId(member.id)
+                        }
+                        className="shrink-0 cursor-pointer text-xs text-zinc-600 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                      >
+                        {confirmRemoveId === member.id ? "Confirm remove" : "Remove"}
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <form
+                className="flex gap-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void addMember();
+                }}
+              >
+                <Input
+                  aria-label="Teammate email"
+                  value={memberEmail}
+                  onChange={(event) => setMemberEmail(event.target.value)}
+                  placeholder="teammate@firm.com"
+                  inputMode="email"
+                  className="h-11 font-mono text-[13px] md:h-10"
+                />
+                <Button
+                  type="submit"
+                  variant="outline"
+                  disabled={busy || !memberEmail.trim() || members.length >= AUDITOR_MEMBER_LIMIT}
+                  className="h-11 shrink-0 md:h-10"
+                >
+                  Add and invite
+                </Button>
+              </form>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Each address gets its own OTP invite and code. Up to {AUDITOR_MEMBER_LIMIT} per firm.
+                Removing an address revokes its sign-in; quotes and history stay with the firm.
+              </p>
             </div>
           ) : null}
 

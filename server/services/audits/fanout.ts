@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { auditSubmitSchema } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
@@ -5,6 +6,19 @@ import { sendFanoutNotification } from "@/server/services/audits/emails/sendFano
 import type { FanoutRequest } from "@/server/services/audits/emails/sendFanoutNotification";
 
 const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * The active firms a request fans out to: the id for the delivery rows, the
+ * addresses for the mail. Teammates ride along so every approved address is
+ * notified (team emails, 2026-09-02). Shared with reopen in requests.ts.
+ */
+export const FANOUT_FIRM_SELECT = {
+  id: true,
+  firm_name: true,
+  quote_email: true,
+  members: { select: { email: true } },
+} as const;
+export type FanoutFirm = Prisma.AuditorGetPayload<{ select: typeof FANOUT_FIRM_SELECT }>;
 
 export type SubmitResult =
   | { success: true }
@@ -24,7 +38,7 @@ type ApproveOutcome =
   | { kind: "not_found" }
   | {
       kind: "ok";
-      auditors: { id: string; firm_name: string; quote_email: string }[];
+      auditors: FanoutFirm[];
       request: FanoutRequest;
     };
 
@@ -177,7 +191,7 @@ export async function approveRequestAndFanout(
 
     const auditors = await tx.auditor.findMany({
       where: { active: true },
-      select: { id: true, firm_name: true, quote_email: true },
+      select: FANOUT_FIRM_SELECT,
     });
 
     if (auditors.length > 0) {
@@ -252,7 +266,7 @@ export async function rejectRequest(
  */
 export async function deliverFanoutEmails(
   requestId: string,
-  auditors: { id: string; firm_name: string; quote_email: string }[],
+  auditors: FanoutFirm[],
   request: FanoutRequest,
 ): Promise<{ emailFailures: number }> {
   const sends = await Promise.allSettled(

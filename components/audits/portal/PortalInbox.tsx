@@ -77,11 +77,12 @@ function CardPill({ item }: { item: AuditorInboxItem }) {
 /** Inbox, comfortable cards (design 1b · picked for current volume). */
 export function PortalInbox({
   items,
-  quoteEmail,
+  notifyEmail,
   readOnly = false,
 }: {
   items: AuditorInboxItem[];
-  quoteEmail: string;
+  /** The signed-in address: quote email or approved teammate, both get the mail. */
+  notifyEmail: string;
   /** Deactivated firms browse their history without action affordances (N-4). */
   readOnly?: boolean;
 }) {
@@ -99,7 +100,7 @@ export function PortalInbox({
         body={
           readOnly
             ? "This firm had no requests or quotes before it was deactivated. New requests no longer fan out to it."
-            : `When an ecosystem project requests quotes, it lands here and you get an email at ${quoteEmail}.`
+            : `When an ecosystem project requests quotes, it lands here and you get an email at ${notifyEmail}.`
         }
         footnote={readOnly ? undefined : "Nothing to check · the email is the trigger"}
       />

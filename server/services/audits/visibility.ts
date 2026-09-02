@@ -1,4 +1,5 @@
 import { prisma } from "@/prisma/prisma";
+import { firmContact, recipientsOf } from "@/server/services/audits/emails/recipients";
 import {
   deriveQuoteDisplayStatus,
   deriveRequestStatus,
@@ -20,10 +21,12 @@ import {
 
 // What the owner may see about a quoting firm. quote_email is stripped below
 // unless that quote was accepted (contacts reveal only after acceptance).
+// members feed the contact check only and are never projected.
 const OWNER_QUOTE_AUDITOR_SELECT = {
   firm_name: true,
   services: true,
   quote_email: true,
+  members: { select: { email: true } },
 } as const;
 
 export interface OwnerRequestSummary {
@@ -126,8 +129,12 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
     display_status: deriveQuoteDisplayStatus(quote.status, display_status),
     firm_name: quote.auditor.firm_name,
     services: quote.auditor.services,
-    // Contacts reveal both ways only after acceptance.
-    ...(quote.status === "accepted" ? { quote_email: quote.auditor.quote_email } : {}),
+    // Contacts reveal both ways only after acceptance: the teammate who saved
+    // the quote (2026-09-02) while that address is still approved, otherwise
+    // the firm's quote email (removed teammates, pre-team-access quotes).
+    ...(quote.status === "accepted"
+      ? { quote_email: firmContact(quote.auditor, quote.submitted_by_email) }
+      : {}),
   }));
 
   // The project sees the OUTCOME only: never the deciding admin, never the note.
@@ -550,6 +557,13 @@ export async function getAdminRequestDetail(requestId: string) {
 
 export type AdminRequestDetail = NonNullable<Awaited<ReturnType<typeof getAdminRequestDetail>>>;
 
+export interface AdminAuditorMember {
+  id: string;
+  email: string;
+  invited_at: Date;
+  first_login_at: Date | null;
+}
+
 export interface AdminAuditorRow {
   id: string;
   firm_name: string;
@@ -564,6 +578,8 @@ export interface AdminAuditorRow {
   quoted: number;
   won: number;
   last_quote_at: Date | null;
+  /** Approved teammate addresses, oldest first (the whitelist panel lists them). */
+  members: AdminAuditorMember[];
 }
 
 export async function getAdminAuditors(): Promise<AdminAuditorRow[]> {
@@ -572,6 +588,10 @@ export async function getAdminAuditors(): Promise<AdminAuditorRow[]> {
     include: {
       _count: { select: { fanout_deliveries: true } },
       quotes: { select: { status: true, created_at: true } },
+      members: {
+        orderBy: { created_at: "asc" },
+        select: { id: true, email: true, invited_at: true, first_login_at: true },
+      },
     },
   });
 
@@ -585,6 +605,7 @@ export async function getAdminAuditors(): Promise<AdminAuditorRow[]> {
     first_login_at: row.first_login_at,
     deactivated_at: row.deactivated_at,
     attio_ref: row.attio_ref,
+    members: row.members,
     sent: row._count.fanout_deliveries,
     quoted: row.quotes.length,
     won: row.quotes.filter((quote) => quote.status === "accepted").length,
@@ -608,7 +629,10 @@ export async function getAcceptanceParticipants(requestId: string) {
         select: {
           price_usd: true,
           status: true,
-          auditor: { select: { firm_name: true, quote_email: true } },
+          submitted_by_email: true,
+          auditor: {
+            select: { firm_name: true, quote_email: true, members: { select: { email: true } } },
+          },
         },
       },
     },
@@ -624,12 +648,23 @@ export async function getAcceptanceParticipants(requestId: string) {
 /** The accepted quote's price for the subsidy worksheet and decision. */
 export async function getAcceptedQuoteForAdmin(
   requestId: string,
-): Promise<{ id: string; price_usd: number; firm_name: string; quote_email: string } | null> {
+): Promise<{
+  id: string;
+  price_usd: number;
+  firm_name: string;
+  quote_email: string;
+  /** Every approved address of the engaged firm, for the subsidy notice. */
+  recipient_emails: string[];
+} | null> {
   const quote = await prisma.auditQuote.findFirst({
     where: { request_id: requestId, status: "accepted" },
-    // quote_email so a subsidy decision can reach the engaged firm; it is the
-    // Auditor row's address, never anything the request supplied.
-    include: { auditor: { select: { firm_name: true, quote_email: true } } },
+    // The firm's addresses so a subsidy decision reaches everyone approved on
+    // the engaged firm; always the Auditor rows' data, never request input.
+    include: {
+      auditor: {
+        select: { firm_name: true, quote_email: true, members: { select: { email: true } } },
+      },
+    },
   });
   if (!quote) return null;
   return {
@@ -637,5 +672,6 @@ export async function getAcceptedQuoteForAdmin(
     price_usd: quote.price_usd,
     firm_name: quote.auditor.firm_name,
     quote_email: quote.auditor.quote_email,
+    recipient_emails: recipientsOf(quote.auditor),
   };
 }

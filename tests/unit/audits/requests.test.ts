@@ -135,7 +135,12 @@ describe("reopen", () => {
     txEventCountMock.mockResolvedValue(0);
     txRequestUpdateMock.mockResolvedValue({});
     txAuditorFindManyMock.mockResolvedValue([
-      { id: "aud-1", firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" },
+      {
+        id: "aud-1",
+        firm_name: "Nordlicht Security",
+        quote_email: "quotes@nordlicht.example",
+        members: [],
+      },
     ]);
     txDeliveryCreateManyMock.mockResolvedValue({ count: 1 });
     txEventCreateMock.mockResolvedValue({});

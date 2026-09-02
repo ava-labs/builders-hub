@@ -21,9 +21,10 @@ export const MAX_ATTACHMENT_BYTES = 128 * 1024 * 1024; // 128MB, Areta parity
 
 const trimmed = (max: number) => z.string().trim().max(max);
 // Normalize before validating so " A@B.com " both passes and stores lowercased.
+// 254 is the RFC mailbox ceiling; anything longer is a row SendGrid would reject.
 const normalizedEmail = z.preprocess(
   (v) => (typeof v === "string" ? v.trim().toLowerCase() : v),
-  emailSchema,
+  emailSchema.max(254, "Email is too long"),
 );
 /**
  * People type "avax.network", not "https://avax.network", and making them
@@ -183,6 +184,11 @@ export const auditorUpdateSchema = z.strictObject({
   active: z.boolean().optional(),
 });
 export type AuditorUpdateInput = z.infer<typeof auditorUpdateSchema>;
+
+export const auditorMemberCreateSchema = z.strictObject({
+  email: normalizedEmail,
+});
+export type AuditorMemberCreateInput = z.infer<typeof auditorMemberCreateSchema>;
 
 export const adminRequestFiltersSchema = z.object({
   // Must track DISPLAY_REQUEST_STATUSES: a value missing here fails

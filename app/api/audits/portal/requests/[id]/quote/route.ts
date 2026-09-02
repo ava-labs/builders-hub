@@ -5,7 +5,7 @@ import { upsertOwnQuote } from "@/server/services/audits/quotes";
 import { applyRateLimit, DAY_MS } from "@/app/api/audits/utils";
 import { withAuditor } from "@/app/api/audits/portal/utils";
 
-export const PUT = withAuditor<RouteParams<{ id: string }>>(async (request, context, auditor) => {
+export const PUT = withAuditor<RouteParams<{ id: string }>>(async (request, context, auditor, actorEmail) => {
   const limited = applyRateLimit("quote", auditor.quote_email, {
     windowMs: DAY_MS,
     maxRequests: 60,
@@ -30,7 +30,12 @@ export const PUT = withAuditor<RouteParams<{ id: string }>>(async (request, cont
 
   try {
     const result = await upsertOwnQuote(
-      { id: auditor.id, firm_name: auditor.firm_name, active: auditor.active },
+      {
+        id: auditor.id,
+        firm_name: auditor.firm_name,
+        active: auditor.active,
+        actor_email: actorEmail,
+      },
       id,
       parsed.data,
     );
