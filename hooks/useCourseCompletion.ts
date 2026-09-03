@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
+import { useQuizProgressSync } from '@/hooks/useQuizProgressSync';
 import quizData from '@/components/quizzes/data';
 
 export interface CourseCompletionEntry {
@@ -20,6 +21,7 @@ export const splitCourseSlugs: Record<string, string[]> = {
 export function useCourseCompletion(courses: CourseCompletionEntry[]) {
   const [completionMap, setCompletionMap] = useState<Map<string, boolean>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
+  const syncVersion = useQuizProgressSync();
 
   const coursesKey = JSON.stringify(courses);
 
@@ -58,7 +60,7 @@ export function useCourseCompletion(courses: CourseCompletionEntry[]) {
     checkAll();
 
     return () => { cancelled = true; };
-  }, [coursesKey]);
+  }, [coursesKey, syncVersion]);
 
   return { completionMap, isLoading };
 }

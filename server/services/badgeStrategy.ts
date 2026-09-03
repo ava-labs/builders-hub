@@ -13,9 +13,26 @@ export interface BadgeAssignmentStrategy {
  */
 export class AcademyBadgeStrategy implements BadgeAssignmentStrategy {
   async assignBadge(body: AssignBadgeBody, awardedBy?: string): Promise<AssignBadgeResult> {
+    // Academy badges require no admin role, so verify the claim against the
+    // user's synced quiz progress instead of trusting the client (#4357).
+    if (body.courseId) {
+      const { hasCompletedCourse } = await import("./quizProgress");
+      const completed = await hasCompletedCourse(body.userId, body.courseId);
+      if (!completed) {
+        return {
+          success: false,
+          message:
+            "Course completion could not be verified: not every quiz of this course has a correct answer recorded for this account.",
+          badge_id: "",
+          user_id: body.userId,
+          badges: [],
+        };
+      }
+    }
+
     // Import the existing academy badge logic
     const { assignBadgeAcademy } = await import("./badge");
-    
+
     // Use the existing service
     return await assignBadgeAcademy(body);
   }

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { saveQuizResponse, getQuizResponse } from '@/utils/quizzes/indexedDB';
+import { useQuizProgressSync } from '@/hooks/useQuizProgressSync';
 import { parseTextWithLinks } from '../../utils/safeHtml';
 import Image from 'next/image';
 import { cn } from '@/utils/cn';
@@ -48,6 +49,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
 
   const isLocked = attemptCount >= MAX_ATTEMPTS && !isCorrect;
   const isCoolingDown = cooldownRemaining > 0;
+  const syncVersion = useQuizProgressSync();
 
   // Cooldown countdown timer — only active after all attempts exhausted
   useEffect(() => {
@@ -75,7 +77,7 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
     setIsClient(true);
     setQuizInfo(getVariant(quizId, 0));
     loadSavedResponse();
-  }, [quizId]);
+  }, [quizId, syncVersion]);
 
   const loadSavedResponse = async () => {
     const savedResponse = await getQuizResponse(quizId);

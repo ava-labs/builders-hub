@@ -105,6 +105,7 @@ model User {
   statsPlaygrounds           StatsPlayground[]
   statsPlaygroundFavorites   StatsPlaygroundFavorite[] @relation("StatsPlaygroundFavorites")
   badges                     UserBadge[]
+  quizResponses              QuizResponse[]
   validatorAlerts            ValidatorAlert[]
   referralLinks              ReferralLink[]            @relation("ReferralLinkOwner")
   referralAttributionsMade   ReferralAttribution[]     @relation("ReferralAttributionReferrer")
@@ -757,5 +758,22 @@ model GrantApplication {
   project     Project  @relation("GrantApplicationProject", fields: [project_id], references: [id], onDelete: Cascade)
 
   @@unique([program_key, project_id])
+  @@index([user_id])
+}
+
+model QuizResponse {
+  id                String    @id @default(uuid())
+  user_id           String
+  quiz_id           String
+  selected_answers  Int[]     @default([])
+  is_answer_checked Boolean   @default(false)
+  is_correct        Boolean   @default(false)
+  attempt_count     Int       @default(0)
+  last_attempt_at   DateTime? @db.Timestamptz(3)
+  created_at        DateTime  @default(now()) @db.Timestamptz(3)
+  updated_at        DateTime  @updatedAt @db.Timestamptz(3)
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, quiz_id])
   @@index([user_id])
 }
