@@ -1,0 +1,58 @@
+---
+title: BoltRPC
+category: RPC Endpoints
+available: ["C-Chain"]
+description: "BoltRPC provides production Avalanche C-Chain JSON-RPC and WebSocket endpoints with ISO 27001:2022 certified infrastructure and predictable request-unit pricing."
+logo: /images/boltrpc.png
+developer: Matrixed.Link
+website: https://boltrpc.io/
+documentation: https://boltrpc.io/docs
+---
+
+## Overview
+
+BoltRPC is a multi-chain RPC platform operated by Matrixed.Link that provides dedicated HTTPS and WebSocket access to Avalanche C-Chain (chain ID 43114). It is designed for DeFi, gaming, and enterprise workloads that need reliable C-Chain connectivity with published request-unit pricing and ISO/IEC 27001:2022 certified infrastructure.
+
+## Features
+
+- **Avalanche C-Chain RPC**: Standard JSON-RPC 2.0 over HTTPS for reads, writes, and logs
+- **WebSocket subscriptions**: Real-time block, transaction, and event streams over `wss`
+- **Predictable pricing**: Published request-unit weights with flat monthly plans
+- **Enterprise security baseline**: Runs on Matrixed.Link ISO/IEC 27001:2022 certified node infrastructure
+- **Multi-chain key**: One API key pattern across supported networks, including Avalanche via the `avax` slug
+- **No SDK required**: Works with ethers.js, viem, web3.py, Foundry, and raw HTTP clients
+
+## Getting Started
+
+1. **Create an API key**: Sign up at [dashboard.boltrpc.io](https://dashboard.boltrpc.io) (trial available at [trial.boltrpc.io](https://trial.boltrpc.io)).
+2. **Use the Avalanche endpoint**:
+
+```typescript
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider(
+  "https://endpoints.boltrpc.io/rpc/YOUR_API_KEY/avax"
+);
+```
+
+3. **Optional WebSocket**:
+
+```text
+wss://endpoints.boltrpc.io/ws/YOUR_API_KEY/avax
+```
+
+Replace `YOUR_API_KEY` with your dashboard key. Avalanche C-Chain ID is `43114`.
+
+## Documentation
+
+For endpoint formats, method coverage, and network details, visit the [BoltRPC Documentation](https://boltrpc.io/docs) and the [Avalanche network page](https://boltrpc.io/networks/avalanche).
+
+## Use Cases
+
+- **dApps and wallets**: Point MetaMask or app providers at a dedicated Avalanche C-Chain RPC URL
+- **DeFi indexers and bots**: High-volume `eth_call` / `eth_getLogs` workloads with predictable RU pricing
+- **Enterprise deployments**: Teams that need certified infrastructure alongside Avalanche C-Chain access
+
+## Conclusion
+
+BoltRPC gives Avalanche builders a production C-Chain HTTPS and WebSocket endpoint with clear pricing and certified infrastructure, without requiring a custom SDK.
