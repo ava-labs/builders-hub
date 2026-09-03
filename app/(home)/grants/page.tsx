@@ -47,9 +47,9 @@ const partnerPrograms = [
   },
 {
     title: "Security Audits",
-    description: "Explore 20+ trusted auditing providers and find the right partner to review, test, and strengthen your smart contracts.",
-    href: "https://areta.market/avalanche",
-    external: true,
+    description: "Request quotes from every vetted firm on the Ava Labs whitelist. Free, private, and subsidized up to 75% by the program.",
+    href: "/audits",
+    external: false,
     image: "/images/auditagent.png",
   },
 ];
