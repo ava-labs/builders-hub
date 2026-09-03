@@ -109,17 +109,28 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const shareOnLinkedIn = () => {
     const organizationName = 'Avalanche';
     const organizationId = 19104188;
-    const certificationName = encodeURIComponent(quizData.courses[courseId].title);
+    const certificationName = encodeURIComponent(
+      quizData.courses[courseId].title
+    );
+  
     const issuedMonth = new Date().getMonth() + 1;
     const issuedYear = new Date().getFullYear();
-
-    return `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certificationName}&organizationId=${organizationId}&issueMonth=${issuedMonth}&issueYear=${issuedYear}&organizationName=${organizationName}`;
+  
+    return `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certificationName}&organizationId=${organizationId}&issueMonth=${issuedMonth}&issueYear=${issuedYear}&organizationName=${encodeURIComponent(
+      organizationName
+    )}`;
   };
 
   const shareOnTwitter = () => {
     const text = `I just completed the ${quizData.courses[courseId].title} course on Avalanche Academy! 🎉`;
-    const url = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}`;
-    window.open(url, '_blank');
+  
+    const shareUrl = window.location.href;
+  
+    const url = `https://x.com/intent/tweet?text=${encodeURIComponent(
+      text
+    )}&url=${encodeURIComponent(shareUrl)}`;
+  
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
   
   const viewCertificate = () => {
