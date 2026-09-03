@@ -1,0 +1,111 @@
+---
+title: Multisig Owners
+description: Transfer a subnet to a multisig owner and authorize owner-gated transactions with multiple keys or partial signing
+---
+
+When you create a subnet, one P-Chain key owns it. This key controls the validator set, chain creation, and the conversion to an L1. If you lose the key, or if an attacker gets it, you lose the subnet. Platform CLI can transfer the subnet to a multisig owner: a set of addresses with a signature threshold. It can then authorize owner-gated transactions with multiple keys on one machine, or with a transaction file that signers pass between machines.
+
+<Callout title="Availability">
+Multisig owner flags, multi-key signing, and the `tx` command ship in the release after v2.0.1. Earlier versions support a single owner only.
+</Callout>
+
+## Transfer a Subnet to a Multisig Owner
+
+Repeat `--new-owner` for each address. Set `--threshold` to the number of required signatures. Only the current owner key signs this transaction:
+
+```bash
+platform-cli subnet transfer-ownership \
+  --subnet-id 2QYfFcfZ9... \
+  --new-owner P-avax1aaa... \
+  --new-owner P-avax1bbb... \
+  --new-owner P-avax1ccc... \
+  --threshold 2 \
+  --key-name mykey \
+  --network mainnet
+```
+
+After this transaction, every owner-gated operation requires 2 of the 3 owner keys. The owner-gated operations are: add or remove a validator, create a chain, convert to an L1, and transfer ownership again.
+
+<Callout type="warn">
+A transfer to an owner set you do not control cannot be undone. Check each address carefully. Do a test run on Fuji first.
+</Callout>
+
+Verify the on-chain owner set at any time:
+
+```bash
+curl -X POST --data '{
+  "jsonrpc": "2.0",
+  "method": "platform.getSubnet",
+  "params": {"subnetID": "2QYfFcfZ9..."},
+  "id": 1
+}' -H 'content-type:application/json' https://api.avax.network/ext/bc/P
+```
+
+The response lists `controlKeys` and `threshold`.
+
+## Sign with Multiple Keys on One Machine
+
+Sometimes one operator holds enough owner keys. Examples: key separation, a hot/warm split, or CI. In that case, load all keys in one invocation. Repeat `--key-name`, or set `AVALANCHE_PRIVATE_KEY` to a comma-separated list. The first key pays the transaction fee:
+
+```bash
+platform-cli subnet add-validator \
+  --subnet-id 2QYfFcfZ9... \
+  --node-id NodeID-... \
+  --weight 20 \
+  --key-name owner1 --key-name owner2
+```
+
+Commands that operate on one key, such as `wallet address`, reject multi-key configurations.
+
+## Partial Signing Across Machines
+
+When different people hold the owner keys, pass the transaction between machines instead of the keys. Keys never leave a signer's machine.
+
+**1. The first signer builds and signs the transaction.** The `--output-tx-path` flag writes a transaction file. The CLI does not submit the transaction:
+
+```bash
+platform-cli subnet transfer-ownership \
+  --subnet-id 2QYfFcfZ9... \
+  --new-owner P-avax1ddd... \
+  --key-name owner1 \
+  --output-tx-path transfer.json
+```
+
+```
+Wrote partially signed tx to transfer.json
+Signatures: 1 of 2 collected
+  Signed:    P-avax1aaa...
+  Remaining: P-avax1bbb...
+Next signer runs: platform-cli tx sign --tx-path transfer.json
+```
+
+**2. Send the file to the next signer.** The next signer adds their signature. The CLI keeps the existing signatures and updates the file in place:
+
+```bash
+platform-cli tx sign --tx-path transfer.json --key-name owner2
+```
+
+```
+Signatures: 2 of 2 collected
+Fully signed. Submit with: platform-cli tx commit --tx-path transfer.json
+```
+
+**3. Submit the fully signed transaction.** Any machine can submit it. This step needs no key:
+
+```bash
+platform-cli tx commit --tx-path transfer.json
+```
+
+`tx commit` refuses a transaction that does not have enough signatures. It lists the owner addresses that still must sign. The transaction file contains the network ID and a checksum. A file made for Fuji fails on mainnet. A corrupted file fails with a clear error.
+
+<Callout>
+The first signer pays the transaction fee. Their P-Chain balance funds the fee even when they are not in the owner set. Partial signing supports `TransferSubnetOwnershipTx` only. Other owner-gated transactions need all keys on one machine.
+</Callout>
+
+## Which Flow to Use
+
+| Situation | Flow |
+|-----------|------|
+| Move a single-key subnet to a multisig | `subnet transfer-ownership` with the current owner key |
+| One operator holds enough owner keys | Multi-key signing (`--key-name` repeated) |
+| Owner keys are held by different people | Partial signing (`--output-tx-path`, `tx sign`, `tx commit`) |
