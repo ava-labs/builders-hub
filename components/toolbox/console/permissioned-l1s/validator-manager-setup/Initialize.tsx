@@ -229,6 +229,19 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
                     <RefreshCw className={`w-3.5 h-3.5 text-zinc-500 ${isChecking ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
+                {vmcData.validatorManagerAddress &&
+                  managerAddress &&
+                  vmcData.validatorManagerAddress.toLowerCase() !== managerAddress.toLowerCase() && (
+                    <div className="mt-2 p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        The conversion for this subnet records the validator manager at{' '}
+                        <span className="font-mono break-all">{vmcData.validatorManagerAddress}</span>. Initializing{' '}
+                        <span className="font-mono break-all">{managerAddress}</span> stores settings at a different
+                        address, and initializing the validator set against the recorded manager will fail. Use the
+                        recorded address unless you know why they differ.
+                      </p>
+                    </div>
+                  )}
                 {isInitialized !== null && (
                   <div
                     className={`mt-2 text-xs flex items-center gap-1 ${isInitialized ? 'text-amber-600' : 'text-green-600'}`}

@@ -38,6 +38,7 @@ import {
   parseAggregationError,
   type RemediationLink,
 } from '@/components/toolbox/hooks/contracts/parseAggregationError';
+import { parseInitValidatorSetError } from '@/components/toolbox/hooks/contracts/parseInitValidatorSetError';
 
 type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId: string };
 
@@ -208,6 +209,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
     setIsInitializing(true);
     setError(null);
+    setAggRemediation(null);
 
     try {
       const txArgs = buildTxArgs(conversionResult);
@@ -250,7 +252,12 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setTxSuccess(true);
       onSuccess?.();
     } catch (err) {
-      setError((err as Error).message);
+      // The SDK simulates before sending and throws the raw viem revert
+      // dump; map the unambiguous reverts to actionable guidance instead
+      // of showing the dump (issue #4464).
+      const mapped = parseInitValidatorSetError(err, conversionResult?.managerAddress ?? managerAddress ?? null);
+      setAggRemediation(mapped?.remediation?.length ? mapped.remediation : null);
+      setError(mapped?.message ?? (err as Error).message);
     } finally {
       setIsInitializing(false);
     }
