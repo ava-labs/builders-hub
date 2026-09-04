@@ -176,7 +176,7 @@ export function AcademyBubbleNav() {
     const pathname = usePathname();
     const router = useRouter();
     const { data: session } = useSession();
-    const canSeeTeam1 = hasPermission(session?.user?.custom_attributes, { resource: "academy:team1", action: "read" });
+    const canSeeTeam1 = hasPermission(session, { resource: "academy:team1", action: "read" });
     const visibleAcademyItems = canSeeTeam1
         ? academyItems
         : academyItems.filter((item) => item.id !== "team1");

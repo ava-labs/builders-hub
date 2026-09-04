@@ -73,8 +73,7 @@ export async function POST(req: NextRequest) {
     // Team1 Academy: only Team1 members and DevRel can generate certificates
     // for team1-* courses.
     if (typeof courseId === 'string' && courseId.startsWith('team1-')) {
-      const attrs = session.user.custom_attributes as string[] | undefined;
-      if (!hasPermission(attrs, { resource: "academy:team1", action: "read" })) {
+      if (!hasPermission(session, { resource: "academy:team1", action: "read" })) {
         return NextResponse.json(
           { error: 'Forbidden: Team1 Academy access required.' },
           { status: 403 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { actionFromMethod, hasPermission } from '@/lib/auth/rolePermissions';
+import { actionFromMethod, rolesHavePermission } from '@/lib/auth/rolePermissions';
 import { matchRoute } from '@/lib/auth/routeManifest';
 import { isProtectedPath } from '@/lib/auth/protected-paths';
 
@@ -18,28 +18,28 @@ describe('permission scope', () => {
   it('denies team1_admin the platform-wide event:manage question', () => {
     // The whole point: this must be false, so routes are forced to resolve
     // ownership through canEditEvent / canManageProjectOutcome.
-    expect(hasPermission(['team1_admin'], EVENT_MANAGE)).toBe(false);
+    expect(rolesHavePermission(['team1_admin'], EVENT_MANAGE)).toBe(false);
   });
 
   it('grants team1_admin the scoped question', () => {
-    expect(hasPermission(['team1_admin'], EVENT_MANAGE_OWN)).toBe(true);
+    expect(rolesHavePermission(['team1_admin'], EVENT_MANAGE_OWN)).toBe(true);
   });
 
   it('grants platform admins both the scoped and unscoped question', () => {
-    expect(hasPermission(['devrel'], EVENT_MANAGE)).toBe(true);
-    expect(hasPermission(['devrel'], EVENT_MANAGE_OWN)).toBe(true);
+    expect(rolesHavePermission(['devrel'], EVENT_MANAGE)).toBe(true);
+    expect(rolesHavePermission(['devrel'], EVENT_MANAGE_OWN)).toBe(true);
   });
 
   it('scopes team1_event_admin to its own events', () => {
     const EVENT_READ = { resource: 'event', action: 'read' } as const;
-    expect(hasPermission(['team1_event_admin'], EVENT_READ)).toBe(false);
-    expect(hasPermission(['team1_event_admin'], { ...EVENT_READ, scope: 'own' })).toBe(true);
+    expect(rolesHavePermission(['team1_event_admin'], EVENT_READ)).toBe(false);
+    expect(rolesHavePermission(['team1_event_admin'], { ...EVENT_READ, scope: 'own' })).toBe(true);
   });
 
   it('leaves unscoped grants unscoped', () => {
     // hackathon_creator's event:write is a genuine global capability
     // ("may create/enter the editor at all"), not a per-event grant.
-    expect(hasPermission(['hackathon_creator'], { resource: 'event', action: 'write' })).toBe(true);
+    expect(rolesHavePermission(['hackathon_creator'], { resource: 'event', action: 'write' })).toBe(true);
   });
 
   it('makes event:write scope:"own" the common event-management gate', () => {
@@ -48,17 +48,17 @@ describe('permission scope', () => {
     // admin panel) must therefore ask the scoped question or team1_admin is
     // locked out of event management entirely.
     const GATE = { resource: 'event', action: 'write', scope: 'own' } as const;
-    expect(hasPermission(['team1_admin'], GATE)).toBe(true);
-    expect(hasPermission(['hackathon_creator'], GATE)).toBe(true);
-    expect(hasPermission(['devrel'], GATE)).toBe(true);
+    expect(rolesHavePermission(['team1_admin'], GATE)).toBe(true);
+    expect(rolesHavePermission(['hackathon_creator'], GATE)).toBe(true);
+    expect(rolesHavePermission(['devrel'], GATE)).toBe(true);
     // read-only role stays out
-    expect(hasPermission(['team1_event_admin'], GATE)).toBe(false);
-    expect(hasPermission(['showcase'], GATE)).toBe(false);
+    expect(rolesHavePermission(['team1_event_admin'], GATE)).toBe(false);
+    expect(rolesHavePermission(['showcase'], GATE)).toBe(false);
 
     // The regression itself: team1_admin satisfies NO unscoped event question.
     for (const action of ['read', 'write', 'manage'] as const) {
       expect(
-        hasPermission(['team1_admin'], { resource: 'event', action }),
+        rolesHavePermission(['team1_admin'], { resource: 'event', action }),
         `team1_admin must not satisfy unscoped event:${action}`,
       ).toBe(false);
     }
@@ -68,12 +68,34 @@ describe('permission scope', () => {
     // Dedup is keyed on resource:action:scope — if it were keyed on
     // resource:action only, whichever role was listed first would win and a
     // devrel who is also team1_admin could lose platform-wide access.
-    expect(hasPermission(['team1_admin', 'devrel'], EVENT_MANAGE)).toBe(true);
-    expect(hasPermission(['devrel', 'team1_admin'], EVENT_MANAGE)).toBe(true);
+    expect(rolesHavePermission(['team1_admin', 'devrel'], EVENT_MANAGE)).toBe(true);
+    expect(rolesHavePermission(['devrel', 'team1_admin'], EVENT_MANAGE)).toBe(true);
+  });
+
+  it('devrel\'s single wildcard grant subsumes every specific permission', () => {
+    // devrel is [{ resource: "*", action: "manage" }] and nothing else. The
+    // separate platform:admin / judge:assign entries were removed as decoration
+    // — correct ONLY while "manage" is a superset of every action. If that ever
+    // narrows, this fails loudly instead of silently stripping devrel of
+    // platform:admin (which gates 14 call sites).
+    for (const q of [
+      { resource: 'platform', action: 'admin' },
+      { resource: 'judge', action: 'assign' },
+      { resource: 'user', action: 'manage' },
+      { resource: 'notification', action: 'manage' },
+      { resource: 'showcase', action: 'export' },
+      { resource: 'academy:team1', action: 'read' },
+      { resource: 'event', action: 'manage', scope: 'own' },
+    ] as const) {
+      expect(
+        rolesHavePermission(['devrel'], q),
+        `devrel must satisfy ${q.resource}:${q.action}`,
+      ).toBe(true);
+    }
   });
 
   it('does not let a scoped grant leak across resources', () => {
-    expect(hasPermission(['team1_event_admin'], { resource: 'showcase', action: 'read' })).toBe(false);
+    expect(rolesHavePermission(['team1_event_admin'], { resource: 'showcase', action: 'read' })).toBe(false);
   });
 });
 
@@ -89,7 +111,7 @@ describe('middleware gate for scoped routes', () => {
     if (!matched) return 'public';
     if (matched.authOnly) return 'pass';
     const action = matched.action ?? actionFromMethod(method);
-    return hasPermission(roles, {
+    return rolesHavePermission(roles, {
       resource: matched.resource!,
       action,
       scope: matched.scope,
@@ -129,26 +151,26 @@ describe('middleware gate for scoped routes', () => {
 
   it('grants Team1 Academy access to the Team1 role family and platform admins', () => {
     const T1 = { resource: 'academy:team1', action: 'read' } as const;
-    expect(hasPermission(['team1'], T1)).toBe(true);
-    expect(hasPermission(['team1_admin'], T1)).toBe(true);
-    expect(hasPermission(['team1_event_admin'], T1)).toBe(true);
-    expect(hasPermission(['devrel'], T1)).toBe(true);
+    expect(rolesHavePermission(['team1'], T1)).toBe(true);
+    expect(rolesHavePermission(['team1_admin'], T1)).toBe(true);
+    expect(rolesHavePermission(['team1_event_admin'], T1)).toBe(true);
+    expect(rolesHavePermission(['devrel'], T1)).toBe(true);
 
     // team1_lead (chapter lead / co-lead) carries academy access AND insights.
-    expect(hasPermission(['team1_lead'], T1)).toBe(true);
-    expect(hasPermission(['team1_lead'], { resource: 'builder_insights', action: 'read' })).toBe(true);
+    expect(rolesHavePermission(['team1_lead'], T1)).toBe(true);
+    expect(rolesHavePermission(['team1_lead'], { resource: 'builder_insights', action: 'read' })).toBe(true);
     // …and insights is what separates it from the other Team1 roles.
     for (const r of ['team1', 'team1_admin', 'team1_event_admin']) {
-      expect(hasPermission([r], { resource: 'builder_insights', action: 'read' })).toBe(false);
+      expect(rolesHavePermission([r], { resource: 'builder_insights', action: 'read' })).toBe(false);
     }
 
     // Retired tags grant nothing; the 20260525 migration folds them into
     // team1_lead / team1 before deleting them.
     for (const retired of ['Team1-Leader', 'team1-leader', 'Team1-member', 'T1-Technical', 'judge', 'superadmin']) {
-      expect(hasPermission([retired], T1)).toBe(false);
-      expect(hasPermission([retired], { resource: 'builder_insights', action: 'read' })).toBe(false);
+      expect(rolesHavePermission([retired], T1)).toBe(false);
+      expect(rolesHavePermission([retired], { resource: 'builder_insights', action: 'read' })).toBe(false);
     }
-    expect(hasPermission([], T1)).toBe(false);
+    expect(rolesHavePermission([], T1)).toBe(false);
   });
 
   it('gates every Team1 Academy path on academy:team1, certificates included', () => {

@@ -98,9 +98,7 @@ export interface Permission {
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // ── Platform admin (full wildcard) ───────────────────────────────────────
-  // The only role holding platform:admin. isPlatformAdmin() in permissions.ts
-  // is the canonical way to test for it — never the "devrel" string.
-  devrel: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
+  devrel: [{ resource: "*", action: "manage" }],
 
   // ── Hackathon creator ─────────────────────────────────────────────────────
   hackathon_creator: [
@@ -267,18 +265,35 @@ export function checkPermission(
 }
 
 /**
- * Returns true when the user's roles grant the required { resource, action }.
+ * A session, as far as authorization is concerned.
  *
- * Safe to import in both server and client components — this module has no
- * server-only dependencies (no prisma, no next/headers, etc.).
- *
- * For async checks (e.g. judge rows in DB) use `canEvaluateHackathon` from
- * `@/lib/auth/permissions` in server components / route handlers only.
+ * Deliberately a STRUCTURAL shape rather than next-auth's Session type: this
+ * module is imported by proxy.ts (middleware) and by client components, so it
+ * must stay free of runtime dependencies.
  */
-export function hasPermission(
-  customAttributes: readonly string[] | null | undefined,
+export type SessionLike =
+  | { user?: { custom_attributes?: readonly string[] | null } | null }
+  | null
+  | undefined;
+
+/**
+ * Roles → capability, for the two places that hold a raw role list rather than
+ * a session: proxy.ts (which has a decrypted JWT token, whose roles sit at the
+ * top level and so cannot be a SessionLike) and the unit tests.
+ *
+ * Anything holding a session should call hasPermission() instead.
+ */
+export function rolesHavePermission(
+  roles: readonly string[] | null | undefined,
   required: Permission,
 ): boolean {
-  if (!customAttributes || customAttributes.length === 0) return false;
-  return checkPermission(getPermissionsFromRoles([...customAttributes]), required);
+  if (!roles || roles.length === 0) return false;
+  return checkPermission(getPermissionsFromRoles([...roles]), required);
+}
+
+export function hasPermission(session: SessionLike, required: Permission): boolean {
+  // The single place that knows WHERE roles live on a session. Call sites pass
+  // the session and stay ignorant of the field, so changing it is a one-line
+  // edit here rather than a sweep of every caller.
+  return rolesHavePermission(session?.user?.custom_attributes, required);
 }

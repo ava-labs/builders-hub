@@ -94,15 +94,14 @@ export async function GET(req: NextRequest) {
 
     if (userId) {
       // Roles come from the session, which is UserRole-backed.
-      const attrs = session?.user?.custom_attributes ?? [];
       // Three distinct questions — team1_admin's only event grant is scoped, so
       // asking any of these unscoped would hide its own private events.
       //   canManageAllEvents : platform-wide (devrel) — skips the ownership scoping
       //   mayRequestPrivate  : devrel + team1_admin — may ask for visibility=private
       //   mayManageOwnEvents : + hackathon_creator — sees its own private events
-      const canManageAllEvents = hasPermission(attrs, { resource: "event", action: "manage" });
-      const mayRequestPrivate  = hasPermission(attrs, { resource: "event", action: "manage", scope: "own" });
-      const mayManageOwnEvents = hasPermission(attrs, { resource: "event", action: "write", scope: "own" });
+      const canManageAllEvents = hasPermission(session, { resource: "event", action: "manage" });
+      const mayRequestPrivate  = hasPermission(session, { resource: "event", action: "manage", scope: "own" });
+      const mayManageOwnEvents = hasPermission(session, { resource: "event", action: "write", scope: "own" });
       isPrivileged = mayRequestPrivate;
 
       if (managedOnly) {

@@ -9,11 +9,9 @@ export const POST = withAuth(async (req: NextRequest) => {
   try {
     const body = await req.json();
     const session = await getAuthSession();
-    
-    const customAttributes = session?.user.custom_attributes ?? [];
     const requiredRole = badgeAssignmentService.getRequiredRoleForAssignment(body);
     const hasAdminPermission = requiredRole
-      ? hasPermission(customAttributes, { resource: "badge", action: "manage" })
+      ? hasPermission(session, { resource: "badge", action: "manage" })
       : false;
 
     // Security check: Users can only assign badges to themselves unless they have admin role

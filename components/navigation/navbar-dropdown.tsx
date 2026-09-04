@@ -23,7 +23,7 @@ export function NavbarDropdown() {
   const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
   const isAuthenticated = status === 'authenticated';
-  const canSeeTeam1 = hasPermission(session?.user?.custom_attributes, { resource: "academy:team1", action: "read" });
+  const canSeeTeam1 = hasPermission(session, { resource: "academy:team1", action: "read" });
   const visibleMenuSections = menuSections.map((section) => ({
     ...section,
     items: section.items.filter(

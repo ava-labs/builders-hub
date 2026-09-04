@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { hasPermission } from "@/lib/auth/rolePermissions";
+import { hasPermission, type SessionLike } from "@/lib/auth/rolePermissions";
 import { prisma } from "../../prisma/prisma";
 import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 import { isTeam1Event } from "@/lib/events/team1";
@@ -22,8 +22,8 @@ function hasAnyAttribute(
  * platform:admin (currently devrel only). Use this instead of checking the
  * "devrel" string, so a future platform-admin role is never silently excluded.
  */
-function isPlatformAdmin(attributes: string[] | undefined | null): boolean {
-  return hasPermission(attributes, { resource: "platform", action: "admin" });
+function isPlatformAdmin(source: SessionLike): boolean {
+  return hasPermission(source, { resource: "platform", action: "admin" });
 }
 
 /**
@@ -42,7 +42,7 @@ export async function evaluableHackathonIds(
   session: { user?: { id?: string; custom_attributes?: string[] } } | null | undefined,
 ): Promise<string[] | null> {
   if (!session?.user?.id) return [];
-  if (isPlatformAdmin(session.user.custom_attributes)) return null;
+  if (isPlatformAdmin(session)) return null;
   const rows = await prisma.hackathonJudge.findMany({
     where: { user_id: session.user.id },
     select: { hackathon_id: true },
@@ -76,7 +76,7 @@ export async function canEvaluateHackathon(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  if (isPlatformAdmin(session.user.custom_attributes)) return true;
+  if (isPlatformAdmin(session)) return true;
   return isHackathonJudge(session.user.id, hackathonId);
 }
 
@@ -92,7 +92,7 @@ export async function canReviewMiniGrants(
   // Spelled out rather than calling canEvaluateHackathon: policies stay
   // explicit and share the isHackathonJudge mechanic instead of each other.
   if (!session?.user) return false;
-  if (isPlatformAdmin(session.user.custom_attributes)) return true;
+  if (isPlatformAdmin(session)) return true;
   return isHackathonJudge(session.user.id, MINI_GRANT_HACKATHON_ID);
 }
 
@@ -108,7 +108,7 @@ export async function canManageHackathonJudges(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  if (isPlatformAdmin(session.user.custom_attributes)) return true;
+  if (isPlatformAdmin(session)) return true;
   return isTeam1AdminForOwnEvent(session.user, hackathonId);
 }
 
@@ -130,8 +130,8 @@ export async function canViewEventRegistrations(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
+  if (isPlatformAdmin(session)) return true;
   const attributes = session.user.custom_attributes;
-  if (isPlatformAdmin(attributes)) return true;
   const isTeam1Admin = hasAnyAttribute(attributes, ["team1_admin"]);
   const isTeam1EventAdmin = hasAnyAttribute(attributes, ["team1_event_admin"]);
   if (!isTeam1Admin && !isTeam1EventAdmin) return false;
@@ -197,13 +197,12 @@ export async function canEditEvent(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  const attrs = session.user.custom_attributes;
-  if (isPlatformAdmin(attrs)) return true;
+  if (isPlatformAdmin(session)) return true;
   // The common "may manage events" gate: satisfied by team1_admin (event:manage
   // scope:"own") and hackathon_creator (unscoped event:write), not by read-only
   // team1_event_admin. Asked as a permission, not a role name, so a new
   // event-editing role is picked up automatically.
-  if (!hasPermission(attrs, { resource: "event", action: "write", scope: "own" })) {
+  if (!hasPermission(session, { resource: "event", action: "write", scope: "own" })) {
     return false;
   }
   return isCreatorOrCohost(session.user, hackathonId);
@@ -226,7 +225,7 @@ export async function canManageProjectOutcome(
   projectId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  if (isPlatformAdmin(session.user.custom_attributes)) return true;
+  if (isPlatformAdmin(session)) return true;
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { hackaton_id: true },

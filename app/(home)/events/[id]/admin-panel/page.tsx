@@ -10,7 +10,7 @@ export default async function HackathonAdminPanel({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write", scope: "own" })) {
+  if (!session || !hasPermission(session, { resource: "event", action: "write", scope: "own" })) {
     redirect("/");
   }
 
@@ -19,10 +19,10 @@ export default async function HackathonAdminPanel({
 
   if (!hackathon) redirect("/events");
 
-  // Ownership check: only an UNSCOPED event:manage bypasses it (devrel /
-  // superadmin). team1_admin's grant is scope:"own", so it does not match here
-  // and correctly falls through to the creator/cohost check below.
-  const canManage = hasPermission(session.user?.custom_attributes, { resource: "event", action: "manage" });
+  // Ownership check: only an UNSCOPED event:manage bypasses it (platform
+  // admins). team1_admin's grant is scope:"own", so it does not match here and
+  // correctly falls through to the creator/cohost check below.
+  const canManage = hasPermission(session, { resource: "event", action: "manage" });
   if (!canManage && hackathon.created_by !== session.user?.id && !hackathon.cohosts?.includes(session.user?.email ?? "")) {
     redirect("/");
   }

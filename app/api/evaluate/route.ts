@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         // Not attached to any hackathon — no per-resource judge assignment
         // is possible, so only a platform admin (devrel) may
         // evaluate it.
-        allowed = hasPermission(session.user.custom_attributes, {
+        allowed = hasPermission(session, {
           resource: "platform",
           action: "admin",
         });

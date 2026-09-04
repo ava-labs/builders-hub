@@ -25,7 +25,7 @@ export default async function ProjectPage({
     );
   }
 
-  if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
+  if (!hasPermission(session, { resource: "showcase", action: "read" })) {
     redirect("/");
   }
 

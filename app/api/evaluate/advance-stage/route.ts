@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
 
     if (
       !session?.user?.id ||
-      !hasPermission(session.user.custom_attributes, { resource: "platform", action: "admin" })
+      !hasPermission(session, { resource: "platform", action: "admin" })
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

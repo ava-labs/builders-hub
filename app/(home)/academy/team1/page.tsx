@@ -41,7 +41,7 @@ export default async function Team1AcademyPage(): Promise<React.ReactElement> {
     return <AuthLoading />;
   }
 
-  if (!hasPermission(session.user.custom_attributes, { resource: "academy:team1", action: "read" })) {
+  if (!hasPermission(session, { resource: "academy:team1", action: "read" })) {
     redirect("/");
   }
 

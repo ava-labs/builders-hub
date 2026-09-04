@@ -29,7 +29,7 @@ export default async function ShowCasePage({
     return <AuthLoading />;
   }
 
-  if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
+  if (!hasPermission(session, { resource: "showcase", action: "read" })) {
     redirect("/");
   }
 

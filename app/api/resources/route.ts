@@ -12,9 +12,7 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const customAttributes: string[] = session.user.custom_attributes ?? [];
-
-    if (!hasPermission(customAttributes, { resource: "resource", action: "read" })) {
+    if (!hasPermission(session, { resource: "resource", action: "read" })) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

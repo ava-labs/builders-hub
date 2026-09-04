@@ -21,8 +21,8 @@ const FORM_ID_PATTERN = /^[a-zA-Z0-9_-]+$/
 
 export const POST = withAuth(async (request: NextRequest, _context, session) => {
 
-  const isDevrel = hasPermission(session?.user.custom_attributes, { resource: "platform", action: "admin" });
-  const isHackathonCreator = hasPermission(session?.user.custom_attributes, { resource: "event", action: "write", scope: "own" });
+  const isDevrel = hasPermission(session, { resource: "platform", action: "admin" });
+  const isHackathonCreator = hasPermission(session, { resource: "event", action: "write", scope: "own" });
 
   if (!isDevrel && !isHackathonCreator) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

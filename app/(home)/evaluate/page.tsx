@@ -233,7 +233,7 @@ export default async function EvaluatePage({
       };
     });
 
-    const isDevrel = hasPermission(session.user?.custom_attributes, { resource: "platform", action: "admin" });
+    const isDevrel = hasPermission(session, { resource: "platform", action: "admin" });
 
     return (
       <main className="container relative px-2 py-4 lg:py-16">

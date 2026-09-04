@@ -100,7 +100,7 @@ async function resolveReferralTarget(targetType: ReferralTargetType, body: any) 
 export async function GET(request: NextRequest) {
   const session = await getAuthSession();
 
-  if (!session?.user?.id || !hasPermission(session.user.custom_attributes, { resource: "builder_insights", action: "write" })) {
+  if (!session?.user?.id || !hasPermission(session, { resource: "builder_insights", action: "write" })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 401 });
   }
 

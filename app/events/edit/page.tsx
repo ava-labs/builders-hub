@@ -1624,8 +1624,7 @@ const HackathonsEdit = () => {
       setHasEditPermission(false);
       return;
     }
-    const attrs: string[] = session.user.custom_attributes ?? [];
-    const isSpecialRole = hasPermission(attrs, { resource: "event", action: "write", scope: "own" });
+    const isSpecialRole = hasPermission(session, { resource: "event", action: "write", scope: "own" });
     
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
@@ -2720,7 +2719,7 @@ const HackathonsEdit = () => {
   // Check if user has required permissions
   const hasRequiredPermissions = () => {
     if (!session?.user?.custom_attributes) return false;
-    return hasPermission(session.user.custom_attributes, { resource: "event", action: "write", scope: "own" });
+    return hasPermission(session, { resource: "event", action: "write", scope: "own" });
   };
 
   // Redirect unauthenticated users to home; authenticated without roles to home (same as proxy.ts)
@@ -2863,7 +2862,7 @@ const HackathonsEdit = () => {
                     managed list, and PUT /api/events/[id] re-checks canEditEvent
                     server-side. Without the scope this would hide the toggle
                     from team1_admin on their own events. */}
-                {hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage", scope: "own" }) && selectedHackathon !== null && (
+                {hasPermission(session, { resource: "event", action: "manage", scope: "own" }) && selectedHackathon !== null && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -2974,7 +2973,7 @@ const HackathonsEdit = () => {
               language={language}
               onSelect={handleSelectHackathon}
               selectedId={selectedHackathon?.id ?? null}
-              isDevrel={hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })}
+              isDevrel={hasPermission(session, { resource: "platform", action: "admin" })}
               loading={loadingHackathons}
               forceCollapsed={isSelectedHackathon || showForm}
               fullHeight={!isSelectedHackathon && !showForm}

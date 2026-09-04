@@ -198,14 +198,14 @@ export function UserButton() {
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
             {
-              hasPermission(session?.user?.custom_attributes, { resource: "notification", action: "write" }) && (
+              hasPermission(session, { resource: "notification", action: "write" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/send-notifications'>Send notifications</Link>
                 </DropdownMenuItem>
               )
             }
             {
-              hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write", scope: "own" }) && (
+              hasPermission(session, { resource: "event", action: "write", scope: "own" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/events/edit'>Event Management</Link>
                 </DropdownMenuItem>
@@ -216,7 +216,7 @@ export function UserButton() {
               // so the global "judge" role is not the gate — is_hackathon_judge
               // mirrors what /evaluate itself enforces (evaluableHackathonIds).
               (session?.user?.is_hackathon_judge ||
-                hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })) && (
+                hasPermission(session, { resource: "platform", action: "admin" })) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/evaluate'>Evaluate Hackathons</Link>
                 </DropdownMenuItem>

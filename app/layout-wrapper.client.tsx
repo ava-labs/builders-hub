@@ -14,7 +14,7 @@ interface LayoutWrapperProps {
 
 export function LayoutWrapper({ children, baseOptions }: LayoutWrapperProps) {
   const { data: session } = useSession();
-  const canSeeTeam1 = hasPermission(session?.user?.custom_attributes, { resource: "academy:team1", action: "read" });
+  const canSeeTeam1 = hasPermission(session, { resource: "academy:team1", action: "read" });
 
   // Gate Team1 Academy.
   const updatedOptions = {

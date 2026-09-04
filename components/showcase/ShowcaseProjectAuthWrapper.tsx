@@ -34,7 +34,7 @@ export function ShowcaseProjectAuthWrapper({
       return;
     }
 
-    if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
+    if (!hasPermission(session, { resource: "showcase", action: "read" })) {
       router.push("/showcase?error=unauthorized");
       return;
     }
@@ -58,7 +58,7 @@ export function ShowcaseProjectAuthWrapper({
     );
   }
 
-  if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
+  if (!hasPermission(session, { resource: "showcase", action: "read" })) {
     return null;
   }
 

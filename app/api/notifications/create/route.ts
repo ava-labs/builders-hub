@@ -64,7 +64,7 @@ export const POST = withAuthPermission(
       // Anything broader — every user, or an arbitrary list of addresses — is
       // notification:manage (notify_all, devrel). Re-checked here because the
       // route guard above cannot see the payload.
-      const canSendAnywhere = hasPermission(session.user.custom_attributes, {
+      const canSendAnywhere = hasPermission(session, {
         resource: "notification",
         action: "manage",
       });

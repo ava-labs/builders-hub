@@ -1,7 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import { matchRoute } from "@/lib/auth/routeManifest";
-import { actionFromMethod, hasPermission } from "@/lib/auth/rolePermissions";
+import { actionFromMethod, rolesHavePermission } from "@/lib/auth/rolePermissions";
 
 function appendVary(response: Response, value: string): void {
   const current = response.headers.get("Vary");
@@ -115,7 +115,7 @@ export async function proxy(req: NextRequest) {
   // matched.scope is set on routes whose real check is a DB-backed policy
   // helper in the handler; passing it keeps scoped roles from being 403'd here
   // on objects they legitimately own. See RouteConfig.scope.
-  if (!hasPermission(attrs, { resource: matched.resource!, action, scope: matched.scope })) {
+  if (!rolesHavePermission(attrs, { resource: matched.resource!, action, scope: matched.scope })) {
     if (isApi) {
       return applyCorsHeaders(NextResponse.json(
         { error: "Forbidden", required: `${matched.resource}:${action}` },

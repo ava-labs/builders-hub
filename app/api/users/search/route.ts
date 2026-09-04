@@ -21,10 +21,9 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
     // event-management roles, which need it to assign judges (devrel) and add
     // co-hosts by email (any event organizer). Plain authenticated users cannot
     // use it, so it is not a general email-enumeration surface.
-    const attrs = session.user?.custom_attributes ?? [];
     // event:write covers exactly the event-management roles
     // (devrel via wildcard, team1_admin, hackathon_creator).
-    const canUseAdmin = hasPermission(attrs, { resource: "event", action: "write", scope: "own" });
+    const canUseAdmin = hasPermission(session, { resource: "event", action: "write", scope: "own" });
     if (!canUseAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -51,10 +50,10 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
   if (scope === "admin") {
     // Other users' roles are only disclosed to platform admins (the judges UI
     // renders them); event organizers adding cohosts only need contact details.
-    const callerIsPlatformAdmin = hasPermission(
-      session.user?.custom_attributes,
-      { resource: "platform", action: "admin" },
-    );
+    const callerIsPlatformAdmin = hasPermission(session, {
+      resource: "platform",
+      action: "admin",
+    });
     const rows = await prisma.user.findMany({
       where,
       select: {

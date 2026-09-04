@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
     }
 
-    const isPlatformAdmin = hasPermission(session.user.custom_attributes, {
+    const isPlatformAdmin = hasPermission(session, {
       resource: "platform",
       action: "admin",
     });

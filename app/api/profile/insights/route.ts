@@ -14,7 +14,7 @@ export const GET = withAuth(async (_request, _context: unknown, session: Session
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!hasPermission(session.user?.custom_attributes, { resource: "builder_insights", action: "read" })) {
+  if (!hasPermission(session, { resource: "builder_insights", action: "read" })) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

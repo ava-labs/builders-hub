@@ -87,7 +87,7 @@ export default async function HackathonEvaluatePage({
 
   const viewerId = session!.user!.id;
   // platform:admin, not the raw "devrel" string — the canonical platform-admin test.
-  const isPlatformAdmin = hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" });
+  const isPlatformAdmin = hasPermission(session, { resource: "platform", action: "admin" });
   // Winner-picking and phase control are per-event: platform admins anywhere,
   // team1_admin only on events they created or cohost (event:manage is
   // scope:"own" for them, so a bare hasPermission would be false here).

@@ -65,8 +65,7 @@ export function withAuthPermission<TContext = unknown>(
       );
     }
 
-    const attrs = session.user.custom_attributes ?? [];
-    if (!hasPermission(attrs, required)) {
+    if (!hasPermission(session, required)) {
       return NextResponse.json(
         { error: 'Forbidden', required: `${required.resource}:${required.action}` },
         { status: 403 },
@@ -106,9 +105,7 @@ export function withAuthResource<TContext = unknown>(
     }
 
     const action = actionFromMethod(request.method);
-    const attrs = session.user.custom_attributes ?? [];
-
-    if (!hasPermission(attrs, { resource, action })) {
+    if (!hasPermission(session, { resource, action })) {
       return NextResponse.json(
         { error: 'Forbidden', required: `${resource}:${action}` },
         { status: 403 },

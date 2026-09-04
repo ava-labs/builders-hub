@@ -91,7 +91,7 @@ export default async function Page(props: {
   if (params.slug?.[0] === "team1") {
     const session = await getAuthSession();
     if (!session?.user?.id) return <AuthLoading />;
-    if (!hasPermission(session.user.custom_attributes, { resource: "academy:team1", action: "read" })) {
+    if (!hasPermission(session, { resource: "academy:team1", action: "read" })) {
     redirect("/");
     }
   }
