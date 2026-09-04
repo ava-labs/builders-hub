@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ROLE_PERMISSIONS } from '@/lib/auth/rolePermissions';
@@ -10,10 +10,15 @@ import { ROLE_PERMISSIONS } from '@/lib/auth/rolePermissions';
  * but missing from the SQL, so the migration would have deleted those rows and
  * silently stripped the roles from every user holding them.
  */
-const MIGRATION = join(
-  process.cwd(),
-  'prisma/migrations/20260525000000_add_user_role_table/migration.sql',
-);
+// Resolved by suffix, not by timestamp: the migration has already been renamed
+// once (merged with the composite-index migration), and a hardcoded path turns
+// that into a thrown ENOENT rather than a useful failure.
+const MIGRATION = (() => {
+  const dir = join(process.cwd(), 'prisma/migrations');
+  const match = readdirSync(dir).find((d) => d.endsWith('_add_user_role_table'));
+  if (!match) throw new Error('No *_add_user_role_table migration found — renamed or removed?');
+  return join(dir, match, 'migration.sql');
+})();
 
 function sqlAllowList(): Set<string> {
   const sql = readFileSync(MIGRATION, 'utf8');
