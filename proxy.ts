@@ -82,8 +82,9 @@ export async function proxy(req: NextRequest) {
   // declared in the manifest like everything else.
   const matched = matchRoute(pathname);
 
-  // Public route — pass through
-  if (!matched) return applyCorsHeaders(NextResponse.next(), requestOrigin);
+  // Public route, or one explicitly carved out of a wildcard gate because its
+  // handler authorizes by a mechanism the Edge cannot see (see RouteConfig.public).
+  if (!matched || matched.public) return applyCorsHeaders(NextResponse.next(), requestOrigin);
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;

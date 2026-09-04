@@ -2,7 +2,7 @@ import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 import { getHackathon } from "@/server/services/hackathons";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasPermission } from "@/lib/auth/rolePermissions";
+import { canEditEvent } from "@/lib/auth/permissions";
 
 export default async function HackathonAdminPanel({
   params,
@@ -10,22 +10,18 @@ export default async function HackathonAdminPanel({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!session || !hasPermission(session, { resource: "event", action: "write", scope: "own" })) {
-    redirect("/");
-  }
-
   const { id } = await params;
-  const hackathon = await getHackathon(id);
 
-  if (!hackathon) redirect("/events");
-
-  // Ownership check: only an UNSCOPED event:manage bypasses it (platform
-  // admins). team1_admin's grant is scope:"own", so it does not match here and
-  // correctly falls through to the creator/cohost check below.
-  const canManage = hasPermission(session, { resource: "event", action: "manage" });
-  if (!canManage && hackathon.created_by !== session.user?.id && !hackathon.cohosts?.includes(session.user?.email ?? "")) {
+  // canEditEvent is the one authoritative answer to "may this user manage this
+  // event": platform admin anywhere, otherwise event:write scope:"own" plus
+  // creator-or-cohost. Inlining that triple here is what caused the team1_admin
+  // scoping bugs, so this page asks the policy instead of re-deriving it.
+  if (!(await canEditEvent(session, id))) {
     redirect("/");
   }
+
+  const hackathon = await getHackathon(id);
+  if (!hackathon) redirect("/events");
 
   return (
     <main className="container  relative px-2 py-4 lg:py-16">

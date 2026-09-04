@@ -108,7 +108,7 @@ describe('permission scope', () => {
 describe('middleware gate for scoped routes', () => {
   const gate = (roles: string[], pathname: string, method: string) => {
     const matched = matchRoute(pathname);
-    if (!matched) return 'public';
+    if (!matched || matched.public) return 'public';
     if (matched.authOnly) return 'pass';
     const action = matched.action ?? actionFromMethod(method);
     return rolesHavePermission(roles, {
@@ -200,6 +200,75 @@ describe('middleware gate for scoped routes', () => {
     expect(gate([], '/academy/avalanche-l1/fundamentals/get-certificate', 'GET')).toBe('pass');
     // …and ordinary course content stays public.
     expect(gate([], '/academy/avalanche-l1/fundamentals', 'GET')).toBe('public');
+  });
+
+  it('gates the per-event management pages without gating the public ones', () => {
+    // Coarse Edge gate; the page runs canEditEvent / canManageHackathonJudges /
+    // canViewEventRegistrations against the specific event.
+    expect(gate(['team1_admin'], '/events/abc/admin-panel', 'GET')).toBe('pass');
+    expect(gate(['hackathon_creator'], '/events/abc/admin-panel', 'GET')).toBe('pass');
+    expect(gate(['showcase'], '/events/abc/admin-panel', 'GET')).toBe('blocked');
+    expect(gate([], '/events/new', 'GET')).toBe('blocked');
+    expect(gate(['team1_admin'], '/events/new', 'GET')).toBe('pass');
+
+    // judges is judge:assign — team1_admin yes, hackathon_creator no.
+    // Its pattern is LONGER than /events/*/admin-panel, so it must win the sort.
+    expect(gate(['team1_admin'], '/events/abc/admin-panel/judges', 'GET')).toBe('pass');
+    expect(gate(['hackathon_creator'], '/events/abc/admin-panel/judges', 'GET')).toBe('blocked');
+
+    // registrations expose registrant PII — team1_event_admin is the narrow role.
+    expect(gate(['team1_event_admin'], '/events/abc/registrations', 'GET')).toBe('pass');
+    expect(gate(['showcase'], '/events/abc/registrations', 'GET')).toBe('blocked');
+    expect(gate([], '/events/abc/registrations', 'GET')).toBe('blocked');
+
+    // Evaluation comes from an assignment row, so the Edge can only require auth.
+    expect(gate([], '/evaluate', 'GET')).toBe('pass');
+    expect(gate([], '/events/abc/evaluate', 'GET')).toBe('pass');
+
+    // …and the public event pages MUST stay public.
+    expect(gate([], '/events', 'GET')).toBe('public');
+    expect(gate([], '/events/abc', 'GET')).toBe('public');
+  });
+
+  it('does not 401 the self-authorizing validator routes at the Edge', () => {
+    // /check runs from Vercel cron with a CRON_SECRET bearer and /unsubscribe is
+    // followed from an email with a signed URL token — neither carries a
+    // NextAuth cookie, so an authOnly gate would 401 them before the handler.
+    // Regression guard: this branch introduced that break (master's matcher
+    // never touched /api/*).
+    // These must carry NO session requirement at all — not even authOnly,
+    // which 401s an anonymous caller in proxy.ts before the handler runs.
+    for (const p of ['/api/validator-alerts/check', '/api/validator-alerts/unsubscribe']) {
+      expect(gate([], p, 'GET'), `${p} must not be gated`).toBe('public');
+      expect(matchRoute(p)?.public, `${p} must be explicitly carved out`).toBe(true);
+    }
+    // …while the session-backed siblings keep requiring a session. (gate() takes
+    // a role list, so it cannot model "anonymous" — assert the config instead.)
+    for (const p of ['/api/validator-alerts', '/api/validator-alerts/abc123']) {
+      expect(matchRoute(p)?.authOnly, `${p} must still require a session`).toBe(true);
+      expect(matchRoute(p)?.public, `${p} must not be carved out`).toBeUndefined();
+    }
+  });
+
+  it('models the visibility=private rule: scoped roles need managed=true', () => {
+    // Mirrors app/api/events/route.ts. WITH managed=true the created_by/cohost
+    // filter is applied, so a scoped role only ever sees its OWN private events
+    // (this is what the event editor's Private filter sends). WITHOUT it the
+    // query is platform-wide and must be admin-only — that was the leak.
+    const mayRequestPrivate = (roles: string[], managedOnly: boolean) =>
+      managedOnly
+        ? rolesHavePermission(roles, { resource: 'event', action: 'write', scope: 'own' })
+        : rolesHavePermission(roles, { resource: 'event', action: 'manage' });
+
+    for (const r of ['team1_admin', 'hackathon_creator']) {
+      expect(mayRequestPrivate([r], true), `${r} + managed=true`).toBe(true);
+      expect(mayRequestPrivate([r], false), `${r} without managed must be 403`).toBe(false);
+    }
+    expect(mayRequestPrivate(['devrel'], false)).toBe(true);
+    expect(mayRequestPrivate(['devrel'], true)).toBe(true);
+    // no event role at all
+    expect(mayRequestPrivate(['showcase'], true)).toBe(false);
+    expect(mayRequestPrivate(['team1_event_admin'], true)).toBe(false);
   });
 
   it('does not gate ordinary users out of academy badges', () => {

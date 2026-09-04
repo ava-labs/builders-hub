@@ -90,19 +90,25 @@ export async function GET(req: NextRequest) {
     const userId = session?.user?.id;
     const managedOnly = searchParams.get('managed') === 'true';
 
-    let isPrivileged = false; // devrel or team1_admin — the only roles allowed to see private hackathons
+    // Who may ask for visibility=private / =all. See the check further down:
+    // WITH managed=true the ownership filter is applied, so a scoped role is
+    // safe; WITHOUT it the query is platform-wide and must be admin-only.
+    let mayRequestPrivate = false;
 
     if (userId) {
       // Roles come from the session, which is UserRole-backed.
-      // Three distinct questions — team1_admin's only event grant is scoped, so
-      // asking any of these unscoped would hide its own private events.
+      // team1_admin's only event grant is scoped, so asking either of these
+      // unscoped would hide its own private events.
       //   canManageAllEvents : platform-wide (devrel) — skips the ownership scoping
-      //   mayRequestPrivate  : devrel + team1_admin — may ask for visibility=private
-      //   mayManageOwnEvents : + hackathon_creator — sees its own private events
+      //   mayManageOwnEvents : + team1_admin, hackathon_creator — own private events
       const canManageAllEvents = hasPermission(session, { resource: "event", action: "manage" });
-      const mayRequestPrivate  = hasPermission(session, { resource: "event", action: "manage", scope: "own" });
       const mayManageOwnEvents = hasPermission(session, { resource: "event", action: "write", scope: "own" });
-      isPrivileged = mayRequestPrivate;
+      // managed=true applies created_by/cohost scoping below, so a scoped role
+      // asking for "private" only ever receives its OWN private events — which
+      // is exactly what the event editor's Private filter does. Without
+      // managed=true there is no ownership filter, so the request is a
+      // platform-wide private view and must be restricted to platform admins.
+      mayRequestPrivate = managedOnly ? mayManageOwnEvents : canManageAllEvents;
 
       if (managedOnly) {
         options.include_private = mayManageOwnEvents;
@@ -119,16 +125,17 @@ export async function GET(req: NextRequest) {
       options.include_private = false;
     }
 
-    // SECURITY: Only devrel/team1_admin may request visibility=private or visibility=all.
-    // All other callers receive only public hackathons regardless of the param.
+    // SECURITY: `visibility` OVERRIDES include_private in getFilteredHackathons
+    // (visibility:"all" adds no filter at all), so without managed=true this
+    // param is an unscoped platform-wide private view — see mayRequestPrivate.
     if (requestedVisibility === 'private' || requestedVisibility === 'all') {
-      if (!isPrivileged) {
+      if (!mayRequestPrivate) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
     options.visibility = requestedVisibility;
 
-    console.warn('API GET /events:', { userId, isPrivileged, managedOnly });
+    console.warn('API GET /events:', { userId, mayRequestPrivate, managedOnly });
 
     const response = await getFilteredHackathons(options);
 

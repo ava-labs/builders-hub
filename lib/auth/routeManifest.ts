@@ -82,6 +82,17 @@ export interface RouteConfig {
   scope?: Scope;
   /** Any authenticated user passes; no resource:action check. */
   authOnly?: boolean;
+  /**
+   * Deliberately NOT gated at the Edge — the handler authorizes by a mechanism
+   * the middleware cannot see (a cron secret, an API key, a signed URL token).
+   *
+   * Absence from this manifest already means "public", so this exists only to
+   * carve a path OUT of a broader wildcard: exact entries beat wildcards in
+   * matchRoute, so `{ public: true }` on a specific path overrides the gate its
+   * prefix would otherwise apply. Never use it on a route that has no
+   * authorization of its own.
+   */
+  public?: boolean;
 }
 
 export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
@@ -112,6 +123,16 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/hackathons/edit/*":                    { resource: "event", action: "write", scope: "own" },
   "/events/edit":                          { resource: "event", action: "write", scope: "own" },
   "/events/edit/*":                        { resource: "event", action: "write", scope: "own" },
+  "/events/new":                           { resource: "event", action: "write", scope: "own" },
+  "/events/*/admin-panel":                 { resource: "event", action: "write", scope: "own" },
+  "/events/*/admin-panel/judges":          { resource: "judge", action: "assign", scope: "own" },
+  "/events/*/registrations":               { resource: "event", action: "read", scope: "own" },
+
+  // Evaluation is granted by a HackathonJudge assignment row, not a role, so
+  // the Edge can only establish authentication — same reasoning as
+  // "/api/evaluate". evaluableHackathonIds() / canEvaluateHackathon() decide.
+  "/evaluate":                             { authOnly: true },
+  "/events/*/evaluate":                    { authOnly: true },
 
   // ── UI + API – Team1 Academy (gated area) ────────────────────────────────
   // Ordinary academy:team1 permission. The certificate entries are listed
@@ -193,6 +214,12 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/api/users/search":                     { authOnly: true },
   "/api/glacier-jwt":                      { authOnly: true },
   "/api/validator-alerts":                 { authOnly: true },
+  // Carved out of the wildcard below: these authorize themselves and are called
+  // WITHOUT a NextAuth session, so an authOnly gate 401s them at the Edge.
+  //   /check       – Vercel cron (Bearer CRON_SECRET) or x-api-key
+  //   /unsubscribe – signed token in the URL, followed from an email
+  "/api/validator-alerts/check":           { public: true },
+  "/api/validator-alerts/unsubscribe":     { public: true },
   "/api/validator-alerts/*":               { authOnly: true },
   "/api/faucet-rate-limit":                { authOnly: true },
   "/console/utilities/data-api-keys":      { authOnly: true },
