@@ -25,6 +25,7 @@ declare module 'next-auth' {
       is_new_user: boolean;
       authentication_mode?: string;
       team_id?: string | null;
+      is_hackathon_judge?: boolean;
     } & DefaultSession['user'];
   }
 }
@@ -38,6 +39,7 @@ declare module 'next-auth/jwt' {
     is_new_user?: boolean;
     user_name?: string;
     team_id?: string | null;
+    is_hackathon_judge?: boolean;
   }
 }
 
@@ -87,6 +89,17 @@ const authUserSelect = {
   notifications: true,
   user_name: true,
   team_id: true,
+} as const;
+
+/**
+ * The jwt callback additionally needs to know whether the user is an assigned
+ * hackathon judge, because evaluation access comes from HackathonJudge rows
+ * rather than a role and the nav has no other way to find out. Folded into the
+ * existing user lookup as a _count so it costs no extra round trip.
+ */
+const jwtUserSelect = {
+  ...authUserSelect,
+  _count: { select: { hackathon_judge_roles: true } },
 } as const;
 
 export const AuthOptions: NextAuthOptions = {
@@ -198,28 +211,25 @@ export const AuthOptions: NextAuthOptions = {
       const dbUser = email
         ? await prisma.user.findUnique({
             where: { email },
-            select: authUserSelect,
+            select: jwtUserSelect,
           })
         : null;
 
       if (dbUser) {
-        // Load active UserRole rows (no expiry or future expiry)
+        // Roles come exclusively from UserRole. Active = no expiry, or an
+        // expiry still in the future.
         const activeUserRoles = await prisma.userRole.findMany({
           where: {
             user_id: dbUser.id,
-            OR: [
-              { expires_at: null },
-              { expires_at: { gt: new Date() } },
-            ],
+            OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
           },
           select: { role: true },
         });
 
-        const allRoles = activeUserRoles.map((r: { role: string }) => r.role);
-
         token.id = dbUser.id;
         token.avatar = dbUser.image || token.avatar || user?.image || null;
-        token.custom_attributes = allRoles;
+        token.custom_attributes = activeUserRoles.map((r) => r.role);
+        token.is_hackathon_judge = dbUser._count.hackathon_judge_roles > 0;
         token.name = dbUser.name ?? '';
         token.email = dbUser.email ?? '';
         token.user_name = dbUser.user_name ?? '';
@@ -233,6 +243,7 @@ export const AuthOptions: NextAuthOptions = {
         token.name = user?.name ?? token.name ?? '';
         token.is_new_user = true;
         token.custom_attributes = [];
+        token.is_hackathon_judge = false;
         // Use a special marker for pending users (no real DB id yet)
         token.id = `pending_${token.email}`;
       }
@@ -252,6 +263,7 @@ export const AuthOptions: NextAuthOptions = {
       session.user.is_new_user = !!token.is_new_user;
       session.user.authentication_mode = token.authentication_mode ?? '';
       session.user.team_id = (token.team_id as string | null) ?? null;
+      session.user.is_hackathon_judge = !!token.is_hackathon_judge;
       return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
     },
     async redirect({ url, baseUrl }) {

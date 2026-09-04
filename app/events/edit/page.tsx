@@ -48,7 +48,7 @@ import { resolveFieldLabel } from '@/lib/events-field-labels';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import { ThemeToggle } from '@/components/console/theme-toggle';
-import { hasPermission } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 // --- Location: structured pickers ↔ legacy string ----------------------------
 // The DB still stores a free-text `location` (legacy filter checks use
@@ -1625,7 +1625,7 @@ const HackathonsEdit = () => {
       return;
     }
     const attrs: string[] = session.user.custom_attributes ?? [];
-    const isSpecialRole = hasPermission(attrs, { resource: "event", action: "write" });
+    const isSpecialRole = hasPermission(attrs, { resource: "event", action: "write", scope: "own" });
     
     // If no hackathon is selected, allow editing only for special roles (for creating new hackathons)
     if (!selectedHackathon) {
@@ -2720,7 +2720,7 @@ const HackathonsEdit = () => {
   // Check if user has required permissions
   const hasRequiredPermissions = () => {
     if (!session?.user?.custom_attributes) return false;
-    return hasPermission(session.user.custom_attributes, { resource: "event", action: "write" });
+    return hasPermission(session.user.custom_attributes, { resource: "event", action: "write", scope: "own" });
   };
 
   // Redirect unauthenticated users to home; authenticated without roles to home (same as proxy.ts)
@@ -2859,8 +2859,11 @@ const HackathonsEdit = () => {
                     <TooltipContent>{selectedHackathon ? t[language].update : t[language].save}</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-                {(session?.user?.custom_attributes?.includes("devrel") ||
-                  session?.user?.custom_attributes?.includes("team1-admin")) && selectedHackathon !== null && (
+                {/* scope:"own" — the selected event comes from the caller's own
+                    managed list, and PUT /api/events/[id] re-checks canEditEvent
+                    server-side. Without the scope this would hide the toggle
+                    from team1_admin on their own events. */}
+                {hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage", scope: "own" }) && selectedHackathon !== null && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>

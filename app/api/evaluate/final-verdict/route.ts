@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
 
 export async function POST(request: NextRequest) {

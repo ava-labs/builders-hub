@@ -10,7 +10,7 @@ export type SearchUser = {
   image: string | null;
   user_name: string | null;
   email?: string;
-  custom_attributes?: string[];
+  roles?: string[];
 };
 
 type Props = {
@@ -167,9 +167,9 @@ export function UserSearchPicker({
                       </div>
                     )}
                   </div>
-                  {user.custom_attributes && user.custom_attributes.length > 0 && (
+                  {user.roles && user.roles.length > 0 && (
                     <div className="flex shrink-0 gap-1">
-                      {user.custom_attributes.slice(0, 2).map((attr) => (
+                      {user.roles.slice(0, 2).map((attr) => (
                         <span
                           key={attr}
                           className="rounded bg-zinc-200 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-700 dark:text-zinc-400"

@@ -34,7 +34,10 @@ export default async function HackathonJudgesPage({
           email: true,
           image: true,
           user_name: true,
-          custom_attributes: true,
+          user_roles: {
+            where: { OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }] },
+            select: { role: true },
+          },
         },
       },
     },
@@ -57,10 +60,10 @@ export default async function HackathonJudgesPage({
       </div>
       <JudgesManager
         hackathonId={hackathon.id}
-        initialJudges={judges.map((j) => ({
+        initialJudges={judges.map(({ user: { user_roles, ...user }, ...j }) => ({
           id: j.id,
           assigned_at: j.assigned_at.toISOString(),
-          user: j.user,
+          user: { ...user, roles: user_roles.map((r) => r.role) },
         }))}
       />
     </main>

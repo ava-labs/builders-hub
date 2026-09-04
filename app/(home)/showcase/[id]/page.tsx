@@ -1,10 +1,9 @@
-import React from "react";
+import { redirect } from "next/navigation";
 import { getProject } from "@/server/services/projects";
 import { getUserBadgesByProjectId } from "@/server/services/project-badge";
 import { ShowcaseProjectAuthWrapper } from "@/components/showcase/ShowcaseProjectAuthWrapper";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasShowcaseRole } from "@/lib/auth/roles";
-import { AccessDenied } from "@/components/ui/access-denied";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 export default async function ProjectPage({
   params,
@@ -26,10 +25,8 @@ export default async function ProjectPage({
     );
   }
 
-  if (!hasShowcaseRole(session.user.custom_attributes)) {
-    return (
-      <AccessDenied message="You don't have permission to view this project. This section is only accessible to users with showcase, devrel, or admin roles." />
-    );
+  if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
+    redirect("/");
   }
 
   const project = await getProject(id);

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { Session } from "next-auth";
 
 import { withAuth } from "@/lib/protectedRoute";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { getBuilderInsightsData } from "@/server/services/builderInsights";
 
 export const dynamic = "force-dynamic";

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
-import { canEvaluateHackathon } from "@/lib/auth/roles";
+import { canEvaluateHackathon } from "@/lib/auth/permissions";
 import { timingSafeEqual } from "node:crypto";
 import type { RouteParams } from "@/lib/protectedRoute";
 

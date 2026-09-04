@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { evaluateAllConsoleBadges } from "@/server/services/consoleBadge/consoleBadgeService";
 
 export async function POST() {

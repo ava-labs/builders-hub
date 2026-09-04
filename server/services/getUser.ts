@@ -15,7 +15,6 @@ export async function getUserById(id: string) {
       id: true,
       name: true,
       email: true,
-      custom_attributes: true,
       team_id: true,
     },
   });

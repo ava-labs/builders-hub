@@ -27,14 +27,59 @@
  *   so that the base path without a trailing segment is also protected.
  *   matchRoute() always tests an exact match before wildcard patterns.
  *
+ * ---------------------------------------------------------------------------
+ * Adding a protected page or route — where does the check go?
+ * ---------------------------------------------------------------------------
+ * DEFAULT: here, and only here. One line:
+ *     "/my-admin-page": { resource: "platform", action: "admin" },
+ *
+ * This manifest is evaluated at the Edge with NO database access, so add a
+ * SECOND check in the page/handler only when the decision needs something the
+ * Edge cannot see:
+ *
+ *   1. The page reads the DB itself. A server component that queries Prisma is
+ *      an API endpoint in disguise — nothing behind it carries a guard. (See
+ *      app/(home)/evaluate/page.tsx, which loads submissions and applicant PII.)
+ *      A page that is only a shell around guarded API routes does NOT need one.
+ *   2. Per-object scoping — "may they edit THIS event". Declare scope: "own"
+ *      here so the gate stays permissive, then call the matching policy helper
+ *      (canEditEvent, canManageHackathonJudges, …) in the page/handler.
+ *   3. The decision depends on the payload rather than the path — e.g.
+ *      /api/generate-certificate gating on courseId.startsWith("team1-").
+ *   4. Revocation must take effect immediately: getToken() here only decrypts
+ *      the cookie, so a revoked role survives until the cookie refreshes.
+ *      getAuthSession() in a page/handler re-reads UserRole every call.
+ *
+ * NEVER page-only. That skips the Edge gate, leaves the route invisible in this
+ * manifest, and — the real hole — a sibling route added under the same prefix
+ * later inherits no protection at all.
+ *
+ * When a page does carry its own check, it must REDIRECT on failure, not render
+ * an "access denied" message: this manifest already redirects at the Edge, so a
+ * rendered message would be unreachable and the two layers would disagree.
+ *
  * To protect a new route: add one line here. Nothing else changes.
  */
 
-import { Action, Resource } from "./rolePermissions";
+import { Action, Resource, Scope } from "./rolePermissions";
 
 export interface RouteConfig {
   resource?: Resource;
   action?: Action;
+  /**
+   * Declares this Edge gate as deliberately permissive for scoped grants.
+   *
+   * The middleware has no DB access, so it can never decide "is this the
+   * caller's own event?". Setting scope: "own" makes the gate ask the scoped
+   * question, which lets a scope:"own" role holder through to the handler —
+   * where a policy helper (canEditEvent, canManageHackathonJudges, …) does the
+   * ownership check for real. Without it, a scoped role would be 403'd at the
+   * Edge even on its own objects.
+   *
+   * An entry carrying `scope` is therefore a marker that the handler MUST
+   * perform the scoped check; the manifest alone does not protect it.
+   */
+  scope?: Scope;
   /** Any authenticated user passes; no resource:action check. */
   authOnly?: boolean;
 }
@@ -45,21 +90,47 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/profile/*":                            { authOnly: true },
   "/student-launchpad":                    { authOnly: true },
   "/student-launchpad/*":                  { authOnly: true },
-  "/grants":                               { authOnly: true },
-  "/grants/*":                             { authOnly: true },
+  // Grant APPLICATION flows only. "/grants" and "/grants/*" would gate the
+  // public landing page and the programme info pages; and "/grants/*" is
+  // single-segment, so it never matched "/grants/team1-mini-grants/apply" —
+  // the one path that was explicitly protected before. Listed explicitly.
+  "/grants/retro9000":                     { authOnly: true },
+  "/grants/avalanche-research-proposals":  { authOnly: true },
+  "/grants/team1-mini-grants/apply":       { authOnly: true },
 
   // ── UI – role-protected ───────────────────────────────────────────────────
   "/showcase":                             { resource: "showcase" },
   "/showcase/*":                           { resource: "showcase" },
   "/send-notifications":                   { resource: "notification" },
-  "/hackathons/edit":                      { resource: "event" },
-  "/hackathons/edit/*":                    { resource: "event" },
-  "/events/edit":                          { resource: "event" },
-  "/events/edit/*":                        { resource: "event" },
+  // event:write scope:"own" is the common "may manage events" gate: it admits
+  // hackathon_creator (unscoped event:write) and team1_admin (event:manage
+  // scope:"own"), while excluding read-only team1_event_admin. A bare
+  // { resource: "event" } infers UNSCOPED event:read, which team1_admin — whose
+  // only event grant is scoped — does not satisfy, locking it out of its own
+  // editor. canEditEvent() remains the authoritative per-event check.
+  "/hackathons/edit":                      { resource: "event", action: "write", scope: "own" },
+  "/hackathons/edit/*":                    { resource: "event", action: "write", scope: "own" },
+  "/events/edit":                          { resource: "event", action: "write", scope: "own" },
+  "/events/edit/*":                        { resource: "event", action: "write", scope: "own" },
+
+  // ── UI + API – Team1 Academy (gated area) ────────────────────────────────
+  // Ordinary academy:team1 permission. The certificate entries are listed
+  // explicitly because matchRoute sorts wildcards by LENGTH, so without them
+  // "/academy/**/get-certificate" would out-rank "/academy/team1/**" and
+  // downgrade Team1 certificate pages to authOnly.
+  // The /api/raw/* twins gate the markdown API; proxy.ts additionally refuses
+  // to REWRITE /academy/team1/* onto them, which no manifest entry can do.
+  "/academy/team1":                         { resource: "academy:team1" },
+  "/academy/team1/**":                      { resource: "academy:team1" },
+  "/academy/team1/**/get-certificate":      { resource: "academy:team1" },
+  "/academy/team1/**/certificate":          { resource: "academy:team1" },
+  "/api/raw/academy/team1":                 { resource: "academy:team1" },
+  "/api/raw/academy/team1/**":              { resource: "academy:team1" },
 
   // ── UI – academy certificates (auth-only) ────────────────────────────────
-  "/academy/*/get-certificate":            { authOnly: true },
-  "/academy/*/certificate":               { authOnly: true },
+  // "**" (multi-segment): courses live at /academy/{category}/{course}/...
+  "/academy/**/get-certificate":           { authOnly: true },
+  "/academy/**/certificate":              { authOnly: true },
 
   // ── API – hackathons / events ──────────────────────────────────────────────
   // Note: GET /api/events and GET /api/hackathons are intentionally NOT listed
@@ -67,11 +138,13 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // operations (POST, PUT, PATCH, DELETE) are protected directly in the route
   // handlers via withAuthPermission. The entries below cover sub-resources that
   // are always fully protected regardless of method.
-  "/api/hackathons/*":                     { resource: "event" },
-  // Judge assignment is reserved for devrel / team1-admin (judge:assign);
-  // the handlers additionally scope team1-admin to their own events.
-  "/api/events/*/judges":                  { resource: "judge", action: "assign" },
-  "/api/events/*/judges/*":                { resource: "judge", action: "assign" },
+  "/api/hackathons/*":                     { resource: "event", action: "write", scope: "own" },
+  // Judge assignment is reserved for devrel / team1_admin (judge:assign).
+  // scope:"own" — team1_admin's grant is scoped, so the Edge gate must ask the
+  // scoped question to let them reach their own events; both handlers then
+  // enforce canManageHackathonJudges, which is the real check.
+  "/api/events/*/judges":                  { resource: "judge", action: "assign", scope: "own" },
+  "/api/events/*/judges/*":                { resource: "judge", action: "assign", scope: "own" },
 
   // ── API – evaluate ─────────────────────────────────────────────────────────
   // authOnly: per-hackathon judges are DB-assigned (HackathonJudge rows) and
@@ -92,17 +165,21 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/api/notifications/create":             { resource: "notification" },
 
   // ── API – badges ──────────────────────────────────────────────────────────
-  "/api/badge":                            { resource: "badge" },
-  "/api/badge/*":                          { resource: "badge" },
+  // authOnly, NOT { resource: "badge" }: earning and displaying an academy
+  // badge is a self-service action for every learner (see badgeStrategy —
+  // academy/requirement badges require no role). The handlers do the real
+  // authorization: /assign is self-only unless the badge needs badge:manage,
+  // /validate is self-only. Gating these on badge:read/badge:write here 403s
+  // every quiz completion at the Edge before the handler runs.
+  "/api/badge":                            { authOnly: true },
+  "/api/badge/*":                          { authOnly: true },
+  // The one genuinely admin badge path (exact match wins over the wildcard).
+  "/api/badge/console-migrate":            { resource: "badge", action: "write" },
 
   // ── API – showcase / projects ─────────────────────────────────────────────
   "/api/showcase":                         { resource: "showcase" },
   "/api/showcase/*":                       { resource: "showcase" },
   "/api/projects/export":                  { resource: "showcase", action: "export" },
-
-  // ── API – judge ───────────────────────────────────────────────────────────
-  "/api/judge":                            { resource: "judge" },
-  "/api/judge/*":                          { resource: "judge" },
 
   // ── API – admin (user management) ────────────────────────────────────────
   "/api/admin":                            { resource: "user" },
@@ -112,12 +189,12 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/api/profile":                          { authOnly: true },
   "/api/profile/*":                        { authOnly: true },
   "/api/projects/member":                  { authOnly: true },
-  "/api/projects/member/*":               { authOnly: true },
+  "/api/projects/member/*":                { authOnly: true },
   "/api/users/search":                     { authOnly: true },
   "/api/glacier-jwt":                      { authOnly: true },
   "/api/validator-alerts":                 { authOnly: true },
-  "/api/validator-alerts/*":              { authOnly: true },
-  "/api/faucet-rate-limit":               { authOnly: true },
+  "/api/validator-alerts/*":               { authOnly: true },
+  "/api/faucet-rate-limit":                { authOnly: true },
   "/console/utilities/data-api-keys":      { authOnly: true },
 } as const;
 
@@ -136,8 +213,9 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
  * It is non-greedy and does NOT cross segment boundaries, so:
  *   "/api/hackathons/*" matches "/api/hackathons/123"
  *                   but NOT "/api/hackathons/123/sub"
- *
- * For multi-segment wildcards, add a dedicated entry (e.g. "/**").
+ * A double-star wildcard matches one or more segments (crosses "/"), so the
+ * academy certificate entries match
+ * "/academy/avalanche-l1/avalanche-fundamentals/get-certificate".
  * Returns null for public routes.
  */
 export function matchRoute(pathname: string): RouteConfig | null {
@@ -150,9 +228,15 @@ export function matchRoute(pathname: string): RouteConfig | null {
     .sort(([a], [b]) => b.length - a.length);
 
   for (const [pattern, config] of wildcardEntries) {
-    // Convert each "*" to match one or more non-slash characters
+    // "**" → one or more segments (may cross "/"); "*" → exactly one segment
     const regex = new RegExp(
-      "^" + pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]+") + "$",
+      "^" +
+        pattern
+          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/\*\*/g, "\x00")
+          .replace(/\*/g, "[^/]+")
+          .replace(/\x00/g, ".+") +
+        "$",
     );
     if (regex.test(pathname)) return config;
   }

@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import { captureReferralAttributionFromUrl } from "@/lib/referrals/client";
-import { PROTECTED_PATHS } from "@/lib/auth/protected-paths";
+import { isProtectedPath as isProtectedPathFn } from "@/lib/auth/protected-paths";
 
 export function AutoLoginModalTrigger() {
   const { data: session, status } = useSession();
@@ -50,7 +50,7 @@ export function AutoLoginModalTrigger() {
     // Check if user is not authenticated
     if (status === "unauthenticated" && !hasTriggeredRef.current) {
       // Check if current path is protected
-      const isProtectedPath = PROTECTED_PATHS.some(path => pathname.startsWith(path));
+      const isProtectedPath = isProtectedPathFn(pathname);
       const isSignupReferralLanding =
         pathname === "/" && new URLSearchParams(window.location.search).has("ref");
 

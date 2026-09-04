@@ -1,12 +1,8 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import {
-  canEvaluateHackathon,
-  canManageEvaluationPhase,
-  hasAnyAttribute,
-} from "@/lib/auth/permissions";
-import { hasPermission } from "@/lib/auth/roles";
+import { canEditEvent, canEvaluateHackathon } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
 
@@ -90,10 +86,15 @@ export default async function HackathonEvaluatePage({
   });
 
   const viewerId = session!.user!.id;
-  const isDevrel = hasAnyAttribute(session?.user?.custom_attributes, ["devrel"]);
+  // platform:admin, not the raw "devrel" string — the canonical platform-admin test.
+  const isPlatformAdmin = hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" });
+  // Winner-picking and phase control are per-event: platform admins anywhere,
+  // team1_admin only on events they created or cohost (event:manage is
+  // scope:"own" for them, so a bare hasPermission would be false here).
+  const canManageThisEvent = await canEditEvent(session, hackathon.id);
 
-  // Rejected projects must never reach the client for non-devrel users — filter server-side.
-  const visibleProjects = isDevrel
+  // Rejected projects must never reach the client for non-admins — filter server-side.
+  const visibleProjects = isPlatformAdmin
     ? projects
     : projects.filter((p) => !p.is_rejected);
 
@@ -121,9 +122,9 @@ export default async function HackathonEvaluatePage({
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
         viewerId={viewerId}
-        canPickWinners={hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage" })}
-        canManagePhase={hasPermission(session?.user?.custom_attributes, { resource: "event", action: "manage" })}
-        isDevrel={isDevrel}
+        canPickWinners={canManageThisEvent}
+        canManagePhase={canManageThisEvent}
+        isDevrel={isPlatformAdmin}
         initialPhase={hackathon.evaluation_phase}
         initialReviewed={reviewedCount}
         projects={projectsForViewer.map((p) => ({

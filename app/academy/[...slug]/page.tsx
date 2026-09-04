@@ -6,7 +6,7 @@ import {
   DocsDescription,
 } from "fumadocs-ui/page";
 import defaultComponents from "fumadocs-ui/mdx";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { academy } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
 import IndexedDBComponent from "@/components/tracker";
@@ -27,9 +27,8 @@ import { SidebarActions } from "@/components/ui/sidebar-actions";
 import posthog from "posthog-js";
 
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { AuthLoading } from "@/components/ui/auth-loading";
-import { AccessDenied } from "@/components/ui/access-denied";
 
 import ToolboxMdxWrapper from "@/components/toolbox/academy/wrapper/ToolboxMdxWrapper";
 import CrossChainTransfer from "@/components/toolbox/console/primary-network/CrossChainTransfer";
@@ -92,10 +91,8 @@ export default async function Page(props: {
   if (params.slug?.[0] === "team1") {
     const session = await getAuthSession();
     if (!session?.user?.id) return <AuthLoading />;
-    if (!hasTeam1AcademyAccess(session.user.custom_attributes)) {
-      return (
-        <AccessDenied message="The Team1 Academy is only accessible to Team1 members and the DevRel team." />
-      );
+    if (!hasPermission(session.user.custom_attributes, { resource: "academy:team1", action: "read" })) {
+    redirect("/");
     }
   }
 

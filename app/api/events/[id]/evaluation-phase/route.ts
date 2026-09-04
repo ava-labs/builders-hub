@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { HackathonEvaluationPhase } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { canEvaluateHackathon, hasPermission } from "@/lib/auth/roles";
+import { canEvaluateHackathon } from "@/lib/auth/permissions";
+import { canEditEvent } from "@/lib/auth/permissions";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -59,7 +60,10 @@ export async function POST(_request: NextRequest, context: Params) {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!hasPermission(session.user?.custom_attributes, { resource: "event", action: "manage" })) {
+  // Per-event, not platform-wide: devrel on any event, team1_admin
+  // only on events they created or cohost. team1_admin's event:manage is
+  // scope:"own", so a bare hasPermission would (correctly) be false here.
+  if (!(await canEditEvent(session, hackathonId))) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

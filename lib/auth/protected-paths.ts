@@ -31,5 +31,5 @@ export const PROTECTED_PATHS = [
 ] as const;
 
 export function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PATHS.some((p) => pathname.startsWith(p));
+  return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }

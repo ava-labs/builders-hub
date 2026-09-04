@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument } from 'pdf-lib';
 import { getServerSession } from 'next-auth';
 import { AuthOptions } from '@/lib/auth/authOptions';
-import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 import { triggerCertificateWebhook } from '@/server/services/hubspotCertificateWebhook';
 import { getCompletedCourseSlugs } from '@/server/services/userBadge';
 import { getCourseConfig } from '@/content/courses';
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     // for team1-* courses.
     if (typeof courseId === 'string' && courseId.startsWith('team1-')) {
       const attrs = session.user.custom_attributes as string[] | undefined;
-      if (!hasTeam1AcademyAccess(attrs)) {
+      if (!hasPermission(attrs, { resource: "academy:team1", action: "read" })) {
         return NextResponse.json(
           { error: 'Forbidden: Team1 Academy access required.' },
           { status: 403 }

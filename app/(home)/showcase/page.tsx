@@ -1,12 +1,12 @@
+import { redirect } from "next/navigation";
 import ShowCaseCard from "@/components/showcase/ShowCaseCard";
 import { getFilteredHackathons } from "@/server/services/hackathons";
 import { getFilteredProjects } from "@/server/services/projects";
 import { ProjectFilters } from "@/types/project";
 import { Project } from "@/types/showcase";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasShowcaseRole } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { AuthLoading } from "@/components/ui/auth-loading";
-import { AccessDenied } from "@/components/ui/access-denied";
 
 export default async function ShowCasePage({
   searchParams,
@@ -29,10 +29,8 @@ export default async function ShowCasePage({
     return <AuthLoading />;
   }
 
-  if (!hasShowcaseRole(session.user.custom_attributes)) {
-    return (
-      <AccessDenied message="You don't have permission to view the showcase. This section is only accessible to users with showcase, devrel, or admin roles." />
-    );
+  if (!hasPermission(session.user.custom_attributes, { resource: "showcase", action: "read" })) {
+    redirect("/");
   }
 
   const { page, event, track, recordsByPage, search, winningProjects } =

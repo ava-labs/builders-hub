@@ -3,9 +3,8 @@ import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import { EvaluateDashboard } from "@/components/evaluate/EvaluateDashboard";
 import type { SubmissionRow, EvaluationData } from "@/components/evaluate/types";
-import { canAccessEvaluationTools, canReviewMiniGrants } from "@/lib/auth/permissions";
-import { hasPermission } from "@/lib/auth/roles";
-import { MINI_GRANT_KEY, MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
+import { evaluableHackathonIds } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 function normalizeStringMap(value: unknown): Record<string, string> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -51,12 +50,8 @@ export default async function EvaluatePage({
     redirect("/");
   }
 
-  // Mini-grant (grant_minigrant) review is scoped to devrel + assigned
-  // mini-grant judges, separately from the global judge/devrel evaluation gate.
-  const canEvaluate = canAccessEvaluationTools(session.user?.custom_attributes);
-  const canReviewMini = await canReviewMiniGrants(session);
-
-  if (!canEvaluate && !canReviewMini) {
+  const evaluableIds = await evaluableHackathonIds(session);
+  if (evaluableIds !== null && evaluableIds.length === 0) {
     redirect("/");
   }
 
@@ -64,25 +59,27 @@ export default async function EvaluatePage({
   const selectedHackathonId = params.hackathonId ?? "";
 
   try {
+    const visibleIds =
+      evaluableIds === null
+        ? null
+        : selectedHackathonId
+          ? evaluableIds.filter((id) => id === selectedHackathonId)
+          : evaluableIds;
+
     const formDataWhere: Record<string, unknown> = {};
-    if (selectedHackathonId) {
-      formDataWhere.project = { hackaton_id: selectedHackathonId };
-    }
-    // Scope mini-grant rows: hide them from users who can't review mini-grants,
-    // and show ONLY them to mini-grant-only judges (no global evaluation access).
-    if (!canReviewMini) {
-      formDataWhere.origin = { not: MINI_GRANT_KEY };
-    } else if (!canEvaluate) {
-      formDataWhere.origin = MINI_GRANT_KEY;
+    if (visibleIds === null) {
+      if (selectedHackathonId) {
+        formDataWhere.project = { hackaton_id: selectedHackathonId };
+      }
+    } else {
+      formDataWhere.project = { hackaton_id: { in: visibleIds } };
     }
 
     const hackathonWhere: Record<string, unknown> = {
       projects: { some: { formData: { some: {} } } },
     };
-    if (!canReviewMini) {
-      hackathonWhere.id = { not: MINI_GRANT_HACKATHON_ID };
-    } else if (!canEvaluate) {
-      hackathonWhere.id = MINI_GRANT_HACKATHON_ID;
+    if (evaluableIds !== null) {
+      hackathonWhere.id = { in: evaluableIds };
     }
 
     const [hackathons, formDataRecords] = await Promise.all([

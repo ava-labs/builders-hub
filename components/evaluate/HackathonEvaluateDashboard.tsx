@@ -561,7 +561,7 @@ export function HackathonEvaluateDashboard({
                 />
               </TableHead>
               <TableHead className="w-[110px] text-right">Winner</TableHead>
-              {canPickWinners && (
+              {isDevrel && (
                 <TableHead className="w-[110px] text-right">Visibility</TableHead>
               )}
             </TableRow>
@@ -569,7 +569,7 @@ export function HackathonEvaluateDashboard({
           <TableBody>
             {sorted.length === 0 && (
               <TableRow>
-                <TableCell colSpan={canPickWinners ? 8 : 7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
+                <TableCell colSpan={isDevrel ? 8 : 7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
                   No projects yet.
                 </TableCell>
               </TableRow>
@@ -655,7 +655,7 @@ export function HackathonEvaluateDashboard({
                       onToggle={(next) => setIsWinner(p.id, next)}
                     />
                   </TableCell>
-                  {canPickWinners && (
+                  {isDevrel && (
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <RejectControl
                         isRejected={isRejected}

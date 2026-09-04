@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Session } from 'next-auth';
 import { getAuthSession } from './auth/authSession';
-import { Permission, actionFromMethod } from './auth/rolePermissions';
-import { hasPermission } from './auth/roles';
-import type { Resource } from './auth/rolePermissions';
+import { actionFromMethod, hasPermission } from './auth/rolePermissions';
+import type { Permission, Resource } from './auth/rolePermissions';
 
 /**
  * Helper type for route handlers with params.

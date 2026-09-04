@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { canAccessEvaluationTools, canReviewMiniGrants } from "@/lib/auth/permissions";
-import { MINI_GRANT_KEY } from "@/lib/grants/programs";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 function computeStageProgress(origin: string, data: Record<string, unknown>): number {
   if (origin !== "build_games") return 0;
@@ -17,26 +16,47 @@ function computeStageProgress(origin: string, data: Record<string, unknown>): nu
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession();
-
-    const canEvaluate = canAccessEvaluationTools(session?.user?.custom_attributes);
-    const canReviewMini = await canReviewMiniGrants(session);
-
-    if (!session?.user?.id || (!canEvaluate && !canReviewMini)) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 401 });
+    }
+
+    const isPlatformAdmin = hasPermission(session.user.custom_attributes, {
+      resource: "platform",
+      action: "admin",
+    });
+
+    // Per-hackathon scoping: a judge's global "judge" custom_attribute is NOT
+    // sufficient on its own (mirrors app/api/evaluate/route.ts) — only a
+    // platform admin (devrel) or hackathons this user actually
+    // holds a HackathonJudge row for (mini-grant reviewers included, since
+    // mini-grant review is just a HackathonJudge assignment on the
+    // mini-grant program's backing hackathon — see canReviewMiniGrants) are
+    // visible.
+    let assignedHackathonIds: string[] = [];
+    if (!isPlatformAdmin) {
+      assignedHackathonIds = (
+        await prisma.hackathonJudge.findMany({
+          where: { user_id: session.user.id },
+          select: { hackathon_id: true },
+        })
+      ).map((a) => a.hackathon_id);
+      if (assignedHackathonIds.length === 0) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     const { searchParams } = new URL(request.url);
     const hackathonId = searchParams.get("hackathonId");
 
+    if (hackathonId && !isPlatformAdmin && !assignedHackathonIds.includes(hackathonId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const where: Record<string, unknown> = {};
     if (hackathonId) {
       where.project = { hackaton_id: hackathonId };
-    }
-    // Scope mini-grant rows to devrel + assigned mini-grant judges only.
-    if (!canReviewMini) {
-      where.origin = { not: MINI_GRANT_KEY };
-    } else if (!canEvaluate) {
-      where.origin = MINI_GRANT_KEY;
+    } else if (!isPlatformAdmin) {
+      where.project = { hackaton_id: { in: assignedHackathonIds } };
     }
 
     const formDataRecords = await prisma.formData.findMany({

@@ -2,7 +2,7 @@ import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 import { getHackathon } from "@/server/services/hackathons";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 export default async function HackathonAdminPanel({
   params,
@@ -10,7 +10,7 @@ export default async function HackathonAdminPanel({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write" })) {
+  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write", scope: "own" })) {
     redirect("/");
   }
 
@@ -19,8 +19,9 @@ export default async function HackathonAdminPanel({
 
   if (!hackathon) redirect("/events");
 
-  // Ownership check: hackathon:manage bypasses this (devrel / superadmin).
-  // Otherwise the actor must be the creator or a cohost.
+  // Ownership check: only an UNSCOPED event:manage bypasses it (devrel /
+  // superadmin). team1_admin's grant is scope:"own", so it does not match here
+  // and correctly falls through to the creator/cohost check below.
   const canManage = hasPermission(session.user?.custom_attributes, { resource: "event", action: "manage" });
   if (!canManage && hackathon.created_by !== session.user?.id && !hackathon.cohosts?.includes(session.user?.email ?? "")) {
     redirect("/");

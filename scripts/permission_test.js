@@ -67,7 +67,7 @@ const RAW_ROUTES = [
     name: '/api/events/[id]',
     method: 'PUT',
     path: '/api/events/__test__',
-    expectedRoles: ['hackathonCreator', 'team1-admin', 'devrel'],
+    expectedRoles: ['hackathon_creator', 'team1_admin', 'devrel'],
     body: { id: '__test__' },
     type: 'api',
   },
@@ -75,7 +75,7 @@ const RAW_ROUTES = [
     name: '/api/events/[id]',
     method: 'PATCH',
     path: '/api/events/__test__',
-    expectedRoles: ['hackathonCreator', 'team1-admin', 'devrel'],
+    expectedRoles: ['hackathon_creator', 'team1_admin', 'devrel'],
     body: { is_public: true },
     type: 'api',
   },
@@ -83,7 +83,7 @@ const RAW_ROUTES = [
     name: '/api/events',
     method: 'POST',
     path: '/api/events',
-    expectedRoles: ['hackathonCreator', 'team1-admin', 'devrel'],
+    expectedRoles: ['hackathon_creator', 'team1_admin', 'devrel'],
     body: { title: '__test_DO_NOT_PUBLISH__', start_date: 'invalid-date' },
     type: 'api',
   },
@@ -91,28 +91,28 @@ const RAW_ROUTES = [
     name: '/events/new',
     method: 'GET',
     path: '/events/new',
-    expectedRoles: ['hackathonCreator', 'team1-admin', 'devrel'],
+    expectedRoles: ['hackathon_creator', 'team1_admin', 'devrel'],
     type: 'ui',
   },
   {
     name: '/showcase',
     method: 'GET',
     path: '/showcase',
-    expectedRoles: ['showcase', 'hackathonCreator', 'team1-admin', 'devrel'],
+    expectedRoles: ['showcase', 'hackathon_creator', 'team1_admin', 'devrel'],
     type: 'ui',
   },
   {
     name: '/api/showcase',
     method: 'GET',
     path: '/api/showcase',
-    expectedRoles: ['showcase', 'hackathonCreator', 'team1-admin', 'devrel'],
+    expectedRoles: ['showcase', 'hackathon_creator', 'team1_admin', 'devrel'],
     type: 'api',
   },
   {
     name: '/api/projects/export',
     method: 'POST',
     path: '/api/projects/export',
-    expectedRoles: ['hackathonCreator', 'devrel'],
+    expectedRoles: ['hackathon_creator', 'devrel'],
     body: { query: '__test_invalid_query__' },
     type: 'api',
   },
@@ -136,7 +136,7 @@ const RAW_ROUTES = [
     name: '/evaluate',
     method: 'GET',
     path: '/evaluate',
-    expectedRoles: ['judge', 'devrel'],
+    expectedRoles: ['devrel'],
     type: 'ui',
   },
   {
@@ -151,47 +151,45 @@ const RAW_ROUTES = [
     name: '/api/events/[id]/evaluation-phase',
     method: 'POST',
     path: '/api/events/__test__/evaluation-phase',
-    expectedRoles: ['team1-admin', 'devrel'],
+    expectedRoles: ['team1_admin', 'devrel'],
     type: 'api',
   },
   {
     name: '/api/projects/[id]/winner',
     method: 'POST',
     path: '/api/projects/__test__/winner',
-    expectedRoles: ['team1-admin', 'devrel'],
+    expectedRoles: ['team1_admin', 'devrel'],
     body: { is_winner: true },
     type: 'api',
   },
 ];
 
 const ROLE_CYCLES = [
-  'hackathonCreator',
+  'hackathon_creator',
   'showcase',
   'BuildGamesJudge',
   'NotifyEvent',
   'badge_admin',
-  'team1-admin',
+  'team1_admin',
   'Team1-Leader',
   'Team1-member',
   'T1-Technical',
 ];
 
 const ROLE_NAME_MAP = {
-  BuildGamesJudge: 'judge',
   NotifyEvent: 'notify_event',
 };
 
 const ALLOWED_ROLE_NAMES = new Set([
-  'hackathonCreator',
+  'hackathon_creator',
   'showcase',
-  'judge',
   'badge_admin',
   'notify_event',
   'builder_insights',
   'Team1-Leader',
   'Team1-member',
   'T1-Technical',
-  'team1-admin',
+  'team1_admin',
   'devrel',
 ]);
 
@@ -568,6 +566,10 @@ async function run() {
     console.log(
       `| ${row.route} | ${row.method} | ${row.roleTested} | ${row.hasPermission} | ${row.got} | ${row.result} |`,
     );
+  }
+
+  if (failed > 0) {
+    process.exit(1);
   }
 }
 

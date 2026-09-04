@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 
 export default async function NewHackathonPage() {
   const session = await getAuthSession();
 
-  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write" })) {
+  if (!session || !hasPermission(session.user?.custom_attributes, { resource: "event", action: "write", scope: "own" })) {
     redirect("/");
   }
 

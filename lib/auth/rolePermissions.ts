@@ -11,15 +11,43 @@
  *   read    → safe reads (GET)
  *   write   → mutations (POST, PUT, PATCH)
  *   delete  → removal (DELETE)
- *   manage  → read + write + delete for that resource
+ *   manage  → superset of every other action on that resource
  *   *       → every action on the matched resource
  *
  * Wildcard rules:
  *   resource "*" matches any resource.
  *   action   "*" matches any action.
- *   "manage" implies read + write + delete.
+ *   "manage" is a superset of all other actions (read, write, delete,
+ *   export, admin, assign, and any future custom action).
  *
- * To add a new role: add an entry here. Nothing else needs to change.
+ * Scope:
+ *   A grant may carry `scope: "own"`, meaning it covers only objects the user
+ *   owns. This module cannot resolve ownership (that needs a DB read), so a
+ *   scoped grant deliberately fails any unscoped check — see Scope below.
+ *   Every `scope: "own"` grant has a matching `can…` policy helper in
+ *   permissions.ts, named in a comment on the role.
+ *
+ * Capabilities NOT granted by roles:
+ *   This map is keyed by role name, so anything granted by an *assignment row*
+ *   rather than a role cannot appear here at all. Do not read the absence of a
+ *   capability from this map as "nobody can do it". The assignment axes are:
+ *
+ *     HackathonJudge row → evaluate that hackathon's projects.
+ *       canEvaluateHackathon() / canReviewMiniGrants() in permissions.ts.
+ *       A user with NO roles can evaluate an event they are assigned to.
+ *       Note the `judge` role below is a separate, weaker thing: it is neither
+ *       granted by assignment nor required in order to evaluate.
+ *
+ *     ProjectMember row (status CONFIRMED) → edit that project's submission.
+ *       Enforced in server/services/submitProject.ts.
+ *
+ *   These are a different axis from roles ("which objects is this user attached
+ *   to" vs "what may this user do anywhere"). Resolving them needs a DB read, so
+ *   they stay in policy helpers; folding them into this map would mean either
+ *   losing the per-object scoping or carrying object ids in the session.
+ *
+ * To add a new role: add an entry here. Nothing else needs to change — unless
+ * the grant is scoped, which also needs its policy helper in permissions.ts.
  * To protect a new route: add an entry to routeManifest.ts.
  */
 
@@ -34,13 +62,34 @@ export type Resource =
   | "user"
   | "platform"
   | "builder_insights"
+  | "academy:team1"
   | "*"; // wildcard — matches any resource in checkPermission()
 
 export type Action = "read" | "write" | "delete" | "manage" | "admin" | "export" | "assign" | "*";
 
+/**
+ * How far a grant reaches.
+ *
+ *   "all" (default) – every object of that resource, platform-wide.
+ *   "own"           – only objects the user owns. What "owns" means is
+ *                     resolved by a named policy helper in permissions.ts,
+ *                     because it needs a DB read and this module must stay
+ *                     synchronous and dependency-free (the middleware and
+ *                     client components both import it).
+ *
+ * A "own" grant NEVER satisfies an unscoped requirement, so a bare
+ * `hasPermission(attrs, { resource: "event", action: "manage" })` cannot
+ * accidentally return true for a role that is only scoped to its own events.
+ * Call sites that mean "…for this specific object" must pass scope: "own"
+ * and then run the matching policy helper.
+ */
+export type Scope = "all" | "own";
+
 export interface Permission {
   resource: Resource;
   action: Action;
+  /** Omitted means "all". Every `scope: "own"` grant has a `can…` helper in permissions.ts. */
+  scope?: Scope;
 }
 
 // ---------------------------------------------------------------------------
@@ -48,12 +97,13 @@ export interface Permission {
 // ---------------------------------------------------------------------------
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-  // ── Super users (full wildcard) ──────────────────────────────────────────
-  superadmin: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
+  // ── Platform admin (full wildcard) ───────────────────────────────────────
+  // The only role holding platform:admin. isPlatformAdmin() in permissions.ts
+  // is the canonical way to test for it — never the "devrel" string.
   devrel: [{ resource: "*", action: "manage" }, { resource: "platform", action: "admin" }, { resource: "judge", action: "assign" }],
 
   // ── Hackathon creator ─────────────────────────────────────────────────────
-  hackathonCreator: [
+  hackathon_creator: [
     { resource: "event", action: "write" },
     { resource: "event", action: "read" },
     { resource: "resource", action: "read" },
@@ -62,27 +112,44 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     { resource: "showcase", action: "export" },
   ],
 
-  // ── Team 1 admin ─────────────────────────────────────────────────────────
-  "team1-admin": [
-    { resource: "event", action: "manage" },
+  // ── Team1 admin ──────────────────────────────────────────────────────────
+  // event:manage is scope:"own" — only events they created or cohost.
+  // Resolved by canEditEvent() / canManageHackathonJudges() in permissions.ts.
+  // Because it is scoped, a bare hasPermission(attrs, {event, manage}) is
+  // false here: platform-wide event powers belong to platform:admin only.
+  team1_admin: [
+    { resource: "event", action: "manage", scope: "own" },
     { resource: "resource", action: "manage" },
     { resource: "speaker", action: "manage" },
     { resource: "showcase", action: "read" },
-    { resource: "judge", action: "assign" },
+    { resource: "showcase", action: "export" },
+    { resource: "judge", action: "assign", scope: "own" },
+    { resource: "academy:team1", action: "read" }
   ],
+
+  // ── Team1 event admin ─────────────────────────────────────────────────────
+  // Narrower than team1_admin: read-only event access, and only for events
+  // they created or cohost. Resolved by canViewEventRegistrations().
+  team1_event_admin: [
+    { resource: "event", action: "read", scope: "own" },
+    { resource: "academy:team1", action: "read" }],
+
+  // ── Team1 lead ────────────────────────────────────────────────────────────
+  // Team1 Chapter Lead and Co-Leads
+  team1_lead: [
+    { resource: "builder_insights", action: "read" },
+    { resource: "academy:team1", action: "read" }
+  ],
+
+  // ── Team1 ─────────────────────────────────────────────────────────────────
+  // member/collaborator of Team1.
+  // allows to later add team1-member or team1-collaborator, if needed.
+  team1: [{ resource: "academy:team1", action: "read" }],
 
   // ── Showcase ──────────────────────────────────────────────────────────────
   showcase: [
     { resource: "showcase", action: "read" },
     { resource: "showcase", action: "write" },
-  ],
-
-  // ── Judge ─────────────────────────────────────────────────────────────────
-  // Note: judge:assign is intentionally NOT granted here.
-  // Assigning/removing judges is reserved for devrel and superadmin only.
-  judge: [
-    { resource: "judge", action: "read" },
-    { resource: "badge", action: "write" },
   ],
 
   // ── Badge admin ───────────────────────────────────────────────────────────
@@ -96,11 +163,6 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   // ── Builder insights ─────────────────────────────────────────────────────
   builder_insights: [{ resource: "builder_insights", action: "read" }, { resource: "builder_insights", action: "write" }],
-
-  // ── Team 1 internal roles ─────────────────────────────────────────────────
-  "Team1-Leader": [{ resource: "builder_insights", action: "read" }],
-  "Team1-member": [{ resource: "builder_insights", action: "read" }],
-  "T1-Technical": [{ resource: "builder_insights", action: "read" }],
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -146,8 +208,13 @@ export function getPermissionsFromRoles(roles: string[]): Permission[] {
   const permissions: Permission[] = [];
 
   for (const role of roles) {
-    for (const perm of ROLE_PERMISSIONS[role] ?? []) {
-      const permKey = `${perm.resource}:${perm.action}`;
+    // Object.hasOwn guards against prototype-chain keys ("constructor",
+    // "__proto__", ...) resolving to non-array values and throwing.
+    if (!Object.hasOwn(ROLE_PERMISSIONS, role)) continue;
+    for (const perm of ROLE_PERMISSIONS[role]) {
+      // Scope is part of the identity: a user holding both a scoped and an
+      // unscoped grant of the same resource:action must keep the unscoped one.
+      const permKey = `${perm.resource}:${perm.action}:${perm.scope ?? "all"}`;
       if (!seen.has(permKey)) {
         seen.add(permKey);
         permissions.push(perm);
@@ -167,8 +234,10 @@ export function getPermissionsFromRoles(roles: string[]): Permission[] {
  *  2. Exact resource match.
  *  3. Parent namespace match: owning "badge" grants access to "badge:nft".
  *  4. Wildcard action ("*") matches any required action.
- *  5. "manage" matches read + write + delete.
+ *  5. "manage" matches every other action (full superset).
  *  6. Exact action match.
+ *  7. Scope: an unscoped grant answers anything; a `scope: "own"` grant only
+ *     answers a requirement that also asks for scope "own".
  */
 export function checkPermission(
   userPermissions: Permission[],
@@ -183,13 +252,17 @@ export function checkPermission(
 
     const actionMatch =
       p.action === "*" ||
-      (p.action === "manage" &&
-        (required.action === "read" ||
-          required.action === "write" ||
-          required.action === "delete")) ||
+      p.action === "manage" ||
       p.action === required.action;
 
-    return resourceMatch && actionMatch;
+    // An "all" grant answers anything. A scoped grant answers only a
+    // requirement asking for that same scope — so asking the unscoped
+    // (platform-wide) question can never be satisfied by a scoped grant.
+    // Written scope-agnostically so a future scope needs no change here.
+    const grantScope = p.scope ?? "all";
+    const scopeMatch = grantScope === "all" || grantScope === (required.scope ?? "all");
+
+    return resourceMatch && actionMatch && scopeMatch;
   });
 }
 
@@ -200,7 +273,7 @@ export function checkPermission(
  * server-only dependencies (no prisma, no next/headers, etc.).
  *
  * For async checks (e.g. judge rows in DB) use `canEvaluateHackathon` from
- * `@/lib/auth/roles` in server components / route handlers only.
+ * `@/lib/auth/permissions` in server components / route handlers only.
  */
 export function hasPermission(
   customAttributes: readonly string[] | null | undefined,

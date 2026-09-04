@@ -1,5 +1,6 @@
 import { Session } from 'next-auth';
-import { withAuthPermission } from "@/lib/protectedRoute";
+import { withAuth } from "@/lib/protectedRoute";
+import { canManageProjectOutcome } from "@/lib/auth/permissions";
 import { parseIsWinnerBody } from "@/lib/hackathons/evaluation-phase";
 import {
   SetWinner,
@@ -7,7 +8,7 @@ import {
 } from "@/server/services/set-project-winner";
 import { NextRequest, NextResponse } from "next/server";
 
-export const PUT = withAuthPermission({ resource: "event", action: "manage" }, async (req: NextRequest, _context: unknown, session: Session) => {
+export const PUT = withAuth(async (req: NextRequest, _context: unknown, session: Session) => {
   const body = await req.json();
   const name = session.user.name || "user";
 
@@ -17,6 +18,11 @@ export const PUT = withAuthPermission({ resource: "event", action: "manage" }, a
         { success: false, error: "project_id parameter is required" },
         { status: 400 }
       );
+    }
+
+    // Per-event, not platform-wide — see canManageProjectOutcome.
+    if (!(await canManageProjectOutcome(session, body.project_id))) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
     }
 
     const parsed = parseIsWinnerBody(body);

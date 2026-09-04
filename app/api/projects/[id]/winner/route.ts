@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
+import { withAuth, type RouteParams } from "@/lib/protectedRoute";
+import { canManageProjectOutcome } from "@/lib/auth/permissions";
 import { parseIsWinnerBody } from "@/lib/hackathons/evaluation-phase";
 import {
   SetWinner,
@@ -9,10 +10,16 @@ import { Session } from "next-auth";
 
 type Params = RouteParams<{ id: string }>;
 
-export const POST = withAuthPermission<Params>(
-  { resource: "event", action: "manage" },
+export const POST = withAuth<Params>(
   async (request: NextRequest, context: Params, session: Session) => {
     const { id: projectId } = await context.params;
+
+    // Per-event, not platform-wide: team1_admin's event:manage is scope:"own",
+    // so ownership of THIS project's event has to be resolved against the DB.
+    if (!(await canManageProjectOutcome(session, projectId))) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
     const parsed = parseIsWinnerBody(body);

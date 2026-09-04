@@ -5,35 +5,17 @@ import {
   GetHackathonsOptions,
 } from '@/server/services/hackathons';
 import { HackathonStatus } from '@/types/hackathons';
-import { getUserById } from '@/server/services/getUser';
 import { withAuthPermission } from '@/lib/protectedRoute';
 import { getAuthSession } from '@/lib/auth/authSession';
-import { hasPermission } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 
 import { z } from 'zod';
 
 /**
- * SECURITY: Role assignment audit trail.
- *
- * The custom_attributes values used to gate hackathon creation are assigned
- * server-side by privileged endpoints only:
- *
- * - `devrel`            – assigned via the internal admin panel at
- *                         POST /api/admin/users/[id]/roles, which itself
- *                         requires `withAuthRole('devrel', ...)` (devrel-only).
- *
- * - `team1-admin`       – assigned by the same /api/admin/users/[id]/roles
- *                         endpoint; only a devrel user can grant this attribute.
- *                         It scopes a partner organisation's admin access.
- *
- * - `hackathonCreator`  – assigned via POST /api/admin/users/[id]/roles;
- *                         requires the caller to hold the `devrel` attribute.
- *                         It is intended for trusted external event organisers
- *                         who need the ability to create hackathons without
- *                         full devrel access.
- *
- * None of these attributes can be self-assigned by a regular user.
+ * SECURITY: the roles that gate hackathon creation are granted server-side
+ * only, through POST /api/admin/user-roles, which itself requires user:manage
+ * (devrel). None of them can be self-assigned.
  */
 
 /**
@@ -108,37 +90,37 @@ export async function GET(req: NextRequest) {
     const userId = session?.user?.id;
     const managedOnly = searchParams.get('managed') === 'true';
 
-    let isPrivileged = false; // devrel or team1-admin — the only roles allowed to see private hackathons
+    let isPrivileged = false; // devrel or team1_admin — the only roles allowed to see private hackathons
 
     if (userId) {
-      const user = await getUserById(userId);
-      if (!user) {
-        return NextResponse.json({ error: "User not found" }, { status: 404 });
-      }
-
-      // Determine visibility using the new permission model
-      const attrs = user.custom_attributes || [];
-      const canManageHackathons = hasPermission(attrs, { resource: "event", action: "manage" });
-      const canWriteHackathons  = hasPermission(attrs, { resource: "event", action: "write" });
-      const hasHackathonAccess  = canManageHackathons || canWriteHackathons;
+      // Roles come from the session, which is UserRole-backed.
+      const attrs = session?.user?.custom_attributes ?? [];
+      // Three distinct questions — team1_admin's only event grant is scoped, so
+      // asking any of these unscoped would hide its own private events.
+      //   canManageAllEvents : platform-wide (devrel) — skips the ownership scoping
+      //   mayRequestPrivate  : devrel + team1_admin — may ask for visibility=private
+      //   mayManageOwnEvents : + hackathon_creator — sees its own private events
+      const canManageAllEvents = hasPermission(attrs, { resource: "event", action: "manage" });
+      const mayRequestPrivate  = hasPermission(attrs, { resource: "event", action: "manage", scope: "own" });
+      const mayManageOwnEvents = hasPermission(attrs, { resource: "event", action: "write", scope: "own" });
+      isPrivileged = mayRequestPrivate;
 
       if (managedOnly) {
-        options.include_private = hasHackathonAccess;
-        if (!canManageHackathons) {
+        options.include_private = mayManageOwnEvents;
+        if (!canManageAllEvents) {
           // Non-admin editors only see their own events
           options.created_by = userId;
-          options.cohost_email = user.email || undefined;
+          options.cohost_email = session?.user?.email || undefined;
         }
       } else {
         options.include_private = false;
       }
 
-      console.log('API GET /events:', { userId, canManageHackathons, canWriteHackathons, managedOnly, options });
     } else {
       options.include_private = false;
     }
 
-    // SECURITY: Only devrel/team1-admin may request visibility=private or visibility=all.
+    // SECURITY: Only devrel/team1_admin may request visibility=private or visibility=all.
     // All other callers receive only public hackathons regardless of the param.
     if (requestedVisibility === 'private' || requestedVisibility === 'all') {
       if (!isPrivileged) {
@@ -162,7 +144,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export const POST = withAuthPermission({ resource: "event", action: "write" }, async (req: NextRequest, context: any, session: any) => {
+export const POST = withAuthPermission({ resource: "event", action: "write", scope: "own" }, async (req: NextRequest, context: any, session: any) => {
   try {
     const rawBody = await req.json();
 

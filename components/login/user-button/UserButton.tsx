@@ -19,7 +19,6 @@ import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar'
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
 import { hasPermission } from '@/lib/auth/rolePermissions';
-import { canAccessBuilderInsights } from '@/lib/auth/permissions';
 
 const AVATAR_PX = 30;
 
@@ -58,8 +57,6 @@ export function UserButton() {
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
-
-  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -208,14 +205,18 @@ export function UserButton() {
               )
             }
             {
-              hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write" }) && (
+              hasPermission(session?.user?.custom_attributes, { resource: "event", action: "write", scope: "own" }) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/events/edit'>Event Management</Link>
                 </DropdownMenuItem>
               )
             }
             {
-              hasPermission(session?.user?.custom_attributes, { resource: "judge", action: "read" }) && (
+              // Evaluation comes from a HackathonJudge assignment, not a role,
+              // so the global "judge" role is not the gate — is_hackathon_judge
+              // mirrors what /evaluate itself enforces (evaluableHackathonIds).
+              (session?.user?.is_hackathon_judge ||
+                hasPermission(session?.user?.custom_attributes, { resource: "platform", action: "admin" })) && (
                 <DropdownMenuItem asChild className='cursor-pointer'>
                   <Link href='/evaluate'>Evaluate Hackathons</Link>
                 </DropdownMenuItem>

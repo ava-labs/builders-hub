@@ -1,7 +1,7 @@
 import { withAuth } from "@/lib/protectedRoute";
 import { badgeAssignmentService } from "@/server/services/badgeAssignmentService";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { hasPermission } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 import { NextRequest, NextResponse } from "next/server";
 
