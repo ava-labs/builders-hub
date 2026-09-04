@@ -3,6 +3,7 @@ import { Session } from 'next-auth';
 import { prisma } from '@/prisma/prisma';
 import { syncUserDataToHubSpot } from '@/server/services/hubspotUserData';
 import { recordReferralAttributionFromRequest } from '@/server/services/referrals';
+import { normalizeEmail } from '@/lib/utils';
 
 const SIGNUP_ATTRIBUTION_RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -38,7 +39,7 @@ export const POST = withAuth(async (
   session: Session
 ) => {
   try {
-    const email = session.user.email;
+    const email = session.user.email ? normalizeEmail(session.user.email) : session.user.email;
     const body = await req.json();
     const {
       notifications = false,

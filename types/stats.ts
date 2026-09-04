@@ -96,6 +96,8 @@ export interface L1Chain {
   // Whether this chain is entitled to the bare, unqualified URL alias
   aliasVerified?: boolean;
   // Whether the explorer has data for this chain
+  // Absent means never pruned, which counts as active.
+  isActive?: boolean;
   isIndexed?: boolean;
   // Pins isIndexed against the derivation above
   isIndexedOverride?: boolean;

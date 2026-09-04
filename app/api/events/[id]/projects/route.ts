@@ -1,25 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
+import {
+  canEvaluateHackathon,
+  verifyHackathonProjectsApiKey,
+} from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
-import { canEvaluateHackathon } from "@/lib/auth/permissions";
-import { timingSafeEqual } from "node:crypto";
+import { projectHasNoLinks } from "@/lib/hackathons/project-links";
 import type { RouteParams } from "@/lib/protectedRoute";
 
 type Params = RouteParams<{ id: string }>;
-
-function verifyHackathonProjectsApiKey(authHeader: string | null | undefined): boolean {
-  const expected = process.env.HACKATHON_PROJECTS_API_KEY;
-  if (!expected || expected.length === 0) return false;
-  if (!authHeader) return false;
-  const match = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (!match) return false;
-  const provided = match[1].trim();
-  const expectedBuf = Buffer.from(expected);
-  const providedBuf = Buffer.from(provided);
-  if (expectedBuf.length !== providedBuf.length) return false;
-  return timingSafeEqual(expectedBuf, providedBuf);
-}
 
 const projectMetaSelect = {
   id: true,
@@ -73,12 +64,15 @@ export async function GET(request: NextRequest, context: Params) {
   if (internalAuthorized) {
     const session = await getAuthSession();
     const viewerId = session?.user?.id ?? null;
+    const isDevrel = hasPermission(session, { resource: "platform", action: "admin" });
 
     const projects = await prisma.project.findMany({
       where: { hackaton_id: hackathonId },
       orderBy: { created_at: "asc" },
       select: {
         ...projectMetaSelect,
+        is_rejected: true,
+        deployed_addresses: true,
         members: {
           select: {
             id: true,
@@ -108,8 +102,14 @@ export async function GET(request: NextRequest, context: Params) {
       },
     });
 
+    // Hidden projects (rejected or link-less) must never reach non-devrel
+    // callers — same server-side filter as the evaluate page.
+    const visibleProjects = isDevrel
+      ? projects
+      : projects.filter((p) => !p.is_rejected && !projectHasNoLinks(p));
+
     const projectsForViewer = stripEvaluationsForViewer(
-      projects,
+      visibleProjects,
       hackathon.evaluation_phase,
       viewerId,
     );

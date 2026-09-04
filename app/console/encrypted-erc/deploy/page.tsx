@@ -1,4 +1,7 @@
 import { redirect } from 'next/navigation';
+import { consoleToolMetadata } from "@/components/console/tool-metadata";
+
+export const metadata = consoleToolMetadata("/console/encrypted-erc", "Encrypted ERC");
 
 export default function Page() {
   // Send users directly into the Deploy-Your-Own wizard — the old

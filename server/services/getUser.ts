@@ -1,8 +1,9 @@
 import { prisma } from "@/prisma/prisma";
+import { normalizeEmail } from "@/lib/utils";
 
 export async function getUserByEmail(email: string) {
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: normalizeEmail(email) },
   });
 
   return user;

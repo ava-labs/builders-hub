@@ -51,8 +51,21 @@ interface StakingSeries {
   unlocks: UnlockDay[];
 }
 
+/* Sub-unit totals are real on Fuji: 30 days of staking rewards there is ~0.42
+   AVAX, and Math.round put "0 AVAX" next to a chart full of bars — the bars
+   autoscale to dataMax, so they look full whatever the magnitude. */
 const fmtAvaxShort = (n: number) =>
-  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : `${Math.round(n)}`;
+  n >= 1_000_000
+    ? `${(n / 1_000_000).toFixed(2)}M`
+    : n >= 1_000
+      ? `${(n / 1_000).toFixed(1)}K`
+      : n >= 1
+        ? `${Math.round(n)}`
+        : n > 0
+          ? n < 0.0001
+            ? "<0.0001"
+            : `${Number(n.toPrecision(2))}`
+          : "0";
 
 /* "BanffCommitBlock" → "Commit": the Banff prefix is a protocol-upgrade
    implementation detail; Commit/Proposal/Standard is what the reader needs. */

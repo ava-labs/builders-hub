@@ -4,6 +4,10 @@ import { prisma } from "@/prisma/prisma";
 import { canEditEvent, canEvaluateHackathon } from "@/lib/auth/permissions";
 import { hasPermission } from "@/lib/auth/rolePermissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
+import {
+  countReviewProgress,
+  projectHasNoLinks,
+} from "@/lib/hackathons/project-links";
 import { HackathonEvaluateDashboard } from "@/components/evaluate/HackathonEvaluateDashboard";
 
 export default async function HackathonEvaluatePage({
@@ -93,10 +97,17 @@ export default async function HackathonEvaluatePage({
   // scope:"own" for them, so a bare hasPermission would be false here).
   const canManageThisEvent = await canEditEvent(session, hackathon.id);
 
-  // Rejected projects must never reach the client for non-admins — filter server-side.
+  // Link-less projects have nothing to judge: auto-hidden, like a manual reject.
+  const flaggedProjects = projects.map((p) => ({
+    ...p,
+    auto_hidden: projectHasNoLinks(p),
+  }));
+
+  // Hidden projects (rejected or auto-hidden) must never reach the client for
+  // non-devrel users — filter server-side.
   const visibleProjects = isPlatformAdmin
-    ? projects
-    : projects.filter((p) => !p.is_rejected);
+    ? flaggedProjects
+    : flaggedProjects.filter((p) => !p.is_rejected && !p.auto_hidden);
 
   const projectsForViewer = stripEvaluationsForViewer(
     visibleProjects,
@@ -104,8 +115,8 @@ export default async function HackathonEvaluatePage({
     viewerId,
   );
 
-  // Reviewed count is based on visible projects only
-  const reviewedCount = visibleProjects.filter((p) => p.evaluations.length > 0).length;
+  // Reviewed count only tracks projects judges can actually review
+  const { reviewed: reviewedCount } = countReviewProgress(visibleProjects);
 
   return (
     <main className="container relative px-4 py-8 lg:py-12">

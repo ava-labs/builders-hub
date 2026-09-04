@@ -29,11 +29,30 @@ interface ChainRow {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
-  txCount: number;
-  tps: number;
-  activeAddresses: number;
-  icmMessages: number;
+  txCount: number | null;
+  tps: number | null;
+  activeAddresses: number | null;
+  icmMessages: number | null;
   validatorCount: number | string;
+  metricsOk?: boolean;
+}
+
+/* A figure we do not have is never 0. "Not indexed" says the source tracks
+   nothing for this chain; the dash is for when we could not ask, which is a
+   different claim and must not be dressed up as the first. */
+function fmtMetric(v: number | null | undefined, metricsOk?: boolean) {
+  if (typeof v === "number") return compact.format(v);
+  return metricsOk === false ? "—" : "Not indexed";
+}
+
+const metricDesc = (a: number | null, b: number | null) => (b ?? -1) - (a ?? -1);
+
+const validatorDesc = (a: number | string, b: number | string) =>
+  (typeof b === "number" ? b : -1) - (typeof a === "number" ? a : -1);
+
+function aggFigure(value: number, contributors: number | undefined) {
+  if (contributors === 0) return <StatDash />;
+  return <StatFigure value={value} />;
 }
 
 /* compact dollar figures: $2.8B, $78.4M */
@@ -72,6 +91,7 @@ function useTopApps(limit: number) {
 
 interface OverviewData {
   chains: ChainRow[];
+  coverage?: { indexed: number; total: number };
   aggregated: {
     totalTxCount: number;
     totalTps: number;
@@ -79,6 +99,7 @@ interface OverviewData {
     totalICMMessages: number;
     totalValidators: number;
     activeL1Count: number;
+    contributors?: { txCount: number; activeAddresses: number; icmMessages: number };
   };
 }
 
@@ -276,9 +297,9 @@ export function NetworkOverview() {
      network does, instead of a 24h average sitting still */
   const [liveTps, setLiveTps] = useState<number | null>(null);
 
-  const topApps = useTopApps(12);
+  const topApps = useTopApps(10);
   const rows = useMemo(
-    () => (data?.chains ?? []).slice().sort((a, b) => b.activeAddresses - a.activeAddresses).slice(0, 12),
+    () => (data?.chains ?? []).slice().sort((a, b) => validatorDesc(a.validatorCount, b.validatorCount)).slice(0, 10),
     [data],
   );
 
@@ -291,7 +312,7 @@ export function NetworkOverview() {
     if (tapeChainsRef.current.length > 0) return tapeChainsRef.current;
     const roster = (data?.chains ?? [])
       .slice()
-      .sort((a, b) => b.txCount - a.txCount)
+      .sort((a, b) => metricDesc(a.txCount, b.txCount))
       .flatMap((c) => {
         const catalog = catalogByChainId.get(String(c.chainId));
         if (!catalog?.rpcUrl) return [];
@@ -325,10 +346,10 @@ export function NetworkOverview() {
           color: catalog?.color || colorFromName(c.chainName),
           validatorCount,
           subnetId: catalog?.subnetId,
-          activeAddresses: c.activeAddresses > 0 ? c.activeAddresses : undefined,
-          txCount: c.txCount > 0 ? Math.round(c.txCount) : undefined,
-          icmMessages: c.icmMessages > 0 ? Math.round(c.icmMessages) : undefined,
-          tps: c.tps > 0 ? parseFloat(c.tps.toFixed(2)) : undefined,
+          activeAddresses: (c.activeAddresses ?? 0) > 0 ? c.activeAddresses! : undefined,
+          txCount: (c.txCount ?? 0) > 0 ? Math.round(c.txCount!) : undefined,
+          icmMessages: (c.icmMessages ?? 0) > 0 ? Math.round(c.icmMessages!) : undefined,
+          tps: (c.tps ?? 0) > 0 ? parseFloat(c.tps!.toFixed(2)) : undefined,
           category: catalog?.category || "General",
         } as ChainCosmosData;
       })
@@ -391,6 +412,16 @@ export function NetworkOverview() {
         {/* the ecosystem's ledger strip */}
         <section className="flex flex-col gap-4">
           <SectionHeader label={`Network pulse · ${overviewWindowLabel(range)}`} />
+          {data?.coverage && data.coverage.indexed < data.coverage.total && (
+            <p className="-mt-2 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Transaction and address figures cover the{" "}
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                {data.coverage.indexed} of {data.coverage.total} chains we index
+              </span>
+              , so they understate the ecosystem. Chain and validator counts are from the P-Chain and
+              cover every L1.
+            </p>
+          )}
           <Board
             divide={false}
             className={cn("overflow-hidden transition-opacity", refreshing && data && "opacity-60")}
@@ -400,12 +431,16 @@ export function NetworkOverview() {
             <div className="-ml-px -mt-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 [&>div]:border-l [&>div]:border-t [&>div]:border-zinc-200 dark:[&>div]:border-zinc-800">
               <div>
                 <StatCell label="Transactions" live>
-                  {liveTxCount !== null ? <StatFigure value={liveTxCount} /> : <StatDash />}
+                  {liveTxCount !== null ? (
+                    aggFigure(liveTxCount, agg?.contributors?.txCount)
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
               </div>
               <div>
                 <StatCell label={liveTps !== null ? "TPS" : "Avg TPS"} live={liveTps !== null}>
-                  {liveTps !== null || agg ? (
+                  {liveTps !== null || (agg && agg.contributors?.txCount !== 0) ? (
                     <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
                       {(() => {
                         const tps = liveTps ?? agg!.totalTps;
@@ -419,12 +454,20 @@ export function NetworkOverview() {
               </div>
               <div>
                 <StatCell label="Active addresses">
-                  {agg ? <StatFigure value={agg.totalActiveAddresses} /> : <StatDash />}
+                  {agg ? (
+                    aggFigure(agg.totalActiveAddresses, agg.contributors?.activeAddresses)
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
               </div>
               <div>
                 <StatCell label="ICM messages" href="/explorer/mainnet/icm">
-                  {agg ? <StatFigure value={agg.totalICMMessages} /> : <StatDash />}
+                  {agg ? (
+                    aggFigure(agg.totalICMMessages, agg.contributors?.icmMessages)
+                  ) : (
+                    <StatDash />
+                  )}
                 </StatCell>
               </div>
               <div>
@@ -521,11 +564,27 @@ export function NetworkOverview() {
                           name
                         )}
                       </td>
-                      <td className={cn(TD, "text-right font-mono text-zinc-900 dark:text-zinc-100")}>
-                        {compact.format(c.activeAddresses)}
+                      <td
+                        className={cn(
+                          TD,
+                          "text-right font-mono",
+                          typeof c.activeAddresses === "number"
+                            ? "text-zinc-900 dark:text-zinc-100"
+                            : "text-[11px] tracking-wide text-zinc-400 dark:text-zinc-500",
+                        )}
+                      >
+                        {fmtMetric(c.activeAddresses, c.metricsOk)}
                       </td>
-                      <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
-                        {compact.format(c.txCount)}
+                      <td
+                        className={cn(
+                          TD,
+                          "text-right font-mono",
+                          typeof c.txCount === "number"
+                            ? "text-zinc-700 dark:text-zinc-300"
+                            : "text-[11px] tracking-wide text-zinc-400 dark:text-zinc-500",
+                        )}
+                      >
+                        {fmtMetric(c.txCount, c.metricsOk)}
                       </td>
                       <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
                         {typeof c.validatorCount === "number" ? c.validatorCount.toLocaleString("en-US") : c.validatorCount}

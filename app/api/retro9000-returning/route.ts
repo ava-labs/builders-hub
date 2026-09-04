@@ -4,7 +4,7 @@ import { prisma } from '@/prisma/prisma';
 export async function POST(request: Request) {
   try {
     const formData = await request.json();
-    const email = formData.email as string;
+    const email = (formData.email as string)?.trim().toLowerCase();
     if (!email) {
       return NextResponse.json(
         { success: false, message: 'Email is required' },

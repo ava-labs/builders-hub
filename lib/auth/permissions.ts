@@ -51,6 +51,20 @@ export async function evaluableHackathonIds(
 }
 
 /**
+ * True when the user may administer the Audit Marketplace program
+ * (/audits/admin: requests overview, subsidy decisions, auditor whitelist).
+ * Gated on the audit_admin custom attribute, with devrel as the de-facto
+ * super-role, consistent with the other admin surfaces. Attributes are
+ * provisioned by direct DB write; nothing in the app grants them.
+ */
+export function canAdministerAuditProgram(
+  session: { user?: { custom_attributes?: string[] } } | null | undefined,
+): boolean {
+  if (!session?.user) return false;
+  return hasAnyAttribute(session.user.custom_attributes, ["audit_admin", "devrel"]);
+}
+
+/**
  * True when the user has a per-hackathon judge assignment row for the given
  * hackathon. Unlike the global "judge" custom_attribute, this is scoped to a
  * single Hackathon.id.
