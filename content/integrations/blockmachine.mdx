@@ -1,0 +1,44 @@
+---
+title: blockmachine
+category: RPC Endpoints
+available: ["C-Chain"]
+description: "Blockmachine is an enterprise-grade RPC and archive node provider for Avalanche, with savings driven by competing independent node operators."
+logo: /images/blockmachine.svg
+developer: blockmachine
+website: https://blockmachine.io/avalanche-rpc
+documentation: https://blockmachine.io/docs/avalanche-rpc
+---
+
+## Overview
+
+Blockmachine is an enterprise-grade, verified RPC and archive node provider for Avalanche, with savings driven by competing independent node operators bidding on price. Standard JSON-RPC, no migration.
+
+## Features
+
+- **Response Verification**: RPC responses are checked for correctness before delivery
+- **Keyless Access**: Send up to 300 requests per minute per IP with no signup and no monthly cap
+- **Full Archive Depth**: Historical state reads and geth-style debug traces across the full C-Chain history
+- **HTTP and WebSocket**: Both transports available on the same endpoint
+- **Chainwake Monitoring**: Real-time blockchain monitoring for AI agents and backends, with the same command structure across every supported chain
+
+## Getting Started
+
+1. **Try It Keyless**: Send a request to the public Avalanche C-Chain endpoint at [blockmachine.io/avalanche-rpc](https://blockmachine.io/avalanche-rpc) — no account required
+2. **Create an Account**: Sign up at [blockmachine.io](https://blockmachine.io/) to lift the per-IP rate limit and get API keys
+3. **Configure Your Client**: Point your existing EVM tooling at the endpoint; no code changes are needed beyond the RPC URL
+4. **Monitor Usage**: Track request units, latency, and error rates from the dashboard
+
+## Documentation
+
+For endpoint references, the request-unit schedule, and integration guides, visit the [blockmachine Avalanche Documentation](https://blockmachine.io/docs/avalanche-rpc).
+
+## Use Cases
+
+- **dApp Frontends**: Serve read-heavy contract calls and log queries from a low-cost, keyless endpoint
+- **Indexers and Backends**: Query full C-Chain history with archive-depth state reads and debug traces
+- **AI Agents**: Use Chainwake to react to on-chain events in real time across Avalanche and other EVM networks
+- **Multi-Chain Applications**: Run Avalanche alongside ten other supported networks on one account and one RU budget
+
+## Conclusion
+
+Blockmachine gives Avalanche developers archive-grade C-Chain RPC for less.
