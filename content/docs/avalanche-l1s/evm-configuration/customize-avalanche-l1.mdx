@@ -221,7 +221,7 @@ Subnet-EVM can provide custom functionalities with precompiled contracts. These 
 
 ### AllowList Interface
 
-The `AllowList` interface is used by precompiles to check if a given address is allowed to use a precompiled contract. `AllowList` consist of three roles, `Admin`, `Manager` and `Enabled`. `Admin` can add/remove other `Admin` and `Enabled` addresses. `Manager` is introduced with Durango upgrade and can add/remove `Enabled` addresses, without the ability to add/remove `Admin` or `Manager` addresses. `Enabled` addresses can use the precompiled contract, but cannot modify other roles.
+The `AllowList` interface is used by precompiles to check if a given address is allowed to use a precompiled contract. `AllowList` consist of three roles, `Admin`, `Manager` and `Enabled`. `Admin` can add/remove addresses of any role, including other `Admin` and `Manager` addresses. `Manager` is introduced with Durango upgrade and can add/remove `Enabled` addresses, without the ability to add/remove `Admin` or `Manager` addresses. `Enabled` addresses can use the precompiled contract, but cannot modify other roles.
 
 `AllowList` adds `adminAddresses`, `managerAddresses`, `enabledAddresses` fields to precompile contract configurations. For instance fee manager precompile contract configuration looks like this:
 
@@ -242,7 +242,7 @@ The `AllowList` solidity interface is defined as follows, and can be found in [I
 
 ```solidity
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.24;
 
 interface IAllowList {
   event RoleSet(
@@ -269,7 +269,7 @@ interface IAllowList {
 }
 ```
 
-`readAllowList(addr)` will return a uint256 with a value of 0, 1, or 2, corresponding to the roles `None`, `Enabled`, and `Admin` respectively.
+`readAllowList(addr)` will return a uint256 with a value of 0, 1, 2 or 3, corresponding to the roles `None`, `Enabled`, `Admin` and `Manager` respectively.
 
 `RoleSet` is an event that is emitted when a role is set for an address. It includes the role, the modified address, the sender as indexed parameters and the old role as non-indexed parameter. Events in precompiles are activated after Durango upgrade.
 
@@ -288,13 +288,13 @@ If you'd like to restrict who has the ability to deploy contracts on your Avalan
 }
 ```
 
-In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the `Admin` of the `ContractDeployerAllowList`. This enables it to add other `Admin` or to add `Enabled` addresses. Both `Admin` and `Enabled` can deploy contracts. To provide a great UX with factory contracts, the `tx.Origin` is checked for being a valid deployer instead of the caller of `CREATE`. This means that factory contracts will still be able to create new contracts as long as the sender of the original transaction is an allow listed deployer.
+In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the `Admin` of the `ContractDeployerAllowList`. This enables it to add other `Admin`, `Manager` or to add `Enabled` addresses. `Admin`, `Manager` and `Enabled` can all deploy contracts. To provide a great UX with factory contracts, the `tx.Origin` is checked for being a valid deployer instead of the caller of `CREATE`. This means that factory contracts will still be able to create new contracts as long as the sender of the original transaction is an allow listed deployer.
 
 The `Stateful Precompile` contract powering the `ContractDeployerAllowList` adheres to the [AllowList Solidity interface](#allowlist-interface) at `0x0200000000000000000000000000000000000000` (you can load this interface and interact directly in Remix):
 
-- If you attempt to add a `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize1.png)
-- If you attempt to deploy a contract but you are not an `Admin` not a `Enabled`, you will see something like: ![deploy fail](/images/customize2.png)
-- If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a uint256 with a value of 0, 1, or 2, corresponding to the roles `None`, `Enabled`, and `Admin` respectively.
+- If you attempt to add an `Enabled` or `Manager` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize1.png)
+- If you attempt to deploy a contract but you are not an `Admin` not a `Manager` and not an `Enabled`, you will see something like: ![deploy fail](/images/customize2.png)
+- If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a uint256 with a value of 0, 1, 2 or 3, corresponding to the roles `None`, `Enabled`, `Admin` and `Manager` respectively.
 
 <Callout type="warn">
 If you remove all of the admins from the allow list, it will no longer be possible to update the allow list without modifying the Subnet-EVM to schedule a network upgrade.
@@ -336,7 +336,7 @@ In this example, `0x8db97C7cEcE249c2b98bDC0226Cc4C2A57BF52FC` is named as the `A
 
 The `Stateful Precompile` contract powering the `TxAllowList` adheres to the [AllowList Solidity interface](#allowlist-interface) at `0x0200000000000000000000000000000000000002` (you can load this interface and interact directly in Remix):
 
-- If you attempt to add an `Enabled` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize3.png)
+- If you attempt to add an `Enabled` or `Manager` and you are not an `Admin`, you will see something like: ![admin fail](/images/customize3.png)
 - If you attempt to submit a transaction but you are not an `Admin`, `Manager` or not `Enabled`, you will see something like: `cannot issue transaction from non-allow listed address`
 - If you call `readAllowList(addr)` then you can read the current role of `addr`, which will return a `uint256` with a value of 0, 1, 2 or 3 corresponding to the roles `None`, `Allowed`, `Admin` and `Manager` respectively.
 
@@ -376,16 +376,14 @@ You can mint native(gas) coins with a precompiled contract. In order to activate
 }
 ```
 
-`adminAddresses` denotes admin accounts who can add other `Admin`, `Manager` or `Enabled` accounts. `Admin`, `Manager` and `Enabled` are both eligible to mint native coins for other addresses. `ContractNativeMinter` uses same methods as in `ContractDeployerAllowList`.
+`adminAddresses` denotes admin accounts who can add other `Admin`, `Manager` or `Enabled` accounts. `Admin`, `Manager` and `Enabled` are all eligible to mint native coins for other addresses. `ContractNativeMinter` uses same methods as in `ContractDeployerAllowList`.
 
 The `Stateful Precompile` contract powering the `ContractNativeMinter` adheres to the following Solidity interface at `0x0200000000000000000000000000000000000001` (you can load this interface and interact directly in Remix):
 
 ```solidity
-// (c) 2022-2023, Ava Labs, Inc. All rights reserved.
-// See the file LICENSE for licensing terms.
-
-pragma solidity ^0.8.0;
-import "./IAllowList.sol";
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+import "precompile/allowlist/IAllowList.sol";
 
 interface INativeMinter is IAllowList {
   event NativeCoinMinted(
@@ -447,8 +445,8 @@ The `Stateful Precompile` contract powering the `FeeConfigManager` adheres to th
 
 ```solidity
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-import "./IAllowList.sol";
+pragma solidity ^0.8.24;
+import "precompile/allowlist/IAllowList.sol";
 
 interface IFeeManager is IAllowList {
   struct FeeConfig {
@@ -548,7 +546,7 @@ Currently Warp Precompile can only be activated in Mainnet after Durango occurs.
 Contract Examples
 -----------------------------------------------------------------
 
-Subnet-EVM contains example contracts for precompiles under `/contracts`. It's a hardhat project with tests and tasks. For more information see [contract examples README](https://github.com/ava-labs/subnet-evm/tree/master/contracts#subnet-evm-contracts).
+Each precompile lives in its own package under `/precompile/contracts`, containing the Go implementation together with the Solidity interface and ABI that contracts use to call it. Precompiles built on the allow list, such as `txallowlist` and `deployerallowlist`, share the common interface in [/precompile/allowlist](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm/precompile/allowlist). See [the precompile packages](https://github.com/ava-labs/avalanchego/tree/master/graft/subnet-evm/precompile/contracts) for reference implementations.
 
 Network Upgrades: Enable/Disable Precompiles
 ---------------------------------------------------------------------------------------------------------------------
@@ -561,7 +559,7 @@ Any mistakes in configuring network upgrades or coordinating them on validators 
 
 In addition to specifying the configuration for each of the above precompiles in the genesis chain config, they can be individually enabled or disabled at a given timestamp as a network upgrade. Disabling a precompile disables calling the precompile and destructs its storage so it can be enabled at a later timestamp with a new configuration if desired.
 
-These upgrades must be specified in a file named `upgrade.json` placed in the same directory where [`config.json`](#avalanchego-chain-configs) resides: `{chain-config-dir}/{blockchainID}/upgrade.json`. For example, `WAGMI Subnet` upgrade should be placed in `~/.avalanchego/configs/chains/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/upgrade.json`.
+These upgrades must be specified in a file named `upgrade.json` placed in the same directory where [`config.json`](#avalanchego-chain-configs) resides: `{chain-config-dir}/{blockchainID}/upgrade.json`. For example, the `Dispatch L1` on Fuji would be `~/.avalanchego/configs/chains/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/upgrade.json`.
 
 The content of the `upgrade.json` should be formatted according to the following:
 
@@ -643,9 +641,9 @@ When a precompile disable takes effect (that is, after its `blockTimestamp` has 
 After you have created the `upgrade.json` and placed it in the chain config directory, you need to restart the node for the upgrade file to be loaded (again, make sure you don't restart all Avalanche L1 validators at once!). On node restart, it will print out the configuration of the chain, where you can double-check that the upgrade has loaded correctly. In our example:
 
 ```bash
-INFO [08-15|15:09:36.772] <2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt Chain>
+INFO [08-15|15:09:36.772] <2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY Chain>
 github.com/ava-labs/subnet-evm/eth/backend.go:155: Initialised chain configuration
-config=“{ChainID: 11111 Homestead: 0 EIP150: 0 EIP155: 0 EIP158: 0 Byzantium: 0
+config=“{ChainID: 779672 Homestead: 0 EIP150: 0 EIP155: 0 EIP158: 0 Byzantium: 0
 Constantinople: 0 Petersburg: 0 Istanbul: 0, Muir Glacier: 0, Subnet EVM: 0, FeeConfig:
 {\“gasLimit\“:20000000,\“targetBlockRate\“:2,\“minBaseFee\“:1000000000,\“targetGas\
 “:100000000,\“baseFeeChangeDenominator\“:48,\“minBlockGasCost\“:0,\“maxBlockGasCost\
@@ -653,7 +651,7 @@ Constantinople: 0 Petersburg: 0 Istanbul: 0, Muir Glacier: 0, Subnet EVM: 0, Fee
 “subnetEVMTimestamp\“:0}, PrecompileUpgrade: {}, UpgradeConfig: {\"precompileUpgrades\":[{\"feeManagerConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668950000}},{\"txAllowListConfig\":{\"adminAddresses\":[\"0x8db97c7cece249c2b98bdc0226cc4c2a57bf52fc\"],\"enabledAddresses\":null,\"blockTimestamp\":1668960000}},{\"feeManagerConfig\":{\"adminAddresses\":null,\"enabledAddresses\":null,\"blockTimestamp\":1668970000,\"disable\":true}}]}, Engine: Dummy Consensus Engine}"
 ```
 
-Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActivePrecompilesAt`](/docs/rpcs/subnet-evm#eth_getactiveprecompilesat) RPC method. The [`eth_getChainConfig`](/docs/rpcs/subnet-evm#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
+Notice that `precompileUpgrades` entry correctly reflects the changes. You can also check the activated precompiles at a timestamp with the [`eth_getActiveRulesAt`](/docs/rpcs/subnet-evm#eth_getActiveRulesAt) RPC method. The [`eth_getChainConfig`](/docs/rpcs/subnet-evm#eth_getchainconfig) RPC method will also return the configured upgrades in the response.
 
 That's it, your Avalanche L1 is all set and the desired upgrades will be activated at the indicated timestamp!
 
@@ -703,7 +701,7 @@ With the initial configurations, precompiles can immediately activate their effe
 Notice that there is no `adminAddresses` field in the configuration. This means that there will be no admin addresses to manage the fee structure with this precompile. The precompile will simply update the fee configuration to the specified fee config when it activates on the `blockTimestamp` `1668950000`.
 
 <Callout title="Note">
-It's still possible to add `adminAddresses` or `enabledAddresses` along with these initial configurations. In this case, the precompile will be activated with the initial configuration, and admin/enabled addresses can access to the precompiled contract normally.
+It's still possible to add `adminAddresses`, `managerAddresses` or `enabledAddresses` along with these initial configurations. In this case, the precompile will be activated with the initial configuration, and admin, manager or enabled addresses can access to the precompiled contract normally.
 </Callout>
 
 <Callout title="Note">
@@ -715,7 +713,7 @@ See every precompile initial configuration in their relevant `Initial Configurat
 AvalancheGo Chain Configs
 ---------------------------------------------------------------------------------
 
-As described in [this doc](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt`, the config file for this chain is located at `{chain-config-dir}/2ebCneCbwthjQ1rYT41nhd7M76Hc6YmosMAQrTFhBq8qeqh6tt/config.json`.
+As described in [this doc](/docs/nodes/configure/configs-flags#avalanche-l1-chain-configs), each blockchain of Avalanche L1s can have its own custom configuration. If an Avalanche L1's ChainID is `2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY`, the config file for this chain is located at `{chain-config-dir}/2D8RG4UpSXbPbvPCAWppNJyqTG2i2CAXSkTgmTBBvs7GKNZjsY/config.json`.
 
 For blockchains created by or forked from Subnet-EVM, most [C-Chain configs](/docs/nodes/chain-configs/primary-network/c-chain) are applicable except [Avalanche Specific APIs](/docs/nodes/chain-configs/primary-network/c-chain#enabling-avalanche-specific-apis).
 
