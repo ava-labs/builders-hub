@@ -3,6 +3,7 @@ import { Session } from 'next-auth';
 import { getProfile, updateProfile } from '@/server/services/profile';
 import { Profile } from '@/types/profile';
 import { withAuth, RouteParams } from '@/lib/protectedRoute';
+import { UpdateExtendedProfileSchema } from '@/lib/schemas/extended-profile';
 
 export const GET = withAuth<RouteParams<{ id: string }>>(async (
   req: NextRequest,
@@ -59,7 +60,16 @@ export const PUT = withAuth<RouteParams<{ id: string }>>(async (
       );
     }
 
-    const newProfileData = (await req.json()) as Partial<Profile>;
+    // Same allow-list schema as /api/profile/extended — strips unknown keys,
+    // bounds bio, validates social handles and image URL.
+    const parsed = UpdateExtendedProfileSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid request body', details: parsed.error.issues },
+        { status: 400 }
+      );
+    }
+    const newProfileData = parsed.data as Partial<Profile>;
 
     const updatedProfile = await updateProfile(
       id,
