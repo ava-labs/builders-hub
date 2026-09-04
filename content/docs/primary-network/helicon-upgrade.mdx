@@ -12,11 +12,13 @@ Helicon is a Primary Network upgrade that activates six Avalanche Community Prop
 | Network | Activation | Status |
 |---------|------------|--------|
 | **Fuji** | July 28, 2026 at 15:00 UTC | Active |
-| **Mainnet** | Not yet scheduled | Pending |
+| **Mainnet** | September 22, 2026 at 15:00 UTC (11:00 AM ET) | Scheduled |
 | Local and custom networks | Active from genesis | Active by default |
 
-<Callout type="warn" title="Fuji nodes must run a Helicon-capable release">
-Helicon activation on Fuji shipped in [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji). That release is Fuji-only and refuses to start against a Mainnet configuration. It also does not support C-Chain state sync once Helicon is active; a release that does is expected before Mainnet activation is scheduled.
+<Callout type="warn" title="Nodes must run a Helicon-capable release">
+Mainnet activation ships in [AvalancheGo v1.15.0](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0). Mainnet nodes must be running it before September 22, 2026 at 15:00 UTC.
+
+Fuji activation shipped earlier in [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji). That release is Fuji-only, refuses to start against a Mainnet configuration, and does not support C-Chain state sync once Helicon is active.
 </Callout>
 
 ## What Changes
@@ -65,10 +67,10 @@ Delegators are not affected and keep the existing minimum. The maximum staking d
 
 ## What You Need to Do
 
-**Validators on Fuji.** Upgrade to a Helicon-capable release. Then check that your node clears 90% uptime rather than 80%, since any validation you start now is judged against the higher threshold. Call [`info.uptime`](/docs/rpcs/other/info-rpc#infouptime) on your own node and cross-check against the [validator health dashboard](https://stats.avax.network/dashboard/validator-health-check/), because a single node's view of its own uptime can be misleading.
+**Validators on Fuji.** Upgrade to [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji) or later. Then check that your node clears 90% uptime rather than 80%, since any validation you start now is judged against the higher threshold. Call [`info.uptime`](/docs/rpcs/other/info-rpc#infouptime) on your own node and cross-check against the [validator health dashboard](https://stats.avax.network/dashboard/validator-health-check/), because a single node's view of its own uptime can be misleading.
 
-**Validators on Mainnet.** Nothing is required yet. Mainnet activation is not scheduled, so plan for the uptime threshold to rise when it is.
+**Validators on Mainnet.** Upgrade to [AvalancheGo v1.15.0](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0) before September 22, 2026 at 15:00 UTC. A node still on an older release when Helicon activates will not follow the upgraded chain. Plan for the uptime threshold as well: any validation you start on or after activation is judged against 90% rather than 80%, and validations already running keep the 80% requirement.
 
-**C-Chain developers.** ACP-194 changes when state is available relative to block acceptance, and several C-Chain RPC namespaces are deprecated alongside it. Read [Streaming Asynchronous Execution](/docs/primary-network/streaming-async-execution) and the [v1.15.0-fuji release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji) before assuming existing behavior holds.
+**C-Chain developers.** ACP-194 changes when state is available relative to block acceptance, and several C-Chain RPC namespaces are deprecated alongside it. Read [Streaming Asynchronous Execution](/docs/primary-network/streaming-async-execution) and the [v1.15.0 release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0) before assuming existing behavior holds.
 
-**Exchanges and custodians.** The staking minimums and the uptime threshold both move. If you quote a two-week minimum staking period to users, that number becomes 48 hours on Mainnet at activation.
+**Exchanges and custodians.** The staking minimums and the uptime threshold both move. If you quote a two-week minimum staking period to users, that number becomes 48 hours on Mainnet on September 22, 2026.

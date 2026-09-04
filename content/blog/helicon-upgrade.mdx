@@ -1,7 +1,7 @@
 ---
 title: "Helicon: Improved Staking Economics and Continuous Execution"
 description: The Avalanche Helicon upgrade activates six ACPs, bringing auto-renewed staking, a higher validator uptime requirement, shorter minimum staking durations, Continuous Execution for the C-Chain, a dynamic minimum gas price, and a recalibrated staking reward curve.
-date: 2026-07-28
+date: 2026-09-08
 authors: [AvaxDevelopers]
 topics: [Network Updates, Helicon Upgrade, Staking, P-Chain, C-Chain, ACP-236, ACP-267, ACP-273, ACP-194, ACP-283, ACP-285]
 comments: true
@@ -12,7 +12,7 @@ import { StakingRewardCurveChart } from "@/components/content-design/staking-rew
 
 ## Introducing the Helicon Upgrade
 
-Helicon has been activated on the Fuji Testnet. Building on [Octane](https://build.avax.network/blog/octane-optimizing-c-chain-gas-fees) and [Granite](https://build.avax.network/blog/granite-upgrade), this upgrade brings Continuous Execution to the C-Chain, along with changes to Avalanche's staking economics.
+Helicon is scheduled to activate on Mainnet on **September 22, 2026 at 11:00 AM ET (15:00 UTC)**, and has been live on the Fuji Testnet since July 28, 2026. Building on [Octane](https://build.avax.network/blog/octane-optimizing-c-chain-gas-fees) and [Granite](https://build.avax.network/blog/granite-upgrade), this upgrade brings Continuous Execution to the C-Chain, along with changes to Avalanche's staking economics.
 
 The upgrade is driven by six Avalanche Community Proposals:
 
@@ -24,7 +24,7 @@ The upgrade is driven by six Avalanche Community Proposals:
 - [ACP-285:](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/285-reduce-minimum-consumption-rate) Reduce Minimum Consumption Rate (progressive rollout post-Helicon activation)
 
 
-**Mainnet release:** Activation times and the required AvalancheGo version will be confirmed with the Mainnet pre-release.
+**Mainnet activation:** September 22, 2026 at 11:00 AM ET (15:00 UTC). Mainnet validators must be running [AvalancheGo v1.15.0](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0) before then.
 
 ---
 
@@ -72,7 +72,7 @@ While the 80% threshold has served the network adequately, higher validator upti
 
 **The reward model is unchanged:** validators must meet the uptime threshold during their staking period to receive rewards. There are no partial payouts if validators fall short of 90% uptime, and the cycle's reward is forfeited in full.
 
-The new threshold applies to validations that started on or after April 1, 2026 and that haven't ended before the AvalancheGo release implementing this ACP. Validators whose staking period began before April 1, 2026 will **continue to be evaluated against the existing 80% requirement,** with no retroactive penalty.
+The new threshold applies to validations whose staking period starts on or after the activation of the Helicon network upgrade. Validators whose staking period began before activation will **continue to be evaluated against the existing 80% requirement,** with no retroactive penalty.
 
 Uptime is measured by observed peer responsiveness throughout the staking period, consistent with the existing calculation method. There are no changes to how uptime is tracked — only the threshold at which rewards are issued.
 
@@ -157,7 +157,7 @@ The concrete changes for developers and node operators, ordered by ACP.
 - **ACP-283**: new `min-price-target` (wei) for the validator-voted minimum gas price; fetch fee parameters from the network instead of assuming a fixed floor.
 - **ACP-285**: mean consumption rate ramps from 10% to 7.5% over 90 days from activation.
 
-[Read the full release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji)
+[Read the full release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0)
 
 Questions? [Join the discussion on GitHub](https://github.com/avalanche-foundation/ACPs/discussions)
 
