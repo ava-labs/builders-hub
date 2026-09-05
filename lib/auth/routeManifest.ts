@@ -61,7 +61,7 @@
  * To protect a new route: add one line here. Nothing else changes.
  */
 
-import { Action, Resource, Scope } from "./rolePermissions";
+import { Action, Resource, Scope, pathMatchesPattern } from "./rolePermissions";
 
 export interface RouteConfig {
   resource?: Resource;
@@ -270,17 +270,7 @@ export function matchRoute(pathname: string): RouteConfig | null {
     .sort(([a], [b]) => b.length - a.length);
 
   for (const [pattern, config] of wildcardEntries) {
-    // "**" → one or more segments (may cross "/"); "*" → exactly one segment
-    const regex = new RegExp(
-      "^" +
-        pattern
-          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-          .replace(/\*\*/g, "\x00")
-          .replace(/\*/g, "[^/]+")
-          .replace(/\x00/g, ".+") +
-        "$",
-    );
-    if (regex.test(pathname)) return config;
+    if (pathMatchesPattern(pattern, pathname)) return config;
   }
 
   return null;

@@ -54,8 +54,13 @@ export async function GET(_request: NextRequest, context: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const authorized = await canEvaluateHackathon(session, hackathonId);
-  if (!authorized) {
+  // Owners see judging progress so they can decide when to flip the phase;
+  // scoring itself still requires a judge assignment (see the evaluate page).
+  const [canEvaluate, canManage] = await Promise.all([
+    canEvaluateHackathon(session, hackathonId),
+    canEditEvent(session, hackathonId),
+  ]);
+  if (!canEvaluate && !canManage) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

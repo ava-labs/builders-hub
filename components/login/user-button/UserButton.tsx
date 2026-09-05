@@ -222,6 +222,15 @@ export function UserButton() {
                 </DropdownMenuItem>
               )
             }
+            {
+              // Same gate as ROUTE_MANIFEST "/admin/**" — user:manage, which
+              // only platform admins hold (via the wildcard).
+              hasPermission(session, { resource: "user", action: "manage" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/admin/roles'>Role Management</Link>
+                </DropdownMenuItem>
+              )
+            }
             <DropdownMenuSeparator className="my-0 bg-zinc-200 dark:bg-zinc-800" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}

@@ -3,6 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import GithubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '../../prisma/prisma';
+import { activeRoleWhere } from '@/lib/auth/permissions';
 import { encode, JWT } from 'next-auth/jwt';
 import { randomInt } from 'crypto';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
@@ -221,10 +222,7 @@ export const AuthOptions: NextAuthOptions = {
         // Roles come exclusively from UserRole. Active = no expiry, or an
         // expiry still in the future.
         const activeUserRoles = await prisma.userRole.findMany({
-          where: {
-            user_id: dbUser.id,
-            OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }],
-          },
+          where: { user_id: dbUser.id, ...activeRoleWhere() },
           select: { role: true },
         });
 

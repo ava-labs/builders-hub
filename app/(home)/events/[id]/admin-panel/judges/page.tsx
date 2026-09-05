@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { canManageHackathonJudges } from "@/lib/auth/permissions";
+import { activeRoleWhere, canManageHackathonJudges } from "@/lib/auth/permissions";
 import { JudgesManager } from "@/components/evaluate/JudgesManager";
 
 export default async function HackathonJudgesPage({
@@ -35,7 +35,7 @@ export default async function HackathonJudgesPage({
           image: true,
           user_name: true,
           user_roles: {
-            where: { OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }] },
+            where: activeRoleWhere(),
             select: { role: true },
           },
         },

@@ -8,6 +8,7 @@ import { VERDICT_BUTTON_COLORS, VERDICT_BADGE_COLORS, VERDICT_LABELS } from "./c
 import type { EvaluationData, Verdict } from "./types";
 
 interface Props {
+  canEvaluate?: boolean;
   formDataId?: string;
   projectId?: string;
   origin: string;
@@ -52,6 +53,7 @@ const STAGE_LABELS: Record<number, string> = {
 };
 
 export function EvaluationPanel({
+  canEvaluate = true,
   formDataId,
   projectId,
   origin,
@@ -95,7 +97,7 @@ export function EvaluationPanel({
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
-    if (!selectedVerdict) return;
+    if (!canEvaluate || !selectedVerdict) return;
     setSaving(true);
     setSaved(false);
     setError(null);
@@ -158,6 +160,7 @@ export function EvaluationPanel({
 
   return (
     <div className="p-4 space-y-4 bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-md mx-4 mt-4">
+      {canEvaluate && <>
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-zinc-600 dark:text-zinc-300">Your Verdict</h3>
         <div className="flex gap-2 flex-wrap items-center">
@@ -271,7 +274,7 @@ export function EvaluationPanel({
           </div>
         </div>
       </div>
-
+      </>}
       {otherEvaluations.length > 0 && (
         <div className="space-y-2 border-t border-zinc-200 dark:border-zinc-800 pt-3">
           <h3 className="text-xs text-zinc-500">

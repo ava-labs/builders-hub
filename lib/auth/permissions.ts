@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import { hasPermission, type SessionLike } from "@/lib/auth/rolePermissions";
 import { prisma } from "../../prisma/prisma";
 import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
@@ -108,7 +109,13 @@ export async function canReviewMiniGrants(
 
 /**
  * True when the user may assign/remove judges for the given hackathon:
- * devrel for any event; team1_admin for events they created or cohost.
+ * devrel for any event; team1_admin and hackathon_creator for events they
+ * created or cohost.
+ *
+ * Asked as judge:assign rather than by role name so a new organizer role is
+ * picked up automatically — and so an organizer can add THEMSELVES as a judge,
+ * which is the only way to evaluate: editing an event never implies judging it
+ * (see canEvaluateHackathon).
  */
 export async function canManageHackathonJudges(
   session:
@@ -119,7 +126,10 @@ export async function canManageHackathonJudges(
 ): Promise<boolean> {
   if (!session?.user) return false;
   if (isPlatformAdmin(session)) return true;
-  return isTeam1AdminForOwnEvent(session.user, hackathonId);
+  if (!hasPermission(session, { resource: "judge", action: "assign", scope: "own" })) {
+    return false;
+  }
+  return isCreatorOrCohost(session.user, hackathonId);
 }
 
 /**
@@ -224,8 +234,8 @@ export async function canEditEvent(
  * - devrel: any project.
  * - team1_admin: only projects belonging to an event they created or cohost.
  *
- * Spelled out rather than delegating to canEditEvent — policies stay explicit
- * and share the isTeam1AdminForOwnEvent mechanic instead of calling each other.
+ * Resolves the project's event and applies the same outcome policy as the
+ * dashboard. Editing an event alone does not grant winner selection.
  */
 export async function canManageProjectOutcome(
   session:
@@ -241,7 +251,17 @@ export async function canManageProjectOutcome(
     select: { hackaton_id: true },
   });
   if (!project?.hackaton_id) return false;
-  return isTeam1AdminForOwnEvent(session.user, project.hackaton_id);
+  return canManageHackathonOutcomes(session, project.hackaton_id);
+}
+
+/** Same winner policy for the dashboard and the project mutation endpoints. */
+export async function canManageHackathonOutcomes(
+  session: { user?: { id?: string; email?: string; custom_attributes?: string[] } } | null | undefined,
+  hackathonId: string,
+): Promise<boolean> {
+  if (!session?.user) return false;
+  if (isPlatformAdmin(session)) return true;
+  return isTeam1AdminForOwnEvent(session.user, hackathonId);
 }
 
 /**
@@ -265,3 +285,41 @@ export function verifyHackathonProjectsApiKey(
   return timingSafeEqual(expectedBuf, providedBuf);
 }
 
+// ---------------------------------------------------------------------------
+// UserRole lifecycle
+// ---------------------------------------------------------------------------
+
+/**
+ * The ONE definition of "this role is in force right now".
+ *
+ * UserRole keeps history: revoked rows stay in the table (see the model comment
+ * in schema.prisma). Any query that reads a user's roles must therefore filter
+ * on BOTH conditions — a query that forgets `revoked_at: null` hands out roles
+ * that an admin has already taken away.
+ *
+ * Called, not exported as a constant, because `new Date()` must be evaluated
+ * per query rather than once at module load.
+ */
+export function activeRoleWhere(now: Date = new Date()): Prisma.UserRoleWhereInput {
+  return {
+    revoked_at: null,
+    OR: [{ expires_at: null }, { expires_at: { gt: now } }],
+  };
+}
+
+/**
+ * Who to record as the revoker when an open episode is closed to make way for a
+ * new grant.
+ *
+ * An episode whose expires_at has already passed ended on its own — nobody took
+ * it away. Naming the admin who re-granted the role would put a revocation in
+ * the audit log that never happened, which is exactly the bug this guards.
+ */
+export function revokerForClose(
+  episode: { expires_at: Date | null },
+  actorId: string,
+  now: Date = new Date(),
+): string | null {
+  const lapsed = episode.expires_at !== null && episode.expires_at <= now;
+  return lapsed ? null : actorId;
+}

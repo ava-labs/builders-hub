@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { withAuth } from "@/lib/protectedRoute";
 import { hasPermission } from "@/lib/auth/rolePermissions";
+import { activeRoleWhere } from "@/lib/auth/permissions";
 
 const MAX_RESULTS = 20;
 
@@ -66,7 +67,7 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         ...(callerIsPlatformAdmin
           ? {
               user_roles: {
-                where: { OR: [{ expires_at: null }, { expires_at: { gt: new Date() } }] },
+                where: activeRoleWhere(),
                 select: { role: true },
               },
             }

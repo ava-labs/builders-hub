@@ -12,6 +12,8 @@
  * No "/hackathons/*" entries: next.config redirects them to /events/* before
  * the page renders.
  */
+import { pathMatchesPattern } from "./rolePermissions";
+
 export const PROTECTED_PATHS = [
   "/events/registration-form",
   "/events/project-submission",
@@ -29,8 +31,19 @@ export const PROTECTED_PATHS = [
   "/audits/new",
   "/audits/admin",
   "/admin",
+  // Judging. Judges reach these from an emailed link, often after their cookie
+  // has expired: without an entry here the page just redirects home with no
+  // explanation. "*" matches one segment — see pathMatchesPattern.
+  "/evaluate",
+  "/events/*/evaluate",
 ] as const;
 
 export function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  return PROTECTED_PATHS.some(
+    (p) =>
+      pathMatchesPattern(p, pathname) ||
+      // Prefix match: "/profile" also covers "/profile/settings". Patterns
+      // containing a wildcard are matched exactly by pathMatchesPattern.
+      (!p.includes("*") && pathname.startsWith(p + "/")),
+  );
 }

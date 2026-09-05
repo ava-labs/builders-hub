@@ -35,8 +35,6 @@
  *     HackathonJudge row → evaluate that hackathon's projects.
  *       canEvaluateHackathon() / canReviewMiniGrants() in permissions.ts.
  *       A user with NO roles can evaluate an event they are assigned to.
- *       Note the `judge` role below is a separate, weaker thing: it is neither
- *       granted by assignment nor required in order to evaluate.
  *
  *     ProjectMember row (status CONFIRMED) → edit that project's submission.
  *       Enforced in server/services/submitProject.ts.
@@ -105,6 +103,10 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   hackathon_creator: [
     { resource: "event", action: "write" },
     { resource: "event", action: "read" },
+    // Scoped to events they created or cohost (canManageHackathonJudges).
+    // Judging is an assignment, not a capability: an organizer who wants to
+    // score must add themselves as a judge, and this is what lets them.
+    { resource: "judge", action: "assign", scope: "own" },
     { resource: "resource", action: "read" },
     { resource: "speaker", action: "read" },
     { resource: "showcase", action: "read" },
@@ -304,4 +306,29 @@ export function hasPermission(session: SessionLike, required: Permission): boole
   // the session and stay ignorant of the field, so changing it is a one-line
   // edit here rather than a sweep of every caller.
   return rolesHavePermission(session?.user?.custom_attributes, required);
+}
+
+// ---------------------------------------------------------------------------
+// Route pattern matching
+// ---------------------------------------------------------------------------
+
+/**
+ * Shared by ROUTE_MANIFEST (the Edge gate) and PROTECTED_PATHS (the login-modal
+ * trigger), which must agree on what a pattern covers.
+ *
+ *   "*"  → exactly one path segment
+ *   "**" → one or more segments, may cross "/"
+ */
+export function pathMatchesPattern(pattern: string, pathname: string): boolean {
+  if (!pattern.includes("*")) return pattern === pathname;
+  const regex = new RegExp(
+    "^" +
+      pattern
+        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+        .replace(/\*\*/g, "\x00")
+        .replace(/\*/g, "[^/]+")
+        .replace(/\x00/g, ".+") +
+      "$",
+  );
+  return regex.test(pathname);
 }

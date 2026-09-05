@@ -17,6 +17,7 @@ import { z } from "zod";
 import { withAuthPermission } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { ROLE_PERMISSIONS, getPermissionsFromRoles } from "@/lib/auth/rolePermissions";
+import { activeRoleWhere, revokerForClose } from "@/lib/auth/permissions";
 
 // ---------------------------------------------------------------------------
 // Validation schemas
@@ -34,11 +35,15 @@ const assignSchema = z.object({
     .datetime({ offset: true })
     .refine((d) => new Date(d) > new Date(), { message: "expires_at must be in the future" })
     .nullish(),
+  // Optional free text: why this role is being given.
+  comment: z.string().trim().max(500).nullish(),
 });
 
 const revokeSchema = z.object({
   user_id: z.string().min(1),
   role: z.string().min(1),
+  // Optional free text: why this role is being taken away.
+  comment: z.string().trim().max(500).nullish(),
 });
 
 // ---------------------------------------------------------------------------
@@ -91,24 +96,49 @@ export const GET = withAuthPermission(
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
+      // Every episode, not just the open ones: revoked rows ARE the audit log.
       const roles = await prisma.userRole.findMany({
         where: { user_id },
-        orderBy: { created_at: "desc" },
+        orderBy: { granted_at: "desc" },
         select: {
           id: true,
           role: true,
           expires_at: true,
           granted_by: true,
-          created_at: true,
-          updated_at: true,
+          granted_at: true,
+          granted_comment: true,
+          revoked_by: true,
+          revoked_at: true,
+          revoked_comment: true,
         },
       });
+
+      // granted_by / revoked_by hold user ids with no FK (audit rows outlive the
+      // accounts that wrote them), so resolve names here in one lookup. An id
+      // whose User row is gone resolves to null and the UI shows the raw id.
+      const actorIds = [
+        ...new Set(
+          roles
+            .flatMap((r) => [r.granted_by, r.revoked_by])
+            .filter((id): id is string => !!id),
+        ),
+      ];
+      const actors = actorIds.length
+        ? await prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, name: true, email: true },
+          })
+        : [];
+      const actorById = new Map(actors.map((a) => [a.id, a]));
 
       const now = new Date();
       type RoleRow = typeof roles[number];
       const enriched = roles.map((r: RoleRow) => ({
         ...r,
-        active: r.expires_at === null || r.expires_at > now,
+        active:
+          r.revoked_at === null && (r.expires_at === null || r.expires_at > now),
+        granted_by_user: r.granted_by ? actorById.get(r.granted_by) ?? null : null,
+        revoked_by_user: r.revoked_by ? actorById.get(r.revoked_by) ?? null : null,
         permissions: ROLE_PERMISSIONS[r.role] ?? [],
       }));
 
@@ -144,7 +174,7 @@ export const POST = withAuthPermission(
         );
       }
 
-      const { user_id, role, expires_at } = parsed.data;
+      const { user_id, role, expires_at, comment } = parsed.data;
 
       // Anti-escalation: actor cannot grant roles with wider permissions than their own
       const actorRoles: string[] = session.user.custom_attributes ?? [];
@@ -165,18 +195,35 @@ export const POST = withAuthPermission(
 
       const expiresAt = expires_at ? new Date(expires_at) : null;
 
-      const userRole = await prisma.userRole.upsert({
-        where: { user_id_role: { user_id, role } },
-        create: {
-          user_id,
-          role,
-          expires_at: expiresAt,
-          granted_by: session.user.id,
-        },
-        update: {
-          expires_at: expiresAt,
-          granted_by: session.user.id,
-        },
+      // Grants are append-only: any open episode (including an expiry change on
+      // a role the user already holds) is closed and a new row opened, so the
+      // history keeps who granted what and who changed it. The partial unique
+      // index allows only one open row per (user, role), so both steps must
+      // land together or neither.
+      const userRole = await prisma.$transaction(async (tx) => {
+        const now = new Date();
+        const open = await tx.userRole.findFirst({
+          where: { user_id, role, revoked_at: null },
+          select: { id: true, expires_at: true },
+        });
+        if (open) {
+          await tx.userRole.update({
+            where: { id: open.id },
+            data: {
+              revoked_at: now,
+              revoked_by: revokerForClose(open, session.user.id, now),
+            },
+          });
+        }
+        return tx.userRole.create({
+          data: {
+            user_id,
+            role,
+            expires_at: expiresAt,
+            granted_by: session.user.id,
+            granted_comment: comment ?? null,
+          },
+        });
       });
 
       console.log(JSON.stringify({
@@ -223,22 +270,32 @@ export const DELETE = withAuthPermission(
         );
       }
 
-      const { user_id, role } = parsed.data;
+      const { user_id, role, comment } = parsed.data;
 
-      const existing = await prisma.userRole.findUnique({
-        where: { user_id_role: { user_id, role } },
+      // activeRoleWhere(), not just revoked_at: revoking a grant that already
+      // lapsed would stamp revoked_by on an episode nobody revoked. The user
+      // does not hold the role, so there is nothing to take away.
+      const open = await prisma.userRole.findFirst({
+        where: { user_id, role, ...activeRoleWhere() },
         select: { id: true },
       });
 
-      if (!existing) {
+      if (!open) {
         return NextResponse.json(
           { error: "Role assignment not found" },
           { status: 404 },
         );
       }
 
-      await prisma.userRole.delete({
-        where: { user_id_role: { user_id, role } },
+      // Closed, never deleted — the row is the record of who held the role and
+      // who took it away.
+      await prisma.userRole.update({
+        where: { id: open.id },
+        data: {
+          revoked_at: new Date(),
+          revoked_by: session.user.id,
+          revoked_comment: comment ?? null,
+        },
       });
 
       console.log(JSON.stringify({

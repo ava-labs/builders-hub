@@ -13,7 +13,7 @@ export default async function AdminRolesPage() {
 
   return (
     <main className="container relative max-w-[1400px] px-4 py-10">
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-6xl">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
           User roles
         </h1>

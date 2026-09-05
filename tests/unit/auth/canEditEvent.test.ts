@@ -102,15 +102,33 @@ describe("canEditEvent", () => {
 });
 
 describe("canManageHackathonJudges", () => {
-  it("denies anonymous users and non-privileged roles without a lookup", async () => {
+  it("denies anonymous users and roles without judge:assign, without a lookup", async () => {
     expect(await canManageHackathonJudges(null, EVENT_ID)).toBe(false);
+    // team1_event_admin is read-only on events; hackathon_creator now holds
+    // judge:assign (scope own) so it reaches the ownership lookup instead.
     expect(
       await canManageHackathonJudges(
-        { user: { id: "u1", custom_attributes: ["hackathon_creator"] } },
+        { user: { id: "u1", custom_attributes: ["team1_event_admin"] } },
         EVENT_ID,
       ),
     ).toBe(false);
     expect(findUniqueMock).not.toHaveBeenCalled();
+  });
+
+  it("allows hackathon_creator to add judges to their own event", async () => {
+    findUniqueMock.mockResolvedValue({ created_by: "u9", cohosts: [] });
+    expect(
+      await canManageHackathonJudges(
+        { user: { id: "u9", custom_attributes: ["hackathon_creator"] } },
+        EVENT_ID,
+      ),
+    ).toBe(true);
+    expect(
+      await canManageHackathonJudges(
+        { user: { id: "stranger", custom_attributes: ["hackathon_creator"] } },
+        EVENT_ID,
+      ),
+    ).toBe(false);
   });
 
   it("allows devrel for any event without a lookup", async () => {

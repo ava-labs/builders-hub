@@ -152,7 +152,10 @@ describe('middleware gate for scoped routes', () => {
   });
 
   it('blocks roles with no judge:assign grant at the Edge', () => {
-    expect(gate(['hackathon_creator'], JUDGES, 'POST')).toBe('blocked');
+    // hackathon_creator HOLDS judge:assign (scope own) — organizers must be
+    // able to add themselves as a judge, since editing never implies scoring.
+    expect(gate(['hackathon_creator'], JUDGES, 'POST')).toBe('pass');
+    expect(gate(['team1_event_admin'], JUDGES, 'POST')).toBe('blocked');
     expect(gate(['showcase'], JUDGES, 'POST')).toBe('blocked');
     expect(gate([], JUDGES, 'POST')).toBe('blocked');
   });
@@ -230,10 +233,12 @@ describe('middleware gate for scoped routes', () => {
     expect(gate([], '/events/new', 'GET')).toBe('blocked');
     expect(gate(['team1_admin'], '/events/new', 'GET')).toBe('pass');
 
-    // judges is judge:assign — team1_admin yes, hackathon_creator no.
-    // Its pattern is LONGER than /events/*/admin-panel, so it must win the sort.
+    // judges is judge:assign — both organizer roles hold it (scope own); the
+    // read-only role does not. Its pattern is LONGER than
+    // /events/*/admin-panel, so it must win the sort.
     expect(gate(['team1_admin'], '/events/abc/admin-panel/judges', 'GET')).toBe('pass');
-    expect(gate(['hackathon_creator'], '/events/abc/admin-panel/judges', 'GET')).toBe('blocked');
+    expect(gate(['hackathon_creator'], '/events/abc/admin-panel/judges', 'GET')).toBe('pass');
+    expect(gate(['team1_event_admin'], '/events/abc/admin-panel/judges', 'GET')).toBe('blocked');
 
     // registrations expose registrant PII — team1_event_admin is the narrow role.
     expect(gate(['team1_event_admin'], '/events/abc/registrations', 'GET')).toBe('pass');
@@ -325,6 +330,19 @@ describe('grants gating: manifest and login-modal list agree', () => {
       expect(gated(p), `${p} must not be gated by the manifest`).toBe(false);
       expect(isProtectedPath(p), `${p} must not trigger the login modal`).toBe(false);
     }
+  });
+
+  it('offers the login modal on the judging pages, per-event ones included', () => {
+    // Judges follow an emailed link, often with an expired cookie. The manifest
+    // gates both paths authOnly; without the modal the page just redirects home.
+    for (const p of ['/evaluate', '/events/abc123/evaluate']) {
+      expect(gated(p), `${p} must be gated by the manifest`).toBe(true);
+      expect(isProtectedPath(p), `${p} must trigger the login modal`).toBe(true);
+    }
+    // The wildcard must not swallow the public event pages.
+    expect(isProtectedPath('/events'), '/events must stay public').toBe(false);
+    expect(isProtectedPath('/events/abc123'), '/events/abc123 must stay public').toBe(false);
+    expect(isProtectedPath('/events/abc123/evaluate/extra')).toBe(false);
   });
 
   it('gates the application flows in BOTH lists', () => {

@@ -17,6 +17,7 @@ interface Props {
   evaluations?: EvaluationData[];
   currentUserId: string;
   isDevrel?: boolean;
+  canEvaluate?: boolean;
   showStages?: boolean;
   projectId?: string;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function SubmissionDetailPanel({
   evaluations: evalsProp,
   currentUserId,
   isDevrel = false,
+  canEvaluate = true,
   showStages = true,
   projectId,
   onClose,
@@ -332,6 +334,7 @@ export function SubmissionDetailPanel({
               )}
 
               <EvaluationPanel
+                canEvaluate={canEvaluate}
                 key={`${projectId ?? row.formDataId}-${row.currentStage}`}
                 formDataId={projectId ? undefined : row.formDataId}
                 projectId={projectId}

@@ -91,6 +91,7 @@ type Props = {
   hackathonId: string;
   viewerId: string;
   canPickWinners: boolean;
+  canEvaluate: boolean;
   canManagePhase: boolean;
   isDevrel: boolean;
   initialPhase: HackathonEvaluationPhase;
@@ -229,6 +230,7 @@ export function HackathonEvaluateDashboard({
   hackathonId,
   viewerId,
   canPickWinners,
+  canEvaluate,
   canManagePhase,
   isDevrel,
   initialPhase,
@@ -261,7 +263,7 @@ export function HackathonEvaluateDashboard({
     [projects, viewerId],
   );
   const pendingCount = projects.length - evaluatedCount;
-  const [phase, setPhase] = useState<HackathonEvaluationPhase>(initialPhase);
+  const phase = initialPhase;
   const [phaseConfirmOpen, setPhaseConfirmOpen] = useState(false);
   const [phaseAdvancing, setPhaseAdvancing] = useState(false);
   const [phaseError, setPhaseError] = useState<string | null>(null);
@@ -388,8 +390,9 @@ export function HackathonEvaluateDashboard({
         setPhaseError(body.error ?? "Failed to change phase");
         return;
       }
-      setPhase(nextPhase);
-      setPhaseConfirmOpen(false);
+      // Reload the server-rendered page so phase and score visibility change
+      // together, including the local project and detail-panel state.
+      window.location.reload();
     } catch {
       setPhaseError("Network error — please try again");
     } finally {
@@ -693,6 +696,7 @@ export function HackathonEvaluateDashboard({
           currentUserId={viewerId}
           isDevrel={isDevrel}
           showStages={false}
+          canEvaluate={canEvaluate}
           projectId={openProject.id}
           onClose={() => setOpenProjectId(null)}
           onEvaluationSaved={handleEvaluationSaved}

@@ -118,25 +118,24 @@ model User {
   audit_subsidy_decisions    AuditSubsidyDecision[]    @relation("AuditSubsidyDecider")
 }
 
-// ---------------------------------------------------------------------------
-// Role management with expiration
-// ---------------------------------------------------------------------------
-
 model UserRole {
   id         String    @id @default(cuid())
   user_id    String
   role       String
   expires_at DateTime? @db.Timestamptz(3)
   granted_by String?
-  created_at DateTime  @default(now()) @db.Timestamptz(3)
-  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+  granted_at DateTime  @default(now()) @db.Timestamptz(3)
+  granted_comment String?
+  revoked_by      String?
+  revoked_at      DateTime? @db.Timestamptz(3)
+  revoked_comment String?
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, role])
   @@index([user_id])
-  @@index([expires_at])
+  @@index([user_id, revoked_at])
   @@index([user_id, expires_at])
+  @@index([expires_at])
 }
 
 model VerificationToken {
