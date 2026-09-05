@@ -92,7 +92,7 @@ ON CONFLICT (user_id, role) DO NOTHING;
 -- so they grant no access but pollute the table and can cause confusion.
 --
 -- Valid roles (must stay in sync with lib/auth/rolePermissions.ts):
---   devrel, hackathon_creator, showcase, badge_admin,
+--   devrel, hackathon_creator, showcase, badge_admin, audit_admin,
 --   notify_all, notify_event, builder_insights,
 --   team1, team1_admin, team1_event_admin, team1_lead
 --
@@ -109,6 +109,7 @@ WHERE role NOT IN (
     'hackathon_creator',
     'showcase',
     'badge_admin',
+    'audit_admin',
     'notify_all',
     'notify_event',
     'builder_insights',

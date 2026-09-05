@@ -102,10 +102,10 @@ const RAW_ROUTES = [
     type: 'ui',
   },
   {
-    name: '/api/showcase',
+    name: '/api/audits/admin/overview',
     method: 'GET',
-    path: '/api/showcase',
-    expectedRoles: ['showcase', 'hackathon_creator', 'team1_admin', 'devrel'],
+    path: '/api/audits/admin/overview',
+    expectedRoles: ['audit_admin', 'devrel'],
     type: 'api',
   },
   {

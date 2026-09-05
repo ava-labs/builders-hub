@@ -23,7 +23,7 @@
  *   left completely unprotected.
  *
  * Trailing-segment note:
- *   Both "/api/hackathons" and "/api/hackathons/*" are declared explicitly
+ *   Both "/api/speakers" and "/api/speakers/*" are declared explicitly
  *   so that the base path without a trailing segment is also protected.
  *   matchRoute() always tests an exact match before wildcard patterns.
  *
@@ -105,22 +105,36 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // public landing page and the programme info pages; and "/grants/*" is
   // single-segment, so it never matched "/grants/team1-mini-grants/apply" —
   // the one path that was explicitly protected before. Listed explicitly.
+  // "/grants/avalanche-research-proposals" is deliberately absent: applications
+  // are closed and the page is read-only (see PROTECTED_PATHS).
   "/grants/retro9000":                     { authOnly: true },
-  "/grants/avalanche-research-proposals":  { authOnly: true },
   "/grants/team1-mini-grants/apply":       { authOnly: true },
+  "/events/registration-form":             { authOnly: true },
+  "/events/project-submission":            { authOnly: true },
+  "/build-games/apply":                    { authOnly: true },
+  "/audits/new":                           { authOnly: true },
+
+  // ── UI + API – audit program admin ───────────────────────────────────────
+  // audit:manage (audit_admin, platform admins). requireAuditAdmin() in
+  // app/api/audits/utils.ts and the /audits/admin layout are the second layer.
+  "/audits/admin":                         { resource: "audit" },
+  "/audits/admin/**":                      { resource: "audit" },
+  "/api/audits/admin/**":                  { resource: "audit" },
 
   // ── UI – role-protected ───────────────────────────────────────────────────
   "/showcase":                             { resource: "showcase" },
   "/showcase/*":                           { resource: "showcase" },
-  "/send-notifications":                   { resource: "notification" },
+  // action:"write", not the inferred read — notify_event holds only
+  // notification:write and must reach this page.
+  "/send-notifications":                   { resource: "notification", action: "write" },
   // event:write scope:"own" is the common "may manage events" gate: it admits
   // hackathon_creator (unscoped event:write) and team1_admin (event:manage
   // scope:"own"), while excluding read-only team1_event_admin. A bare
   // { resource: "event" } infers UNSCOPED event:read, which team1_admin — whose
   // only event grant is scoped — does not satisfy, locking it out of its own
   // editor. canEditEvent() remains the authoritative per-event check.
-  "/hackathons/edit":                      { resource: "event", action: "write", scope: "own" },
-  "/hackathons/edit/*":                    { resource: "event", action: "write", scope: "own" },
+  // No "/hackathons/*" twins: next.config redirects them to /events/* before
+  // middleware runs, so such entries can never match.
   "/events/edit":                          { resource: "event", action: "write", scope: "own" },
   "/events/edit/*":                        { resource: "event", action: "write", scope: "own" },
   "/events/new":                           { resource: "event", action: "write", scope: "own" },
@@ -153,13 +167,12 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/academy/**/get-certificate":           { authOnly: true },
   "/academy/**/certificate":              { authOnly: true },
 
-  // ── API – hackathons / events ──────────────────────────────────────────────
-  // Note: GET /api/events and GET /api/hackathons are intentionally NOT listed
+  // ── API – events ──────────────────────────────────────────────────────────
+  // Note: GET /api/events and GET /api/events/[id] are intentionally NOT listed
   // here because they serve public data to unauthenticated users. Mutating
   // operations (POST, PUT, PATCH, DELETE) are protected directly in the route
-  // handlers via withAuthPermission. The entries below cover sub-resources that
-  // are always fully protected regardless of method.
-  "/api/hackathons/*":                     { resource: "event", action: "write", scope: "own" },
+  // handlers via withAuthPermission / canEditEvent. The entries below cover
+  // sub-resources that are always fully protected regardless of method.
   // Judge assignment is reserved for devrel / team1_admin (judge:assign).
   // scope:"own" — team1_admin's grant is scoped, so the Edge gate must ask the
   // scoped question to let them reach their own events; both handlers then
@@ -197,9 +210,7 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // The one genuinely admin badge path (exact match wins over the wildcard).
   "/api/badge/console-migrate":            { resource: "badge", action: "write" },
 
-  // ── API – showcase / projects ─────────────────────────────────────────────
-  "/api/showcase":                         { resource: "showcase" },
-  "/api/showcase/*":                       { resource: "showcase" },
+  // ── API – projects ────────────────────────────────────────────────────────
   "/api/projects/export":                  { resource: "showcase", action: "export" },
 
   // ── API – admin (user management) ────────────────────────────────────────

@@ -1,20 +1,18 @@
 /**
- * Single source of truth for paths that require authentication.
+ * Paths on which the login modal opens automatically for anonymous visitors
+ * (AutoLoginModalTrigger / LoginModalWrapper, client side).
  *
- * Two pieces of the app gate access against this list:
- *  - `proxy.ts` (middleware): when an unauthenticated request hits one of
- *    these paths, the middleware sets `x-auth-required: true` and lets the
- *    request continue so the page can render a placeholder.
- *  - `AutoLoginModalTrigger` (client): on these paths, when the session is
- *    `unauthenticated`, the login modal is opened automatically.
+ * This list does NOT enforce anything. Enforcement is ROUTE_MANIFEST in
+ * routeManifest.ts (middleware) plus the page/handler check. Every path here
+ * must also be gated by the manifest — otherwise the modal opens over a page
+ * that is served in full — and every authOnly UI entry in the manifest should
+ * be here, or the visitor is let through with no explanation. Unit-tested in
+ * tests/unit/auth/permissionScope.test.ts.
  *
- * Both pieces must agree on the list — otherwise the modal opens without a
- * placeholder (or vice versa). Adding a new protected route is a one-line
- * change here.
+ * No "/hackathons/*" entries: next.config redirects them to /events/* before
+ * the page renders.
  */
 export const PROTECTED_PATHS = [
-  "/hackathons/registration-form",
-  "/hackathons/project-submission",
   "/events/registration-form",
   "/events/project-submission",
   "/events/edit",

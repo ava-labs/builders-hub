@@ -63,6 +63,7 @@ export type Resource =
   | "platform"
   | "builder_insights"
   | "academy:team1"
+  | "audit"
   | "*"; // wildcard — matches any resource in checkPermission()
 
 export type Action = "read" | "write" | "delete" | "manage" | "admin" | "export" | "assign" | "*";
@@ -113,6 +114,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // ── Team1 admin ──────────────────────────────────────────────────────────
   // event:manage is scope:"own" — only events they created or cohost.
   // Resolved by canEditEvent() / canManageHackathonJudges() in permissions.ts.
+  // One deliberate exception: canViewEventRegistrations() widens "own" to
+  // every Team1 event (isTeam1Event) — registrants consent to Team1 as a whole.
   // Because it is scoped, a bare hasPermission(attrs, {event, manage}) is
   // false here: platform-wide event powers belong to platform:admin only.
   team1_admin: [
@@ -152,6 +155,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
   // ── Badge admin ───────────────────────────────────────────────────────────
   badge_admin: [{ resource: "badge", action: "manage" }],
+
+  // ── Audit program admin ──────────────────────────────────────────────────
+  // /audits/admin + /api/audits/admin/**: requests overview, subsidy
+  // decisions, auditor whitelist. Resolved by canAdministerAuditProgram().
+  audit_admin: [{ resource: "audit", action: "manage" }],
 
   // ── Notifications ─────────────────────────────────────────────────────────
   // notify_all  → can send to ALL users (notification:manage covers :write too)

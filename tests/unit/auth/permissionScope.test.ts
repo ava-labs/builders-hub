@@ -122,6 +122,25 @@ describe('middleware gate for scoped routes', () => {
 
   const JUDGES = '/api/events/abc123/judges';
 
+  it('gates the audit program admin area on audit:manage', () => {
+    for (const p of ['/audits/admin', '/audits/admin/requests/abc', '/api/audits/admin/auditors/abc/members']) {
+      expect(gate(['audit_admin'], p, 'GET'), `${p} must admit audit_admin`).toBe('pass');
+      expect(gate(['audit_admin'], p, 'POST'), `${p} must admit audit_admin`).toBe('pass');
+      expect(gate(['devrel'], p, 'POST'), `${p} must admit devrel`).toBe('pass');
+      expect(gate(['team1_admin'], p, 'GET'), `${p} must block team1_admin`).toBe('blocked');
+      expect(gate([], p, 'GET'), `${p} must block role-less users`).toBe('blocked');
+    }
+    // Owner / auditor routes stay outside the gate: they authorize by session + ownership.
+    expect(gate(['showcase'], '/api/audits/requests/abc', 'GET')).toBe('public');
+    expect(gate(['showcase'], '/api/audits/portal/inbox', 'GET')).toBe('public');
+  });
+
+  it('lets notify_event reach the send-notifications page', () => {
+    expect(gate(['notify_event'], '/send-notifications', 'GET')).toBe('pass');
+    expect(gate(['notify_all'], '/send-notifications', 'GET')).toBe('pass');
+    expect(gate(['showcase'], '/send-notifications', 'GET')).toBe('blocked');
+  });
+
   it('lets team1_admin reach the judges route so the handler can scope it', () => {
     // canManageHackathonJudges() does the real created_by/cohost check.
     expect(gate(['team1_admin'], JUDGES, 'POST')).toBe('pass');
@@ -139,7 +158,7 @@ describe('middleware gate for scoped routes', () => {
   });
 
   it('lets the event-management roles reach the editor, but not the read-only one', () => {
-    for (const p of ['/events/edit', '/events/edit/abc', '/hackathons/edit']) {
+    for (const p of ['/events/edit', '/events/edit/abc']) {
       expect(gate(['team1_admin'], p, 'GET'), `${p} must admit team1_admin`).toBe('pass');
       expect(gate(['hackathon_creator'], p, 'GET'), `${p} must admit hackathon_creator`).toBe('pass');
       expect(gate(['devrel'], p, 'GET'), `${p} must admit devrel`).toBe('pass');
@@ -290,7 +309,7 @@ describe('grants gating: manifest and login-modal list agree', () => {
   const gated = (p: string) => matchRoute(p) !== null;
 
   it('leaves the public grants pages public in BOTH lists', () => {
-    for (const p of ['/grants', '/grants/retro9000returning', '/grants/team1-mini-grants']) {
+    for (const p of ['/grants', '/grants/retro9000returning', '/grants/team1-mini-grants', '/grants/avalanche-research-proposals']) {
       expect(gated(p), `${p} must not be gated by the manifest`).toBe(false);
       expect(isProtectedPath(p), `${p} must not trigger the login modal`).toBe(false);
     }
@@ -299,8 +318,12 @@ describe('grants gating: manifest and login-modal list agree', () => {
   it('gates the application flows in BOTH lists', () => {
     for (const p of [
       '/grants/retro9000',
-      '/grants/avalanche-research-proposals',
       '/grants/team1-mini-grants/apply',
+      '/events/registration-form',
+      '/events/project-submission',
+      '/build-games/apply',
+      '/audits/new',
+      '/audits/admin',
     ]) {
       expect(gated(p), `${p} must be gated by the manifest`).toBe(true);
       expect(isProtectedPath(p), `${p} must trigger the login modal`).toBe(true);

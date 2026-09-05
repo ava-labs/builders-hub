@@ -53,15 +53,11 @@ export async function evaluableHackathonIds(
 /**
  * True when the user may administer the Audit Marketplace program
  * (/audits/admin: requests overview, subsidy decisions, auditor whitelist).
- * Gated on the audit_admin custom attribute, with devrel as the de-facto
- * super-role, consistent with the other admin surfaces. Attributes are
- * provisioned by direct DB write; nothing in the app grants them.
+ * audit:manage — held by audit_admin, and by platform admins via the
+ * wildcard. Granted through /api/admin/user-roles like every other role.
  */
-export function canAdministerAuditProgram(
-  session: { user?: { custom_attributes?: string[] } } | null | undefined,
-): boolean {
-  if (!session?.user) return false;
-  return hasAnyAttribute(session.user.custom_attributes, ["audit_admin", "devrel"]);
+export function canAdministerAuditProgram(session: SessionLike): boolean {
+  return hasPermission(session, { resource: "audit", action: "manage" });
 }
 
 /**
