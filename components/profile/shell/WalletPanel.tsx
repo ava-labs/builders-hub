@@ -8,7 +8,7 @@ import type { ProfileWallet } from "./types";
 interface Props {
   wallets: ProfileWallet[];
   onAddWallet: (address: string) => void;
-  /** Called once per existing wallet when the user disconnects. */
+  /** Disconnect a single wallet, identified by its address. */
   onRemove: (address: string) => void;
 }
 
@@ -20,10 +20,6 @@ function shorten(addr: string): string {
 export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
   const isConnected = wallets.length > 0;
   const lastAddress = wallets[wallets.length - 1]?.address;
-
-  const handleDisconnectAll = () => {
-    for (const w of [...wallets]) onRemove(w.address);
-  };
 
   if (!isConnected) {
     return (
@@ -69,8 +65,8 @@ export function WalletPanel({ wallets, onAddWallet, onRemove }: Props) {
             <button
               type="button"
               className="pr-btn pr-btn--sm pr-btn--success"
-              onClick={handleDisconnectAll}
-              aria-label="Disconnect wallet"
+              onClick={() => onRemove(w.address)}
+              aria-label={`Disconnect wallet ${w.address}`}
             >
               <Check size={12} /> Connected
             </button>
