@@ -4,6 +4,7 @@ import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canEvaluateHackathon } from "@/lib/auth/permissions";
 import { canEditEvent } from "@/lib/auth/permissions";
+import { parsePhaseBody } from "@/lib/hackathons/evaluation-phase";
 import {
   countReviewProgress,
   projectHasNoLinks,
@@ -65,7 +66,7 @@ export async function GET(_request: NextRequest, context: Params) {
   return NextResponse.json(data);
 }
 
-export async function POST(_request: NextRequest, context: Params) {
+export async function POST(request: NextRequest, context: Params) {
   const { id: hackathonId } = await context.params;
 
   const session = await getAuthSession();
@@ -79,36 +80,34 @@ export async function POST(_request: NextRequest, context: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const parsed = parsePhaseBody(await request.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid phase", issues: parsed.error.issues },
+      { status: 400 },
+    );
+  }
+  const target = parsed.data.phase;
+
   const current = await loadPhaseWithCounts(hackathonId);
   if (!current) {
     return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
   }
 
-  if (current.phase === HackathonEvaluationPhase.PICKING) {
+  if (current.phase === target) {
     return NextResponse.json(current);
   }
 
-  if (current.total === 0 || current.reviewed < current.total) {
-    return NextResponse.json(
-      {
-        error:
-          current.total === 0
-            ? "No eligible projects to review — every submission is hidden or has no links"
-            : "Not all projects have been reviewed",
-        reviewed: current.reviewed,
-        total: current.total,
-      },
-      { status: 400 },
-    );
-  }
-
+  // No review-completeness gate: organizers deliberately run both open judging
+  // (reveal early, judges discuss) and blind judging (reveal at the end). The
+  // UI warns when scores are revealed mid-review; the choice is theirs.
   await prisma.hackathon.update({
     where: { id: hackathonId },
-    data: { evaluation_phase: HackathonEvaluationPhase.PICKING },
+    data: { evaluation_phase: target },
   });
 
   return NextResponse.json({
-    phase: HackathonEvaluationPhase.PICKING,
+    phase: target,
     reviewed: current.reviewed,
     total: current.total,
   });
