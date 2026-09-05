@@ -95,15 +95,9 @@ export async function proxy(req: NextRequest) {
     if (isApi) {
       return applyCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), requestOrigin);
     }
-    // For UI routes: set header so AutoLoginModalTrigger can detect it
-    const blockedResponse = NextResponse.next();
-    blockedResponse.headers.set("x-auth-required", "true");
-    return applyCorsHeaders(blockedResponse, requestOrigin);
-  }
-
-  // ── Authenticated on login page → redirect home ───────────────────────────
-  if (pathname === "/login") {
-    return applyCorsHeaders(NextResponse.redirect(new URL("/", req.url)), requestOrigin);
+    // UI routes render as-is; the page shows a placeholder and the client
+    // opens the login modal on PROTECTED_PATHS (lib/auth/protected-paths.ts).
+    return applyCorsHeaders(NextResponse.next(), requestOrigin);
   }
 
   // ── authOnly route — any session is enough ────────────────────────────────
