@@ -213,7 +213,11 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   // ── API – projects ────────────────────────────────────────────────────────
   "/api/projects/export":                  { resource: "showcase", action: "export" },
 
-  // ── API – admin (user management) ────────────────────────────────────────
+  // ── UI + API – admin (user management) ───────────────────────────────────
+  // user:manage is devrel-only (wildcard). The wildcard entries mean a sibling
+  // admin page or route added later inherits the gate instead of shipping open.
+  "/admin":                                { resource: "user", action: "manage" },
+  "/admin/**":                             { resource: "user", action: "manage" },
   "/api/admin":                            { resource: "user" },
   "/api/admin/*":                          { resource: "user" },
 

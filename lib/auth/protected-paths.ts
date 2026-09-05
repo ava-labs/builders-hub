@@ -28,6 +28,7 @@ export const PROTECTED_PATHS = [
   "/academy/team1",
   "/audits/new",
   "/audits/admin",
+  "/admin",
 ] as const;
 
 export function isProtectedPath(pathname: string): boolean {

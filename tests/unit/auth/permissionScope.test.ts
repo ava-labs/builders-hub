@@ -249,6 +249,18 @@ describe('middleware gate for scoped routes', () => {
     expect(gate([], '/events/abc', 'GET')).toBe('public');
   });
 
+  it('reserves the role-management admin area for user:manage (devrel only)', () => {
+    // Granting roles is the escalation surface: every event-management role
+    // must be blocked, or a team1_admin could grant themselves devrel.
+    expect(gate(['devrel'], '/admin/roles', 'GET')).toBe('pass');
+    for (const role of ['team1_admin', 'hackathon_creator', 'team1_event_admin', 'badge_admin']) {
+      expect(gate([role], '/admin/roles', 'GET'), `${role} must not reach /admin/roles`).toBe('blocked');
+    }
+    // The wildcard covers pages added under /admin later, not just this one.
+    expect(gate(['team1_admin'], '/admin/anything-added-later', 'GET')).toBe('blocked');
+    expect(gate([], '/admin', 'GET')).toBe('blocked');
+  });
+
   it('does not 401 the self-authorizing validator routes at the Edge', () => {
     // /check runs from Vercel cron with a CRON_SECRET bearer and /unsubscribe is
     // followed from an email with a signed URL token — neither carries a
@@ -324,6 +336,7 @@ describe('grants gating: manifest and login-modal list agree', () => {
       '/build-games/apply',
       '/audits/new',
       '/audits/admin',
+      '/admin',
     ]) {
       expect(gated(p), `${p} must be gated by the manifest`).toBe(true);
       expect(isProtectedPath(p), `${p} must trigger the login modal`).toBe(true);
