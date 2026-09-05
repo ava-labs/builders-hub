@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { withAuth } from "@/lib/protectedRoute";
+import { hasPermission } from "@/lib/auth/rolePermissions";
+import { activeRoleWhere } from "@/lib/auth/permissions";
 
 const MAX_RESULTS = 20;
 
@@ -20,11 +22,9 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
     // event-management roles, which need it to assign judges (devrel) and add
     // co-hosts by email (any event organizer). Plain authenticated users cannot
     // use it, so it is not a general email-enumeration surface.
-    const attrs = session.user?.custom_attributes ?? [];
-    const canUseAdmin =
-      attrs.includes("devrel") ||
-      attrs.includes("team1-admin") ||
-      attrs.includes("hackathonCreator");
+    // event:write covers exactly the event-management roles
+    // (devrel via wildcard, team1_admin, hackathon_creator).
+    const canUseAdmin = hasPermission(session, { resource: "event", action: "write", scope: "own" });
     if (!canUseAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -49,10 +49,13 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         };
 
   if (scope === "admin") {
-    // Other users' roles are only disclosed to devrel (the judges UI renders
-    // them); event organizers adding cohosts only need contact details.
-    const callerIsDevrel = session.user?.custom_attributes?.includes("devrel") ?? false;
-    const users = await prisma.user.findMany({
+    // Other users' roles are only disclosed to platform admins (the judges UI
+    // renders them); event organizers adding cohosts only need contact details.
+    const callerIsPlatformAdmin = hasPermission(session, {
+      resource: "platform",
+      action: "admin",
+    });
+    const rows = await prisma.user.findMany({
       where,
       select: {
         id: true,
@@ -60,11 +63,22 @@ export const GET = withAuth(async (request: NextRequest, _context, session) => {
         email: true,
         image: true,
         user_name: true,
-        custom_attributes: callerIsDevrel,
+        // Roles come from UserRole. Active = no expiry, or expiry in the future.
+        ...(callerIsPlatformAdmin
+          ? {
+              user_roles: {
+                where: activeRoleWhere(),
+                select: { role: true },
+              },
+            }
+          : {}),
       },
       orderBy: { name: "asc" },
       take: MAX_RESULTS,
     });
+    const users = rows.map(({ user_roles, ...u }) =>
+      callerIsPlatformAdmin ? { ...u, roles: user_roles.map((r) => r.role) } : u,
+    );
     return NextResponse.json({ users });
   }
 

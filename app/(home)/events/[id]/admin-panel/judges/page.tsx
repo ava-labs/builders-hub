@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import { canManageHackathonJudges } from "@/lib/auth/permissions";
+import { activeRoleWhere, canManageHackathonJudges } from "@/lib/auth/permissions";
 import { JudgesManager } from "@/components/evaluate/JudgesManager";
 
 export default async function HackathonJudgesPage({
@@ -34,7 +34,10 @@ export default async function HackathonJudgesPage({
           email: true,
           image: true,
           user_name: true,
-          custom_attributes: true,
+          user_roles: {
+            where: activeRoleWhere(),
+            select: { role: true },
+          },
         },
       },
     },
@@ -57,10 +60,10 @@ export default async function HackathonJudgesPage({
       </div>
       <JudgesManager
         hackathonId={hackathon.id}
-        initialJudges={judges.map((j) => ({
+        initialJudges={judges.map(({ user: { user_roles, ...user }, ...j }) => ({
           id: j.id,
           assigned_at: j.assigned_at.toISOString(),
-          user: j.user,
+          user: { ...user, roles: user_roles.map((r) => r.role) },
         }))}
       />
     </main>

@@ -1,12 +1,8 @@
-import { getServerSession } from "next-auth";
-import { AuthOptions } from "@/lib/auth/authOptions";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/protectedRoute";
 
-export async function POST(req: any): Promise<Response> {
+export const POST = withAuth(async (req: NextRequest, _ctx: unknown, session) => {
   try {
-    const session = await getServerSession(AuthOptions);
-    if (!session) return new Response("Unauthorized", { status: 401 });
-
     const body: any = await req.json();
 
     const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
@@ -50,4 +46,4 @@ export async function POST(req: any): Promise<Response> {
       err instanceof Error ? err.message : "Unexpected error";
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});

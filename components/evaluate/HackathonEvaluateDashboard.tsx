@@ -91,7 +91,9 @@ type Props = {
   hackathonId: string;
   viewerId: string;
   canPickWinners: boolean;
+  canEvaluate: boolean;
   canManagePhase: boolean;
+  isDevrel: boolean;
   initialPhase: HackathonEvaluationPhase;
   initialReviewed: number;
   projects: Project[];
@@ -228,7 +230,9 @@ export function HackathonEvaluateDashboard({
   hackathonId,
   viewerId,
   canPickWinners,
+  canEvaluate,
   canManagePhase,
+  isDevrel,
   initialPhase,
   initialReviewed,
   projects: initialProjects,
@@ -259,12 +263,15 @@ export function HackathonEvaluateDashboard({
     [projects, viewerId],
   );
   const pendingCount = projects.length - evaluatedCount;
-  const [phase, setPhase] = useState<HackathonEvaluationPhase>(initialPhase);
+  const phase = initialPhase;
   const [phaseConfirmOpen, setPhaseConfirmOpen] = useState(false);
   const [phaseAdvancing, setPhaseAdvancing] = useState(false);
   const [phaseError, setPhaseError] = useState<string | null>(null);
 
   const isEvaluation = phase === HackathonEvaluationPhase.EVALUATION;
+  const nextPhase = isEvaluation
+    ? HackathonEvaluationPhase.PICKING
+    : HackathonEvaluationPhase.EVALUATION;
   // Hidden projects (rejected or auto-hidden) can never be reviewed by judges,
   // so they must not count toward the phase gate.
   const { reviewed: reviewedCount, total: totalProjects } = useMemo(
@@ -366,7 +373,7 @@ export function HackathonEvaluateDashboard({
     }
   }
 
-  async function confirmAdvancePhase() {
+  async function confirmPhaseChange() {
     setPhaseAdvancing(true);
     setPhaseError(null);
     try {
@@ -375,15 +382,17 @@ export function HackathonEvaluateDashboard({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
+          body: JSON.stringify({ phase: nextPhase }),
         },
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setPhaseError(body.error ?? "Failed to advance phase");
+        setPhaseError(body.error ?? "Failed to change phase");
         return;
       }
-      setPhase(HackathonEvaluationPhase.PICKING);
-      setPhaseConfirmOpen(false);
+      // Reload the server-rendered page so phase and score visibility change
+      // together, including the local project and detail-panel state.
+      window.location.reload();
     } catch {
       setPhaseError("Network error — please try again");
     } finally {
@@ -417,30 +426,25 @@ export function HackathonEvaluateDashboard({
     );
   }
 
-  const advanceButton = canManagePhase && isEvaluation ? (
-    <TooltipProvider delayDuration={150}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className="inline-flex">
-            <Button
-              size="sm"
-              onClick={() => setPhaseConfirmOpen(true)}
-              disabled={!allReviewed}
-              className="gap-1.5"
-            >
-              <Unlock className="size-3.5" />
-              Move to picking phase
-            </Button>
-          </span>
-        </TooltipTrigger>
-        {!allReviewed && (
-          <TooltipContent>
-            {reviewed}/{totalProjects} projects reviewed — every project needs
-            at least one evaluation before scores can be revealed.
-          </TooltipContent>
-        )}
-      </Tooltip>
-    </TooltipProvider>
+  const phaseButton = canManagePhase ? (
+    <Button
+      size="sm"
+      variant={isEvaluation ? "default" : "outline"}
+      onClick={() => setPhaseConfirmOpen(true)}
+      className="gap-1.5"
+    >
+      {isEvaluation ? (
+        <>
+          <Unlock className="size-3.5" />
+          Move to picking phase
+        </>
+      ) : (
+        <>
+          <Lock className="size-3.5" />
+          Back to evaluation phase
+        </>
+      )}
+    </Button>
   ) : null;
 
   return (
@@ -465,8 +469,8 @@ export function HackathonEvaluateDashboard({
             </div>
             <div className="text-xs opacity-90">
               {isEvaluation
-                ? "Scores are hidden between judges until devrel moves to the picking phase."
-                : "All judges' scores are visible. Devrel can now select winners."}
+                ? "Scores are hidden between judges until an organizer moves to the picking phase."
+                : "All judges' scores are visible. An organizer can now select winners."}
             </div>
           </div>
         </div>
@@ -474,7 +478,7 @@ export function HackathonEvaluateDashboard({
           <span className="text-xs text-zinc-600 dark:text-zinc-400">
             {reviewed}/{totalProjects} reviewed
           </span>
-          {advanceButton}
+          {phaseButton}
         </div>
       </div>
 
@@ -565,7 +569,7 @@ export function HackathonEvaluateDashboard({
                 />
               </TableHead>
               <TableHead className="w-[110px] text-right">Winner</TableHead>
-              {canPickWinners && (
+              {isDevrel && (
                 <TableHead className="w-[110px] text-right">Visibility</TableHead>
               )}
             </TableRow>
@@ -573,7 +577,7 @@ export function HackathonEvaluateDashboard({
           <TableBody>
             {sorted.length === 0 && (
               <TableRow>
-                <TableCell colSpan={canPickWinners ? 8 : 7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
+                <TableCell colSpan={isDevrel ? 8 : 7} className="py-8 text-center text-sm text-zinc-500 dark:text-zinc-600 dark:text-zinc-500">
                   No projects yet.
                 </TableCell>
               </TableRow>
@@ -666,7 +670,7 @@ export function HackathonEvaluateDashboard({
                       onToggle={(next) => setIsWinner(p.id, next)}
                     />
                   </TableCell>
-                  {canPickWinners && (
+                  {isDevrel && (
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       {p.auto_hidden && !isRejected ? (
                         <AutoHiddenLabel />
@@ -690,8 +694,9 @@ export function HackathonEvaluateDashboard({
         <SubmissionDetailPanel
           row={toSubmissionRow(openProject, hackathonId)}
           currentUserId={viewerId}
-          isDevrel={canPickWinners}
+          isDevrel={isDevrel}
           showStages={false}
+          canEvaluate={canEvaluate}
           projectId={openProject.id}
           onClose={() => setOpenProjectId(null)}
           onEvaluationSaved={handleEvaluationSaved}
@@ -701,10 +706,32 @@ export function HackathonEvaluateDashboard({
       <AlertDialog open={phaseConfirmOpen} onOpenChange={setPhaseConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Move to picking phase?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isEvaluation
+                ? "Move to picking phase?"
+                : "Back to evaluation phase?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              All judges' scores will become visible to every judge and to
-              devrel. This cannot be undone.
+              {isEvaluation ? (
+                <>
+                  All judges&apos; scores become visible to every judge, and
+                  winners can be selected.
+                  {!allReviewed && (
+                    <>
+                      {" "}
+                      Only {reviewed} of {totalProjects} projects have been
+                      reviewed — judges will see each other&apos;s scores while
+                      still scoring, which can anchor the remaining reviews.
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  Scores are hidden between judges again and winners can no
+                  longer be selected. Judges who already saw the scores cannot
+                  unsee them.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {phaseError && (
@@ -718,10 +745,14 @@ export function HackathonEvaluateDashboard({
               disabled={phaseAdvancing}
               onClick={(e) => {
                 e.preventDefault();
-                void confirmAdvancePhase();
+                void confirmPhaseChange();
               }}
             >
-              {phaseAdvancing ? "Advancing…" : "Move to picking phase"}
+              {phaseAdvancing
+                ? "Saving…"
+                : isEvaluation
+                  ? "Move to picking phase"
+                  : "Back to evaluation phase"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

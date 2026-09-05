@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Divider } from "@/components/ui/divider";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import {
   Mail,
   MessageSquare,

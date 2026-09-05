@@ -10,7 +10,7 @@ export type SearchUser = {
   image: string | null;
   user_name: string | null;
   email?: string;
-  custom_attributes?: string[];
+  roles?: string[];
 };
 
 type Props = {
@@ -18,6 +18,7 @@ type Props = {
   excludeUserIds?: string[];
   placeholder?: string;
   autoFocus?: boolean;
+  disabled?: boolean;
   scope?: "public" | "admin";
 };
 
@@ -46,6 +47,7 @@ export function UserSearchPicker({
   excludeUserIds,
   placeholder = "Search by name…",
   autoFocus,
+  disabled = false,
   scope = "public",
 }: Props) {
   const [query, setQuery] = useState("");
@@ -107,6 +109,7 @@ export function UserSearchPicker({
   return (
     <div ref={containerRef} className="relative w-full">
       <Input
+        disabled={disabled}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
@@ -116,7 +119,7 @@ export function UserSearchPicker({
         aria-expanded={open}
       />
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-50 mt-1 w-full max-h-80 overflow-auto rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-lg">
           {loading && (
             <div className="px-3 py-2 text-sm text-zinc-600 dark:text-zinc-500">
@@ -167,9 +170,9 @@ export function UserSearchPicker({
                       </div>
                     )}
                   </div>
-                  {user.custom_attributes && user.custom_attributes.length > 0 && (
+                  {user.roles && user.roles.length > 0 && (
                     <div className="flex shrink-0 gap-1">
-                      {user.custom_attributes.slice(0, 2).map((attr) => (
+                      {user.roles.slice(0, 2).map((attr) => (
                         <span
                           key={attr}
                           className="rounded bg-zinc-200 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-700 dark:text-zinc-400"

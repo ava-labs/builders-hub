@@ -1,33 +1,64 @@
 import { timingSafeEqual } from "node:crypto";
+import type { Prisma } from "@prisma/client";
+import { hasPermission, type SessionLike } from "@/lib/auth/rolePermissions";
 import { prisma } from "../../prisma/prisma";
 import { MINI_GRANT_HACKATHON_ID } from "@/lib/grants/programs";
 import { isTeam1Event } from "@/lib/events/team1";
 
-export function hasAnyAttribute(
+/**
+ * Module-private: raw role-NAME check. Only for the few places that must
+ * distinguish specific roles from one another (canViewEventRegistrations
+ * branches differently for team1_admin vs team1_event_admin) rather than ask
+ * a capability question. Everything else uses hasPermission.
+ */
+function hasAnyAttribute(
   attributes: string[] | undefined | null,
   allowedAttributes: string[]
 ): boolean {
   return allowedAttributes.some((attribute) => attributes?.includes(attribute));
 }
 
-export function canAccessEvaluationTools(
-  attributes: string[] | undefined | null
-): boolean {
-  return hasAnyAttribute(attributes, ["devrel", "judge"]);
+/**
+ * Shared mechanic (not a policy): platform-wide admins — every role holding
+ * platform:admin (currently devrel only). Use this instead of checking the
+ * "devrel" string, so a future platform-admin role is never silently excluded.
+ */
+function isPlatformAdmin(source: SessionLike): boolean {
+  return hasPermission(source, { resource: "platform", action: "admin" });
+}
+
+/**
+ * Which hackathons this user may evaluate.
+ *
+ *   null  → no restriction (platform admins see every hackathon).
+ *   []    → may not evaluate anything.
+ *   [ids] → exactly the hackathons they hold a HackathonJudge row for.
+ *
+ * The global "judge" role is deliberately NOT a factor: evaluation is granted
+ * by assignment, not by a role (see the header of rolePermissions.ts). A user
+ * with no roles at all evaluates the events they are assigned to, and holding
+ * "judge" without an assignment grants nothing.
+ */
+export async function evaluableHackathonIds(
+  session: { user?: { id?: string; custom_attributes?: string[] } } | null | undefined,
+): Promise<string[] | null> {
+  if (!session?.user?.id) return [];
+  if (isPlatformAdmin(session)) return null;
+  const rows = await prisma.hackathonJudge.findMany({
+    where: { user_id: session.user.id },
+    select: { hackathon_id: true },
+  });
+  return rows.map((r) => r.hackathon_id);
 }
 
 /**
  * True when the user may administer the Audit Marketplace program
  * (/audits/admin: requests overview, subsidy decisions, auditor whitelist).
- * Gated on the audit_admin custom attribute, with devrel as the de-facto
- * super-role, consistent with the other admin surfaces. Attributes are
- * provisioned by direct DB write; nothing in the app grants them.
+ * audit:manage — held by audit_admin, and by platform admins via the
+ * wildcard. Granted through /api/admin/user-roles like every other role.
  */
-export function canAdministerAuditProgram(
-  session: { user?: { custom_attributes?: string[] } } | null | undefined,
-): boolean {
-  if (!session?.user) return false;
-  return hasAnyAttribute(session.user.custom_attributes, ["audit_admin", "devrel"]);
+export function canAdministerAuditProgram(session: SessionLike): boolean {
+  return hasPermission(session, { resource: "audit", action: "manage" });
 }
 
 /**
@@ -56,7 +87,7 @@ export async function canEvaluateHackathon(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  if (hasAnyAttribute(session.user.custom_attributes, ["devrel"])) return true;
+  if (isPlatformAdmin(session)) return true;
   return isHackathonJudge(session.user.id, hackathonId);
 }
 
@@ -66,15 +97,25 @@ export async function canEvaluateHackathon(
  * "judge" custom_attribute is intentionally NOT sufficient — mini-grant review
  * is scoped to devrel and explicitly assigned mini-grant judges.
  */
-export function canReviewMiniGrants(
+export async function canReviewMiniGrants(
   session: { user?: { id?: string; custom_attributes?: string[] } } | null | undefined,
 ): Promise<boolean> {
-  return canEvaluateHackathon(session, MINI_GRANT_HACKATHON_ID);
+  // Spelled out rather than calling canEvaluateHackathon: policies stay
+  // explicit and share the isHackathonJudge mechanic instead of each other.
+  if (!session?.user) return false;
+  if (isPlatformAdmin(session)) return true;
+  return isHackathonJudge(session.user.id, MINI_GRANT_HACKATHON_ID);
 }
 
 /**
  * True when the user may assign/remove judges for the given hackathon:
- * devrel for any event; team1-admin for events they created or cohost.
+ * devrel for any event; team1_admin and hackathon_creator for events they
+ * created or cohost.
+ *
+ * Asked as judge:assign rather than by role name so a new organizer role is
+ * picked up automatically — and so an organizer can add THEMSELVES as a judge,
+ * which is the only way to evaluate: editing an event never implies judging it
+ * (see canEvaluateHackathon).
  */
 export async function canManageHackathonJudges(
   session:
@@ -84,22 +125,18 @@ export async function canManageHackathonJudges(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  if (hasAnyAttribute(session.user.custom_attributes, ["devrel"])) return true;
-  return isTeam1AdminForOwnEvent(session.user, hackathonId);
-}
-
-export function canManageEvaluationPhase(
-  session: { user?: { custom_attributes?: string[] } } | null | undefined,
-): boolean {
-  if (!session?.user) return false;
-  return hasAnyAttribute(session.user.custom_attributes, ["devrel"]);
+  if (isPlatformAdmin(session)) return true;
+  if (!hasPermission(session, { resource: "judge", action: "assign", scope: "own" })) {
+    return false;
+  }
+  return isCreatorOrCohost(session.user, hackathonId);
 }
 
 /**
  * True when the user may view an event's registrations (registrant PII):
  * - devrel: all events (global event admins).
- * - team1-admin: all Team1 events (full access to everything Team1).
- * - team1-event-admin: only events they created or where they are a
+ * - team1_admin: all Team1 events (full access to everything Team1).
+ * - team1_event_admin: only events they created or where they are a
  *   listed cohost (creators are NOT auto-added to cohosts).
  * Cohosts without one of these roles are intentionally excluded —
  * registrants only consent to sharing their contact data with Avalanche
@@ -113,10 +150,10 @@ export async function canViewEventRegistrations(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
+  if (isPlatformAdmin(session)) return true;
   const attributes = session.user.custom_attributes;
-  if (hasAnyAttribute(attributes, ["devrel"])) return true;
-  const isTeam1Admin = hasAnyAttribute(attributes, ["team1-admin"]);
-  const isTeam1EventAdmin = hasAnyAttribute(attributes, ["team1-event-admin"]);
+  const isTeam1Admin = hasAnyAttribute(attributes, ["team1_admin"]);
+  const isTeam1EventAdmin = hasAnyAttribute(attributes, ["team1_event_admin"]);
   if (!isTeam1Admin && !isTeam1EventAdmin) return false;
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
@@ -130,17 +167,14 @@ export async function canViewEventRegistrations(
 }
 
 /**
- * Shared mechanic (not a policy): true when the user holds the team1-admin
- * role AND is the creator or a listed cohost of the given event — the same
- * set surfaced in their managed events list (GET /api/events?managed=true).
- * Policy functions (canEditEvent, canManageHackathonJudges) decide what
- * this grants; change the policy there, not here.
+ * Shared mechanic (not a policy): the user created the event, or is a listed
+ * cohost on it. Deliberately role-agnostic — this answers "is it theirs?", and
+ * each policy decides which roles that ownership is worth something to.
  */
-async function isTeam1AdminForOwnEvent(
-  user: { id?: string; email?: string; custom_attributes?: string[] },
+async function isCreatorOrCohost(
+  user: { id?: string; email?: string },
   hackathonId: string,
 ): Promise<boolean> {
-  if (!hasAnyAttribute(user.custom_attributes, ["team1-admin"])) return false;
   const hackathon = await prisma.hackathon.findUnique({
     where: { id: hackathonId },
     select: { cohosts: true, created_by: true },
@@ -151,10 +185,29 @@ async function isTeam1AdminForOwnEvent(
 }
 
 /**
+ * Shared mechanic (not a policy): true when the user holds the team1_admin
+ * role AND owns the given event — the same set surfaced in their managed
+ * events list (GET /api/events?managed=true). Policy functions decide what
+ * this grants; change the policy there, not here.
+ */
+async function isTeam1AdminForOwnEvent(
+  user: { id?: string; email?: string; custom_attributes?: string[] },
+  hackathonId: string,
+): Promise<boolean> {
+  if (!hasAnyAttribute(user.custom_attributes, ["team1_admin"])) return false;
+  return isCreatorOrCohost(user, hackathonId);
+}
+
+/**
  * True when the user may edit an event (PUT/PATCH /api/events/[id]):
  * - devrel: any event.
- * - team1-admin: only events they created or where they are a listed
- *   cohost, so everything in their managed list they can also edit.
+ * - team1_admin (event:manage scope own) and hackathon_creator (event:write):
+ *   only events they created or where they are a listed cohost.
+ *
+ * hackathon_creator is included deliberately: the role exists to let trusted
+ * external organisers run their own events, and POST /api/events grants them
+ * creation. Without this they could create an event and then get a 403 saving
+ * it — the editor at app/events/edit opens on event:write.
  */
 export async function canEditEvent(
   session:
@@ -164,7 +217,50 @@ export async function canEditEvent(
   hackathonId: string,
 ): Promise<boolean> {
   if (!session?.user) return false;
-  if (hasAnyAttribute(session.user.custom_attributes, ["devrel"])) return true;
+  if (isPlatformAdmin(session)) return true;
+  // The common "may manage events" gate: satisfied by team1_admin (event:manage
+  // scope:"own") and hackathon_creator (unscoped event:write), not by read-only
+  // team1_event_admin. Asked as a permission, not a role name, so a new
+  // event-editing role is picked up automatically.
+  if (!hasPermission(session, { resource: "event", action: "write", scope: "own" })) {
+    return false;
+  }
+  return isCreatorOrCohost(session.user, hackathonId);
+}
+
+/**
+ * True when the user may change a project's competition outcome (the winner
+ * flag, which also mints prize badges):
+ * - devrel: any project.
+ * - team1_admin: only projects belonging to an event they created or cohost.
+ *
+ * Resolves the project's event and applies the same outcome policy as the
+ * dashboard. Editing an event alone does not grant winner selection.
+ */
+export async function canManageProjectOutcome(
+  session:
+    | { user?: { id?: string; email?: string; custom_attributes?: string[] } }
+    | null
+    | undefined,
+  projectId: string,
+): Promise<boolean> {
+  if (!session?.user) return false;
+  if (isPlatformAdmin(session)) return true;
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { hackaton_id: true },
+  });
+  if (!project?.hackaton_id) return false;
+  return canManageHackathonOutcomes(session, project.hackaton_id);
+}
+
+/** Same winner policy for the dashboard and the project mutation endpoints. */
+export async function canManageHackathonOutcomes(
+  session: { user?: { id?: string; email?: string; custom_attributes?: string[] } } | null | undefined,
+  hackathonId: string,
+): Promise<boolean> {
+  if (!session?.user) return false;
+  if (isPlatformAdmin(session)) return true;
   return isTeam1AdminForOwnEvent(session.user, hackathonId);
 }
 
@@ -189,28 +285,41 @@ export function verifyHackathonProjectsApiKey(
   return timingSafeEqual(expectedBuf, providedBuf);
 }
 
-export function canAccessBuilderInsights(
-  attributes: string[] | undefined | null
-): boolean {
-  return hasAnyAttribute(attributes, ["builder_insights"]);
+// ---------------------------------------------------------------------------
+// UserRole lifecycle
+// ---------------------------------------------------------------------------
+
+/**
+ * The ONE definition of "this role is in force right now".
+ *
+ * UserRole keeps history: revoked rows stay in the table (see the model comment
+ * in schema.prisma). Any query that reads a user's roles must therefore filter
+ * on BOTH conditions — a query that forgets `revoked_at: null` hands out roles
+ * that an admin has already taken away.
+ *
+ * Called, not exported as a constant, because `new Date()` must be evaluated
+ * per query rather than once at module load.
+ */
+export function activeRoleWhere(now: Date = new Date()): Prisma.UserRoleWhereInput {
+  return {
+    revoked_at: null,
+    OR: [{ expires_at: null }, { expires_at: { gt: now } }],
+  };
 }
 
-export function canSendNotifications(
-  attributes: string[] | undefined | null
-): boolean {
-  return hasAnyAttribute(attributes, ["devrel"]);
-}
-
-export function canGenerateRestrictedReferralLinks(
-  attributes: string[] | undefined | null
-): boolean {
-  return canAccessBuilderInsights(attributes);
-}
-
-export function canGenerateReferralLinkForTarget(
-  _attributes: string[] | undefined | null,
-  targetType: string
-): boolean {
-  if (targetType === "build_games_application") return false;
-  return true;
+/**
+ * Who to record as the revoker when an open episode is closed to make way for a
+ * new grant.
+ *
+ * An episode whose expires_at has already passed ended on its own — nobody took
+ * it away. Naming the admin who re-granted the role would put a revocation in
+ * the audit log that never happened, which is exactly the bug this guards.
+ */
+export function revokerForClose(
+  episode: { expires_at: Date | null },
+  actorId: string,
+  now: Date = new Date(),
+): string | null {
+  const lapsed = episode.expires_at !== null && episode.expires_at <= now;
+  return lapsed ? null : actorId;
 }
