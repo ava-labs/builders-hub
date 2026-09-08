@@ -23,14 +23,15 @@ For more details on Avalanche Warp Messaging, see the AvalancheGo [Warp README](
 
 ## Configuration
 
-The Warp Messenger precompile is enabled by default on all Avalanche L1s and does not require explicit configuration in the genesis file. However, you can configure it if needed:
+Like other precompiles, the Warp Messenger must be activated in the genesis file or through a network upgrade. It is commonly enabled from genesis on L1s that need cross-chain messaging:
 
 ```json
 {
   "config": {
     "warpConfig": {
       "blockTimestamp": 0,
-      "quorumNumerator": 67
+      "quorumNumerator": 67,
+      "requirePrimaryNetworkSigners": false
     }
   }
 }
@@ -39,7 +40,8 @@ The Warp Messenger precompile is enabled by default on all Avalanche L1s and doe
 ### Configuration Parameters
 
 - `blockTimestamp`: The timestamp when the precompile should be activated (0 for genesis)
-- `quorumNumerator`: The percentage of stake weight required to verify a message (default: 67, meaning 67%)
+- `quorumNumerator`: The percentage of stake weight required to verify a message (default: 67, meaning 67%). Values below 33 are rejected
+- `requirePrimaryNetworkSigners`: Whether messages from the C-Chain and X-Chain must be verified against the Primary Network validator set. Required for L1s that need to receive messages from those chains (default: `false`)
 
 <Callout type="info">
 Unlike other precompiles, Warp Messenger does not use the AllowList interface - it is available to all addresses by default.
@@ -61,9 +63,14 @@ interface IWarpMessenger {
   function sendWarpMessage(bytes calldata payload) external returns (bytes32 messageID);
 
   // getVerifiedWarpMessage returns the verified Warp message if it exists, otherwise returns (WarpMessage, false)
-  function getVerifiedWarpMessage(uint32 index) external view returns (WarpMessage memory message, bool valid);
+  function getVerifiedWarpMessage(uint32 index) external view returns (WarpMessage calldata message, bool valid);
+
+  // getVerifiedWarpBlockHash returns the verified Warp block hash if it exists, otherwise returns (WarpBlockHash, false)
+  function getVerifiedWarpBlockHash(uint32 index) external view returns (WarpBlockHash calldata warpBlockHash, bool valid);
 
   // getBlockchainID returns the blockchainID of the current chain
+  // This blockchainID is the hash of the transaction that created this blockchain on the P-Chain
+  // and is not related to the Ethereum ChainID.
   function getBlockchainID() external view returns (bytes32 blockchainID);
 }
 
@@ -71,6 +78,11 @@ struct WarpMessage {
   bytes32 sourceChainID;
   address originSenderAddress;
   bytes payload;
+}
+
+struct WarpBlockHash {
+  bytes32 sourceChainID;
+  bytes32 blockHash;
 }
 ```
 
@@ -87,7 +99,7 @@ The Avalanche Warp Precompile enables this flow to send a message from blockchai
 
 ## Warp Precompile Functions
 
-The Warp Precompile is broken down into three functions defined in the Solidity interface file [here](https://github.com/ava-labs/subnet-evm/blob/1ab7114c339f866b65cc02dfd586b2ed9041dd0b/contracts/contracts/interfaces/IWarpMessenger.sol).
+The Warp Precompile is broken down into four functions defined in the Solidity interface file [here](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/precompile/contracts/warp/warpbindings/IWarpMessenger.sol).
 
 ### sendWarpMessage
 
@@ -108,9 +120,9 @@ Additionally, the `SourceChainID` is excluded because anyone parsing the chain c
 
 The actual `message` is the entire [Avalanche Warp Unsigned Message](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/warp/unsigned_message.go#L14) including an [AddressedCall](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/warp/payload#readme). The unsigned message is emitted as the unindexed data in the log.
 
-### getVerifiedMessage
+### getVerifiedWarpMessage
 
-`getVerifiedMessage` is used to read the contents of the delivered Avalanche Warp Message into the expected format.
+`getVerifiedWarpMessage` is used to read the contents of the delivered Avalanche Warp Message into the expected format.
 
 It returns the message if present and a boolean indicating if a message is present.
 
@@ -121,7 +133,15 @@ This leads to the following advantages:
 1. The EVM execution does not need to verify the Warp Message at runtime (no signature verification or external calls to the P-Chain)
 2. The EVM can deterministically re-execute and re-verify blocks assuming the predicate was verified by the network (e.g., in bootstrapping)
 
-This pre-verification is performed using the ProposerVM Block header during [block verification](https://github.com/ava-labs/subnet-evm/blob/1ab7114c339f866b65cc02dfd586b2ed9041dd0b/plugin/evm/block.go#L220) and [block building](https://github.com/ava-labs/subnet-evm/blob/1ab7114c339f866b65cc02dfd586b2ed9041dd0b/miner/worker.go#L200).
+This pre-verification is performed using the ProposerVM Block header during [block verification](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/plugin/evm/block.go) and [block building](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/miner/worker.go).
+
+### getVerifiedWarpBlockHash
+
+`getVerifiedWarpBlockHash` reads a signed block hash from a source chain, delivered through the same predicate mechanism as `getVerifiedWarpMessage`.
+
+It returns the `WarpBlockHash` if present and a boolean indicating if one is present.
+
+This allows a contract to verify that a specific block was accepted on the source chain, without requiring a message to have been explicitly sent from it.
 
 ### getBlockchainID
 
@@ -137,7 +157,7 @@ Avalanche Warp Messages are encoded as a signed Avalanche [Warp Message](https:/
 
 Since the predicate is encoded into the [Transaction Access List](https://eips.ethereum.org/EIPS/eip-2930), it is packed into 32 byte hashes intended to declare storage slots that should be pre-warmed into the cache prior to transaction execution.
 
-Therefore, we use the [Predicate Utils](https://github.com/ava-labs/subnet-evm/blob/master/predicate/Predicate.md) package to encode the actual byte slice of size N into the access list.
+Therefore, we use the [Predicate Utils](https://github.com/ava-labs/avalanchego/blob/master/graft/subnet-evm/predicate/Predicate.md) package to encode the actual byte slice of size N into the access list.
 
 ## Performance Optimization: Primary Network to Avalanche L1
 
@@ -217,4 +237,3 @@ The Warp Precompile itself does not provide any guarantees of:
 - Eventual message delivery (may require re-send on blockchain A and additional assumptions about off-chain relayers and chain progress)
 - Ordering of messages (requires ordering provided a layer above)
 - Replay protection (requires replay protection provided a layer above)
-
