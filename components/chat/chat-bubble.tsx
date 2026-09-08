@@ -99,6 +99,15 @@ export function ChatBubble() {
   const hideOnMobile =
     pathname.startsWith('/stats') || pathname.startsWith('/explorer');
 
+  // The audits wizard (below md) and the auditor quote composer (below lg)
+  // pin a full-width action bar to the bottom edge; lift the bubble above it
+  // so it never covers the primary button at thumb reach.
+  const liftForActionBar = pathname.startsWith('/audits/new')
+    ? 'max-md:bottom-24'
+    : pathname.startsWith('/audits/portal/requests/')
+      ? 'max-lg:bottom-24'
+      : null;
+
   const handleBubbleClick = () => {
     if (state === 'collapsed') {
       setState('input');
@@ -144,6 +153,7 @@ export function ChatBubble() {
       className={cn(
         'chatbot-container fixed bottom-6 right-6 z-50 flex-col items-end gap-3',
         hideOnMobile ? 'hidden md:flex' : 'flex',
+        liftForActionBar,
       )}
       data-chatbot
     >

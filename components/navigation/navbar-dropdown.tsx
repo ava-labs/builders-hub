@@ -136,6 +136,11 @@ export function NavbarDropdown() {
                       {...(item.external ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
                     >
                       {item.text}
+                      {item.badge ? (
+                        <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
+                          {item.badge}
+                        </span>
+                      ) : null}
                     </Link>
                   ))}
                 </div>

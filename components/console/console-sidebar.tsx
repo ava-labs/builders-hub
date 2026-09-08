@@ -37,6 +37,7 @@ import {
   X,
   Bell,
   type LucideIcon,
+  ShieldCheck,
 } from "lucide-react";
 
 import {
@@ -167,6 +168,11 @@ const data = {
           title: "Testnet Faucet",
           url: "/console/primary-network/faucet",
           icon: Droplets,
+        },
+        {
+          title: "Security Audits",
+          url: "/audits",
+          icon: ShieldCheck,
         },
       ],
     },

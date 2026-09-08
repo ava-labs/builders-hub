@@ -10,6 +10,11 @@ module.exports = {
     `./scripts/check-console-design.sh ${files.join(' ')}`,
   ],
 
+  // Audit marketplace: same design-system bans (zinc-only neutrals, no raw anchors)
+  'components/audits/**/*.{ts,tsx}': (files) => [
+    `./scripts/check-console-design.sh ${files.join(' ')}`,
+  ],
+
   // All TypeScript: type check (runs once, not per-file)
   '*.{ts,tsx}': () => 'tsc --noEmit',
 };

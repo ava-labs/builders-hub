@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Trophy } from "lucide-react";
+import { ExternalLink, ShieldCheck, Trophy } from "lucide-react";
 import { PuzzleIcon, GitHubIcon } from "./icons";
 import { MINI_GRANT_HACKATHON_ID, MINI_GRANT_KEY } from "@/lib/grants/programs";
 
@@ -251,6 +251,14 @@ export function ProjectsCard({ projects, loading = false }: Props) {
                       <ExternalLink size={14} />
                     </a>
                   )}
+                  <Link
+                    href={`/audits/new?project=${p.id}`}
+                    className="pr-btn pr-btn--icon pr-btn--ghost"
+                    aria-label="Request an audit"
+                    title="Request an audit"
+                  >
+                    <ShieldCheck size={14} />
+                  </Link>
                 </div>
               </div>
             );
