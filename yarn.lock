@@ -628,10 +628,10 @@
     "@dicebear/thumbs" "9.3.1"
     "@dicebear/toon-head" "9.3.1"
 
-"@dicebear/core@^9.4.1":
-  version "9.4.1"
-  resolved "https://registry.yarnpkg.com/@dicebear/core/-/core-9.4.1.tgz#fe9320fb8ade79cb943fd7444272087cb63b1015"
-  integrity sha512-yzmoEhAc6CTaY9v0xz4MI3FTt5I5O+cvphpE+kd6Qz8XjW3/YveXEQcdO4CW0CTSUao88a8+/IMvnMGfUmDW1Q==
+"@dicebear/core@^9.4.3":
+  version "9.4.3"
+  resolved "https://registry.yarnpkg.com/@dicebear/core/-/core-9.4.3.tgz#e450781e4ef86402cb59702447f92eb29fbeb6ad"
+  integrity sha512-9ITrQI57k3p5hKuU8HZJ1d0kPdrmTKEJDOdlKQ8CpaChbtmnD1R+dtWmNz5IesYThXM8F64pJ0ZvJ2rsY8Hciw==
   dependencies:
     "@types/json-schema" "^7.0.15"
 
