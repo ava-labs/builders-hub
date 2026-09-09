@@ -8300,9 +8300,9 @@ hls.js@^1.5.17:
   integrity sha512-E3a5VwgXimGHwpRGV+WxRTKeSp2DW5DI5MWv34ulL3t5UNmyJWCQ1KmLEHbYzcfThfXG8amBL+fCYPneGHC4VA==
 
 hono@^4.11.4:
-  version "4.13.0"
-  resolved "https://registry.yarnpkg.com/hono/-/hono-4.13.0.tgz#ac1ba1650b4fd9cbe53e17bea0525f53cb65813d"
-  integrity sha512-jhunvfHWxd7J5EFfSgH4xsYJzSe/lfqbUCxiyyeaQasUsXeEHXtzVid+7EOGByc5JnFa23SSFL3Y2RV/z1T+eQ==
+  version "4.13.7"
+  resolved "https://registry.yarnpkg.com/hono/-/hono-4.13.7.tgz#80fdab8326f03d02f049117fd968101933493600"
+  integrity sha512-c8/gF9ac8Y78/agExVocyLevgR+JlpNB444Py0FSX8pJoPdYUfUzRcXtYEYGwt6l19qIlVZPN5Mfsw9jFShmQQ==
 
 hoopy@^0.1.4:
   version "0.1.4"
