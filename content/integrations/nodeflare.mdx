@@ -1,0 +1,33 @@
+---
+title: NodeFlare
+category: RPC Endpoints
+available: ["C-Chain"]
+description: Free public Avalanche C-Chain RPC (no API key) plus a free keyed tier, served from NodeFlare's own multi-region bare-metal nodes with automatic failover.
+logo: /images/nodeflare.png
+developer: NodeFlare
+website: https://nodeflare.app/chains/avalanche
+documentation: https://nodeflare.app/docs/endpoints/avalanche
+---
+
+## Overview
+
+NodeFlare provides Avalanche C-Chain RPC from its own dedicated bare-metal nodes — not an aggregator — with multi-region routing and automatic failover. A free public endpoint works without an API key, and a free keyed tier adds higher rate limits plus heavy-method support (`eth_getLogs`, `trace_*`, `debug_*`) at 3,000,000 compute units per month.
+
+## Features
+
+- **Free Public Endpoint**: `https://rpc.nodeflare.app/avax/public` — no API key or sign-up required, rate-limited per IP.
+- **Free Keyed Tier**: 3M compute units/month, 10 req/s, `eth_getLogs` and debug/trace included — no credit card.
+- **Own Infrastructure**: Requests land on NodeFlare's own nodes with health-checked, geo-aware routing and automatic failover.
+- **Per-Method Reference**: Every JSON-RPC method documented for Avalanche with parameters, compute-unit costs, and runnable examples.
+- **Instant-Finality Aware**: Documentation and examples account for Avalanche's no-reorg, sub-second finality.
+
+## Getting Started
+
+1. **Try the public endpoint**: send any JSON-RPC call to `https://rpc.nodeflare.app/avax/public`.
+2. **Create a free account** at [nodeflare.app](https://nodeflare.app/sign-up) — your API key is provisioned instantly.
+3. **Use your keyed endpoint**: `https://rpc.nodeflare.app/avax/v1/{YOUR_KEY}` for higher limits and heavy methods.
+4. **Explore the docs**: the [Avalanche endpoint reference](https://nodeflare.app/docs/endpoints/avalanche) and [per-method reference](https://nodeflare.app/chains/avalanche) cover parameters, CU costs, and examples.
+
+## Documentation
+
+For full details, see the [NodeFlare documentation](https://nodeflare.app/docs).
