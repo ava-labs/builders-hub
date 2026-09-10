@@ -45,14 +45,22 @@ function contractKey(chainId: number | string, address: string) {
 export function fetchVerifiedContract(
   chainId: number | string,
   address: string,
+  options?: {
+    /** Ignore both caches in front of this answer — the session's and the
+     *  browser's. Used right after a verification, where a remembered
+     *  "unverified" is not merely stale but wrong. */
+    force?: boolean;
+  },
 ): Promise<SourcifyContract | null> {
   const key = contractKey(chainId, address);
   const existing = inFlight.get(key);
-  if (existing) return existing;
+  if (existing && !options?.force) return existing;
 
   const promise = (async () => {
     try {
-      const res = await fetch(`/api/sourcify/${chainId}/${address.toLowerCase()}`);
+      const res = await fetch(`/api/sourcify/${chainId}/${address.toLowerCase()}`, {
+        cache: options?.force ? "no-store" : "default",
+      });
       if (!res.ok) return null;
       const body = await res.json();
       if (!body?.verified) return null;

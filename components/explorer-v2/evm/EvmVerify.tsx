@@ -7,7 +7,7 @@ import { AlertCircle, Check, FileJson, Loader2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader, SpecPlate, SpecRow } from "@/components/explorer-v2/ui";
-import { forgetVerifiedContract } from "@/lib/sourcify-client";
+import { fetchVerifiedContract, forgetVerifiedContract } from "@/lib/sourcify-client";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 
 /* ------------------------------------------------------------------ */
@@ -164,7 +164,12 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
         if (!body.isJobCompleted) return;
 
         if (body.contract?.match) {
+          // Prime the session cache with the verified record before leaving,
+          // so the Contract tab paints verified on its first frame. Landing
+          // there and re-asking would race a browser-cached "unverified"
+          // from before this page was opened.
           forgetVerifiedContract(c.chainId, addr);
+          void fetchVerifiedContract(c.chainId, addr, { force: true });
           setPhase({ state: "verified" });
           setTimeout(() => router.push(`${base}/address/${addr}?tab=contract`), 1200);
         } else {
