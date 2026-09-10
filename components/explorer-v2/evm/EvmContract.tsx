@@ -64,26 +64,54 @@ export function useIsContract(rpcUrl: string | undefined, address: string): bool
   return isContract;
 }
 
-export function useVerifiedContract(chainId: string, address: string) {
+/** How long to keep asking when we arrived expecting a verified contract. */
+const SETTLE_TIMEOUT_MS = 30_000;
+const SETTLE_INTERVAL_MS = 2_000;
+
+export function useVerifiedContract(
+  chainId: string,
+  address: string,
+  options?: {
+    /** We just verified this contract, so "unverified" is the wrong answer
+     *  and worth re-asking for. A CDN or browser can still be holding a
+     *  miss from before the verification landed. */
+    expectVerified?: boolean;
+  },
+) {
   const [contract, setContract] = useState<SourcifyContract | null>(null);
   const [loading, setLoading] = useState(true);
+  const expectVerified = options?.expectVerified ?? false;
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = Date.now() + SETTLE_TIMEOUT_MS;
     setLoading(true);
-    fetchVerifiedContract(chainId, address)
-      .then((found) => {
-        if (cancelled) return;
-        setContract(found);
-        setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
+
+    const ask = (force: boolean) => {
+      fetchVerifiedContract(chainId, address, force ? { force: true } : undefined)
+        .then((found) => {
+          if (cancelled) return;
+          setContract(found);
+          setLoading(false);
+          // Keep asking only while we have reason to believe the answer is
+          // about to change, and only until it does.
+          if (!found && expectVerified && Date.now() < deadline) {
+            timer = setTimeout(() => ask(true), SETTLE_INTERVAL_MS);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setLoading(false);
+        });
+    };
+
+    ask(expectVerified);
+
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [chainId, address]);
+  }, [chainId, address, expectVerified]);
 
   return { contract, loading };
 }
@@ -162,10 +190,20 @@ function Unverified({ verifyHref }: { verifyHref: string }) {
   );
 }
 
-export function EvmContract({ network, addr }: { network: string; addr: string }) {
+export function EvmContract({
+  network,
+  addr,
+  justVerified,
+}: {
+  network: string;
+  addr: string;
+  justVerified?: boolean;
+}) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
-  const { contract, loading } = useVerifiedContract(c.chainId, addr);
+  const { contract, loading } = useVerifiedContract(c.chainId, addr, {
+    expectVerified: justVerified,
+  });
   const [tab, setTab] = useState<SubTab>("code");
   const [sources, setSources] = useState<ContractSources | null>(null);
 
@@ -195,6 +233,17 @@ export function EvmContract({ network, addr }: { network: string; addr: string }
   }
 
   if (!contract) {
+    // Telling someone their contract is unverified moments after they
+    // verified it is worse than saying nothing yet.
+    if (justVerified) {
+      return (
+        <Board divide={false} className="px-5 py-8 md:px-6">
+          <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+            Verified — waiting for the explorer to catch up…
+          </p>
+        </Board>
+      );
+    }
     return <Unverified verifyHref={`${base}/verify/${addr.toLowerCase()}`} />;
   }
 

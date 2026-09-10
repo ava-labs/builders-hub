@@ -119,6 +119,7 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
   const [releases, setReleases] = useState<{ version: string; longVersion: string }[]>([]);
   const [phase, setPhase] = useState<Phase>({ state: "idle" });
   const [dragging, setDragging] = useState(false);
+  const [alreadyVerified, setAlreadyVerified] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,6 +130,22 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
       })
       .catch(() => {});
   }, []);
+
+  /* A verified contract cannot be verified again — the API rejects it —
+     so offering the form would only waste an upload and return an error
+     the submitter can do nothing about. Checked with caches bypassed,
+     because this is exactly where a stale "unverified" would mislead. */
+  useEffect(() => {
+    let cancelled = false;
+    fetchVerifiedContract(c.chainId, addr, { force: true })
+      .then((found) => {
+        if (!cancelled) setAlreadyVerified(Boolean(found));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [c.chainId, addr]);
 
   const accept = useCallback((file: File) => {
     setParseError(null);
@@ -171,7 +188,10 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
           forgetVerifiedContract(c.chainId, addr);
           void fetchVerifiedContract(c.chainId, addr, { force: true });
           setPhase({ state: "verified" });
-          setTimeout(() => router.push(`${base}/address/${addr}?tab=contract`), 1200);
+          setTimeout(
+            () => router.push(`${base}/address/${addr}?tab=contract&verified=1`),
+            1200,
+          );
         } else {
           setPhase({ state: "failed", message: body.error?.message ?? "Verification failed." });
         }
@@ -241,6 +261,25 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
           </Board>
         </section>
 
+        {alreadyVerified ? (
+          <Board divide={false} className="px-6 py-12 text-center">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[#3f7d43] dark:text-[#77c47b]">
+              Already verified
+            </p>
+            <p className="mx-auto mt-4 max-w-lg text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              This contract&apos;s source is already published. Verifying it again would be
+              rejected, since the bytecode has already been matched.
+            </p>
+            <Link
+              href={`${base}/address/${addr}?tab=contract`}
+              className="mt-6 inline-flex items-center gap-2 border border-zinc-900 bg-zinc-900 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+            >
+              <Check className="size-3.5" />
+              View contract
+            </Link>
+          </Board>
+        ) : (
+        <>
         <section className="flex flex-col gap-4">
           <SectionHeader label="Compiler input" />
 
@@ -389,6 +428,8 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
             </Board>
           </section>
         ) : null}
+        </>
+        )}
 
         <p className="text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
           Prefer the command line? This page posts to the same API that `hardhat verify` and

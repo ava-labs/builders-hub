@@ -29,6 +29,7 @@ export function EvmAddress({
   network,
   addr,
   initialTab,
+  justVerified,
 }: {
   network: string;
   addr: string;
@@ -37,6 +38,10 @@ export function EvmAddress({
    *  on the server and passed down, which keeps this component out of the
    *  Suspense bailout that useSearchParams would require. */
   initialTab?: string;
+  /** Set by the verify form's redirect, so the Contract tab knows to wait
+   *  for a verification it has just been told about rather than declaring
+   *  the contract unverified. */
+  justVerified?: boolean;
 }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
@@ -51,7 +56,9 @@ export function EvmAddress({
 
   // A verified record proves it's a contract; otherwise ask the chain, so
   // unverified contracts still get the tab (and the route to verifying).
-  const { contract: verified } = useVerifiedContract(c.chainId, addr);
+  const { contract: verified } = useVerifiedContract(c.chainId, addr, {
+    expectVerified: justVerified,
+  });
   const hasCode = useIsContract(c.rpcUrl, addr);
   const isContract = verified !== null || hasCode === true;
 
@@ -134,7 +141,7 @@ export function EvmAddress({
             </div>
 
             {activeTab === "contract" ? (
-              <EvmContract network={network} addr={addr} />
+              <EvmContract network={network} addr={addr} justVerified={justVerified} />
             ) : activeTab === "txs" ? (
               <Board>
                 {txList.length === 0 &&
