@@ -2289,6 +2289,131 @@ const config = {
         destination: '/events',
         permanent: true,
       },
+      // ── 404 sweep (2026-09-09): paths from analytics with no live page ──
+      // Glacier API was renamed to the Data API.
+      {
+        source: '/docs/tooling/glacier-api',
+        destination: '/docs/api-reference/data-api',
+        permanent: true,
+      },
+      {
+        source: '/docs/tooling/glacier-api/:path*',
+        destination: '/docs/api-reference/data-api/:path*',
+        permanent: true,
+      },
+      // Doubled section segment and a section overview that never existed.
+      {
+        source: '/docs/avalanche-l1s/overview',
+        destination: '/docs/avalanche-l1s',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/avalanche-l1s/:path*',
+        destination: '/docs/avalanche-l1s/:path*',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-l1s/interoperability',
+        destination: '/docs/cross-chain',
+        permanent: true,
+      },
+      {
+        source: '/docs/avalanche-interchain-messaging',
+        destination: '/docs/cross-chain/avalanche-warp-messaging/overview',
+        permanent: true,
+      },
+      // The L1 validator continuous fee is documented in the blog post.
+      {
+        source: '/docs/avalanche-l1s/validators/l1-validator-fee',
+        destination: '/blog/l1-validator-fee',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/permissionless-l1s/02-l1-validator/01-l1-validator-fee',
+        destination: '/blog/l1-validator-fee',
+        permanent: true,
+      },
+      // Old /docs/quickstart/* (no hyphen) paths; /docs/quick-start/* is handled above.
+      {
+        source: '/docs/quickstart/avalanche-consensus',
+        destination: '/docs/primary-network/avalanche-consensus',
+        permanent: true,
+      },
+      {
+        source: '/docs/quickstart/avax-token',
+        destination: '/docs/primary-network/avax-token',
+        permanent: true,
+      },
+      {
+        source: '/docs/primary-network/validators',
+        destination: '/docs/primary-network/validate/what-is-staking',
+        permanent: true,
+      },
+      {
+        source: '/docs/rpcs/other/admin-rpc',
+        destination: '/docs/rpcs/other/admin-api',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/avalanche-consensus/05-avax-token',
+        destination: '/docs/primary-network/avax-token',
+        permanent: true,
+      },
+      // Old Interchain Token Transfer course lessons. The ITT → native-token-bridge
+      // wildcard above lands them on paths that no longer exist, so map them here.
+      {
+        source: '/academy/avalanche-l1/native-token-bridge/03-tokens/:path*',
+        destination: '/academy/avalanche-l1/l1-native-tokenomics/01b-native-vs-erc20/08-native-and-erc20-tokens',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/native-token-bridge/08-native-to-erc-20-bridge/03-deploy-erc20-token-remote',
+        destination: '/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/06-deploy-erc20-token-remote',
+        permanent: true,
+      },
+      {
+        source: '/academy/avalanche-l1/native-token-bridge/08-native-to-erc-20-bridge/:path*',
+        destination: '/academy/avalanche-l1/native-token-bridge/02-native-to-erc20/01-overview',
+        permanent: true,
+      },
+      // Malformed URLs seen in the wild (temporary redirects: these are not renames).
+      // Trailing ")" from a markdown link.
+      {
+        source: '/\\)',
+        destination: '/',
+        permanent: false,
+      },
+      // Note text pasted onto the end of the slug. [^./] keeps /blog/helicon-upgrade.md
+      // (raw markdown rewrite) and sub-paths out of the match.
+      {
+        source: '/blog/helicon-upgrade:suffix([^./].*)',
+        destination: '/blog/helicon-upgrade',
+        permanent: false,
+      },
+      // Truncated base64 of "l1-validator-fee".
+      {
+        source: '/blog/bDEtdmFsaW',
+        destination: '/blog/l1-validator-fee',
+        permanent: false,
+      },
+      // Bare NextAuth root has no handler; send people to the login page.
+      {
+        source: '/api/auth',
+        destination: '/login',
+        permanent: false,
+      },
+      // Explorer: a tx hash pasted directly after the chain segment.
+      // Fixed-word routes (accounts, tx, block, ...) can never be 64 hex chars.
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/:hash(0x[0-9a-fA-F]{64})',
+        destination: '/explorer/:network/:chain/tx/:hash',
+        permanent: false,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/:hash([0-9a-fA-F]{64})',
+        destination: '/explorer/:network/:chain/tx/0x:hash',
+        permanent: false,
+      },
     ];
   },
   async headers() {
