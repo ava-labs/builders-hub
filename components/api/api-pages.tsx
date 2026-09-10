@@ -1,10 +1,11 @@
-import { dataApi, metricsApi, pChainApi, cChainApi, xChainApi } from '@/lib/openapi';
+import { dataApi, metricsApi, pChainApi, cChainApi, xChainApi, verificationApi } from '@/lib/openapi';
 import { createAPIPage } from 'fumadocs-openapi/ui';
 import dataApiClient from './data-api-page.client';
 import metricsApiClient from './metrics-api-page.client';
 import pchainApiClient from './pchain-api-page.client';
 import cchainApiClient from './cchain-api-page.client';
 import xchainApiClient from './xchain-api-page.client';
+import verificationApiClient from './verification-api-page.client';
 import { OpenBodySection } from "./api-open-body.client";
 
 const DataAPIPageBase = createAPIPage(dataApi, {
@@ -68,6 +69,19 @@ export function XChainAPIPage(props: any) {
     <div className="xchain-api-playground">
       <OpenBodySection />
       <XChainAPIPageBase {...props} />
+    </div>
+  );
+}
+
+const VerificationAPIPageBase = createAPIPage(verificationApi, {
+  client: verificationApiClient,
+});
+
+export function VerificationAPIPage(props: any) {
+  return (
+    <div className="verification-api-playground">
+      <OpenBodySection />
+      <VerificationAPIPageBase {...props} />
     </div>
   );
 }

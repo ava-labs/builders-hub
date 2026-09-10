@@ -10,10 +10,11 @@ import { formatEther } from "./format";
 import { FeedDown, MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
 import { useEvmData } from "./hooks";
+import { EvmContract, useIsContract, useVerifiedContract } from "./EvmContract";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { AddressSummary, TxListResponse, TransferListResponse } from "@/lib/evm-explorer";
 
-type Tab = "txs" | "transfers";
+type Tab = "txs" | "transfers" | "contract";
 
 function TransferStandardPill({ standard }: { standard: string }) {
   return (
@@ -24,17 +25,40 @@ function TransferStandardPill({ standard }: { standard: string }) {
   );
 }
 
-export function EvmAddress({ network, addr }: { network: string; addr: string }) {
+export function EvmAddress({
+  network,
+  addr,
+  initialTab,
+}: {
+  network: string;
+  addr: string;
+  /** ?tab=contract lands here from the verify form, so a freshly verified
+   *  contract opens on its source rather than its transaction list. Read
+   *  on the server and passed down, which keeps this component out of the
+   *  Suspense bailout that useSearchParams would require. */
+  initialTab?: string;
+}) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken;
-  const [tab, setTab] = useState<Tab>("txs");
+  const [tab, setTab] = useState<Tab>(initialTab === "contract" ? "contract" : "txs");
 
   const { data: s, loading, error, retry } = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, {
     retry404Ms: 15_000,
   });
   const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
   const transfers = useEvmData<TransferListResponse>(c.chainId, `address/${addr}/transfers`, { limit: 50 });
+
+  // A verified record proves it's a contract; otherwise ask the chain, so
+  // unverified contracts still get the tab (and the route to verifying).
+  const { contract: verified } = useVerifiedContract(c.chainId, addr);
+  const hasCode = useIsContract(c.rpcUrl, addr);
+  const isContract = verified !== null || hasCode === true;
+
+  const tabs: Tab[] = isContract ? ["txs", "transfers", "contract"] : ["txs", "transfers"];
+  // The contract check resolves after first paint, and the address can
+  // change under us — never leave a tab selected that no longer exists.
+  const activeTab: Tab = tab === "contract" && !isContract ? "txs" : tab;
 
   const txList = txs.data?.transactions ?? [];
   const xferList = transfers.data?.transfers ?? [];
@@ -62,6 +86,19 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
                 <SpecRow label="Address">
                   <HashChip value={s.address} len={42} />
                 </SpecRow>
+                {isContract ? (
+                  <SpecRow label="Type">
+                    {verified ? (
+                      <span className="inline-flex items-center gap-1.5 border border-[#4e9a52]/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#3f7d43] dark:text-[#77c47b]">
+                        Verified contract
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+                        Contract
+                      </span>
+                    )}
+                  </SpecRow>
+                ) : null}
                 <SpecRow label="Transactions">{formatNumber(s.txCount)}</SpecRow>
                 {s.firstSeen ? (
                   <SpecRow label="First Seen">
@@ -79,24 +116,26 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
 
           <section className="flex flex-col gap-4">
             <div className="flex items-center gap-2">
-              {(["txs", "transfers"] as Tab[]).map((t) => (
+              {tabs.map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  aria-pressed={tab === t}
+                  aria-pressed={activeTab === t}
                   className={cn(
                     "border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors",
-                    tab === t
+                    activeTab === t
                       ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
                       : "border-zinc-200 bg-white/80 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:text-zinc-100",
                   )}
                 >
-                  {t === "txs" ? "Transactions" : "Token Transfers"}
+                  {t === "txs" ? "Transactions" : t === "transfers" ? "Token Transfers" : "Contract"}
                 </button>
               ))}
             </div>
 
-            {tab === "txs" ? (
+            {activeTab === "contract" ? (
+              <EvmContract network={network} addr={addr} />
+            ) : activeTab === "txs" ? (
               <Board>
                 {txList.length === 0 &&
                   (txs.error && !txs.loading ? (

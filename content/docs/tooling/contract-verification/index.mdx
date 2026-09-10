@@ -1,0 +1,170 @@
+---
+title: Contract Verification
+description: Verify smart contracts on any Avalanche L1 from Hardhat, Foundry, or the Builder Hub explorer.
+---
+
+Verifying a contract publishes the source code that produced the bytecode already deployed on chain. Once verified, the contract's source and ABI appear on its explorer page, and every call and event against that address decodes by name instead of showing raw selectors.
+
+Builder Hub runs its own verifier, so this works on **any Avalanche L1 in the chain catalog with a public RPC** — not just the C-Chain. Sourcify only knows the Primary Network, which is why most L1 contracts could never be verified before.
+
+## What you need
+
+Verification compiles your source and compares the result to the deployed bytecode, so the compiler has to see exactly what it saw at deploy time. That means **Standard JSON input**: one file containing every source, every import, and every compiler setting.
+
+You almost certainly already have one:
+
+| Tool | Where it is |
+| --- | --- |
+| Hardhat | `artifacts/build-info/*.json` after `npx hardhat compile` |
+| Foundry | `out/build-info/*.json` after `forge build --build-info` |
+
+Either file can be uploaded as-is. Build tools add their own keys to the input — Foundry writes `allowPaths`, `basePath` and `includePaths` — and those are stripped before compiling, since solc rejects an input carrying keys it doesn't define.
+
+Flattened single-file sources are not accepted. They were always a workaround for tooling that couldn't produce Standard JSON, and every current tool can.
+
+<Callout type="info">
+Compilation settings must match the deployment exactly — the same compiler version, the same optimizer setting and run count, the same EVM version. A single differing flag produces different bytecode and the verification will fail.
+</Callout>
+
+## From the explorer
+
+The quickest route for a one-off. Open the contract's address page, choose the **Contract** tab, and select **Verify contract**. Drop in your build-info file, pick the contract, and submit. The compiler version comes from the file itself when you upload build-info.
+
+## From Hardhat
+
+`hardhat-verify` speaks two protocols and Builder Hub implements both. Pick whichever matches your Hardhat version.
+
+### Hardhat 3
+
+Add a chain descriptor pointing at the Etherscan-compatible endpoint:
+
+```ts title="hardhat.config.ts"
+import { defineConfig } from "hardhat/config";
+
+export default defineConfig({
+  chainDescriptors: {
+    43114: {
+      name: "Avalanche",
+      blockExplorers: {
+        etherscan: {
+          name: "Builder Hub",
+          url: "https://build.avax.network/explorer/mainnet/c-chain",
+          apiUrl: "https://build.avax.network/api/verify/43114/api",
+        },
+      },
+    },
+  },
+});
+```
+
+Then verify, scoping the run so it doesn't also try Etherscan and Sourcify:
+
+```bash
+npx hardhat verify --network avalanche 0xYourContract "Constructor" "Args"
+```
+
+Hardhat 3 can also talk to Builder Hub through the Sourcify protocol, which needs no chain descriptor at all:
+
+```ts title="hardhat.config.ts"
+export default defineConfig({
+  verify: {
+    sourcify: {
+      enabled: true,
+      apiUrl: "https://build.avax.network/api/verify/sourcify",
+    },
+  },
+});
+```
+
+### Hardhat 2
+
+Use `customChains`. The `apiKey` value is required by the plugin but ignored by Builder Hub, so any non-empty string works:
+
+```ts title="hardhat.config.ts"
+const config: HardhatUserConfig = {
+  networks: {
+    myL1: { url: "https://my-l1-rpc.example/ext/bc/C/rpc", accounts: [PRIVATE_KEY] },
+  },
+  etherscan: {
+    apiKey: { myL1: "builder-hub" },
+    customChains: [
+      {
+        network: "myL1",
+        chainId: 12345,
+        urls: {
+          apiURL: "https://build.avax.network/api/verify/12345/api",
+          browserURL: "https://build.avax.network/explorer/mainnet/my-l1",
+        },
+      },
+    ],
+  },
+  sourcify: { enabled: false },
+};
+```
+
+The network name has to be identical in `networks`, `apiKey`, and `customChains` — the plugin matches them by string.
+
+<Callout type="warn">
+Hardhat 2's Sourcify client speaks the retired v1 API, which Builder Hub does not implement. On Hardhat 2, use the `customChains` route above and leave `sourcify.enabled` off.
+</Callout>
+
+Every endpoint behind these commands is documented and callable in the [API reference](/docs/tooling/contract-verification/api-reference).
+
+## From Foundry
+
+```bash
+forge verify-contract \
+  --chain-id 43114 \
+  --verifier custom \
+  --verifier-url https://build.avax.network/api/verify/43114/api \
+  --compiler-version v0.8.24+commit.e11b9ed9 \
+  0xYourContract \
+  src/Token.sol:Token
+```
+
+Foundry can also use the Sourcify protocol:
+
+```bash
+forge verify-contract \
+  --chain-id 43114 \
+  --verifier sourcify \
+  --verifier-url https://build.avax.network/api/verify/sourcify \
+  0xYourContract \
+  src/Token.sol:Token
+```
+
+## Match levels
+
+A verification comes back at one of two levels, and the difference is worth understanding:
+
+- **Exact match** — the recompiled bytecode is byte-identical to what is deployed, including the metadata hash at the end. The source you submitted is exactly the source that was compiled.
+- **Match** — the code is identical but the metadata hash differs. The contract behaves exactly as the source says; something outside the executable code changed, such as a comment or a file path. This is normal and trustworthy.
+
+Anything less is not a match and is rejected. Library addresses and immutable values are normalized before comparing, since those are legitimately written after compilation.
+
+## When verification fails
+
+| Message | What it usually means |
+| --- | --- |
+| The deployed code does not match this source | Wrong compiler version, or optimizer settings that differ from the deployment |
+| The compiler output has no "…" | The contract identifier is wrong; it must be `path/to/File.sol:ContractName` exactly as it appears in the input |
+| No contract code at 0x… | The address is a wallet, or the deployment hasn't been mined on the chain you named |
+| No address supplied for library … | The contract links against a library; add its address under `settings.libraries` |
+| Compilation exceeded the 180s limit | The contract is too large for the shared verifier |
+
+The most common cause by far is optimizer settings. Check that `settings.optimizer` in your Standard JSON matches what you deployed with, including `runs`.
+
+## Relationship to Sourcify
+
+Lookups consult Builder Hub's own verifications first and the public [Sourcify](https://sourcify.dev) archive second, so a contract verified in either place renders here. That fallback is why C-Chain contracts verified on sourcify.dev already show source in this explorer.
+
+Verifications performed here are also published back to Sourcify for chains it supports, which in practice means the Primary Network — Sourcify does not accept chains absent from its own list, and almost no Avalanche L1 is on it. Publishing is best-effort and happens after your verification is already recorded, so an outage or rejection upstream never affects the result you were given.
+
+For an L1, Builder Hub is the only place the verification exists. That is the whole reason this verifier exists.
+
+## Limits
+
+- Solidity only. Vyper and Fe are not supported.
+- Standard JSON input up to 6 MB.
+- 180 seconds of compilation per contract.
+- Constructor arguments are stored and displayed but not independently verified; matching is done against runtime bytecode.

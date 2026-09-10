@@ -3,6 +3,16 @@
     {
       "path": "/api/validator-alerts/check",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/verify/cleanup",
+      "schedule": "0 4 * * *"
     }
-  ]
+  ],
+  "functions": {
+    "app/api/verify/**/route.ts": {
+      "memory": 4096,
+      "maxDuration": 300
+    }
+  }
 }

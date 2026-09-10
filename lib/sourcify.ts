@@ -1,16 +1,21 @@
 import "server-only";
-import l1ChainsData from "@/constants/l1-chains.json";
+import { rpcCall, rpcFor } from "@/lib/verification/chains";
+import { findVerified, readStandardJsonInput } from "@/lib/verification/store";
 
 /* ------------------------------------------------------------------ */
-/* Sourcify — contract verification lookups for the EVM explorer.      */
+/* Contract verification lookups for the EVM explorer.                 */
 /*                                                                     */
-/* sourcify.dev is the open verification archive: a verified contract  */
-/* gives us its name, ABI, and compiler provenance, which the explorer */
-/* turns into labelled addresses, decoded calldata, and decoded logs.  */
-/* Coverage is chain-gated: the hosted instance knows the C-Chain      */
-/* (43114) and Fuji (43113) but almost none of the custom L1s, so      */
-/* every lookup first checks the supported-chain list and returns      */
-/* null fast for chains Sourcify has never heard of.                   */
+/* A verified contract gives us its name, ABI, and compiler provenance,*/
+/* which the explorer turns into labelled addresses, decoded calldata, */
+/* and decoded logs. Two sources answer that question, in order:       */
+/*                                                                     */
+/*  1. Our own database, written by the verification service in        */
+/*     lib/verification. This covers every L1 in the catalog.          */
+/*  2. sourcify.dev, the open verification archive. Coverage there is  */
+/*     chain-gated: the hosted instance knows the C-Chain (43114) and  */
+/*     Fuji (43113) but almost none of the custom L1s, so lookups      */
+/*     check the supported-chain list and return null fast for chains  */
+/*     Sourcify has never heard of.                                    */
 /* ------------------------------------------------------------------ */
 
 const SOURCIFY_BASE = "https://sourcify.dev/server";
@@ -29,13 +34,14 @@ export interface VerifiedContract {
   abi: unknown[] | null;
 }
 
-async function sourcifyFetch(path: string, timeoutMs = 8_000): Promise<Response> {
+async function sourcifyFetch(path: string, timeoutMs = 8_000, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(`${SOURCIFY_BASE}${path}`, {
+      ...init,
       signal: controller.signal,
-      headers: { accept: "application/json" },
+      headers: { accept: "application/json", ...init?.headers },
     });
   } finally {
     clearTimeout(timer);
@@ -66,17 +72,30 @@ async function isChainSupported(chainId: number): Promise<boolean> {
 }
 
 /* Per-contract cache. Verification is effectively immutable once it
-   exists, so hits live a day; misses live short — an unverified contract
-   can be verified at any moment and should show up soon after. */
+   exists, so hits live a day. A cached miss does NOT stand in for our own
+   database — see getVerifiedContract — it only spares upstream Sourcify a
+   repeated question about a contract it has already said it doesn't know. */
 const HIT_TTL_MS = 24 * 60 * 60 * 1000;
 const MISS_TTL_MS = 10 * 60 * 1000;
 const contractCache = new Map<string, { at: number; value: VerifiedContract | null }>();
 
+/** Forget a cached answer for one contract. Called when a verification
+ *  lands here, so a contract someone just verified stops being reported
+ *  as unverified for the rest of the miss window. */
+export function invalidateContract(chainId: number, address: string): void {
+  contractCache.delete(`${chainId}:${address.toLowerCase()}`);
+  proxyCache.delete(`${chainId}:${address.toLowerCase()}`);
+}
+
 /**
- * Look up a contract's verification on Sourcify.
- * Returns the verified contract, or null when the contract is unverified,
- * the chain is unsupported, or Sourcify is unreachable (stale cache stands
- * where one exists — a flaky upstream should never blank a label).
+ * Look up a contract's verification, ours first and Sourcify second.
+ *
+ * Contracts verified on Builder Hub live in our own database and cover
+ * every L1 in the catalog; Sourcify covers the handful of chains it knows
+ * about, which in practice means the Primary Network. Returns null when
+ * the contract is unverified everywhere, or when Sourcify is unreachable
+ * and we have nothing cached — a flaky upstream should never blank a
+ * label that was there a moment ago.
  */
 export async function getVerifiedContract(
   chainId: number,
@@ -87,10 +106,31 @@ export async function getVerifiedContract(
 
   const key = `${chainId}:${address.toLowerCase()}`;
   const cached = contractCache.get(key);
-  if (cached) {
-    const ttl = cached.value ? HIT_TTL_MS : MISS_TTL_MS;
-    if (Date.now() - cached.at < ttl) return cached.value;
+  // A cached hit is authoritative — verification doesn't get undone.
+  if (cached?.value && Date.now() - cached.at < HIT_TTL_MS) return cached.value;
+
+  // Our own database is consulted even when a miss is cached. It is one
+  // indexed lookup, and it is the answer that changes the instant someone
+  // verifies — including on another instance, which no invalidation of
+  // ours could ever reach. Trusting a cached miss here is what would make
+  // a contract keep reporting as unverified right after it was verified.
+  const own = await findVerified(chainId, address);
+  if (own) {
+    const value: VerifiedContract = {
+      match: own.match,
+      name: own.name,
+      compilerVersion: own.compilerVersion,
+      language: own.language,
+      verifiedAt: own.verifiedAt.toISOString(),
+      abi: own.abi,
+    };
+    contractCache.set(key, { at: Date.now(), value });
+    return value;
   }
+
+  // Past here we are about to ask Sourcify, which is the only part worth
+  // rate-limiting with a remembered miss.
+  if (cached && !cached.value && Date.now() - cached.at < MISS_TTL_MS) return null;
 
   if (!(await isChainSupported(chainId))) return null;
 
@@ -128,6 +168,124 @@ export function sourcifyRepoUrl(chainId: number, address: string): string {
   return `https://repo.sourcify.dev/${chainId}/${address}`;
 }
 
+/**
+ * Publish a verification we performed to the public Sourcify archive.
+ *
+ * Reads already merge both sources, so this changes nothing about what the
+ * explorer shows. What it buys is reach: a contract verified here becomes
+ * visible in every other tool that reads the archive, and outlives our
+ * database. Only the Primary Network benefits — Sourcify will not accept a
+ * chain it doesn't list, which is nearly every L1 in the catalog.
+ *
+ * Deliberately best-effort. It runs after the verification is already
+ * recorded, and a rejection upstream (including "already verified", which
+ * is a perfectly good outcome) must never turn a successful verification
+ * into a failed one.
+ */
+export async function mirrorToSourcify(input: {
+  chainId: number;
+  address: string;
+  stdJsonInput: unknown;
+  compilerVersion: string;
+  contractIdentifier: string;
+}): Promise<void> {
+  if (process.env.SOURCIFY_MIRROR !== "1") return;
+  if (!(await isChainSupported(input.chainId))) return;
+
+  try {
+    const res = await sourcifyFetch(`/v2/verify/${input.chainId}/${input.address}`, 20_000, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        stdJsonInput: input.stdJsonInput,
+        compilerVersion: input.compilerVersion,
+        contractIdentifier: input.contractIdentifier,
+      }),
+    });
+    if (!res.ok && res.status !== 409) {
+      console.warn(`[sourcify] mirror rejected for ${input.address}: HTTP ${res.status}`);
+    }
+  } catch (error) {
+    console.warn(`[sourcify] mirror failed for ${input.address}`, error);
+  }
+}
+
+export interface ContractSources {
+  /** Solidity file path → file contents. */
+  sources: Record<string, { content: string }>;
+  optimizer: { enabled: boolean; runs: number | null } | null;
+  evmVersion: string | null;
+  /** Where the sources came from, for attribution in the UI. */
+  origin: "builder-hub" | "sourcify";
+}
+
+/**
+ * Source files behind a verified contract, ours first and Sourcify second
+ * — the same precedence as the metadata lookup, so the Contract tab never
+ * has to care which verifier produced them.
+ *
+ * Separate from getVerifiedContract because sources are large and only the
+ * Contract tab wants them; the name-and-ABI path is called for every
+ * address on a page and must stay small.
+ */
+export async function getContractSources(
+  chainId: number,
+  address: string,
+): Promise<ContractSources | null> {
+  const own = await findVerified(chainId, address);
+  if (own?.stdJsonBlobUrl) {
+    const input = (await readStandardJsonInput(own.stdJsonBlobUrl)) as {
+      sources?: Record<string, { content?: string }>;
+      settings?: { optimizer?: { enabled?: boolean; runs?: number }; evmVersion?: string };
+    } | null;
+    if (input?.sources) {
+      const sources: Record<string, { content: string }> = {};
+      for (const [file, entry] of Object.entries(input.sources)) {
+        if (typeof entry?.content === "string") sources[file] = { content: entry.content };
+      }
+      return {
+        sources,
+        optimizer: input.settings?.optimizer
+          ? {
+              enabled: input.settings.optimizer.enabled === true,
+              runs: input.settings.optimizer.runs ?? null,
+            }
+          : null,
+        evmVersion: input.settings?.evmVersion ?? null,
+        origin: "builder-hub",
+      };
+    }
+  }
+
+  if (!(await isChainSupported(chainId))) return null;
+
+  try {
+    const res = await sourcifyFetch(`/v2/contract/${chainId}/${address}?fields=sources,compilation`);
+    if (!res.ok) return null;
+    const body = (await res.json()) as {
+      sources?: Record<string, { content?: string }>;
+      compilation?: {
+        compilerSettings?: { optimizer?: { enabled?: boolean; runs?: number }; evmVersion?: string };
+      };
+    };
+    if (!body.sources) return null;
+
+    const sources: Record<string, { content: string }> = {};
+    for (const [file, entry] of Object.entries(body.sources)) {
+      if (typeof entry?.content === "string") sources[file] = { content: entry.content };
+    }
+    const optimizer = body.compilation?.compilerSettings?.optimizer;
+    return {
+      sources,
+      optimizer: optimizer ? { enabled: optimizer.enabled === true, runs: optimizer.runs ?? null } : null,
+      evmVersion: body.compilation?.compilerSettings?.evmVersion ?? null,
+      origin: "sourcify",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Proxy resolution — a verified proxy carries the proxy's ABI, so     */
 /* calls that hit the implementation decode as raw selectors. For      */
@@ -147,43 +305,6 @@ const ZOS_IMPL_SLOT = "0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee0
 const IMPLEMENTATION_SELECTOR = "0x5c60da1b";
 // EIP-1167 minimal proxy runtime bytecode, implementation address between
 const EIP1167_RE = /^0x363d3d373d3d3d363d73([a-f0-9]{40})5af43d82803e903d91602b57fd5bf3$/;
-
-/** EVM chain id → public RPC, from the chain catalog. The Primary Network
- *  pair is pinned so proxy resolution never depends on catalog contents. */
-let rpcByChainId: Map<number, string> | null = null;
-function rpcFor(chainId: number): string | null {
-  if (!rpcByChainId) {
-    rpcByChainId = new Map([
-      [43114, "https://api.avax.network/ext/bc/C/rpc"],
-      [43113, "https://api.avax-test.network/ext/bc/C/rpc"],
-    ]);
-    for (const c of l1ChainsData as { chainId: string; rpcUrl?: string }[]) {
-      const id = Number(c.chainId);
-      if (Number.isInteger(id) && c.rpcUrl && !rpcByChainId.has(id)) rpcByChainId.set(id, c.rpcUrl);
-    }
-  }
-  return rpcByChainId.get(chainId) ?? null;
-}
-
-async function rpcCall(rpcUrl: string, method: string, params: unknown[]): Promise<string | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5_000);
-  try {
-    const res = await fetch(rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { result?: unknown };
-    return typeof body.result === "string" ? body.result : null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
 
 /** Last 20 bytes of a 32-byte slot value, or null when the slot is empty. */
 function slotToAddress(value: string | null): string | null {

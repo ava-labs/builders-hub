@@ -69,6 +69,18 @@ export function fetchVerifiedContract(
 }
 
 /**
+ * Drop the session's memory of one contract. The cache is deliberately
+ * permanent — verification doesn't get undone — so the one moment it has
+ * to be forgiven is right after a visitor verifies a contract themselves
+ * and would otherwise keep being told it is unverified.
+ */
+export function forgetVerifiedContract(chainId: number | string, address: string): void {
+  const key = contractKey(chainId, address);
+  inFlight.delete(key);
+  resolved.delete(key);
+}
+
+/**
  * Resolve a batch of contracts BEFORE committing fresh rows to state, so
  * labelled rows paint labelled on their first frame. Capped: a slow
  * Sourcify can only ever hold fresh data back by `capMs` — after that the
