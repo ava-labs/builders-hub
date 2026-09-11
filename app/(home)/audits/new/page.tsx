@@ -1,5 +1,5 @@
 import { getAuthSession } from "@/lib/auth/authSession";
-import { getOwnerRequestDetail } from "@/server/services/audits/visibility";
+import { getOwnerRequestDetail, getPublicFirms } from "@/server/services/audits/visibility";
 import { AuthLoading } from "@/components/ui/auth-loading";
 import { AuditWizard } from "@/components/audits/wizard/WizardShell";
 import { draftToValues } from "@/components/audits/wizard/types";
@@ -28,12 +28,18 @@ export default async function NewAuditRequestPage({ searchParams }: NewAuditRequ
     }
   }
 
+  // Server-rendered into the wizard context once, so the picker shares one list
+  // for the wizard's lifetime with no refetch (spec 7.2.1). pending_ sessions
+  // receive it like any signed-in user.
+  const firms = await getPublicFirms();
+
   return (
     <main className="container relative max-w-[1400px] px-4 py-6 lg:py-10">
       <AuditWizard
         initialDraft={initialDraft}
         prefill={prefill}
         importProjectId={project ?? null}
+        firms={firms}
       />
     </main>
   );

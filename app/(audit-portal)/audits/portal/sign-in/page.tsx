@@ -48,8 +48,8 @@ export default async function AuditorSignInPage({
               <span className="text-brand">One inbox.</span>
             </h1>
             <p className="mt-5 max-w-[46ch] text-base text-[#A2AFB2]">
-              Audit requests from Avalanche ecosystem projects fan out to every vetted firm at
-              once. Quote what you want to win.
+              Audit requests from Avalanche ecosystem projects fan out to vetted firms the moment
+              Ava Labs approves them. Quote what you want to win.
             </p>
             <p className="mt-8 font-mono text-[10px] uppercase tracking-[0.18em] text-[#7A8689]">
               Run by Ava Labs · free for builders and auditors

@@ -30,7 +30,11 @@ export async function PATCH(request: NextRequest, context: RouteParams<{ id: str
   }
 
   try {
-    const result = await updateAuditor(id, parsed.data, { id: admin.userId, name: admin.name });
+    const result = await updateAuditor(id, parsed.data, {
+      type: "admin",
+      id: admin.userId,
+      name: admin.name,
+    });
     if (!result.success) {
       return NextResponse.json({ success: false, message: "Firm not found." }, { status: 404 });
     }

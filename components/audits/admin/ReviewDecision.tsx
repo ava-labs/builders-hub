@@ -16,12 +16,20 @@ import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 export function ReviewDecision({
   requestId,
   fanoutTarget,
+  shortlistFirms = [],
+  whitelistCount = 0,
 }: {
   requestId: string;
-  /** Active firms that will be notified the moment this is approved. */
+  /** Active firms notified when there is no shortlist (the send-to-all case). */
   fanoutTarget: number;
+  /** Every stored chosen firm that resolves, carrying active (spec 7.2.5). */
+  shortlistFirms?: { id: string; firm_name: string; active: boolean }[];
+  whitelistCount?: number;
 }) {
   const router = useRouter();
+  const chose = shortlistFirms.length;
+  const activeChosen = shortlistFirms.filter((firm) => firm.active).length;
+  const hasShortlist = chose > 0;
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
@@ -51,7 +59,9 @@ export function ReviewDecision({
         toast.success(
           count > 0
             ? `Approved · notified ${count} firm${count === 1 ? "" : "s"}.`
-            : "Approved. No active firms on the whitelist, so nobody was notified.",
+            : hasShortlist
+              ? "Approved. None of the firms this project chose is still active, so nobody was notified."
+              : "Approved. No active firms on the whitelist, so nobody was notified.",
         );
       } else {
         toast.success("Request rejected. Nothing was sent to any firm.");
@@ -73,10 +83,21 @@ export function ReviewDecision({
         until you approve.
       </h3>
       <p className="mt-2.5 text-sm leading-relaxed text-zinc-600 dark:text-[#A2AFB2]">
-        {fanoutTarget > 0
-          ? `Approving notifies ${fanoutTarget} active firm${fanoutTarget === 1 ? "" : "s"} and starts the quote window from now.`
-          : "There are no active firms on the whitelist, so approving opens the request without notifying anyone."}
+        {hasShortlist
+          ? activeChosen > 0
+            ? `Approving notifies ${activeChosen} of the ${chose} firms this project chose and starts the quote window from now · ${whitelistCount} active on the whitelist.`
+            : `None of the ${chose} firms this project chose is still active. Approving opens the request without notifying anyone.`
+          : fanoutTarget > 0
+            ? `Approving notifies ${fanoutTarget} active firm${fanoutTarget === 1 ? "" : "s"} and starts the quote window from now.`
+            : "There are no active firms on the whitelist, so approving opens the request without notifying anyone."}
       </p>
+      {hasShortlist ? (
+        <p className="mt-1.5 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+          {shortlistFirms
+            .map((firm) => `${firm.firm_name}${firm.active ? "" : " (deactivated)"}`)
+            .join(" · ")}
+        </p>
+      ) : null}
 
       {rejecting ? (
         <div className="mt-4">

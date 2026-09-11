@@ -28,6 +28,7 @@ export interface AuditWizardValues {
   contact_email: string;
   contact_handle: string;
   contact_calendar_url: string;
+  shortlist_auditor_ids: string[];
 }
 
 // Which fields each step must pass (against auditSubmitSchema) before
@@ -95,6 +96,7 @@ export function wizardDefaults(prefill: {
     contact_email: prefill.contact_email,
     contact_handle: "",
     contact_calendar_url: "",
+    shortlist_auditor_ids: [],
   };
 }
 
@@ -128,6 +130,7 @@ export function toDraftPayload(values: AuditWizardValues): AuditDraftInput {
     contact_email: values.contact_email,
     contact_handle: values.contact_handle,
     contact_calendar_url: values.contact_calendar_url,
+    shortlist_auditor_ids: values.shortlist_auditor_ids,
   } as AuditDraftInput;
 }
 
@@ -154,6 +157,7 @@ interface DraftRow {
   contact_email: string;
   contact_handle: string | null;
   contact_calendar_url: string | null;
+  shortlist_auditor_ids: string[];
 }
 
 export function parseRepos(value: unknown): { url: string; ref: string }[] {
@@ -209,5 +213,6 @@ export function draftToValues(
     contact_email: row.contact_email || defaults.contact_email,
     contact_handle: row.contact_handle ?? "",
     contact_calendar_url: row.contact_calendar_url ?? "",
+    shortlist_auditor_ids: row.shortlist_auditor_ids ?? [],
   };
 }

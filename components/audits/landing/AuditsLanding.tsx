@@ -12,7 +12,7 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "Quotes come to you",
-    body: "Every whitelisted firm is notified; quotes land within the 10-day window.",
+    body: "Every whitelisted firm, or just the ones you choose, is notified; quotes land within the 10-day window.",
   },
   {
     step: "03",
@@ -56,8 +56,8 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
         <span className="text-brand">.</span>
       </h1>
       <p className="mt-4 max-w-2xl text-lg text-zinc-600 dark:text-[#A2AFB2]">
-        Describe your scope once. Every security firm on the Ava Labs whitelist quotes it,
-        privately. You compare, pick one, and the program can pay up to 75%.
+        Describe your scope once. Every security firm on the Ava Labs whitelist, or just the ones
+        you choose, quotes it privately. You compare, pick one, and the program can pay up to 75%.
       </p>
       <div className="mt-6">
         <Link
@@ -71,7 +71,21 @@ export function AuditsLanding({ firmCount }: { firmCount: number }) {
       {/* Indented to the same 16px rail as the FOR AUDIT FIRMS row and the
           plate label below: the three mono-caps lines share one left edge. */}
       <p className="mt-8 pl-4 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-        {meta.join(" · ")}
+        {meta.map((item, index) => (
+          <span key={item}>
+            {index > 0 ? " · " : null}
+            {index === 0 ? (
+              <Link
+                href="/audits/firms"
+                className="underline decoration-1 underline-offset-4 decoration-zinc-300 hover:decoration-current"
+              >
+                {item}
+              </Link>
+            ) : (
+              item
+            )}
+          </span>
+        ))}
       </p>
 
       <Link

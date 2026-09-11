@@ -1,7 +1,8 @@
 // Wizard chip vocabularies, verbatim from the design package (Project
 // Portal.dc.html artboards 1a/1b, verified against live Areta 07-29). One
 // source for the wizard, the auditor-facing meta strips, and the admin
-// services chips; do not fork these lists locally.
+// services chips; do not fork these lists locally. "AI security scan" was
+// added for v1.1 (Joey's ask 3, 2026-09); it is not in the design package.
 
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
 
@@ -30,6 +31,7 @@ export const AUDIT_SERVICES = [
   "Bug bounty setup",
   "Audit contest",
   "Onchain monitoring",
+  "AI security scan",
   "OpSec",
   "Other",
 ] as const;
@@ -59,7 +61,11 @@ export const QUOTE_DEADLINE_DEFAULT_DAYS = 10;
     the schema's cap can never drift apart. */
 export const MAX_QUOTE_WEEKS = 52;
 /** Approved teammate addresses per firm, on top of the quote email. Bounds the
-    invite blast radius of one admin mistake; raise here if a firm needs more. */
+    invite blast radius of one mistaken add, admin or firm; raise here if a firm
+    needs more. */
 export const AUDITOR_MEMBER_LIMIT = 10;
+/** Max firms a project may shortlist on one request; raise here when the
+    whitelist outgrows it (16 firms today). */
+export const SHORTLIST_LIMIT = 50;
 export const QUOTE_DEADLINE_HELPER_COPY =
   "Defaulted to +10 days · the recommended window for competitive quotes.";

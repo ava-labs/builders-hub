@@ -5,9 +5,11 @@ import { EmptyState } from "@/components/audits/shared/EmptyState";
 export function FirstRun({
   isAdmin = false,
   isAuditor = false,
+  firmCount,
 }: {
   isAdmin?: boolean;
   isAuditor?: boolean;
+  firmCount: number;
 }) {
   return (
     <EmptyState
@@ -21,7 +23,7 @@ export function FirstRun({
           <span className="text-brand">.</span>
         </>
       }
-      body="Describe your scope once · every audit firm on the Ava Labs whitelist quotes it. You compare privately and pick one. Run by Ava Labs as a public good."
+      body="Describe your scope once · every audit firm on the Ava Labs whitelist quotes it, or just the ones you choose. You compare privately and pick one. Run by Ava Labs as a public good."
       action={
         <Link
           href="/audits/new"
@@ -30,7 +32,17 @@ export function FirstRun({
           Start your first request
         </Link>
       }
-      footnote="Typically several quotes within 10 days"
+      footnote={
+        <>
+          Typically several quotes within 10 days ·{" "}
+          <Link
+            href="/audits/firms"
+            className="underline decoration-1 underline-offset-4 decoration-zinc-300 hover:decoration-current"
+          >
+            {firmCount} vetted firms
+          </Link>
+        </>
+      }
       action2={
         isAdmin || isAuditor ? (
           // This empty state IS the home view for pure admins and auditors
