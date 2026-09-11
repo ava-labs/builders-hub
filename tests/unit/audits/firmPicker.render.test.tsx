@@ -69,4 +69,20 @@ describe("FirmPicker", () => {
     expect(html).toContain("listed their services yet");
     expect(html).toContain("pick by name");
   });
+
+  it("quick-pick chip is dashed when its group is partly picked, solid when fully picked (open)", () => {
+    // Four firms so ChipGroup never collapses (its "N more" button is dashed
+    // too); any border-dashed then comes only from a partial quick-pick chip.
+    const firms4: PublicFirm[] = [
+      { id: "m1", firm_name: "Match One", services: ["OpSec"], website: null, logo_url: null },
+      { id: "m2", firm_name: "Match Two", services: ["OpSec"], website: null, logo_url: null },
+      { id: "u1", firm_name: "Unlisted One", services: [], website: null, logo_url: null },
+      { id: "u2", firm_name: "Unlisted Two", services: [], website: null, logo_url: null },
+    ];
+    const partial = render({ firms: firms4, value: ["m1"], defaultOpen: true });
+    expect(partial).toContain("border-dashed");
+    const full = render({ firms: firms4, value: ["m1", "m2"], defaultOpen: true });
+    expect(full).not.toContain("border-dashed");
+    expect(full).toContain('aria-pressed="true"');
+  });
 });

@@ -13,6 +13,45 @@ function warnLine(n: number) {
     : `Only ${n} firms will see this request. If neither quotes by your deadline, the request expires and can be reopened once.`;
 }
 
+type GroupState = "none" | "partial" | "all";
+
+/**
+ * A quick-pick chip that reflects its group's selection: outline when none of
+ * the group is picked, dashed when some are, solid with a check when all are
+ * (a tap then clears them). Without this the chip looked identical whether a
+ * tap added or cleared the group.
+ */
+function QuickPickChip({
+  label,
+  count,
+  state,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  state: GroupState;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={state === "all"}
+      className={cn(
+        "inline-flex h-11 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm transition-colors md:h-9",
+        state === "all"
+          ? "border border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+          : state === "partial"
+            ? "border border-dashed border-zinc-400 text-zinc-700 dark:border-white/40 dark:text-zinc-200"
+            : "border border-zinc-300 text-zinc-700 hover:border-zinc-500 dark:border-white/20 dark:text-zinc-200 dark:hover:border-white/40",
+      )}
+    >
+      {state === "all" ? <Check aria-hidden className="h-3 w-3" /> : null}
+      {label} <span className="opacity-70">{count}</span>
+    </button>
+  );
+}
+
 /**
  * The request shortlist picker (variant A). Selection is opt-in: an empty
  * value means every active firm (the stored default). Names and counts come
@@ -55,6 +94,13 @@ export function FirmPicker({
     onChange(
       allOn ? value.filter((id) => !ids.includes(id)) : Array.from(new Set([...value, ...ids])),
     );
+  };
+
+  const groupState = (group: PublicFirm[]): GroupState => {
+    const ids = group.map((f) => f.id);
+    if (ids.length === 0) return "none";
+    const selected = ids.filter((id) => value.includes(id)).length;
+    return selected === 0 ? "none" : selected === ids.length ? "all" : "partial";
   };
 
   if (!open) {
@@ -134,26 +180,24 @@ export function FirmPicker({
       ) : (
         <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Quick pick">
           {match.length > 0 ? (
-            <button
-              type="button"
+            <QuickPickChip
+              label="Offering your services"
+              count={match.length}
+              state={groupState(match)}
               onClick={() => setGroup(match)}
-              className="h-11 cursor-pointer rounded-full border border-zinc-900 bg-zinc-900 px-3.5 text-sm text-white transition-colors md:h-9 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-            >
-              Offering your services <span className="opacity-70">{match.length}</span>
-            </button>
+            />
           ) : (
             <span className="text-sm text-zinc-500 dark:text-zinc-400">
               No firm lists the services you need yet
             </span>
           )}
           {unlisted.length > 0 && unlisted.length < total ? (
-            <button
-              type="button"
+            <QuickPickChip
+              label="Services not listed"
+              count={unlisted.length}
+              state={groupState(unlisted)}
               onClick={() => setGroup(unlisted)}
-              className="h-11 cursor-pointer rounded-full border border-zinc-900 bg-zinc-900 px-3.5 text-sm text-white transition-colors md:h-9 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-            >
-              Services not listed <span className="opacity-70">{unlisted.length}</span>
-            </button>
+            />
           ) : null}
         </div>
       )}
