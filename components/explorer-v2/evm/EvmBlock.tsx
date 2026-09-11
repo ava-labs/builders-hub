@@ -15,7 +15,7 @@ import {
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatGwei, gasUsedPct } from "./format";
-import { FeedDown, MethodChip } from "./bits";
+import { AddressTag, FeedDown, MethodChip } from "./bits";
 import { useEvmData } from "./hooks";
 import { NotFound, StatusPill } from "./EvmTx";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -66,7 +66,10 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                 )}
                 {b.miner && (
                   <SpecRow label="Fee Recipient">
-                    <HashChip value={b.miner} href={`${base}/address/${b.miner}`} len={42} />
+                    <span className="inline-flex max-w-full flex-wrap items-center justify-end gap-2">
+                      <HashChip value={b.miner} href={`${base}/address/${b.miner}`} len={42} />
+                      <AddressTag addr={b.miner} />
+                    </span>
                   </SpecRow>
                 )}
               </SpecPlate>

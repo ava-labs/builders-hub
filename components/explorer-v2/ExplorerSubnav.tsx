@@ -462,13 +462,9 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
    testnet slugs are too inconsistent to derive). Chains without a pair keep
    the static network label. */
 const TESTNET_COUNTERPART: Record<string, string> = {
-  // Intentionally empty: every previous pair pointed at a chain the explorer
-  // doesn't index, so the toggle only led to empty pages. (Fuji P-chain is
-  // unaffected — the P-chain switcher is a separate code path.) Re-add pairs
-  // here as their testnet indexing comes online:
-  //   "c-chain": "avalanche-c-chain", // 43114 ↔ 43113 — Fuji EVM indexer stopped
-  //   beam: "beam-l1",                // 4337 ↔ 13337 — Fuji side not indexed
-  //   dexalot: "dexalot-l1",          // 432204 ↔ 432201 — neither side indexed
+  "c-chain": "avalanche-c-chain", // 43114 ↔ 43113
+  //   beam: "beam-l1",        // 4337 ↔ 13337 — Fuji side not indexed
+  //   dexalot: "dexalot-l1",  // 432204 ↔ 432201 — neither side indexed
 };
 const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
   Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
@@ -478,17 +474,14 @@ const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
    visible so the network is discoverable, but the segment is disabled and
    says why. Move an entry up into TESTNET_COUNTERPART when its indexing
    comes online. */
-const UNAVAILABLE_TESTNET: Record<string, string> = {
-  "c-chain":
-    "We're having trouble indexing the Fuji C-Chain right now — it'll be available later.",
-};
+const UNAVAILABLE_TESTNET: Record<string, string> = {};
 
 /* Crossing networks keeps the section when the counterpart has it: an
    accounts page lands on the counterpart's accounts, everything else
    lands on its explorer overview. */
-function counterpartTarget(slug: string, pathname: string): string {
-  if (pathname.endsWith("/accounts")) return `/explorer/mainnet/${slug}/accounts`;
-  return `/explorer/mainnet/${slug}`;
+function counterpartTarget(network: string, slug: string, pathname: string): string {
+  const base = `/explorer/${network}/${slug}`;
+  return pathname.endsWith("/accounts") ? `${base}/accounts` : base;
 }
 
 /* Switching P-Chain networks keeps the section you're on. Entity pages
@@ -560,15 +553,15 @@ function NetworkControl({
     const mainnetSlug = isTestnetChain ? other : chainSlug;
     const testnetSlug = isTestnetChain ? chainSlug : other;
     const segments = [
-      { label: "Mainnet", slug: mainnetSlug, active: !isTestnetChain },
-      { label: "Fuji", slug: testnetSlug, active: isTestnetChain },
+      { label: "Mainnet", network: "mainnet", slug: mainnetSlug, active: !isTestnetChain },
+      { label: "Fuji", network: "fuji", slug: testnetSlug, active: isTestnetChain },
     ];
     return (
       <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
         {segments.map((seg) => (
           <Link
             key={seg.label}
-            href={counterpartTarget(seg.slug, pathname)}
+            href={counterpartTarget(seg.network, seg.slug, pathname)}
             className={cn(
               "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
               seg.active
