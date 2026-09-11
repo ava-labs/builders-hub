@@ -7,7 +7,7 @@ import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
-import { FeedDown, MethodChip } from "./bits";
+import { AddressTag, FeedDown, MethodChip } from "./bits";
 import { StatusPill } from "./EvmTx";
 import { useEvmData } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -60,7 +60,10 @@ export function EvmAddress({ network, addr }: { network: string; addr: string })
             <Board divide={false} className="px-5 py-4 md:px-6">
               <SpecPlate>
                 <SpecRow label="Address">
-                  <HashChip value={s.address} len={42} />
+                  <span className="inline-flex max-w-full flex-wrap items-center justify-end gap-2">
+                    <HashChip value={s.address} len={42} />
+                    <AddressTag addr={s.address} />
+                  </span>
                 </SpecRow>
                 <SpecRow label="Transactions">{formatNumber(s.txCount)}</SpecRow>
                 {s.firstSeen ? (

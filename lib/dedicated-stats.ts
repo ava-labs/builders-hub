@@ -6,6 +6,7 @@ export const DEDICATED_STATS_BASE_URL = 'https://stats-api.avax.network';
 export const DEDICATED_METRICS_CHAINS: Record<string, string> = {
   '3USaEfTcoUhHxpKXvpAG916UKCUEyjrtkg2hBArBG3JyDP7my': '2366', // KiteAI Mainnet
   '43114': '43114', // C-Chain
+  '43113': '43113', // Fuji C-Chain
   '27827': '27827', // zeroone Mainnet L1
   '5566': '5566',   // StraitsX
   '4337': '4337',   // Beam

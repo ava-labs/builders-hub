@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { knownAddress } from "@/lib/evm-explorer";
 
 /* Row-level garnish shared by the EVM home and list pages: what a tx DID
    (the 4-byte selector, named when it's a classic) and how full a block
@@ -59,6 +60,24 @@ export function MethodChip({ t, className }: { t: { methodId?: string; to: strin
       )}
     >
       {label}
+    </span>
+  );
+}
+
+/** Names an address that is a protocol fixture rather than an account */
+export function AddressTag({ addr, className }: { addr?: string; className?: string }) {
+  const known = knownAddress(addr);
+  if (!known) return null;
+  return (
+    <span
+      title={known.note}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 border border-zinc-300 bg-zinc-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+        className,
+      )}
+    >
+      <span className="size-1 shrink-0 bg-current opacity-80" aria-hidden />
+      {known.label}
     </span>
   );
 }
