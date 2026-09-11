@@ -9,12 +9,16 @@ import { QuoteComparison } from "@/components/audits/admin/QuoteComparison";
 import { SubsidyWorksheet } from "@/components/audits/admin/SubsidyWorksheet";
 import { ReviewDecision } from "@/components/audits/admin/ReviewDecision";
 import { ActivityTrail } from "@/components/audits/admin/ActivityTrail";
+import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 export default async function AuditAdminDrilldownPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const denied = await denyIfNotAuditAdmin();
+  if (denied) return denied;
+
   const { id } = await params;
   const detail = await getAdminRequestDetail(id);
   if (!detail) notFound();
