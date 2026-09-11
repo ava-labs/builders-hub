@@ -11,8 +11,10 @@ import {
   AUDIT_PROJECT_TYPES,
   AUDIT_SERVICES,
   MAX_QUOTE_WEEKS,
+  SHORTLIST_LIMIT,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
+import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
 
 const MAX_NAME = 200;
 const MAX_URL = 2048;
@@ -45,8 +47,29 @@ const httpsUrl = z.preprocess(
   normalizeUrlInput,
   trimmed(MAX_URL)
     .min(1, "Link is required")
-    .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://"),
+    .refine((v) => /^https?:\/\//i.test(v), "URL must start with http(s)://")
+    // Rejects javascript:/data:/vbscript: (which normalizeUrlInput leaves as
+    // "https://javascript:alert(1)") and the bare "https://" (S-7).
+    .refine((v) => {
+      try {
+        const u = new URL(v);
+        return u.protocol === "https:" || u.protocol === "http:";
+      } catch {
+        return false;
+      }
+    }, "Enter a valid URL"),
 );
+
+// One website field shared by both auditor schemas so they cannot drift:
+// httpsUrl, nullable, "" becomes null (the contact_calendar_url shape at :124).
+const auditorWebsiteField = httpsUrl.nullable().optional().or(z.literal("").transform(() => null));
+
+// One services field shared by both auditor schemas: dedupe on parse (S-14;
+// thirteen copies of one value pass .max today).
+const auditorServicesField = z
+  .array(z.enum(AUDIT_SERVICES))
+  .max(AUDIT_SERVICES.length)
+  .transform((values) => Array.from(new Set(values)));
 // z.coerce.date() would coerce null to 1970-01-01 (a valid Date), silently
 // passing a missing required date. Map nullish to undefined so it fails as
 // "required" instead.
@@ -95,6 +118,13 @@ export const auditDraftSchema = z.strictObject({
   contact_email: trimmed(320).optional(),
   contact_handle: trimmed(100).nullable().optional(),
   contact_calendar_url: trimmed(MAX_URL).nullable().optional(),
+  shortlist_auditor_ids: z
+    .preprocess(
+      (v) => (Array.isArray(v) ? v.map((x) => (typeof x === "string" ? x.toLowerCase() : x)) : v),
+      z.array(z.uuid()).max(SHORTLIST_LIMIT),
+    )
+    .refine((ids) => new Set(ids).size === ids.length, "Duplicate firm ids")
+    .optional(),
 });
 export type AuditDraftInput = z.infer<typeof auditDraftSchema>;
 
@@ -180,10 +210,22 @@ export type AuditorCreateInput = z.infer<typeof auditorCreateSchema>;
 
 export const auditorUpdateSchema = z.strictObject({
   firm_name: trimmed(MAX_NAME).min(1).optional(),
-  services: z.array(z.enum(AUDIT_SERVICES)).max(AUDIT_SERVICES.length).optional(),
+  services: auditorServicesField.optional(),
   active: z.boolean().optional(),
+  website: auditorWebsiteField,
+  logo_url: trimmed(MAX_URL)
+    .refine((v) => isAllowedLogoSrc(v), "Unsupported logo URL")
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
 });
 export type AuditorUpdateInput = z.infer<typeof auditorUpdateSchema>;
+
+export const auditorSelfUpdateSchema = z.strictObject({
+  services: auditorServicesField.optional(),
+  website: auditorWebsiteField,
+});
+export type AuditorSelfUpdateInput = z.infer<typeof auditorSelfUpdateSchema>;
 
 export const auditorMemberCreateSchema = z.strictObject({
   email: normalizedEmail,

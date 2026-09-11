@@ -11,7 +11,7 @@ interface EmptyStateProps {
   action?: ReactNode;
   /** Quiet secondary affordance under the footnote. */
   action2?: ReactNode;
-  footnote?: string;
+  footnote?: ReactNode;
   /** Blocks cascade above the headline; marketing surfaces keep it on. */
   art?: boolean;
   /** Quiet bordered-panel form for utility contexts (portal empty inbox,

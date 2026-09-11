@@ -1,8 +1,7 @@
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canAdministerAuditProgram } from "@/lib/auth/permissions";
-import { prisma } from "@/prisma/prisma";
 import { findAuditorByEmail } from "@/server/services/audits/auditors";
-import { getOwnerRequests } from "@/server/services/audits/visibility";
+import { countActiveFirms, getOwnerRequests } from "@/server/services/audits/visibility";
 import { AuditsLanding } from "@/components/audits/landing/AuditsLanding";
 import { FirstRun } from "@/components/audits/landing/FirstRun";
 import { MyRequestsList } from "@/components/audits/landing/MyRequestsList";
@@ -37,7 +36,7 @@ export default async function AuditsPage() {
 }
 
 async function SignedOut() {
-  const firmCount = await prisma.auditor.count({ where: { active: true } });
+  const firmCount = await countActiveFirms();
   return <AuditsLanding firmCount={firmCount} />;
 }
 
@@ -50,7 +49,15 @@ async function SignedIn({
   isAdmin: boolean;
   isAuditor: boolean;
 }) {
-  const requests = await getOwnerRequests(userId);
-  if (requests.length === 0) return <FirstRun isAdmin={isAdmin} isAuditor={isAuditor} />;
-  return <MyRequestsList requests={requests} isAdmin={isAdmin} isAuditor={isAuditor} />;
+  const [requests, firmCount] = await Promise.all([getOwnerRequests(userId), countActiveFirms()]);
+  if (requests.length === 0)
+    return <FirstRun isAdmin={isAdmin} isAuditor={isAuditor} firmCount={firmCount} />;
+  return (
+    <MyRequestsList
+      requests={requests}
+      isAdmin={isAdmin}
+      isAuditor={isAuditor}
+      firmCount={firmCount}
+    />
+  );
 }

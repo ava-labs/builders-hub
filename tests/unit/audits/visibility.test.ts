@@ -5,6 +5,8 @@ const {
   requestFindFirstMock,
   requestFindUniqueMock,
   auditorFindManyMock,
+  auditorFindUniqueMock,
+  auditorCountMock,
   deliveryFindManyMock,
   deliveryFindUniqueMock,
   quoteFindManyMock,
@@ -15,6 +17,8 @@ const {
   requestFindFirstMock: vi.fn(),
   requestFindUniqueMock: vi.fn(),
   auditorFindManyMock: vi.fn(),
+  auditorFindUniqueMock: vi.fn(),
+  auditorCountMock: vi.fn(),
   deliveryFindManyMock: vi.fn(),
   deliveryFindUniqueMock: vi.fn(),
   quoteFindManyMock: vi.fn(),
@@ -31,6 +35,8 @@ vi.mock("@/prisma/prisma", () => ({
     },
     auditor: {
       findMany: auditorFindManyMock,
+      findUnique: auditorFindUniqueMock,
+      count: auditorCountMock,
     },
     auditSubsidyDecision: {
       findFirst: subsidyFindFirstMock,
@@ -47,12 +53,16 @@ vi.mock("@/prisma/prisma", () => ({
 }));
 
 import {
+  countActiveFirms,
   getAdminAuditors,
   getAdminOverview,
+  getAdminRequestDetail,
   getAdminRequests,
   getAuditorInbox,
+  getOwnFirm,
   getOwnerRequests,
   getOwnerRequestDetail,
+  getPublicFirms,
   getRequestForAuditor,
 } from "@/server/services/audits/visibility";
 
@@ -68,12 +78,14 @@ const baseRequest = {
   status: "collecting",
   quote_deadline: FUTURE,
   services: ["Smart contract audit (Solidity / Vyper)"],
+  shortlist_auditor_ids: [],
   created_at: new Date(),
   submitted_at: new Date(),
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
+  auditorCountMock.mockResolvedValue(16);
 });
 
 describe("getOwnerRequests", () => {
@@ -383,6 +395,8 @@ describe("auditor scope", () => {
     expect(requestSelect.contact_handle).toBeUndefined();
     expect(requestSelect.contact_calendar_url).toBeUndefined();
     expect(requestSelect.user).toBeUndefined();
+    // The shortlist never reaches an auditor's inbox projection (S-3).
+    expect(requestSelect.shortlist_auditor_ids).toBeUndefined();
   });
 
   it("hides a request without this auditor's fan-out row", async () => {
@@ -469,5 +483,139 @@ describe("auditor scope · subsidy", () => {
 
     expect(view!.subsidy).toBeNull();
     expect(subsidyFindFirstMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("getPublicFirms", () => {
+  it("selects exactly the five public fields of active firms, sorted case-insensitively (S-8)", async () => {
+    auditorFindManyMock.mockResolvedValue([
+      { id: "b", firm_name: "zellic", services: [], website: null, logo_url: null },
+      {
+        id: "a",
+        firm_name: "Bailsec",
+        services: ["OpSec"],
+        website: "https://bailsec.io/",
+        logo_url: null,
+      },
+    ]);
+
+    const rows = await getPublicFirms();
+
+    expect(auditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true });
+    expect(auditorFindManyMock.mock.calls[0][0].select).toEqual({
+      id: true,
+      firm_name: true,
+      services: true,
+      website: true,
+      logo_url: true,
+    });
+    expect(Object.keys(rows[0]).sort()).toEqual([
+      "firm_name",
+      "id",
+      "logo_url",
+      "services",
+      "website",
+    ]);
+    expect(rows.map((r) => r.firm_name)).toEqual(["Bailsec", "zellic"]);
+    expect(JSON.stringify(rows)).not.toContain("quote_email");
+  });
+});
+
+describe("countActiveFirms", () => {
+  it("counts active firms only", async () => {
+    auditorCountMock.mockResolvedValue(16);
+    expect(await countActiveFirms()).toBe(16);
+    expect(auditorCountMock.mock.calls[0][0]).toEqual({ where: { active: true } });
+  });
+});
+
+describe("getOwnFirm", () => {
+  it("pins the firm id and never selects attio_ref, created_by or logo_url", async () => {
+    auditorFindUniqueMock.mockResolvedValue({
+      id: "aud-1",
+      firm_name: "Nordlicht Security",
+      members: [],
+    });
+
+    await getOwnFirm("aud-1");
+
+    const call = auditorFindUniqueMock.mock.calls[0][0];
+    expect(call.where).toEqual({ id: "aud-1" });
+    expect(call.select.attio_ref).toBeUndefined();
+    expect(call.select.created_by).toBeUndefined();
+    expect(call.select.logo_url).toBeUndefined();
+    expect(call.select.members.select).toEqual({
+      id: true,
+      email: true,
+      invited_at: true,
+      first_login_at: true,
+    });
+  });
+});
+
+describe("shortlist projections", () => {
+  it("owner detail resolves active chosen firms with id+firm_name only and a whitelist_count", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      ...baseRequest,
+      shortlist_auditor_ids: ["aud-1", "aud-2"],
+      _count: { fanout_deliveries: 3 },
+      quotes: [],
+      subsidy_decisions: [],
+    });
+    auditorFindManyMock.mockResolvedValue([{ id: "aud-1", firm_name: "Nordlicht Security" }]);
+    auditorCountMock.mockResolvedValue(16);
+
+    const detail = await getOwnerRequestDetail(OWNER, "req-1");
+
+    expect(auditorFindManyMock.mock.calls[0][0].where).toEqual({
+      id: { in: ["aud-1", "aud-2"] },
+      active: true,
+    });
+    expect(auditorFindManyMock.mock.calls[0][0].select).toEqual({ id: true, firm_name: true });
+    expect(detail!.shortlist_firms).toEqual([{ id: "aud-1", firm_name: "Nordlicht Security" }]);
+    expect(detail!.whitelist_count).toBe(16);
+  });
+
+  it("owner detail leaves shortlist_firms empty for an empty shortlist (no firm read)", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      ...baseRequest,
+      shortlist_auditor_ids: [],
+      _count: { fanout_deliveries: 3 },
+      quotes: [],
+      subsidy_decisions: [],
+    });
+
+    const detail = await getOwnerRequestDetail(OWNER, "req-1");
+
+    expect(detail!.shortlist_firms).toEqual([]);
+    expect(auditorFindManyMock).not.toHaveBeenCalled();
+  });
+
+  it("admin detail resolves every stored firm carrying active, no active filter", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      ...baseRequest,
+      shortlist_auditor_ids: ["aud-1", "aud-2"],
+      user: { name: "Alex", email: "alex@example.com" },
+      quotes: [],
+      subsidy_decisions: [],
+      events: [],
+      fanout_deliveries: [],
+    });
+    auditorFindManyMock.mockResolvedValue([
+      { id: "aud-1", firm_name: "Nordlicht Security", active: true },
+      { id: "aud-2", firm_name: "Halborn", active: false },
+    ]);
+    auditorCountMock.mockResolvedValue(15);
+
+    const detail = await getAdminRequestDetail("req-1");
+
+    expect(auditorFindManyMock.mock.calls[0][0].where).toEqual({ id: { in: ["aud-1", "aud-2"] } });
+    expect(auditorFindManyMock.mock.calls[0][0].select).toEqual({
+      id: true,
+      firm_name: true,
+      active: true,
+    });
+    expect(detail!.shortlist_firms.map((f) => f.firm_name)).toEqual(["Halborn", "Nordlicht Security"]);
+    expect(detail!.whitelist_count).toBe(15);
   });
 });

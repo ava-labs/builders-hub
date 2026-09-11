@@ -788,6 +788,10 @@ model AuditRequest {
   deployment_target    String    @default("") // c_chain | own_l1 | fuji_only
   multichain           Boolean   @default(false)
   services             String[]  @default([])
+  // Optional project narrowing of which firms this request fans out to; empty
+  // means every active firm (the default). Honoured at approval and the single
+  // reopen, never filters on the server otherwise (see fanout.ts fanoutFirmsWhere).
+  shortlist_auditor_ids String[]  @default([])
   repos                Json      @default("[]") // [{url, ref}]
   languages            String[]  @default([])
   frameworks           String[]  @default([])
@@ -838,14 +842,21 @@ model Auditor {
   // ALWAYS stored lowercase (no citext in this database); every write path
   // and the session resolver normalize with trim().toLowerCase().
   quote_email    String    @unique
-  // Informational only: shown on the whitelist and quote headers, NEVER
-  // filters fan-out (locked product decision 1).
+  // Offered services, tagged by the firm from the portal (admins may edit).
+  // Shown on the whitelist, on quote headers and on the public firms page.
+  // Never filters fan-out on the server; the wizard's quick-pick alone reads
+  // them, to help a project shortlist firms (decision 1 as amended 2026-09-09).
   services       String[]  @default([])
   active         Boolean   @default(true)
   invited_at     DateTime  @default(now()) @db.Timestamptz(3)
   first_login_at DateTime? @db.Timestamptz(3) // null = "Invited" state
   deactivated_at DateTime? @db.Timestamptz(3)
   attio_ref      String?
+  // Public firms page fields: website is admin-entered and firm-editable from
+  // the portal; logo_url holds a Vercel Blob URL, admin-only (column-name
+  // precedent Project.logo_url).
+  website        String?
+  logo_url       String?
   created_by     String?
   created_at     DateTime  @default(now()) @db.Timestamptz(3)
   updated_at     DateTime  @updatedAt @db.Timestamptz(3)

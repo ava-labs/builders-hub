@@ -41,10 +41,16 @@ vi.mock("@/server/services/audits/emails/sendAuditorInvite", () => ({
   sendAuditorInvite: inviteMock,
 }));
 
+const { teamNoticeMock } = vi.hoisted(() => ({ teamNoticeMock: vi.fn() }));
+vi.mock("@/server/services/audits/emails/sendTeamChangeNotice", () => ({
+  sendTeamChangeNotice: teamNoticeMock,
+}));
+
 import { auditorMemberCreateSchema } from "@/types/audits";
 import { addAuditorMember, removeAuditorMember } from "@/server/services/audits/members";
 
-const ADMIN = { id: "admin-1", name: "Federico" };
+const ADMIN = { type: "admin" as const, id: "admin-1", name: "Federico" };
+const AUDITOR_ACTOR = { type: "auditor" as const, id: "aud-1", email: "alice@nordlicht.example" };
 const FIRM = {
   id: "aud-1",
   firm_name: "Nordlicht Security",
@@ -141,6 +147,27 @@ describe("addAuditorMember", () => {
       action: "auditor_member_added",
       meta: { firm_name: "Nordlicht Security", email: "bob@nordlicht.example", invite_sent: true },
     });
+    expect(teamNoticeMock).not.toHaveBeenCalled();
+  });
+
+  it("an auditor add records added_by null, logs the auditor actor and notifies once (S-2)", async () => {
+    await addAuditorMember("aud-1", { email: "bob@nordlicht.example" }, AUDITOR_ACTOR);
+
+    expect(memberCreateMock.mock.calls[0][0].data.added_by).toBeNull();
+    expect(eventCreateMock.mock.calls[0][0].data).toMatchObject({
+      actor_type: "auditor",
+      actor_id: "aud-1",
+      action: "auditor_member_added",
+      meta: { actor_email: "alice@nordlicht.example" },
+    });
+    expect(teamNoticeMock).toHaveBeenCalledTimes(1);
+    expect(teamNoticeMock.mock.calls[0][0]).toMatchObject({
+      quoteEmail: "quotes@nordlicht.example",
+      firmName: "Nordlicht Security",
+      changedEmail: "bob@nordlicht.example",
+      actorEmail: "alice@nordlicht.example",
+      change: "added",
+    });
   });
 
   it("keeps the teammate when the invite email fails and says so", async () => {
@@ -229,5 +256,39 @@ describe("removeAuditorMember", () => {
       code: "not_found",
     });
     expect(memberDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("an auditor remove logs the auditor actor and notifies the quote email (S-2)", async () => {
+    memberFindFirstMock.mockResolvedValue({
+      ...NEW_MEMBER,
+      auditor: { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" },
+    });
+
+    await removeAuditorMember("aud-1", "mem-2", AUDITOR_ACTOR);
+
+    expect(eventCreateMock.mock.calls[0][0].data).toMatchObject({
+      actor_type: "auditor",
+      actor_id: "aud-1",
+      action: "auditor_member_removed",
+      meta: { actor_email: "alice@nordlicht.example" },
+    });
+    expect(teamNoticeMock).toHaveBeenCalledTimes(1);
+    expect(teamNoticeMock.mock.calls[0][0]).toMatchObject({
+      quoteEmail: "quotes@nordlicht.example",
+      changedEmail: "bob@nordlicht.example",
+      actorEmail: "alice@nordlicht.example",
+      change: "removed",
+    });
+  });
+
+  it("an admin remove sends no team-change notice (S-2)", async () => {
+    memberFindFirstMock.mockResolvedValue({
+      ...NEW_MEMBER,
+      auditor: { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" },
+    });
+
+    await removeAuditorMember("aud-1", "mem-2", ADMIN);
+
+    expect(teamNoticeMock).not.toHaveBeenCalled();
   });
 });

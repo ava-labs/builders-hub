@@ -1,16 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MONO_LABEL_META } from "@/components/audits/shared/classes";
-
-const initialsOf = (name: string) =>
-  name
-    .split(/\s+/)
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+import { monogramOf } from "@/components/audits/shared/format";
 
 /**
  * Slim portal identity bar under the Builder Hub navbar: the marketplace's
@@ -32,15 +26,24 @@ export function PortalShell({ firmName }: { firmName: string | null }) {
         </Link>
         <div className="flex items-center gap-2">
           {firmName ? (
-            <span className="flex items-center gap-2 rounded-full border border-zinc-300 py-1 pl-1 pr-3 text-sm dark:border-white/[0.16]">
+            <Link
+              href="/audits/portal/firm"
+              title="Firm details"
+              aria-label="Firm details"
+              className="flex items-center gap-2 rounded-full border border-zinc-300 py-1 pl-1 pr-2 text-sm transition-colors hover:border-zinc-500 dark:border-white/[0.16] dark:hover:border-white/40"
+            >
               <span
                 aria-hidden
                 className="flex h-[22px] w-[22px] items-center justify-center rounded-full bg-zinc-100 font-mono text-[9.5px] font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
               >
-                {initialsOf(firmName)}
+                {monogramOf(firmName)}
               </span>
               <span className="hidden font-medium sm:inline">{firmName}</span>
-            </span>
+              <ChevronRight
+                aria-hidden
+                className="h-[13px] w-[13px] text-zinc-400 dark:text-zinc-500"
+              />
+            </Link>
           ) : null}
           <Button asChild variant="ghost" className="h-11 md:h-9">
             <Link href="/audits" title="Back to Security Audits, session intact">

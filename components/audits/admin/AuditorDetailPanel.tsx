@@ -28,15 +28,9 @@ import { AUDIT_SERVICES, AUDITOR_MEMBER_LIMIT } from "@/lib/audits/constants";
 import type { AdminAuditorMember, AdminAuditorRow } from "@/server/services/audits/visibility";
 import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
 import { AUDITS_DIALOG, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate } from "@/components/audits/shared/format";
-
-const initialsOf = (name: string) =>
-  name
-    .split(/\s+/)
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+import { formatIsoDate, monogramOf } from "@/components/audits/shared/format";
+import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
+import { LogoControl } from "@/components/audits/admin/LogoControl";
 
 export type PanelState = { mode: "add" } | { mode: "edit"; auditor: AdminAuditorRow } | null;
 
@@ -48,7 +42,8 @@ interface AuditorDetailPanelProps {
 /**
  * The auditor detail panel (design 2b): row click opens edit mode, the Add
  * auditor button opens the same panel in add mode. Services use the wizard's
- * category list and are informational only; they never gate fan-out.
+ * category list; they never gate fan-out on the server (only the wizard's
+ * quick-pick reads them, to help a project shortlist firms).
  */
 export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) {
   const router = useRouter();
@@ -62,6 +57,8 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
   const [members, setMembers] = useState<AdminAuditorMember[]>([]);
   const [memberEmail, setMemberEmail] = useState("");
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
+  const [website, setWebsite] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     setFirmName(auditor?.firm_name ?? "");
@@ -70,6 +67,8 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
     setMembers(auditor?.members ?? []);
     setMemberEmail("");
     setConfirmRemoveId(null);
+    setWebsite(auditor?.website ?? "");
+    setLogoUrl(auditor?.logo_url ?? null);
   }, [auditor, state?.mode]);
 
   const finish = (message: string) => {
@@ -116,7 +115,7 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firm_name: firmName, services }),
+        body: JSON.stringify({ firm_name: firmName, services, website, logo_url: logoUrl }),
       },
       "Saved.",
     );
@@ -209,12 +208,22 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
             (board 2b; the IcmMessageSheet anatomy). */}
         <SheetHeader className="border-b border-zinc-200 px-4 py-3.5 dark:border-white/10">
           <div className="flex items-center gap-3 pr-8">
-            <span
-              aria-hidden
-              className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono text-[11px] font-bold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
-            >
-              {auditor ? initialsOf(auditor.firm_name) : "+"}
-            </span>
+            {auditor && logoUrl && isAllowedLogoSrc(logoUrl) ? (
+              <span
+                aria-hidden
+                className="flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-white/10"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logoUrl} alt="" className="h-5 w-5 object-contain" />
+              </span>
+            ) : (
+              <span
+                aria-hidden
+                className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono text-[11px] font-bold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
+              >
+                {auditor ? monogramOf(auditor.firm_name) : "+"}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <SheetTitle className="text-[15px]">
                 {auditor ? auditor.firm_name : "Add auditor"}
@@ -298,7 +307,7 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
               Services{" "}
               <span className="font-normal text-zinc-500 dark:text-zinc-400">
                 {auditor
-                  ? "· shown on the whitelist table and on quotes"
+                  ? "· shown on the whitelist table, on quotes and on the vetted firms page"
                   : "· optional now, editable anytime"}
               </span>
             </p>
@@ -311,10 +320,38 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
               aria-label="Services"
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Same category list the project wizard uses. Informational only: every active firm
-              still receives every fan-out.
+              Same category list the project wizard uses. Tags never limit fan-out by themselves;
+              projects may use them to pick which firms receive a request.
             </p>
           </div>
+
+          {auditor ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium">Public listing</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Shown on the vetted firms page
+                </p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium" htmlFor="auditor-website">
+                  Website
+                </label>
+                <Input
+                  id="auditor-website"
+                  value={website}
+                  onChange={(event) => setWebsite(event.target.value)}
+                  placeholder="firm.example"
+                  inputMode="url"
+                  className="h-11 font-mono text-[13px] md:h-10"
+                />
+              </div>
+              <LogoControl value={logoUrl} onChange={setLogoUrl} firmName={firmName} />
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                PNG or JPG, square, under 2MB.
+              </p>
+            </div>
+          ) : null}
 
           {auditor ? (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-[10px] border border-zinc-200 bg-zinc-50 px-3.5 py-3 text-sm dark:border-white/10 dark:bg-white/[0.02]">
@@ -345,7 +382,9 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
           ) : null}
 
           {/* Team emails (2026-09-02): approved teammate addresses that sign in
-              to this firm's portal and receive every notice. Admin-managed. */}
+              to this firm's portal and receive every notice. Admins manage them
+              here; the firm's quote email manages them from the portal's firm
+              details page. */}
           {auditor ? (
             <div className="space-y-2">
               <p className="text-sm font-medium">
@@ -427,7 +466,7 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
                   [
                     ["01", "OTP invite goes to the quote email", "On add"],
                     ["02", "First sign-in stamps the firm as active", "First login"],
-                    ["03", "Every new request fans out to them", "From now on"],
+                    ["03", "New requests fan out to them", "From now on"],
                   ] as const
                 ).map(([num, line, when], index) => (
                   <div
@@ -503,7 +542,7 @@ export function AuditorDetailPanel({ state, onClose }: AuditorDetailPanelProps) 
               </Button>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
                 Sends the sign-in link to the quote email. The firm appears as Invited until first
-                login and joins every fan-out from the moment it is added.
+                login and can receive requests from the moment it is added.
               </p>
             </div>
           )}

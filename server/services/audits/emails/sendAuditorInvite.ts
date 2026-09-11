@@ -10,9 +10,10 @@ export interface InviteRecipient {
 
 /**
  * Sent when an admin adds a firm to the whitelist (and on resend), and when an
- * admin approves a teammate address for a firm. The 6-digit OTP itself comes
- * from the existing sign-in flow; this only carries the instruction and the
- * portal link. Recipient is ALWAYS an Auditor or AuditorMember row's address.
+ * admin or the firm's quote-email identity approves a teammate address. The
+ * copy names no actor on purpose. The 6-digit OTP itself comes from the
+ * existing sign-in flow; this only carries the instruction and the portal
+ * link. Recipient is ALWAYS an Auditor or AuditorMember row's address.
  * Escaping lives in the shared template.
  */
 export async function sendAuditorInvite(auditor: InviteRecipient): Promise<void> {

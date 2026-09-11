@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Form } from "@/components/ui/form";
 import { zodResolver } from "@/lib/zodResolver";
 import { auditSubmitSchema } from "@/types/audits";
+import type { PublicFirm } from "@/server/services/audits/visibility";
 import { useAutosave, type SaveState } from "@/components/audits/wizard/useAutosave";
 import {
   FIELD_STEP,
@@ -34,6 +35,9 @@ interface AuditWizardContextValue {
       draft asks again. */
   consent: boolean;
   setConsent: (next: boolean) => void;
+  /** The public firm list, server-rendered once and held for the wizard's
+      lifetime; its length is the whitelist count. */
+  firms: PublicFirm[];
 }
 
 const AuditWizardContext = createContext<AuditWizardContextValue | null>(null);
@@ -47,10 +51,16 @@ export function useAuditWizard(): AuditWizardContextValue {
 interface AuditWizardProviderProps {
   initialDraft: { id: string; values: AuditWizardValues } | null;
   prefill: { contact_name: string; contact_email: string };
+  firms: PublicFirm[];
   children: ReactNode;
 }
 
-export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWizardProviderProps) {
+export function AuditWizardProvider({
+  initialDraft,
+  prefill,
+  firms,
+  children,
+}: AuditWizardProviderProps) {
   const router = useRouter();
   const [step, setStepState] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -157,6 +167,7 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       submitting,
       consent,
       setConsent,
+      firms,
     }),
     [
       form,
@@ -171,6 +182,7 @@ export function AuditWizardProvider({ initialDraft, prefill, children }: AuditWi
       submit,
       submitting,
       consent,
+      firms,
     ],
   );
 

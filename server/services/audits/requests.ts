@@ -5,6 +5,7 @@ import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
 import {
   deliverFanoutEmails,
+  fanoutFirmsWhere,
   FANOUT_FIRM_SELECT,
   toFanoutRequest,
   type FanoutFirm,
@@ -125,8 +126,9 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
     const quote_deadline = new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
     await tx.auditRequest.update({ where: { id: row.id }, data: { quote_deadline } });
 
+    const shortlistIds = row.shortlist_auditor_ids;
     const auditors = await tx.auditor.findMany({
-      where: { active: true },
+      where: fanoutFirmsWhere(shortlistIds),
       select: FANOUT_FIRM_SELECT,
     });
     if (auditors.length > 0) {
@@ -135,13 +137,18 @@ export async function reopen(userId: string, requestId: string): Promise<ReopenR
         skipDuplicates: true,
       });
     }
+    const shortlist_count =
+      shortlistIds.length > 0
+        ? await tx.auditor.count({ where: { id: { in: shortlistIds } } })
+        : 0;
+    const whitelist_count = await tx.auditor.count({ where: { active: true } });
     await tx.auditEventLog.create({
       data: {
         request_id: row.id,
         actor_type: "project_user",
         actor_id: userId,
         action: "request_reopened",
-        meta: { auditor_count: auditors.length },
+        meta: { auditor_count: auditors.length, shortlist_count, whitelist_count },
       },
     });
 
