@@ -45,8 +45,9 @@ export const solutionsMenu: LinkItemType = {
       url: '/solutions',
       menu: {
         // featured panel: the image leads, the four pillars stack in the
-        // right rail. .nav-featured + the :has() popover rules in global.css.
-        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-4',
+        // right rail, with the Guides card closing it out. .nav-featured +
+        // the :has() popover rules in global.css.
+        className: 'nav-featured lg:col-start-1 lg:row-start-1 lg:row-span-5',
         banner: (
           <Image
             src="/nav/why-avalanche.webp"
@@ -97,6 +98,31 @@ export const solutionsMenu: LinkItemType = {
       menu: {
         className: 'lg:col-start-2 lg:row-start-4',
       },
+    },
+    {
+      // Guides closes the right rail: the four items above are the standing
+      // guarantees, this one is worked connection patterns. Rendered as a
+      // DocsLearnCard so a second guide is a new entry in `links`, not a new
+      // row — the popover grid is locked to two columns by the .nav-featured
+      // rule in global.css, so the rail is the only place this can grow.
+      //
+      // The link goes to the technical pattern page, not to the marketing
+      // landing at /besu-connection. That page is deliberately unlisted.
+      type: 'custom',
+      children: (
+        <DocsLearnCard
+          className='lg:col-start-2 lg:row-start-5'
+          icon={<BookOpen />}
+          title='Guides'
+          description='Worked patterns for connecting an existing estate to Avalanche.'
+          links={[
+            {
+              label: 'Connect your Besu Chain',
+              href: '/solutions/patterns/external-evm-icm',
+            },
+          ]}
+        />
+      ),
     },
   ],
 };
