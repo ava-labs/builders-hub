@@ -5,6 +5,7 @@ import { AddressDetailPageClient } from "./page.client";
 
 interface AddressPageProps {
   params: Promise<{ network: string; chain: string; address: string }>;
+  searchParams: Promise<{ tab?: string; verified?: string }>;
 }
 
 export async function generateMetadata({ params }: AddressPageProps): Promise<Metadata> {
@@ -41,13 +42,14 @@ export async function generateMetadata({ params }: AddressPageProps): Promise<Me
   };
 }
 
-export default async function AddressPage({ params }: AddressPageProps) {
+export default async function AddressPage({ params, searchParams }: AddressPageProps) {
   const resolvedParams = await params;
   const { chain: chainSlug, address } = resolvedParams;
+  const { tab, verified } = await searchParams;
   
   // Get sourcifySupport from chain data
   const chain = l1ChainsData.find((c) => c.slug === chainSlug) as (L1Chain & { sourcifySupport?: boolean }) | undefined;
   
-  return <AddressDetailPageClient network={resolvedParams.network} address={address} sourcifySupport={chain?.sourcifySupport} />;
+  return <AddressDetailPageClient network={resolvedParams.network} address={address} initialTab={tab} justVerified={verified === "1"} sourcifySupport={chain?.sourcifySupport} />;
 }
 

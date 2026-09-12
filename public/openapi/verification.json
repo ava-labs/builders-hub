@@ -1,0 +1,680 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Contract Verification API",
+    "version": "1.0.0",
+    "description": "Verify Solidity contracts on any Avalanche L1 in the Builder Hub chain catalog. Two protocols are exposed over one verifier: an Etherscan-compatible surface for `hardhat verify` and `forge verify-contract`, and a Sourcify v2-compatible surface for tooling that speaks it natively. A contract verified through either appears identically in the explorer."
+  },
+  "servers": [
+    {
+      "url": "https://build.avax.network",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Etherscan-compatible",
+      "description": "The interoperability workhorse. Hardhat reaches it through `customChains` (Hardhat 2) or `chainDescriptors` (Hardhat 3), Foundry through `--verifier custom`. The `apikey` parameter is accepted and ignored; tooling insists on sending one."
+    },
+    {
+      "name": "Sourcify-compatible",
+      "description": "The three Sourcify v2 endpoints `@nomicfoundation/hardhat-verify` calls. Point `verify.sourcify.apiUrl` here and the plugin works unchanged."
+    },
+    {
+      "name": "Compilers",
+      "description": "Which Solidity versions the verifier can run."
+    }
+  ],
+  "paths": {
+    "/api/verify/{chainId}/api": {
+      "post": {
+        "tags": ["Etherscan-compatible"],
+        "summary": "Submit a contract for verification",
+        "description": "Queues a verification and returns a GUID. The GUID is a receipt, not a result — poll `checkverifystatus` for the outcome.\n\nOnly Standard JSON input is accepted. Both Hardhat and Foundry already produce it; flattened sources are not supported.",
+        "operationId": "verifySourceCode",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "description": "EVM chain id. Must be a chain in the Builder Hub catalog with a public RPC, since the verifier reads the deployed bytecode from it.",
+            "schema": { "type": "string", "examples": ["43114"] }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["module", "action", "contractaddress", "sourceCode", "contractname", "compilerversion"],
+                "properties": {
+                  "module": {
+                    "type": "string",
+                    "description": "Always `contract`.",
+                    "default": "contract",
+                    "examples": ["contract"]
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "Always `verifysourcecode`.",
+                    "default": "verifysourcecode",
+                    "examples": ["verifysourcecode"]
+                  },
+                  "apikey": {
+                    "type": "string",
+                    "description": "Accepted and ignored. Tooling requires the field to exist, so send any non-empty string.",
+                    "examples": ["builder-hub"]
+                  },
+                  "contractaddress": {
+                    "type": "string",
+                    "description": "Address of the deployed contract. It must already hold code.",
+                    "examples": ["0x0000000000000000000000000000000000000000"]
+                  },
+                  "sourceCode": {
+                    "type": "string",
+                    "description": "The Standard JSON input, serialised. An extra pair of surrounding braces (Etherscan's convention for marking Standard JSON) is accepted and stripped.",
+                    "examples": ["{\"language\":\"Solidity\",\"sources\":{\"contracts/Storage.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.0;\\ncontract Storage { uint256 value; }\"}},\"settings\":{\"optimizer\":{\"enabled\":false,\"runs\":200},\"outputSelection\":{\"*\":{\"*\":[\"abi\",\"metadata\",\"evm.deployedBytecode.object\"]}}}}"]
+                  },
+                  "codeformat": {
+                    "type": "string",
+                    "description": "Must be `solidity-standard-json-input` when present.",
+                    "enum": ["solidity-standard-json-input"],
+                    "examples": ["solidity-standard-json-input"]
+                  },
+                  "contractname": {
+                    "type": "string",
+                    "description": "Fully qualified name, as `path/to/File.sol:ContractName`, exactly as the path appears in the Standard JSON input.",
+                    "examples": ["contracts/Storage.sol:Storage"]
+                  },
+                  "compilerversion": {
+                    "type": "string",
+                    "description": "A version from the official build list. The leading `v` is optional, and a bare release such as `0.8.24` resolves to its canonical build.",
+                    "examples": ["v0.8.24+commit.e11b9ed9"]
+                  },
+                  "constructorArguments": {
+                    "type": "string",
+                    "description": "ABI-encoded constructor arguments, with or without the 0x prefix. Stored and displayed, but not independently verified: matching is done against runtime bytecode.",
+                    "examples": [""]
+                  },
+                  "licenseType": {
+                    "type": "string",
+                    "description": "Accepted for compatibility and not used.",
+                    "examples": ["3"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted, or rejected with a reason. Etherscan's protocol reports both as HTTP 200 and distinguishes them with `status`.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EtherscanEnvelope" },
+                "examples": {
+                  "accepted": {
+                    "summary": "Queued",
+                    "value": { "status": "1", "message": "OK", "result": "0f7b1c5e-9a2d-4c8b-9f31-2a5c7e4d8b60" }
+                  },
+                  "alreadyVerified": {
+                    "summary": "Already verified",
+                    "value": { "status": "0", "message": "NOTOK", "result": "Contract source code already verified" }
+                  },
+                  "rejected": {
+                    "summary": "Rejected before compiling",
+                    "value": { "status": "0", "message": "NOTOK", "result": "No contract code at 0x… on Avalanche C-Chain." }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited. Compilation is expensive and this endpoint is open, so submissions are throttled per caller.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EtherscanEnvelope" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Etherscan-compatible"],
+        "summary": "Poll status, or read a verified contract",
+        "description": "One endpoint, three actions.\n\n- `checkverifystatus` — the outcome of a submission. `Pending in queue` while it compiles, `Pass - Verified` on success, `Fail - Unable to verify` with the reason appended otherwise.\n- `getsourcecode` — the Etherscan record, with `SourceCode` holding the Standard JSON wrapped in an extra pair of braces.\n- `getabi` — the ABI as a JSON string.\n\nAn unverified contract is reported as `Contract source code not verified`.",
+        "operationId": "readVerification",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "examples": ["43114"] }
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": true,
+            "description": "Always `contract`.",
+            "schema": { "type": "string", "default": "contract", "examples": ["contract"] }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["checkverifystatus", "getsourcecode", "getabi"],
+              "examples": ["getsourcecode"]
+            }
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "description": "Required for `getsourcecode` and `getabi`.",
+            "schema": { "type": "string", "examples": ["0x0000000000000000000000000000000000000000"] }
+          },
+          {
+            "name": "guid",
+            "in": "query",
+            "required": false,
+            "description": "Required for `checkverifystatus`. The value returned by the submission.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": false,
+            "description": "Accepted and ignored.",
+            "schema": { "type": "string", "examples": ["builder-hub"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested record, or a NOTOK envelope explaining why there isn't one.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/EtherscanEnvelope" },
+                "examples": {
+                  "pending": {
+                    "summary": "checkverifystatus, still compiling",
+                    "value": { "status": "0", "message": "NOTOK", "result": "Pending in queue" }
+                  },
+                  "verified": {
+                    "summary": "checkverifystatus, verified",
+                    "value": { "status": "1", "message": "OK", "result": "Pass - Verified" }
+                  },
+                  "unverified": {
+                    "summary": "getabi, contract not verified",
+                    "value": { "status": "0", "message": "NOTOK", "result": "Contract source code not verified" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/verify/v2/api": {
+      "post": {
+        "tags": ["Etherscan-compatible"],
+        "summary": "Submit a contract (V2 shape)",
+        "description": "Identical to the per-chain submission endpoint, but the chain travels in a `chainid` query parameter instead of the path — the shape Etherscan's V2 API uses. Every form field is the same.",
+        "operationId": "verifySourceCodeV2",
+        "parameters": [
+          {
+            "name": "chainid",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "examples": ["43114"] }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["module", "action", "contractaddress", "sourceCode", "contractname", "compilerversion"],
+                "properties": {
+                  "module": { "type": "string", "default": "contract", "examples": ["contract"] },
+                  "action": { "type": "string", "default": "verifysourcecode", "examples": ["verifysourcecode"] },
+                  "apikey": { "type": "string", "examples": ["builder-hub"] },
+                  "contractaddress": { "type": "string", "examples": ["0x0000000000000000000000000000000000000000"] },
+                  "sourceCode": { "type": "string", "description": "The Standard JSON input, serialised." },
+                  "codeformat": { "type": "string", "enum": ["solidity-standard-json-input"], "examples": ["solidity-standard-json-input"] },
+                  "contractname": { "type": "string", "examples": ["contracts/Storage.sol:Storage"] },
+                  "compilerversion": { "type": "string", "examples": ["v0.8.24+commit.e11b9ed9"] },
+                  "constructorArguments": { "type": "string", "examples": [""] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted, or rejected with a reason.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EtherscanEnvelope" } }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Etherscan-compatible"],
+        "summary": "Poll status or read a contract (V2 shape)",
+        "description": "The same three actions as the per-chain endpoint, with the chain in `chainid`.",
+        "operationId": "readVerificationV2",
+        "parameters": [
+          {
+            "name": "chainid",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "examples": ["43114"] }
+          },
+          {
+            "name": "module",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "default": "contract", "examples": ["contract"] }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["checkverifystatus", "getsourcecode", "getabi"],
+              "examples": ["getabi"]
+            }
+          },
+          {
+            "name": "address",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "examples": ["0x0000000000000000000000000000000000000000"] }
+          },
+          {
+            "name": "guid",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "apikey",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "examples": ["builder-hub"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested record, or a NOTOK envelope.",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/EtherscanEnvelope" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/verify/sourcify/v2/verify/{chainId}/{address}": {
+      "post": {
+        "tags": ["Sourcify-compatible"],
+        "summary": "Submit a contract for verification",
+        "description": "Queues a verification and returns a `verificationId` to poll. Rejections use ordinary HTTP status codes rather than a status field, which is the main ergonomic difference from the Etherscan surface.",
+        "operationId": "sourcifyVerify",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "examples": ["43114"] }
+          },
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "examples": ["0x0000000000000000000000000000000000000000"] }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["stdJsonInput", "compilerVersion", "contractIdentifier"],
+                "properties": {
+                  "stdJsonInput": {
+                    "type": "object",
+                    "description": "The Standard JSON input, as an object rather than a string. Sources must be inlined under `content`.",
+                    "examples": [
+                      {
+                        "language": "Solidity",
+                        "sources": {
+                          "contracts/Storage.sol": {
+                            "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract Storage { uint256 value; }"
+                          }
+                        },
+                        "settings": {
+                          "optimizer": { "enabled": false, "runs": 200 },
+                          "outputSelection": { "*": { "*": ["abi", "metadata", "evm.deployedBytecode.object"] } }
+                        }
+                      }
+                    ]
+                  },
+                  "compilerVersion": {
+                    "type": "string",
+                    "description": "A version from the official build list.",
+                    "examples": ["0.8.24+commit.e11b9ed9"]
+                  },
+                  "contractIdentifier": {
+                    "type": "string",
+                    "description": "Fully qualified name, as `path/to/File.sol:ContractName`.",
+                    "examples": ["contracts/Storage.sol:Storage"]
+                  },
+                  "creationTransactionHash": {
+                    "type": "string",
+                    "description": "Accepted for compatibility. Matching is done against runtime bytecode, so this is not required.",
+                    "examples": [null]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "verificationId": { "type": "string", "format": "uuid" } }
+                },
+                "examples": {
+                  "queued": { "value": { "verificationId": "0f7b1c5e-9a2d-4c8b-9f31-2a5c7e4d8b60" } }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The submission is malformed — not Standard JSON, not Solidity, or the contract identifier is not fully qualified.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SourcifyError" } } }
+          },
+          "404": {
+            "description": "The chain is not one we can verify against, or nothing is deployed at that address.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SourcifyError" } } }
+          },
+          "409": {
+            "description": "Already verified.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SourcifyError" } } }
+          },
+          "429": {
+            "description": "Rate limited.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SourcifyError" } } }
+          }
+        }
+      }
+    },
+    "/api/verify/sourcify/v2/verify/{verificationId}": {
+      "get": {
+        "tags": ["Sourcify-compatible"],
+        "summary": "Check a verification job",
+        "description": "Always HTTP 200 while the id is known — a failed verification is a successful request about a failure. Loop on `isJobCompleted`, then read `contract.match`, which is null when it failed.",
+        "operationId": "sourcifyVerificationJob",
+        "parameters": [
+          {
+            "name": "verificationId",
+            "in": "path",
+            "required": true,
+            "description": "The value returned by the submission. Doubles as the Etherscan GUID, so either protocol can poll a job submitted through the other.",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job, complete or otherwise.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VerificationJob" },
+                "examples": {
+                  "pending": {
+                    "summary": "Still compiling",
+                    "value": {
+                      "isJobCompleted": false,
+                      "verificationId": "0f7b1c5e-9a2d-4c8b-9f31-2a5c7e4d8b60",
+                      "jobStartTime": "2026-09-10T20:15:00.000Z",
+                      "contract": { "match": null, "chainId": "43114", "address": "0x0000000000000000000000000000000000000000" }
+                    }
+                  },
+                  "verified": {
+                    "summary": "Verified",
+                    "value": {
+                      "isJobCompleted": true,
+                      "verificationId": "0f7b1c5e-9a2d-4c8b-9f31-2a5c7e4d8b60",
+                      "jobStartTime": "2026-09-10T20:15:00.000Z",
+                      "jobFinishTime": "2026-09-10T20:15:11.000Z",
+                      "contract": {
+                        "match": "exact_match",
+                        "creationMatch": null,
+                        "runtimeMatch": "exact_match",
+                        "chainId": "43114",
+                        "address": "0x0000000000000000000000000000000000000000",
+                        "verifiedAt": "2026-09-10T20:15:11.000Z",
+                        "compilation": {
+                          "language": "Solidity",
+                          "compiler": "solc",
+                          "compilerVersion": "0.8.24+commit.e11b9ed9",
+                          "name": "Storage"
+                        }
+                      }
+                    }
+                  },
+                  "failed": {
+                    "summary": "Did not match",
+                    "value": {
+                      "isJobCompleted": true,
+                      "verificationId": "0f7b1c5e-9a2d-4c8b-9f31-2a5c7e4d8b60",
+                      "jobStartTime": "2026-09-10T20:15:00.000Z",
+                      "jobFinishTime": "2026-09-10T20:15:09.000Z",
+                      "contract": { "match": null, "chainId": "43114", "address": "0x0000000000000000000000000000000000000000" },
+                      "error": {
+                        "customCode": "no_match",
+                        "message": "The deployed code does not match this source. Check the contract name, compiler version and settings.",
+                        "errorId": "0f7b1c5e-9a2d-4c8b-9f31-2a5c7e4d8b60"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown verification id.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SourcifyError" } } }
+          }
+        }
+      }
+    },
+    "/api/verify/sourcify/v2/contract/{chainId}/{address}": {
+      "get": {
+        "tags": ["Sourcify-compatible"],
+        "summary": "Look up a verified contract",
+        "description": "Reports contracts verified on Builder Hub. An unverified contract answers 404 with `match: null`, which is the shape `hardhat-verify` reads to decide a contract needs verifying.\n\nThe explorer's own lookup at `/api/sourcify/{chainId}/{address}` merges these with Sourcify's public archive; this endpoint deliberately does not.",
+        "operationId": "sourcifyContract",
+        "parameters": [
+          {
+            "name": "chainId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "examples": ["43114"] }
+          },
+          {
+            "name": "address",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "examples": ["0x0000000000000000000000000000000000000000"] }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated list of what to include beyond the envelope: `abi`, `metadata`, `compilation`, `sources`, `stdJsonInput`, or `all`. Source trees are large, so nothing heavy is returned unless asked for.",
+            "schema": { "type": "string", "examples": ["abi,compilation"] }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The verified contract.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VerifiedContract" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not verified here.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "match": { "type": "null" },
+                    "chainId": { "type": "string" },
+                    "address": { "type": "string" }
+                  }
+                },
+                "examples": {
+                  "unverified": {
+                    "value": { "match": null, "chainId": "43114", "address": "0x0000000000000000000000000000000000000000" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/verify/compilers": {
+      "get": {
+        "tags": ["Compilers"],
+        "summary": "List available Solidity versions",
+        "description": "Released versions the verifier can run, newest first, mirrored from the official build list. Use `longVersion` when submitting.",
+        "operationId": "listCompilers",
+        "responses": {
+          "200": {
+            "description": "Available releases.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "releases": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "version": { "type": "string" },
+                          "longVersion": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                },
+                "examples": {
+                  "releases": {
+                    "value": {
+                      "releases": [
+                        { "version": "0.8.37", "longVersion": "0.8.37+commit.f401782d" },
+                        { "version": "0.8.24", "longVersion": "0.8.24+commit.e11b9ed9" }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EtherscanEnvelope": {
+        "type": "object",
+        "description": "Etherscan's response envelope. `status` is `\"1\"` on success and `\"0\"` otherwise; the meaning lives in `result`.",
+        "properties": {
+          "status": { "type": "string", "enum": ["0", "1"] },
+          "message": { "type": "string", "enum": ["OK", "NOTOK"] },
+          "result": {
+            "description": "A GUID, a status string, an ABI, or an error message, depending on the action.",
+            "anyOf": [{ "type": "string" }, { "type": "array", "items": { "type": "object" } }]
+          }
+        }
+      },
+      "SourcifyError": {
+        "type": "object",
+        "properties": {
+          "customCode": {
+            "type": "string",
+            "description": "Machine-readable reason, from Sourcify's vocabulary.",
+            "examples": ["no_match"]
+          },
+          "message": { "type": "string" },
+          "errorId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "MatchLevel": {
+        "type": "string",
+        "description": "`exact_match` means the recompiled bytecode is byte-identical to what is deployed, metadata hash included. `match` means the code is identical but the metadata differs — the contract behaves exactly as the source says, and something outside the executable code changed, such as a comment.",
+        "enum": ["exact_match", "match"]
+      },
+      "VerifiedContract": {
+        "type": "object",
+        "properties": {
+          "match": { "$ref": "#/components/schemas/MatchLevel" },
+          "creationMatch": { "type": ["string", "null"] },
+          "runtimeMatch": { "$ref": "#/components/schemas/MatchLevel" },
+          "chainId": { "type": "string" },
+          "address": { "type": "string" },
+          "verifiedAt": { "type": "string", "format": "date-time" },
+          "matchId": { "type": "string" },
+          "abi": { "type": "array", "items": { "type": "object" } },
+          "metadata": { "type": ["object", "null"] },
+          "compilation": {
+            "type": "object",
+            "properties": {
+              "language": { "type": "string" },
+              "compiler": { "type": "string" },
+              "compilerVersion": { "type": "string" },
+              "name": { "type": "string" },
+              "fullyQualifiedName": { "type": "string" }
+            }
+          },
+          "sources": {
+            "type": "object",
+            "description": "File path to contents. Only present when requested through `fields`.",
+            "additionalProperties": {
+              "type": "object",
+              "properties": { "content": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "VerificationJob": {
+        "type": "object",
+        "properties": {
+          "isJobCompleted": { "type": "boolean" },
+          "verificationId": { "type": "string", "format": "uuid" },
+          "jobStartTime": { "type": "string", "format": "date-time" },
+          "jobFinishTime": { "type": "string", "format": "date-time" },
+          "contract": { "$ref": "#/components/schemas/VerifiedContract" },
+          "error": { "$ref": "#/components/schemas/SourcifyError" }
+        }
+      }
+    }
+  }
+}

@@ -974,3 +974,53 @@ model AuditEventLog {
   @@index([action])
   @@index([created_at])
 }
+
+model VerifiedContract {
+  // One row per verified (chain, address). Written only once the recompiled
+  // bytecode matches what is deployed — never on a failed attempt. This table
+  // is what the explorer trusts for ABIs, so a row that didn't earn its place
+  // would silently mis-decode every call and log against that address.
+  //
+  // The standard JSON input (which carries the sources inline) lives in Vercel
+  // Blob; Postgres keeps only what a lookup needs to answer without a fetch.
+  id                    String   @id @default(uuid())
+  chain_id              Int
+  address               String // lowercase 0x hex
+  match                 String // exact_match | match
+  name                  String?
+  compiler_version      String?
+  language              String   @default("Solidity")
+  abi                   Json?
+  metadata              Json?
+  std_json_blob_url     String?
+  constructor_arguments String?
+  verified_at           DateTime @default(now()) @db.Timestamptz(3)
+
+  @@unique([chain_id, address])
+  @@index([chain_id])
+}
+
+model VerificationJob {
+  // One row per submission. The id doubles as the Etherscan GUID and the
+  // Sourcify verificationId, so both protocols poll the same row.
+  //
+  // payload_hash makes a resubmission of an identical payload free: a repeat
+  // of a failure returns the stored failure instead of recompiling, which is
+  // what stops a naive flood from costing anything.
+  id               String    @id @default(uuid())
+  chain_id         Int
+  address          String
+  status           String    @default("pending") // pending | running | succeeded | failed
+  match            String? // exact_match | match, once succeeded
+  error_code       String?
+  error            String?
+  contract_name    String?
+  compiler_version String?
+  payload_hash     String
+  created_at       DateTime  @default(now()) @db.Timestamptz(3)
+  completed_at     DateTime? @db.Timestamptz(3)
+
+  @@index([chain_id, address])
+  @@index([payload_hash])
+  @@index([created_at])
+}

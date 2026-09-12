@@ -45,14 +45,22 @@ function contractKey(chainId: number | string, address: string) {
 export function fetchVerifiedContract(
   chainId: number | string,
   address: string,
+  options?: {
+    /** Ignore both caches in front of this answer — the session's and the
+     *  browser's. Used right after a verification, where a remembered
+     *  "unverified" is not merely stale but wrong. */
+    force?: boolean;
+  },
 ): Promise<SourcifyContract | null> {
   const key = contractKey(chainId, address);
   const existing = inFlight.get(key);
-  if (existing) return existing;
+  if (existing && !options?.force) return existing;
 
   const promise = (async () => {
     try {
-      const res = await fetch(`/api/sourcify/${chainId}/${address.toLowerCase()}`);
+      const res = await fetch(`/api/sourcify/${chainId}/${address.toLowerCase()}`, {
+        cache: options?.force ? "no-store" : "default",
+      });
       if (!res.ok) return null;
       const body = await res.json();
       if (!body?.verified) return null;
@@ -66,6 +74,18 @@ export function fetchVerifiedContract(
   });
   inFlight.set(key, promise);
   return promise;
+}
+
+/**
+ * Drop the session's memory of one contract. The cache is deliberately
+ * permanent — verification doesn't get undone — so the one moment it has
+ * to be forgiven is right after a visitor verifies a contract themselves
+ * and would otherwise keep being told it is unverified.
+ */
+export function forgetVerifiedContract(chainId: number | string, address: string): void {
+  const key = contractKey(chainId, address);
+  inFlight.delete(key);
+  resolved.delete(key);
 }
 
 /**
