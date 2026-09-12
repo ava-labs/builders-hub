@@ -1,5 +1,5 @@
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Check, Trash2 } from 'lucide-react';
+import { Check, Pencil, Trash2 } from 'lucide-react';
 import { L1ListItem } from '@/components/toolbox/stores/l1ListStore';
 import { ChainLogo } from './ChainLogo';
 
@@ -9,6 +9,7 @@ interface NetworkMenuItemProps {
   onSelect: (network: L1ListItem, tokenAddress?: string | null) => void;
   isEditMode?: boolean;
   onRemove?: (network: L1ListItem) => void;
+  onEditRpc?: (network: L1ListItem) => void;
   /** null = balance could not be fetched for this network. */
   balance?: number | string | null;
 }
@@ -23,6 +24,7 @@ export function NetworkMenuItem({
   onSelect,
   isEditMode = false,
   onRemove,
+  onEditRpc,
   balance = 0,
 }: NetworkMenuItemProps) {
   const formatBalance = (balance: number | string | null) => {
@@ -74,6 +76,21 @@ export function NetworkMenuItem({
         </div>
       </div>
       {!isEditMode && isActive && <Check className="w-4 h-4 text-green-600" />}
+      {isEditMode && !isCChain(network.evmChainId) && onEditRpc && (
+        <button
+          type="button"
+          aria-label={`Edit RPC URL for ${network.name}`}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onEditRpc(network);
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+          className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+      )}
     </DropdownMenuItem>
   );
 }
