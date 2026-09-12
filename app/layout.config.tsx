@@ -104,6 +104,7 @@ export const solutionsMenu: LinkItemType = {
 export const ecosystemMenu: LinkItemType = {
   type: 'menu',
   text: 'Ecosystem',
+  url: '/ecosystem',
   items: [
     {
       icon: <Ticket />,
