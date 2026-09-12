@@ -9,9 +9,12 @@ const KNOWN_ERRORS: Record<string, string> = {
     'Exceeds the maximum churn rate. The network limits how much weight can change at once (typically 20% of total weight). Try a smaller amount or wait.',
   MaxChurnRateExceeded:
     'Exceeds the maximum churn rate. The network limits how much weight can change at once (typically 20% of total weight). Try a smaller amount or wait.',
-  '0x3e1a7851': 'Invalid total weight. The resulting total weight would be zero or exceed limits.',
-  '0xe8e82e76': 'Invalid total weight. The resulting total weight would be zero or exceed limits.',
-  InvalidTotalWeight: 'Invalid total weight. The resulting total weight would be zero or exceed limits.',
+  '0x3e1a7851':
+    'Invalid total weight. During validator set initialization this means the manager at the called address was never initialized (its churn settings read zero); run Initialize against the manager (proxy) address recorded in the conversion. Otherwise the resulting total weight would exceed limits.',
+  '0xe8e82e76':
+    'Invalid total weight. During validator set initialization this means the manager at the called address was never initialized (its churn settings read zero); run Initialize against the manager (proxy) address recorded in the conversion. Otherwise the resulting total weight would exceed limits.',
+  InvalidTotalWeight:
+    'Invalid total weight. During validator set initialization this means the manager at the called address was never initialized (its churn settings read zero); run Initialize against the manager (proxy) address recorded in the conversion. Otherwise the resulting total weight would exceed limits.',
   '0xdaa3fc0a': 'Maximum weight exceeded. The validator or delegation weight exceeds the allowed limit for this L1.',
   MaxWeightExceeded:
     'Maximum weight exceeded. The validator or delegation weight exceeds the allowed limit for this L1.',
