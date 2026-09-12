@@ -40,20 +40,20 @@ describe("canViewEventRegistrations", () => {
     expect(findUniqueMock).not.toHaveBeenCalled();
   });
 
-  it("allows team1-admin for a Team1 event", async () => {
+  it("allows team1_admin for a Team1 event", async () => {
     findUniqueMock.mockResolvedValue({
       organizers: "team1-india",
       cohosts: [],
       created_by: "someone-else",
     });
     const allowed = await canViewEventRegistrations(
-      { user: { id: "u3", custom_attributes: ["team1-admin"] } },
+      { user: { id: "u3", custom_attributes: ["team1_admin"] } },
       EVENT_ID,
     );
     expect(allowed).toBe(true);
   });
 
-  it("denies team1-admin for a non-Team1 event, even as cohost", async () => {
+  it("denies team1_admin for a non-Team1 event, even as cohost", async () => {
     findUniqueMock.mockResolvedValue({
       organizers: "acme",
       cohosts: ["admin@example.com"],
@@ -64,7 +64,7 @@ describe("canViewEventRegistrations", () => {
         user: {
           id: "u4",
           email: "admin@example.com",
-          custom_attributes: ["team1-admin"],
+          custom_attributes: ["team1_admin"],
         },
       },
       EVENT_ID,
@@ -72,14 +72,14 @@ describe("canViewEventRegistrations", () => {
     expect(allowed).toBe(false);
   });
 
-  it("allows team1-event-admin only where they are a cohost", async () => {
+  it("allows team1_event_admin only where they are a cohost", async () => {
     findUniqueMock.mockResolvedValue({
       organizers: "team1-latam",
       cohosts: ["organizer@example.com"],
       created_by: "someone-else",
     });
     const session = (email: string) => ({
-      user: { id: "u5", email, custom_attributes: ["team1-event-admin"] },
+      user: { id: "u5", email, custom_attributes: ["team1_event_admin"] },
     });
     expect(
       await canViewEventRegistrations(session("organizer@example.com"), EVENT_ID),
@@ -89,7 +89,7 @@ describe("canViewEventRegistrations", () => {
     ).toBe(false);
   });
 
-  it("allows team1-event-admin for events they created, even without a cohost entry", async () => {
+  it("allows team1_event_admin for events they created, even without a cohost entry", async () => {
     findUniqueMock.mockResolvedValue({
       organizers: "team1-latam",
       cohosts: [],
@@ -100,7 +100,7 @@ describe("canViewEventRegistrations", () => {
         user: {
           id: "u5",
           email: "creator@example.com",
-          custom_attributes: ["team1-event-admin"],
+          custom_attributes: ["team1_event_admin"],
         },
       },
       EVENT_ID,
@@ -111,7 +111,7 @@ describe("canViewEventRegistrations", () => {
   it("denies when the event does not exist", async () => {
     findUniqueMock.mockResolvedValue(null);
     const allowed = await canViewEventRegistrations(
-      { user: { id: "u6", custom_attributes: ["team1-admin"] } },
+      { user: { id: "u6", custom_attributes: ["team1_admin"] } },
       EVENT_ID,
     );
     expect(allowed).toBe(false);

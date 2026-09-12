@@ -2,6 +2,7 @@ import HackathonForm from "@/components/hackathons/admin-panel/HackathonForm";
 import { getHackathon } from "@/server/services/hackathons";
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
+import { canEditEvent } from "@/lib/auth/permissions";
 
 export default async function HackathonAdminPanel({
   params,
@@ -9,14 +10,17 @@ export default async function HackathonAdminPanel({
   params: Promise<{ id: string }>;
 }) {
   const session = await getAuthSession();
-  const customAttributes: string[] = (session?.user as any)?.custom_attributes ?? [];
-  if (!session || !customAttributes.includes("devrel")) {
+  const { id } = await params;
+
+  // canEditEvent is the one authoritative answer to "may this user manage this
+  // event": platform admin anywhere, otherwise event:write scope:"own" plus
+  // creator-or-cohost. Inlining that triple here is what caused the team1_admin
+  // scoping bugs, so this page asks the policy instead of re-deriving it.
+  if (!(await canEditEvent(session, id))) {
     redirect("/");
   }
 
-  const { id } = await params;
   const hackathon = await getHackathon(id);
-
   if (!hackathon) redirect("/events");
 
   return (

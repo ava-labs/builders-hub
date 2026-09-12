@@ -3,9 +3,9 @@ import { prisma } from "@/prisma/prisma";
 import { getAuthSession } from "@/lib/auth/authSession";
 import {
   canEvaluateHackathon,
-  hasAnyAttribute,
   verifyHackathonProjectsApiKey,
 } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import { projectHasNoLinks } from "@/lib/hackathons/project-links";
 import type { RouteParams } from "@/lib/protectedRoute";
@@ -64,9 +64,7 @@ export async function GET(request: NextRequest, context: Params) {
   if (internalAuthorized) {
     const session = await getAuthSession();
     const viewerId = session?.user?.id ?? null;
-    const isDevrel = hasAnyAttribute(session?.user?.custom_attributes, [
-      "devrel",
-    ]);
+    const isDevrel = hasPermission(session, { resource: "platform", action: "admin" });
 
     const projects = await prisma.project.findMany({
       where: { hackaton_id: hackathonId },

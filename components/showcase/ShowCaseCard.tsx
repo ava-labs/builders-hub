@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "../ui/toaster";
 import NotFound from '@/app/not-found';
 import { useLoginCompleteListener } from '@/hooks/useLoginModal';
+import { hasPermission, type SessionLike } from '@/lib/auth/rolePermissions';
 
 type Props = {
   projects: Project[];
@@ -43,14 +44,10 @@ type Props = {
 };
 
 // Helper function to check user permissions
-function checkUserPermissions(customAttributes: string[] = []) {
-  const hasShowcaseRole = customAttributes.includes('showcase');
-  const isDevrel = customAttributes.includes('devrel');
-  const hasHackathonCreator = customAttributes.includes('hackathonCreator');
-
+function checkUserPermissions(source: SessionLike) {
   return {
-    hasShowcaseAccess: hasShowcaseRole || isDevrel,
-    hasExportAccess: hasHackathonCreator || isDevrel,
+    hasShowcaseAccess: hasPermission(source, { resource: "showcase", action: "read" }),
+    hasExportAccess: hasPermission(source, { resource: "showcase", action: "export" }),
   };
 }
 
@@ -97,9 +94,7 @@ export default function ShowCaseCard({
 
       // Update permissions if we got a session
       if (freshSession?.user) {
-        const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(
-          freshSession.user.custom_attributes
-        );
+        const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(freshSession);
         setIsLoggedIn(hasShowcaseAccess);
         setHasExportAccess(hasExportAccess);
         await update();
@@ -153,9 +148,7 @@ export default function ShowCaseCard({
     }
 
     if (status === "authenticated" && session?.user) {
-      const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(
-        session.user.custom_attributes
-      );
+      const { hasShowcaseAccess, hasExportAccess } = checkUserPermissions(session);
       setIsLoggedIn(hasShowcaseAccess);
       setHasExportAccess(hasExportAccess);
     } else {

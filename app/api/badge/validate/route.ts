@@ -3,7 +3,7 @@ import { getBadgeByCourseId } from "@/server/services/badge";
 
 import { NextResponse } from "next/server";
 
-export const GET = withAuth(async (request) => {
+export const GET = withAuth(async (request, _context, session) => {
   const { searchParams } = new URL(request.url);
   const course_id = searchParams.get("course_id");
   const user_id = searchParams.get("user_id");
@@ -17,6 +17,12 @@ export const GET = withAuth(async (request) => {
     return NextResponse.json(
       { error: "user_id parameter is required" },
       { status: 400 }
+    );
+  }
+  if (user_id !== session.user.id) {
+    return NextResponse.json(
+      { error: "Forbidden: You can only query your own badge status" },
+      { status: 403 }
     );
   }
 

@@ -48,7 +48,6 @@ export const POST = withAuth(async (request: Request, context: any, session: any
     }
 
     // Validate permissions
-    const customAttributes = (session?.user?.custom_attributes as string[]) || [];
     const userId = session?.user?.id;
 
     if (!userId) {
@@ -58,10 +57,7 @@ export const POST = withAuth(async (request: Request, context: any, session: any
       );
     }
 
-    const hasPermission = await canUserUploadFile(
-      userId,
-      customAttributes
-    );
+    const hasPermission = await canUserUploadFile(userId);
 
     if (!hasPermission) {
       return NextResponse.json(
@@ -112,7 +108,6 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
 
   try {
     // Validate permissions before deleting
-    const customAttributes = (session?.user?.custom_attributes as string[]) || [];
     const userId = session?.user?.id;
 
     if (!userId) {
@@ -125,7 +120,6 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
     const hasPermission = await canUserDeleteFile(
       fileIdentifier,
       userId,
-      customAttributes,
       hackathonId || undefined
     );
 

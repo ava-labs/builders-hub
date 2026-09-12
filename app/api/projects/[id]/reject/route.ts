@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuthRole, type RouteParams } from "@/lib/protectedRoute";
+import { withAuthPermission, type RouteParams } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 
 type Params = RouteParams<{ id: string }>;
 
-export const POST = withAuthRole<Params>(
-  "devrel",
+export const POST = withAuthPermission<Params>(
+  { resource: "platform", action: "admin" },
   async (request: NextRequest, context: Params) => {
     const { id: projectId } = await context.params;
 

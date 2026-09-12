@@ -1,7 +1,7 @@
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canAdministerAuditProgram } from "@/lib/auth/permissions";
 import { AuthLoading } from "@/components/ui/auth-loading";
-import { AccessDenied } from "@/components/ui/access-denied";
+import { redirect } from "next/navigation";
 import { getAdminOverview } from "@/server/services/audits/visibility";
 import { AdminNav } from "@/components/audits/admin/AdminNav";
 
@@ -9,13 +9,9 @@ export default async function AuditAdminLayout({ children }: { children: React.R
   const session = await getAuthSession();
   // /audits/admin is in PROTECTED_PATHS: the login modal opens over this.
   if (!session?.user) return <AuthLoading />;
-  if (!canAdministerAuditProgram(session)) {
-    return (
-      <main className="container relative max-w-[1400px] px-4 py-10">
-        <AccessDenied message="You need the audit program admin role to view this area." />
-      </main>
-    );
-  }
+  // The manifest already redirects non-admins at the Edge; this mirrors it
+  // (a rendered "access denied" here would be unreachable).
+  if (!canAdministerAuditProgram(session)) redirect("/audits");
   const overview = await getAdminOverview();
 
   return (

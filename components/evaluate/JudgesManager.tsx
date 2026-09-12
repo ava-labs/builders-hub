@@ -16,7 +16,7 @@ type Judge = {
     email: string;
     image: string | null;
     user_name: string | null;
-    custom_attributes: string[];
+    roles: string[];
   };
 };
 
@@ -132,9 +132,9 @@ export function JudgesManager({ hackathonId, initialJudges }: Props) {
                   {pendingUser.email}
                 </div>
               </div>
-              {pendingUser.custom_attributes && pendingUser.custom_attributes.length > 0 && (
+              {pendingUser.roles && pendingUser.roles.length > 0 && (
                 <div className="flex shrink-0 gap-1">
-                  {pendingUser.custom_attributes.slice(0, 2).map((attr) => (
+                  {pendingUser.roles.slice(0, 2).map((attr) => (
                     <span
                       key={attr}
                       className="rounded bg-zinc-200 dark:bg-zinc-800 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-zinc-700 dark:text-zinc-400"

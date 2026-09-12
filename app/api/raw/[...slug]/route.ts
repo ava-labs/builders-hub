@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthSession } from '@/lib/auth/authSession';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 import { documentation, academy, integration, blog } from '@/lib/source';
 import { getLLMText } from '@/lib/llm-utils';
 
@@ -6,6 +8,17 @@ const markdownHeaders = {
   'Content-Type': 'text/markdown; charset=utf-8',
   'Cache-Control': 'public, max-age=3600, s-maxage=3600',
   'Vary': 'Accept',
+};
+
+/**
+ * Gated content must never carry a `public` cache directive: a shared cache
+ * could store one authorized response and hand it to anyone requesting the same
+ * URL, which would defeat the per-request permission check below.
+ */
+const privateMarkdownHeaders = {
+  'Content-Type': 'text/markdown; charset=utf-8',
+  'Cache-Control': 'private, no-store',
+  'Vary': 'Accept, Cookie',
 };
 
 type Source = typeof documentation | typeof academy | typeof integration | typeof blog;
@@ -48,6 +61,23 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Path required' }, { status: 400 });
   }
 
+  // Team1 Academy content is gated. The route manifest already blocks this at
+  // the Edge, but that check reads the JWT cookie, so a revoked role keeps
+  // working until the cookie refreshes. getAuthSession() re-reads UserRole, so
+  // this is the authoritative check and revocation takes effect immediately.
+  const isGatedContent = slug[0] === 'academy' && slug[1] === 'team1';
+  const headers = isGatedContent ? privateMarkdownHeaders : markdownHeaders;
+
+  if (isGatedContent) {
+    const session = await getAuthSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!hasPermission(session, { resource: 'academy:team1', action: 'read' })) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
+
   const [contentType, ...restPath] = slug;
   const entry = sourceMap[contentType];
 
@@ -59,7 +89,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     // Section root request (e.g., /api/raw/docs) — return a synthesized index
     if (restPath.length === 0) {
       const content = buildSectionIndex(entry.source, entry.label);
-      return new NextResponse(content, { status: 200, headers: markdownHeaders });
+      return new NextResponse(content, { status: 200, headers });
     }
 
     const page = entry.source.getPage(restPath);
@@ -70,7 +100,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     const content = await getLLMText(page);
 
-    return new NextResponse(content, { status: 200, headers: markdownHeaders });
+    return new NextResponse(content, { status: 200, headers });
   } catch (error) {
     console.error('Error fetching page:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

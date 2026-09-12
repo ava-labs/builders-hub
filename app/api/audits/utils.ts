@@ -48,9 +48,10 @@ export interface AdminCaller {
 type AdminResult = { admin: AdminCaller; error?: never } | { admin?: never; error: NextResponse };
 
 /**
- * Gate for the audit-program admin routes: signed in AND audit_admin or
- * devrel in custom_attributes (withAuthRole takes a single role only, so the
- * check goes through canAdministerAuditProgram).
+ * Gate for the audit-program admin routes: signed in AND audit:manage
+ * (audit_admin, platform admins). Second layer behind the
+ * "/api/audits/admin/**" manifest entry; kept as a helper rather than
+ * withAuthPermission because callers need the caller's name/email.
  */
 export async function requireAuditAdmin(): Promise<AdminResult> {
   const session = await getAuthSession();

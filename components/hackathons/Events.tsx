@@ -1,5 +1,6 @@
 "use client";
 import { Search, Building2 } from "lucide-react";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -93,7 +94,7 @@ export default function Events({
   // Listing language is global (mixed events). Default to English unless you later add a global locale.
   const lang = normalizeEventsLang(undefined);
   const { data: session, status } = useSession();
-  const isHackathonCreator = session?.user?.custom_attributes.includes("hackathonCreator") || session?.user?.custom_attributes.includes("team1-admin");
+  const isHackathonCreator = hasPermission(session, { resource: "event", action: "write", scope: "own" });
   
   const router = useRouter();
 
@@ -190,8 +191,8 @@ export default function Events({
     if (status === "authenticated" && session?.user) {
       console.log("User ID:", session.user.id);
 
-      if (session.user.custom_attributes?.includes("hackathonCreator") || session.user.custom_attributes?.includes("team1-admin")) {
-        console.log("User is hackathonCreator");
+      if (hasPermission(session, { resource: "event", action: "write", scope: "own" })) {
+        console.log("User is hackathon_creator");
       }
     }
   }, [session, status]);

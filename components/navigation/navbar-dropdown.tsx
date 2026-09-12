@@ -7,7 +7,7 @@ import { ChevronDown, Moon, Sun, UserRound } from 'lucide-react';
 import { menuSections, singleItems } from './nav-config';
 import { useSession } from 'next-auth/react';
 import { useLoginModalTrigger } from '@/hooks/useLoginModal';
-import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 /**
  * Custom navbar dropdown menu for tablet/mobile breakpoints (≤1023px)
@@ -23,7 +23,7 @@ export function NavbarDropdown() {
   const { data: session, status } = useSession();
   const { openLoginModal } = useLoginModalTrigger();
   const isAuthenticated = status === 'authenticated';
-  const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
+  const canSeeTeam1 = hasPermission(session, { resource: "academy:team1", action: "read" });
   const visibleMenuSections = menuSections.map((section) => ({
     ...section,
     items: section.items.filter(

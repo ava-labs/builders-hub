@@ -15,7 +15,7 @@ import {
   triggerLoginComplete,
 } from '@/hooks/useLoginModal';
 import { hasCompleteBasicProfile } from '@/lib/profile/socialAccountValidation';
-import { PROTECTED_PATHS } from '@/lib/auth/protected-paths';
+import { isProtectedPath as isProtectedPathFn } from '@/lib/auth/protected-paths';
 
 export function LoginModalWrapper() {
   const { data: session, status, update } = useSession();
@@ -234,7 +234,7 @@ export function LoginModalWrapper() {
       // Sign out only if user is not fully authenticated (clears pending/incomplete sessions).
       // Never sign out a user who was already authenticated before opening the modal.
       if (status !== "authenticated") {
-        const isOnProtectedPath = PROTECTED_PATHS.some(path => pathname?.startsWith(path));
+        const isOnProtectedPath = pathname ? isProtectedPathFn(pathname) : false;
         signOut({ redirect: isOnProtectedPath, callbackUrl: "/" });
       }
     }
