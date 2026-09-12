@@ -1,0 +1,70 @@
+---
+title: GetPlu
+category: Payments
+available: ["C-Chain"]
+description: "GetPlu is a stablecoin spending platform issuing Visa debit cards for individuals, businesses, and AI agents, funded directly by USDC and USDT on Avalanche C-Chain and other supported networks."
+logo: /images/getplu.svg
+developer: GetPlu
+website: https://getplu.com/
+documentation: https://getplu.com/agent-card
+---
+
+## Overview
+
+GetPlu is a stablecoin spending platform that issues virtual and physical Visa
+debit cards for individuals, businesses, and - through its Agent Card product -
+AI agents. Cards are funded directly from USDC or USDT balances, spend
+anywhere Visa is accepted in 125+ countries, and carry zero forex markup.
+
+## Features
+
+- **Stablecoin-Funded Visa Cards**: Fund a virtual or physical Visa debit card directly with USDC or USDT - no separate off-ramp step.
+- **Avalanche C-Chain Support**: Fund a GetPlu card with USDC or USDT sent on Avalanche C-Chain, typically under $0.10 in network fees and credited in under 30 seconds.
+- **Zero Forex Markup**: Spend in 125+ countries anywhere Visa is accepted with no foreign transaction fee.
+- **Agent Card (Beta)**: Issue AI agents their own scoped virtual Visa cards with a hard spending limit set per card - transactions over the limit decline at the network level.
+- **Human-in-the-Loop Approval**: Agent Card transactions require human approval by default, configurable per card.
+- **MCP Integration (Beta)**: Connect Claude Code, Cursor, Windsurf, or any MCP-compatible agent to GetPlu's MCP server to create cards, check balances, and fund cards programmatically.
+
+## Avalanche
+
+GetPlu supports funding via USDC and USDT sent directly on Avalanche C-Chain,
+crediting the card balance in typically under 30 seconds for a network fee
+typically under $0.10. AVAX is not itself a fundable asset on GetPlu - it's
+only needed to cover the sending wallet's own network fee.
+
+## Agent Card
+
+GetPlu's Agent Card (currently in private beta) issues AI agents their own
+virtual Visa cards with hard spending limits, single-use or multi-use modes,
+and per-merchant restrictions. Every transaction can require human approval
+before it settles, and all activity is logged with agent ID, card ID,
+merchant, amount, and approval status.
+
+Connect via MCP:
+
+```
+claude mcp add --transport http getplu-cards https://mcp.getplu.com/agent
+```
+
+Planned MCP tools include `create_card`, `get_card_details`, `check_balance`,
+`list_cards`, `fund_card`, `revoke_card`, and `get_transactions`. Tool names
+and parameters are previews and may change before general availability.
+
+## Getting Started
+
+1. **Create an account** at [getplu.com](https://getplu.com) - sign up and complete identity verification, typically under 3 minutes.
+2. **Fund your balance** - send USDC or USDT from any wallet or exchange on Avalanche C-Chain (or Base, Ethereum, Polygon, Solana, Tron).
+3. **Get your card** - create a virtual Visa card instantly, or order a physical card.
+4. **For agents** - connect GetPlu's MCP server to your agent, issue it a scoped card with a spending limit, and approve its transactions as they come in.
+
+## Use Cases
+
+- Spend USDC or USDT balances on Avalanche directly at any Visa merchant
+- Give an AI agent a real, spending-limited Visa card instead of unrestricted account access
+- Pay for software, cloud infrastructure, advertising, travel, and subscriptions globally with zero forex markup
+- Issue single-use cards for one-off agent purchases, or multi-use cards for recurring agent spend
+
+## Documentation
+
+Product documentation and the Agent Card MCP integration guide are available
+at [getplu.com/agent-card](https://getplu.com/agent-card).
