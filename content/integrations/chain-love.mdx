@@ -1,0 +1,51 @@
+---
+title: Chain.Love
+category: Developer Tooling
+available: ["C-Chain"]
+description: "Chain.Love is an open infrastructure directory that lets developers compare Avalanche RPC and data providers, MCP servers, explorers, bridges, and faucets in one dataset."
+logo: /images/chain-love.png
+developer: Chain.Love
+website: https://mainnet.avalanche.chain.love/
+documentation: https://app.chain.love/docs
+---
+
+## Overview
+
+Chain.Love is a Web3 infrastructure directory with a deployment dedicated to Avalanche C-Chain. Rather than reading provider marketing pages one at a time, developers browse a single dataset of the services that support the network, with plan type, pricing, limits, and regions shown side by side. The catalogue is published as CSV under CC BY-SA 4.0, and the discovery endpoints are open, so both people and agents can query it.
+
+## Features
+
+- **Avalanche C-Chain deployment**: `mainnet.avalanche.chain.love` covers 15 infrastructure categories and lists only services that support the network.
+- **Provider comparison**: 370 API and RPC plans from 47 providers, with plan type, access and per-query pricing, request limits, regions, and the advertised uptime SLA where a provider publishes one.
+- **Beyond RPC**: 152 MCP servers, 88 SDKs, 64 wallets, 58 analytics tools, 41 fiat on/off-ramps, 37 bridges, 24 explorers, 12 oracles, and 8 faucets for Avalanche.
+- **Open discovery API**: JSON endpoints for categories and rows, with no API key and no account.
+- **Open dataset**: the underlying catalogue is maintained as CSV in a public repository under CC BY-SA 4.0.
+
+## Getting Started
+
+The discovery endpoints are public, so no signup is needed to query the Avalanche C-Chain dataset:
+
+```bash
+# Category keys, with the entry count each holds for Avalanche C-Chain
+curl -sS "https://mainnet.avalanche.chain.love/api/infrastructure-providers/categories"
+
+# First page of Avalanche C-Chain RPC and API plans
+curl -sS "https://mainnet.avalanche.chain.love/api/infrastructure-providers/rows?category=apis&page=1&pageSize=10"
+```
+
+Each category also has a browsable page, such as [Avalanche C-Chain APIs](https://mainnet.avalanche.chain.love/toolbox/apis), [explorers](https://mainnet.avalanche.chain.love/toolbox/explorers), and [faucets](https://mainnet.avalanche.chain.love/toolbox/faucets).
+
+## Documentation
+
+For the data model, category keys, and endpoint parameters, see the [Chain.Love documentation](https://app.chain.love/docs).
+
+## Use Cases
+
+- **Choosing an RPC provider**: compare Avalanche C-Chain plans on price, limits, and regions before signing up for any of them.
+- **Testnet setup**: find the faucets and explorers that cover Avalanche without leaving the directory.
+- **Agent tooling**: let an AI agent call the public discovery endpoints to pick infrastructure at runtime.
+- **Infrastructure review**: check which providers still serve Avalanche when an existing vendor changes its plans.
+
+## Conclusion
+
+Chain.Love gives Avalanche developers one place to compare the infrastructure available on C-Chain, backed by an open dataset and public endpoints that can be queried without an account.
