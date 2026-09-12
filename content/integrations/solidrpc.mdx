@@ -1,0 +1,35 @@
+---
+title: SolidRPC
+category: RPC Endpoints
+available: ['C-Chain']
+description: SolidRPC provides authenticated and keyless EVM JSON-RPC endpoints for Avalanche C-Chain and other EVM networks.
+logo: /images/solidrpc.png
+developer: SolidRPC, Inc.
+website: https://solidrpc.io/
+documentation: https://solidrpc.io/docs
+---
+
+## Overview
+
+SolidRPC is an EVM JSON-RPC provider for production applications, wallets, and developers. It offers authenticated full and archive access and a keyless public endpoint for Avalanche C-Chain.
+
+## Features
+
+- **Authenticated RPC**: Production HTTPS endpoints with account-level limits and usage analytics
+- **Archive Access**: Historical state access for supported networks
+- **Public RPC**: Keyless Avalanche C-Chain endpoint for wallets and lightweight application traffic
+- **Clear Throttling**: HTTP 429 responses with JSON-RPC error details and retry headers
+
+## Endpoints
+
+```text
+# Keyless public C-Chain endpoint
+https://rpc.solidrpc.io/public/evm/43114
+
+# Authenticated C-Chain endpoint
+https://rpc.solidrpc.io/<API_KEY>/evm/43114
+```
+
+## Documentation
+
+See the [SolidRPC documentation](https://solidrpc.io/docs) and [public RPC policy](https://solidrpc.io/docs/public-rpc) for setup, supported methods, and usage limits.
