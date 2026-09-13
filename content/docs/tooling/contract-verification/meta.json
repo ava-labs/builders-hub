@@ -1,0 +1,6 @@
+{
+  "title": "Contract Verification",
+  "description": "Verify smart contracts on any Avalanche L1 from Hardhat, Foundry, or the explorer",
+  "root": true,
+  "pages": ["index", "api-reference"]
+}
