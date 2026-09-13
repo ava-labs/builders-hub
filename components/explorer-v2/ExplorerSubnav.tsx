@@ -538,10 +538,12 @@ function NetworkControl({
     );
   }
   if (!chainSlug) {
-    // the network scope aggregates mainnet only — a static label, no toggle
+    // A label, not a toggle: the network-scope aggregates are mainnet-only, so
+    // there is nowhere to switch to. It still has to name the network actually
+    // being viewed — a single message is network-agnostic and can be a Fuji one.
     return (
       <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
-        Mainnet
+        {NETWORK_LABEL[network as PchainNetwork] ?? network}
       </span>
     );
   }
