@@ -16,7 +16,7 @@ import { L1Chain } from "@/types/stats";
    its own chrome — this absorbed /stats/validators/[slug]. */
 export function ChainValidatorsPageClient({ chainSlug }: { chainSlug: string }) {
   const chain = useChainContext();
-  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
+  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.chainId === chain.chainId);
   // the validator set lives on the chain's own network's P-Chain
   const pNetwork = catalog?.isTestnet === true ? "fuji" : "mainnet";
   // the roster's feeds (p2p + SDK) watch the mainnet Primary Network

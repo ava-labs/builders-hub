@@ -77,14 +77,14 @@ function isFirnUrl(url: string): boolean {
   }
 }
 
-// Map an EVM chain ID to its Builder Hub explorer slug. C-Chain has
-// canonical slugs in `l1-chains.json` (`c-chain`, `avalanche-c-chain`); for
-// every other L1 the slug fallback is the numeric EVM chain ID, which the
+// Map an EVM chain ID to its Builder Hub explorer slug. Both C-Chains hold the
+// same canonical slug in `l1-chains.json` — `c-chain` — and the caller supplies
+// the network segment that tells them apart. For every other L1 the slug
+// fallback is the numeric EVM chain ID, which the
 // `[chainSlug]/layout.client.tsx` resolver matches against
 // `String(item.evmChainId)` in the wallet's L1ListItem.
 function builderHubExplorerSlug(evmChainId: number): string {
-  if (evmChainId === C_CHAIN_FUJI) return 'avalanche-c-chain';
-  if (evmChainId === C_CHAIN_MAINNET) return 'c-chain';
+  if (evmChainId === C_CHAIN_FUJI || evmChainId === C_CHAIN_MAINNET) return 'c-chain';
   return String(evmChainId);
 }
 
