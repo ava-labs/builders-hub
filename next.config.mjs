@@ -2404,13 +2404,15 @@ const config = {
       },
       // Explorer: a tx hash pasted directly after the chain segment.
       // Fixed-word routes (accounts, tx, block, ...) can never be 64 hex chars.
+      //
+      // `icm` is excluded because it is NOT a chain.
       {
-        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/:hash(0x[0-9a-fA-F]{64})',
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!icm/)[^/]+)/:hash(0x[0-9a-fA-F]{64})',
         destination: '/explorer/:network/:chain/tx/:hash',
         permanent: false,
       },
       {
-        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/:hash([0-9a-fA-F]{64})',
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!icm/)[^/]+)/:hash([0-9a-fA-F]{64})',
         destination: '/explorer/:network/:chain/tx/0x:hash',
         permanent: false,
       },
