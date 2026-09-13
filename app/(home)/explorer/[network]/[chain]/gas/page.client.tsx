@@ -10,7 +10,7 @@ import { L1Chain } from "@/types/stats";
    chain's own chrome — same shell idiom as /details. */
 export function ChainGasPageClient({ chainSlug }: { chainSlug: string }) {
   const chain = useChainContext();
-  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
+  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.chainId === chain.chainId);
 
   return (
     <ExplorerLayout

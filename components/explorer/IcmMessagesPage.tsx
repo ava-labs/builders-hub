@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Bar,
   ComposedChart,
@@ -13,15 +12,12 @@ import {
 } from "recharts";
 import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
-import {
-  LiveTag,
-  formatTimeAgo,
-  getChainFromBlockchainId,
-} from "@/components/explorer/L1ExplorerPage";
-import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
+import { LiveTag, getChainFromBlockchainId } from "@/components/explorer/L1ExplorerPage";
+import { FeedDown } from "@/components/explorer-v2/evm/bits";
+import { Board, BoardHeader, CellLabel, ChartBoard, StatDash, idInk } from "@/components/explorer-v2/ui";
+import { timeAgo, truncate } from "@/components/explorer-v2/format";
 import { Stat, TipPlate } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
-import { ChainChip } from "@/components/stats/ChainChip";
 import { buildTxUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -42,6 +38,30 @@ interface IcmTx {
   timestamp: string;
   sourceBlockchainId?: string;
   destinationBlockchainId?: string;
+}
+
+function ChainCell({ chain }: { chain: ReturnType<typeof getChainFromBlockchainId> }) {
+  if (!chain) return <span className="font-mono text-[10px] text-zinc-400">unknown</span>;
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      {chain.chainLogoURI ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={chain.chainLogoURI} alt="" className="h-4 w-4 shrink-0 rounded-full object-contain" />
+      ) : (
+        <span className="h-4 w-4 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
+      )}
+      <span className="truncate text-[12px] font-medium text-zinc-900 dark:text-zinc-100">
+        {chain.chainName}
+      </span>
+    </span>
+  );
+}
+
+interface IcmFeedPage {
+  status: "ok" | "unavailable";
+  messages: IcmTx[];
+  nextBeforeBlock: number | null;
+  exhausted: boolean;
 }
 
 interface IcmDay {
@@ -70,6 +90,7 @@ interface Route {
 }
 
 const POLL_MS = 15_000;
+const PAGE_SIZE = 25;
 
 const RECEIVED_COLOR = "#A2AFB2";
 const SENT_COLOR = "#E6212F";
@@ -229,10 +250,15 @@ export function IcmMessagesPage({
   chainSlug: string;
   tokenSymbol?: string;
 }) {
-  const router = useRouter();
   const network = useExplorerNetwork();
   const { buildApiUrl } = useExplorer();
   const [messages, setMessages] = useState<IcmTx[] | null>(null);
+  const [cursor, setCursor] = useState<number | null | undefined>(undefined);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [feedDown, setFeedDown] = useState(false);
+  const [moreFailed, setMoreFailed] = useState(false);
+  const [reload, setReload] = useState(0);
+  const loadedOnce = useRef(false);
 
   // the page clock in the subnav — the totals, chart, and routes ride it;
   // the daily chart floors at a week (one bar says nothing) and labels it
@@ -249,10 +275,28 @@ export function IcmMessagesPage({
     const load = async () => {
       if (document.visibilityState === "hidden") return;
       try {
-        const res = await fetch(buildApiUrl(`/api/explorer/${chainId}`, { initialLoad: "true" }));
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setMessages(data.icmMessages ?? []);
+        const res = await fetch(buildApiUrl(`/api/explorer/${chainId}/icm`, { limit: String(PAGE_SIZE) }));
+        if (!res.ok) {
+          if (!cancelled && !loadedOnce.current) setFeedDown(true);
+          return;
+        }
+        const page = (await res.json()) as IcmFeedPage;
+        if (cancelled) return;
+        // A scan that completed no window knows nothing. Rendering that as
+        // "no ICM messages" would state something about the chain we never saw.
+        if (page.status === "unavailable" && page.messages.length === 0) {
+          if (!loadedOnce.current) setFeedDown(true);
+          return;
+        }
+        setFeedDown(false);
+        loadedOnce.current = true;
+        setMessages((prev) => {
+          if (!prev) return page.messages;
+          const known = new Set(prev.map((m) => m.hash));
+          const fresh = page.messages.filter((m) => !known.has(m.hash));
+          return fresh.length ? [...fresh, ...prev] : prev;
+        });
+        setCursor((prev) => (prev === undefined ? page.nextBeforeBlock : prev));
       } catch {
         /* stale list stands */
       }
@@ -263,7 +307,40 @@ export function IcmMessagesPage({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [chainId, buildApiUrl]);
+  }, [chainId, buildApiUrl, reload]);
+
+  const loadOlder = async () => {
+    if (cursor == null || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        buildApiUrl(`/api/explorer/${chainId}/icm`, {
+          limit: String(PAGE_SIZE),
+          beforeBlock: String(cursor),
+        }),
+      );
+      if (!res.ok) {
+        setMoreFailed(true);
+        return;
+      }
+      const page = (await res.json()) as IcmFeedPage;
+      // The cursor is left alone on a refused scan, so the same click retries.
+      if (page.status === "unavailable") {
+        setMoreFailed(true);
+        return;
+      }
+      setMoreFailed(false);
+      setMessages((prev) => {
+        const known = new Set((prev ?? []).map((m) => m.hash));
+        return [...(prev ?? []), ...page.messages.filter((m) => !known.has(m.hash))];
+      });
+      setCursor(page.nextBeforeBlock);
+    } catch {
+      setMoreFailed(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   // the fetched series is wider than the clock on sub-fetch windows —
   // slice the window for the totals and the chart's floored window
@@ -417,10 +494,22 @@ export function IcmMessagesPage({
       </div>
 
       {/* the stream itself — live, so it wears the dot, not a window */}
+      <section className="flex flex-col gap-4">
       <ChartBoard label="Live Messages" action={<LiveTag />} bodyClassName="p-0">
-        {messages === null && (
+        {feedDown && (
+          <FeedDown
+            compact
+            onRetry={() => {
+              setFeedDown(false);
+              setReload((n) => n + 1);
+            }}
+            label="The message index isn't answering right now"
+          />
+        )}
+
+        {messages === null && !feedDown && (
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="flex items-center justify-between px-5 py-4 md:px-6">
                 <div className="h-3 w-48 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
                 <div className="h-3 w-16 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
@@ -429,7 +518,7 @@ export function IcmMessagesPage({
           </div>
         )}
 
-        {messages !== null && messages.length === 0 && (
+        {messages !== null && messages.length === 0 && !feedDown && (
           <p className="px-6 py-14 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
             No ICM messages in the recent block window
           </p>
@@ -437,6 +526,13 @@ export function IcmMessagesPage({
 
         {messages !== null && messages.length > 0 && (
           <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
+            <div className="hidden grid-cols-[1.4fr_1.2fr_1.2fr_0.9fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+              <span>Hash</span>
+              <span>Source</span>
+              <span>Destination</span>
+              <span className="text-right">Value</span>
+              <span className="text-right">Age</span>
+            </div>
             {messages.map((tx, index) => {
               const sourceChain = tx.sourceBlockchainId
                 ? getChainFromBlockchainId(tx.sourceBlockchainId)
@@ -445,51 +541,51 @@ export function IcmMessagesPage({
                 ? getChainFromBlockchainId(tx.destinationBlockchainId)
                 : null;
               return (
-                <div
+                <Link
                   key={`${tx.hash}-${index}`}
-                  onClick={() => router.push(buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash))}
-                  className="cursor-pointer px-5 py-3.5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                  href={buildTxUrl(`/explorer/${network}/${chainSlug}`, tx.hash)}
+                  className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1.4fr_1.2fr_1.2fr_0.9fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="min-w-0 truncate font-mono text-[13px] text-zinc-900 dark:text-zinc-100">
-                      {tx.hash.slice(0, 22)}…
-                    </span>
-                    <span className="shrink-0 font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {formatTokenValue(tx.value)} {tokenSymbol ?? ""}
-                    </span>
-                  </div>
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                      {sourceChain ? (
-                        <ChainChip
-                          chain={sourceChain}
-                          size="xs"
-                          onClick={() => router.push(`/explorer/${network}/${sourceChain.chainSlug}`)}
-                        />
-                      ) : (
-                        <span className="font-mono text-[10px] text-zinc-400">unknown</span>
-                      )}
-                      <span className="text-zinc-400">→</span>
-                      {destChain ? (
-                        <ChainChip
-                          chain={destChain}
-                          size="xs"
-                          onClick={() => router.push(`/explorer/${network}/${destChain.chainSlug}`)}
-                        />
-                      ) : (
-                        <span className="font-mono text-[10px] text-zinc-400">unknown</span>
-                      )}
-                    </span>
-                    <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                      {formatTimeAgo(tx.timestamp)}
-                    </span>
-                  </div>
-                </div>
+                  <span className={`truncate font-mono text-[12px] ${idInk}`}>
+                    {truncate(tx.hash, 18)}
+                  </span>
+                  <span className="min-w-0">
+                    <CellLabel>Source</CellLabel>
+                    <ChainCell chain={sourceChain} />
+                  </span>
+                  <span className="min-w-0">
+                    <CellLabel>Destination</CellLabel>
+                    <ChainCell chain={destChain} />
+                  </span>
+                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    <CellLabel>Value</CellLabel>
+                    {formatTokenValue(tx.value)} {tokenSymbol ?? ""}
+                  </span>
+                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    <CellLabel>Age</CellLabel>
+                    {timeAgo(Math.floor(new Date(tx.timestamp).getTime() / 1000))}
+                  </span>
+                </Link>
               );
             })}
           </div>
         )}
       </ChartBoard>
+        {moreFailed && (
+          <p className="text-center font-mono text-[10px] uppercase tracking-[0.16em] text-[#E6212F]">
+            Couldn't load older messages — try again
+          </p>
+        )}
+        {cursor != null && !feedDown && (
+          <button
+            onClick={loadOlder}
+            disabled={loadingMore}
+            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        )}
+      </section>
     </div>
   );
 }

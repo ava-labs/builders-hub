@@ -15,6 +15,7 @@ export function NetworkShell({
   eyebrow = "Avalanche Network",
   intro,
   aside,
+  network = "mainnet",
   children,
 }: {
   /** page display title, rendered with the trailing red period */
@@ -24,6 +25,8 @@ export function NetworkShell({
   intro?: string;
   /** optional right-hand companion for the title row (e.g. a live figure) */
   aside?: React.ReactNode;
+  /** Defaults to mainnet */
+  network?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -31,8 +34,9 @@ export function NetworkShell({
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         {/* no chainSlug = the subnav's network scope: All Networks switcher
-            row, ecosystem facet tabs, static Mainnet label */}
-        <ExplorerSubnav network="mainnet" className="mb-8" />
+            row, ecosystem facet tabs, static network label. The facet tabs stay
+            pinned to mainnet on purpose — those aggregates exist there only. */}
+        <ExplorerSubnav network={network} className="mb-8" />
         <Rise delay={0.05}>
           <header className="flex flex-col gap-6 pb-10">
             {/* pl-0!/pr-0!: overrides the global `header > div` navbar
@@ -56,7 +60,7 @@ export function NetworkShell({
             </div>
             {/* the universal search — chain="p-chain" routes every shape of
                 identifier to whichever chain it belongs to */}
-            <SearchBox chain="p-chain" network="mainnet" />
+            <SearchBox chain="p-chain" network={network} />
           </header>
         </Rise>
         <Rise delay={0.14}>{children}</Rise>

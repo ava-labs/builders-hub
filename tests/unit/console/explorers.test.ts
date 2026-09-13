@@ -26,7 +26,7 @@ describe('getExplorerOptions', () => {
 
     expect(options.map((o) => o.id)).toEqual(['builder-hub', 'subnets', 'snowtrace', 'avascan']);
     expect(options[0]).toMatchObject({
-      url: '/explorer/fuji/avalanche-c-chain',
+      url: '/explorer/fuji/c-chain',
       internal: true,
     });
     expect(options[1].url).toBe('https://explorer-test.avax.network');

@@ -10,7 +10,7 @@ import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
-import { isUnindexedChain } from "@/lib/explorer-catalog";
+import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
 import {
   NETWORK_LABEL,
@@ -458,18 +458,6 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   return tabs;
 }
 
-/* Verified mainnet ↔ Fuji counterparts (paired by EVM chain ID; the catalog's
-   testnet slugs are too inconsistent to derive). Chains without a pair keep
-   the static network label. */
-const TESTNET_COUNTERPART: Record<string, string> = {
-  "c-chain": "avalanche-c-chain", // 43114 ↔ 43113
-  //   beam: "beam-l1",        // 4337 ↔ 13337 — Fuji side not indexed
-  //   dexalot: "dexalot-l1",  // 432204 ↔ 432201 — neither side indexed
-};
-const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
-  Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
-);
-
 /* Counterparts that exist but aren't explorable yet: the toggle stays
    visible so the network is discoverable, but the segment is disabled and
    says why. Move an entry up into TESTNET_COUNTERPART when its indexing
@@ -538,16 +526,20 @@ function NetworkControl({
     );
   }
   if (!chainSlug) {
-    // the network scope aggregates mainnet only — a static label, no toggle
+    // A label, not a toggle: the network-scope aggregates are mainnet-only, so
+    // there is nowhere to switch to. It still has to name the network actually
+    // being viewed — a single message is network-agnostic and can be a Fuji one.
     return (
       <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
-        Mainnet
+        {NETWORK_LABEL[network as PchainNetwork] ?? network}
       </span>
     );
   }
 
-  // EVM chain with a verified Fuji counterpart: a real toggle
-  const isTestnetChain = chainSlug in MAINNET_COUNTERPART;
+  // EVM chain with a verified Fuji counterpart: a real toggle.
+  // Which network we are on comes from the route, not the slug: a pair shares
+  // one slug, so `chainSlug in MAINNET_COUNTERPART` is true on both sides.
+  const isTestnetChain = wantsTestnet(network);
   const other = TESTNET_COUNTERPART[chainSlug] ?? MAINNET_COUNTERPART[chainSlug];
   if (other) {
     const mainnetSlug = isTestnetChain ? other : chainSlug;

@@ -21,7 +21,7 @@ const CCHAIN_GENESIS: Record<string, object> = {
    and header never switch context. */
 export function ChainDetailsPageClient({ chainSlug }: { chainSlug: string }) {
   const chain = useChainContext();
-  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
+  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.chainId === chain.chainId);
   // the chain's P-Chain record lives on its own network
   const pNetwork = catalog?.isTestnet === true ? "fuji" : "mainnet";
   // Primary Network chains predate the P-Chain's tx record — no CreateChainTx
