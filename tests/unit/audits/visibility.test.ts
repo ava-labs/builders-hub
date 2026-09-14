@@ -530,7 +530,7 @@ describe("countActiveFirms", () => {
 });
 
 describe("getOwnFirm", () => {
-  it("pins the firm id and never selects attio_ref, created_by or logo_url", async () => {
+  it("pins the firm id, selects logo_url for the firm page, never attio_ref or created_by", async () => {
     auditorFindUniqueMock.mockResolvedValue({
       id: "aud-1",
       firm_name: "Nordlicht Security",
@@ -543,7 +543,7 @@ describe("getOwnFirm", () => {
     expect(call.where).toEqual({ id: "aud-1" });
     expect(call.select.attio_ref).toBeUndefined();
     expect(call.select.created_by).toBeUndefined();
-    expect(call.select.logo_url).toBeUndefined();
+    expect(call.select.logo_url).toBe(true);
     expect(call.select.members.select).toEqual({
       id: true,
       email: true,

@@ -852,8 +852,9 @@ model Auditor {
   first_login_at DateTime? @db.Timestamptz(3) // null = "Invited" state
   deactivated_at DateTime? @db.Timestamptz(3)
   attio_ref      String?
-  // Public firms page fields: website is admin-entered and firm-editable from
-  // the portal; logo_url holds a Vercel Blob URL, admin-only (column-name
+  // Public firms page fields, admin-entered and firm-editable from the portal:
+  // website, and logo_url holding a Vercel Blob URL on our own store (admins
+  // from the whitelist sheet, firms through the portal logo route; column-name
   // precedent Project.logo_url).
   website        String?
   logo_url       String?

@@ -30,7 +30,7 @@ import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
 import { AUDITS_DIALOG, MONO_LABEL_META, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, monogramOf } from "@/components/audits/shared/format";
 import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
-import { LogoControl } from "@/components/audits/admin/LogoControl";
+import { LogoControl } from "@/components/audits/shared/LogoControl";
 
 export type PanelState = { mode: "add" } | { mode: "edit"; auditor: AdminAuditorRow } | null;
 

@@ -211,9 +211,9 @@ export async function countActiveFirms(): Promise<number> {
 }
 
 /**
- * A firm's own details for the portal firm page: identity, services, website
- * and its teammates. Never attio_ref, created_by or logo_url (firms cannot
- * change the logo).
+ * A firm's own details for the portal firm page: identity, services, website,
+ * logo (the firm uploads it there through the portal logo route) and its
+ * teammates. Never attio_ref or created_by.
  */
 export async function getOwnFirm(auditorId: string) {
   return prisma.auditor.findUnique({
@@ -224,6 +224,7 @@ export async function getOwnFirm(auditorId: string) {
       quote_email: true,
       services: true,
       website: true,
+      logo_url: true,
       active: true,
       invited_at: true,
       first_login_at: true,

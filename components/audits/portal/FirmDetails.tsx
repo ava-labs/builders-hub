@@ -11,7 +11,12 @@ import { AUDIT_SERVICES, AUDITOR_MEMBER_LIMIT } from "@/lib/audits/constants";
 import type { OwnFirm } from "@/server/services/audits/visibility";
 import { ChipGroup, asChips } from "@/components/audits/shared/ChipGroup";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
-import { formatIsoDate, monogramOf } from "@/components/audits/shared/format";
+import { formatIsoDate } from "@/components/audits/shared/format";
+import {
+  LogoControl,
+  LogoTile,
+  type LogoUploadResult,
+} from "@/components/audits/shared/LogoControl";
 import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
 
 type Member = OwnFirm["members"][number];
@@ -34,6 +39,7 @@ export function FirmDetails({
   const router = useRouter();
   const [services, setServices] = useState<string[]>(firm.services);
   const [website, setWebsite] = useState(firm.website ?? "");
+  const [logoUrl, setLogoUrl] = useState<string | null>(firm.logo_url);
   const [members, setMembers] = useState<Member[]>(firm.members);
   const [memberEmail, setMemberEmail] = useState("");
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
@@ -60,6 +66,31 @@ export function FirmDetails({
     } finally {
       setBusy(false);
     }
+  };
+
+  // The portal logo route stores and saves in one step; the control only
+  // needs the saved URL back. Remove goes through the same route.
+  const uploadLogo = async (file: File): Promise<LogoUploadResult> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/audits/portal/me/logo", { method: "POST", body: form });
+    const body = await res.json().catch(() => null);
+    if (!res.ok || !body?.success || typeof body.logo_url !== "string") {
+      return { error: body?.message ?? "Upload failed." };
+    }
+    return { url: body.logo_url };
+  };
+
+  const changeLogo = async (url: string | null) => {
+    if (url === null) {
+      const res = await fetch("/api/audits/portal/me/logo", { method: "DELETE" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok || !body?.success) {
+        throw new Error(body?.message ?? "That didn't work. Try again.");
+      }
+    }
+    setLogoUrl(url);
+    router.refresh();
   };
 
   const addMember = async () => {
@@ -120,12 +151,7 @@ export function FirmDetails({
       <div className="mt-6 space-y-5">
         <div className={cn(CARD, "p-5")}>
           <div className="flex items-center gap-3">
-            <span
-              aria-hidden
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-zinc-100 font-mono text-sm font-semibold text-zinc-600 dark:bg-white/10 dark:text-zinc-300"
-            >
-              {monogramOf(firm.firm_name)}
-            </span>
+            <LogoTile value={logoUrl} firmName={firm.firm_name} size="lg" />
             <div className="min-w-0">
               <p className="text-[15px] font-semibold">{firm.firm_name}</p>
               <p className="truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
@@ -133,6 +159,20 @@ export function FirmDetails({
               </p>
             </div>
           </div>
+          {readOnly ? null : (
+            <div className="mt-4 space-y-1.5">
+              <LogoControl
+                value={logoUrl}
+                onChange={changeLogo}
+                upload={uploadLogo}
+                firmName={firm.firm_name}
+                showTile={false}
+              />
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                PNG or JPG, square, under 2MB. Shown on the vetted firms page.
+              </p>
+            </div>
+          )}
           <p className={`${MONO_LABEL_SM} mt-4 normal-case`}>
             On the whitelist since {formatIsoDate(firm.invited_at)}
           </p>
