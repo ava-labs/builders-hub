@@ -357,7 +357,7 @@ function DeployICMDemo({ onSuccess }: BaseConsoleToolProps) {
               {SENDER_C_CHAIN_ADDRESS}
             </code>
             <a
-              href={`https://explorer-test.avax.network/c-chain/address/${SENDER_C_CHAIN_ADDRESS}`}
+              href={`/explorer/fuji/c-chain/address/${SENDER_C_CHAIN_ADDRESS}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300"

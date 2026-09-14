@@ -11,7 +11,11 @@ import { getVerifiedContractResolvingProxies } from "@/lib/sourcify";
 
 const HIT_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 const PROXY_CACHE = "public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400";
-const MISS_CACHE = "public, max-age=300, s-maxage=600";
+// A miss is the one answer here that flips on a user's own action, so the
+// browser must never hold onto it: someone who verifies a contract and
+// returns to its page would otherwise be told it is unverified for as long
+// as the cache lasts. The CDN still absorbs bursts, briefly.
+const MISS_CACHE = "public, max-age=0, s-maxage=60";
 
 export async function GET(
   _req: NextRequest,

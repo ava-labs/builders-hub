@@ -10,7 +10,7 @@ import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
-import { isUnindexedChain } from "@/lib/explorer-catalog";
+import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
 import {
   NETWORK_LABEL,
@@ -458,37 +458,18 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   return tabs;
 }
 
-/* Verified mainnet ↔ Fuji counterparts (paired by EVM chain ID; the catalog's
-   testnet slugs are too inconsistent to derive). Chains without a pair keep
-   the static network label. */
-const TESTNET_COUNTERPART: Record<string, string> = {
-  // Intentionally empty: every previous pair pointed at a chain the explorer
-  // doesn't index, so the toggle only led to empty pages. (Fuji P-chain is
-  // unaffected — the P-chain switcher is a separate code path.) Re-add pairs
-  // here as their testnet indexing comes online:
-  //   "c-chain": "avalanche-c-chain", // 43114 ↔ 43113 — Fuji EVM indexer stopped
-  //   beam: "beam-l1",                // 4337 ↔ 13337 — Fuji side not indexed
-  //   dexalot: "dexalot-l1",          // 432204 ↔ 432201 — neither side indexed
-};
-const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
-  Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
-);
-
 /* Counterparts that exist but aren't explorable yet: the toggle stays
    visible so the network is discoverable, but the segment is disabled and
    says why. Move an entry up into TESTNET_COUNTERPART when its indexing
    comes online. */
-const UNAVAILABLE_TESTNET: Record<string, string> = {
-  "c-chain":
-    "We're having trouble indexing the Fuji C-Chain right now — it'll be available later.",
-};
+const UNAVAILABLE_TESTNET: Record<string, string> = {};
 
 /* Crossing networks keeps the section when the counterpart has it: an
    accounts page lands on the counterpart's accounts, everything else
    lands on its explorer overview. */
-function counterpartTarget(slug: string, pathname: string): string {
-  if (pathname.endsWith("/accounts")) return `/explorer/mainnet/${slug}/accounts`;
-  return `/explorer/mainnet/${slug}`;
+function counterpartTarget(network: string, slug: string, pathname: string): string {
+  const base = `/explorer/${network}/${slug}`;
+  return pathname.endsWith("/accounts") ? `${base}/accounts` : base;
 }
 
 /* Switching P-Chain networks keeps the section you're on. Entity pages
@@ -545,30 +526,34 @@ function NetworkControl({
     );
   }
   if (!chainSlug) {
-    // the network scope aggregates mainnet only — a static label, no toggle
+    // A label, not a toggle: the network-scope aggregates are mainnet-only, so
+    // there is nowhere to switch to. It still has to name the network actually
+    // being viewed — a single message is network-agnostic and can be a Fuji one.
     return (
       <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
-        Mainnet
+        {NETWORK_LABEL[network as PchainNetwork] ?? network}
       </span>
     );
   }
 
-  // EVM chain with a verified Fuji counterpart: a real toggle
-  const isTestnetChain = chainSlug in MAINNET_COUNTERPART;
+  // EVM chain with a verified Fuji counterpart: a real toggle.
+  // Which network we are on comes from the route, not the slug: a pair shares
+  // one slug, so `chainSlug in MAINNET_COUNTERPART` is true on both sides.
+  const isTestnetChain = wantsTestnet(network);
   const other = TESTNET_COUNTERPART[chainSlug] ?? MAINNET_COUNTERPART[chainSlug];
   if (other) {
     const mainnetSlug = isTestnetChain ? other : chainSlug;
     const testnetSlug = isTestnetChain ? chainSlug : other;
     const segments = [
-      { label: "Mainnet", slug: mainnetSlug, active: !isTestnetChain },
-      { label: "Fuji", slug: testnetSlug, active: isTestnetChain },
+      { label: "Mainnet", network: "mainnet", slug: mainnetSlug, active: !isTestnetChain },
+      { label: "Fuji", network: "fuji", slug: testnetSlug, active: isTestnetChain },
     ];
     return (
       <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
         {segments.map((seg) => (
           <Link
             key={seg.label}
-            href={counterpartTarget(seg.slug, pathname)}
+            href={counterpartTarget(seg.network, seg.slug, pathname)}
             className={cn(
               "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
               seg.active

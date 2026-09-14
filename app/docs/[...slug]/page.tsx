@@ -7,7 +7,7 @@ import StateGrowthChart from "@/components/content-design/state-growth-chart";
 import { BackToTop } from "@/components/ui/back-to-top";
 import { Feedback } from "@/components/ui/feedback";
 import { SidebarActions } from "@/components/ui/sidebar-actions";
-import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, XChainAPIPage } from "@/components/api/api-pages";
+import { CChainAPIPage, DataAPIPage, MetricsAPIPage, PChainAPIPage, VerificationAPIPage, XChainAPIPage } from "@/components/api/api-pages";
 import AddNetworkButtonInline from "@/components/client/AddNetworkButtonInline";
 import { documentation } from "@/lib/source";
 import { createMetadata } from "@/utils/metadata";
@@ -117,6 +117,7 @@ export default async function Page(props: {
               const isPChainApi = document.includes('platformvm.yaml');
               const isCChainApi = document.includes('coreth.yaml');
               const isXChainApi = document.includes('xchain.yaml');
+              const isVerificationApi = document.includes('verification.json');
 
               if (isPChainApi) {
                 return <PChainAPIPage {...props} />;
@@ -126,6 +127,8 @@ export default async function Page(props: {
                 return <XChainAPIPage {...props} />;
               } else if (isMetricsApi) {
                 return <MetricsAPIPage {...props} />;
+              } else if (isVerificationApi) {
+                return <VerificationAPIPage {...props} />;
               } else {
                 return <DataAPIPage {...props} />;
               }

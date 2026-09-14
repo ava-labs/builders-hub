@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import {
@@ -19,6 +21,75 @@ import { FeedDown } from "./bits";
 import { useEvmData } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxDetail } from "@/lib/evm-explorer";
+import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
+
+function icmMessagesInLogs(logs: TxDetail["logs"]): { messageId: string; events: string[] }[] {
+  const byId = new Map<string, string[]>();
+  for (const log of logs) {
+    if (log.address.toLowerCase() !== TELEPORTER_ADDRESS) continue;
+    const name = ICM_EVENT_BY_TOPIC[(log.topics[0] ?? "").toLowerCase()];
+    const id = (log.topics[1] ?? "").toLowerCase();
+    if (!name || !/^0x[0-9a-f]{64}$/.test(id)) continue;
+    if (!byId.has(id)) byId.set(id, []);
+    const events = byId.get(id)!;
+    if (!events.includes(name)) events.push(name);
+  }
+  return [...byId.entries()].map(([messageId, events]) => ({ messageId, events }));
+}
+
+/**
+ * A 64-hex hash that is not a transaction here may be an ICM message ID — the
+ * two are indistinguishable by shape, so search and any pasted link land on
+ * /tx first. Probed only once the tx lookup has genuinely 404'd (after its own
+ * retry window), so the ordinary path pays nothing for this.
+ */
+function useIcmFallback(txHash: string, enabled: boolean): IcmMessage | null {
+  const [message, setMessage] = useState<IcmMessage | null>(null);
+  useEffect(() => {
+    setMessage(null);
+    if (!enabled) return;
+    let live = true;
+    const controller = new AbortController();
+    fetch(`/api/icm/message/${txHash}`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (live && body && !body.error) setMessage(body as IcmMessage);
+      })
+      .catch(() => {
+        /* a failed probe just leaves the plain not-found panel standing */
+      });
+    return () => {
+      live = false;
+      controller.abort();
+    };
+  }, [txHash, enabled]);
+  return message;
+}
+
+/* Not an error: the hash resolved, just to a different kind of thing. */
+function IcmInstead({ network, message }: { network: string; message: IcmMessage }) {
+  return (
+    <Board divide={false} className="px-5 py-10 md:px-6 md:py-12">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
+        Interchain message
+      </p>
+      <p className="mt-3 break-all font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+        {message.messageId}
+      </p>
+      <p className="mt-5 max-w-prose text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">
+        No transaction on this chain carries that hash, but it is the ID of an interchain message
+        we index — currently {ICM_STATUS_LABEL[message.status].toLowerCase()}.
+      </p>
+      <Link
+        href={`/explorer/${network}/icm/${message.messageId}`}
+        className="group mt-5 inline-flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+      >
+        View the message
+        <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </Link>
+    </Board>
+  );
+}
 
 /* Shared 404 panel for the EVM detail pages (tx / block / address). */
 export function NotFound({ label, id }: { label: string; id?: string }) {
@@ -63,12 +134,19 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const { data: t, loading, error, retry } = useEvmData<TxDetail>(c.chainId, `tx/${txHash}`, undefined, {
     retry404Ms: 20_000,
   });
+  const icmFallback = useIcmFallback(txHash, error === "not found" && !t);
+  const icmMessages = t ? icmMessagesInLogs(t.logs) : [];
 
   return (
     <EvmShell network={network}>
       {loading && <DetailSkeleton label="Transaction" />}
       {/* only a real 404 is "not found" — an indexer outage says so */}
-      {error === "not found" && !t && <NotFound label="Transaction not found" id={txHash} />}
+      {error === "not found" && !t &&
+        (icmFallback ? (
+          <IcmInstead network={network} message={icmFallback} />
+        ) : (
+          <NotFound label="Transaction not found" id={txHash} />
+        ))}
       {error && error !== "not found" && !t && <FeedDown onRetry={retry} />}
       {t && (
         <div className="flex flex-col gap-10">
@@ -146,6 +224,32 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                     <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-zinc-400 md:text-right dark:text-zinc-500">
                       <CellLabel>Type</CellLabel>
                       {it.callType || "call"}
+                    </span>
+                  </div>
+                ))}
+              </Board>
+            </section>
+          )}
+
+          {icmMessages.length > 0 && (
+            <section className="flex flex-col gap-4">
+              <SectionHeader label={`Interchain Messages · ${icmMessages.length}`} />
+              <Board>
+                {icmMessages.map((m) => (
+                  <div
+                    key={m.messageId}
+                    className="flex flex-col gap-1.5 px-5 py-3.5 md:flex-row md:items-center md:justify-between md:gap-4 md:px-6"
+                  >
+                    <span className="min-w-0">
+                      <CellLabel>Message</CellLabel>
+                      <HashChip
+                        value={m.messageId}
+                        href={`/explorer/${network}/icm/${m.messageId}`}
+                        len={24}
+                      />
+                    </span>
+                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                      {m.events.join(" · ")}
                     </span>
                   </div>
                 ))}

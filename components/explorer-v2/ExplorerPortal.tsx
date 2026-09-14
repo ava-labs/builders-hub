@@ -306,13 +306,7 @@ function ContractChainBoard() {
       title="Contract Chain"
       links={[
         { label: "Explore Mainnet", href: "/explorer/mainnet/c-chain", primary: true },
-        {
-          label: "FUJI TESTNET",
-          href: "/explorer/fuji/c-chain",
-          // keep in sync with UNAVAILABLE_TESTNET in ExplorerSubnav.tsx
-          disabledNote:
-            "We're having trouble indexing the Fuji C-Chain right now — it'll be available later.",
-        },
+        { label: "FUJI TESTNET", href: "/explorer/fuji/c-chain" },
       ]}
     />
   );

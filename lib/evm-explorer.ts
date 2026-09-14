@@ -45,6 +45,28 @@ export function classifyEvmLocally(
   return null;
 }
 
+/* every Avalanche EVM block (both coreth and subnet-evm, unless a chain turns on
+  `allowFeeRecipients`) carries the hardcoded blackhole coinbase, so the block's
+  "Fee Recipient" looks like a validator payout when in fact the fees are burned
+  and nobody is paid. */
+const WELL_KNOWN_ADDRESSES: Record<string, { label: string; note: string }> = {
+  "0x0100000000000000000000000000000000000000": {
+    label: "Burn Address",
+    note: "Blackhole coinbase carried by every Avalanche EVM block — burned base fees accumulate here, they are not paid out.",
+  },
+  "0x0000000000000000000000000000000000000000": {
+    label: "Null Address",
+    note: "The zero address — counterparty for token mints and burns, and an unrecoverable sink for anything sent to it.",
+  },
+};
+
+/** name for a protocol-fixture address */
+export function knownAddress(
+  addr?: string,
+): { label: string; note: string } | undefined {
+  return addr ? WELL_KNOWN_ADDRESSES[addr.toLowerCase()] : undefined;
+}
+
 // --- response types (mirror stats-api/evmexplorer/handlers.go) ------------
 
 export interface StatsResponse {
