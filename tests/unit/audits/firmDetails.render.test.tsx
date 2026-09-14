@@ -61,25 +61,28 @@ describe("FirmDetails", () => {
 
   const LOGO = "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/audits/firms/aud-1/mark.png";
 
-  it("shows the stored logo and the replace control when the URL is on our store", () => {
+  it("the tile itself replaces a stored logo, with a Remove logo link beside the identity", () => {
     const html = render({ isOwner: true, readOnly: false, firm: firm({ logo_url: LOGO }) });
     expect(html).toContain(`src="${LOGO}"`);
-    expect(html).toContain("Replace");
+    expect(html).toContain('aria-label="Replace logo"');
+    expect(html).toContain("Remove logo");
     expect(html).not.toContain("Choose file");
   });
 
-  it("falls back to the monogram and offers Choose file when there is no logo", () => {
+  it("the tile falls back to the monogram and uploads when there is no logo", () => {
     const html = render({ isOwner: true, readOnly: false });
     expect(html).toContain(">NS<");
-    expect(html).toContain("Choose file");
+    expect(html).toContain('aria-label="Upload logo"');
+    expect(html).not.toContain("Remove logo");
     expect(html).not.toContain("<img");
   });
 
   it("a deactivated firm sees the logo tile read-only", () => {
     const html = render({ isOwner: true, readOnly: true, firm: firm({ logo_url: LOGO }) });
     expect(html).toContain(`src="${LOGO}"`);
-    expect(html).not.toContain("Replace");
-    expect(html).not.toContain("Choose file");
+    expect(html).not.toContain('aria-label="Replace logo"');
+    expect(html).not.toContain('aria-label="Upload logo"');
+    expect(html).not.toContain("Remove logo");
   });
 
   it("a logo off our store never renders as an image", () => {

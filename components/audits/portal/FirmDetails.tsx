@@ -93,6 +93,18 @@ export function FirmDetails({
     router.refresh();
   };
 
+  const removeLogo = async () => {
+    setBusy(true);
+    try {
+      await changeLogo(null);
+      toast.success("Logo removed.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "That didn't work. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const addMember = async () => {
     const email = memberEmail.trim().toLowerCase();
     if (!email) return;
@@ -151,28 +163,36 @@ export function FirmDetails({
       <div className="mt-6 space-y-5">
         <div className={cn(CARD, "p-5")}>
           <div className="flex items-center gap-3">
-            <LogoTile value={logoUrl} firmName={firm.firm_name} size="lg" />
+            {/* The tile is the upload control (the placeholder invites the
+                mark); a deactivated firm gets the plain tile. */}
+            {readOnly ? (
+              <LogoTile value={logoUrl} firmName={firm.firm_name} size="lg" />
+            ) : (
+              <LogoControl
+                trigger="tile"
+                value={logoUrl}
+                onChange={changeLogo}
+                upload={uploadLogo}
+                firmName={firm.firm_name}
+              />
+            )}
             <div className="min-w-0">
               <p className="text-[15px] font-semibold">{firm.firm_name}</p>
               <p className="truncate font-mono text-xs text-zinc-500 dark:text-zinc-400">
                 {firm.quote_email}
               </p>
+              {logoUrl && !readOnly ? (
+                <button
+                  type="button"
+                  disabled={locked}
+                  onClick={() => void removeLogo()}
+                  className="mt-1 cursor-pointer text-xs text-zinc-600 underline underline-offset-2 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                >
+                  Remove logo
+                </button>
+              ) : null}
             </div>
           </div>
-          {readOnly ? null : (
-            <div className="mt-4 space-y-1.5">
-              <LogoControl
-                value={logoUrl}
-                onChange={changeLogo}
-                upload={uploadLogo}
-                firmName={firm.firm_name}
-                showTile={false}
-              />
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                PNG or JPG, square, under 2MB. Shown on the vetted firms page.
-              </p>
-            </div>
-          )}
           <p className={`${MONO_LABEL_SM} mt-4 normal-case`}>
             On the whitelist since {formatIsoDate(firm.invited_at)}
           </p>

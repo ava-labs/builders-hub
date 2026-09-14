@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,14 @@ export function LogoTile({
 
 /**
  * Logo upload shared by the admin whitelist sheet (default `upload`: the
- * generic /api/file route, the URL is saved with the sheet) and the firm
- * details page (its own `upload` to the portal logo route, which stores and
- * saves in one step). The client pre-check is a friendliness layer; the
- * server enforces PNG/JPEG and the size. `onChange` may be async (the portal
- * removes through its route); the toast waits for it and a thrown Error is
- * shown as the message.
+ * generic /api/file route, the URL is saved with the sheet; `trigger`
+ * "buttons": tile + Choose file / Replace / Remove) and the firm details page
+ * (its own `upload` to the portal logo route, which stores and saves in one
+ * step; `trigger` "tile": the identity tile IS the control, with an upload
+ * badge in its corner and an overlay on hover, and the page owns Remove). The
+ * client pre-check is a friendliness layer; the server enforces PNG/JPEG and
+ * the size. `onChange` may be async (the portal removes through its route);
+ * the toast waits for it and a thrown Error is shown as the message.
  */
 export function LogoControl({
   value,
@@ -84,12 +86,14 @@ export function LogoControl({
   firmName,
   upload = uploadToFileRoute,
   showTile = true,
+  trigger = "buttons",
 }: {
   value: string | null;
   onChange: (url: string | null) => void | Promise<void>;
   firmName: string;
   upload?: (file: File) => Promise<LogoUploadResult>;
   showTile?: boolean;
+  trigger?: "buttons" | "tile";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -128,6 +132,49 @@ export function LogoControl({
     }
   }
 
+  const fileInput = (
+    <input
+      ref={inputRef}
+      type="file"
+      accept=".png,.jpg,.jpeg"
+      className="sr-only"
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) void handleFile(f);
+      }}
+    />
+  );
+
+  if (trigger === "tile") {
+    return (
+      <span className="relative inline-flex shrink-0">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          title="Upload a PNG or JPG under 2MB"
+          aria-label={value ? "Replace logo" : "Upload logo"}
+          className="group relative cursor-pointer rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 disabled:cursor-default disabled:opacity-60"
+        >
+          <LogoTile value={value} firmName={firmName} size="lg" />
+          <span
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center rounded-lg bg-zinc-900/60 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          </span>
+          <span
+            aria-hidden
+            className="absolute -right-1 -bottom-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-zinc-900 text-white ring-2 ring-white dark:bg-zinc-100 dark:text-zinc-900 dark:ring-[#1F1F1F]"
+          >
+            <Upload className="h-[10px] w-[10px]" />
+          </span>
+        </button>
+        {fileInput}
+      </span>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3">
       {showTile ? <LogoTile value={value} firmName={firmName} /> : null}
@@ -156,16 +203,7 @@ export function LogoControl({
           </Button>
         ) : null}
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".png,.jpg,.jpeg"
-        className="sr-only"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void handleFile(f);
-        }}
-      />
+      {fileInput}
     </div>
   );
 }
