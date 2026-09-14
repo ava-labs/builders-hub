@@ -5,14 +5,25 @@ import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MONO_LABEL_META } from "@/components/audits/shared/classes";
 import { monogramOf } from "@/components/audits/shared/format";
+import { PortalNav } from "@/components/audits/portal/PortalNav";
 
 /**
  * Slim portal identity bar under the Builder Hub navbar: the marketplace's
- * own triangle mark + wordmark, firm identity as the board's bordered pill,
- * exit. Sign-out lives in the navbar's account menu (one shared session);
- * the bar only ever leaves the portal.
+ * own triangle mark + wordmark, firm identity as the board's bordered pill
+ * (still the link to Firm details), exit. Below it, once a firm is resolved,
+ * the PortalNav row names the two portal pages (v1.1, Joey's point 4: the
+ * pill alone did not read as the way in). `awaitingCount` null hides the
+ * row: a session with no firm behind it (signed out, not whitelisted) keeps
+ * the bare bar. Sign-out lives in the navbar's account menu (one shared
+ * session); the bar only ever leaves the portal.
  */
-export function PortalShell({ firmName }: { firmName: string | null }) {
+export function PortalShell({
+  firmName,
+  awaitingCount,
+}: {
+  firmName: string | null;
+  awaitingCount: number | null;
+}) {
   return (
     <div className="border-b border-zinc-200 dark:border-white/10">
       <div className="mx-auto flex h-12 w-full max-w-[1040px] items-center justify-between gap-3 px-4">
@@ -52,6 +63,7 @@ export function PortalShell({ firmName }: { firmName: string | null }) {
           </Button>
         </div>
       </div>
+      {awaitingCount !== null ? <PortalNav awaitingCount={awaitingCount} /> : null}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/prisma/prisma";
 import { firmContact, recipientsOf } from "@/server/services/audits/emails/recipients";
 import {
@@ -292,7 +293,10 @@ export interface AuditorOwnQuote {
   updated_at: Date;
 }
 
-export async function getAuditorInbox(auditorId: string) {
+// React cache(): the portal layout (Inbox badge) and the inbox page both
+// read the inbox during one request; the second call is served from the
+// request cache. Outside a render (tests) cache() calls straight through.
+export const getAuditorInbox = cache(async (auditorId: string) => {
   const [deliveries, ownQuotes] = await Promise.all([
     prisma.auditFanoutDelivery.findMany({
       where: { auditor_id: auditorId },
@@ -321,7 +325,7 @@ export async function getAuditorInbox(auditorId: string) {
       window_open: isQuoteWindowOpen(delivery.request),
     };
   });
-}
+});
 
 export type AuditorInboxItem = Awaited<ReturnType<typeof getAuditorInbox>>[number];
 

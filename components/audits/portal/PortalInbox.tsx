@@ -8,6 +8,7 @@ import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { EmptyState } from "@/components/audits/shared/EmptyState";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
+import { bucketOf } from "@/components/audits/portal/inboxBuckets";
 import { CARD } from "@/components/audits/shared/classes";
 import { HOVER_LIFT, ROW_ENTER } from "@/components/audits/shared/motion";
 import { formatIsoDate, formatUsd, truncate } from "@/components/audits/shared/format";
@@ -16,14 +17,6 @@ import type { UrgencyOption } from "@/lib/audits/status";
 import { parseRepos } from "@/components/audits/wizard/types";
 
 type Tab = "all" | "awaiting" | "quoted" | "won";
-
-function bucketOf(item: AuditorInboxItem): Exclude<Tab, "all"> | "closed" {
-  if (item.own_quote?.status === "accepted") return "won";
-  if (item.own_quote && item.own_quote.status === "submitted" && item.window_open) return "quoted";
-  if (item.window_open && !item.own_quote) return "awaiting";
-  if (item.own_quote?.status === "submitted") return "quoted";
-  return "closed";
-}
 
 /** The meta strip's lead token (the service) renders brighter than the rest (1b). */
 function metaParts(item: AuditorInboxItem): { lead: string | null; rest: string } {

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowUpRight } from "lucide-react";
@@ -116,16 +115,7 @@ export function FirmDetails({
   return (
     <div className="py-10">
       {readOnly ? <DeactivatedBanner /> : null}
-      <p className="text-[12.5px] text-zinc-500 dark:text-zinc-400">
-        <Link
-          href="/audits/portal"
-          className="underline underline-offset-2 hover:text-zinc-800 dark:hover:text-zinc-200"
-        >
-          Inbox
-        </Link>{" "}
-        / Firm details
-      </p>
-      <h1 className="mt-2 text-2xl font-semibold tracking-tight">Firm details</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Firm details</h1>
 
       <div className="mt-6 space-y-5">
         <div className={cn(CARD, "p-5")}>
