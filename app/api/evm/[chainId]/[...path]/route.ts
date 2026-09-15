@@ -14,9 +14,8 @@ import { toStatsChainId } from "@/lib/dedicated-stats";
 export const dynamic = "force-dynamic";
 
 const REQUEST_TIMEOUT_MS = 8000;
-// Live data (lists, stats, addresses) refreshes ~30s upstream; a short shared
-// cache + SWR keeps the origin light without going stale.
-const CACHE_CONTROL = "public, max-age=10, s-maxage=10, stale-while-revalidate=60";
+// Live data (lists, stats, addresses)
+const CACHE_CONTROL = "public, max-age=3, s-maxage=3, stale-while-revalidate=10";
 // tx/{hash} and block/{id} are final at acceptance — once the upstream returns
 // a 200 the payload never changes, so cache hard and spare the origin box.
 const IMMUTABLE_CACHE_CONTROL =

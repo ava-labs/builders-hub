@@ -3,11 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { evmApiPath } from "@/lib/evm-explorer";
 
-// Default client poll interval for "live" views (home, tx/block lists). Sits
-// just above the proxy's ~10s edge cache so most polls coalesce on it while
-// still surfacing new blocks/txs within ~10–20s. Detail pages (a specific
-// tx/block) are immutable and opt out by omitting refreshMs.
-export const LIVE_REFRESH_MS = 12_000;
+// Default client poll interval for "live" views (home, tx/block lists).
+export const LIVE_REFRESH_MS = 5_000;
 
 /**
  * Generic client fetch for the same-origin EVM explorer proxy. Mirrors
