@@ -17,6 +17,7 @@ import { StepScope } from "@/components/audits/wizard/StepScope";
 import { StepTimeline } from "@/components/audits/wizard/StepTimeline";
 import { StepReview } from "@/components/audits/wizard/StepReview";
 import { WIZARD_STEPS, type AuditWizardValues } from "@/components/audits/wizard/types";
+import type { PublicFirm } from "@/server/services/audits/visibility";
 
 const CONTINUE_LABELS = ["Continue to scope", "Continue to timeline", "Continue to review"];
 
@@ -154,11 +155,12 @@ export interface AuditWizardProps {
   initialDraft: { id: string; values: AuditWizardValues } | null;
   prefill: { contact_name: string; contact_email: string };
   importProjectId: string | null;
+  firms: PublicFirm[];
 }
 
-export function AuditWizard({ initialDraft, prefill, importProjectId }: AuditWizardProps) {
+export function AuditWizard({ initialDraft, prefill, importProjectId, firms }: AuditWizardProps) {
   return (
-    <AuditWizardProvider initialDraft={initialDraft} prefill={prefill}>
+    <AuditWizardProvider initialDraft={initialDraft} prefill={prefill} firms={firms}>
       <WizardBody importProjectId={importProjectId} />
     </AuditWizardProvider>
   );

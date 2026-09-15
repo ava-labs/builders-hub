@@ -5,7 +5,9 @@ import { LayoutWrapper } from "@/app/layout-wrapper.client";
 import { NavbarDropdownInjector } from "@/components/navigation/navbar-dropdown-injector";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { resolveAuditorByEmail } from "@/server/services/audits/auditors";
+import { getAuditorInbox } from "@/server/services/audits/visibility";
 import { PortalShell } from "@/components/audits/portal/PortalShell";
+import { countAwaiting } from "@/components/audits/portal/inboxBuckets";
 
 export const metadata: Metadata = {
   title: "Auditor portal · Avalanche Audit Marketplace",
@@ -30,6 +32,13 @@ export default async function AuditorPortalLayout({
   const session = await getAuthSession();
   const email = session?.user?.email?.trim().toLowerCase();
   const auditor = email ? await resolveAuditorByEmail(email) : null;
+  // The Inbox badge: requests awaiting this firm's quote. A deactivated firm
+  // cannot quote, so no badge; no firm resolved, no navigation row (null).
+  const awaitingCount = auditor
+    ? auditor.active
+      ? countAwaiting(await getAuditorInbox(auditor.id))
+      : 0
+    : null;
 
   return (
     <>
@@ -38,7 +47,7 @@ export default async function AuditorPortalLayout({
         <div className="flex min-h-[70dvh] flex-col">
           {/* Identity stays up for deactivated firms too: their read-only
               portal (N-4) is still THEIR portal. */}
-          <PortalShell firmName={auditor?.firm_name ?? null} />
+          <PortalShell firmName={auditor?.firm_name ?? null} awaitingCount={awaitingCount} />
           <main className="mx-auto w-full max-w-[1040px] flex-1 px-4 pb-16">{children}</main>
         </div>
         <Footer />

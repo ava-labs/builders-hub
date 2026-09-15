@@ -9,6 +9,7 @@ const {
   txEventCountMock,
   txEventCreateMock,
   txAuditorFindManyMock,
+  txAuditorCountMock,
   txDeliveryCreateManyMock,
   deliverFanoutEmailsMock,
 } = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const {
   txEventCountMock: vi.fn(),
   txEventCreateMock: vi.fn(),
   txAuditorFindManyMock: vi.fn(),
+  txAuditorCountMock: vi.fn(),
   txDeliveryCreateManyMock: vi.fn(),
   deliverFanoutEmailsMock: vi.fn(),
 }));
@@ -27,7 +29,7 @@ const {
 const tx = {
   auditRequest: { findFirst: txRequestFindFirstMock, update: txRequestUpdateMock },
   auditEventLog: { count: txEventCountMock, create: txEventCreateMock },
-  auditor: { findMany: txAuditorFindManyMock },
+  auditor: { findMany: txAuditorFindManyMock, count: txAuditorCountMock },
   auditFanoutDelivery: { createMany: txDeliveryCreateManyMock },
 };
 
@@ -74,6 +76,11 @@ describe("patchDraft", () => {
     const result = await patchDraft(OWNER, "req-1", { project_name: "X" });
 
     expect(result).toEqual({ success: false, code: "not_found" });
+  });
+
+  it("passes shortlist_auditor_ids straight through patchDraft to updateMany data", async () => {
+    await patchDraft(OWNER, "req-1", { shortlist_auditor_ids: ["aud-1"] });
+    expect(updateManyMock.mock.calls[0][0].data).toMatchObject({ shortlist_auditor_ids: ["aud-1"] });
   });
 });
 
@@ -127,12 +134,14 @@ describe("reopen", () => {
     nsloc: 4200,
     status: "collecting",
     quote_deadline: new Date(Date.now() - 2 * DAY),
+    shortlist_auditor_ids: [],
     _count: { quotes: 0 },
   };
 
   beforeEach(() => {
     txRequestFindFirstMock.mockResolvedValue(expiredRow);
     txEventCountMock.mockResolvedValue(0);
+    txAuditorCountMock.mockResolvedValue(15);
     txRequestUpdateMock.mockResolvedValue({});
     txAuditorFindManyMock.mockResolvedValue([
       {
@@ -176,5 +185,23 @@ describe("reopen", () => {
 
     expect(result).toEqual({ success: false, code: "already_reopened" });
     expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("reopens to a stored shortlist with an exact where clause (S-20)", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...expiredRow, shortlist_auditor_ids: ["aud-1"] });
+    await reopen(OWNER, "req-1");
+    expect(txAuditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true, id: { in: ["aud-1"] } });
+  });
+
+  it("reopens to every active firm for an empty shortlist (S-20)", async () => {
+    await reopen(OWNER, "req-1");
+    expect(txAuditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true });
+  });
+
+  it("records the three counts on request_reopened", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...expiredRow, shortlist_auditor_ids: ["aud-1"] });
+    txAuditorCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(15);
+    await reopen(OWNER, "req-1");
+    expect(txEventCreateMock.mock.calls[0][0].data.meta).toMatchObject({ auditor_count: 1, shortlist_count: 1, whitelist_count: 15 });
   });
 });

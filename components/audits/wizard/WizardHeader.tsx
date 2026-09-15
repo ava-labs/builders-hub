@@ -38,8 +38,8 @@ export function WizardHeader() {
         </p>
         <h1 className="mt-1.5 text-2xl font-semibold tracking-tight">New audit request</h1>
         <p className="mt-1 text-sm text-zinc-600 dark:text-[#A2AFB2]">
-          Goes to every whitelisted audit firm at once. Quotes come back privately · free, run by
-          Ava Labs.
+          Goes to every whitelisted audit firm at once, or just the ones you choose in step 2.
+          Quotes come back privately · free, run by Ava Labs.
         </p>
       </div>
       <div className="flex items-center gap-3 pt-1">
