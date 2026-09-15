@@ -20,6 +20,15 @@ export const FANOUT_FIRM_SELECT = {
 } as const;
 export type FanoutFirm = Prisma.AuditorGetPayload<{ select: typeof FANOUT_FIRM_SELECT }>;
 
+/**
+ * The firms a request fans out to. An empty shortlist means every active firm
+ * (the stored default); a non-empty one narrows to those ids that are still
+ * active. Imported by requests.ts so approval and reopen cannot drift (S-20).
+ */
+export function fanoutFirmsWhere(ids: string[]) {
+  return { active: true as const, ...(ids.length > 0 ? { id: { in: ids } } : {}) };
+}
+
 export type SubmitResult =
   | { success: true }
   | { success: false; code: "not_found" }
@@ -59,6 +68,7 @@ const FANOUT_REQUEST_SELECT = {
   multichain: true,
   needed_by: true,
   urgency: true,
+  shortlist_auditor_ids: true,
 } as const;
 
 type FanoutRow = {
@@ -77,6 +87,7 @@ type FanoutRow = {
   multichain: boolean;
   needed_by: Date | null;
   urgency: string | null;
+  shortlist_auditor_ids: string[];
 };
 
 export function toFanoutRequest(row: FanoutRow): FanoutRequest {
@@ -189,8 +200,9 @@ export async function approveRequestAndFanout(
       data: { status: "collecting", quote_deadline },
     });
 
+    const shortlistIds = row.shortlist_auditor_ids;
     const auditors = await tx.auditor.findMany({
-      where: { active: true },
+      where: fanoutFirmsWhere(shortlistIds),
       select: FANOUT_FIRM_SELECT,
     });
 
@@ -200,6 +212,14 @@ export async function approveRequestAndFanout(
         skipDuplicates: true,
       });
     }
+
+    // Resolved count (not the raw array length) and the live whitelist size,
+    // for the admin trail (S-19). shortlist_count is 0 for an empty shortlist.
+    const shortlist_count =
+      shortlistIds.length > 0
+        ? await tx.auditor.count({ where: { id: { in: shortlistIds } } })
+        : 0;
+    const whitelist_count = await tx.auditor.count({ where: { active: true } });
 
     await tx.auditEventLog.createMany({
       data: [
@@ -215,7 +235,7 @@ export async function approveRequestAndFanout(
           actor_type: "system",
           actor_id: null,
           action: "fanout_created",
-          meta: { auditor_count: auditors.length },
+          meta: { auditor_count: auditors.length, shortlist_count, whitelist_count },
         },
       ],
     });

@@ -33,12 +33,12 @@ describe('audits section card', () => {
       createElement(SectionCard, {
         title: 'Security Audits',
         description:
-          'Request audit quotes from every vetted security firm on the Ava Labs whitelist. Free, private, subsidized up to 75%.',
+          'Request audit quotes from the vetted security firms on the Ava Labs whitelist. Free, private, subsidized up to 75%.',
         path: 'audits',
       }),
     );
     expect(html).toContain('SECURITY AUDITS');
-    expect(html).toContain('EVERY VETTED SECURITY FIRM ON THE AVA LABS WHITELIST');
+    expect(html).toContain('THE VETTED SECURITY FIRMS ON THE AVA LABS WHITELIST');
     expect(html).toContain('SUBSIDIZED UP TO 75%.');
     expect(html).toContain('BUILD.AVAX.NETWORK/AUDITS');
     expect(html).toContain('AVA LABS AUDIT PROGRAM · FREE FOR BUILDERS');

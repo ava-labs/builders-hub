@@ -20,8 +20,12 @@ import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
 import { FanoutNoticeCard } from "@/components/audits/shared/FanoutNoticeCard";
 import { useAuditWizard } from "@/components/audits/wizard/AuditWizardContext";
 import type { AuditWizardValues } from "@/components/audits/wizard/types";
+import type { PublicFirm } from "@/server/services/audits/visibility";
 
-function summaryLines(values: AuditWizardValues): { label: string; line: string; step: number }[] {
+function summaryLines(
+  values: AuditWizardValues,
+  firms: PublicFirm[],
+): { label: string; line: string; step: number }[] {
   const target = values.deployment_target
     ? DEPLOYMENT_TARGET_LABELS[values.deployment_target]
     : "No deployment target";
@@ -37,6 +41,12 @@ function summaryLines(values: AuditWizardValues): { label: string; line: string;
   if (repoCount > 0) scopeParts.push(`${repoCount} ${repoCount === 1 ? "repo" : "repos"} pinned`);
   if (values.nsloc.trim() !== "") scopeParts.push(`~${values.nsloc} nSLOC`);
   if (values.frameworks.length > 0) scopeParts.push(values.frameworks.join(", "));
+  // Narrowed only when a real subset was chosen: the resolved count sits
+  // between one and the whitelist size (spec 7.2.4, copy row 12).
+  const chosen = values.shortlist_auditor_ids.length
+    ? firms.filter((f) => values.shortlist_auditor_ids.includes(f.id)).length
+    : 0;
+  if (chosen > 0 && chosen < firms.length) scopeParts.push(`${chosen} of ${firms.length} firms`);
 
   const timelineParts = [
     values.needed_by ? `needed by ${formatIsoDate(values.needed_by)}` : "no needed-by date",
@@ -55,8 +65,11 @@ function summaryLines(values: AuditWizardValues): { label: string; line: string;
 
 export function StepReview() {
   const form = useFormContext<AuditWizardValues>();
-  const { setStep, consent, setConsent } = useAuditWizard();
+  const { setStep, consent, setConsent, firms } = useAuditWizard();
   const values = form.watch();
+  const chosenCount = values.shortlist_auditor_ids.length
+    ? firms.filter((f) => values.shortlist_auditor_ids.includes(f.id)).length
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -133,7 +146,7 @@ export function StepReview() {
 
       {/* Completed-step receipt rows: check circle + wash + underlined Edit (board 1c). */}
       <div className="space-y-2">
-        {summaryLines(values).map((row, index) => (
+        {summaryLines(values, firms).map((row, index) => (
           <div
             key={row.label}
             className="flex items-start gap-3 rounded-[10px] border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]"
@@ -164,7 +177,7 @@ export function StepReview() {
         ))}
       </div>
 
-      <FanoutNoticeCard />
+      <FanoutNoticeCard chosenCount={chosenCount} whitelistCount={firms.length} />
 
       {/* The consent gate. Placeholder wording until Legal supplies the final
           text; the timestamp is stamped server-side at submission. */}
@@ -177,7 +190,8 @@ export function StepReview() {
         />
         <span id="consent-copy" className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
           I understand that my contact details in this request are shared with the vetted audit
-          firms on the Ava Labs whitelist, and with the winning firm once I accept a quote.
+          firms on the Ava Labs whitelist that receive it, and with the winning firm once I accept a
+          quote.
         </span>
       </label>
     </div>

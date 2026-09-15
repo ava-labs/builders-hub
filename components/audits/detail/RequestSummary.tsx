@@ -30,15 +30,37 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
       : []),
   ].filter(Boolean);
 
+  // narrowed = the project chose a subset (spec 7.2.5); the Firms row is
+  // pre-approval only, after which the delivery rows speak.
+  const narrowed = detail.shortlist_auditor_ids.length > 0;
+  const preApproval = detail.status === "pending_review" || detail.status === "rejected";
+
   return (
     <div className={`${CARD} space-y-4 p-5`}>
       {/* Before approval no firm has received anything, and claiming
           otherwise is the one line that makes the gate look broken. */}
       <p className={MONO_LABEL_SM}>
-        {detail.status === "pending_review" || detail.status === "rejected"
+        {preApproval
           ? "Your request · what firms will receive"
-          : "Your request · what every firm received"}
+          : narrowed
+            ? "Your request · what the firms you chose received"
+            : "Your request · what every firm received"}
       </p>
+      {preApproval && narrowed ? (
+        <SummaryRow label="Firms">
+          {detail.shortlist_firms.length > 0 ? (
+            <>
+              {detail.shortlist_firms.map((firm) => firm.firm_name).join(" · ")}
+              <span className="text-zinc-500 dark:text-zinc-400">
+                {" "}
+                · {detail.shortlist_firms.length} of {detail.whitelist_count} whitelisted firms
+              </span>
+            </>
+          ) : (
+            "None of the firms you chose is still listed."
+          )}
+        </SummaryRow>
+      ) : null}
       {detail.description ? <SummaryRow label="Project">{detail.description}</SummaryRow> : null}
       {detail.scope ? (
         <SummaryRow label="Scope">

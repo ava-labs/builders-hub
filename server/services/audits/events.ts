@@ -15,6 +15,15 @@ export interface AuditEventInput {
   meta?: Prisma.InputJsonValue;
 }
 
+/**
+ * Who performed an audit-program action. `id` is the firm id for auditors
+ * (the established actor_id shape at auditors.ts:196-201, quotes.ts:83-93);
+ * `email` is the acting approved address. Admins carry their User id and name.
+ */
+export type AuditActor =
+  | { type: "admin"; id: string; name: string }
+  | { type: "auditor"; id: string; email: string };
+
 export async function logAuditEvent(db: AuditDb, entry: AuditEventInput): Promise<void> {
   await db.auditEventLog.create({
     data: {

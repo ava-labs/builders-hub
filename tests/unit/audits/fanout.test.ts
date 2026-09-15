@@ -4,6 +4,7 @@ const {
   txRequestFindFirstMock,
   txRequestUpdateMock,
   txAuditorFindManyMock,
+  txAuditorCountMock,
   txDeliveryCreateManyMock,
   txEventCreateManyMock,
   txEventCreateMock,
@@ -15,6 +16,7 @@ const {
   txRequestFindFirstMock: vi.fn(),
   txRequestUpdateMock: vi.fn(),
   txAuditorFindManyMock: vi.fn(),
+  txAuditorCountMock: vi.fn(),
   txDeliveryCreateManyMock: vi.fn(),
   txEventCreateManyMock: vi.fn(),
   txEventCreateMock: vi.fn(),
@@ -26,7 +28,7 @@ const {
 
 const tx = {
   auditRequest: { findFirst: txRequestFindFirstMock, update: txRequestUpdateMock },
-  auditor: { findMany: txAuditorFindManyMock },
+  auditor: { findMany: txAuditorFindManyMock, count: txAuditorCountMock },
   auditFanoutDelivery: { createMany: txDeliveryCreateManyMock },
   auditEventLog: { createMany: txEventCreateManyMock, create: txEventCreateMock },
 };
@@ -78,6 +80,7 @@ const completeDraft = {
   contact_name: "Alex Stone",
   contact_email: "alex@glacierswap.example",
   contact_calendar_url: null,
+  shortlist_auditor_ids: [],
 };
 
 const pendingRow = { ...completeDraft, status: "pending_review" };
@@ -98,6 +101,7 @@ beforeEach(() => {
   txRequestFindFirstMock.mockResolvedValue(completeDraft);
   txRequestUpdateMock.mockResolvedValue({});
   txAuditorFindManyMock.mockResolvedValue(ACTIVE_FIRMS);
+  txAuditorCountMock.mockResolvedValue(3);
   txDeliveryCreateManyMock.mockResolvedValue({ count: ACTIVE_FIRMS.length });
   txEventCreateManyMock.mockResolvedValue({ count: 2 });
   txEventCreateMock.mockResolvedValue({});
@@ -244,6 +248,34 @@ describe("approveRequestAndFanout", () => {
     expect(result).toMatchObject({ success: true, emailFailures: 1 });
     const statuses = deliveryUpdateMock.mock.calls.map((c) => c[0].data.email_status).sort();
     expect(statuses).toEqual(["failed", "sent", "sent"]);
+  });
+
+  it("fans out to a stored shortlist with an exact where clause", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...pendingRow, shortlist_auditor_ids: ["aud-1", "aud-2"] });
+    await approveRequestAndFanout("req-1", ADMIN, ADMIN_NAME);
+    expect(txAuditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true, id: { in: ["aud-1", "aud-2"] } });
+  });
+
+  it("fans out to every active firm when the shortlist is empty", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...pendingRow, shortlist_auditor_ids: [] });
+    await approveRequestAndFanout("req-1", ADMIN, ADMIN_NAME);
+    expect(txAuditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true });
+  });
+
+  it("records auditor_count, shortlist_count (resolved) and whitelist_count on fanout_created", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...pendingRow, shortlist_auditor_ids: ["aud-1", "aud-2"] });
+    txAuditorCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(16); // resolved shortlist, then whitelist
+    await approveRequestAndFanout("req-1", ADMIN, ADMIN_NAME);
+    const fanoutEvent = txEventCreateManyMock.mock.calls[0][0].data[1];
+    expect(fanoutEvent.action).toBe("fanout_created");
+    expect(fanoutEvent.meta).toMatchObject({ auditor_count: 3, shortlist_count: 1, whitelist_count: 16 });
+  });
+
+  it("FANOUT_REQUEST_SELECT carries shortlist_auditor_ids but toFanoutRequest drops it", async () => {
+    await approveRequestAndFanout("req-1", ADMIN, ADMIN_NAME);
+    expect(txRequestFindFirstMock.mock.calls[0][0].select.shortlist_auditor_ids).toBe(true);
+    const { toFanoutRequest } = await import("@/server/services/audits/fanout");
+    expect("shortlist_auditor_ids" in toFanoutRequest({ ...completeDraft, quote_deadline: null } as never)).toBe(false);
   });
 });
 

@@ -8,6 +8,10 @@ interface SubmissionReceiptProps {
   projectName: string;
   submittedAt: Date | null;
   quoteDeadline: Date | null;
+  /** Resolved count of the firms the project chose, and the active whitelist
+      size; narrowed only when a real subset was chosen (spec 7.2.5). */
+  chosenCount?: number;
+  whitelistCount?: number;
 }
 
 const shortDate = (date: Date) =>
@@ -23,7 +27,10 @@ export function SubmissionReceipt({
   projectName,
   submittedAt,
   quoteDeadline,
+  chosenCount = 0,
+  whitelistCount = 0,
 }: SubmissionReceiptProps) {
+  const narrowed = chosenCount > 0 && chosenCount < whitelistCount;
   // Nothing has been emailed at this point: the approval gate means the
   // program team sees the request before any firm does.
   const timeline = [
@@ -33,7 +40,9 @@ export function SubmissionReceipt({
     },
     {
       when: "NEXT",
-      what: "Once approved, every whitelisted firm is notified and quotes appear in My requests as they arrive.",
+      what: narrowed
+        ? `Once approved, the ${chosenCount} firms you chose are notified and quotes appear in My requests as they arrive.`
+        : "Once approved, every whitelisted firm is notified and quotes appear in My requests as they arrive.",
     },
     {
       when: quoteDeadline ? shortDate(new Date(quoteDeadline)) : "THEN",
@@ -55,8 +64,9 @@ export function SubmissionReceipt({
           </p>
           <h1 className="v2-display relative mt-2 text-[26px] text-white">Request submitted.</h1>
           <p className="relative mt-2 max-w-[56ch] text-[13px] leading-relaxed text-[#A2AFB2]">
-            {projectName} is queued for review. Every whitelisted firm is notified the moment the
-            program team approves it, and nothing is sent before that.
+            {narrowed
+              ? `${projectName} is queued for review. The ${chosenCount} firms you chose are notified the moment the program team approves it, and nothing is sent before that.`
+              : `${projectName} is queued for review. Every whitelisted firm is notified the moment the program team approves it, and nothing is sent before that.`}
           </p>
         </div>
 
