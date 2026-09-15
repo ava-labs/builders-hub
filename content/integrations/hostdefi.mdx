@@ -1,0 +1,37 @@
+---
+title: HostDeFi
+category: DeFi
+available: ["C-Chain"]
+description: "Multi-chain token-safety scanner and swap front-end live on Avalanche C-Chain: free A+–F token grades via on-chain checks, plus swaps routed through KyberSwap with a disclosed 1% platform fee."
+logo: /images/hostdefi.png
+developer: HostDeFi
+website: https://hostdefi.com/
+documentation: https://hostdefi.com/docs/api/
+---
+
+## Overview
+
+HostDeFi is a trading app with a built-in safety layer, live on Avalanche C-Chain. Before trading, the free scanner grades any token from A+ to F using on-chain checks: mint and freeze authority, liquidity depth, holder concentration and contract flags. Swaps on Avalanche route through the KyberSwap aggregator with a disclosed 1% platform fee. The scanner API is also machine-payable per call over the x402 protocol in USDC on Avalanche.
+
+## Features
+
+- **Free token-safety scanner**: A+–F grades from on-chain checks on Avalanche tokens — no signup, 100 checks/day per IP fair-use cap.
+- **Swap aggregation**: swaps on Avalanche route through the KyberSwap aggregator; the fee-forwarder contract enforces the disclosed 1% platform fee on-chain.
+- **Keyless REST API + hosted MCP endpoint**: the same grading engine is callable by agents, including a free `scan_token` tool and pay-per-call x402 endpoints in USDC on Avalanche.
+- **Weekly open dataset**: a CC BY 4.0 CSV snapshot of graded tokens, published at https://hostdefi.com/data/.
+
+## Getting Started
+
+1. Open [hostdefi.com/scan](https://hostdefi.com/scan) and paste any Avalanche token address for a free A+–F safety grade.
+2. Trade from the in-app account wallet, or connect your own wallet — swaps route via KyberSwap.
+3. Developers can call the keyless API documented at [hostdefi.com/docs/api/](https://hostdefi.com/docs/api/).
+
+## Documentation
+
+API and agent integration docs: [hostdefi.com/docs/api/](https://hostdefi.com/docs/api/).
+
+## Use Cases
+
+- **Pre-trade safety checks**: grade any Avalanche token before swapping.
+- **Agent-driven risk checks**: AI agents call the free `scan_token` MCP tool or pay per call via x402 in USDC on Avalanche.
+- **Research**: the weekly CC BY 4.0 safety-snapshot dataset is free to download and cite.
