@@ -9,6 +9,7 @@ import { Wallet } from 'lucide-react';
 
 import { useNetworkData } from './hooks/useNetworkData';
 import { useNetworkActions } from './hooks/useNetworkActions';
+import { useEditRpcUrlModal } from '@/components/toolbox/providers/modals/EditRpcUrlModal';
 import { NetworkList } from './components/NetworkList';
 import { NetworkActions } from './components/NetworkActions';
 import { WalletInfo } from './components/WalletInfo';
@@ -34,6 +35,16 @@ export function EvmNetworkWallet() {
 
   const handleRemoveNetwork = (network: any) => {
     removeL1(network.id);
+  };
+
+  const { openEditRpcUrl } = useEditRpcUrlModal();
+  const handleEditRpc = (network: any) => {
+    void openEditRpcUrl({
+      evmChainId: network.evmChainId,
+      name: network.name,
+      rpcUrl: network.rpcUrl,
+      isTestnet: network.isTestnet,
+    });
   };
 
   if (!walletEVMAddress) {
@@ -72,6 +83,7 @@ export function EvmNetworkWallet() {
             isNetworkActive={isNetworkActive}
             onNetworkSelect={handleNetworkChange}
             onNetworkRemove={handleRemoveNetwork}
+            onNetworkEditRpc={handleEditRpc}
             isEditMode={isEditMode}
           />
 
