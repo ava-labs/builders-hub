@@ -49,29 +49,21 @@ export function doesExtensionMatchMimeType(file: File): boolean {
  * Validates if a user has permissions to delete a file
  * 
  * Validation rules:
- * 1. If the user has "admin" role in custom_attributes, they can delete any file
- * 2. If hackathonId is provided, verify user is a member of a project in that hackathon
- * 3. If not admin and no hackathonId:
+ * 1. If hackathonId is provided, verify user is a member of a project in that hackathon
+ * 2. Otherwise:
  *    - If the image belongs to a project, verify that the user is a member of the project
  *    - If it's a profile image, verify that the user is the owner of the profile
  * 
  * @param fileName - File name or full URL of the file
  * @param userId - ID of the user attempting to delete the file
- * @param customAttributes - Array of user custom attributes (includes roles)
  * @param hackathonId - Optional hackathon ID for direct project validation
  * @returns Promise<boolean> - true if has permissions, false otherwise
  */
 export async function canUserDeleteFile(
   fileName: string,
   userId: string,
-  customAttributes: string[] = [],
   hackathonId?: string
 ): Promise<boolean> {
-  // Check if user is admin
-  if (customAttributes.includes("admin")) {
-    return true;
-  }
-
   // If hackathonId is provided, validate directly through project membership
   if (hackathonId) {
     const project = await findProjectByHackathonAndUser(hackathonId, userId);
@@ -217,29 +209,17 @@ async function findProfileByImageUrl(fileIdentifier: string): Promise<{ id: stri
 
 /**
  * Validates if a user has permissions to upload a file
- * Reuses the same validation logic as delete: admin check
- * 
- * Validation rules:
- * 1. If the user has "admin" role in custom_attributes, they can upload any file
- * 2. Otherwise, allow upload (authentication is already handled by withAuth middleware)
- * 
- * Note: Most uploads don't include hackathon_id, so we only validate admin status.
- * If hackathon-specific validation is needed in the future, it can be added here.
+ *
+ * Any authenticated user may upload; authentication is already enforced by
+ * withAuth on the route. Kept as a named policy so a future restriction has an
+ * obvious home rather than being inlined into the handler.
  * 
  * @param userId - ID of the user attempting to upload the file
- * @param customAttributes - Array of user custom attributes (includes roles)
  * @returns Promise<boolean> - true if has permissions, false otherwise
  */
 export async function canUserUploadFile(
-  userId: string,
-  customAttributes: string[] = []
+  _userId: string,
 ): Promise<boolean> {
-  // Check if user is admin (same logic as delete)
-  if (customAttributes.includes("admin")) {
-    return true;
-  }
-
-  // All authenticated users can upload files (authentication is handled by withAuth)
   return true;
 }
 

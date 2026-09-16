@@ -5,8 +5,7 @@ import type { ReactNode } from 'react';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { useSession } from 'next-auth/react';
 import { ActiveNavHighlighter } from '@/components/navigation/active-nav-highlighter';
-import { CustomCountdownBanner } from '@/components/ui/custom-countdown-banner';
-import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 interface LayoutWrapperProps {
   children: ReactNode;
@@ -15,7 +14,7 @@ interface LayoutWrapperProps {
 
 export function LayoutWrapper({ children, baseOptions }: LayoutWrapperProps) {
   const { data: session } = useSession();
-  const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
+  const canSeeTeam1 = hasPermission(session, { resource: "academy:team1", action: "read" });
 
   // Gate Team1 Academy.
   const updatedOptions = {
