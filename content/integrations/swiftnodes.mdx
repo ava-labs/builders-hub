@@ -1,0 +1,30 @@
+---
+title: SwiftNodes
+category: RPC Endpoints
+available: ["C-Chain"]
+description: "SwiftNodes provides flat-rate RPC endpoints for Avalanche C-Chain and 75+ other networks under one API key, with HTTP and WebSocket on every chain."
+logo: /images/swiftnodes.png
+developer: SwiftNodes
+website: https://swiftnodes.io/avalanche-rpc
+documentation: https://swiftnodes.io/docs/getting-started
+---
+
+## Overview
+
+SwiftNodes is a multi-chain RPC provider serving Avalanche C-Chain (chain ID 43114) alongside 75+ other networks through a single API key. Pricing is flat-rate per month rather than metered per request, and every chain includes both HTTP and WebSocket endpoints. A free tier is available with no KYC, and archive access is included on paid plans.
+
+## Features
+
+- **Flat-Rate Pricing**: One predictable monthly price with no compute-unit or per-request metering.
+- **HTTP + WebSocket**: Both transports on Avalanche and every other supported chain.
+- **One Key, 75+ Networks**: The same API key works across EVM and non-EVM chains.
+- **Free Tier**: 250k requests/month with no credit card or KYC.
+- **Archive Access**: Included on paid plans rather than sold separately.
+
+## Getting Started
+
+Create a key at [swiftnodes.io](https://swiftnodes.io/) and point your application at:
+
+`https://rpc.swiftnodes.io/rpc/avalanche?key=YOUR_API_KEY`
+
+WebSocket: `wss://rpc.swiftnodes.io/ws/avalanche?key=YOUR_API_KEY`
