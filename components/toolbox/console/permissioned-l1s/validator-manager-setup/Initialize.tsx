@@ -27,6 +27,7 @@ import { ContractFunctionViewer } from '@/components/console/contract-function-v
 import { Alert } from '@/components/toolbox/components/Alert';
 import { Check, RefreshCw, AlertCircle } from 'lucide-react';
 import versions from '@/scripts/versions.json';
+import { readInitializedState } from './initializedState';
 
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 
@@ -114,18 +115,19 @@ function Initialize({ onSuccess }: BaseConsoleToolProps) {
       }
 
       try {
-        await chainPublicClient.readContract({
-          address: managerAddress as `0x${string}`,
-          abi: ValidatorManagerABI.abi,
-          functionName: 'admin',
-        });
-        setIsInitialized(true);
-        return;
-      } catch (readError) {
-        if ((readError as any)?.message?.includes('not initialized')) {
-          setIsInitialized(false);
+        const initialized = await readInitializedState(
+          chainPublicClient,
+          managerAddress as `0x${string}`,
+          ValidatorManagerABI.abi,
+        );
+        if (initialized) {
+          setIsInitialized(true);
           return;
         }
+        // owner() is the zero address: uninitialized or ownership renounced, the
+        // two read alike, so let the event scan below tell them apart
+      } catch {
+        // owner() unreadable (not a contract, RPC hiccup): fall through to the event scan below
       }
 
       const latestBlock = await chainPublicClient.getBlockNumber();
