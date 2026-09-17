@@ -307,9 +307,9 @@ export default function Events({
           ref={eventsSectionRef}
           className={`flex flex-col md:flex-row md:items-center md:justify-between gap-4 ${topMostEvent ? "mt-12" : ""}`}
         >
-          <h2 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
+          <h1 className="font-medium text-3xl text-zinc-900 dark:text-zinc-50">
             {t(lang, "events.listing.title")}
-          </h2>
+          </h1>
           <Tabs
             value={activeEventType}
             onValueChange={handleActiveEventTypeChange}
