@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useMemo, useEffect } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface IntegrationsClientProps {
     list: any[];
@@ -10,6 +11,7 @@ interface IntegrationsClientProps {
 export default function IntegrationsClient({ list }: IntegrationsClientProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [mounted, setMounted] = useState(false);
+    const isMobile = useIsMobile();
     
     useEffect(() => {
         setMounted(true);
@@ -125,7 +127,7 @@ export default function IntegrationsClient({ list }: IntegrationsClientProps) {
                                         </svg>
                                         <input
                                             type="text"
-                                            placeholder="Search integrations by name, category, or description..."
+                                            placeholder={isMobile ? "Search integrations" : "Search integrations by name, category, or description..."}
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="w-full pl-12 pr-12 py-4 text-base rounded-xl backdrop-blur-sm bg-white/80 dark:bg-zinc-900/80 border border-slate-200/80 dark:border-zinc-800/80 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:focus:ring-blue-400/50 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200 shadow-sm hover:shadow-md"
