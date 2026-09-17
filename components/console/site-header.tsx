@@ -44,20 +44,20 @@ export function SiteHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0">
+    <header className="sticky top-0 z-30 flex h-(--header-height) max-sm:h-auto max-sm:min-h-(--header-height) shrink-0 items-center gap-2 border-b backdrop-blur  transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) rounded-t-2xl overflow-x-hidden min-w-0">
+      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6 min-w-0 max-sm:flex-wrap max-sm:h-auto max-sm:min-h-(--header-height) max-sm:py-2">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <Breadcrumb className="overflow-hidden min-w-0">
-          <BreadcrumbList className="flex-nowrap">
+        <Breadcrumb className="overflow-hidden min-w-0 max-sm:flex-1">
+          <BreadcrumbList className="flex-nowrap max-sm:flex-wrap">
             {breadcrumbs.map((breadcrumb, index) => (
               <Fragment key={`${breadcrumb.href}-${index}`}>
                 <BreadcrumbItem key={`${breadcrumb.href}-${index}`} className="whitespace-nowrap">
                   {breadcrumb.isCurrentPage ? (
-                    <BreadcrumbPage>{breadcrumb.label}</BreadcrumbPage>
+                    <BreadcrumbPage className="truncate">{breadcrumb.label}</BreadcrumbPage>
                   ) : breadcrumb.href === "#" ? (
                     <span className="text-muted-foreground">{breadcrumb.label}</span>
                   ) : (
@@ -73,7 +73,7 @@ export function SiteHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 max-sm:basis-full max-sm:justify-end">
           <div data-tour="network-switch">
             <TestnetMainnetSwitch />
           </div>
