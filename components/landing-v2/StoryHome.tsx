@@ -331,7 +331,10 @@ function ChapterOne() {
               never orphan onto its own line on narrow viewports */}
           <span className="whitespace-nowrap">
             <span
-              className="relative inline-block overflow-hidden align-bottom"
+              /* pb/-mb pair: the display face's 0.95 line box crops glyph
+                 bottoms inside overflow-hidden (4px at 390px); the padding
+                 reserves the descent, the negative margin keeps layout. */
+              className="relative inline-block overflow-hidden align-bottom pb-[0.08em] -mb-[0.08em]"
               style={{
                 width: nounWidth ?? undefined,
                 transition: "width 0.45s cubic-bezier(0.22, 1, 0.36, 1)",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import type { CourseCompletionEntry } from './useCourseCompletion';
+import { splitCourseSlugs, type CourseCompletionEntry } from './useCourseCompletion';
 
 export function useCourseBadges(
   completionMap: Map<string, boolean>,
@@ -42,12 +42,17 @@ export function useCourseBadges(
       await Promise.all(
         completedEntries.map(async ({ nodeId, courseSlug }) => {
           try {
-            const response = await fetch(`/api/badge?course_id=${courseSlug}`);
+            const slugs = splitCourseSlugs[courseSlug] ?? [courseSlug];
+            const response = await fetch(`/api/badge?course_id=${slugs[0]}`);
             if (!response.ok) return;
             const data = await response.json();
-            const imagePath = Array.isArray(data)
-              ? data[0]?.image_path
-              : data?.image_path;
+            // A course id can match several badges (its own + the Graduate
+            // badge, which lists every course) — the course's own badge is the
+            // one whose requirements all belong to this course.
+            const badges = Array.isArray(data) ? data : [data];
+            const imagePath = badges.find(b =>
+              b?.requirements?.every((r: any) => slugs.includes(r?.course_id))
+            )?.image_path;
             if (imagePath) {
               map.set(nodeId, imagePath);
             }

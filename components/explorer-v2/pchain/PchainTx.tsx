@@ -331,7 +331,6 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 <SpecRow label="Timestamp">
                   {formatTime(tx.blockTimestamp)} · {timeAgo(tx.blockTimestamp)}
                 </SpecRow>
-                <SpecRow label="Value">{formatAvax(sumAmounts(tx.value))}</SpecRow>
                 {sumAmounts(tx.amountStaked) > 0 && (
                   <SpecRow label="Staked">{formatAvax(sumAmounts(tx.amountStaked))}</SpecRow>
                 )}

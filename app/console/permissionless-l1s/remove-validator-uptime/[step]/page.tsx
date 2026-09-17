@@ -1,4 +1,7 @@
 import { redirect, RedirectType } from "next/navigation";
+import { consoleToolMetadata } from "@/components/console/tool-metadata";
+
+export const metadata = consoleToolMetadata("/console/permissionless-l1s/remove-validator-uptime", "Remove Validator Uptime");
 
 // Same step-name remap as the force-remove route; the unified flow auto-tries
 // the uptime path first so users land in the same place either way.

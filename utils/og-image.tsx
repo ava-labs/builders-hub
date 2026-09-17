@@ -1,4 +1,6 @@
 import { ImageResponse } from 'next/og';
+import { OG_HEIGHT, OG_WIDTH } from '@/utils/og/sheet';
+import { SectionCard } from '@/utils/og/section-card';
 
 type OGProps = {
   title: string;
@@ -7,129 +9,8 @@ type OGProps = {
   icon?: React.ReactElement;
 };
 
-export function generateOGImage({
-  title,
-  description,
-  path,
-  icon
-}: OGProps): React.ReactElement {
-  const truncateText: React.CSSProperties = {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
-  };
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100%',
-        width: '100%',
-        position: 'relative',
-        backgroundColor: '#fafafa',
-        overflow: 'hidden',
-        alignItems: 'center',
-        backgroundImage: "url('https://build.avax.network/og.png')",
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div
-        style={{
-          maxWidth: icon ? '48rem' : '56rem',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '0 70px',
-          flex: 1,
-        }}
-      >
-        <h1
-          style={{
-            fontSize: '5.35rem',
-            fontFamily: "Geist-Medium",
-            lineHeight: '1.3',
-            letterSpacing: '-0.015em',
-            margin: '0 0 30px 0',
-            color: 'black',
-          }}
-        >
-          <span style={{ ...truncateText }}>{title}</span>
-        </h1>
-        
-        <p
-          style={{
-            fontSize: '2.35rem',
-            color: '#4b5563',
-            maxWidth: '110%',
-            margin: '0 0 30px 0',
-            lineHeight: 1.4,
-            letterSpacing: '-0.01em',
-            fontFamily: "Geist-Light" 
-          }}
-        >
-          <span style={{ ...truncateText, WebkitLineClamp: 3 }}>{description}</span>
-        </p>
-        
-        <div
-          style={{
-            marginTop: '4.5rem',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <div
-            style={{
-              borderRadius: '0.375rem',
-              fontSize: '2rem',
-              border: '1.25px solid #71dbff',
-              backgroundColor: 'white',
-              fontFamily: "Geist-Mono",
-              color: 'black',
-              padding: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="329.2092783505155 0 271.6216494845361 229.44"
-              width="26"
-              height="24"
-            >
-              <g>
-                <path
-                  fill="red"
-                  d="M532.763 137.242C536.794 130.375 546.806 130.375 550.793 137.242L593.631 210.426C597.662 217.292 592.612 225.842 584.594 225.842H498.917C490.899 225.842 485.893 217.292 489.88 210.426L532.718 137.242H532.763Z"
-                />
-                <path
-                  fill="red"
-                  d="M506.887 88.5117C510.785 81.6895 510.785 73.2724 506.887 66.4059L471.757 5.09425C467.814 -1.7723 457.979 -1.7723 454.037 5.09425L336.464 210.338C332.521 217.204 337.438 225.798 345.324 225.798H415.54C423.381 225.798 430.602 221.59 434.5 214.768L506.843 88.4674L506.887 88.5117Z"
-                />
-              </g>
-            </svg>
-            <span style={{paddingLeft: "10px"}}>build.avax.network/<span style={{color: "red"}}>{path}</span></span>
-          </div>
-        </div>
-      </div>
-      {icon && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingRight: '80px',
-          }}
-        >
-          {icon}
-        </div>
-      )}
-    </div>
-  );
+export function generateOGImage({ title, description, path, icon }: OGProps): React.ReactElement {
+  return <SectionCard title={title} description={description} path={path} icon={icon} />;
 }
 
 // Helper function to load fonts
@@ -149,7 +30,7 @@ export async function loadFonts() {
   return {
     medium: await medium,
     light: await light,
-    regular: await regular
+    regular: await regular,
   };
 }
 
@@ -159,23 +40,17 @@ export async function createOGResponse({
   description,
   path,
   icon,
-  fonts
-}: OGProps & { fonts: { medium: ArrayBuffer, light: ArrayBuffer, regular: ArrayBuffer } }): Promise<ImageResponse> {
-  return new ImageResponse(
-    generateOGImage({
-      title,
-      description,
-      path,
-      icon
-    }),
-    {
-      width: 1280,
-      height: 720,
-      fonts: [
-        { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
-        { name: 'Geist-Mono', data: fonts.regular, weight: 500 },
-        { name: 'Geist-Light', data: fonts.light, weight: 300 }
-      ],
-    },
-  );
-} 
+  fonts,
+}: OGProps & {
+  fonts: { medium: ArrayBuffer; light: ArrayBuffer; regular: ArrayBuffer };
+}): Promise<ImageResponse> {
+  return new ImageResponse(generateOGImage({ title, description, path, icon }), {
+    width: OG_WIDTH,
+    height: OG_HEIGHT,
+    fonts: [
+      { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
+      { name: 'Geist-Mono', data: fonts.regular, weight: 500 },
+      { name: 'Geist-Light', data: fonts.light, weight: 300 },
+    ],
+  });
+}

@@ -25,15 +25,12 @@ export async function generateMetadata({ params }: AddressPageProps): Promise<Me
   const description = `View address details on ${chain.chainName} - balance, tokens, transactions, and more.`;
   const url = `/explorer/${resolvedParams.network}/${chainSlug}/address/${address}`;
   
-  const imageParams = new URLSearchParams();
-  imageParams.set("title", title);
-  imageParams.set("description", description);
-  
+  // Live data card: balance, type, and activity fetched at scrape time.
   const image = {
     alt: title,
-    url: `/api/og/stats/${chainSlug}?${imageParams.toString()}`,
-    width: 1280,
-    height: 720,
+    url: `/api/og/address/${resolvedParams.network}/${chainSlug}/${address}`,
+    width: 1200,
+    height: 630,
   };
   
   return {

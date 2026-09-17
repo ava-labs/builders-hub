@@ -7,7 +7,7 @@ export function createMetadata(override: Metadata): Metadata {
       title: override.title ?? undefined,
       description: override.description ?? undefined,
       url: 'https://build.avax.network',
-      images: '/logo.png',
+      images: { url: '/api/og/default', width: 1200, height: 630 },
       siteName: 'Avalanche Builder Hub',
       ...override.openGraph,
     },
@@ -15,7 +15,7 @@ export function createMetadata(override: Metadata): Metadata {
       card: 'summary_large_image',
       title: override.title ?? undefined,
       description: override.description ?? undefined,
-      images: '/logo.png',
+      images: { url: '/api/og/default', width: 1200, height: 630 },
       ...override.twitter,
     },
   };

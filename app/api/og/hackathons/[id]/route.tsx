@@ -92,8 +92,8 @@ async function tryLoadImage(
         </div>
       ),
       {
-        width: 1280,
-        height: 720,
+        width: 1200,
+        height: 630,
         fonts: [
           { name: 'Geist-Medium', data: fonts.medium, weight: 600 },
           { name: 'Geist-Mono', data: fonts.regular, weight: 500 },
@@ -135,37 +135,18 @@ export async function GET(
       });
     }
 
-    // Try to load images in fallback order
+    // A purpose-made OG banner (the -og variant) wins; anything else falls
+    // through to the branded card so the share always carries the event's
+    // own name instead of an anonymous banner crop.
     if (hackathon.banner && hackathon.banner.trim() !== '') {
-      // Fallback 1: Try banner with -og suffix
       const ogBannerUrl = generateOGBannerUrl(hackathon.banner);
       const ogImage = await tryLoadImage(ogBannerUrl, hackathon.title, fonts);
       if (ogImage) {
         return ogImage;
       }
-
-      // Fallback 2: Try small_banner if available
-      if (hackathon.small_banner && hackathon.small_banner.trim() !== '') {
-        const smallBannerImage = await tryLoadImage(hackathon.small_banner, hackathon.title, fonts);
-        if (smallBannerImage) {
-          return smallBannerImage;
-        }
-      }
-
-      // Fallback 3: Try original banner
-      const bannerImage = await tryLoadImage(hackathon.banner, hackathon.title, fonts);
-      if (bannerImage) {
-        return bannerImage;
-      }
-    } else if (hackathon.small_banner && hackathon.small_banner.trim() !== '') {
-      // If no banner but has small_banner, try it
-      const smallBannerImage = await tryLoadImage(hackathon.small_banner, hackathon.title, fonts);
-      if (smallBannerImage) {
-        return smallBannerImage;
-      }
     }
 
-    // If no banner, show title and description
+    // Branded card with the event's name and description
     return createOGResponse({
       title: hackathon.title,
       description: hackathon.description,

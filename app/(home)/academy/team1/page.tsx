@@ -15,7 +15,7 @@ export const metadata: Metadata = createMetadata({
   openGraph: {
     url: "/academy/team1",
     images: {
-      url: "/api/og/academy",
+      url: "/api/og/academy?v=2",
       width: 1200,
       height: 630,
       alt: "Team1 Academy",
@@ -23,7 +23,7 @@ export const metadata: Metadata = createMetadata({
   },
   twitter: {
     images: {
-      url: "/api/og/academy",
+      url: "/api/og/academy?v=2",
       width: 1200,
       height: 630,
       alt: "Team1 Academy",

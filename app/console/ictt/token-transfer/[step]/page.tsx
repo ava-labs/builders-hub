@@ -1,4 +1,7 @@
 import { redirect } from 'next/navigation';
+import { consoleToolMetadata } from "@/components/console/tool-metadata";
+
+export const metadata = consoleToolMetadata("/console/ictt/token-transfer");
 
 const STEP_TO_PHASE: Record<string, string> = {
   'add-collateral': 'collateral',

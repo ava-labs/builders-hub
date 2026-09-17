@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/zodResolver";
 import { z } from "zod";
 import { useSession } from "next-auth/react";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import {
@@ -180,10 +181,35 @@ export function useProfileForm() {
     }
   }, [session?.user?.id, session?.user?.email, form, toast]);
   
+  // Surface the result of an X/GitHub OAuth link redirect, then strip the
+  // status params from the URL. Uses sonner: the global toaster in
+  // app/layout.client.tsx is sonner, so useToast() toasts never render here.
   useEffect(() => {
     const gh = searchParams.get('gh');
     const x = searchParams.get('x');
     if (!gh && !x) return;
+
+    const notify = (status: string, network: 'X' | 'GitHub', site: string) => {
+      const id = `link-${network}`;
+      if (status === 'linked') {
+        sonnerToast.success(`${network} connected`, { id });
+      } else if (status === 'already_linked') {
+        sonnerToast.error(
+          `That ${network} account is already linked to a different profile. ` +
+            `Log in to ${site} with the account you want to connect, then try again.`,
+          { id, duration: 10000 },
+        );
+      } else {
+        sonnerToast.error(`Could not connect ${network}. Please try again.`, { id });
+      }
+    };
+    // Defer past this commit's effect phase: sonner's <Toaster> (mounted after
+    // {children} in the root layout) subscribes in its own mount effect, which
+    // runs AFTER this one — a toast dispatched synchronously here is dropped.
+    setTimeout(() => {
+      if (x) notify(x, 'X', 'x.com');
+      if (gh) notify(gh, 'GitHub', 'github.com');
+    }, 0);
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('gh');

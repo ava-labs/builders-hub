@@ -24,15 +24,12 @@ export async function generateMetadata({ params }: BlockPageProps): Promise<Meta
   const description = `View details for block #${blockNumber} on ${chain.chainName} - transactions, gas usage, and more.`;
   const url = `/explorer/${resolvedParams.network}/${chainSlug}/block/${blockNumber}`;
   
-  const imageParams = new URLSearchParams();
-  imageParams.set("title", title);
-  imageParams.set("description", description);
-  
+  // Live data card: tx count, gas used, and time fetched at scrape time.
   const image = {
     alt: title,
-    url: `/api/og/stats/${chainSlug}?${imageParams.toString()}`,
-    width: 1280,
-    height: 720,
+    url: `/api/og/block/${resolvedParams.network}/${chainSlug}/${blockNumber}`,
+    width: 1200,
+    height: 630,
   };
   
   return {

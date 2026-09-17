@@ -7,7 +7,7 @@ export const metadata: Metadata = createMetadata({
   openGraph: {
     url: '/grants',
     images: {
-      url: '/api/og/grants',
+      url: '/api/og/grants?v=2',
       width: 1200,
       height: 630,
       alt: 'Avalanche Grants',
@@ -15,7 +15,7 @@ export const metadata: Metadata = createMetadata({
   },
   twitter: {
     images: {
-      url: '/api/og/grants',
+      url: '/api/og/grants?v=2',
       width: 1200,
       height: 630,
       alt: 'Avalanche Grants',

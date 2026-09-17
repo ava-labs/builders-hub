@@ -37,10 +37,10 @@ export async function generateMetadata(): Promise<Metadata> {
       title: hackathon.title,
       description: hackathon.description,
       openGraph: {
-        images: `/api/og/hackathons/${HACKATHON_ID}`,
+        images: `/api/og/hackathons/${HACKATHON_ID}?v=2`,
       },
       twitter: {
-        images: `/api/og/hackathons/${HACKATHON_ID}`,
+        images: `/api/og/hackathons/${HACKATHON_ID}?v=2`,
       },
     });
   } catch (error) {

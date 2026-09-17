@@ -34,7 +34,13 @@ export function PrivacyPolicyBox() {
   if (!shouldShow) return null
 
   return (
-    <div className="fixed bottom-4 left-0 sm:left-4 isolate z-99999 w-full sm:w-auto px-2 sm:px-0">
+    <div
+      // Stay clickable while a modal Radix dialog is open: the dialog sets
+      // pointer-events:none on <body>, and stopping pointerdown propagation
+      // keeps the dialog's outside-click dismissal from firing.
+      className="fixed bottom-4 left-0 sm:left-4 isolate z-99999 w-full sm:w-auto px-2 sm:px-0 pointer-events-auto"
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <Card className="relative w-full max-w-md border shadow-lg bg-white dark:bg-slate-950 rounded-lg">
         <CardHeader className="pb-2 bg-white dark:bg-slate-950 rounded-t-lg">
           <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-medium">

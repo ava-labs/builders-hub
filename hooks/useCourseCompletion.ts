@@ -11,6 +11,12 @@ export interface CourseCompletionEntry {
 
 const quizCourses = quizData.courses;
 
+// Split courses: the learning tree tracks the whole course under its original
+// slug, but quiz data and badge requirements key on the certificate halves.
+export const splitCourseSlugs: Record<string, string[]> = {
+  'access-restriction': ['access-restriction-fundamentals', 'access-restriction-advanced'],
+};
+
 export function useCourseCompletion(courses: CourseCompletionEntry[]) {
   const [completionMap, setCompletionMap] = useState<Map<string, boolean>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
@@ -25,11 +31,14 @@ export function useCourseCompletion(courses: CourseCompletionEntry[]) {
 
       await Promise.all(
         courses.map(async ({ nodeId, courseSlug }) => {
-          const courseQuizzes = quizCourses[courseSlug]?.quizzes;
-          if (!courseQuizzes || courseQuizzes.length === 0) {
+          const slugs = splitCourseSlugs[courseSlug] ?? [courseSlug];
+          const quizLists = slugs.map(s => quizCourses[s]?.quizzes ?? []);
+          // A missing half must read as "not completed", never as a shorter course.
+          if (quizLists.some(l => l.length === 0)) {
             map.set(nodeId, false);
             return;
           }
+          const courseQuizzes = quizLists.flat();
 
           const results = await Promise.all(
             courseQuizzes.map(quizId => getQuizResponse(quizId))
