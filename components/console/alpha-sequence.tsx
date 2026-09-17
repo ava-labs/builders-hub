@@ -22,9 +22,15 @@ import { cn } from '@/lib/utils';
  *   - **Instant swap** (no cross-fade). A 75ms opacity transition makes
  *     both videos partially visible simultaneously, which looks worse
  *     than a hard cut — these clips are authored to butt-join cleanly.
- *   - On mount we also `fetch(..., { cache: 'force-cache' })` every
- *     clip, which warms the HTTP cache so later `<video>` loads reuse
- *     the bytes.
+ *   - **Nothing is fetched eagerly.** The eight clips weigh ~17 MB and
+ *     the card sits in the last row of the console grid, off-screen on
+ *     shorter viewports. An IntersectionObserver holds the slots back
+ *     until the card is within 200px of the viewport; only then do the
+ *     two `<video>` elements mount and pull their sources. From there
+ *     the double-buffer is the only prefetch there is: each slot holds
+ *     one clip ahead of the one on screen, so at most two clips are in
+ *     flight at a time. Under `prefers-reduced-motion` a single static
+ *     frame is all that ever loads.
  *
  * Accessibility: muted + aria-hidden. Users with
  * `prefers-reduced-motion` get the first frame of `reveal.webm` as a
@@ -63,6 +69,30 @@ export function AlphaSequence({ className }: { className?: string }) {
 
   const videoRefs = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)];
 
+  // The card sits low on the page; nothing loads until it is near view.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Detect reduced-motion up-front so we never autoplay for those users.
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -70,16 +100,6 @@ export function AlphaSequence({ className }: { className?: string }) {
     const handler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  // Warm the HTTP cache for every clip on mount. Done once; `force-cache`
-  // ensures subsequent <video> loads reuse the bytes.
-  useEffect(() => {
-    PLAYLIST.forEach((name) => {
-      fetch(`${BASE}/${name}.webm`, { cache: 'force-cache' }).catch(() => {
-        /* network hiccup is fine — the <video> element will retry */
-      });
-    });
   }, []);
 
   // When the active slot's clip ends, swap to the inactive slot (which
@@ -137,42 +157,43 @@ export function AlphaSequence({ className }: { className?: string }) {
         });
       }
     });
-    // videoRefs identity is stable; intentionally excluded.
+    // videoRefs identity is stable; intentionally excluded. `inView` is
+    // listed so the slots get their src the moment the videos mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slotIdx, activeSlot, reducedMotion]);
+  }, [slotIdx, activeSlot, reducedMotion, inView]);
 
-  if (reducedMotion) {
-    // Static single frame — no looping motion for motion-sensitive users.
-    return (
-      <video
-        className={cn('block h-full w-full object-contain select-none pointer-events-none', className)}
-        muted
-        playsInline
-        aria-hidden="true"
-        preload="metadata"
-        // Point at reveal; browser renders first frame as poster-less fallback.
-        src={srcFor(0)}
-      />
-    );
-  }
-
+  // The wrapper always renders so the observer has something to watch;
+  // the video slots only mount once the card is near the viewport.
   return (
-    <div className={cn('relative', className)} aria-hidden="true">
-      {[0, 1].map((slot) => (
+    <div ref={rootRef} className={cn('relative', className)} aria-hidden="true">
+      {reducedMotion ? (
+        // Static single frame — no looping motion for motion-sensitive users.
         <video
-          key={slot}
-          ref={videoRefs[slot]}
-          className={cn(
-            'absolute inset-0 h-full w-full object-contain select-none pointer-events-none',
-            slot === activeSlot ? 'opacity-100' : 'opacity-0',
-          )}
+          className="block h-full w-full object-contain select-none pointer-events-none"
           muted
           playsInline
-          preload="auto"
-          onEnded={handleEnded(slot as Slot)}
-          onTimeUpdate={handleTimeUpdate(slot as Slot)}
+          preload="metadata"
+          // Point at reveal; browser renders first frame as poster-less fallback.
+          src={srcFor(0)}
         />
-      ))}
+      ) : (
+        inView &&
+        [0, 1].map((slot) => (
+          <video
+            key={slot}
+            ref={videoRefs[slot]}
+            className={cn(
+              'absolute inset-0 h-full w-full object-contain select-none pointer-events-none',
+              slot === activeSlot ? 'opacity-100' : 'opacity-0',
+            )}
+            muted
+            playsInline
+            preload="auto"
+            onEnded={handleEnded(slot as Slot)}
+            onTimeUpdate={handleTimeUpdate(slot as Slot)}
+          />
+        ))
+      )}
     </div>
   );
 }
