@@ -35,6 +35,10 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 /* into every L1's own explorer. The front page of one cohesive app.   */
 /* ------------------------------------------------------------------ */
 
+/* The image optimizer rejects SVG (dangerouslyAllowSVG is off), so chain
+   logos in that format are served as-is. Raster sources keep the optimizer. */
+const isSvgSource = (src: string) => /\.svg(?:[?#]|$)/i.test(src);
+
 /* One bar, anything: chains suggest live as you type — by name, chain ID,
    subnet ID, or blockchain ID (the shared chain-search engine) — P-Chain
    shapes route locally, 0x hashes race every EVM chain's RPC, ambiguous
@@ -243,7 +247,7 @@ function ChainBoard({
       <div className="px-5 py-8 md:px-6 lg:py-9">
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
           <div className="flex items-center gap-3.5">
-            <Image src={logo} alt="" width={36} height={36} className="rounded-full object-contain" />
+            <Image src={logo} alt="" width={36} height={36} unoptimized={isSvgSource(logo)} className="rounded-full object-contain" />
             <h2 className="v2-display text-2xl text-zinc-900 dark:text-zinc-50 md:text-3xl">
               {title}
               <span className="text-[#E6212F]">.</span>
@@ -354,6 +358,7 @@ function ChainDoors() {
                 alt=""
                 width={24}
                 height={24}
+                unoptimized={isSvgSource(chain.chainLogoURI)}
                 className="rounded-full object-contain"
               />
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
