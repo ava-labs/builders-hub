@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -605,8 +605,12 @@ export function ExplorerSubnav({
   className,
 }: ExplorerSubnavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const tabs = useMemo(() => buildTabs(network, chainSlug), [network, chainSlug]);
   const inert = useMemo(() => isUnindexedChain(network, chainSlug), [network, chainSlug]);
+  // the phone picker's selected row; empty on a path no tab claims, which
+  // reads as "no section" rather than lying about which one you are on
+  const activeHref = tabs.find((tab) => tab.isActive(pathname))?.href ?? "";
 
   // the tab rail scrolls when the inventory outgrows the row — the edge
   // fades say so (a hard clip reads as "there is no ICM tab"). The mask
@@ -651,7 +655,7 @@ export function ExplorerSubnav({
     // so its dropdown menus paint over this rail, not behind it.
     <div
       className={cn(
-        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
+        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex flex-wrap items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 min-[1440px]:flex-nowrap dark:border-zinc-800 dark:bg-zinc-950/85",
         className,
       )}
     >
@@ -664,7 +668,7 @@ export function ExplorerSubnav({
             aria-label="Explorer sections"
             onScroll={onRailScroll}
             style={railMask}
-            className="scrollbar-hide flex items-stretch gap-x-3 overflow-x-auto sm:gap-x-4 md:gap-x-5"
+            className="scrollbar-hide hidden items-stretch gap-x-4 overflow-x-auto sm:flex"
           >
             {tabs.map((tab) => {
               const active = tab.isActive(pathname);
@@ -705,8 +709,31 @@ export function ExplorerSubnav({
             })}
           </nav>
         )}
+        {tabs.length > 0 && (
+          /* below sm no spacing makes ten labels fit, and a rail you have to
+             drag hides its own contents. The sections fold into the same
+             native picker the clock folds into, so the two read as siblings
+             and every section stays a single tap away. */
+          <label className="relative self-center sm:hidden">
+            <span className="sr-only">Explorer section</span>
+            <select
+              value={activeHref}
+              disabled={inert}
+              title={inert ? "This chain isn't indexed yet" : undefined}
+              onChange={(event) => router.push(event.target.value)}
+              className="appearance-none border border-zinc-200 bg-transparent py-1.5 pl-2.5 pr-7 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-900 outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
+            >
+              {tabs.map((tab) => (
+                <option key={tab.label} value={tab.href}>
+                  {tab.label}
+                </option>
+              ))}
+            </select>
+            <ChevronsUpDown className="pointer-events-none absolute right-2 top-1/2 h-3 w-3 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+          </label>
+        )}
       </div>
-      <div className="flex shrink-0 items-stretch gap-x-2 sm:gap-x-3">
+      <div className="flex shrink-0 items-center justify-end gap-x-2 border-zinc-200 sm:gap-x-3 sm:max-[1440px]:basis-full sm:max-[1440px]:border-t sm:max-[1440px]:py-1.5 dark:border-zinc-800">
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
         <ExplorerRangeControl />
