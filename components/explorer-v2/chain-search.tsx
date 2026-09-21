@@ -175,6 +175,16 @@ function ChainLogo({ uri, name }: { uri?: string; name: string }) {
 /* costs one lookup total — the Enter key reuses the same cache.       */
 /* ------------------------------------------------------------------ */
 
+/* How a P-Chain search result renders. "chain" comes from a CreateChainTx
+   id, whose page is the L1's own detail view rather than the creating tx. */
+const PCHAIN_HIT: Record<string, { icon: EntityHit["icon"]; label: string }> = {
+  block: { icon: "block", label: "Block" },
+  chain: { icon: "block", label: "Blockchain" },
+  node: { icon: "node", label: "Validator node" },
+  address: { icon: "address", label: "Address" },
+  tx: { icon: "tx", label: "Transaction" },
+};
+
 export interface EntityHit {
   icon: "tx" | "block" | "address" | "node" | "icm";
   label: string;
@@ -279,7 +289,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         if (r.type !== "none") {
           setResolved({
             q,
-            hit: { icon: "tx", label: r.type === "block" ? "Block" : "Transaction", id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" },
+            hit: { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" },
           });
           return;
         }
@@ -298,7 +308,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         setResolved({
           q,
           hit: r.type !== "none"
-            ? { icon: r.type === "block" ? "block" : "tx", label: r.type === "block" ? "Block" : r.type === "tx" ? "Transaction" : r.type, id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
+            ? { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
             : { icon: "tx", label: "P-Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" },
         });
       }

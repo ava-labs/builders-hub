@@ -18,7 +18,6 @@ export const maxDuration = 60;
 const LIST_CACHE_DURATION = 24 * 60 * 60 * 1000;
 const VERSION_CACHE_DURATION = 15 * 60 * 1000;
 const STATS_CACHE_DURATION = 15 * 60 * 1000;
-const VERSION_SEEN_WINDOW = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 100;
 // Our /v1 validator/subnet endpoints have a heavy cold-start (validators ~10s,
 // subnets ~60s) before their state cache warms; give each page fetch generous
@@ -201,38 +200,45 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
     return cache.data;
   }
 
-  const url = network === "mainnet" ? MAINNET_VALIDATOR_DISCOVERY_URL : FUJI_VALIDATOR_DISCOVERY_URL;
-  
+  const versionMap = new Map<string, string>();
+
+  // source: our own p_node_info snapshot, surfaced on the validators endpoint.
   try {
-    const response = await fetchWithTimeout(url);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch validator versions: ${response.status}`);
+    const res = await fetchWithTimeout(`${EXPLORER_API_BASE}/api/${network}/validators`);
+    if (res.ok) {
+      const j = await res.json();
+      for (const v of (Array.isArray(j?.validators) ? j.validators : [])) {
+        if (v?.nodeId && v.version) versionMap.set(v.nodeId, v.version);
+      }
     }
-
-    const data: ValidatorVersion[] = await response.json();
-    const versionMap = new Map<string, string>();
-
-    for (const validator of data) {
-      if (!validator.lastSeenOnline) continue;
-      if (now - validator.lastSeenOnline > VERSION_SEEN_WINDOW) continue;
-      versionMap.set(validator.nodeId, validator.version || "Unknown");
-    }
-
-    // Update cache
-    validatorVersionsCached[network] = {
-      data: versionMap,
-      timestamp: now
-    };
-
-    return versionMap;
-  } catch (error: any) {
-    // Return cached data if available, even if stale
-    if (cache) {
-      return cache.data;
-    }
-    return new Map<string, string>();
+  } catch {
+    // discovery below still covers the set
   }
+
+  // discovery crawler reaches nodes we have not peered with, but reports
+  // whatever version it last connected to, which lags badly.
+  try {
+    const url = network === "mainnet" ? MAINNET_VALIDATOR_DISCOVERY_URL : FUJI_VALIDATOR_DISCOVERY_URL;
+    const response = await fetchWithTimeout(url);
+    if (response.ok) {
+      const data: ValidatorVersion[] = await response.json();
+      for (const validator of data) {
+        if (!validator.version) continue;
+        if (versionMap.has(validator.nodeId)) continue;
+        versionMap.set(validator.nodeId, validator.version);
+      }
+    }
+  } catch {
+    // both sources down, fall back to the last good map
+  }
+
+  // Nothing resolved: keep serving the previous map
+  if (versionMap.size === 0) {
+    return cache ? cache.data : new Map<string, string>();
+  }
+
+  validatorVersionsCached[network] = { data: versionMap, timestamp: now };
+  return versionMap;
 }
 
 async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<SubnetStats[]> {
