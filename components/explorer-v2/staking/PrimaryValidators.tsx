@@ -65,10 +65,19 @@ interface MergedValidator extends SdkValidator {
   p2p?: P2pValidator;
 }
 
-type SortKey = "stake" | "delegators" | "fee" | "uptime" | "daysLeft" | "missRate";
+type SortKey = "version" | "stake" | "delegators" | "fee" | "uptime" | "daysLeft" | "missRate";
+
+/* Release order, not lexical */
+function versionRank(v?: string): number {
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(v ?? "");
+  if (!m) return -1;
+  return Number(m[1]) * 1_000_000 + Number(m[2]) * 1_000 + Number(m[3]);
+}
 
 function sortValue(v: MergedValidator, key: SortKey): number {
   switch (key) {
+    case "version":
+      return versionRank(v.p2p?.version ?? v.version);
     case "stake":
       return v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
     case "delegators":
@@ -246,8 +255,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
       versions
         ? Object.keys(versions.byClientVersion)
             .filter((v) => v !== "Unknown")
-            .sort()
-            .reverse()
+            .sort((a, b) => versionRank(b) - versionRank(a))
         : [],
     [versions],
   );
@@ -520,7 +528,9 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
               <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
                 <th className={TH}>#</th>
                 <th className={TH}>Node</th>
-                <th className={TH}>Version</th>
+                <th className={TH}>
+                  <SortHeader label="Version" k="version" />
+                </th>
                 <th className={cn(TH, "text-right")}>
                   <SortHeader label="Total Stake" k="stake" />
                 </th>
