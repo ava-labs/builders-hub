@@ -10,23 +10,22 @@ type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainNa
 
 export const dynamic = 'force-dynamic';
 // The cold aggregate paginates all L1 validators + subnets (pageSize capped at
-// 100 upstream). Result is cached 24h with stale-while-revalidate, so only the
-// first request after expiry is slow — give it headroom so it can't 504 and
-// leave the cache empty.
+// 100 upstream). Those lists are cached 24h and the origin serves stale while
+// refreshing, so only a genuinely cold instance is slow — give it headroom so
+// it can't 504 and leave the cache empty.
 export const maxDuration = 60;
 
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const VERSION_CACHE_DURATION = 24 * 60 * 60 * 1000;
+const LIST_CACHE_DURATION = 24 * 60 * 60 * 1000;
+const VERSION_CACHE_DURATION = 15 * 60 * 1000;
+const STATS_CACHE_DURATION = 15 * 60 * 1000;
+const VERSION_SEEN_WINDOW = 24 * 60 * 60 * 1000;
 const PAGE_SIZE = 100;
 // Our /v1 validator/subnet endpoints have a heavy cold-start (validators ~10s,
 // subnets ~60s) before their state cache warms; give each page fetch generous
 // headroom so a cold window doesn't abort and blank the whole aggregate. The
 // warmer keeps them hot, so the steady-state path is sub-second.
 const FETCH_TIMEOUT = 60000;
-// max-age=0: the CDN holds the day-long copy (s-maxage); browsers must
-// revalidate every time, so one bad response cached during an outage can't
-// pin a client's dashboards to a dash for 24 hours
-const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=172800';
+const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=900, stale-while-revalidate=3600';
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
 const subnetsCached: Partial<Record<string, { data: SubnetInfo[]; timestamp: number; promise?: Promise<SubnetInfo[]> }>> = {};
@@ -111,7 +110,7 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
   const cache = validatorsCached[network];
 
   // Return cached data if still valid
-  if (cache && (now - cache.timestamp) < CACHE_DURATION) {
+  if (cache && (now - cache.timestamp) < LIST_CACHE_DURATION) {
     return cache.data;
   }
 
@@ -157,7 +156,7 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<SubnetInfo[]>
   const now = Date.now();
   const cache = subnetsCached[network];
 
-  if (cache && (now - cache.timestamp) < CACHE_DURATION) {
+  if (cache && (now - cache.timestamp) < LIST_CACHE_DURATION) {
     return cache.data;
   }
 
@@ -215,6 +214,8 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
     const versionMap = new Map<string, string>();
 
     for (const validator of data) {
+      if (!validator.lastSeenOnline) continue;
+      if (now - validator.lastSeenOnline > VERSION_SEEN_WINDOW) continue;
       versionMap.set(validator.nodeId, validator.version || "Unknown");
     }
 
@@ -336,7 +337,7 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
   const now = Date.now();
   const cache = statsCached[network];
   const cacheAge = cache ? now - cache.timestamp : Infinity;
-  const isCacheValid = cacheAge < CACHE_DURATION;
+  const isCacheValid = cacheAge < STATS_CACHE_DURATION;
   const isCacheStale = cache && !isCacheValid;
 
   if (isCacheStale && !revalidatingKeys.has(network)) {
@@ -409,7 +410,7 @@ export async function GET(request: Request) {
     const fetchTime = Date.now() - startTime;
 
     const source = fetchTime < 50 && cache ? 
-      (cacheAge && cacheAge < CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 
+      (cacheAge && cacheAge < STATS_CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 
       'fresh';
     
     console.log(`[GET /api/validator-stats] Network: ${network}, Source: ${source}, fetchTime: ${fetchTime}ms`);
