@@ -833,7 +833,22 @@ function ConversionSpec({
 }) {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader label="L1 Conversion" />
+      {/* The manager chain's own page carries what the conversion produced:
+          the live validator set, subnet ownership and the manager contract.
+          chainID is a CreateChainTx id, which is what /chain/ keys on. */}
+      <SectionHeader
+        label="L1 Conversion"
+        action={
+          u?.chainID ? (
+            <Link
+              href={`${base}/chain/${u.chainID}`}
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
+            >
+              View L1 details →
+            </Link>
+          ) : undefined
+        }
+      />
       {loading || !u ? (
         <PanelBones />
       ) : (
