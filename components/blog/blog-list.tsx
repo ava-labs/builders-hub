@@ -1,7 +1,8 @@
 'use client';
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { XIcon } from '@/components/profile/shell/icons';
 import { BlogSearch } from './blog-search';
 import { formatBlogDate } from '@/utils/formatBlogDate';
 
@@ -107,7 +108,7 @@ export function BlogList({ blogs }: BlogListProps) {
                   <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/80">
                     {filteredBlogs[0].data.authors.slice(0, 2).map((author: string) => (
                       <span key={author} className="inline-flex items-center gap-1.5">
-                        <X size={12} />
+                        <XIcon size={12} />
                         <span className="truncate font-medium text-xs">{author}</span>
                       </span>
                     ))}
@@ -147,9 +148,11 @@ export function BlogList({ blogs }: BlogListProps) {
                   </h4>
 
                   {/* Description */}
-                  <p className="text-sm text-muted-foreground/90 leading-relaxed mb-4 flex-grow line-clamp-3">
-                    {post.data.description}
-                  </p>
+                  <div className="flex-grow mb-4">
+                    <p className="text-sm text-muted-foreground/90 leading-relaxed line-clamp-3">
+                      {post.data.description}
+                    </p>
+                  </div>
 
                   {/* Topics */}
                   <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -173,7 +176,7 @@ export function BlogList({ blogs }: BlogListProps) {
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/80">
                       {post.data.authors.slice(0, 2).map((author: string) => (
                         <span key={author} className="inline-flex items-center gap-1.5">
-                          <X size={12} />
+                          <XIcon size={12} />
                           <span className="truncate font-medium text-xs">{author}</span>
                         </span>
                       ))}

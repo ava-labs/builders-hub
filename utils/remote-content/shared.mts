@@ -47,7 +47,7 @@ export function deriveEditUrlFromSourceUrl(sourceUrl: string): string {
 }
 
 export function replaceRelativeLinks(content: string, sourceBaseUrl: string): string {
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|<img([^>]*)src=([^"'\s>]+|['"][^'"]*['"])/g;
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|<img([^>]*?)src=([^"'\s>]+|['"][^'"]*['"])([^>]*?)\/?>/g;
   
   function convertGitHubBlobToRaw(url: string): string {
     // Convert GitHub blob URLs to raw URLs for direct access
@@ -60,7 +60,7 @@ export function replaceRelativeLinks(content: string, sourceBaseUrl: string): st
   // Replace both markdown-style links and img src attributes with absolute links
   const updatedContent = content.replace(
     linkRegex,
-    (match, text, markdownLink, imgAttrs, imgSrc) => {
+    (match, text, markdownLink, imgAttrs, imgSrc, imgRest) => {
       if (markdownLink) {
         if (
           markdownLink.startsWith("http") ||
@@ -92,14 +92,14 @@ export function replaceRelativeLinks(content: string, sourceBaseUrl: string): st
         if (cleanSrc.startsWith("http") || cleanSrc.startsWith("data:")) {
           // Convert GitHub blob URLs to raw URLs for direct image access
           const finalSrc = convertGitHubBlobToRaw(cleanSrc);
-          const cleanAttrs = imgAttrs.trim();
+          const cleanAttrs = `${imgAttrs ?? ''} ${imgRest ?? ''}`.replace(/\s+/g, ' ').trim();
           return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} src="${finalSrc}" />`;
         }
         // Convert img src attribute relative link to absolute link, and properly close the tag as self-closing
         try {
           const absoluteUrl = new URL(cleanSrc, sourceBaseUrl).href;
           const finalSrc = convertGitHubBlobToRaw(absoluteUrl);
-          const cleanAttrs = imgAttrs.trim();
+          const cleanAttrs = `${imgAttrs ?? ''} ${imgRest ?? ''}`.replace(/\s+/g, ' ').trim();
           return `<img${cleanAttrs ? ' ' + cleanAttrs : ''} src="${finalSrc}" />`;
         } catch (error) {
           // If URL construction fails, return original match

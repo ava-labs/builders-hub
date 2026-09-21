@@ -186,7 +186,7 @@ export function AlertDashboard() {
       <Card className="max-w-2xl mx-auto">
         <CardContent className="flex flex-col items-center gap-4 py-12">
           <Bell className="h-12 w-12 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">Sign in to manage validator alerts</h2>
+          <h1 className="text-xl font-semibold">Sign in to manage validator alerts</h1>
           <p className="text-sm text-muted-foreground text-center max-w-md">
             Get email notifications when your validators experience uptime drops, version mismatches, or approaching stake expiry.
           </p>

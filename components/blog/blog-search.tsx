@@ -47,7 +47,7 @@ export function BlogSearch({ blogs, onFilteredResults }: BlogSearchProps) {
   return (
     <div className="relative w-full max-w-2xl mx-auto">
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground/60" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 transform text-muted-foreground/60" />
         <Input
           placeholder="Search by title, topic, author, or description..."
           value={searchQuery}

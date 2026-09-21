@@ -381,7 +381,7 @@ export function NetworkValidators() {
           {/* search + target-version filter */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative w-full sm:max-w-sm">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
                 value={searchTerm}
                 onChange={(e) => {
@@ -549,7 +549,7 @@ export function NetworkValidators() {
                           <Link
                             href={href}
                             aria-label={`${subnet.name} validators`}
-                            className="group/go inline-flex"
+                            className="group/go inline-flex h-6 w-6 items-center justify-center"
                           >
                             <ArrowRight className="h-3.5 w-3.5 text-zinc-300 transition-all group-hover/go:translate-x-0.5 group-hover/go:text-[#E6212F] dark:text-zinc-600" />
                           </Link>

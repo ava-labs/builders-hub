@@ -16,7 +16,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const pillar = PILLARS.find((p) => p.slug === slug);
   if (!pillar) {
-    return { title: 'Solutions | Avalanche Builder Hub' };
+    return { title: 'Solutions' };
   }
   const imageParams = new URLSearchParams();
   imageParams.set('title', pillar.title);
@@ -28,7 +28,7 @@ export async function generateMetadata({
     alt: `${pillar.title} · Avalanche Solutions`,
   };
   return createMetadata({
-    title: `${pillar.title} | Avalanche Builder Hub`,
+    title: pillar.title,
     description: pillar.metaDescription,
     openGraph: { url: `/solutions/${pillar.slug}`, images: image },
     twitter: { images: image },

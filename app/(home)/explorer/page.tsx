@@ -5,7 +5,7 @@ import ExplorerPortal from "@/components/explorer-v2/ExplorerPortal";
 const ogImage = { url: "/api/og/explorer", width: 1200, height: 630, alt: "Avalanche Explorer" };
 
 export const metadata: Metadata = createMetadata({
-  title: "Explorer | Avalanche Builder Hub",
+  title: "Explorer",
   description:
     "One front door for every Avalanche chain: search any block, transaction, address, or node, and open the P-Chain, C-Chain, or any L1's explorer.",
   openGraph: {

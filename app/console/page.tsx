@@ -376,6 +376,7 @@ function ConsoleDashboard() {
       />
 
       <div className="relative max-w-6xl mx-auto">
+        <h1 className="sr-only">Avalanche Builder Console</h1>
         {/* Ecosystem Marquee */}
         <motion.div
           className="mb-6 pt-1"

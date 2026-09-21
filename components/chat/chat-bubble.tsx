@@ -161,6 +161,7 @@ export function ChatBubble() {
       {state === 'collapsed' && (
         <button
           onClick={handleBubbleClick}
+          aria-label="Open chat"
           className={cn(
             "group relative w-14 h-14 rounded-full shadow-lg border flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-xl",
             "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-700/50",
