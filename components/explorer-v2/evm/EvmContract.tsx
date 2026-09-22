@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, ExternalLink, ShieldCheck } from "lucide-react";
+import { Check, Copy, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, CellLabel, SpecPlate, SpecRow, idInk } from "@/components/explorer-v2/ui";
 import ContractReadSection from "@/components/explorer/ContractReadSection";
@@ -10,6 +10,7 @@ import ContractWriteSection from "@/components/explorer/ContractWriteSection";
 import SourceCodeViewer from "@/components/explorer/SourceCodeViewer";
 import { fetchVerifiedContract, type SourcifyContract } from "@/lib/sourcify-client";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
+import { EvmBytecode } from "./EvmBytecode";
 
 /* ------------------------------------------------------------------ */
 /* The Contract tab.                                                   */
@@ -169,26 +170,6 @@ function CopyAbiButton({ abi }: { abi: unknown[] }) {
   );
 }
 
-function Unverified({ verifyHref }: { verifyHref: string }) {
-  return (
-    <Board divide={false} className="px-6 py-12 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
-        Source code not verified
-      </p>
-      <p className="mx-auto mt-4 max-w-lg text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        Verify this contract to publish its source and ABI here, and to make every call and event
-        against it decode by name across the explorer.
-      </p>
-      <Link
-        href={verifyHref}
-        className="mt-6 inline-flex items-center gap-2 border border-zinc-900 bg-zinc-900 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        <ShieldCheck className="size-3.5" />
-        Verify contract
-      </Link>
-    </Board>
-  );
-}
 
 export function EvmContract({
   network,
@@ -244,7 +225,8 @@ export function EvmContract({
         </Board>
       );
     }
-    return <Unverified verifyHref={`${base}/verify/${addr.toLowerCase()}`} />;
+    // unverified: the chain still has plenty to say about it
+    return <EvmBytecode addr={addr} base={base} chainId={c.chainId} rpcUrl={c.rpcUrl} />;
   }
 
   const abi = (contract.abi ?? []) as unknown[];
