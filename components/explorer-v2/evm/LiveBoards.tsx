@@ -200,9 +200,14 @@ export function useDrip<T extends { hash: string }>(
   visibleMax: number,
   enabled: boolean,
   onEnqueue?: (items: T[]) => void,
+  /** hold the belt still (the pointer is over it); newcomers queue up and
+   *  catch up, skipping ahead if needed, once released */
+  paused = false,
 ): T[] {
   const [visible, setVisible] = useState<T[]>([]);
   const queue = useRef<T[]>([]);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   const seen = useRef(new Set<string>());
   const painted = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -231,7 +236,7 @@ export function useDrip<T extends { hash: string }>(
     const tick = () => {
       if (cancelled) return;
       const q = queue.current;
-      if (q.length) {
+      if (q.length && !pausedRef.current) {
         // far behind: skip to the newest window rather than replaying
         // history. The ticker stays calm and near-real-time; the tab
         // behind "View all" has every transaction.
@@ -253,6 +258,13 @@ export function useDrip<T extends { hash: string }>(
   return enabled ? visible : incoming.slice(0, visibleMax);
 }
 
+/** the last value seen before `frozen` went true, until it goes false */
+export function useFreeze<T>(value: T, frozen: boolean): T {
+  const held = useRef(value);
+  if (!frozen) held.current = value;
+  return frozen ? held.current : value;
+}
+
 /* ------------------------------------------------------------------ */
 
 export interface BlockRow {
@@ -264,7 +276,7 @@ export interface BlockRow {
 }
 
 export function LatestBlocksBoard({
-  rows,
+  rows: incomingRows,
   tip,
   executedHeight,
   rootBlockFor,
@@ -284,10 +296,14 @@ export function LatestBlocksBoard({
   const cols = showSettlement
     ? "md:grid-cols-[7.5rem_3rem_minmax(0,1fr)_8.5rem_3rem]"
     : "md:grid-cols-[7.5rem_3rem_minmax(0,1fr)_3rem]";
+  // the belt holds still under the pointer so a row can be clicked
+  const [hover, setHover] = useState(false);
+  const shown = useFreeze({ rows: incomingRows, tip, executedHeight }, hover);
+  const rows = shown.rows;
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Blocks" action={<ViewAll href={`${base}/blocks`} />} />
-      <Board divide={false}>
+      <Board divide={false} className="group/belt" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span>Height</span>
           <span className="text-right">Txs</span>
@@ -310,7 +326,7 @@ export function LatestBlocksBoard({
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>
                 {showSettlement && (
-                  <PhaseTrack phase={phaseOf(b.number, executedHeight, settledHeight)} rootBlock={rootBlockFor?.(b.number)} />
+                  <PhaseTrack phase={phaseOf(b.number, shown.executedHeight, shown.tip?.settledHeight ?? null)} rootBlock={rootBlockFor?.(b.number)} />
                 )}
                 <span className={cn(MUTED, "text-right")}>{ageShort(b.timestamp)}</span>
               </Link>
@@ -389,10 +405,18 @@ export function LatestTxsBoard({
   /** rows arrive from the receipts stream; enter with motion */
   streaming: boolean;
 }) {
-  // the ticker: one row at a time, names warmed before a row is released
-  const rows = useDrip(txs, ROWS + 1, streaming, (fresh) => {
-    void prewarmContractNames(chainId, fresh.map((t) => t.to));
-  });
+  // the ticker: one row at a time, names warmed before a row is released;
+  // it holds still while the pointer is over it so a row can be clicked
+  const [hover, setHover] = useState(false);
+  const rows = useDrip(
+    txs,
+    ROWS + 1,
+    streaming,
+    (fresh) => {
+      void prewarmContractNames(chainId, fresh.map((t) => t.to));
+    },
+    hover,
+  );
   const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const tokens = useTokenList(chainId);
 
@@ -413,7 +437,7 @@ export function LatestTxsBoard({
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Transactions" action={<ViewAll href={`${base}/txs`} />} />
-      <Board divide={false}>
+      <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span />
           <span>Hash</span>

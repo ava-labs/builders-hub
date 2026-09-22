@@ -141,13 +141,15 @@ export function Board({
   children,
   className,
   divide = true,
+  ...rest
 }: {
   children: React.ReactNode;
   className?: string;
   divide?: boolean;
-}) {
+} & Pick<React.HTMLAttributes<HTMLDivElement>, "onMouseEnter" | "onMouseLeave">) {
   return (
     <div
+      {...rest}
       className={cn(
         "border-b border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80",
         divide && "divide-y divide-zinc-200 dark:divide-zinc-800",

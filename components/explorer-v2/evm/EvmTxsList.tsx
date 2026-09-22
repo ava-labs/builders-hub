@@ -74,9 +74,16 @@ export function EvmTxsList({ network }: { network: string }) {
         timestamp: t.timestamp,
       }));
 
-  const rows = useDrip(source, streaming ? LIVE_ROWS + 1 : limit, streaming, (fresh) => {
-    void prewarmContractNames(c.chainId, fresh.map((t) => t.to));
-  });
+  const [hover, setHover] = useState(false);
+  const rows = useDrip(
+    source,
+    streaming ? LIVE_ROWS + 1 : limit,
+    streaming,
+    (fresh) => {
+      void prewarmContractNames(c.chainId, fresh.map((t) => t.to));
+    },
+    hover,
+  );
   const contracts = useVerifiedContracts(c.chainId, rows.map((t) => t.to));
 
   const method = (t: TxRow): { label: string; named: boolean } => {
@@ -99,7 +106,7 @@ export function EvmTxsList({ network }: { network: string }) {
     <EvmShell network={network}>
       <section className="flex flex-col gap-4">
         <SectionHeader label="Transactions" />
-        <Board divide={false}>
+        <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
           <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
             <span />
             <span>Hash</span>
