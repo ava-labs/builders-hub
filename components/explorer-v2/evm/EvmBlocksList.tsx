@@ -7,7 +7,7 @@ import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { GasFill } from "./bits";
-import { useEvmData, LIVE_REFRESH_MS } from "./hooks";
+import { useEvmData, refreshMsForChain } from "./hooks";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
 
@@ -18,7 +18,7 @@ export function EvmBlocksList({ network }: { network: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
   const [limit, setLimit] = useState(PAGE);
-  const { data, loading } = useEvmData<BlockListResponse>(c.chainId, "blocks", { limit }, { refreshMs: LIVE_REFRESH_MS });
+  const { data, loading } = useEvmData<BlockListResponse>(c.chainId, "blocks", { limit }, { refreshMs: refreshMsForChain(c.chainId) });
   const blocks = data?.blocks ?? [];
 
   return (
