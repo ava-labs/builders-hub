@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { stakingTermLabelAt, uptimeRequirementAt, type HeliconNetwork } from "@/constants/helicon";
 import { useMemo, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import {
@@ -699,6 +700,7 @@ export function PrimaryStakingContent({
   network?: string;
 }) {
   const door = (metric: string) => (base ? `${base}/${metric}` : undefined);
+  const hNet: HeliconNetwork = network === "fuji" ? "fuji" : "mainnet";
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: apy, failed: apyFailed } = useStakingApy();
   const { data: sdkValidators } = useSdkValidators();
@@ -1160,8 +1162,8 @@ export function PrimaryStakingContent({
             <ParamCell label="Min Validator Stake" value="2,000 AVAX" />
             <ParamCell label="Max Validator Weight" value="3M AVAX" sub="≤ 5× own stake" />
             <ParamCell label="Min Delegation" value="25 AVAX" />
-            <ParamCell label="Staking Term" value="2 wk – 1 yr" />
-            <ParamCell label="Uptime Required" value="≥ 80%" sub="or no reward" />
+            <ParamCell label="Staking Term" value={stakingTermLabelAt(Date.now(), hNet)} />
+            <ParamCell label="Uptime Required" value={`≥ ${uptimeRequirementAt(Date.now(), hNet)}%`} sub="or no reward" />
             <ParamCell label="Min Delegation Fee" value="2%" />
           </div>
         </Board>

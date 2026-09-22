@@ -28,7 +28,7 @@ import { Rise } from "@/components/explorer-v2/ui";
 import { buildAddressUrl, buildTxUrl } from "@/utils/eip3091";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
-type EntityType = "block" | "tx" | "address" | "node";
+type EntityType = "block" | "tx" | "address" | "node" | "chain";
 
 /* Recent searches — per network, newest first, capped. */
 type Recent = { type: EntityType; id: string };

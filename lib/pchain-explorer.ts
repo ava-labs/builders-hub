@@ -496,6 +496,6 @@ export interface ValidatorsResponse {
 }
 
 export interface SearchResult {
-  type: "block" | "tx" | "address" | "node" | "none";
+  type: "block" | "tx" | "address" | "node" | "chain" | "none";
   id: string;
 }

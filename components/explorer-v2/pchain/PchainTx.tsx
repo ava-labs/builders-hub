@@ -35,6 +35,7 @@ import { usePchainData } from "./hooks";
 import { GenesisViewer } from "./GenesisViewer";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "./FundFlowDiagram";
 import { knownChainName } from "@/lib/pchain-explorer";
+import { uptimeRequirementAt, type HeliconNetwork } from "@/constants/helicon";
 import type { AssetAmount, Tx, Utxo } from "@/lib/pchain-explorer";
 
 export function PchainTx({ chain, network, txHash }: { chain: string; network: string; txHash: string }) {
@@ -57,6 +58,14 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
       tx.rewardAddresses?.length ||
       tx.details?.stakingTxId ||
       tx.details?.rewardPaid !== undefined)
+  );
+  // ACP-267 raised the reward-eligibility threshold from 80% to 90%, judged by
+  // the validation's OWN start time — a stake that began pre-Helicon is still
+  // settled at 80%, so this is not a global swap. Falls back to the settlement
+  // block when the start is unknown.
+  const uptimeReq = uptimeRequirementAt(
+    ((tx?.startTimestamp || tx?.blockTimestamp) ?? 0) * 1000,
+    network === "fuji" ? "fuji" : ("mainnet" as HeliconNetwork),
   );
   // continuous staking (Helicon): the stake renews itself on a period,
   // optionally compounding rewards back in
@@ -381,10 +390,11 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                   stakeRewardUtxos.length === 0 ? (
                     <SpecRow label="Reward">
                       {/* the chain records only the commit/abort vote. on the primary network
-                          the vote's sole input is the validator's observed uptime vs the 80% requirement. */}
+                          the vote's sole input is the validator's observed uptime vs the requirement
+                          in force for this validation's start time (ACP-267). */}
                       None (aborted)
                       <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                        validator missed the 80% uptime vote at settlement — principal returned, reward forfeited
+                        validator missed the {uptimeReq}% uptime vote at settlement — principal returned, reward forfeited
                       </span>
                     </SpecRow>
                   ) : stakeRewardNet !== null && stakeRewardFee !== null ? (
@@ -469,7 +479,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                       {tx.details.rewardPaid ? "Yes (committed)" : "No (aborted)"}
                       {!tx.details.rewardPaid && (
                         <span className="mt-0.5 block font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                        validator missed the 80% uptime vote at settlement — principal returned, reward forfeited
+                        validator missed the {uptimeReq}% uptime vote at settlement — principal returned, reward forfeited
                       </span>
                       )}
                     </SpecRow>
@@ -833,7 +843,22 @@ function ConversionSpec({
 }) {
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader label="L1 Conversion" />
+      {/* The manager chain's own page carries what the conversion produced:
+          the live validator set, subnet ownership and the manager contract.
+          chainID is a CreateChainTx id, which is what /chain/ keys on. */}
+      <SectionHeader
+        label="L1 Conversion"
+        action={
+          u?.chainID ? (
+            <Link
+              href={`${base}/chain/${u.chainID}`}
+              className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500"
+            >
+              View L1 details →
+            </Link>
+          ) : undefined
+        }
+      />
       {loading || !u ? (
         <PanelBones />
       ) : (
