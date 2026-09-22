@@ -25,6 +25,7 @@ import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcTx } from "./useRpcTx";
+import { EvmTrace, useTrace } from "./EvmTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
 import { getFunctionBySelector } from "@/abi/event-signatures.generated";
@@ -211,6 +212,12 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const icmFallback = useIcmFallback(txHash, error === "not found" && !t);
   const icmMessages = t ? icmMessagesInLogs(t.logs) : [];
 
+  // the execution trace, from the debug node; when it is here it carries
+  // the internal calls, token movements and events, so the flat sections
+  // for those step aside
+  const { trace, state: traceState } = useTrace(c.chainId, txHash, !!liveRpc);
+  const traced = traceState === "ready";
+
   // where the tx's block stands in Continuous Execution
   const life = useBlockLifecycle(liveRpc, t?.blockNumber ?? null);
   const showLife = !!liveRpc && life.supported;
@@ -385,7 +392,9 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </Board>
           </section>
 
-          {transfers.length > 0 && (
+          {liveRpc && <EvmTrace trace={trace} state={traceState} chainId={c.chainId} base={base} sender={t.from} symbol={sym} />}
+
+          {!traced && transfers.length > 0 && (
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Token Transfers · ${transfers.length}`} />
               <Board>
@@ -438,7 +447,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </section>
           )}
 
-          {t.internalTxns.length > 0 && (
+          {!traced && t.internalTxns.length > 0 && (
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Internal Transactions · ${t.internalTxns.length}`} />
               <Board>
@@ -500,6 +509,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </section>
           )}
 
+          {!traced && (
           <section className="flex flex-col gap-4">
             <SectionHeader label={`Event Logs · ${t.logs.length}`} />
             <Board>
@@ -531,6 +541,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
               ))}
             </Board>
           </section>
+          )}
         </div>
       )}
     </EvmShell>
