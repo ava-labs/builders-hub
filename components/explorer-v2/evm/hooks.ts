@@ -6,6 +6,14 @@ import { evmApiPath } from "@/lib/evm-explorer";
 // Default client poll interval for "live" views (home, tx/block lists).
 export const LIVE_REFRESH_MS = 5_000;
 
+const CHAIN_REFRESH_MS: Record<string, number> = {
+  "43114": 1_000,
+};
+
+export function refreshMsForChain(chainId: number | string | undefined): number {
+  return CHAIN_REFRESH_MS[String(chainId)] ?? LIVE_REFRESH_MS;
+}
+
 /**
  * Generic client fetch for the same-origin EVM explorer proxy. Mirrors
  * pchain/hooks.ts usePchainData — plain fetch + AbortController, silent

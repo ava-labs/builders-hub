@@ -16,15 +16,18 @@ export const dynamic = "force-dynamic";
 const REQUEST_TIMEOUT_MS = 8000;
 // Live data (lists, stats, addresses)
 const CACHE_CONTROL = "public, max-age=3, s-maxage=3, stale-while-revalidate=10";
+const FAST_CACHE_CONTROL = "public, max-age=0, s-maxage=1";
+const FAST_CHAINS = new Set(["43114"]);
 // tx/{hash} and block/{id} are final at acceptance — once the upstream returns
 // a 200 the payload never changes, so cache hard and spare the origin box.
 const IMMUTABLE_CACHE_CONTROL =
   "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-function cacheControlFor(resource: string): string {
-  return resource.startsWith("tx/") || resource.startsWith("block/")
-    ? IMMUTABLE_CACHE_CONTROL
-    : CACHE_CONTROL;
+function cacheControlFor(resource: string, chainId: string): string {
+  if (resource.startsWith("tx/") || resource.startsWith("block/")) {
+    return IMMUTABLE_CACHE_CONTROL;
+  }
+  return FAST_CHAINS.has(chainId) ? FAST_CACHE_CONTROL : CACHE_CONTROL;
 }
 
 async function fetchWithTimeout(url: string, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
@@ -63,7 +66,7 @@ export async function GET(
       status: res.status,
       headers: {
         "content-type": res.headers.get("content-type") ?? "application/json",
-        ...(res.ok ? { "cache-control": cacheControlFor(resource) } : {}),
+        ...(res.ok ? { "cache-control": cacheControlFor(resource, upstreamChainId) } : {}),
       },
     });
   } catch (err) {
