@@ -11,6 +11,8 @@ import {
   calculateVersionStats,
   compareVersions,
   type VersionBreakdownData,
+  defaultVersionTarget,
+  sortVersionsDesc,
 } from "@/components/stats/VersionBreakdown";
 
 /* An L1's own validator set — the chain-scope Validators tab for every
@@ -78,17 +80,14 @@ export function L1ValidatorsContent({
   }, [subnetId, network]);
 
   const availableVersions = useMemo(
-    () =>
-      versionBreakdown
-        ? Object.keys(versionBreakdown.byClientVersion)
-            .filter((v) => v !== "Unknown")
-            .sort()
-            .reverse()
-        : [],
+    () => (versionBreakdown ? sortVersionsDesc(Object.keys(versionBreakdown.byClientVersion)) : []),
     [versionBreakdown],
   );
   useEffect(() => {
-    if (!minVersion && availableVersions.length > 0) setMinVersion(availableVersions[0]);
+    if (!minVersion && versionBreakdown) {
+      const target = defaultVersionTarget(versionBreakdown.byClientVersion);
+      if (target) setMinVersion(target);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableVersions]);
 
