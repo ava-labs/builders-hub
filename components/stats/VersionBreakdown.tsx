@@ -19,9 +19,11 @@ export function compareVersions(v1: string, v2: string): number {
   if (v2 === "Unknown") return 1;
 
   const extractNumbers = (v: string) => {
-    const match = v.match(/(\d+)\.(\d+)\.(\d+)/);
+    // Patch is optional: breakdowns are bucketed to the minor line ("1.15"),
+    // while an individual node still reports a full "1.15.1".
+    const match = v.match(/(\d+)\.(\d+)(?:\.(\d+))?/);
     if (!match) return [0, 0, 0];
-    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+    return [parseInt(match[1]), parseInt(match[2]), match[3] ? parseInt(match[3]) : 0];
   };
 
   const [major1, minor1, patch1] = extractNumbers(v1);

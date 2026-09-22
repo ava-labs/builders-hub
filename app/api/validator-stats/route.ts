@@ -3,6 +3,7 @@ import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { type SimpleValidator, type ValidatorVersion, type SubnetStats } from '@/types/validator-stats';
 import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@/constants/validator-discovery';
 import l1ChainsData from "@/constants/l1-chains.json";
+import { minorVersionLine } from "@/lib/node-version";
 
 // Minimal subnet shape consumed from our /v1 subnets endpoint (Glacier-shape).
 // blockchains is null (Go nil slice) for subnets that never created a chain.
@@ -286,7 +287,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     const stake = BigInt(validator.weight);
     subnetAccumulators[subnetId].totalStake += stake;
 
-    const version = versionMap.get(validator.nodeId)?.replace("avalanchego/", "") || "Unknown";
+    const version = minorVersionLine(versionMap.get(validator.nodeId)) || "Unknown";
 
     if (!subnetAccumulators[subnetId].byClientVersion[version]) {
       subnetAccumulators[subnetId].byClientVersion[version] = {

@@ -443,12 +443,12 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
             <Stat
               label={`Up to Date${minVersion ? ` · ${minVersion}` : ""}`}
               sub={
-                versionStats ? `${versionStats.stakePercentAbove.toFixed(1)}% by stake` : undefined
+                versionStats ? `${versionStats.nodesPercentAbove.toFixed(1)}% of nodes` : undefined
               }
             >
               {versionStats ? (
                 <>
-                  {versionStats.nodesPercentAbove.toFixed(1)}
+                  {versionStats.stakePercentAbove.toFixed(1)}
                   <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
                 </>
               ) : (
