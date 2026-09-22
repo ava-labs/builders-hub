@@ -21,6 +21,8 @@ import {
   VersionBarChart,
   VersionLabels,
   VersionBreakdownInline,
+  defaultVersionTarget,
+  sortVersionsDesc,
 } from "@/components/stats/VersionBreakdown";
 import { type SubnetStats } from "@/types/validator-stats";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
@@ -96,21 +98,27 @@ export function NetworkValidators() {
   const data = subnets ?? [];
   const error = feedError ? "Failed to load validator stats" : null;
 
-  const availableVersions = useMemo(() => {
-    const versions = new Set<string>();
+  // node counts per version across every subnet
+  const versionTotals = useMemo(() => {
+    const acc: Record<string, { nodes: number }> = {};
     data.forEach((subnet) => {
-      Object.keys(subnet.byClientVersion).forEach((v) => versions.add(v));
+      Object.entries(subnet.byClientVersion).forEach(([v, d]) => {
+        acc[v] = { nodes: (acc[v]?.nodes ?? 0) + d.nodes };
+      });
     });
-    return Array.from(versions)
-      .filter((v) => v !== "Unknown")
-      .sort()
-      .reverse();
+    return acc;
   }, [data]);
 
-  // default the filter to the newest version once the feed lands
+  const availableVersions = useMemo(
+    () => sortVersionsDesc(Object.keys(versionTotals)),
+    [versionTotals],
+  );
+
+  // newest version with real adoption, not the highest one present
   useEffect(() => {
-    if (!minVersion && availableVersions.length > 0) {
-      setMinVersion(availableVersions[0]);
+    if (!minVersion) {
+      const target = defaultVersionTarget(versionTotals);
+      if (target) setMinVersion(target);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableVersions]);

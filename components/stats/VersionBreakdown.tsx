@@ -33,6 +33,31 @@ export function compareVersions(v1: string, v2: string): number {
 }
 
 // Calculate version stats
+/** Versions present, newest first. Numeric, so 1.15.1 outranks 1.9.0 — a
+ *  plain .sort() compares as text and gets that backwards. */
+export function sortVersionsDesc(versions: string[]): string[] {
+  return versions.filter((v) => v !== "Unknown").sort((a, b) => compareVersions(b, a));
+}
+
+/**
+ * Default "up to date" target: the newest version with real adoption.
+ *
+ * Taking the highest version present makes a single canary node the bar the
+ * whole network is measured against. One node on a pre-release drops
+ * "up to date" to ~0% while nothing has actually changed.
+ */
+export function defaultVersionTarget(
+  byClientVersion: Record<string, VersionData>,
+  minShare = 0.01,
+): string {
+  const entries = Object.entries(byClientVersion).filter(([v]) => v !== "Unknown");
+  if (entries.length === 0) return "";
+  const total = entries.reduce((sum, [, d]) => sum + d.nodes, 0);
+  const ranked = entries.sort((a, b) => compareVersions(b[0], a[0]));
+  const adopted = total > 0 ? ranked.find(([, d]) => d.nodes / total >= minShare) : undefined;
+  return (adopted ?? ranked[0])[0];
+}
+
 export function calculateVersionStats(
   versionBreakdown: VersionBreakdownData | null,
   minVersion: string

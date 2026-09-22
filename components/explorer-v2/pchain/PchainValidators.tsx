@@ -14,6 +14,7 @@ import {
   calculateVersionStats,
   compareVersions,
   type VersionBreakdownData,
+  defaultVersionTarget,
 } from "@/components/stats/VersionBreakdown";
 import { usePchainData } from "./hooks";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
@@ -37,42 +38,39 @@ function NetworkHealth({ network }: { network: string }) {
       : null;
   }, [subnets]);
 
-  const latest = versions
-    ? Object.keys(versions.byClientVersion).sort((a, b) => compareVersions(b, a))[0]
-    : null;
+  // newest version with real adoption, not the highest one present
+  const latest = versions ? defaultVersionTarget(versions.byClientVersion) || null : null;
   const stats = versions && latest ? calculateVersionStats(versions, latest) : null;
-  const totalNodes = versions
-    ? Object.values(versions.byClientVersion).reduce((sum, v) => sum + v.nodes, 0)
-    : 0;
+  const totalNodes = versions ? Object.values(versions.byClientVersion).reduce((sum, v) => sum + v.nodes, 0) : 0;
 
   if (!versions || !latest || !stats) return null;
 
   return (
     <Board divide={false}>
-          <div className="flex h-full flex-col gap-4 px-5 py-5 md:px-6">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                Client versions · Primary Network
-              </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                {stats.nodesPercentAbove.toFixed(1)}% of nodes on {latest}
-              </span>
-            </div>
-            <VersionBarChart versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
-            <VersionLabels versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
-            <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {stats.stakePercentAbove.toFixed(1)}% of stake runs the latest client
-            </p>
-            {network === "mainnet" && (
-              <Link
-                href="/explorer/mainnet/c-chain/validators"
-                className="group mt-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-              >
-                Full staking dashboard
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-              </Link>
-            )}
-          </div>
+      <div className="flex h-full flex-col gap-4 px-5 py-5 md:px-6">
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+            Client versions · Primary Network
+          </span>
+          <span className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+            {stats.nodesPercentAbove.toFixed(1)}% of nodes on {latest}
+          </span>
+        </div>
+        <VersionBarChart versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
+        <VersionLabels versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
+        <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+          {stats.stakePercentAbove.toFixed(1)}% of stake runs the latest client
+        </p>
+        {network === 'mainnet' && (
+          <Link
+            href="/explorer/mainnet/c-chain/validators"
+            className="group mt-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+          >
+            Full staking dashboard
+            <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+          </Link>
+        )}
+      </div>
     </Board>
   );
 }

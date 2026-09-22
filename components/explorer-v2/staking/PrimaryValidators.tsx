@@ -24,6 +24,7 @@ import {
   calculateVersionStats,
   compareVersions,
   type VersionBreakdownData,
+  defaultVersionTarget,
 } from "@/components/stats/VersionBreakdown";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { ChartEmpty, Stat, TipPlate } from "./bits";
@@ -260,9 +261,12 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
     [versions],
   );
 
-  // default the target to the newest release once the feed lands
+  // default the target to the newest release with max adoption
   useEffect(() => {
-    if (!minVersion && availableVersions.length > 0) setMinVersion(availableVersions[0]);
+    if (!minVersion && versions) {
+      const target = defaultVersionTarget(versions.byClientVersion);
+      if (target) setMinVersion(target);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableVersions]);
 
