@@ -356,9 +356,15 @@ export function StatCell({
   );
 }
 
-export function StatStrip({ children, cols = 4 }: { children: React.ReactNode; cols?: 2 | 3 | 4 }) {
+export function StatStrip({ children, cols = 4 }: { children: React.ReactNode; cols?: 2 | 3 | 4 | 5 }) {
   const gridCols =
-    cols === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
+    cols === 5
+      ? "sm:grid-cols-2 lg:grid-cols-5"
+      : cols === 4
+        ? "sm:grid-cols-2 lg:grid-cols-4"
+        : cols === 3
+          ? "sm:grid-cols-3"
+          : "sm:grid-cols-2";
   return (
     <Board divide={false}>
       <div className={cn("grid grid-cols-1 divide-y divide-zinc-200 sm:divide-y-0 sm:divide-x dark:divide-zinc-800", gridCols)}>
@@ -674,6 +680,36 @@ export function TypeFilterRail({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* SpecSheet: the spec plate for wide pages. SpecRow pushes label and   */
+/* value to opposite edges, which is right in a narrow column and wrong */
+/* across a full sheet: the eye sweeps 1 500 px per fact. Here the     */
+/* label owns a fixed column and the value starts right after it, so   */
+/* the pair reads as one line.                                          */
+
+export function SpecSheet({ children, className }: { children: React.ReactNode; className?: string }) {
+  return <dl className={cn("divide-y divide-zinc-200 dark:divide-zinc-800", className)}>{children}</dl>;
+}
+
+export function SpecLine({
+  label,
+  children,
+  align = "baseline",
+}: {
+  label: string;
+  children: React.ReactNode;
+  align?: "baseline" | "start";
+}) {
+  return (
+    <div className={cn("flex gap-6 py-3", align === "baseline" ? "items-baseline" : "items-start")}>
+      <dt className="w-32 shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 md:w-40 dark:text-zinc-500">
+        {label}
+      </dt>
+      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">{children}</dd>
     </div>
   );
 }

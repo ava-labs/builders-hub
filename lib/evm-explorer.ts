@@ -88,6 +88,9 @@ export interface TxSummary {
   timestamp: number; // unix seconds
   /** 4-byte calldata selector; absent/"" for plain value transfers */
   methodId?: string;
+  /** wei actually paid (gasUsed × effectiveGasPrice); set only by the
+   *  RPC-sourced block reader, the indexer does not carry it */
+  feeWei?: string;
 }
 
 export interface TxListResponse {

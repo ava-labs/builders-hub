@@ -156,3 +156,51 @@ export function useEvmData<T>(
 
   return { data, loading, error, retry };
 }
+
+/* Token market data: CoinGecko by way of the legacy explorer route's
+ * priceOnly mode (server-side cached). Chain data stays on the EVM
+ * explorer API; this is the one figure that isn't on-chain. */
+export interface PriceData {
+  price: number;
+  priceInAvax?: number;
+  change24h: number;
+  marketCap: number;
+}
+
+export function usePrice(chainId: string | number | undefined): {
+  price: PriceData | null;
+  /** the fetch resolved: distinguishes "loading" from "token isn't listed",
+   *  so USD-or-native cells can hold instead of flipping units */
+  settled: boolean;
+} {
+  const [state, setState] = useState<{ price: PriceData | null; settled: boolean }>({
+    price: null,
+    settled: false,
+  });
+  useEffect(() => {
+    if (chainId == null) return;
+    let cancelled = false;
+    setState({ price: null, settled: false });
+    fetch(`/api/explorer/${chainId}?priceOnly=true`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { price?: PriceData } | null) => {
+        if (!cancelled) setState({ price: data?.price ?? null, settled: true });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ price: null, settled: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chainId]);
+  return state;
+}
+
+/** wei × USD/token → "$1,234.56"; undefined without a price or for zero */
+export function usdOfWei(wei: string | number | bigint | undefined, usdPrice: number | null): string | undefined {
+  if (!usdPrice || wei === undefined) return undefined;
+  const v = (Number(wei) / 1e18) * usdPrice;
+  if (!Number.isFinite(v) || v === 0) return undefined;
+  if (v < 0.01) return "<$0.01";
+  return `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
