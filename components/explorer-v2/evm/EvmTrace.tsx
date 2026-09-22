@@ -4,14 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import {
+  decodeAbiParameters,
   decodeFunctionData,
   decodeFunctionResult,
   encodeAbiParameters,
   keccak256,
   parseAbiItem,
+  parseAbiParameters,
   toFunctionSelector,
   type Abi,
   type AbiFunction,
+  type AbiParameter,
 } from "viem";
 import { cn } from "@/lib/utils";
 import { Board, HashChip, SectionHeader } from "@/components/explorer-v2/ui";
@@ -285,6 +288,93 @@ interface DecodedEvent {
   guessed?: boolean;
 }
 
+/** split "a,(b,c),d" on top-level commas */
+function splitTypes(list: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of list) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      out.push(cur.trim());
+      cur = "";
+    } else cur += ch;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+const isDynamic = (t: string) => t === "string" || t === "bytes" || t.endsWith("]") || t.startsWith("(");
+
+/** k-subsets of indices, addresses-first so the conventional layout is tried first */
+function* indexedCandidates(types: string[], k: number): Generator<number[]> {
+  const idx = types.map((_, i) => i);
+  const score = (i: number) => (types[i] === "address" ? 0 : isDynamic(types[i]) ? 2 : 1);
+  const ordered = [...idx].sort((a, b) => score(a) - score(b) || a - b);
+  const combo = (start: number, chosen: number[]): number[][] => {
+    if (chosen.length === k) return [chosen];
+    const out: number[][] = [];
+    for (let i = start; i < ordered.length; i++) out.push(...combo(i + 1, [...chosen, ordered[i]]));
+    return out;
+  };
+  for (const c of combo(0, [])) yield c.sort((a, b) => a - b);
+}
+
+/** decode a log from a signature with no indexed markers: the log's topic
+ *  count says how many params were indexed; the split is accepted only when
+ *  re-encoding the non-indexed values reproduces the data exactly */
+function decodeFromSignature(sig: string, log: { topics: string[]; data: string }): DecodedEvent | null {
+  const m = sig.match(/^([^(]+)\((.*)\)$/);
+  if (!m) return null;
+  const name = m[1];
+  const types = m[2] ? splitTypes(m[2]) : [];
+  const k = log.topics.length - 1;
+  if (k > types.length) return null;
+  const data = (log.data && log.data !== "0x" ? log.data : "0x") as `0x${string}`;
+  for (const indexed of indexedCandidates(types, k)) {
+    const rest = types.filter((_, i) => !indexed.includes(i));
+    try {
+      const params = rest.length ? (parseAbiParameters(rest.join(", ")) as readonly AbiParameter[]) : [];
+      const values = params.length ? decodeAbiParameters(params, data) : [];
+      const again = params.length ? encodeAbiParameters(params, values as never) : "0x";
+      if (again.toLowerCase() !== data.toLowerCase()) continue;
+      // a fit: assemble in signature order
+      const out: DecodedEvent["params"] = [];
+      let ti = 1;
+      let di = 0;
+      types.forEach((t, i) => {
+        if (indexed.includes(i)) {
+          const topic = log.topics[ti++];
+          out.push({ name: "", type: t, value: isDynamic(t) ? topic : topicValue(topic, t) });
+        } else {
+          out.push({ name: "", type: t, value: plain(values[di++]) });
+        }
+      });
+      return { name, params: out, guessed: true };
+    } catch {
+      /* next candidate */
+    }
+  }
+  return { name, params: [], guessed: true };
+}
+
+/** a 32-byte topic as its static type */
+function topicValue(topic: string, type: string): string {
+  if (type === "address") return `0x${topic.slice(26)}`;
+  if (type === "bool") return BigInt(topic) === 0n ? "false" : "true";
+  if (type.startsWith("int")) {
+    const bits = Number(type.slice(3) || 256);
+    const v = BigInt(topic);
+    return (v >= 1n << BigInt(bits - 1) ? v - (1n << BigInt(bits)) : v).toString();
+  }
+  if (type.startsWith("uint")) return BigInt(topic).toString();
+  return topic;
+}
+
+const plain = (v: unknown): string =>
+  typeof v === "bigint" ? v.toString() : typeof v === "boolean" ? String(v) : Array.isArray(v) ? `(${v.map(plain).join(", ")})` : typeof v === "object" && v !== null ? plain(Object.values(v)) : String(v);
+
 function decodeLog(log: { address: string; topics: string[]; data: string }, n: Names): DecodedEvent | null {
   const abi = n.contracts.get(log.address.toLowerCase())?.abi;
   const viaAbi = decodeEventWithAbi(abi, log);
@@ -292,9 +382,7 @@ function decodeLog(log: { address: string; topics: string[]; data: string }, n: 
   const reg = registryDecodeEvent(log);
   if (reg) return { name: reg.name, params: reg.params };
   const hit = n.sigs.ev.get((log.topics[0] ?? "").toLowerCase());
-  // the database knows the signature but not which params were indexed,
-  // so the event is named and its values stay in the raw topics
-  if (hit) return { name: hit.name.split("(")[0], params: [], guessed: true };
+  if (hit) return decodeFromSignature(hit.name, log);
   return null;
 }
 
@@ -485,17 +573,26 @@ export function EvmTrace({
                 const gas = hexInt(fr.gasUsed);
                 const frameLogs = logs.filter((l) => l.frameId === f.id);
                 const isCollapsed = collapsed.has(f.id);
+                // one rail per ancestor, centred under that ancestor's chevron
                 const rails = (count: number) =>
                   Array.from({ length: count }).map((_, i) => (
-                    <span key={i} aria-hidden className="absolute inset-y-0 w-px bg-zinc-200 dark:bg-zinc-800" style={{ left: `${30 + i * 22}px` }} />
+                    <span key={i} aria-hidden className="absolute inset-y-0 w-px bg-zinc-200 dark:bg-zinc-800" style={{ left: `${28 + i * 22}px` }} />
                   ));
                 return (
                   <div key={f.id} className="border-b border-zinc-100 last:border-b-0 dark:border-zinc-900">
-                    <div className="relative flex min-h-9 items-center gap-3 px-5 py-1.5 font-mono text-[12px] md:px-6" style={{ paddingLeft: `${20 + f.depth * 22}px` }}>
+                    <div
+                      className={cn(
+                        "relative flex min-h-9 items-center gap-3 py-1.5 pr-5 font-mono text-[12px] transition-colors md:pr-6",
+                        f.children.length ? "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900" : "hover:bg-zinc-50/60 dark:hover:bg-zinc-900/60",
+                      )}
+                      style={{ paddingLeft: `${20 + f.depth * 22}px` }}
+                      onClick={() => f.children.length && toggle(f.id)}
+                      title={f.children.length ? `${f.children.length} nested call${f.children.length === 1 ? "" : "s"} · click to ${isCollapsed ? "expand" : "collapse"}` : undefined}
+                    >
                       {rails(f.depth)}
-                      <button onClick={() => f.children.length && toggle(f.id)} className={cn("flex h-4 w-4 shrink-0 items-center justify-center text-zinc-400", !f.children.length && "invisible")} aria-label={isCollapsed ? "expand" : "collapse"}>
+                      <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center text-zinc-400", !f.children.length && "invisible")} aria-hidden>
                         {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                      </button>
+                      </span>
                       <span className={cn("w-[5.5rem] shrink-0 text-[9px] font-bold uppercase tracking-[0.14em]", C.type[fr.type] ?? C.type.CALL)}>
                         {fr.type.toLowerCase()}
                       </span>
@@ -549,7 +646,7 @@ export function EvmTrace({
                           </span>
                         )}
                       </span>
-                      <span className="flex w-28 shrink-0 items-center justify-end gap-2 tabular-nums text-zinc-500 dark:text-zinc-400">
+                      <span className="flex w-28 shrink-0 items-center justify-end gap-2 tabular-nums text-zinc-500 dark:text-zinc-400" title={`${Math.round(f.share * 100)}% of the transaction's gas · ${f.selfGas.toLocaleString("en-US")} spent in this frame itself`}>
                         <span className="h-1 w-10 bg-zinc-100 dark:bg-zinc-900">
                           <span className="block h-full bg-[#A2AFB2] dark:bg-zinc-600" style={{ width: `${Math.max(2, Math.round(f.share * 100))}%` }} />
                         </span>
@@ -559,7 +656,7 @@ export function EvmTrace({
                     {frameLogs.map(({ log }, i) => {
                       const ev = decodeLog(log, n);
                       return (
-                        <div key={i} className="relative flex min-h-7 items-center gap-2 px-5 py-1 font-mono text-[11px] text-zinc-500 md:px-6 dark:text-zinc-400" style={{ paddingLeft: `${20 + (f.depth + 1) * 22 + 16}px` }}>
+                        <div key={i} className="relative flex min-h-7 items-center gap-2 py-1 pr-5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-50/60 md:pr-6 dark:text-zinc-400 dark:hover:bg-zinc-900/60" style={{ paddingLeft: `${20 + (f.depth + 1) * 22 + 16}px` }}>
                           {rails(f.depth + 1)}
                           <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">event</span>
                           <Who addr={log.address} n={n} />
@@ -572,7 +669,7 @@ export function EvmTrace({
                                   <span className={C.punct}>(</span>
                                   {ev.params.map((p, k) => (
                                     <span key={k} className="inline-flex flex-wrap items-baseline gap-1">
-                                      <span className={cn("text-[10px]", C.param)}>{p.name}=</span>
+                                      {p.name && <span className={cn("text-[10px]", C.param)}>{p.name}=</span>}
                                       <V v={strVal(p.value, p.type, p.name, log.address, n)} />
                                       {k < ev.params.length - 1 && <span className={C.punct}>,</span>}
                                     </span>
@@ -611,7 +708,7 @@ export function EvmTrace({
                   const usdText = c.token ? (tok ? usdOfToken(abs, tok.decimals, prices.get(c.token)) : undefined) : usdOfWei(abs, usd);
                   const first = i === 0 || arr[i - 1].address !== c.address;
                   return (
-                    <div key={`${c.address}-${c.token}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12.5px] md:h-11 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem] md:py-0 md:px-6">
+                    <div key={`${c.address}-${c.token}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12.5px] transition-colors hover:bg-zinc-50/60 md:h-11 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem] md:py-0 md:px-6 dark:hover:bg-zinc-900/60">
                       <span className="min-w-0">{first ? <Who addr={c.address} n={n} /> : null}</span>
                       <span className="flex min-w-0 items-center gap-1.5">
                         {c.token ? (
@@ -646,7 +743,7 @@ export function EvmTrace({
                 const first = i === 0 || arr[i - 1].contract !== s.contract;
                 const label = slotLabels.get(s.slot.toLowerCase());
                 return (
-                  <div key={`${s.contract}-${s.slot}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12px] md:h-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_1.5rem_minmax(0,1.1fr)] md:py-0 md:px-6">
+                  <div key={`${s.contract}-${s.slot}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12px] transition-colors hover:bg-zinc-50/60 md:min-h-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_1.5rem_minmax(0,1.1fr)] md:py-1 md:px-6 dark:hover:bg-zinc-900/60">
                     <span className="min-w-0">{first ? <Who addr={s.contract} n={n} /> : null}</span>
                     <span className="flex min-w-0 items-center gap-1.5" title={s.slot}>
                       {label ? (
