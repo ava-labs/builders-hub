@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from '@/constants/l1-chains.json';
-import { isValidRpcUrl } from '@/lib/rpcUrlValidator';
+import { assertPublicRpcTarget } from '@/lib/rpcUrlValidator';
 
 interface RpcTransaction {
   hash: string;
@@ -65,7 +65,7 @@ export async function GET(
   const { searchParams } = new URL(request.url);
   const customRpcUrl = searchParams.get('rpcUrl');
 
-  if (customRpcUrl && !isValidRpcUrl(customRpcUrl)) {
+  if (customRpcUrl && !(await assertPublicRpcTarget(customRpcUrl))) {
     return NextResponse.json(
       { error: 'Invalid rpcUrl: must use https and must not target private or loopback addresses.' },
       { status: 400 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Avalanche } from "@avalanche-sdk/chainkit";
 import l1ChainsData from '@/constants/l1-chains.json';
-import { isValidRpcUrl } from '@/lib/rpcUrlValidator';
+import { assertPublicRpcTarget } from '@/lib/rpcUrlValidator';
 
 // Initialize Avalanche SDK
 const avalanche = new Avalanche({
@@ -454,7 +454,7 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid address format' }, { status: 400 });
   }
 
-  if (customRpcUrl && !isValidRpcUrl(customRpcUrl)) {
+  if (customRpcUrl && !(await assertPublicRpcTarget(customRpcUrl))) {
     return NextResponse.json(
       { error: 'Invalid rpcUrl: must use https and must not target private or loopback addresses.' },
       { status: 400 }

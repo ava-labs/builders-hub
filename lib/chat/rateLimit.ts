@@ -56,33 +56,8 @@ function cleanupOldEntries(): void {
   lastCleanup = now;
 }
 
-/**
- * Extract client IP address from request headers
- * Handles various proxy configurations (Cloudflare, Vercel, nginx, etc.)
- */
-export function getClientIP(request: Request): string {
-  const headers = request.headers;
+export { getClientIP } from '@/lib/net/clientIp';
 
-  // Cloudflare
-  const cfConnectingIP = headers.get('cf-connecting-ip');
-  if (cfConnectingIP) return cfConnectingIP;
-
-  // Vercel / standard proxy
-  const xForwardedFor = headers.get('x-forwarded-for');
-  if (xForwardedFor) {
-    // x-forwarded-for can contain multiple IPs: "client, proxy1, proxy2"
-    // The first one is the original client
-    const firstIP = xForwardedFor.split(',')[0].trim();
-    if (firstIP) return firstIP;
-  }
-
-  // Generic proxy
-  const xRealIP = headers.get('x-real-ip');
-  if (xRealIP) return xRealIP;
-
-  // Fallback - this might be the load balancer IP in production
-  return 'unknown';
-}
 
 /**
  * Check rate limit for a chat request
