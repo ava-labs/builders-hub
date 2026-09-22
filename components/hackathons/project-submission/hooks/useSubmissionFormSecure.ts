@@ -436,13 +436,14 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     newFile: File
   ): Promise<string> => {
 
-    const fileName = oldImageUrl.split('/').pop();
-    if (!fileName) throw new Error('Invalid old image URL');
+    // Send the whole URL, not just the last segment — see the note in
+    // useSubmissionForm: the uploader prefix is part of the storage key.
+    if (!oldImageUrl) throw new Error('Invalid old image URL');
 
     try {
       await axios.delete('/api/file', {
         params: {
-          fileName,
+          url: oldImageUrl,
           ...(state.hackathonId && { hackaton_id: state.hackathonId }),
           user_id: session?.user?.id
         }
@@ -466,12 +467,14 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
   }, [state.hackathonId, session?.user?.id, uploadFile, toast]);
 
   const deleteImage = useCallback(async (oldImageUrl: string): Promise<void> => {
-    const fileName = oldImageUrl.split('/').pop();
-    if (!fileName) throw new Error('Invalid old image URL');
+    // Whole URL again — the uploader prefix is part of the storage key.
+    if (!oldImageUrl) throw new Error('Invalid old image URL');
 
     try {
+      // URLSearchParams encodes values itself; the extra encodeURIComponent
+      // here double-encoded the key.
       const params = new URLSearchParams({
-        fileName: encodeURIComponent(fileName),
+        url: oldImageUrl,
         user_id: session?.user?.id || ''
       });
       if (state.hackathonId) {

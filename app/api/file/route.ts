@@ -4,6 +4,7 @@ import { del, put } from '@vercel/blob';
 import { NextResponse, NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 import {
+  blobKeyFromIdentifier,
   canUserDeleteFile,
   canUserUploadFile,
   isValidFileSize,
@@ -136,17 +137,11 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
       );
     }
 
-    // Extract the file name to verify existence and deletion
-    let actualFileName = fileIdentifier;
-    if (fileIdentifier.includes('/')) {
-      try {
-        const urlObj = new URL(fileIdentifier);
-        actualFileName = urlObj.pathname.split('/').pop() || fileIdentifier;
-      } catch {
-        // If it's not a valid URL, use the identifier as is
-        actualFileName = fileIdentifier.split('/').pop() || fileIdentifier;
-      }
-    }
+    // Keep the whole storage key, prefix included. Uploads are written as
+    // `<uploaderUserId>/<uuid><ext>`, so reducing this to the last path
+    // segment addresses a different object: the existence probe 404s and the
+    // delete quietly removes nothing.
+    const actualFileName = blobKeyFromIdentifier(fileIdentifier);
 
     // Check if the file exists
     const blobExists = await fetch(`${process.env.BLOB_BASE_URL}/${actualFileName}`, {

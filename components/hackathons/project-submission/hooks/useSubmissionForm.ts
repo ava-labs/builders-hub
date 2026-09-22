@@ -211,11 +211,13 @@ export const useSubmissionForm = (hackathonId: string) => {
     oldImageUrl: string,
     newFile: File
   ): Promise<string> => {
-    const fileName = oldImageUrl.split('/').pop();
-    if (!fileName) throw new Error('Invalid old image URL');
+    // Send the whole URL, not just the last segment: the storage key is
+    // `<uploaderUserId>/<uuid><ext>` and the server needs the prefix both to
+    // authorise the delete and to address the right object.
+    if (!oldImageUrl) throw new Error('Invalid old image URL');
 
     try {
-      await axios.delete('/api/file', { params: { fileName } });
+      await axios.delete('/api/file', { params: { url: oldImageUrl } });
       const newUrl = await uploadFile(newFile);
       toast({
         title: 'Image replaced',
@@ -235,11 +237,11 @@ export const useSubmissionForm = (hackathonId: string) => {
   };
 
   const deleteImage = async (oldImageUrl: string): Promise<void> => {
-    const fileName = oldImageUrl.split('/').pop();
-    if (!fileName) throw new Error('Invalid old image URL');
+    // Whole URL — the uploader prefix is part of the storage key.
+    if (!oldImageUrl) throw new Error('Invalid old image URL');
 
     try {
-      await fetch(`/api/file?fileName=${encodeURIComponent(fileName!)}`, {
+      await fetch(`/api/file?url=${encodeURIComponent(oldImageUrl)}`, {
         method: 'DELETE',
       });
       toast({
