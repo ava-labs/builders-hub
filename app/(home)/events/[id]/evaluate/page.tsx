@@ -1,11 +1,8 @@
 import { redirect } from "next/navigation";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
-import {
-  canEvaluateHackathon,
-  canManageEvaluationPhase,
-  hasAnyAttribute,
-} from "@/lib/auth/permissions";
+import { canEditEvent, canEvaluateHackathon, canManageHackathonOutcomes } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { stripEvaluationsForViewer } from "@/lib/hackathons/evaluation-phase";
 import {
   countReviewProgress,
@@ -21,8 +18,14 @@ export default async function HackathonEvaluatePage({
   const session = await getAuthSession();
   const { id: hackathonId } = await params;
 
-  const authorized = await canEvaluateHackathon(session, hackathonId);
-  if (!authorized) {
+  const [canEvaluate, canManageThisEvent, canPickWinners] = await Promise.all([
+    canEvaluateHackathon(session, hackathonId),
+    canEditEvent(session, hackathonId),
+    canManageHackathonOutcomes(session, hackathonId),
+  ]);
+  // Owners reach the dashboard for phase control and winner picking, but
+  // canEvaluate stays false for them: scoring needs a judge assignment.
+  if (!canEvaluate && !canManageThisEvent) {
     redirect("/");
   }
 
@@ -93,7 +96,8 @@ export default async function HackathonEvaluatePage({
   });
 
   const viewerId = session!.user!.id;
-  const isDevrel = hasAnyAttribute(session?.user?.custom_attributes, ["devrel"]);
+  // platform:admin, not the raw "devrel" string — the canonical platform-admin test.
+  const isPlatformAdmin = hasPermission(session, { resource: "platform", action: "admin" });
 
   // Link-less projects have nothing to judge: auto-hidden, like a manual reject.
   const flaggedProjects = projects.map((p) => ({
@@ -103,7 +107,7 @@ export default async function HackathonEvaluatePage({
 
   // Hidden projects (rejected or auto-hidden) must never reach the client for
   // non-devrel users — filter server-side.
-  const visibleProjects = isDevrel
+  const visibleProjects = isPlatformAdmin
     ? flaggedProjects
     : flaggedProjects.filter((p) => !p.is_rejected && !p.auto_hidden);
 
@@ -131,8 +135,10 @@ export default async function HackathonEvaluatePage({
       <HackathonEvaluateDashboard
         hackathonId={hackathon.id}
         viewerId={viewerId}
-        canPickWinners={isDevrel}
-        canManagePhase={canManageEvaluationPhase(session)}
+        canEvaluate={canEvaluate}
+        canPickWinners={canPickWinners}
+        canManagePhase={canManageThisEvent}
+        isDevrel={isPlatformAdmin}
         initialPhase={hackathon.evaluation_phase}
         initialReviewed={reviewedCount}
         projects={projectsForViewer.map((p) => ({

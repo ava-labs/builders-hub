@@ -18,7 +18,7 @@ import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
 import SignOutComponent from '../sign-out/SignOut';
-import { canAccessBuilderInsights } from '@/lib/auth/permissions';
+import { hasPermission } from '@/lib/auth/rolePermissions';
 
 const AVATAR_PX = 30;
 
@@ -57,8 +57,6 @@ export function UserButton() {
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
   const nounAvatarEnabled = avatarContext?.nounAvatarEnabled ?? localEnabled;
-
-  const canAccessInsights = canAccessBuilderInsights(session?.user?.custom_attributes);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -199,6 +197,40 @@ export function UserButton() {
             <DropdownMenuItem asChild className="cursor-pointer rounded-none px-3 py-2 text-sm focus:bg-zinc-100 focus:text-zinc-950 dark:focus:bg-zinc-900 dark:focus:text-zinc-50">
               <Link href="/profile">Profile</Link>
             </DropdownMenuItem>
+            {
+              hasPermission(session, { resource: "notification", action: "write" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/send-notifications'>Send notifications</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              hasPermission(session, { resource: "event", action: "write", scope: "own" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/events/edit'>Event Management</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              // Evaluation comes from a HackathonJudge assignment, not a role,
+              // so the global "judge" role is not the gate — is_hackathon_judge
+              // mirrors what /evaluate itself enforces (evaluableHackathonIds).
+              (session?.user?.is_hackathon_judge ||
+                hasPermission(session, { resource: "platform", action: "admin" })) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/evaluate'>Evaluate Hackathons</Link>
+                </DropdownMenuItem>
+              )
+            }
+            {
+              // Same gate as ROUTE_MANIFEST "/admin/**" — user:manage, which
+              // only platform admins hold (via the wildcard).
+              hasPermission(session, { resource: "user", action: "manage" }) && (
+                <DropdownMenuItem asChild className='cursor-pointer'>
+                  <Link href='/admin/roles'>Role Management</Link>
+                </DropdownMenuItem>
+              )
+            }
             <DropdownMenuSeparator className="my-0 bg-zinc-200 dark:bg-zinc-800" />
             <DropdownMenuItem
               onClick={() => setSignOutOpen(true)}
