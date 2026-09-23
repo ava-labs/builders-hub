@@ -10,7 +10,7 @@ import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { SpecList, type SpecItem } from "@/components/audits/shared/SpecList";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import { ContactHandle } from "@/components/audits/shared/ContactHandle";
-import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
+import { parseRepos } from "@/components/audits/wizard/types";
 import { QuoteComposer } from "@/components/audits/portal/QuoteComposer";
 import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
 
@@ -18,7 +18,8 @@ const shortRepo = (url: string) => url.replace(/^https?:\/\/(www\.)?github\.com\
 
 function buildSpecItems(view: AuditorRequestView): SpecItem[] {
   const repos = parseRepos(view.repos);
-  const attachments = parseAttachments(view.attachments);
+  // Already program links (visibility.ts hands out no store URLs).
+  const attachments = view.attachments;
   const deployment = view.deployment_target
     ? (DEPLOYMENT_TARGET_LABELS[view.deployment_target as DeploymentTarget] ?? view.deployment_target)
     : null;
@@ -73,8 +74,8 @@ function buildSpecItems(view: AuditorRequestView): SpecItem[] {
                   </p>
                 ))}
                 {attachments.map((attachment) => (
-                  <p key={attachment.url} className="break-all font-mono text-xs">
-                    <a href={attachment.url} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                  <p key={attachment.href} className="break-all font-mono text-xs">
+                    <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
                       {attachment.name}
                     </a>
                   </p>

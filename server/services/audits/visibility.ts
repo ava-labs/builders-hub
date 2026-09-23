@@ -1,5 +1,11 @@
 import { cache } from "react";
 import { prisma } from "@/prisma/prisma";
+import {
+  parseStoredAttachments,
+  toAttachmentLinks,
+  type StoredAttachment,
+} from "@/lib/audits/attachments";
+import { findAuditorByEmail } from "@/server/services/audits/auditors";
 import { firmContact, recipientsOf } from "@/server/services/audits/emails/recipients";
 import {
   deriveQuoteDisplayStatus,
@@ -382,6 +388,10 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
 
   return {
     ...request,
+    // The store URL never leaves the server: a blob URL is a bearer token and
+    // a firm that quoted once would keep it after the request closed, after
+    // the firm was deactivated, and after any forward of that link.
+    attachments: toAttachmentLinks(requestId, request.attachments),
     own_quote: own_quote
       ? {
           id: own_quote.id,
@@ -407,6 +417,61 @@ export async function getOwnQuote(auditorId: string, requestId: string) {
   return prisma.auditQuote.findUnique({
     where: { request_id_auditor_id: { request_id: requestId, auditor_id: auditorId } },
   });
+}
+
+// ── Attachment scope ────────────────────────────────────────────────────────
+
+export interface AttachmentViewer {
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+/**
+ * Authorize and resolve in ONE call, so a caller cannot do half of it: the
+ * read route has no other way to reach a stored attachment.
+ *
+ * Who may read a request's uploaded files:
+ *  - its owner, always (drafts included, they are the uploader);
+ *  - any firm the request actually reached, its AuditFanoutDelivery row being
+ *    the invitation exactly as in getRequestForAuditor (a deactivated firm
+ *    keeps its history, N-4);
+ *  - an audit admin, on anything past draft (drafts stay private to the owner,
+ *    the rule every admin read here already follows).
+ * Everyone else gets null, and the route answers 404 rather than 403 so the
+ * existence of a request is not confirmed to a stranger either.
+ */
+export async function readableAttachment(
+  requestId: string,
+  index: number,
+  viewer: AttachmentViewer,
+): Promise<StoredAttachment | null> {
+  const row = await prisma.auditRequest.findUnique({
+    where: { id: requestId },
+    select: { user_id: true, status: true, attachments: true },
+  });
+  if (!row) return null;
+
+  const isOwner = row.user_id === viewer.userId;
+  const asAdmin = viewer.isAdmin && row.status !== "draft";
+  let invited = false;
+  if (!isOwner && !asAdmin) {
+    // findAuditorByEmail, not resolveAuditorByEmail: a read must not stamp
+    // first_login_at as a side effect.
+    const identity = await findAuditorByEmail(viewer.email);
+    if (identity) {
+      const delivery = await prisma.auditFanoutDelivery.findUnique({
+        where: {
+          request_id_auditor_id: { request_id: requestId, auditor_id: identity.auditor.id },
+        },
+        select: { request_id: true },
+      });
+      invited = delivery !== null;
+    }
+  }
+  if (!isOwner && !asAdmin && !invited) return null;
+
+  return parseStoredAttachments(row.attachments)[index] ?? null;
 }
 
 // ── Admin scope ─────────────────────────────────────────────────────────────

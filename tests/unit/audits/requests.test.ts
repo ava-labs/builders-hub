@@ -3,6 +3,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 const {
   updateManyMock,
   deleteManyMock,
+  requestFindFirstMock,
+  delMock,
   eventCreateMock,
   txRequestFindFirstMock,
   txRequestUpdateMock,
@@ -15,6 +17,8 @@ const {
 } = vi.hoisted(() => ({
   updateManyMock: vi.fn(),
   deleteManyMock: vi.fn(),
+  requestFindFirstMock: vi.fn(),
+  delMock: vi.fn(),
   eventCreateMock: vi.fn(),
   txRequestFindFirstMock: vi.fn(),
   txRequestUpdateMock: vi.fn(),
@@ -33,9 +37,15 @@ const tx = {
   auditFanoutDelivery: { createMany: txDeliveryCreateManyMock },
 };
 
+vi.mock("@vercel/blob", () => ({ del: delMock }));
+
 vi.mock("@/prisma/prisma", () => ({
   prisma: {
-    auditRequest: { updateMany: updateManyMock, deleteMany: deleteManyMock },
+    auditRequest: {
+      updateMany: updateManyMock,
+      deleteMany: deleteManyMock,
+      findFirst: requestFindFirstMock,
+    },
     auditEventLog: { create: eventCreateMock },
     $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx)),
   },
@@ -52,11 +62,18 @@ import { patchDraft, deleteDraft, reopen, withdraw } from "@/server/services/aud
 
 const OWNER = "user-owner";
 
+const HOST = "qizat5l3bwvomkny.public.blob.vercel-storage.com";
+const storeUrl = (name: string) => `https://${HOST}/audits/${name}`;
+const attachment = (name: string) => ({ name, url: storeUrl(name), size: 10 });
+
 beforeEach(() => {
   vi.clearAllMocks();
+  process.env.BLOB_READ_WRITE_TOKEN = "test-token";
   updateManyMock.mockResolvedValue({ count: 1 });
   deleteManyMock.mockResolvedValue({ count: 1 });
+  requestFindFirstMock.mockResolvedValue({ attachments: [] });
   eventCreateMock.mockResolvedValue({});
+  delMock.mockResolvedValue(undefined);
 });
 
 describe("patchDraft", () => {
@@ -82,6 +99,52 @@ describe("patchDraft", () => {
     await patchDraft(OWNER, "req-1", { shortlist_auditor_ids: ["aud-1"] });
     expect(updateManyMock.mock.calls[0][0].data).toMatchObject({ shortlist_auditor_ids: ["aud-1"] });
   });
+
+  it("never reads the row when the save carries no attachments key", async () => {
+    await patchDraft(OWNER, "req-1", { project_name: "X" });
+    expect(requestFindFirstMock).not.toHaveBeenCalled();
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("unpublishes the objects the owner dropped, keeping the ones still listed", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      attachments: [attachment("kept.pdf"), attachment("dropped.pdf")],
+    });
+
+    await patchDraft(OWNER, "req-1", { attachments: [attachment("kept.pdf")] });
+
+    expect(delMock).toHaveBeenCalledWith([storeUrl("dropped.pdf")], { token: "test-token" });
+  });
+
+  it("reads the previous list under the owner + draft guard", async () => {
+    requestFindFirstMock.mockResolvedValue({ attachments: [] });
+    await patchDraft(OWNER, "req-1", { attachments: [] });
+    expect(requestFindFirstMock.mock.calls[0][0].where).toMatchObject({
+      id: "req-1",
+      user_id: OWNER,
+      status: "draft",
+    });
+  });
+
+  it("leaves a URL that is not on our store alone", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      attachments: [{ name: "x", url: "https://attacker.example/x.pdf", size: 1 }],
+    });
+
+    await patchDraft(OWNER, "req-1", { attachments: [] });
+
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("does not unpublish anything when the write matched no row", async () => {
+    updateManyMock.mockResolvedValue({ count: 0 });
+    requestFindFirstMock.mockResolvedValue({ attachments: [attachment("a.pdf")] });
+
+    const result = await patchDraft(OWNER, "req-1", { attachments: [] });
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(delMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("deleteDraft", () => {
@@ -93,6 +156,28 @@ describe("deleteDraft", () => {
       user_id: OWNER,
       status: "draft",
     });
+  });
+
+  it("unpublishes every attachment the deleted draft held", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      attachments: [attachment("a.pdf"), attachment("b.pdf")],
+    });
+
+    await deleteDraft(OWNER, "req-1");
+
+    expect(delMock).toHaveBeenCalledWith([storeUrl("a.pdf"), storeUrl("b.pdf")], {
+      token: "test-token",
+    });
+  });
+
+  it("unpublishes nothing when the delete matched no row", async () => {
+    deleteManyMock.mockResolvedValue({ count: 0 });
+    requestFindFirstMock.mockResolvedValue({ attachments: [attachment("a.pdf")] });
+
+    const result = await deleteDraft(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(delMock).not.toHaveBeenCalled();
   });
 });
 

@@ -1,5 +1,8 @@
 import type { Prisma } from "@prisma/client";
+import { del } from "@vercel/blob";
 import { prisma } from "@/prisma/prisma";
+import { isAllowedAttachmentSrc } from "@/lib/audits/blobSrc";
+import { parseStoredAttachments } from "@/lib/audits/attachments";
 import { deriveRequestStatus } from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { logAuditEvent } from "@/server/services/audits/events";
@@ -16,6 +19,36 @@ import type { AuditDraftInput } from "@/types/audits";
 const DAY = 24 * 60 * 60 * 1000;
 
 export type MutationResult = { success: true } | { success: false; code: "not_found" };
+
+/**
+ * Unpublish objects the owner just dropped. "Remove" has to mean removed:
+ * a blob URL is readable by anyone still holding it, so unlinking the row
+ * alone would leave the file up for good. Best effort and always AFTER the
+ * row is written (the portal logo route's rule), and only for keys our own
+ * attachment route could have minted.
+ */
+async function unpublishAttachments(urls: string[]): Promise<void> {
+  const ours = urls.filter(isAllowedAttachmentSrc);
+  if (ours.length === 0) return;
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    console.error("[Audits] BLOB_READ_WRITE_TOKEN is not set; dropped attachments kept.");
+    return;
+  }
+  try {
+    await del(ours, { token });
+  } catch (err) {
+    console.error("[Audits] attachment blob delete failed:", err);
+  }
+}
+
+/** URLs present before but absent after, for an attachment-carrying write. */
+function droppedUrls(before: unknown, after: AuditDraftInput["attachments"]): string[] {
+  const kept = new Set((after ?? []).map((attachment) => attachment.url));
+  return parseStoredAttachments(before)
+    .map((attachment) => attachment.url)
+    .filter((url) => !kept.has(url));
+}
 
 // The two Json columns need an explicit InputJsonValue cast; everything else
 // in AuditDraftInput maps 1:1 onto AuditRequest columns. undefined keys are
@@ -51,18 +84,40 @@ export async function patchDraft(
   requestId: string,
   input: AuditDraftInput,
 ): Promise<MutationResult> {
+  // Only an attachment-carrying save pays for the extra read; autosave fires
+  // on every typing pause and usually carries no attachments key at all.
+  const previous =
+    input.attachments !== undefined
+      ? await prisma.auditRequest.findFirst({
+          where: { id: requestId, user_id: userId, status: "draft" },
+          select: { attachments: true },
+        })
+      : null;
+
   const result = await prisma.auditRequest.updateMany({
     where: { id: requestId, user_id: userId, status: "draft" },
     data: toDraftData(input),
   });
-  return result.count === 0 ? { success: false, code: "not_found" } : { success: true };
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  if (previous) await unpublishAttachments(droppedUrls(previous.attachments, input.attachments));
+  return { success: true };
 }
 
 export async function deleteDraft(userId: string, requestId: string): Promise<MutationResult> {
+  // Read the list before the row goes: after the delete there is nothing left
+  // pointing at the objects, and they would stay readable for good.
+  const row = await prisma.auditRequest.findFirst({
+    where: { id: requestId, user_id: userId, status: "draft" },
+    select: { attachments: true },
+  });
   const result = await prisma.auditRequest.deleteMany({
     where: { id: requestId, user_id: userId, status: "draft" },
   });
-  return result.count === 0 ? { success: false, code: "not_found" } : { success: true };
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  await unpublishAttachments(droppedUrls(row?.attachments, []));
+  return { success: true };
 }
 
 /**

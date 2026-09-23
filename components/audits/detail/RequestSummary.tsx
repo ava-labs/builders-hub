@@ -3,7 +3,8 @@ import { DEPLOYMENT_TARGET_LABELS, URGENCY_LABELS } from "@/lib/audits/constants
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
 import { CARD, MONO_LABEL_SM } from "@/components/audits/shared/classes";
 import { formatIsoDate, lowerFirst } from "@/components/audits/shared/format";
-import { parseAttachments, parseRepos } from "@/components/audits/wizard/types";
+import { toAttachmentLinks } from "@/lib/audits/attachments";
+import { parseRepos } from "@/components/audits/wizard/types";
 
 function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -17,7 +18,9 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
 /** What was sent to the firms, so the request page answers its own questions. */
 export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
   const repos = parseRepos(detail.repos);
-  const attachments = parseAttachments(detail.attachments);
+  // Through the program's own route, not the store: the owner's page must not
+  // put a bearer URL in the DOM either (it travels in copies and referrers).
+  const attachments = toAttachmentLinks(detail.id, detail.attachments);
   const deployment = detail.deployment_target
     ? (DEPLOYMENT_TARGET_LABELS[detail.deployment_target as DeploymentTarget] ??
       detail.deployment_target)
@@ -105,13 +108,8 @@ export function RequestSummary({ detail }: { detail: OwnerRequestDetail }) {
               </li>
             ))}
             {attachments.map((attachment) => (
-              <li key={attachment.url} className="font-mono text-xs">
-                <a
-                  href={attachment.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline underline-offset-2"
-                >
+              <li key={attachment.href} className="font-mono text-xs">
+                <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
                   {attachment.name}
                 </a>
               </li>
