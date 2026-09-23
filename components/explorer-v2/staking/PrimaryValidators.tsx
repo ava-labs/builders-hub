@@ -66,6 +66,12 @@ interface MergedValidator extends SdkValidator {
   p2p?: P2pValidator;
 }
 
+/* p2p crawler reports "" (not null) for nodes it never completed a handshake.
+   empty strings fall through; a true unknown remains undefined. */
+function resolveVersion(p2p: P2pValidator | undefined, sdk: SdkValidator): string | undefined {
+  return p2p?.version || sdk.version || undefined;
+}
+
 type SortKey = "version" | "stake" | "delegators" | "fee" | "uptime" | "daysLeft" | "missRate";
 
 /* Release order, not lexical */
@@ -78,7 +84,7 @@ function versionRank(v?: string): number {
 function sortValue(v: MergedValidator, key: SortKey): number {
   switch (key) {
     case "version":
-      return versionRank(v.p2p?.version ?? v.version);
+      return versionRank(v.version);
     case "stake":
       return v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
     case "delegators":
@@ -281,7 +287,11 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
   /* ---------------------------------------------------------------- */
 
   const merged = useMemo<MergedValidator[]>(
-    () => (sdkValidators ?? []).map((v) => ({ ...v, p2p: p2p?.get(v.nodeId) })),
+    () =>
+      (sdkValidators ?? []).map((v) => {
+        const row = p2p?.get(v.nodeId);
+        return { ...v, version: resolveVersion(row, v), p2p: row };
+      }),
     [sdkValidators, p2p],
   );
 
@@ -291,7 +301,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
       ? merged.filter(
           (v) =>
             v.nodeId.toLowerCase().includes(q) ||
-            (v.p2p?.version ?? v.version ?? "").toLowerCase().includes(q),
+            (v.version ?? "").toLowerCase().includes(q),
         )
       : merged;
     return [...filtered].sort((a, b) => (sortValue(a, sort.key) - sortValue(b, sort.key)) * sort.dir);
@@ -583,7 +593,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
                           </Link>
                         </td>
                         <td className={cn(TD, "text-zinc-500 dark:text-zinc-400")}>
-                          {(v.p2p?.version ?? v.version)?.replace("avalanchego/", "") ?? "—"}
+                          {v.version?.replace("avalanchego/", "") ?? "—"}
                         </td>
                         <td className={cn(TD, "text-right text-zinc-900 dark:text-zinc-100")}>
                           {fmtCompact(stake / NANO)} AVAX

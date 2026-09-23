@@ -17,6 +17,7 @@ interface ValidatorData {
   validationStatus: string;
   delegatorCount: number;
   amountDelegated: string;
+  version?: string;
 }
 
 interface CacheEntry {
@@ -48,6 +49,7 @@ async function fetchAllValidators(): Promise<ValidatorData[]> {
     validationStatus: "active",
     delegatorCount: v.delegatorCount || 0,
     amountDelegated: String(v.delegatorWeight ?? "0"),
+    ...(typeof v.version === "string" && v.version ? { version: v.version } : {}),
   }));
 }
 
