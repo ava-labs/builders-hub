@@ -9,9 +9,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { crossChainTxUrl } from "@/lib/crosschain-links";
-import { Board, SectionHeader, TxTypePill, idInk, HEAD, ROW, LoadMore, Tabs, INK } from "@/components/explorer-v2/ui";
+import { Board, SectionHeader, TxTypePill, idInk, HEAD, ROW, LoadMore, Tabs, EmptyRow, RowSkeleton, HashChip, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, FIG, UNIT } from "@/components/explorer-v2/ui";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { ageOrDate, formatNumber, timeAgo, truncate as truncFmt, ageShort } from "@/components/explorer-v2/format";
+import { formatNumber, formatTime, timeAgo, truncate as truncFmt, ageShort } from "@/components/explorer-v2/format";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
 import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
@@ -30,11 +30,21 @@ function useAtomic<T>(path: string | null): T | null {
   return data;
 }
 
-const mono = "font-mono text-[12px] text-zinc-900 dark:text-zinc-100";
-const label = "font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-400 dark:text-zinc-500";
-const link = "font-mono text-[12px] text-[#0061E2] underline-offset-2 hover:text-[#E6212F] hover:underline dark:text-[#5f9dff]";
 const trunc = (s: string, n = 16) => (s.length <= n ? s : `${s.slice(0, n)}…`);
-const navax = (v: string) => `${(Number(v) / 1e9).toLocaleString(undefined, { maximumFractionDigits: 9 })} AVAX`;
+/** nAVAX → AVAX with the ledger's precision: two places when it is money, four when small, a floor for dust */
+function avaxAmount(nano: string): string {
+  const v = Number(nano) / 1e9;
+  if (v === 0) return "0";
+  if (v >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (v >= 1) return v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (v >= 0.0001) return v.toFixed(4);
+  return "<0.0001";
+}
+const sumNano = (amounts: string[]) => amounts.reduce((a, b) => String(BigInt(a) + BigInt(b)), "0");
+/** the lane a transfer travels: source → destination, the C-Chain named as itself */
+function lane(t: { txType: string; sourceChain?: string; destinationChain?: string }): { from: string; to: string } {
+  return t.txType === "ImportTx" ? { from: chainName(t.sourceChain), to: "C-Chain" } : { from: "C-Chain", to: chainName(t.destinationChain) };
+}
 
 
 interface AtomicTxRow {
@@ -61,54 +71,68 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
   const base = `/explorer/${network}/${chainSlug}`;
   return (
     <EvmShell network={network}>
-    <section className="flex flex-col gap-4">
-      <SectionHeader label="Atomic Transactions" />
-      <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        Cross-chain imports and exports between the C-Chain and the P/X chains. These are not EVM
-        transactions: they settle inside block extra data and carry Avalanche (CB58) ids.
-      </p>
-      <Board>
-        <div className={cn(HEAD, "grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr]")}>
-          <span>Hash</span>
-          <span>Type</span>
-          <span>Counterpart</span>
-          <span className="text-right">Amount</span>
-          <span className="text-right">Block</span>
-          <span className="text-right">Age</span>
-        </div>
-        {rows.map((t) => (
-          <Link
-            key={t.txHash}
-            href={`${base}/atomic-tx/${t.txHash}`}
-            className={cn(ROW, "md:grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr]")}
-          >
-            <span className={cn(INK, "truncate")}>{truncFmt(t.txHash, 6)}</span>
-            <span className="justify-self-start"><TxTypePill type={t.txType} label={t.txType} /></span>
-            <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
-              {t.txType === "ImportTx" ? `from ${chainName(t.sourceChain)}` : `to ${chainName(t.destinationChain)}`}
-            </span>
-            <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-              {t.amounts.length ? navax(t.amounts.reduce((a, b) => String(BigInt(a) + BigInt(b)), "0")) : "—"}
-            </span>
-            <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-              #{formatNumber(t.blockNumber)}
-            </span>
-            <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{ageShort(t.timestamp)}</span>
-          </Link>
-        ))}
-        {rows.length === 0 && (
-          <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
-            {page ? "no atomic transactions" : "Loading…"}
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label="Atomic Transactions"
+          action={
+            rows.length ? (
+              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                {done ? `${rows.length} loaded · end of history` : `${rows.length} loaded`}
+              </span>
+            ) : undefined
+          }
+        />
+        <Board divide={false}>
+          <div className={cn(HEAD, "md:grid-cols-[7.5rem_6rem_minmax(0,1fr)_minmax(0,10rem)_7rem_3.5rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
+            <span>Hash</span>
+            <span>Type</span>
+            <span>Lane</span>
+            <span className="text-right">Amount</span>
+            <span className="text-right">Block</span>
+            <span className="text-right">Age</span>
           </div>
+          {rows.map((t) => {
+            const l = lane(t);
+            return (
+              <Link key={t.txHash} href={`${base}/atomic-tx/${t.txHash}`} className={cn(ROW, "md:grid-cols-[7.5rem_6rem_minmax(0,1fr)_minmax(0,10rem)_7rem_3.5rem]", "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
+                <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncFmt(t.txHash, 6)}</span>
+                <span className="justify-self-start">
+                  <TxTypePill type={t.txType} label={t.txType.replace(/Tx$/, "")} />
+                </span>
+                <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+                  <span className={l.from === "C-Chain" ? "text-zinc-900 dark:text-zinc-50" : undefined}>{l.from}</span>
+                  <span className="text-zinc-300 dark:text-zinc-700">→</span>
+                  <span className={l.to === "C-Chain" ? "text-zinc-900 dark:text-zinc-50" : undefined}>{l.to}</span>
+                </span>
+                <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+                  {t.amounts.length ? (
+                    <>
+                      {avaxAmount(sumNano(t.amounts))} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">AVAX</span>
+                    </>
+                  ) : (
+                    <span className="text-zinc-300 dark:text-zinc-700">—</span>
+                  )}
+                </span>
+                <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">#{formatNumber(t.blockNumber)}</span>
+                <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">{ageShort(t.timestamp)}</span>
+              </Link>
+            );
+          })}
+          {rows.length === 0 && (page ? <EmptyRow>no atomic transactions</EmptyRow> : <RowSkeleton n={12} />)}
+        </Board>
+        {!done && rows.length > 0 && (
+          <LoadMore
+            onClick={() => {
+              setLoadingMore(true);
+              setBefore(String(page?.nextBefore ?? ""));
+            }}
+            disabled={loadingMore}
+          />
         )}
-      </Board>
-      {!done && rows.length > 0 && (
-        <LoadMore onClick={() => {
-            setLoadingMore(true);
-            setBefore(String(page?.nextBefore ?? ""));
-          }} disabled={loadingMore} />
-      )}
-    </section>
+        <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+          imports and exports between the C-Chain and the P-Chain or X-Chain. Not EVM transactions: they ride in block extra data and carry CB58 ids
+        </p>
+      </section>
     </EvmShell>
   );
 }
@@ -135,8 +159,8 @@ export function AtomicTxDetail({ network, chainSlug, txHash }: { network: string
   if (!d) {
     return (
       <EvmShell network={network}>
-        <Board divide={false} className="px-6 py-16 text-center">
-          <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Loading…</span>
+        <Board divide={false}>
+          <RowSkeleton n={6} />
         </Board>
       </EvmShell>
     );
@@ -190,46 +214,60 @@ export function AtomicTxDetail({ network, chainSlug, txHash }: { network: string
         pseudoUtxo(t.txHash, i, u.amount, u.addresses, "EXPORTED", u.claimedBy),
       );
 
-  const metaRows: [string, React.ReactNode][] = [
-    ["Type", <TxTypePill key="t" type={t.txType} label={t.txType} />],
-    [
-      "Block",
-      <Link key="b" href={`${base}/block/${t.blockNumber}`} className={`font-mono text-[12px] tabular-nums ${idInk}`}>
-        #{formatNumber(t.blockNumber)}
-      </Link>,
-    ],
-    [
-      "Timestamp",
-      <span key="ts" className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
-        {new Date(t.timestamp * 1000).toUTCString()} · {ageOrDate(t.timestamp).text}
-      </span>,
-    ],
-    [
-      isImport ? "Source chain" : "Destination chain",
-      <span key="c" className="font-mono text-[12px] text-zinc-900 dark:text-zinc-100">
-        {chainName(isImport ? t.sourceChain : t.destinationChain)}
-      </span>,
-    ],
-  ];
+  const l = lane(t);
+  const total = sumNano(t.amounts);
 
   return (
     <EvmShell network={network}>
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-4">
-        <SectionHeader label="Atomic Transaction" />
-        <Board divide={false} className="border">
-          <div className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-6">
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">Hash</span>
-              <span className={`break-all font-mono text-[13px] ${idInk}`}>{t.txHash}</span>
-            </div>
-            {metaRows.map(([k, v]) => (
-              <div key={k as string} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-6">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{k}</span>
-                {v}
-              </div>
-            ))}
-          </div>
+    <div className="flex flex-col gap-10">
+      {/* the tx page's grammar: the subject and its time, the readings, the identifiers */}
+      <section className="flex flex-col gap-5">
+        <SectionHeader label="Atomic Transaction" action={<TxTypePill type={t.txType} label={t.txType.replace(/Tx$/, "")} />} />
+        <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
+          <SubjectHeadline value={t.txHash} copyLabel="Copy transaction id" />
+          <span className="shrink-0 font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+            {formatTime(t.timestamp)}
+            <span className="text-zinc-400 dark:text-zinc-500"> · {timeAgo(t.timestamp)}</span>
+          </span>
+        </div>
+        <StatStrip cols={4}>
+          <StatCell label="Amount" even>
+            <span className={FIG}>
+              {avaxAmount(total)} <span className={UNIT}>AVAX</span>
+            </span>
+          </StatCell>
+          <StatCell label="Lane" even sub={isImport ? "imported into the C-Chain" : "exported from the C-Chain"}>
+            <span className={FIG}>
+              {l.from} <span className={UNIT}>→</span> {l.to}
+            </span>
+          </StatCell>
+          <StatCell label="Block" href={`${base}/block/${t.blockNumber}`} even>
+            <span className={FIG}>#{formatNumber(t.blockNumber)}</span>
+          </StatCell>
+          <StatCell label={isImport ? "Inputs" : "Outputs"} even sub={isImport ? "shared-memory UTXOs consumed" : "UTXOs exported"}>
+            <span className={FIG}>{isImport ? (d.importedUtxos ?? []).length : (d.exportedUtxos ?? []).length}</span>
+          </StatCell>
+        </StatStrip>
+        <Board divide={false} className="px-5 md:px-6">
+          <SpecSheet>
+            <SpecLine label="Type">{t.txType}</SpecLine>
+            <SpecLine label={isImport ? "Source Chain" : "Destination Chain"}>
+              <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                {chainName(isImport ? t.sourceChain : t.destinationChain)}
+                <span className="font-mono text-[12px] font-normal text-zinc-400 dark:text-zinc-500">{isImport ? t.sourceChain : t.destinationChain}</span>
+              </span>
+            </SpecLine>
+            <SpecLine label={isImport ? "Credited" : "Debited"} align="start">
+              <span className="flex flex-col gap-1">
+                {t.evmAddresses.map((a, i) => (
+                  <span key={a + i} className="inline-flex flex-wrap items-baseline gap-x-3">
+                    <HashChip value={a} href={`${base}/address/${a}`} len={66} />
+                    <span className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{avaxAmount(t.amounts[i] ?? "0")} AVAX</span>
+                  </span>
+                ))}
+              </span>
+            </SpecLine>
+          </SpecSheet>
         </Board>
       </section>
 
@@ -277,21 +315,19 @@ export function AtomicTxDetail({ network, chainSlug, txHash }: { network: string
             {(d.exportedUtxos ?? [])
               .filter((u) => u.claimedBy)
               .map((u) => (
-                <div key={u.utxoId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-6">
-                  <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{truncFmt(u.utxoId, 22)}</span>
-                  <Link href={crossChainTxUrl(network, u.claimedBy!.chain, u.claimedBy!.txHash) ?? "#"} className={`font-mono text-[11px] ${idInk}`}>
-                    claimed on {u.claimedBy!.chain} in {truncFmt(u.claimedBy!.txHash, 14)} →
-                  </Link>
+                <div key={u.utxoId} className={cn(ROW, "md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]")}>
+                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400" title={u.utxoId}>{truncFmt(u.utxoId, 12)}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">claimed on {u.claimedBy!.chain}</span>
+                  <HashChip value={u.claimedBy!.txHash} href={crossChainTxUrl(network, u.claimedBy!.chain, u.claimedBy!.txHash) ?? "#"} len={12} />
                 </div>
               ))}
             {(d.importedUtxos ?? [])
               .filter((u) => u.origin)
               .map((u) => (
-                <div key={u.utxoId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-6">
-                  <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{truncFmt(u.utxoId, 22)}</span>
-                  <Link href={crossChainTxUrl(network, u.origin!.chain, u.origin!.txHash) ?? "#"} className={`font-mono text-[11px] ${idInk}`}>
-                    ← exported from {u.origin!.chain} in {truncFmt(u.origin!.txHash, 14)}
-                  </Link>
+                <div key={u.utxoId} className={cn(ROW, "md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]")}>
+                  <span className="min-w-0 truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400" title={u.utxoId}>{truncFmt(u.utxoId, 12)}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">exported from {u.origin!.chain}</span>
+                  <HashChip value={u.origin!.txHash} href={crossChainTxUrl(network, u.origin!.chain, u.origin!.txHash) ?? "#"} len={12} />
                 </div>
               ))}
           </Board>
