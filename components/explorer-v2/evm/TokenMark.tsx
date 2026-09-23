@@ -66,3 +66,20 @@ export function TokenMark({
     </span>
   );
 }
+
+/** the chain's own coin, as a mark: the Avalanche logo in the same
+ *  hairline circle tokens use, so native and token rows set alike */
+export function NativeMark({ symbol = "AVAX", size = 16, className }: { symbol?: string; size?: number; className?: string }) {
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1.5", className)} title={`${symbol} (native)`}>
+      <span
+        className="inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+        style={{ width: size, height: size }}
+        aria-hidden
+      >
+        <img src="/images/avax.png" alt="" width={size} height={size} className="h-full w-full object-cover" />
+      </span>
+      <span className="truncate font-medium text-zinc-900 dark:text-zinc-50">{symbol}</span>
+    </span>
+  );
+}

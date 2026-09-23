@@ -11,7 +11,7 @@ import { FeedDown } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { EvmContract, useIsContract, useVerifiedContract } from "./EvmContract";
 import { EvmToken } from "./EvmToken";
-import { TokenMark } from "./TokenMark";
+import { TokenMark, NativeMark } from "./TokenMark";
 import { FIG, UNIT, Tabs, TxTable, TransferTable, EmptyRow } from "./AddressTables";
 import { useNativeBalance, useTokenBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
@@ -216,7 +216,7 @@ export function EvmAddress({
                     </div>
                     {/* the native coin leads the ledger */}
                     <HoldingRow
-                      mark={<span className="flex items-center gap-2"><span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#E6212F] font-mono text-[8px] font-bold text-white">A</span><span className="font-medium text-zinc-900 dark:text-zinc-50">{sym}</span><span className="text-zinc-400 dark:text-zinc-500">Avalanche</span></span>}
+                      mark={<span className="flex items-center gap-2"><NativeMark symbol={sym} size={16} /><span className="text-zinc-400 dark:text-zinc-500">Avalanche</span></span>}
                       balance={nativeWei === null ? "…" : `${formatEther(nativeWei.toString(), { decimals: 4 })} ${sym}`}
                       price={formatPriceUsd(usd ?? undefined)}
                       value={nativeWei !== null && usd ? formatUsd(nativeUsd) : "—"}

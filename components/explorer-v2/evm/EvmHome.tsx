@@ -88,6 +88,7 @@ export function EvmHome({ network }: { network: string }) {
     ? heads.slice(0, 11).map((h) => ({
         number: h.number,
         timestamp: Math.floor(h.timestampMs / 1000),
+        timestampMs: h.timestampMs,
         txCount: h.txCount,
         gasUsed: h.gasUsed,
         gasLimit: h.gasLimit,
@@ -192,6 +193,7 @@ export function EvmHome({ network }: { network: string }) {
                       {
                         label: "Price",
                         live: true,
+                        series: "price" as const,
                         value: formatPrice(price.price),
                         sub: (
                           <>
@@ -206,6 +208,7 @@ export function EvmHome({ network }: { network: string }) {
                       {
                         label: "Market Cap",
                         live: true,
+                        series: "marketCap" as const,
                         value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
                       },
                     ]
@@ -213,21 +216,18 @@ export function EvmHome({ network }: { network: string }) {
                 {
                   label: "Avg Block Time",
                   live: true,
-                  value: avgBlockTime != null ? `${avgBlockTime.toFixed(2)} s` : "—",
-                  sub:
-                    recentTps != null
-                      ? `${recentTps.toFixed(1)} TPS · last ${cadenceBlocks} blocks`
-                      : undefined,
+                  href: `${base}/blocks`,
+                  value: avgBlockTime != null ? avgBlockTime.toFixed(2) : "—",
+                  unit: avgBlockTime != null ? "s" : undefined,
+                  sub: `last ${cadenceBlocks} blocks`,
                 },
                 {
-                  label: "Latest Block",
-                  value: tip
-                    ? timeAgo(Math.floor(tip.timestampMs / 1000))
-                    : blockList[0]
-                      ? timeAgo(blockList[0].timestamp)
-                      : "—",
-                  href: `${base}/blocks`,
+                  label: "Throughput",
                   live: true,
+                  href: `${base}/txs`,
+                  value: recentTps != null ? recentTps.toFixed(1) : "—",
+                  unit: recentTps != null ? "TPS" : undefined,
+                  sub: `last ${cadenceBlocks} blocks`,
                 },
               ]}
             />
