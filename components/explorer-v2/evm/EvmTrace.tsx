@@ -17,7 +17,7 @@ import {
   type AbiParameter,
 } from "viem";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, HashChip, SectionHeader, HEAD } from "@/components/explorer-v2/ui";
 import { truncate } from "@/components/explorer-v2/format";
 import { Tabs, EmptyRow } from "./AddressTables";
 import { TokenMark, NativeMark } from "./TokenMark";
@@ -35,6 +35,7 @@ import {
   logsIn,
   storageChanges,
   wordLabel,
+  type BalanceChange,
   type FlatFrame,
   type TraceFrame,
   type TraceResponse,
@@ -96,7 +97,7 @@ function V({ v, className }: { v: Val; className?: string }) {
     : v.kind === "string" ? C.str
     : v.kind === "name" ? "font-medium text-zinc-900 dark:text-zinc-50"
     : "text-zinc-600 dark:text-zinc-300";
-  const inner = <span className={cn("break-all tabular-nums", cls, className)} title={v.title}>{v.text}</span>;
+  const inner = <span className={cn(v.kind === "address" || v.kind === "number" ? "whitespace-nowrap" : "break-all", "tabular-nums", cls, className)} title={v.title}>{v.text}</span>;
   return v.href ? <Link href={v.href} className="hover:underline underline-offset-4" onClick={(e) => e.stopPropagation()}>{inner}</Link> : inner;
 }
 
@@ -161,7 +162,7 @@ function Who({ addr, n, className }: { addr: string | undefined; n: Names; class
       ) : label ? (
         <span className={cn("truncate", label === "sender" ? "text-zinc-500 dark:text-zinc-400" : "font-medium text-zinc-900 dark:text-zinc-50")}>{label}</span>
       ) : (
-        <span className={cn("break-all", C.addr)}>{addr}</span>
+        <span className={cn("whitespace-nowrap", C.addr)}>{addr}</span>
       )}
     </Link>
   );
@@ -593,7 +594,7 @@ export function EvmTrace({
                       <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center text-zinc-400", !f.children.length && "invisible")} aria-hidden>
                         {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                       </span>
-                      <span className={cn("w-[5.5rem] shrink-0 text-[9px] font-bold uppercase tracking-[0.14em]", C.type[fr.type] ?? C.type.CALL)}>
+                      <span className={cn("w-[6.75rem] shrink-0 text-[9px] font-bold uppercase tracking-[0.14em]", C.type[fr.type] ?? C.type.CALL)}>
                         {fr.type.toLowerCase()}
                       </span>
                       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-zinc-600 dark:text-zinc-300">
@@ -604,15 +605,21 @@ export function EvmTrace({
                             <span className={cn(C.fn, d.guessed && "underline decoration-dotted decoration-current underline-offset-4")} title={d.guessed ? "name from the signature database, no verified ABI" : undefined}>
                               {d.name}
                             </span>
-                            <span className={C.punct}>(</span>
-                            {d.args.map((a, i) => (
-                              <span key={i} className="inline-flex flex-wrap items-baseline gap-1">
-                                {a.name && <span className={cn("text-[10px]", C.param)}>{a.name}=</span>}
-                                <V v={a.value} />
-                                {i < d.args.length - 1 && <span className={C.punct}>,</span>}
-                              </span>
-                            ))}
-                            <span className={C.punct}>)</span>
+                            {d.args.length === 0 ? (
+                              <span className={C.punct}>()</span>
+                            ) : (
+                              <>
+                                <span className={C.punct}>(</span>
+                                {d.args.map((a, i) => (
+                                  <span key={i} className="inline-flex flex-wrap items-baseline gap-1">
+                                    {a.name && <span className={cn("text-[10px]", C.param)}>{a.name}=</span>}
+                                    <V v={a.value} />
+                                    {i < d.args.length - 1 && <span className={C.punct}>,</span>}
+                                  </span>
+                                ))}
+                                <span className={C.punct}>)</span>
+                              </>
+                            )}
                             {d.outputs && d.outputs.length > 0 && (
                               <>
                                 <span className={C.punct}>→</span>
@@ -656,9 +663,13 @@ export function EvmTrace({
                     {frameLogs.map(({ log }, i) => {
                       const ev = decodeLog(log, n);
                       return (
-                        <div key={i} className="relative flex min-h-7 items-center gap-2 py-1 pr-5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-50/60 md:pr-6 dark:text-zinc-400 dark:hover:bg-zinc-900/60" style={{ paddingLeft: `${20 + (f.depth + 1) * 22 + 16}px` }}>
+                        // an event sits in the row of a child call: same indent, same
+                        // kind column, so its emitter lines up with a sibling's target
+                        <div key={i} className="relative flex min-h-7 items-center gap-3 py-1 pr-5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-50/60 md:pr-6 dark:text-zinc-400 dark:hover:bg-zinc-900/60" style={{ paddingLeft: `${20 + (f.depth + 1) * 22}px` }}>
                           {rails(f.depth + 1)}
-                          <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">event</span>
+                          <span className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="w-[6.75rem] shrink-0 text-[9px] font-bold uppercase tracking-[0.14em] text-rose-600 dark:text-rose-400">event</span>
+                          <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5">
                           <Who addr={log.address} n={n} />
                           <span className={C.punct}>.</span>
                           {ev ? (
@@ -681,6 +692,7 @@ export function EvmTrace({
                           ) : (
                             <V v={{ kind: "bytes", text: log.topics[0] ?? "" }} />
                           )}
+                          </span>
                         </div>
                       );
                     })}
@@ -692,7 +704,7 @@ export function EvmTrace({
 
           {tab === "balances" && (
             <Board>
-              <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+              <div className={cn(HEAD, "grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem]")}>
                 <span>Account</span>
                 <span>Asset</span>
                 <span className="text-right">Change</span>
@@ -700,7 +712,11 @@ export function EvmTrace({
               </div>
               {changes.length === 0 && <EmptyRow>no balance changed</EmptyRow>}
               {[...changes]
-                .sort((a, b) => a.address.localeCompare(b.address) || (a.token ?? "").localeCompare(b.token ?? ""))
+                .sort((a, b) => {
+                  // the sender first, then anyone with a name, then the rest; native before tokens
+                  const rank = (x: BalanceChange) => (x.address === sender.toLowerCase() ? 0 : nameOf(x.address, n) ? 1 : 2);
+                  return rank(a) - rank(b) || a.address.localeCompare(b.address) || (a.token === null ? -1 : b.token === null ? 1 : a.token.localeCompare(b.token));
+                })
                 .map((c, i, arr) => {
                   const tok = c.token ? tokens.get(c.token) : undefined;
                   const neg = c.delta < 0n;
@@ -731,7 +747,7 @@ export function EvmTrace({
 
           {tab === "state" && (
             <Board>
-              <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_1.5rem_minmax(0,1.1fr)] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+              <div className={cn(HEAD, "grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_1.5rem_minmax(0,1.1fr)]")}>
                 <span>Contract</span>
                 <span>Slot</span>
                 <span className="text-right">Before</span>
@@ -778,7 +794,7 @@ export function EvmTrace({
           {tab === "gas" && (
             <div className="grid gap-8 lg:grid-cols-2">
               <Board>
-                <div className="grid grid-cols-[minmax(0,1fr)_9rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_9rem]")}>
                   <span>Frame (own gas)</span>
                   <span className="text-right">Gas</span>
                 </div>
@@ -793,6 +809,7 @@ export function EvmTrace({
                           <Who addr={f.frame.to} n={n} />
                           <span className={C.punct}>.</span>
                           <span className={cn("truncate", C.fn)}>{d?.name ?? f.frame.input.slice(0, 10)}</span>
+                          <span className="shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">depth {f.depth}</span>
                         </span>
                         <span className="flex items-center justify-end gap-2 tabular-nums text-zinc-700 dark:text-zinc-300">
                           <span className="h-1 w-16 bg-zinc-100 dark:bg-zinc-900">
@@ -808,7 +825,7 @@ export function EvmTrace({
                 </div>
               </Board>
               <Board>
-                <div className="grid grid-cols-[minmax(0,1fr)_5rem_7rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_5rem_7rem]")}>
                   <span>Opcode</span>
                   <span className="text-right">Count</span>
                   <span className="text-right">Gas</span>
