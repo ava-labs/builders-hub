@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
-import { ageOrDate, formatBytes, formatNumber, timeAgo } from "@/components/explorer-v2/format";
+import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk, HEAD, ROW, LoadMore, RowSkeleton } from "@/components/explorer-v2/ui";
+import { ageOrDate, formatBytes, formatNumber, timeAgo, ageShort } from "@/components/explorer-v2/format";
 import { pchainApiPath, type BlocksList, type BlockSummary } from "@/lib/pchain-explorer";
 import { LIVE_REFRESH_MS } from "./hooks";
+import { cn } from "@/lib/utils";
 
 // The upstream /blocks endpoint has no type param (verified: ?type= is
 // ignored), so this filter runs client-side over the loaded window —
@@ -98,10 +99,10 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
         />
         <TypeFilterRail options={BLOCK_TYPE_OPTIONS} value={type} onChange={setType} />
         <Board>
-          <div className="hidden grid-cols-[1fr_1.1fr_0.5fr_0.6fr_minmax(19rem,2fr)_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+          <div className={cn(HEAD, "grid-cols-[1fr_1.1fr_0.5fr_0.6fr_minmax(19rem,2fr)_0.7fr]")}>
             <span>Height</span>
             <span>Type</span>
-            <span className="text-right">Txns</span>
+            <span className="text-right">Txs</span>
             <span className="text-right">Size</span>
             <span>Proposer</span>
             <span className="text-right">Age</span>
@@ -110,7 +111,7 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
             <div
               key={b.blockNumber}
               onClick={() => router.push(`${base}/block/${b.blockNumber}`)}
-              className="grid cursor-pointer grid-cols-2 gap-x-4 gap-y-1 px-5 py-3.5 transition-colors hover:bg-zinc-50 md:grid-cols-[1fr_1.1fr_0.5fr_0.6fr_minmax(19rem,2fr)_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+              className={cn(ROW, "cursor-pointer md:grid-cols-[1fr_1.1fr_0.5fr_0.6fr_minmax(19rem,2fr)_0.7fr]")}
             >
               <span className={`font-mono text-[13px] tabular-nums ${idInk}`}>
                 #{formatNumber(b.blockNumber)}
@@ -119,7 +120,7 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
                 <TxTypePill type={b.blockType.replace(/Block$/, "")} />
               </span>
               <div className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                <CellLabel>Txns</CellLabel>
+                <CellLabel>Txs</CellLabel>
                 {b.txCount}
               </div>
               <div className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
@@ -142,11 +143,11 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
               </div>
               <div className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                <span title={ageOrDate(b.blockTimestamp).title}>{ageOrDate(b.blockTimestamp).text}</span>
+                {ageShort(b.blockTimestamp)}
               </div>
             </div>
           ))}
-          {loading && <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>}
+          {loading && <RowSkeleton n={visible.length ? 3 : 12} />}
           {!loading && visible.length === 0 && (
             <div className="flex items-baseline gap-3 px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
               {type ? `No ${activeLabel} blocks in the loaded range. Load more below.` : "no blocks"}
@@ -162,12 +163,7 @@ export function PchainBlocksList({ chain, network }: { chain: string; network: s
           )}
         </Board>
         {!done && !loading && (
-          <button
-            onClick={() => load(nextBefore)}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-          >
-            Load more
-          </button>
+          <LoadMore onClick={() => load(nextBefore)} />
         )}
       </section>
     </ExplorerShell>

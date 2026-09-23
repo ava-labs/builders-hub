@@ -13,18 +13,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import {
-  Board,
-  BoardHeader,
-  CellLabel,
-  SectionHeader,
-  StatCell,
-  SubjectHeadline,
-  TxTypePill,
-  TypeFilterRail,
-  idInk,
-} from "@/components/explorer-v2/ui";
-import { ageOrDate, formatNumber, formatUsd, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { Board, BoardHeader, CellLabel, SectionHeader, StatCell, SubjectHeadline, TxTypePill, TypeFilterRail, idInk, HEAD, ROW, LoadMore, RowSkeleton, Tabs } from "@/components/explorer-v2/ui";
+import { ageOrDate, formatNumber, formatUsd, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 import { useAvaxUsd } from "@/components/explorer-v2/pchain/hooks";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
@@ -134,10 +124,10 @@ export function XchainHome({ network }: { network: string }) {
   const grid =
     "grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800";
   const cells: { label: string; href?: string; value: React.ReactNode }[] = [
-    { label: "Tip height", href: `${base}/blocks`, value: <span className={FIG}>{s ? `#${formatNumber(s.tipHeight)}` : "—"}</span> },
+    { label: "Tip Height", href: `${base}/blocks`, value: <span className={FIG}>{s ? `#${formatNumber(s.tipHeight)}` : "—"}</span> },
     { label: "Transactions", href: `${base}/txs`, value: <span className={FIG}>{s ? formatNumber(s.txCount) : "—"}</span> },
     { label: "Assets", value: <span className={FIG}>{s ? formatNumber(s.assetCount) : "—"}</span> },
-    { label: "Last block", value: <span className={FIG}>{s ? timeAgo(s.tipTimestamp) : "—"}</span> },
+    { label: "Last Block", value: <span className={FIG}>{s ? timeAgo(s.tipTimestamp) : "—"}</span> },
   ];
   return (
     <ExplorerShell chain="x-chain" network={network}>
@@ -171,7 +161,7 @@ export function XchainHome({ network }: { network: string }) {
                 <Link
                   key={b.height}
                   href={`${base}/block/${b.height}`}
-                  className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1fr_2fr_0.7fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+                  className={cn(ROW, "md:grid-cols-[1fr_2fr_0.7fr_0.7fr]")}
                 >
                   <span className={`font-mono text-[12px] tabular-nums ${idInk}`}>#{formatNumber(b.height)}</span>
                   <span className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{truncate(b.hash, 16)}</span>
@@ -200,19 +190,14 @@ export function XchainHome({ network }: { network: string }) {
                 <Link
                   key={t.txHash}
                   href={`${base}/tx/${t.txHash}`}
-                  className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+                  className={cn(ROW, "md:grid-cols-[2fr_1.2fr_0.7fr]")}
                 >
-                  <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 16)}</span>
+                  <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 6)}</span>
                   <span className="flex items-center gap-1.5 justify-self-start">
                     <TxTypePill type={t.txType} label={t.txType} />
                     <IndexedBadge src={t.timeSource} />
                   </span>
-                  <span
-                    title={ageOrDate(t.timestamp).title}
-                    className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400"
-                  >
-                    {ageOrDate(t.timestamp).text}
-                  </span>
+                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{ageShort(t.timestamp)}</span>
                 </Link>
               ))}
               {!txs && <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>}
@@ -267,7 +252,7 @@ export function XchainTxsList({ network }: { network: string }) {
         <SectionHeader label="Transactions" />
         <TypeFilterRail options={X_TYPE_OPTIONS} value={type} onChange={setType} />
         <Board className={cn(loading && txs.length > 0 && "opacity-60 transition-opacity")}>
-          <div className="hidden grid-cols-[2fr_1.2fr_0.8fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+          <div className={cn(HEAD, "grid-cols-[2fr_1.2fr_0.8fr_0.7fr]")}>
             <span>Hash</span>
             <span>Type</span>
             <span className="text-right">Block</span>
@@ -277,9 +262,9 @@ export function XchainTxsList({ network }: { network: string }) {
             <Link
               key={t.txHash}
               href={`${base}/tx/${t.txHash}`}
-              className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+              className={cn(ROW, "md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr]")}
             >
-              <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 16)}</span>
+              <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 6)}</span>
               <span className="flex items-center gap-1.5 justify-self-start">
                 <TxTypePill type={t.txType} label={t.txType} />
                 <IndexedBadge src={t.timeSource} />
@@ -290,25 +275,17 @@ export function XchainTxsList({ network }: { network: string }) {
               </div>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                <span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span>
+                {ageShort(t.timestamp)}
               </div>
             </Link>
           ))}
-          {loading && txs.length === 0 && (
-            <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>
-          )}
+          {loading && txs.length === 0 && <RowSkeleton n={12} />}
           {!loading && txs.length === 0 && (
             <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">no transactions</div>
           )}
         </Board>
         {txs.length > 0 && !pagedOut && (
-          <button
-            onClick={loadOlder}
-            disabled={loadingMore}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-          >
-            {loadingMore ? "Loading…" : "Load more"}
-          </button>
+          <LoadMore onClick={loadOlder} disabled={loadingMore} />
         )}
       </section>
     </ExplorerShell>
@@ -348,7 +325,7 @@ export function XchainBlocksList({ network }: { network: string }) {
       <section className="flex flex-col gap-4">
         <SectionHeader label="Blocks" />
         <Board className={cn(loading && blocks.length > 0 && "opacity-60 transition-opacity")}>
-          <div className="hidden grid-cols-[1fr_2fr_0.8fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+          <div className={cn(HEAD, "grid-cols-[1fr_2fr_0.8fr_0.7fr]")}>
             <span>Height</span>
             <span>Hash</span>
             <span className="text-right">Txs</span>
@@ -358,32 +335,24 @@ export function XchainBlocksList({ network }: { network: string }) {
             <Link
               key={b.height}
               href={`${base}/block/${b.height}`}
-              className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[1fr_2fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+              className={cn(ROW, "md:grid-cols-[1fr_2fr_0.8fr_0.7fr]")}
             >
               <span className={`font-mono text-[12px] tabular-nums ${idInk}`}>#{formatNumber(b.height)}</span>
-              <span className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{truncate(b.hash, 22)}</span>
+              <span className="truncate font-mono text-[11px] text-zinc-500 dark:text-zinc-400">{truncate(b.hash, 6)}</span>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Txs</CellLabel>
                 {b.txCount}
               </div>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                {timeAgo(b.timestamp)}
+                {ageShort(b.timestamp)}
               </div>
             </Link>
           ))}
-          {loading && blocks.length === 0 && (
-            <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>
-          )}
+          {loading && blocks.length === 0 && <RowSkeleton n={12} />}
         </Board>
         {blocks.length > 0 && !pagedOut && (
-          <button
-            onClick={loadOlder}
-            disabled={loadingMore}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-          >
-            {loadingMore ? "Loading…" : "Load more"}
-          </button>
+          <LoadMore onClick={loadOlder} disabled={loadingMore} />
         )}
       </section>
     </ExplorerShell>
@@ -541,22 +510,7 @@ export function XchainTx({ network, txHash }: { network: string; txHash: string 
           <SectionHeader
             label="Fund Flow"
             action={
-              <div className="flex border border-zinc-200 dark:border-zinc-800">
-                {(["diagram", "table"] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setFlowView(v)}
-                    className={cn(
-                      "px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-                      flowView === v
-                        ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                        : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
-                    )}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
+              <Tabs tabs={["diagram", "table"] as const} active={flowView} onChange={setFlowView} labels={{ diagram: "Diagram", table: "Table" }} />
             }
           />
           {!hasFundMovement({
@@ -704,7 +658,7 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
 
         {d.balances.filter((b) => b !== avax).length > 0 && (
           <section className="flex flex-col gap-4">
-            <SectionHeader label="Other assets" />
+            <SectionHeader label="Other Assets" />
             <Board>
               {d.balances.filter((b) => b !== avax).map((b) => (
                 <div key={b.assetId} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 md:px-6">
@@ -733,9 +687,9 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
               <Link
                 key={t.txHash}
                 href={`${base}/tx/${t.txHash}`}
-                className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+                className={cn(ROW, "md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr]")}
               >
-                <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 16)}</span>
+                <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 6)}</span>
                 <span className="flex items-center gap-1.5 justify-self-start">
                   <TxTypePill type={t.txType} label={t.txType} />
                   <IndexedBadge src={t.timeSource} />
@@ -746,7 +700,7 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
                 </div>
                 <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                   <CellLabel>Age</CellLabel>
-                  <span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span>
+                  {ageShort(t.timestamp)}
                 </div>
               </Link>
             ))}
@@ -768,7 +722,7 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
             }
           />
           <Board>
-            <div className="hidden grid-cols-[1.4fr_1fr_1fr_0.8fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+            <div className={cn(HEAD, "grid-cols-[1.4fr_1fr_1fr_0.8fr]")}>
               <span>Amount</span>
               <span>Kind</span>
               <span>Created in</span>
@@ -777,7 +731,7 @@ export function XchainAddress({ network, addr }: { network: string; addr: string
             {d.utxos.slice(0, utxoLimit).map((u, i) => (
               <div
                 key={`${u.utxoId}-${i}`}
-                className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[1.4fr_1fr_1fr_0.8fr] md:items-center md:px-6"
+                className={cn(ROW, "md:grid-cols-[1.4fr_1fr_1fr_0.8fr]")}
               >
                 <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
                   {fmtAmount(u.amount, u.denomination, u.symbol)}
@@ -877,11 +831,11 @@ export function XchainBlock({ network, height }: { network: string; height: stri
               <Link
                 key={t.txHash}
                 href={`${base}/tx/${t.txHash}`}
-                className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+                className={cn(ROW, "md:grid-cols-[2fr_1.2fr_0.7fr]")}
               >
-                <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 16)}</span>
+                <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncate(t.txHash, 6)}</span>
                 <span className="justify-self-start"><TxTypePill type={t.txType} label={t.txType} /></span>
-                <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{" "}<span title={ageOrDate(t.timestamp).title}>{ageOrDate(t.timestamp).text}</span></span>
+                <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{" "}{ageShort(t.timestamp)}</span>
               </Link>
             ))}
             {b.transactions.length === 0 && (

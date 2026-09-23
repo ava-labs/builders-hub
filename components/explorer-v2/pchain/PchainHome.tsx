@@ -7,18 +7,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis }
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
-import {
-  Board,
-  BoardHeader,
-  ChartBoard,
-  SectionHeader,
-  StatCell,
-  StatDash,
-  StatFigure,
-  TxTypePill,
-  idInk,
-  txToneText,
-} from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, SectionHeader, StatCell, StatDash, StatFigure, TxTypePill, idInk, txToneText, HEAD, RowSkeleton, ROW, LIVE_DOT } from "@/components/explorer-v2/ui";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   usePrimaryMetrics,
@@ -27,7 +16,7 @@ import {
   NANO,
   type SeriesPoint,
 } from "@/components/explorer-v2/staking/data";
-import { formatAvax, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { formatAvax, formatNumber, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { useValidatorStats } from "@/components/explorer-v2/validator-stats";
@@ -74,7 +63,7 @@ function blockKind(blockType: string): string {
 }
 
 function LiveDot({ onRed = false, className }: { onRed?: boolean; className?: string }) {
-  const tone = onRed ? "bg-white" : "bg-[#E6212F]";
+  const tone = onRed ? "bg-white" : LIVE_DOT;
   return (
     <span className={cn("relative flex h-1.5 w-1.5", className)}>
       <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", tone)} />
@@ -477,12 +466,18 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                 }
               />
               <Board>
+                <div className={cn(HEAD, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem_3.5rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
+                  <span>Height</span>
+                  <span>Type</span>
+                  <span className="text-right">Txs</span>
+                  <span className="text-right">Age</span>
+                </div>
                 {blocks.loading && !tape.length && <RowSkeleton n={8} />}
                 {tape.slice(0, 8).map((b) => (
                   <Link
                     key={b.blockNumber}
                     href={`${base}/block/${b.blockNumber}`}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem_3.5rem] md:px-6 dark:hover:bg-zinc-900"
+                    className={cn(ROW, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_2.5rem_3.5rem]")}
                   >
                     <span className={`font-mono text-[13px] tabular-nums ${idInk}`}>
                       #{formatNumber(b.blockNumber)}
@@ -494,7 +489,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                       {b.txCount} tx
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {timeAgo(b.blockTimestamp)}
+                      {ageShort(b.blockTimestamp)}
                     </span>
                   </Link>
                 ))}
@@ -515,21 +510,26 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
                 }
               />
               <Board>
+                <div className={cn(HEAD, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.75rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
+                  <span>Hash</span>
+                  <span>Type</span>
+                  <span className="text-right">Age</span>
+                </div>
                 {txs.loading && <RowSkeleton n={8} />}
                 {txs.data?.map((t) => (
                   <Link
                     key={t.txHash}
                     href={`${base}/tx/${t.txHash}`}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.75rem] items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+                    className={cn(ROW, "grid-cols-[minmax(0,1fr)_minmax(0,1fr)_3.5rem] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_6.75rem]")}
                   >
                     <span className={`truncate font-mono text-[12px] ${idInk}`}>
-                      {truncate(t.txHash, 22)}
+                      {truncate(t.txHash, 6)}
                     </span>
                     <span className="min-w-0 text-left">
                       <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
                     </span>
                     <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {timeAgo(t.blockTimestamp)}
+                      {ageShort(t.blockTimestamp)}
                     </span>
                   </Link>
                 ))}
@@ -560,15 +560,3 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
   );
 }
 
-function RowSkeleton({ n }: { n: number }) {
-  return (
-    <>
-      {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="flex items-center justify-between px-5 py-3 md:px-6">
-          <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-          <div className="h-3 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-        </div>
-      ))}
-    </>
-  );
-}

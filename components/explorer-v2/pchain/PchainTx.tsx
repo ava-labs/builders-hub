@@ -742,8 +742,8 @@ function IndexingWait({ txHash }: { txHash: string }) {
     <Board divide={false} className="px-6 py-14 text-center">
       <div className="flex flex-col items-center gap-4">
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-[#E6212F]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 dark:bg-emerald-400" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400" />
         </span>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
           Accepted on-chain · indexing

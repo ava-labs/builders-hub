@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, SectionHeader, SpecPlate, SpecRow } from "@/components/explorer-v2/ui";
+import { Board, HashChip, SectionHeader, SpecPlate, SpecRow, LoadMore } from "@/components/explorer-v2/ui";
 import { formatTime } from "@/components/explorer-v2/format";
 
 /* CreateChainTx genesisData → readable. The node's JSON codec ships the
@@ -350,12 +350,7 @@ export function GenesisViewer({
               ))}
             </Board>
             {overview.alloc.length > ALLOC_PREVIEW && (
-              <button
-                onClick={() => setShowAllAlloc((v) => !v)}
-                className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-              >
-                {showAllAlloc ? "Show fewer" : `Show all ${overview.alloc.length}`}
-              </button>
+              <LoadMore onClick={() => setShowAllAlloc((v) => !v)} label={showAllAlloc ? "Show fewer" : `Show all ${overview.alloc.length}`} />
             )}
           </div>
         </div>

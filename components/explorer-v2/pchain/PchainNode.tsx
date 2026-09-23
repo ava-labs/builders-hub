@@ -12,19 +12,7 @@ import {
   YAxis,
 } from "recharts";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import {
-  Board,
-  BoardHeader,
-  CellLabel,
-  DetailSkeleton,
-  HashChip,
-  SectionHeader,
-  SpecPlate,
-  SpecRow,
-  SubjectHeadline,
-  TxTypePill,
-  idInk,
-} from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecPlate, SpecRow, SubjectHeadline, TxTypePill, idInk, ROW, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
@@ -35,6 +23,7 @@ import {
   type CurrentValidator,
 } from "@/lib/pchain-node";
 import { txTypeLabel, type NodeResponse, type NodeStakingTx, type TxSummary, type ValidationsResponse } from "@/lib/pchain-explorer";
+import { cn } from "@/lib/utils";
 
 /* The node page as one instrument, not an endless scroll: a bold summary
    strip, then two split views — what the validator IS (the spec plate)
@@ -846,13 +835,7 @@ export function PchainNode({
                   )}
                 </Board>
                 {showAllHistory && !historyDone && (
-                  <button
-                    onClick={loadOlderHistory}
-                    disabled={loadingOlder}
-                    className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-                  >
-                    {loadingOlder ? "Loading…" : "Load older activity"}
-                  </button>
+                  <LoadMore onClick={loadOlderHistory} disabled={loadingOlder} label="Load older activity" />
                 )}
               </section>
             )}
@@ -935,7 +918,7 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
             return (
               <div
                 key={p.txHash}
-                className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr] md:items-center md:px-6"
+                className={cn(ROW, "md:grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr]")}
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-mono text-[11.5px] tabular-nums text-zinc-900 dark:text-zinc-100">

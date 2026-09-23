@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader, StatCell, StatDash, StatFigure, StatStrip } from "@/components/explorer-v2/ui";
+import { Board, SectionHeader, StatCell, StatDash, StatFigure, StatStrip, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, timeAgo } from "@/components/explorer-v2/format";
 import { NotFound } from "@/components/explorer-v2/pchain/PchainTx";
 import {
@@ -221,7 +221,7 @@ export function L1ValidatorsContent({
         {validators !== null && (
           <>
             <Board>
-              <div className="hidden grid-cols-[minmax(19rem,1.6fr)_0.9fr_0.7fr_0.8fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+              <div className={cn(HEAD, "grid-cols-[minmax(19rem,1.6fr)_0.9fr_0.7fr_0.8fr_0.7fr]")}>
                 <span>Node</span>
                 <SortHeader label="Version" k="version" />
                 <SortHeader label="Weight" k="weight" />
@@ -285,12 +285,7 @@ export function L1ValidatorsContent({
               )}
             </Board>
             {shown < rows.length && (
-              <button
-                onClick={() => setShown((s) => s + 50)}
-                className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-              >
-                Load more
-              </button>
+              <LoadMore onClick={() => setShown((s) => s + 50)} />
             )}
           </>
         )}

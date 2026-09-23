@@ -17,7 +17,7 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash, LoadMore } from "@/components/explorer-v2/ui";
 import {
   VersionBarChart,
   VersionBreakdownInline,
@@ -656,12 +656,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
           </table>
         </ChartBoard>
         {shown < rows.length && (
-          <button
-            onClick={() => setShown((s) => s + 50)}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-          >
-            Load more · {(rows.length - shown).toLocaleString("en-US")} remaining
-          </button>
+          <LoadMore onClick={() => setShown((s) => s + 50)} label={`Load more · ${(rows.length - shown).toLocaleString("en-US")} remaining`} />
         )}
       </section>
 
