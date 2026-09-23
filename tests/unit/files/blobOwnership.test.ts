@@ -22,7 +22,8 @@ import {
 
 const VICTIM = 'aaaaaaaa-1111-2222-3333-444444444444';
 const ATTACKER = 'bbbbbbbb-5555-6666-7777-888888888888';
-const VICTIM_URL = `https://qizat.public.blob.vercel-storage.com/${VICTIM}/9f8e7d6c.png`;
+// The host is never read: these helpers parse the path only.
+const VICTIM_URL = `https://example.com/${VICTIM}/9f8e7d6c.png`;
 
 beforeEach(() => {
   projectFindFirst.mockReset();
@@ -46,7 +47,9 @@ describe('blobKeyFromIdentifier', () => {
   });
 
   it('decodes percent-encoding in the path', () => {
-    expect(blobKeyFromIdentifier(`https://x.com/${VICTIM}/a%20b.png`)).toBe(`${VICTIM}/a b.png`);
+    expect(blobKeyFromIdentifier(`https://example.com/${VICTIM}/a%20b.png`)).toBe(
+      `${VICTIM}/a b.png`,
+    );
   });
 });
 
