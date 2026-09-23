@@ -147,7 +147,7 @@ export function EvmBlocksList({ network }: { network: string }) {
               {shownRows.map((b, i) => (
                 <MotionRow key={b.number} animateIn={live} overflow={i >= LIVE_ROWS}>
                   <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
-                    <Height value={b.number} against={shownRows[i === 0 ? 1 : 0]?.number} />
+                    <Height value={b.number} />
                     <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>
                       <CellLabel>Time</CellLabel>
                       {clock(b.timestampMs, live)}
@@ -156,7 +156,12 @@ export function EvmBlocksList({ network }: { network: string }) {
                     <span className="col-span-2 md:col-span-1">
                       <GasBar used={b.gasUsed} limit={b.gasLimit} />
                     </span>
-                    {showRoot && <PhaseTrack phase={phaseOf(b.number, frozen.executedHeight, frozen.tip?.settledHeight ?? null)} />}
+                    {showRoot && (
+                      <PhaseTrack
+                        phase={phaseOf(b.number, frozen.executedHeight, frozen.tip?.settledHeight ?? null)}
+                        delayMs={(LIVE_ROWS - i) * 40}
+                      />
+                    )}
                     <span className={cn(MUTED, "text-right")}>{ageShort(Math.floor(b.timestampMs / 1000))}</span>
                   </Link>
                 </MotionRow>
@@ -169,7 +174,7 @@ export function EvmBlocksList({ network }: { network: string }) {
                 href={`${base}/block/${b.number}`}
                 className={cn(ROW, cols, "border-b border-zinc-200 dark:border-zinc-800")}
               >
-                <Height value={b.number} against={undefined} />
+                <Height value={b.number} />
                 <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>{clock(b.timestamp * 1000, false)}</span>
                 <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
                 <span className="col-span-2 md:col-span-1">

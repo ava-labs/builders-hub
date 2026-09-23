@@ -320,6 +320,7 @@ export function StatCell({
   live = false,
   href,
   sub,
+  even = false,
   children,
 }: {
   label: string;
@@ -327,6 +328,9 @@ export function StatCell({
   href?: string;
   /** Optional muted line under the figure — a qualifier or an affordance hint. */
   sub?: React.ReactNode;
+  /** hold the sub line's height even when there is no sub, so every
+   *  figure in a grid of these sits on the same line */
+  even?: boolean;
   children: React.ReactNode;
 }) {
   const cls = "flex flex-col gap-1.5 px-5 py-5 md:px-6";
@@ -342,11 +346,13 @@ export function StatCell({
         {label}
       </span>
       {children}
-      {sub != null && (
-        <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+      {sub != null ? (
+        <span className="font-mono text-[10px] leading-4 tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
           {sub}
         </span>
-      )}
+      ) : even ? (
+        <span aria-hidden className="h-4" />
+      ) : null}
     </>
   );
   return href ? (

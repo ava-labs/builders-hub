@@ -52,19 +52,10 @@ export function ageShort(unixSecs: number): string {
   return `${Math.floor(s / 86400)}d`;
 }
 
-/** A height against a neighbour: the digits they share go quiet, the
- *  digits that changed carry the ink. The stream reads at a glance. */
-export function Height({ value, against }: { value: number; against: number | undefined }) {
-  const a = formatNumber(value);
-  const b = against !== undefined ? formatNumber(against) : "";
-  let i = 0;
-  if (a.length === b.length) while (i < a.length - 1 && a[i] === b[i]) i++;
-  return (
-    <span className={INK}>
-      <span className="text-zinc-400 dark:text-zinc-600">{a.slice(0, i)}</span>
-      {a.slice(i)}
-    </span>
-  );
+/** A height, every digit in the same ink: the belt's motion already
+ *  says which row is new, so the number itself stays quiet and even. */
+export function Height({ value }: { value: number }) {
+  return <span className={INK}>{formatNumber(value)}</span>;
 }
 
 /** Gas as the row's one bar: fills the column, no percent beside it */
@@ -94,51 +85,70 @@ const PHASE_TITLE: Record<Phase, string> = {
   settled: "final: state root committed",
 };
 
-/** final → executed → state root as three stops. Filled stops are
- *  attested by the RPC; the next one pulses while the chain works. The
- *  optional label names only the state root, the one thing still moving. */
+/** The state root as one mark and one word. Executing: a red dot that
+ *  breathes, every dot on the page in the same phase, because they are
+ *  all the same wait. Committed: the dot settles solid and quiet and the
+ *  word turns over. No bar, no fill: the commit lands whenever the next
+ *  header after the τ floor does, and a categorical state deserves a
+ *  categorical mark. A batch of commits cascades on `delayMs`. */
 export function PhaseTrack({
   phase,
   label = true,
   rootBlock,
+  delayMs = 0,
 }: {
   phase: Phase;
   label?: boolean;
   /** the block that committed the root, named when known */
   rootBlock?: number | null;
+  /** how long to hold before showing a commit, so a batch reads as a cascade */
+  delayMs?: number;
 }) {
-  const reached = phase === "settled" ? 3 : phase === "executed" ? 2 : 1;
+  const committed = phase === "settled";
+  // phase-lock the breathing: every dot's animation starts at the
+  // document timeline's origin, so dots mounted seconds apart rise and
+  // fall together
+  const dot = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (committed) return;
+    let raf = 0;
+    const lock = () => {
+      const anims = dot.current?.getAnimations() ?? [];
+      if (!anims.length) {
+        raf = requestAnimationFrame(lock);
+        return;
+      }
+      for (const a of anims) a.startTime = 0;
+    };
+    lock();
+    return () => cancelAnimationFrame(raf);
+  }, [committed]);
   return (
     <span
       className="flex items-center gap-2"
-      title={phase === "settled" && rootBlock ? `${PHASE_TITLE[phase]} in #${rootBlock.toLocaleString("en-US")}` : PHASE_TITLE[phase]}
+      title={committed && rootBlock ? `${PHASE_TITLE[phase]} in #${rootBlock.toLocaleString("en-US")}` : PHASE_TITLE[phase]}
     >
-      <span className="flex items-center gap-1.5">
-        {[1, 2, 3].map((i) => {
-          const on = i <= reached;
-          const next = i === reached + 1;
-          return (
-            <span key={i} className="relative flex h-1.5 w-1.5 shrink-0">
-              {next && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-50" />}
-              <span
-                className={cn(
-                  "relative inline-flex h-1.5 w-1.5 rounded-full",
-                  on ? "bg-zinc-900 dark:bg-zinc-50" : next ? "border border-[#E6212F]" : "border border-zinc-300 dark:border-zinc-700",
-                )}
-              />
-            </span>
-          );
-        })}
-      </span>
+      <motion.span
+        ref={dot}
+        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-[#E6212F]")}
+        initial={false}
+        animate={{ scale: committed ? [1, 1.8, 1] : 1 }}
+        transition={{ duration: 0.5, delay: committed ? delayMs / 1000 : 0, ease: "easeOut" }}
+        style={{ transition: `background-color 300ms ease ${delayMs}ms` }}
+      />
       {label && (
-        <span
+        <motion.span
+          key={committed ? "committed" : "executing"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
           className={cn(
             "font-mono text-[10px] uppercase tracking-[0.12em]",
-            phase === "settled" ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
+            committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
           )}
         >
-          {phase === "settled" ? "committed" : "executing"}
-        </span>
+          {committed ? "committed" : "executing"}
+        </motion.span>
       )}
     </span>
   );
@@ -270,6 +280,8 @@ export function useFreeze<T>(value: T, frozen: boolean): T {
 export interface BlockRow {
   number: number;
   timestamp: number;
+  /** millisecond time when the feed has it (ACP-226 headers) */
+  timestampMs?: number;
   txCount: number;
   gasUsed: number;
   gasLimit: number;
@@ -320,13 +332,17 @@ export function LatestBlocksBoard({
           {rows.map((b, i) => (
             <MotionRow key={b.number} animateIn overflow={i >= ROWS}>
               <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
-                <Height value={b.number} against={rows[i === 0 ? 1 : 0]?.number} />
+                <Height value={b.number} />
                 <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
                 <span className="col-span-2 md:col-span-1">
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>
                 {showSettlement && (
-                  <PhaseTrack phase={phaseOf(b.number, shown.executedHeight, shown.tip?.settledHeight ?? null)} rootBlock={rootBlockFor?.(b.number)} />
+                  <PhaseTrack
+                    phase={phaseOf(b.number, shown.executedHeight, shown.tip?.settledHeight ?? null)}
+                    rootBlock={rootBlockFor?.(b.number)}
+                    delayMs={(ROWS - i) * 60}
+                  />
                 )}
                 <span className={cn(MUTED, "text-right")}>{ageShort(b.timestamp)}</span>
               </Link>

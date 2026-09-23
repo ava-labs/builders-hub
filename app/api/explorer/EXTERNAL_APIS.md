@@ -31,6 +31,7 @@ Used for fetching token prices and AVAX price data.
 |------|----------|---------|------------|
 | `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd` | Get AVAX price in USD | None |
 | `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/coins/${coingeckoId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false` | Get token price data (USD, market cap, 24h change, etc.) | `coingeckoId` (from chain config) |
+| `app/api/market-history/[chainId]/route.ts` | `api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart?vs_currency=usd&days=N` | Daily price and market cap series for the home sparklines, 7 to 365 days (free tier stops at a year) | `coingeckoId` (from chain config), `days` |
 
 **Base URL**: `https://api.coingecko.com/api/v3`  
 **Authentication**: None (public API)  
