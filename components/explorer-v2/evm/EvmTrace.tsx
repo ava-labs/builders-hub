@@ -530,7 +530,7 @@ export function EvmTrace({
   };
 
   return (
-    <section className="flex flex-col gap-4">
+    <section id="execution" className="flex scroll-mt-24 flex-col gap-4">
       <SectionHeader
         label="Execution"
         action={

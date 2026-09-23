@@ -28,10 +28,13 @@ import { useRpcTx } from "./useRpcTx";
 import { EvmTrace, useTrace } from "./EvmTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { balanceChanges, flatten } from "@/lib/trace";
+import { storyOf } from "@/lib/tx-story";
+import { EvmTxStory } from "./EvmTxStory";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type TxDetail } from "@/lib/evm-explorer";
-import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount } from "@/lib/token-list";
+import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount, useSignatures } from "@/lib/token-list";
 import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
 
@@ -240,9 +243,52 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const call = t && toToken ? decodeErc20Call(t.input) : null;
   const transfers = t ? decodeTransferLogs(t.logs) : [];
 
-  const feeWei = t ? BigInt(t.gasUsed) * BigInt(t.gasPrice || "0") : 0n;
+  // the price actually paid: the RPC copy carries the receipt's effective
+  // gas price; the indexer copy carries the tx's own field, which since
+  // ACP-176 can sit a little above what the block charged
+  const gasPriceWei = fromRpc.data?.gasPrice ?? t?.gasPrice ?? "0";
+  const feeWei = t ? BigInt(t.gasUsed) * BigInt(gasPriceWei || "0") : 0n;
   const gasPct = t && t.gasLimit > 0 ? (t.gasUsed / t.gasLimit) * 100 : 0;
   const value = t ? Number(t.value) : 0;
+
+  // the glance layer: the events' names (registry first, then the
+  // signature database), the sender's native net, and the story they make
+  const topics = t ? [...new Set(t.logs.map((l) => (l.topics[0] ?? "").toLowerCase()).filter(Boolean))] : [];
+  const unnamedTopics = topics.filter((tp) => !getEventByTopic(tp, 1));
+  const sigs = useSignatures(selector && !methodName ? [selector] : [], unnamedTopics);
+  // unnamed, the selector itself is the honest word for what was called
+  const storyMethod = methodName ?? sigs.fn.get(selector)?.name.split("(")[0] ?? (selector || null);
+  const eventNames = t
+    ? t.logs
+        .map((l) => {
+          const tp = (l.topics[0] ?? "").toLowerCase();
+          return getEventByTopic(tp, l.topics.length)?.name ?? sigs.ev.get(tp)?.name.split("(")[0] ?? null;
+        })
+        .filter((n): n is string => !!n)
+    : [];
+  const nativeNet = (() => {
+    if (!t) return 0n;
+    if (trace) {
+      const mine = balanceChanges(trace).find((ch) => ch.token === null && ch.address === t.from.toLowerCase());
+      return (mine?.delta ?? 0n) + feeWei;
+    }
+    const refunds = t.internalTxns.filter((it) => it.to?.toLowerCase() === t.from.toLowerCase()).reduce((acc, it) => acc + BigInt(it.value || "0"), 0n);
+    return refunds - BigInt(t.value || "0");
+  })();
+  const story = t
+    ? storyOf({
+        actor: t.from,
+        to: t.to,
+        contractAddress: t.contractAddress,
+        success: t.success,
+        nativeNet,
+        transfers,
+        eventNames,
+        targetIsToken: !!toToken,
+        methodName: storyMethod,
+        revertReason: trace?.call.revertReason ?? trace?.call.error ?? null,
+      })
+    : null;
 
   return (
     <EvmShell network={network}>
@@ -269,6 +315,20 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
               </span>
             </div>
 
+            {/* what happened, for anyone */}
+            {story && (
+              <EvmTxStory
+                story={story}
+                actor={t.from}
+                chainId={c.chainId}
+                base={base}
+                symbol={sym}
+                tokens={tokens}
+                usd={usd}
+                counts={{ transfers: transfers.length, events: t.logs.length, calls: trace ? flatten(trace.call).length : null }}
+              />
+            )}
+
             {/* the readings */}
             <StatStrip cols={5}>
               <StatCell label="Value" sub={value > 0 ? usdOfWei(t.value, usd) : undefined}>
@@ -284,7 +344,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                   <>
                     {usdOfWei(feeWei, usd)}
                     {usdOfWei(feeWei, usd) ? " · " : ""}
-                    {formatNano(t.gasPrice, sym)}
+                    {formatNano(gasPriceWei, sym)}
                   </>
                 }
               >
