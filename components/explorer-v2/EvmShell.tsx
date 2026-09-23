@@ -15,6 +15,7 @@ import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.
 export function EvmShell({
   network,
   aside,
+  tape,
   search = true,
   subnav = true,
   children,
@@ -22,6 +23,10 @@ export function EvmShell({
   network: string;
   /** Optional right-hand companion for the header (e.g. a live height figure). */
   aside?: React.ReactNode;
+  /** the live block tape: rides under the title as the hero's moving edge,
+   *  so the height figure at right and the newest block below it read as
+   *  one thing, and the search comes after the identity, not inside it */
+  tape?: React.ReactNode;
   /** Set false where there is nothing to search — an unindexed chain has no
    *  blocks, transactions or addresses to look up, so the box would only
    *  promise a lookup that cannot resolve. */
@@ -65,6 +70,7 @@ export function EvmShell({
               }
               aside={aside}
             />
+            {tape}
             {search && <EvmSearchBox base={base} chainName={c.chainName} />}
           </header>
         </Rise>

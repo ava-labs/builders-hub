@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
-import { Board, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+import { Board, LiveDot, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
 import { EvmOverviewStats } from "./EvmOverviewStats";
@@ -17,14 +17,6 @@ import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import { useTokenList, decodeErc20Call, formatTokenAmount } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
 
-function LiveDot() {
-  return (
-    <span className="relative flex h-1.5 w-1.5">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
-    </span>
-  );
-}
 
 
 export function EvmHome({ network }: { network: string }) {
@@ -147,6 +139,15 @@ export function EvmHome({ network }: { network: string }) {
   return (
     <EvmShell
       network={network}
+      tape={
+        !noData ? (
+          blocks.loading && !blockList.length && !heads.length ? (
+            <BlockTapeSkeleton />
+          ) : tapeBlocks.length > 0 ? (
+            <BlockTape blocks={tapeBlocks} />
+          ) : undefined
+        ) : undefined
+      }
       aside={
         s && !noData ? (
           <Link href={`${base}/blocks`} className="group flex flex-col items-end gap-1.5">
@@ -171,12 +172,6 @@ export function EvmHome({ network }: { network: string }) {
       ) : (
         <div className="flex flex-col gap-12">
           <div className="flex flex-col gap-4">
-            {blocks.loading && !blockList.length && !heads.length ? (
-              <BlockTapeSkeleton />
-            ) : (
-              tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
-            )}
-
             {/* the ledger — live figures (EVM explorer API + CoinGecko)
                 riding as the first rows of the Etherscan-grade readings
                 board: totals, the last day with its day-over-day move,

@@ -137,10 +137,13 @@ function Spark({ values }: { values: number[] }) {
   const H = 24;
   const min = Math.min(...pts);
   const span = Math.max(...pts) - min || 1;
-  const d = pts.map((v, i) => `${((i / (pts.length - 1)) * W).toFixed(2)},${(H - 1 - ((v - min) / span) * (H - 2)).toFixed(2)}`).join(" ");
+  const xy = pts.map((v, i) => [((i / (pts.length - 1)) * W).toFixed(2), (H - 1 - ((v - min) / span) * (H - 2)).toFixed(2)]);
+  const d = xy.map(([x, y]) => `${x},${y}`).join(" ");
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden className="h-6 w-20 shrink-0">
-      <polyline points={d} fill="none" strokeWidth={1} vectorEffect="non-scaling-stroke" className="stroke-zinc-300 dark:stroke-zinc-700" />
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden className="h-10 min-w-16 max-w-44 flex-1">
+      {/* the floor under the line gives the eye a shape, not just a thread */}
+      <polygon points={`0,${H} ${d} ${W},${H}`} className="fill-zinc-900/[0.09] dark:fill-zinc-50/[0.12]" />
+      <polyline points={d} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" className="stroke-zinc-700 dark:stroke-zinc-200" />
     </svg>
   );
 }
@@ -149,8 +152,8 @@ function Spark({ values }: { values: number[] }) {
  *  number, the trace sits right, on the number's baseline */
 function Figure({ value, unit, spark }: { value: React.ReactNode; unit?: string; spark?: number[] }) {
   return (
-    <span className="flex items-end justify-between gap-4">
-      <span className={FIG}>
+    <span className="flex items-end justify-between gap-6">
+      <span className={cn(FIG, "shrink-0")}>
         {value}
         {unit && <span className={UNIT}>{unit}</span>}
       </span>
@@ -270,9 +273,21 @@ export function EvmOverviewStats({
   const feesUsd = usdPrice !== null && win("feesPaid") ? `$${fmtCompact(win("feesPaid")!.cur * usdPrice)}` : undefined;
 
   return (
+    <div className="flex flex-col gap-4">
+      {/* right now: the market and the cadence, outside the clock */}
+      {liveCells.length > 0 && (
+        <Board divide={false} className="border">
+          <div className={grid}>
+            {liveCells.map((c) => (
+              <StatCell key={c.label} label={c.label} href={c.href} sub={c.sub} live={c.live} even>
+                <Figure value={c.value} unit={c.unit} spark={c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined} />
+              </StatCell>
+            ))}
+          </div>
+        </Board>
+      )}
     <Board divide={false} className="border">
-      {/* the window is stated once, up here; cells only carry a label
-          when they DON'T follow it (· Total, the live row, 24h subs) */}
+      {/* the window is stated once, up here; every cell below follows it */}
       <BoardHeader
         label="Chain Stats"
         display
@@ -282,16 +297,6 @@ export function EvmOverviewStats({
           </span>
         }
       />
-      {/* right now: the live market row */}
-      {liveCells.length > 0 && (
-        <div className={cn(grid, rowRule)}>
-          {liveCells.map((c) => (
-            <StatCell key={c.label} label={c.label} href={c.href} sub={c.sub} live={c.live} even>
-              <Figure value={c.value} unit={c.unit} spark={c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined} />
-            </StatCell>
-          ))}
-        </div>
-      )}
       {/* the clock's window, against the window before it */}
       <div className={cn(grid, rowRule)}>
         {cell(`Transactions`, `${base}/txs`, win("txCount"), fmtCompact, { spark: trace("txCount") })}
@@ -340,5 +345,6 @@ export function EvmOverviewStats({
         })}
       </div>
     </Board>
+    </div>
   );
 }
