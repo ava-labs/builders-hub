@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
   XAxis,
@@ -52,6 +55,7 @@ const ACTIVITY_DAYS: Record<ExplorerRange, 7 | 30 | 90> = {
 };
 
 const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
+const GRID = "rgba(161,161,170,0.18)";
 
 export function CchainActivityChart({ href }: { href?: string }) {
   const clock = useExplorerTimeRange();
@@ -82,30 +86,67 @@ export function CchainActivityChart({ href }: { href?: string }) {
     };
   }, [served]);
 
+  // hovering a legend entry isolates its band; the others step back
+  const [focus, setFocus] = useState<string | null>(null);
+
+  const totals = useMemo(() => {
+    const t = { defi: 0, nft: 0, tokens: 0, other: 0, all: 0 };
+    for (const d of activity ?? []) {
+      t.defi += d.defi;
+      t.nft += d.nft;
+      t.tokens += d.tokens;
+      t.other += d.other;
+    }
+    t.all = t.defi + t.nft + t.tokens + t.other;
+    return t;
+  }, [activity]);
+
   if (!activity) return null;
   // a window switch keeps the last payload on screen, dimmed, until the
   // new one lands — same idiom as the gas market
   const stale = servedDays !== served;
+  const perDay = activity.length ? totals.all / activity.length : 0;
+  const share = (k: keyof Omit<CchainActivityDay, "date">) => (totals.all > 0 ? (totals[k] / totals.all) * 100 : 0);
+  // the legend and the tooltip list the bands by size, biggest first
+  const bySize = [...ACTIVITY_SERIES].sort((x, y) => totals[y.key] - totals[x.key]);
 
   return (
     <ChartBoard
       label={exception ? `Network Activity ${exception}` : "Network Activity"}
       href={href}
       className={cn(stale && "opacity-60 transition-opacity")}
-      action={
-        <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 sm:gap-4 dark:text-zinc-500">
-          {ACTIVITY_SERIES.map((s) => (
-            <span key={s.key} className="flex items-center gap-1.5">
-              <span className="h-2 w-2" style={{ background: s.tone }} />
-              {s.label}
-            </span>
-          ))}
-        </span>
-      }
+      bodyClassName="px-0 py-0"
     >
-      <div className="h-48">
+      {/* the window's readings: how much, and of what kind. The legend
+          carries each band's share and isolates it on hover. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2 border-b border-zinc-200 px-5 py-3 md:px-6 dark:border-zinc-800">
+        <p className="font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">
+          {fmtCompact(totals.all)} <span className="text-zinc-400 dark:text-zinc-500">transactions</span>
+          <span className="text-zinc-300 dark:text-zinc-700"> · </span>
+          {fmtCompact(perDay)} <span className="text-zinc-400 dark:text-zinc-500">per day</span>
+        </p>
+        <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em]" onMouseLeave={() => setFocus(null)}>
+          {bySize.map((sr) => (
+            <button
+              key={sr.key}
+              type="button"
+              onMouseEnter={() => setFocus(sr.key)}
+              onFocus={() => setFocus(sr.key)}
+              onBlur={() => setFocus(null)}
+              onClick={(e) => e.preventDefault()}
+              className={cn("flex items-center gap-1.5 transition-opacity", focus && focus !== sr.key ? "opacity-40" : "opacity-100")}
+            >
+              <span className="h-2 w-2" style={{ background: sr.tone }} />
+              <span className="text-zinc-500 dark:text-zinc-400">{sr.label}</span>
+              <span className="tabular-nums text-zinc-900 dark:text-zinc-50">{share(sr.key).toFixed(0)}%</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="h-64 px-2 pb-2 pt-4 md:px-3">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={activity} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <BarChart data={activity} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barCategoryGap="22%">
+            <CartesianGrid vertical={false} stroke={GRID} />
             <XAxis
               dataKey="date"
               tickLine={false}
@@ -114,27 +155,39 @@ export function CchainActivityChart({ href }: { href?: string }) {
               minTickGap={48}
               interval="preserveStartEnd"
             />
-            <YAxis hide domain={[0, "dataMax"]} />
+            <YAxis
+              orientation="right"
+              width={48}
+              tickLine={false}
+              axisLine={false}
+              tick={AXIS_TICK}
+              tickCount={4}
+              tickFormatter={(v: number) => fmtCompact(v)}
+              domain={[0, "dataMax"]}
+            />
             <RechartsTooltip
-              cursor={{ stroke: "rgba(161,161,170,0.3)" }}
+              cursor={{ fill: "rgba(161,161,170,0.12)" }}
               content={({ active: a, payload }) => {
                 if (!a || !payload?.length) return null;
                 const d = payload[0].payload as CchainActivityDay;
                 const total = d.defi + d.nft + d.tokens + d.other;
                 return (
                   <TipPlate>
-                    <p className="text-[10px] text-zinc-500">
-                      {d.date} · {total.toLocaleString()} txns
+                    <p className="font-mono text-[10px] text-zinc-500">
+                      {d.date} · {total.toLocaleString("en-US")} txns
                     </p>
-                    {ACTIVITY_SERIES.map((s) => (
+                    {bySize.map((sr) => (
                       <p
-                        key={s.key}
-                        className="flex items-center gap-1.5 text-xs tabular-nums text-zinc-900 dark:text-zinc-100"
+                        key={sr.key}
+                        className="flex items-center justify-between gap-4 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100"
                       >
-                        <span className="h-1.5 w-1.5" style={{ background: s.tone }} />
-                        {d[s.key].toLocaleString()} {s.label.toLowerCase()}
-                        <span className="text-[10px] text-zinc-400">
-                          {total > 0 ? `${((d[s.key] / total) * 100).toFixed(0)}%` : ""}
+                        <span className="flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5" style={{ background: sr.tone }} />
+                          {sr.label}
+                        </span>
+                        <span>
+                          {d[sr.key].toLocaleString("en-US")}
+                          <span className="ml-2 text-[10px] text-zinc-400">{total > 0 ? `${((d[sr.key] / total) * 100).toFixed(0)}%` : ""}</span>
                         </span>
                       </p>
                     ))}
@@ -142,20 +195,17 @@ export function CchainActivityChart({ href }: { href?: string }) {
                 );
               }}
             />
-            {ACTIVITY_SERIES.map((s) => (
-              <Area
-                key={s.key}
-                dataKey={s.key}
+            {ACTIVITY_SERIES.map((sr) => (
+              <Bar
+                key={sr.key}
+                dataKey={sr.key}
                 stackId="day"
-                stroke={s.tone}
-                strokeWidth={1}
-                fill={s.tone}
-                fillOpacity={0.85}
-                type="monotone"
+                fill={sr.tone}
+                fillOpacity={focus && focus !== sr.key ? 0.25 : 1}
                 isAnimationActive={false}
               />
             ))}
-          </AreaChart>
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </ChartBoard>
@@ -181,9 +231,10 @@ export function TxHistoryChart({ chainId, href }: { chainId: number | string; hr
 
   return (
     <ChartBoard label={clock === "day" ? "Transactions · 7 days" : "Transactions"} href={href}>
-      <div className="h-40">
+      <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={history} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke={GRID} />
             <XAxis
               dataKey="date"
               tickLine={false}
@@ -192,7 +243,7 @@ export function TxHistoryChart({ chainId, href }: { chainId: number | string; hr
               minTickGap={48}
               interval="preserveStartEnd"
             />
-            <YAxis hide domain={[0, "dataMax"]} />
+            <YAxis orientation="right" width={48} tickLine={false} axisLine={false} tick={AXIS_TICK} tickCount={4} tickFormatter={(v: number) => fmtCompact(v)} domain={[0, "dataMax"]} />
             <RechartsTooltip
               cursor={{ stroke: "rgba(161,161,170,0.3)" }}
               content={({ active, payload }) => {
@@ -209,7 +260,7 @@ export function TxHistoryChart({ chainId, href }: { chainId: number | string; hr
               }}
             />
             <Area
-              type="monotone"
+              type="linear"
               dataKey="a"
               stroke="var(--chain-accent, #E6212F)"
               strokeWidth={1.5}
