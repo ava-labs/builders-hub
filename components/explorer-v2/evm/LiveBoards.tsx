@@ -7,8 +7,8 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, SectionHeader } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
-import { useVerifiedContracts, functionNameFromAbi, prewarmContractNames } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
+import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
 import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
@@ -433,18 +433,9 @@ export function LatestTxsBoard({
     },
     hover,
   );
-  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const tokens = useTokenList(chainId);
-
-  // what the tx did: the verified ABI of the called contract names the
-  // selector first, then the generated registry, then the bare selector
-  const method = (t: TxRow): { label: string; named: boolean } => {
-    const sel = t.methodId?.toLowerCase() ?? "";
-    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
-    const fromAbi = functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel);
-    const name = fromAbi ?? getFunctionBySelector(sel)?.name ?? null;
-    return name ? { label: name, named: true } : { label: sel, named: false };
-  };
+  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
+  const method = useMethodNames(chainId, rows);
 
   // no lifecycle column here: rows live a few seconds and settlement
   // takes five or more, so it would never be seen to turn. The blocks

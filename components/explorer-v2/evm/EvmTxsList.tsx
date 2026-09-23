@@ -13,8 +13,8 @@ import { useEvmData, LIVE_REFRESH_MS, usePrice, usdOfWei } from "./hooks";
 import { useHeadStream, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { Belt, MotionRow, Party, RowSkeleton, ageShort, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
 import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, weekFloor, useChainMetrics } from "./metric-charts";
-import { useVerifiedContracts, functionNameFromAbi, prewarmContractNames } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
+import { useMethodNames } from "./bits";
 import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxListResponse } from "@/lib/evm-explorer";
@@ -85,14 +85,7 @@ export function EvmTxsList({ network }: { network: string }) {
     hover,
   );
   const contracts = useVerifiedContracts(c.chainId, rows.map((t) => t.to));
-
-  const method = (t: TxRow): { label: string; named: boolean } => {
-    const sel = t.methodId?.toLowerCase() ?? "";
-    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
-    const fromAbi = functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel);
-    const name = fromAbi ?? getFunctionBySelector(sel)?.name ?? null;
-    return name ? { label: name, named: true } : { label: sel, named: false };
-  };
+  const method = useMethodNames(c.chainId, rows);
 
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];

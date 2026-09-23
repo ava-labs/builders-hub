@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Board, CellLabel, HashChip } from "@/components/explorer-v2/ui";
 import { timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
-import { FeedDown, methodLabel } from "./bits";
+import { FeedDown, useMethodNames } from "./bits";
 import { TokenMark, TokenLogo } from "./TokenMark";
 import { usdOfWei } from "./hooks";
 import { formatTokenAmount, usdOfToken, type TokenMap } from "@/lib/token-list";
@@ -88,6 +88,7 @@ export function TxTable({
   retry: () => void;
 }) {
   const me = self.toLowerCase();
+  const method = useMethodNames(chainId, txs);
   const cols = "md:grid-cols-[0.75rem_7.5rem_minmax(0,9rem)_2.5rem_minmax(0,1fr)_9rem_3.5rem]";
   return (
     <Board>
@@ -105,8 +106,7 @@ export function TxTable({
         const out = t.from.toLowerCase() === me;
         const other = out ? t.to : t.from;
         const tok = other ? tokens.get(other.toLowerCase()) : undefined;
-        const m = methodLabel(t);
-        const named = !m.startsWith("0x");
+        const m = method(t);
         const value = Number(t.value);
         return (
           <Link key={t.hash} href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
@@ -114,9 +114,9 @@ export function TxTable({
               {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
             </span>
             <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-50">{truncate(t.hash, 6)}</span>
-            <span className={cn("min-w-0 truncate font-mono text-[12px]", named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
+            <span className={cn("min-w-0 truncate font-mono text-[12px]", m.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
               <CellLabel>Method</CellLabel>
-              {m}
+              {m.label}
             </span>
             <span className={cn("font-mono text-[10px] uppercase tracking-[0.12em]", out ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-700 dark:text-zinc-300")}>
               {out ? "out" : "in"}

@@ -18,7 +18,7 @@ import {
 } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
-import { FeedDown, methodLabel } from "./bits";
+import { FeedDown, useMethodNames } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { NotFound } from "./EvmTx";
 import { PhaseTrack } from "./LiveBoards";
@@ -61,6 +61,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   const showLife = !!liveRpc && life.supported;
 
   const tokens = useTokenList(c.chainId);
+  const method = useMethodNames(c.chainId, b?.transactions ?? []);
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;
 
@@ -225,8 +226,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                 </div>
               )}
               {b.transactions.map((t) => {
-                const m = methodLabel(t);
-                const named = !m.startsWith("0x");
+                const m = method(t);
                 const value = Number(t.value);
                 return (
                   <Link
@@ -243,10 +243,10 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     <span className="min-w-0">
                       <CellLabel>Method</CellLabel>
                       <span
-                        className={cn("block truncate font-mono text-[12px]", named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")}
+                        className={cn("block truncate font-mono text-[12px]", m.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")}
                         title={t.methodId || undefined}
                       >
-                        {m}
+                        {m.label}
                       </span>
                     </span>
                     <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
