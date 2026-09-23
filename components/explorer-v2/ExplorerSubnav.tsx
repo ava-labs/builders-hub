@@ -110,14 +110,14 @@ function ChainSwitcher({
     },
     {
       slug: "c-chain",
-      name: "Contract Chain",
+      name: "C-Chain",
       logo: cChain?.chainLogoURI,
       href: "/explorer/mainnet/c-chain",
     },
-    { slug: "p-chain", name: "Platform Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
+    { slug: "p-chain", name: "P-Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
     {
       slug: "x-chain",
-      name: "Exchange Chain",
+      name: "X-Chain",
       logo: XCHAIN_LOGO,
       href: `/explorer/${pchainNetwork}/x-chain`,
     },
