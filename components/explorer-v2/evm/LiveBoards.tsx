@@ -13,7 +13,7 @@ import { knownAddress } from "@/lib/evm-explorer";
 import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 import { usePrice, usdOfWei } from "./hooks";
-import type { Head } from "./useHeadStream";
+import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
 
 /* The home page's two live boards, in the ledger's own grammar: one line
    per row, a header naming every column, ink for identity, one
@@ -441,7 +441,8 @@ export function LatestTxsBoard({
           <span>Method</span>
           <span>From → To</span>
           <span className="text-right">Value</span>
-          <span className="text-right">Fee</span>
+          {/* the C-Chain burns every fee; a sovereign L1 chooses its own destination */}
+          <span className="text-right">{CONTINUOUS_EXECUTION_CHAINS.has(String(chainId)) ? "Burn" : "Fee"}</span>
         </div>
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
         <Belt>

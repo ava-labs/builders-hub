@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
+
+/* the block tape under the title: off while we judge the page without
+   it; the Latest Blocks board below carries the same cadence */
+const SHOW_TAPE = false;
 import { Board, LiveDot, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
-import { EvmOverviewStats } from "./EvmOverviewStats";
+import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { useEvmData, LIVE_REFRESH_MS, usePrice } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
@@ -140,7 +144,7 @@ export function EvmHome({ network }: { network: string }) {
     <EvmShell
       network={network}
       tape={
-        !noData ? (
+        SHOW_TAPE && !noData ? (
           blocks.loading && !blockList.length && !heads.length ? (
             <BlockTapeSkeleton />
           ) : tapeBlocks.length > 0 ? (
@@ -171,18 +175,11 @@ export function EvmHome({ network }: { network: string }) {
         </Board>
       ) : (
         <div className="flex flex-col gap-12">
-          <div className="flex flex-col gap-4">
-            {/* the ledger — live figures (EVM explorer API + CoinGecko)
-                riding as the first rows of the Etherscan-grade readings
-                board: totals, the last day with its day-over-day move,
-                and what it cost. Every cell doors into its tab. */}
-            <EvmOverviewStats
-              chainId={c.chainId}
-              base={base}
-              symbol={sym}
-              usdPrice={price?.price ?? null}
-              usdSettled={priceSettled}
-              liveCells={[
+          {/* the pulse: what is true this second */}
+          <LiveReadout
+            chainId={c.chainId}
+            cells={[
+
                 ...(price
                   ? [
                       {
@@ -224,20 +221,11 @@ export function EvmHome({ network }: { network: string }) {
                   unit: recentTps != null ? "TPS" : undefined,
                   sub: `last ${cadenceBlocks} blocks`,
                 },
-              ]}
-            />
-          </div>
+            ]}
+          />
 
-          {/* what the chain is FOR — the activity breakdown on the page
-              clock: stacked behavior bands for the C-Chain, the accent
-              area for everyone else. Both door into the Transactions tab. */}
-          {isCchain ? (
-            <CchainActivityChart href={`${base}/txs`} />
-          ) : (
-            <TxHistoryChart chainId={c.chainId} href={`${base}/txs`} />
-          )}
-
-          {/* 2:3: the blocks board has five short columns, the transactions
+          {/* the live chain first: what is happening right now. 2:3 because
+              the blocks board has five short columns and the transactions
               board carries hash, method, parties, value and fee */}
           <div className="grid gap-12 lg:grid-cols-[2fr_3fr]">
             <LatestBlocksBoard
@@ -258,6 +246,31 @@ export function EvmHome({ network }: { network: string }) {
               streaming={streaming}
             />
           </div>
+
+
+          <div className="flex flex-col gap-4">
+            {/* the ledger: live figures (EVM explorer API + CoinGecko)
+                riding as the first rows of the Etherscan-grade readings
+                board: totals, the last day with its day-over-day move,
+                and what it cost. Every cell doors into its tab. */}
+            <EvmOverviewStats
+              chainId={c.chainId}
+              base={base}
+              symbol={sym}
+              usdPrice={price?.price ?? null}
+              usdSettled={priceSettled}
+            />
+          </div>
+
+
+          {/* what the chain is FOR: the activity breakdown on the page
+              clock: stacked behavior bands for the C-Chain, the accent
+              area for everyone else. Both door into the Transactions tab. */}
+          {isCchain ? (
+            <CchainActivityChart href={`${base}/txs`} />
+          ) : (
+            <TxHistoryChart chainId={c.chainId} href={`${base}/txs`} />
+          )}
         </div>
       )}
     </EvmShell>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, StatCell, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, LiveDot, StatCell, StatDash } from "@/components/explorer-v2/ui";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   Delta,
@@ -130,7 +131,7 @@ function bucket(values: number[], max: number): number[] {
 }
 
 /** a hairline of the series, no axes: the figure's shape, not its scale */
-function Spark({ values }: { values: number[] }) {
+function Spark({ values, className }: { values: number[]; className?: string }) {
   const pts = bucket(values, SPARK_MAX_POINTS);
   if (pts.length < 2) return null;
   const W = 100;
@@ -140,7 +141,7 @@ function Spark({ values }: { values: number[] }) {
   const xy = pts.map((v, i) => [((i / (pts.length - 1)) * W).toFixed(2), (H - 1 - ((v - min) / span) * (H - 2)).toFixed(2)]);
   const d = xy.map(([x, y]) => `${x},${y}`).join(" ");
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden className="h-10 min-w-16 max-w-44 flex-1">
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden className={cn("h-10 min-w-16 max-w-44 flex-1", className)}>
       {/* the floor under the line gives the eye a shape, not just a thread */}
       <polygon points={`0,${H} ${d} ${W},${H}`} className="fill-zinc-900/[0.09] dark:fill-zinc-50/[0.12]" />
       <polyline points={d} fill="none" strokeWidth={1.5} vectorEffect="non-scaling-stroke" strokeLinejoin="round" className="stroke-zinc-700 dark:stroke-zinc-200" />
@@ -162,6 +163,59 @@ function Figure({ value, unit, spark }: { value: React.ReactNode; unit?: string;
   );
 }
 
+/* The live readout: one bar, four readings, what is true this second.
+   Label and figure on one line so the bar stays short; the market cells
+   carry their trace at right. It sits between the search and the live
+   boards, so the page reads: identity, pulse, ledger, then the clocked
+   readings below. */
+export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCell[] }) {
+  const clock = useExplorerTimeRange();
+  const n = RANGE_DAYS[clock];
+  const market = useMarketHistory(chainId, n, cells.some((c) => c.series));
+  if (cells.length === 0) return null;
+  const grid =
+    "grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800";
+  return (
+    <Board divide={false} className="border">
+      <div className={grid}>
+        {cells.map((c) => {
+          const spark = c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined;
+          const body = (
+            <>
+              {c.live && <LiveDot className="mt-1.5 shrink-0" />}
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{c.label}</span>
+                <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                  <span className="font-mono text-[17px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+                    {c.value}
+                    {c.unit && <span className="ml-1 text-[12px] font-normal text-zinc-400 dark:text-zinc-500">{c.unit}</span>}
+                  </span>
+                  {c.sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{c.sub}</span>}
+                </span>
+              </span>
+              {spark && spark.length >= 2 && (
+                <span className="ml-auto flex h-7 w-24 shrink-0 self-center">
+                  <Spark values={spark} className="h-7 max-w-none" />
+                </span>
+              )}
+            </>
+          );
+          const cls = "flex items-start gap-3 px-5 py-3 md:px-6";
+          return c.href ? (
+            <Link key={c.label} href={c.href} className={cn(cls, "transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
+              {body}
+            </Link>
+          ) : (
+            <div key={c.label} className={cls}>
+              {body}
+            </div>
+          );
+        })}
+      </div>
+    </Board>
+  );
+}
+
 export interface LiveCell {
   label: string;
   value: React.ReactNode;
@@ -179,7 +233,6 @@ export function EvmOverviewStats({
   symbol = "AVAX",
   usdPrice,
   usdSettled = true,
-  liveCells = [],
 }: {
   chainId: string;
   base: string;
@@ -189,9 +242,6 @@ export function EvmOverviewStats({
   /** the price fetch resolved: USD-or-native cells hold until then so a
    *  late price never flips an already-painted native figure to dollars */
   usdSettled?: boolean;
-  /** the live figures (price, block time, latest block …), the same small
-   *  cells, first row of the grid */
-  liveCells?: LiveCell[];
 }) {
   // the page clock: window sums/averages and their vs-prev move all ride it
   const clock = useExplorerTimeRange();
@@ -206,7 +256,6 @@ export function EvmOverviewStats({
     METRICS,
   );
   const util = useUtilization(chainId, n);
-  const market = useMarketHistory(chainId, n, liveCells.some((c) => c.series));
 
   const m = metrics ?? {};
   const win = (key: string, mode: "sum" | "avg" = "sum") => windowPair(m[key]?.data, n, mode);
@@ -273,19 +322,6 @@ export function EvmOverviewStats({
   const feesUsd = usdPrice !== null && win("feesPaid") ? `$${fmtCompact(win("feesPaid")!.cur * usdPrice)}` : undefined;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* right now: the market and the cadence, outside the clock */}
-      {liveCells.length > 0 && (
-        <Board divide={false} className="border">
-          <div className={grid}>
-            {liveCells.map((c) => (
-              <StatCell key={c.label} label={c.label} href={c.href} sub={c.sub} live={c.live} even>
-                <Figure value={c.value} unit={c.unit} spark={c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined} />
-              </StatCell>
-            ))}
-          </div>
-        </Board>
-      )}
     <Board divide={false} className="border">
       {/* the window is stated once, up here; every cell below follows it */}
       <BoardHeader
@@ -345,6 +381,5 @@ export function EvmOverviewStats({
         })}
       </div>
     </Board>
-    </div>
   );
 }
