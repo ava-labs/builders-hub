@@ -19,8 +19,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Board, BoardHeader, ChartBoard, StatDash, StatCell, LoadMore, SectionHeader, HEAD, ROW, FIG, UNIT, EmptyRow, RowSkeleton, idInk } from "@/components/explorer-v2/ui";
 import {
-  VersionBarChart,
-  VersionBreakdownInline,
   calculateVersionStats,
   compareVersions,
   type VersionBreakdownData,
@@ -494,12 +492,84 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
         </Board>
       </section>
 
+      {/* what the fleet runs: one row per client version, newest first,
+          each with its share of nodes as a bar and its share of stake.
+          Versions at or past the target sit in ink; older ones in amber. */}
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label="Client Versions"
+          action={
+            availableVersions.length > 0 ? (
+              <label className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                Target
+                <select
+                  value={minVersion}
+                  onChange={(e) => setMinVersion(e.target.value)}
+                  className="border border-zinc-200 bg-white px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-700 outline-none transition-colors focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:focus:border-zinc-100"
+                >
+                  {availableVersions.map((version) => (
+                    <option key={version} value={version}>
+                      {version}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : undefined
+          }
+        />
+        <Board divide={false}>
+          {versions && minVersion && versionStats ? (
+            <>
+              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-zinc-200 px-5 py-3 font-mono text-[12.5px] tabular-nums text-zinc-900 md:px-6 dark:border-zinc-800 dark:text-zinc-50">
+                <span>
+                  {versionStats.stakePercentAbove.toFixed(1)}% <span className="text-zinc-400 dark:text-zinc-500">of stake</span>
+                </span>
+                <span>
+                  {versionStats.nodesPercentAbove.toFixed(1)}% <span className="text-zinc-400 dark:text-zinc-500">of nodes</span>
+                </span>
+                <span className="text-zinc-400 dark:text-zinc-500">
+                  on {minVersion} or newer · {totalNodes.toLocaleString("en-US")} nodes reporting
+                </span>
+              </div>
+              <div className={cn(HEAD, "grid-cols-[7rem_minmax(0,1fr)_6rem_6rem_6rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
+                <span>Version</span>
+                <span>Share of Nodes</span>
+                <span className="text-right">Nodes</span>
+                <span className="text-right">Nodes %</span>
+                <span className="text-right">Stake %</span>
+              </div>
+              {Object.entries(versions.byClientVersion)
+                .sort(([a], [b]) => compareVersions(b, a))
+                .map(([version, data]) => {
+                  const current = compareVersions(version, minVersion) >= 0;
+                  const nodePct = totalNodes > 0 ? (data.nodes / totalNodes) * 100 : 0;
+                  const totalStake = versions.totalStakeString ? Number(BigInt(versions.totalStakeString) / 1_000_000n) : 0;
+                  const stakePct = totalStake > 0 && data.stakeString ? (Number(BigInt(data.stakeString) / 1_000_000n) / totalStake) * 100 : null;
+                  return (
+                    <div key={version} className={cn(ROW, "md:grid-cols-[7rem_minmax(0,1fr)_6rem_6rem_6rem]", "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
+                      <span className={cn("font-mono text-[12.5px] tabular-nums", current ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-500 dark:text-zinc-400")}>{version}</span>
+                      <span className="block h-1.5 w-full bg-zinc-100 dark:bg-zinc-900">
+                        <span className={cn("block h-full", current ? "bg-zinc-800 dark:bg-zinc-200" : "bg-amber-500/80")} style={{ width: `${Math.max(nodePct > 0 ? 0.6 : 0, nodePct).toFixed(1)}%` }} />
+                      </span>
+                      <span className="font-mono text-[12px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">{data.nodes.toLocaleString("en-US")}</span>
+                      <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{nodePct.toFixed(1)}%</span>
+                      <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{stakePct === null ? "—" : `${stakePct.toFixed(1)}%`}</span>
+                    </div>
+                  );
+                })}
+            </>
+          ) : (
+            <RowSkeleton n={5} />
+          )}
+        </Board>
+      </section>
+
       {/* the roster itself — the page's reason to exist, so it comes first.
           the live count rides in the card's action slot as a quiet qualifier
           (rows / total while filtering) — no window chip, this IS the set */}
       <section className="flex flex-col gap-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+        <div className="flex w-full items-center gap-3 border border-zinc-200 bg-white px-4 py-2.5 transition-colors focus-within:border-zinc-900 sm:max-w-sm dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
+          <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
           <input
             value={query}
             onChange={(e) => {
@@ -508,7 +578,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
             }}
             placeholder="Filter by NodeID or version"
             spellCheck={false}
-            className="w-full border border-zinc-200 bg-white/80 py-2.5 pl-11 pr-10 font-mono text-[12px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100"
+            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
           />
           {query && (
             <button
@@ -518,7 +588,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
                 setShown(50);
               }}
               aria-label="Clear filter"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
             >
               <X className="h-4 w-4" />
             </button>
@@ -591,50 +661,6 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
         )}
       </section>
 
-      {/* what the fleet is running */}
-      <ChartBoard
-        label="Client Versions"
-        action={
-          availableVersions.length > 0 ? (
-            <label className="flex shrink-0 items-center gap-2">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                Target
-              </span>
-              <select
-                value={minVersion}
-                onChange={(e) => setMinVersion(e.target.value)}
-                className="border border-zinc-200 bg-white/80 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-700 outline-none transition-colors focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:focus:border-zinc-100"
-              >
-                {availableVersions.map((version) => (
-                  <option key={version} value={version}>
-                    {version}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : undefined
-        }
-        bodyClassName="flex flex-col gap-4"
-      >
-        {versions && minVersion ? (
-          <>
-            <VersionBarChart
-              versionBreakdown={versions}
-              minVersion={minVersion}
-              totalNodes={totalNodes}
-              height="h-8"
-            />
-            <VersionBreakdownInline versions={versions.byClientVersion} minVersion={minVersion} limit={5} />
-            {versionStats && (
-              <p className="text-[13px] leading-relaxed tabular-nums text-zinc-500 dark:text-zinc-400">
-                {versionStats.stakePercentAbove.toFixed(1)}% of stake runs {minVersion} or newer
-              </p>
-            )}
-          </>
-        ) : (
-          <ChartEmpty failed={false} />
-        )}
-      </ChartBoard>
 
       {/* how the fleet is behaving */}
       <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
