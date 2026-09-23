@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline } from "@/components/explorer-v2/ui";
+import { Board, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown } from "./bits";
@@ -208,7 +208,7 @@ export function EvmAddress({
                   <TransferTable transfers={transfers.data?.transfers ?? []} self={addr} base={base} chainId={c.chainId} tokens={tokens} prices={prices} loading={transfers.loading} error={transfers.error} retry={transfers.retry} />
                 ) : (
                   <Board>
-                    <div className="hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_8rem_10rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                    <div className={cn(HEAD, "grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_8rem_10rem]")}>
                       <span>Asset</span>
                       <span className="text-right">Balance</span>
                       <span className="text-right">Price</span>
@@ -217,7 +217,8 @@ export function EvmAddress({
                     {/* the native coin leads the ledger */}
                     <HoldingRow
                       mark={<span className="flex items-center gap-2"><NativeMark symbol={sym} size={16} /><span className="text-zinc-400 dark:text-zinc-500">Avalanche</span></span>}
-                      balance={nativeWei === null ? "…" : `${formatEther(nativeWei.toString(), { decimals: 4 })} ${sym}`}
+                      balance={nativeWei === null ? "…" : formatEther(nativeWei.toString(), { decimals: 4 })}
+                      symbol={sym}
                       price={formatPriceUsd(usd ?? undefined)}
                       value={nativeWei !== null && usd ? formatUsd(nativeUsd) : "—"}
                     />
@@ -231,7 +232,8 @@ export function EvmAddress({
                             <span className="truncate text-zinc-400 dark:text-zinc-500">{h.token.name}</span>
                           </span>
                         }
-                        balance={`${formatTokenAmount(h.amount, h.token.decimals)} ${h.token.symbol}`}
+                        balance={formatTokenAmount(h.amount, h.token.decimals)}
+                        symbol={h.token.symbol}
                         price={formatPriceUsd(prices.get(h.address))}
                         value={usdOfToken(h.amount, h.token.decimals, prices.get(h.address)) ?? "—"}
                       />
@@ -252,12 +254,14 @@ export function EvmAddress({
   );
 }
 
-function HoldingRow({ mark, balance, price, value, href }: { mark: React.ReactNode; balance: string; price: string; value: string; href?: string }) {
+function HoldingRow({ mark, balance, symbol, price, value, href }: { mark: React.ReactNode; balance: string; symbol: string; price: string; value: string; href?: string }) {
   const cls = "grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 md:h-11 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_8rem_10rem] md:py-0 md:px-6";
   const inner = (
     <>
       <span className="min-w-0 font-mono text-[12.5px]">{mark}</span>
-      <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">{balance}</span>
+      <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+        {balance} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
+      </span>
       <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{price}</span>
       <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", value === "—" ? "text-zinc-400 dark:text-zinc-600" : "text-zinc-900 dark:text-zinc-50")}>{value}</span>
     </>

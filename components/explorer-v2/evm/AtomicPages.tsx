@@ -9,9 +9,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { crossChainTxUrl } from "@/lib/crosschain-links";
-import { Board, SectionHeader, TxTypePill, idInk } from "@/components/explorer-v2/ui";
+import { Board, SectionHeader, TxTypePill, idInk, HEAD, ROW, LoadMore, Tabs, INK } from "@/components/explorer-v2/ui";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { ageOrDate, formatNumber, timeAgo, truncate as truncFmt } from "@/components/explorer-v2/format";
+import { ageOrDate, formatNumber, timeAgo, truncate as truncFmt, ageShort } from "@/components/explorer-v2/format";
 import { FundFlowDiagram, NoFundMovement, hasFundMovement } from "@/components/explorer-v2/pchain/FundFlowDiagram";
 import { UtxoColumn } from "@/components/explorer-v2/pchain/PchainTx";
 import type { AssetAmount, Utxo } from "@/lib/pchain-explorer";
@@ -65,10 +65,10 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
       <SectionHeader label="Atomic Transactions" />
       <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
         Cross-chain imports and exports between the C-Chain and the P/X chains. These are not EVM
-        transactions — they settle inside block extra data and carry Avalanche (CB58) ids.
+        transactions: they settle inside block extra data and carry Avalanche (CB58) ids.
       </p>
       <Board>
-        <div className="hidden grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+        <div className={cn(HEAD, "grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr]")}>
           <span>Hash</span>
           <span>Type</span>
           <span>Counterpart</span>
@@ -80,9 +80,9 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
           <Link
             key={t.txHash}
             href={`${base}/atomic-tx/${t.txHash}`}
-            className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+            className={cn(ROW, "md:grid-cols-[2fr_1fr_1fr_0.8fr_0.7fr_0.7fr]")}
           >
-            <span className={`truncate font-mono text-[12px] ${idInk}`}>{truncFmt(t.txHash, 18)}</span>
+            <span className={cn(INK, "truncate")}>{truncFmt(t.txHash, 6)}</span>
             <span className="justify-self-start"><TxTypePill type={t.txType} label={t.txType} /></span>
             <span className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
               {t.txType === "ImportTx" ? `from ${chainName(t.sourceChain)}` : `to ${chainName(t.destinationChain)}`}
@@ -93,12 +93,7 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
             <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
               #{formatNumber(t.blockNumber)}
             </span>
-            <span
-              title={ageOrDate(t.timestamp).title}
-              className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400"
-            >
-              {ageOrDate(t.timestamp).text}
-            </span>
+            <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{ageShort(t.timestamp)}</span>
           </Link>
         ))}
         {rows.length === 0 && (
@@ -108,16 +103,10 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
         )}
       </Board>
       {!done && rows.length > 0 && (
-        <button
-          onClick={() => {
+        <LoadMore onClick={() => {
             setLoadingMore(true);
             setBefore(String(page?.nextBefore ?? ""));
-          }}
-          disabled={loadingMore}
-          className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-        >
-          {loadingMore ? "Loading…" : "Load more"}
-        </button>
+          }} disabled={loadingMore} />
       )}
     </section>
     </EvmShell>
@@ -248,22 +237,7 @@ export function AtomicTxDetail({ network, chainSlug, txHash }: { network: string
         <SectionHeader
           label="Fund Flow"
           action={
-            <div className="flex border border-zinc-200 dark:border-zinc-800">
-              {(["diagram", "table"] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setFlowView(v)}
-                  className={cn(
-                    "px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors",
-                    flowView === v
-                      ? "bg-zinc-900 text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
-                      : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900",
-                  )}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
+            <Tabs tabs={["diagram", "table"] as const} active={flowView} onChange={setFlowView} labels={{ diagram: "Diagram", table: "Table" }} />
           }
         />
         {!hasFundMovement({

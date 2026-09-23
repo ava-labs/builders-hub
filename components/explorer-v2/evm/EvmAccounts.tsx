@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, BoardHeader, ChartBoard, StatDash, idInk } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash, idInk, RowSkeleton, EmptyRow } from "@/components/explorer-v2/ui";
 import { ChartEmpty, Stat } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { useContractNames } from "@/lib/sourcify-client";
@@ -147,9 +147,8 @@ function LeaderBoard({
             </Link>
           );
         })}
-        {loading && leaders.length === 0 && (
-          <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>
-        )}
+        {loading && leaders.length === 0 && <RowSkeleton n={8} />}
+        {!loading && leaders.length === 0 && <EmptyRow>no accounts in this window</EmptyRow>}
       </div>
     </ChartBoard>
   );

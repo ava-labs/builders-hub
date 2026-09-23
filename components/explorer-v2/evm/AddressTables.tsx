@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, CellLabel, HashChip } from "@/components/explorer-v2/ui";
-import { timeAgo, truncate } from "@/components/explorer-v2/format";
+import { Board, CellLabel, HashChip, HEAD, ROW, FIG, UNIT, Tabs, EmptyRow, idInk, fnInk } from "@/components/explorer-v2/ui";
+import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { TokenMark, TokenLogo } from "./TokenMark";
@@ -16,50 +16,7 @@ import type { Transfer, TxSummary } from "@/lib/evm-explorer";
    grammar: headed columns, one line per row, ink for identity, a red X
    for a revert, direction as an arrow and a word rather than a pill. */
 
-export const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
-export const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
-
-const HEAD =
-  "hidden gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500";
-const ROW =
-  "grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:py-0 md:px-6 dark:hover:bg-zinc-900";
-
-/** underline tabs in the subnav's voice, no boxes */
-export function Tabs<T extends string>({
-  tabs,
-  active,
-  onChange,
-  labels,
-}: {
-  tabs: T[];
-  active: T;
-  onChange: (t: T) => void;
-  labels: Record<T, string>;
-}) {
-  return (
-    <div className="flex items-center gap-6 border-b border-zinc-200 dark:border-zinc-800">
-      {tabs.map((t) => (
-        <button
-          key={t}
-          onClick={() => onChange(t)}
-          aria-pressed={active === t}
-          className={cn(
-            "-mb-px border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
-            active === t
-              ? "border-[#E6212F] text-zinc-900 dark:text-zinc-50"
-              : "border-transparent text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
-          )}
-        >
-          {labels[t]}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function EmptyRow({ children }: { children: React.ReactNode }) {
-  return <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">{children}</div>;
-}
+export { FIG, UNIT, Tabs, EmptyRow };
 
 /* ------------------------------------------------------------------ */
 
@@ -89,7 +46,7 @@ export function TxTable({
 }) {
   const me = self.toLowerCase();
   const method = useMethodNames(chainId, txs);
-  const cols = "md:grid-cols-[0.75rem_7.5rem_minmax(0,9rem)_2.5rem_minmax(0,1fr)_9rem_3.5rem]";
+  const cols = "md:grid-cols-[0.75rem_7.5rem_minmax(0,9rem)_2.5rem_minmax(0,1fr)_minmax(0,9rem)_6rem_3.5rem]";
   return (
     <Board>
       <div className={cn(HEAD, cols)}>
@@ -99,6 +56,7 @@ export function TxTable({
         <span />
         <span>Counterparty</span>
         <span className="text-right">Value</span>
+        <span className="text-right">USD</span>
         <span className="text-right">Age</span>
       </div>
       {txs.length === 0 && (error && !loading ? <FeedDown compact onRetry={retry} /> : <EmptyRow>{loading ? "Loading…" : "no transactions"}</EmptyRow>)}
@@ -113,8 +71,8 @@ export function TxTable({
             <span className="flex h-3 w-3 items-center justify-center">
               {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
             </span>
-            <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-50">{truncate(t.hash, 6)}</span>
-            <span className={cn("min-w-0 truncate font-mono text-[12px]", m.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
+            <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(t.hash, 6)}</span>
+            <span className={cn("min-w-0 truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
               <CellLabel>Method</CellLabel>
               {m.label}
             </span>
@@ -125,19 +83,27 @@ export function TxTable({
               <CellLabel>Counterparty</CellLabel>
               <span className="shrink-0 text-zinc-300 dark:text-zinc-700">{out ? "→" : "←"}</span>
               {other ? (
-                tok ? <TokenMark address={other} chainId={chainId} token={tok} size={14} /> : <span className="truncate">{truncate(other, 10)}</span>
+                tok ? <TokenMark address={other} chainId={chainId} token={tok} size={14} /> : <span className="truncate">{truncate(other, 8)}</span>
               ) : (
                 <span className="truncate">contract creation</span>
               )}
             </span>
             <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", value > 0 ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 dark:text-zinc-600")}>
               <CellLabel>Value</CellLabel>
-              {value > 0 ? formatEther(t.value, { decimals: 4 }) : "0"} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
-              {value > 0 && usdOfWei(t.value, usd) && <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>}
+              {value > 0 ? (
+                <>
+                  {formatEther(t.value, { decimals: 4 })} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
+                </>
+              ) : (
+                <span className="text-zinc-300 dark:text-zinc-700">—</span>
+              )}
+            </span>
+            <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
+              {(value > 0 && usdOfWei(t.value, usd)) || ""}
             </span>
             <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
               <CellLabel>Age</CellLabel>
-              {timeAgo(t.timestamp).replace(" ago", "")}
+              {ageShort(t.timestamp)}
             </span>
           </Link>
         );
@@ -174,8 +140,8 @@ export function TransferTable({
 }) {
   const me = self.toLowerCase();
   const cols = hideToken
-    ? "md:grid-cols-[7.5rem_2.5rem_minmax(0,1fr)_minmax(0,11rem)_3.5rem]"
-    : "md:grid-cols-[7.5rem_minmax(0,8rem)_2.5rem_minmax(0,1fr)_minmax(0,11rem)_3.5rem]";
+    ? "md:grid-cols-[7.5rem_2.5rem_minmax(0,1fr)_minmax(0,9rem)_6rem_3.5rem]"
+    : "md:grid-cols-[7.5rem_minmax(0,8rem)_2.5rem_minmax(0,1fr)_minmax(0,9rem)_6rem_3.5rem]";
   return (
     <Board>
       <div className={cn(HEAD, cols)}>
@@ -184,6 +150,7 @@ export function TransferTable({
         <span />
         <span>Counterparty</span>
         <span className="text-right">Amount</span>
+        <span className="text-right">USD</span>
         <span className="text-right">Age</span>
       </div>
       {transfers.length === 0 && (error && !loading ? <FeedDown compact onRetry={retry} /> : <EmptyRow>{loading ? "Loading…" : "no token transfers"}</EmptyRow>)}
@@ -201,7 +168,7 @@ export function TransferTable({
         const usd = tok ? usdOfToken(amount, tok.decimals, prices.get(x.token.toLowerCase())) : undefined;
         return (
           <Link key={`${x.txHash}-${i}`} href={`${base}/tx/${x.txHash}`} className={cn(ROW, cols)}>
-            <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-50">{truncate(x.txHash, 6)}</span>
+            <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(x.txHash, 6)}</span>
             {!hideToken && (
               <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px]">
                 <CellLabel>Token</CellLabel>
@@ -230,15 +197,15 @@ export function TransferTable({
               ) : tok ? (
                 <>
                   {formatTokenAmount(amount, tok.decimals)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{tok.symbol}</span>
-                  {usd && <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usd}</span>}
                 </>
               ) : (
                 <span className="text-zinc-500 dark:text-zinc-400">{x.amount}</span>
               )}
             </span>
+            <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">{usd ?? ""}</span>
             <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
               <CellLabel>Age</CellLabel>
-              {timeAgo(x.timestamp).replace(" ago", "")}
+              {ageShort(x.timestamp)}
             </span>
           </Link>
         );

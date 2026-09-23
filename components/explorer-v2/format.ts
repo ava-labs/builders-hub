@@ -52,6 +52,15 @@ export function formatTime(unixSecs: number | undefined): string {
 }
 
 /** Middle-truncate a hash/address: "2VLRYb…xNxj" */
+/** "5s", "2m", "1h", "3d": the age without its "ago", for an Age column */
+export function ageShort(unixSecs: number): string {
+  const s = Math.max(0, Math.floor(Date.now() / 1000 - unixSecs));
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}
+
 export function truncate(v: string | undefined, len = 10): string {
   if (!v) return "";
   if (v.length <= len + 6) return v;

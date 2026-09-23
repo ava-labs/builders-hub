@@ -5,13 +5,13 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, idInk, fnInk, feeInk } from "@/components/explorer-v2/ui";
 import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { truncate } from "@/components/explorer-v2/format";
 import { useEvmData, LIVE_REFRESH_MS, usePrice, usdOfWei } from "./hooks";
 import { useHeadStream, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Party, RowSkeleton, ageShort, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
+import { Belt, MotionRow, Party, RowSkeleton, ageShort, fmtAmount, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
 import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, weekFloor, useChainMetrics } from "./metric-charts";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
@@ -124,9 +124,9 @@ export function EvmTxsList({ network }: { network: string }) {
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
-                    <span className={cn(INK, "truncate")}>{truncate(t.hash, 6)}</span>
+                    <span className={cn(INK, idInk, "truncate")}>{truncate(t.hash, 6)}</span>
                     <span
-                      className={cn("truncate font-mono text-[12px]", mth.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")}
+                      className={cn("truncate font-mono text-[12px]", mth.named ? fnInk : "text-zinc-400 dark:text-zinc-500")}
                       title={t.methodId || undefined}
                     >
                       <CellLabel>Method</CellLabel>
@@ -146,9 +146,11 @@ export function EvmTxsList({ network }: { network: string }) {
                       <CellLabel>Value</CellLabel>
                       {value > 0 ? (
                         <span className="text-zinc-900 dark:text-zinc-50">
-                          {(value / 1e18).toLocaleString("en-US", { maximumFractionDigits: value / 1e18 >= 1 ? 2 : 4 })}{" "}
+                          {fmtAmount(value / 1e18)}{" "}
                           <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
-                          {usdOfWei(t.value, usd) && <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>}
+                          {usdOfWei(t.value, usd) && !usdOfWei(t.value, usd)!.startsWith("<") && (
+                            <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>
+                          )}
                         </span>
                       ) : t.tokenAmount ? (
                         <span className="text-zinc-900 dark:text-zinc-50" title={t.tokenAmount}>
@@ -158,7 +160,7 @@ export function EvmTxsList({ network }: { network: string }) {
                         <span className="text-zinc-300 dark:text-zinc-700">—</span>
                       )}
                     </span>
-                    <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+                    <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", feeInk)}>
                       <CellLabel>Fee</CellLabel>
                       {t.feeWei !== null ? (
                         <>

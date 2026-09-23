@@ -5,18 +5,7 @@ import Link from "next/link";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import {
-  Board,
-  CellLabel,
-  DetailSkeleton,
-  HashChip,
-  SectionHeader,
-  SpecLine,
-  SpecSheet,
-  StatCell,
-  StatStrip,
-  SubjectHeadline,
-} from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD, ROW, FIG, UNIT } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown } from "./bits";
@@ -44,8 +33,6 @@ import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessa
    which block, where that block stands in Continuous Execution), the
    identifiers in a compact sheet, then the tx's own sections. */
 
-const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
-const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
 
 const TX_TYPES: Record<number, string> = {
   0: "Legacy",
@@ -458,7 +445,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Token Transfers · ${transfers.length}`} />
               <Board>
-                <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]")}>
                   <span>Token</span>
                   <span>From</span>
                   <span>To</span>
@@ -469,7 +456,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                   return (
                     <div
                       key={x.logIndex}
-                      className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 md:h-11 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:py-0 md:px-6"
+                      className={cn(ROW, "md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]")}
                     >
                       <span className="flex min-w-0 items-center gap-2 font-mono text-[12.5px]">
                         <TokenLogo address={x.token} chainId={c.chainId} token={tok} size={18} />
@@ -511,7 +498,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Internal Transactions · ${t.internalTxns.length}`} />
               <Board>
-                <div className="hidden grid-cols-[1fr_1fr_0.8fr_0.6fr] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid-cols-[1fr_1fr_0.8fr_0.6fr]")}>
                   <span>From</span>
                   <span>To</span>
                   <span className="text-right">Value</span>
@@ -520,7 +507,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                 {t.internalTxns.map((it, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[1fr_1fr_0.8fr_0.6fr] md:items-center md:px-6"
+                    className={cn(ROW, "md:grid-cols-[1fr_1fr_0.8fr_0.6fr]")}
                   >
                     <span className="min-w-0">
                       <CellLabel>From</CellLabel>

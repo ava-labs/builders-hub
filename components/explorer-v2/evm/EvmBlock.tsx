@@ -4,18 +4,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import {
-  Board,
-  CellLabel,
-  DetailSkeleton,
-  HashChip,
-  SectionHeader,
-  SpecLine,
-  SpecSheet,
-  StatCell,
-  StatStrip,
-  SubjectHeadline,
-} from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD, ROW, FIG, UNIT, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
@@ -36,8 +25,6 @@ import { TokenMark } from "./TokenMark";
    by side; its transactions in a headed table. Previous and next live in
    the section header, where a reader's hand already is. */
 
-const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
-const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
 
 export function EvmBlock({ network, id }: { network: string; id: string }) {
   const c = useChainContext();
@@ -216,13 +203,14 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                 </div>
               )}
               {b.transactions.length > 0 && (
-                <div className="hidden grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_12rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}>
                   <span />
                   <span>Hash</span>
                   <span>Method</span>
                   <span>From → To</span>
                   <span className="text-right">Gas Used</span>
                   <span className="text-right">Value</span>
+                  <span className="text-right">USD</span>
                 </div>
               )}
               {b.transactions.map((t) => {
@@ -232,18 +220,16 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                   <Link
                     key={t.hash}
                     href={`${base}/tx/${t.hash}`}
-                    className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_12rem] md:py-0 md:px-6 dark:hover:bg-zinc-900"
+                    className={cn(ROW, "md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}
                   >
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
-                    <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-50">
-                      {truncate(t.hash, 12)}
-                    </span>
+                    <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(t.hash, 6)}</span>
                     <span className="min-w-0">
                       <CellLabel>Method</CellLabel>
                       <span
-                        className={cn("block truncate font-mono text-[12px]", m.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")}
+                        className={cn("block truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")}
                         title={t.methodId || undefined}
                       >
                         {m.label}
@@ -265,11 +251,16 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     </span>
                     <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", value > 0 ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 dark:text-zinc-600")}>
                       <CellLabel>Value</CellLabel>
-                      {value > 0 ? formatEther(t.value, { decimals: 4 }) : "0"}{" "}
-                      <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
-                      {value > 0 && usdOfWei(t.value, usd) && (
-                        <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>
+                      {value > 0 ? (
+                        <>
+                          {formatEther(t.value, { decimals: 4 })} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
+                        </>
+                      ) : (
+                        <span className="text-zinc-300 dark:text-zinc-700">—</span>
                       )}
+                    </span>
+                    <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
+                      {(value > 0 && usdOfWei(t.value, usd)) || ""}
                     </span>
                   </Link>
                 );
