@@ -3,7 +3,7 @@ import { getHackathon, updateHackathon } from "@/server/services/hackathons";
 import { HackathonHeader } from "@/types/hackathons";
 import { withAuth } from "@/lib/protectedRoute";
 import { getAuthSession } from "@/lib/auth/authSession";
-import { canEditEvent } from "@/lib/auth/permissions";
+import { canEditEvent, canViewPrivateEvent } from "@/lib/auth/permissions";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -16,12 +16,11 @@ export async function GET(req: NextRequest, context: any) {
 
     const hackathon = await getHackathon(id)
 
-    // Private events: only logged-in users may read the record (mirrors the
-    // page-level guard in app/(home)/events/[id]/page.tsx). Anonymous callers
-    // get a 404 so a private event's details aren't exposed via the raw API.
+    // Private events follow the same visibility rule as the listing endpoint
+    // (app/api/events/route.ts): devrel and team1-admin see any private event,
+    // and a hackathon's own creator or cohost sees theirs. 
     if (hackathon?.is_public !== true) {
-      const session = await getAuthSession();
-      if (!session?.user?.id) {
+      if (!(await canViewPrivateEvent(await getAuthSession(), hackathon))) {
         return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
       }
     }
@@ -63,7 +62,9 @@ export const PUT = withAuth(async (req: NextRequest, context: any, session: any)
         "Error in PUT /api/events/[id]: Validation failed",
         details?.map((d) => `${d.field}: ${d.message}`)
       );
-      return NextResponse.json({ error: 'Invalid request body', details }, { status: 400 });
+      // The detail list is logged above; it is not echoed back. It enumerates
+      // internal field names, which is a map for probing the update payload.
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
     console.error("Error in PUT /api/events/[id]:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

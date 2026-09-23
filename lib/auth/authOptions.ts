@@ -3,7 +3,7 @@ import GoogleProvider from 'next-auth/providers/google';
 import GithubProvider from 'next-auth/providers/github';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '../../prisma/prisma';
-import { encode, JWT } from 'next-auth/jwt';
+import { JWT } from 'next-auth/jwt';
 import { randomInt } from 'crypto';
 import type { VerifyOTPResult } from '@/types/verifyOTPResult';
 import { upsertUser } from '@/server/services/auth';
@@ -15,7 +15,6 @@ import { normalizeEmail } from '@/lib/utils';
 
 declare module 'next-auth' {
   export interface Session {
-    jwt_token?: string;
     user: {
       id: string;
       avatar?: string;
@@ -241,7 +240,11 @@ export const AuthOptions: NextAuthOptions = {
       session.user.is_new_user = !!token.is_new_user;
       session.user.authentication_mode = token.authentication_mode ?? '';
       session.user.team_id = (token.team_id as string | null) ?? null;
-      return {...session, jwt_token: await encode({secret: process.env.NEXTAUTH_SECRET ?? '', token: token })}
+      // The session is serialised into client-side JS, so anything returned
+      // here is readable by any script running on the page. A re-encoded
+      // bearer JWT there turns any XSS into durable API access that outlives
+      // the HttpOnly cookie it was minted from. Nothing consumed this field.
+      return session;
     },
     async redirect({ url, baseUrl }) {
       // If the URL is relative, convert it to absolute
