@@ -12,6 +12,8 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
+import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
+import { queryTarget } from "@/lib/explorer-query/board";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -292,7 +294,15 @@ function ChainSwitcher({
   );
 }
 
-type Tab = { label: string; href: string; isActive: (path: string) => boolean };
+/** query: the tab opens into recent questions and boards on hover */
+type Tab = { label: string; href: string; isActive: (path: string) => boolean; query?: boolean };
+
+/* ask the chain a question, get a chart with its SQL; boards live under it */
+function queryTab(network: string, chainSlug: string): Tab[] {
+  if (!queryTarget(network, chainSlug)) return [];
+  const base = `/explorer/${network}/${chainSlug}/query`;
+  return [{ label: "Query", href: base, isActive: (p) => p.startsWith(base), query: true }];
+}
 
 /* Section tabs per chain kind. Detail pages light up their list's tab
    (a block detail is still "Blocks"); on EVM chains the stats surfaces
@@ -380,6 +390,7 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       href: `${base}/validators`,
       isActive: (p) => p.startsWith(`${base}/validators`) || p.startsWith(`${base}/node`),
     });
+    tabs.push(...queryTab(network, chainSlug));
     return tabs;
   }
 
@@ -405,6 +416,7 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
+        ...queryTab(network, chainSlug),
       );
     }
     // who's on the chain: population charts for every catalog chain,
@@ -659,6 +671,21 @@ export function ExplorerSubnav({
                   >
                     {tab.label}
                   </span>
+                );
+              }
+
+              if (tab.query && chainSlug) {
+                return (
+                  <QueryTab
+                    key={tab.label}
+                    network={network}
+                    chainSlug={chainSlug}
+                    href={tab.href}
+                    label={tab.label}
+                    className={cls}
+                    bar={bar}
+                    active={active}
+                  />
                 );
               }
 
