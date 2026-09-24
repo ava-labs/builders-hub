@@ -185,7 +185,7 @@ function Party({
 }
 
 /** one reading in the tx page's rail: label, figure, qualifier */
-function RailRow({
+export function RailRow({
   label,
   children,
   sub,
@@ -429,13 +429,12 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                 {showLife && (
                   <RailRow
                     label="State Root"
-                    live={life.phase !== "settled"}
                     href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}
                   >
                     {life.ready ? (
                       <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : "executing"}
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">pending</span>}
                       </span>
                     ) : (
                       "…"

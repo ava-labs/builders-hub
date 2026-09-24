@@ -66,18 +66,18 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
 }
 
 const PHASE_TITLE: Record<Phase, string> = {
-  accepted: "final: accepted by consensus, executing",
-  executed: "final: executing; the state root is committed by a later block",
+  accepted: "final: accepted by consensus; state root pending",
+  executed: "final: state root pending, committed by a later block",
   settled: "final: state root committed",
 };
 
-/** The state root as one mark and one word. Executing: a red dot that
- *  breathes, every dot on the page in the same phase, because they are
- *  all the same wait. Committed: the dot settles solid and quiet and the
- *  word turns over. No bar, no fill: the commit lands whenever the next
- *  header after the τ floor does, and a categorical state deserves a
- *  categorical mark. The pulse is the explorer's live green, never red:
- *  red is for reverts and alerts. A batch of commits cascades on `delayMs`. */
+/** The state root as one mark and one word. Pending: a light gray dot
+ *  that breathes, every dot on the page in the same phase, because they
+ *  are all the same wait. Committed: the dot settles solid and darker and
+ *  the word turns over. No bar, no fill: the commit lands whenever the
+ *  next header after the τ floor does, and a categorical state deserves a
+ *  categorical mark. Gray, not green: a pending root is bookkeeping, not
+ *  a live signal. A batch of commits cascades on `delayMs`. */
 export function PhaseTrack({
   phase,
   label = true,
@@ -117,7 +117,7 @@ export function PhaseTrack({
     >
       <motion.span
         ref={dot}
-        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-emerald-500 dark:bg-emerald-400")}
+        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-zinc-300 dark:bg-zinc-600")}
         initial={false}
         animate={{ scale: committed ? [1, 1.8, 1] : 1 }}
         transition={{ duration: 0.5, delay: committed ? delayMs / 1000 : 0, ease: "easeOut" }}
@@ -125,7 +125,7 @@ export function PhaseTrack({
       />
       {label && (
         <motion.span
-          key={committed ? "committed" : "executing"}
+          key={committed ? "committed" : "pending"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
@@ -134,7 +134,7 @@ export function PhaseTrack({
             committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
           )}
         >
-          {committed ? "committed" : "executing"}
+          {committed ? "committed" : "pending"}
         </motion.span>
       )}
     </span>
