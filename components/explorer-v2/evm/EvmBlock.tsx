@@ -20,6 +20,13 @@ import { knownAddress, type BlockDetail } from "@/lib/evm-explorer";
 import { useTokenList } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 import { BlockGasMap } from "./BlockGasMap";
+import { GenesisJsonSection } from "@/components/explorer/EvmChainDetails";
+import mainnetGenesis from "@/constants/cchain-genesis/mainnet.json";
+import fujiGenesis from "@/constants/cchain-genesis/fuji.json";
+
+// the C-Chain's genesis, vendored from avalanchego, drawn on block 0
+const GENESIS: Record<string, object> = { "43114": mainnetGenesis, "43113": fujiGenesis };
+
 
 /* One block, split like the tx page. Left: the gas map (every tx as its
    share of the gas, inked by what it called, the calls that bought the
@@ -373,6 +380,13 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
               </div>
             </Board>
           </section>
+          {/* block 0 is the chain's founding document: show it verbatim */}
+          {b.number === 0 && GENESIS[String(c.chainId)] && (
+            <GenesisJsonSection
+              raw={JSON.stringify(GENESIS[String(c.chainId)], null, 2)}
+              sourceUrl={`https://github.com/ava-labs/avalanchego/blob/master/genesis/genesis_${String(c.chainId) === "43113" ? "fuji" : "mainnet"}.json`}
+            />
+          )}
         </div>
       )}
     </EvmShell>

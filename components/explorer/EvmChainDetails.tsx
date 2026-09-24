@@ -239,41 +239,46 @@ export function EvmChainDetails({
       </section>
     </div>
 
-    {/* the founding document itself, verbatim — vendored from avalanchego's
-        embedded cChainGenesis, immutable since network launch */}
-    {genesisRaw && (
-      <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Genesis JSON"
-          action={
-            <span className="flex shrink-0 items-center gap-5">
-              <span className="flex items-center gap-1.5">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  Copy JSON
-                </span>
-                <CopyButton text={genesisRaw} />
-              </span>
-              {genesisSourceUrl && (
-                <Link
-                  href={genesisSourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                >
-                  Source · avalanchego
-                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              )}
-            </span>
-          }
-        />
-        <Board divide={false}>
-          <pre className="whitespace-pre-wrap break-all px-5 py-4 font-mono text-[12px] leading-relaxed text-zinc-700 md:px-6 dark:text-zinc-300">
-            {genesisRaw}
-          </pre>
-        </Board>
-      </section>
-    )}
+    {genesisRaw && <GenesisJsonSection raw={genesisRaw} sourceUrl={genesisSourceUrl} />}
     </>
+  );
+}
+
+/** the founding document itself, verbatim: vendored from avalanchego's
+    embedded cChainGenesis, immutable since network launch. Drawn on the
+    genesis block's page, not on the chain's home */
+export function GenesisJsonSection({ raw, sourceUrl }: { raw: string; sourceUrl?: string }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHeader
+        label="Genesis JSON"
+        action={
+          <span className="flex shrink-0 items-center gap-5">
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                Copy JSON
+              </span>
+              <CopyButton text={raw} />
+            </span>
+            {sourceUrl && (
+              <Link
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Source · avalanchego
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            )}
+          </span>
+        }
+      />
+      <Board divide={false}>
+        <pre className="whitespace-pre-wrap break-all px-5 py-4 font-mono text-[12px] leading-relaxed text-zinc-700 md:px-6 dark:text-zinc-300">
+          {raw}
+        </pre>
+      </Board>
+    </section>
   );
 }

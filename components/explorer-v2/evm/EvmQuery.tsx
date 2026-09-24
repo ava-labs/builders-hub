@@ -16,7 +16,7 @@ import type { QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
-import { type Row, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
+import { type Row, doorFor, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
@@ -69,17 +69,19 @@ function reads(callouts: string[]): string {
     .join(" ");
 }
 
+/** under every answer: the figures rest on SQL a model wrote */
+const SQL_CAVEAT = "The SQL behind this answer is written by an AI model and may not be 100% accurate. Check it before you rely on a figure.";
+
+/* the loader's line: what is happening, never which model does it */
 function progress(events: QueryEvent[]): string {
-  let who = "The model";
   let line = "Writing the SQL";
   for (const e of events) {
     if (e.type === "stage") {
       if (e.stage === "cached") return "Kept answer: running its SQL for fresh rows";
-      who = e.writer ?? who;
-      line = e.stage === "escalated" ? `${who} is taking over` : `${who} is writing the SQL`;
+      line = e.stage === "escalated" ? "Taking a second pass at the SQL" : "Writing the SQL";
     } else if (e.type === "step") {
-      const what = e.kind === "test" ? `test ${e.n}` : "final query";
-      line = e.ok ? `${who}: ${what} ran, ${e.detail}` : `${who}: ${what} failed, fixing`;
+      const what = e.kind === "test" ? `Test ${e.n}` : "Final query";
+      line = e.ok ? `${what} ran, ${e.detail}` : `${what} failed, fixing`;
     }
   }
   return line;
@@ -656,7 +658,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                 ) : laying ? (
                   // one draw: the loader holds the space until the layout is final
                   <div aria-busy="true" className={cn(CARD, "flex min-h-[18rem] flex-1 flex-col")}>
-                    <AvalancheLoader status="Rows are in. Opus 5.5 is laying out the chart" fill framed={false} />
+                    <AvalancheLoader status="Rows are in. Laying out the chart" fill framed={false} />
                   </div>
                 ) : charted && visual ? (
                   <QueryVisual
@@ -667,6 +669,10 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                     canDrill={canDrill || recordRows}
                     onPick={(r) => {
                       if (recordRows && r.tx_hash) return router.push(`${base}/tx/${String(r.tx_hash)}`);
+                      // a mark that is one thing on the chain (a contract, a
+                      // validator, a block) opens that thing's own page
+                      const door = visual?.panels.map((p) => p.x && doorFor(p.x, r[p.x], base)).find(Boolean);
+                      if (door) return router.push(door);
                       const i = allRows.indexOf(r);
                       if (i >= 0) void openDrill(r, i);
                     }}
@@ -790,10 +796,9 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                         </span>
                         <span className="font-mono text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
                           {answer.model?.cached
-                            ? `Kept answer (${answer.model.writer ?? "model"} wrote the SQL); rows fresh in ${Math.round((answer.model.ms ?? 0) / 100) / 10} s.`
-                            : `${answer.model?.writer ?? "The model"} wrote it in ${Math.round((answer.model?.ms ?? 0) / 1000)} s${answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.`}
-                          {designing ? " Opus 5.5 is laying it out." : answer.model?.designMs ? ` Opus 5.5 laid it out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
-                          {answer.model?.inputTokens ? ` ${Math.round((100 * (answer.model.cacheRead ?? 0)) / answer.model.inputTokens)}% of the prompt read from cache.` : ""}
+                            ? `Kept answer; rows fresh in ${Math.round((answer.model.ms ?? 0) / 100) / 10} s.`
+                            : `SQL written in ${Math.round((answer.model?.ms ?? 0) / 1000)} s${answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.`}
+                          {designing ? " Laying out the chart." : answer.model?.designMs ? ` Chart laid out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
                         </span>
                         {!!answer.model?.timings?.length && (
                           <ol className="flex flex-col gap-1 font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
@@ -842,6 +847,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                 )}
               </AnimatePresence>
             </div>
+            <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>
           </section>
         )}
       </div>

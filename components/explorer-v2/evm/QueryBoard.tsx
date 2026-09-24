@@ -637,7 +637,8 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
       )}
 
       {/* the quiet end of the board */}
-      <div className="flex justify-end border-t border-zinc-100 pt-4 dark:border-zinc-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-900">
+        <p className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">Tiles run SQL written by an AI model; it may not be 100% accurate.</p>
         {confirmDelete ? (
           <span className="flex items-center gap-3 font-mono text-[11px]">
             <span className="text-zinc-500">Delete this board?</span>

@@ -6,14 +6,7 @@ import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
-import mainnetGenesis from "@/constants/cchain-genesis/mainnet.json";
-import fujiGenesis from "@/constants/cchain-genesis/fuji.json";
 
-// both C-Chain catalog entries carry the vendored genesis for their network
-const CCHAIN_GENESIS: Record<string, object> = {
-  "43114": mainnetGenesis,
-  "43113": fujiGenesis,
-};
 
 /* The chain's record, at the foot of its Overview (#chain): the same
    on-chain record the P-Chain serves at /p-chain/chain/{id}. It was the
@@ -36,12 +29,6 @@ export function ChainRecord() {
           catalog={catalog}
           genesis={isGenesis}
           live={false}
-          genesisJson={CCHAIN_GENESIS[catalog.chainId]}
-          genesisSourceUrl={
-            CCHAIN_GENESIS[catalog.chainId]
-              ? `https://github.com/ava-labs/avalanchego/blob/master/genesis/genesis_${pNetwork}.json`
-              : undefined
-          }
         />
       )}
       {/* L1s: the on-chain record (create tx, VM, subnet status,
