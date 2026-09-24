@@ -475,7 +475,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                         </span>
                         {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
-                      {trace?.gas && <span>{formatNumber(trace.gas.used)} used by execution</span>}
+                      {trace?.gas && trace.gas.used !== t.gasUsed && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
                   }
                 >
