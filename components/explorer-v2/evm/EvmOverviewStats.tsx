@@ -35,11 +35,12 @@ const SPARK_MIN_DAYS = 7;
 /* the most points a trace carries; longer series are bucketed */
 const SPARK_MAX_POINTS = 60;
 
-/* utilization and gas used off the blocks table, windowed on the clock;
-   404 = not ingested. Complete UTC days only: today's partial day would
-   read as a collapse at the window's end. Gas comes from here, not the
-   chain-stats indexer, because the blocks table is what the RPC agrees
-   with (the indexer's daily gasUsed lagged the chain on 2026-09-22/23). */
+/* utilization off the blocks table, windowed on the clock; 404 = not
+   ingested. Complete UTC days only: today's partial day would read as a
+   collapse at the window's end. Since Helicon (2026-09-22) a block
+   header's gasUsed is the sum of its transactions' gas LIMITS, what
+   Continuous Execution charges at acceptance, so the blocks table measures
+   fullness, not execution. Gas Used comes from the indexer's receipt sums. */
 type GasDay = { d: string; utilPct: number; gas: number };
 function useGasHistory(chainId: string, n: number) {
   const days = 2 * n <= 7 ? 7 : 2 * n <= 30 ? 30 : 2 * n <= 90 ? 90 : 365;
@@ -421,9 +422,9 @@ export function EvmOverviewStats({
   };
 
   const feesUsd = usdPrice !== null && win("feesPaid") ? `$${fmtCompact(win("feesPaid")!.cur * usdPrice)}` : undefined;
-  // the blocks table's gas where it is ingested; the indexer elsewhere
-  const gasPair = gas?.gas.pair ?? win("gasUsed");
-  const gasTrace = gas ? (n >= SPARK_MIN_DAYS ? gas.gas.series : undefined) : trace("gasUsed");
+  // executed gas: the indexer's receipt sums, not the header's charged gas
+  const gasPair = win("gasUsed");
+  const gasTrace = trace("gasUsed");
 
   return (
     <section className="flex flex-col gap-4">
