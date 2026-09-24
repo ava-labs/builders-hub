@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Search, Sparkles } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Search, Sparkles } from "lucide-react";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { cn } from "@/lib/utils";
@@ -105,13 +105,16 @@ export function EvmSearchBox({
     if (question) return go(askHref);
     // a bare identifier with no local match shouldn't jump to a name hit
     if (!looksLikeIdentifier(trimmed) && chains[0]?.chain.hasExplorer) return go(chains[0].chain.href);
+    // nothing else to open: a phrase goes to the Query page as a question
+    if (canAsk) return go(askHref);
   };
 
   return (
     // pl-0!/pr-0!: this div is a direct child of <header>, so the global
     // `header > div` navbar padding hack (global.css) would indent it by 3rem
     <div ref={wrapRef} className="relative min-w-0 flex-1 pl-0! pr-0!">
-      <div className="flex items-center gap-3 border-b border-zinc-200 py-3 transition-colors focus-within:border-zinc-900 dark:border-zinc-800 dark:focus-within:border-zinc-100">
+      {/* the Query page's prompt box: one input for finding and for asking */}
+      <div className="flex items-center gap-3 rounded-2xl border border-zinc-300 bg-white py-2.5 pl-4 pr-2.5 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] transition-colors focus-within:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
         <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
         <input
           value={q}
@@ -128,15 +131,24 @@ export function EvmSearchBox({
           placeholder={askable ? "Search an address, tx, block or chain, or ask a question…" : "Search by address, tx hash, block, or chain…"}
           aria-label={askable ? "Search the chain or ask a question about it" : "Search the chain"}
           spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent font-mono text-[14px] text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-100 dark:placeholder:text-zinc-500"
+          className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
         />
         {!trimmed && (
-          <kbd className="hidden shrink-0 border border-zinc-200 px-1.5 font-mono text-[10px] leading-[18px] text-zinc-400 sm:inline-block dark:border-zinc-800 dark:text-zinc-500">/</kbd>
+          <kbd className="hidden shrink-0 rounded-md border border-zinc-200 px-1.5 font-mono text-[10px] leading-[18px] text-zinc-400 sm:inline-block dark:border-zinc-800 dark:text-zinc-500">/</kbd>
         )}
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!trimmed}
+          aria-label={question ? "Ask" : "Search"}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white transition-opacity disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900"
+        >
+          <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
+        </button>
       </div>
 
       {open && trimmed.length > 0 && hasResults && (
-        <div className="absolute z-30 mt-1.5 max-h-[26rem] w-full overflow-auto border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="absolute z-30 mt-2 max-h-[26rem] w-full overflow-auto rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
           {entity && <EntityHitRow hit={entity} onSelect={go} />}
           {canAsk && (
             <button

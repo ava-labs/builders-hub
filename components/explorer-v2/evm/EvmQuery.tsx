@@ -851,7 +851,8 @@ export function EvmQuery({ network }: { network: string }) {
   );
 
   return (
-    <EvmShell network={network}>
+    // the prompt box below is this page's search bar; the shell's would repeat it
+    <EvmShell network={network} search={false}>
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
