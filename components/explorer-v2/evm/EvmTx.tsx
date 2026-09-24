@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD, ROW, FIG, UNIT } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, LiveDot } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown } from "./bits";
@@ -184,6 +184,40 @@ function Party({
   );
 }
 
+/** one reading in the tx page's rail: label, figure, qualifier */
+function RailRow({
+  label,
+  children,
+  sub,
+  href,
+  live = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  sub?: React.ReactNode;
+  href?: string;
+  live?: boolean;
+}) {
+  const inner = (
+    <>
+      <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        {live && <LiveDot />}
+        {label}
+      </span>
+      <span className="font-mono text-[17px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{children}</span>
+      {sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{sub}</span>}
+    </>
+  );
+  const cls = "flex flex-1 flex-col justify-center gap-1 border-b border-zinc-200 px-5 py-3.5 last:border-b-0 dark:border-zinc-800";
+  return href ? (
+    <Link href={href} className={cn(cls, "transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
+}
+
 export function EvmTx({ network, txHash }: { network: string; txHash: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
@@ -302,141 +336,148 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
               </span>
             </div>
 
-            {/* what happened, for anyone */}
-            {story && (
-              <EvmTxStory
-                story={story}
-                actor={t.from}
-                chainId={c.chainId}
-                base={base}
-                symbol={sym}
-                tokens={tokens}
-                usd={usd}
-                counts={{ transfers: transfers.length, events: t.logs.length, calls: trace ? flatten(trace.call).length : null }}
-              />
-            )}
+            {/* the split: what happened and who, on the left; the readings a
+                tx is judged by, stacked in a rail on the right */}
+            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+              <div className="flex min-w-0 flex-col gap-6">
+                {/* what happened, for anyone */}
+                {story && (
+                  <EvmTxStory
+                    story={story}
+                    actor={t.from}
+                    chainId={c.chainId}
+                    base={base}
+                    symbol={sym}
+                    tokens={tokens}
+                    usd={usd}
+                    counts={{ transfers: transfers.length, events: t.logs.length, calls: trace ? flatten(trace.call).length : null }}
+                  />
+                )}
 
-            {/* the readings */}
-            <StatStrip cols={5}>
-              <StatCell label="Value" sub={value > 0 ? usdOfWei(t.value, usd) : undefined}>
-                <span className={cn(FIG, value === 0 && "text-zinc-400 dark:text-zinc-600")}>
-                  {value > 0 ? formatEther(t.value, { decimals: value / 1e18 >= 1 ? 4 : 6 }) : "0"}{" "}
-                  <span className={UNIT}>{sym}</span>
-                </span>
-              </StatCell>
-              <StatCell
-                label="Fee"
-                href={`${base}/gas`}
-                sub={
-                  <>
-                    {usdOfWei(feeWei, usd)}
-                    {usdOfWei(feeWei, usd) ? " · " : ""}
-                    {formatNano(gasPriceWei, sym)}
-                  </>
-                }
-              >
-                <span className={FIG}>
-                  {formatEther(feeWei.toString(), { decimals: 6 })} <span className={UNIT}>{sym}</span>
-                </span>
-              </StatCell>
-              <StatCell
-                label="Gas Used"
-                sub={
-                  <span className="flex items-center gap-2">
-                    <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
-                      <span
-                        className={cn("block h-full", gasPct >= 95 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
-                        style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
-                      />
-                    </span>
-                    {gasPct.toFixed(0)}% of {formatNumber(t.gasLimit)}
-                  </span>
-                }
-              >
-                <span className={FIG}>{formatNumber(t.gasUsed)}</span>
-              </StatCell>
-              <StatCell label="Block" href={`${base}/block/${t.blockNumber}`} sub={`position ${t.txIndex}`}>
-                <span className={FIG}>#{formatNumber(t.blockNumber)}</span>
-              </StatCell>
-              {showLife ? (
-                <StatCell
-                  label="Finality"
-                  live={life.phase !== "settled"}
-                  href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}
-                  sub={
-                    life.ready ? (
-                      <span className="flex items-center gap-2">
-                        <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `state root committed in #${formatNumber(life.settledBy)}` : "executing"}
+                {/* the parties and the call */}
+                <Board divide={false} className="px-5 md:px-6">
+                <SpecSheet>
+                  <SpecLine label="From">
+                    <Party addr={t.from} href={`${base}/address/${t.from}`} chainId={c.chainId} token={tokens.get(t.from.toLowerCase())} />
+                  </SpecLine>
+                  {t.to ? (
+                    <SpecLine label="To">
+                      <Party addr={t.to} name={toContract?.name} href={`${base}/address/${t.to}`} chainId={c.chainId} token={toToken} />
+                    </SpecLine>
+                  ) : t.contractAddress ? (
+                    <SpecLine label="Contract Created">
+                      <HashChip value={t.contractAddress} href={`${base}/address/${t.contractAddress}`} len={66} />
+                    </SpecLine>
+                  ) : (
+                    <SpecLine label="To">Contract creation</SpecLine>
+                  )}
+                  {selector && (
+                    <SpecLine label="Method">
+                      <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                        {methodName ? (
+                          <>
+                            <span className="font-mono">{methodName}</span>
+                            {call && toToken && (
+                              <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
+                                {formatTokenAmount(call.amount, toToken.decimals)}
+                                <TokenMark address={t.to} chainId={c.chainId} token={toToken} size={14} />
+                                <span className="text-zinc-400 dark:text-zinc-500">
+                                  {call.from ? `from ${truncate(call.from, 8)} ` : ""}to {truncate(call.to, 8)}
+                                </span>
+                              </span>
+                            )}
+                            <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">{selector}</span>
+                          </>
+                        ) : (
+                          <span className="font-mono text-zinc-500 dark:text-zinc-400">{selector}</span>
+                        )}
                       </span>
-                    ) : undefined
+                    </SpecLine>
+                  )}
+                  <SpecLine label="Block">
+                    <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                      <Link href={`${base}/block/${t.blockNumber}`} className="font-mono text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]">
+                        #{formatNumber(t.blockNumber)}
+                      </Link>
+                      <span className="font-mono text-[12px] font-normal text-zinc-400 dark:text-zinc-500">position {t.txIndex}</span>
+                    </span>
+                  </SpecLine>
+                  <SpecLine label="Nonce">{formatNumber(t.nonce)}</SpecLine>
+                  <SpecLine label="Type">{TX_TYPES[t.type] ?? `Type ${t.type}`}</SpecLine>
+                  {t.input && t.input !== "0x" && (
+                    <SpecLine label="Input" align="start">
+                      <span className="inline-flex max-w-full items-center gap-2">
+                        <span className="block max-w-full break-all font-mono text-[12px] text-zinc-600 dark:text-zinc-400">
+                          {truncate(t.input, 96)}
+                        </span>
+                        <CopyButton text={t.input} />
+                      </span>
+                    </SpecLine>
+                  )}
+                </SpecSheet>
+                </Board>
+              </div>
+
+              {/* the readings: the rail stands as tall as the column beside
+                  it, its rows sharing the height, so both end on one line */}
+              <Board divide={false} className="flex flex-col border">
+                {/* finality: the tx is final the moment its block is accepted */}
+                <RailRow label="Status">
+                  {t.success ? "Final" : <span className="text-[#E6212F]">Reverted</span>}
+                </RailRow>
+                {/* the state root is bookkeeping a later block does, not finality */}
+                {showLife && (
+                  <RailRow
+                    label="State Root"
+                    live={life.phase !== "settled"}
+                    href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}
+                  >
+                    {life.ready ? (
+                      <span className="flex items-center gap-2.5">
+                        <PhaseTrack phase={life.phase} label={false} />
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : "executing"}
+                      </span>
+                    ) : (
+                      "…"
+                    )}
+                  </RailRow>
+                )}
+                <RailRow label="Value" sub={value > 0 ? usdOfWei(t.value, usd) : undefined}>
+                  <span className={cn(value === 0 && "text-zinc-400 dark:text-zinc-600")}>
+                    {value > 0 ? formatEther(t.value, { decimals: value / 1e18 >= 1 ? 4 : 6 }) : "0"} <span className={UNIT}>{sym}</span>
+                  </span>
+                </RailRow>
+                <RailRow
+                  label="Fee"
+                  href={`${base}/gas`}
+                  sub={
+                    <>
+                      {usdOfWei(feeWei, usd)}
+                      {usdOfWei(feeWei, usd) ? " · " : ""}
+                      {formatNano(gasPriceWei, sym)}
+                    </>
                   }
                 >
-                  <span className={FIG}>Final</span>
-                </StatCell>
-              ) : (
-                <StatCell label="Type">
-                  <span className="flex h-7 items-center font-mono text-[13px] text-zinc-900 sm:h-8 dark:text-zinc-50">
-                    {TX_TYPES[t.type] ?? `Type ${t.type}`}
-                  </span>
-                </StatCell>
-              )}
-            </StatStrip>
-
-            {/* the identifiers */}
-            <Board divide={false} className="px-5 md:px-6">
-              <SpecSheet>
-                <SpecLine label="From">
-                  <Party addr={t.from} href={`${base}/address/${t.from}`} chainId={c.chainId} token={tokens.get(t.from.toLowerCase())} />
-                </SpecLine>
-                {t.to ? (
-                  <SpecLine label="To">
-                    <Party addr={t.to} name={toContract?.name} href={`${base}/address/${t.to}`} chainId={c.chainId} token={toToken} />
-                  </SpecLine>
-                ) : t.contractAddress ? (
-                  <SpecLine label="Contract Created">
-                    <HashChip value={t.contractAddress} href={`${base}/address/${t.contractAddress}`} len={66} />
-                  </SpecLine>
-                ) : (
-                  <SpecLine label="To">Contract creation</SpecLine>
-                )}
-                {selector && (
-                  <SpecLine label="Method">
-                    <span className="inline-flex flex-wrap items-baseline gap-x-3">
-                      {methodName ? (
-                        <>
-                          <span className="font-mono">{methodName}</span>
-                          {call && toToken && (
-                            <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
-                              {formatTokenAmount(call.amount, toToken.decimals)}
-                              <TokenMark address={t.to} chainId={c.chainId} token={toToken} size={14} />
-                              <span className="text-zinc-400 dark:text-zinc-500">
-                                {call.from ? `from ${truncate(call.from, 8)} ` : ""}to {truncate(call.to, 8)}
-                              </span>
-                            </span>
-                          )}
-                          <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">{selector}</span>
-                        </>
-                      ) : (
-                        <span className="font-mono text-zinc-500 dark:text-zinc-400">{selector}</span>
-                      )}
-                    </span>
-                  </SpecLine>
-                )}
-                <SpecLine label="Nonce">{formatNumber(t.nonce)}</SpecLine>
-                {showLife && <SpecLine label="Type">{TX_TYPES[t.type] ?? `Type ${t.type}`}</SpecLine>}
-                {t.input && t.input !== "0x" && (
-                  <SpecLine label="Input" align="start">
-                    <span className="inline-flex max-w-full items-center gap-2">
-                      <span className="block max-w-full break-all font-mono text-[12px] text-zinc-600 dark:text-zinc-400">
-                        {truncate(t.input, 96)}
+                  <span className="text-red-700 dark:text-red-300">{formatEther(feeWei.toString(), { decimals: 6 })}</span> <span className={UNIT}>{sym}</span>
+                </RailRow>
+                <RailRow
+                  label="Gas Used"
+                  sub={
+                    <span className="flex items-center gap-2">
+                      <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
+                        <span
+                          className={cn("block h-full", gasPct >= 95 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                          style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
+                        />
                       </span>
-                      <CopyButton text={t.input} />
+                      {gasPct.toFixed(0)}% of {formatNumber(t.gasLimit)}
                     </span>
-                  </SpecLine>
-                )}
-              </SpecSheet>
-            </Board>
+                  }
+                >
+                  {formatNumber(t.gasUsed)}
+                </RailRow>
+              </Board>
+            </div>
           </section>
 
           {liveRpc && <EvmTrace trace={trace} state={traceState} chainId={c.chainId} base={base} sender={t.from} symbol={sym} />}
