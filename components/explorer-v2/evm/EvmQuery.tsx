@@ -17,6 +17,7 @@ import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/exp
 import type { ColumnMeta, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
 import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
+import { FishingGame } from "./FishingGame";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -327,10 +328,16 @@ function TxLedger({
     ...extras.map((c) => ({ key: c.name, head: header(c.name), width: numericExtra(c) ? "8.5rem" : "minmax(0,1fr)", right: numericExtra(c) })),
     ...(has.has("block_number") ? [{ key: "block_number", head: "Block", width: "6.5rem", right: true }] : []),
     ...(has.has("gas_charged") ? [{ key: "gas_charged", head: "Gas charged", width: "6.5rem", right: true }] : []),
+    // fee = gas charged x price per gas: show the price so a row can be checked
+    ...(has.has("fee_avax") && has.has("gas_charged") ? [{ key: "__price", head: "nAVAX / gas", width: "6.5rem", right: true }] : []),
     ...(has.has("fee_avax") ? [{ key: "fee_avax", head: "Fee", width: "minmax(0,7rem)", right: true }] : []),
     ...(has.has("t") ? [{ key: "t", head: "Time (UTC)", width: "5rem", right: true }] : []),
   ];
   const tpl = { gridTemplateColumns: cols.map((c) => c.width).join(" ") };
+  // price per gas in nAVAX, and the list's median to spot tips far above it
+  const priceOf = (r: Row) => (typeof r.fee_avax === "number" && typeof r.gas_charged === "number" && r.gas_charged > 0 ? (r.fee_avax / r.gas_charged) * 1e9 : null);
+  const prices = rows.map(priceOf).filter((v): v is number => v !== null).sort((a, b) => a - b);
+  const median = prices.length ? prices[Math.floor(prices.length / 2)] : null;
   const who = (col: string, v: unknown) => nameFor(names, col, v) ?? (isAddress(v) ? truncate(v, 6) : "");
 
   const cell = (key: string, r: Row) => {
@@ -368,6 +375,19 @@ function TxLedger({
         );
       case "gas_charged":
         return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{typeof v === "number" ? formatNumber(v) : ""}</span>;
+      case "__price": {
+        const p = priceOf(r);
+        if (p === null) return <span />;
+        const over = median !== null && median > 0 && p > median * 20;
+        return (
+          <span
+            className={cn("text-right font-mono text-[12px] tabular-nums", over ? "text-amber-600 dark:text-amber-400" : "text-zinc-500 dark:text-zinc-400")}
+            title={over ? `${Math.round(p / median!)}x the list's median price: a priority tip far above the base fee` : "effective price per gas, fee / gas charged"}
+          >
+            {p >= 100 ? formatNumber(Math.round(p)) : p >= 1 ? p.toFixed(2) : p.toFixed(3)}
+          </span>
+        );
+      }
       case "fee_avax":
         return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{typeof v === "number" ? fmt(v, "avax", sym) : ""}</span>;
       case "t":
@@ -802,11 +822,7 @@ export function EvmQuery({ network }: { network: string }) {
             </div>
           )}
           {input}
-          {busy && (
-            <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-              {phase === "running" ? "Running your SQL" : "Writing and testing the SQL"} · {elapsed} s
-            </p>
-          )}
+          {busy && <FishingGame status={`${phase === "running" ? "Running your SQL" : "Writing and testing the SQL"} · ${elapsed} s`} />}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
             <div className="pt-3">
@@ -846,20 +862,8 @@ export function EvmQuery({ network }: { network: string }) {
                       selected={drill && firstX ? drill.row[firstX] : undefined}
                     />
                   ) : designing ? (
-                    <div className="flex flex-col gap-5" aria-busy="true">
-                      <div className="grid grid-cols-2 gap-px bg-zinc-200 sm:grid-cols-4 dark:bg-zinc-800">
-                        {[0, 1, 2, 3].map((k) => (
-                          <div key={k} className="flex flex-col gap-2 bg-white px-5 py-4 dark:bg-zinc-950">
-                            <span className="h-2 w-16 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                            <span className="h-5 w-24 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                          </div>
-                        ))}
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        {[92, 74, 61, 48, 40, 33, 27].map((w) => (
-                          <span key={w} className="h-4 animate-pulse bg-zinc-100 dark:bg-zinc-900" style={{ width: `${w}%` }} />
-                        ))}
-                      </div>
+                    <div aria-busy="true">
+                      <FishingGame status="Rows are in below. Opus 5.5 is laying out the chart" height={260} />
                     </div>
                   ) : (
                     <p className="font-mono text-[12px] text-zinc-500">{rows.length ? "The rows are below." : "The query returned no rows."}</p>

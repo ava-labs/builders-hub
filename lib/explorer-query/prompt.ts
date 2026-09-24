@@ -44,6 +44,16 @@ ${known}
 - Cast UInt64 sums to Float64 when you divide.
 - Go one layer deeper than the literal ask when one chart can hold it: a ranking carries share_pct (Float64, percent of the window's total) and, where the window is a day or less, unique senders; a series of counts carries its reverted count; gas carries the fee in ${opts.symbol.toLowerCase()}. Keep it to what fits one chart.
 
+## Comparisons, overlays, sophistication
+Answer comparative questions with ONE query that puts the things being compared side by side as columns, so the page can overlay them:
+- Groups: one row per bucket, one column per group with countIf / sumIf (usdc_transfers, usdt_transfers, usdc_volume, usdt_volume). Never one row per group per bucket when the question compares them.
+- Periods: align by offset. Take the window end from the data (max(block_time)), split it into current and previous halves, and return one row per offset bucket: toUInt32(dateDiff('minute', window_start, block_time) / 5) * 5 AS offset_min, with current_* and previous_* columns. Name the offset column so the axis reads minutes into the window.
+- Fees or gas per bucket: also return the largest single transaction in the bucket (max_fee_avax, or max_gas) so a spike from one or two overpaying transactions is visible. Priority tips on the C-Chain go to the burn address with the base fee, so all of gas_used * gas_price is burned.
+- Rates and shares with their counts: return both (txs, reverted, revert_pct), so the page can draw bars with a rate line.
+- Relations: one row per group or per record with two numeric measures (gas_charged and fee, calls and callers) for a scatter.
+- Cumulative, rolling and rebased views are computed by the page: return the raw per-bucket values.
+- Use WITH to name windows and to reuse a filter; up to six value columns per row is fine. Keep every table bounded on chain_id and time.
+
 ## How to work
 1. Call run_sql to test a query. It returns the first rows and column types, or the database error. Fix and retry; two or three tries is normal.
 2. When the shape is right, call render_chart with the final sql, the chart spec and the drill. The server runs it in full, tests the drill on the first row, and draws it.

@@ -16,24 +16,36 @@ export const DESIGN_MODEL = "claude-opus-5-5";
 export const formatSchema = z.enum(["number", "compact", "percent", "avax", "gas", "seconds", "usd"]);
 export type Format = z.infer<typeof formatSchema>;
 
+export const seriesSchema = z.object({
+  column: z.string(),
+  label: z.string().max(32),
+  format: formatSchema.default("number"),
+  /** a second axis for a series in different units */
+  axis: z.enum(["left", "right"]).default("left"),
+  /** how this series is drawn; auto follows the panel kind. Mixing marks
+   *  in one panel is how a count (bars) and a rate (line) share a chart */
+  mark: z.enum(["auto", "bar", "line", "area"]).default("auto"),
+  /** computed on the page from the column: running total, rebased so the
+   *  first point is 100 (compares things of different size), the series'
+   *  share of the panel's share series per row, or a 5-point average */
+  transform: z.enum(["none", "cumulative", "indexed", "share", "rolling"]).default("none"),
+  /** a baseline or a previous period, drawn dashed */
+  dashed: z.boolean().default(false),
+});
+export type Series = z.infer<typeof seriesSchema>;
+
 export const panelSchema = z.object({
   title: z.string().max(60),
-  /** hbar: a horizontal ranking; bar: buckets; line and area: continuous; table: the rows */
-  kind: z.enum(["hbar", "bar", "line", "area", "table"]),
-  /** the category or time column */
+  /** hbar: a horizontal ranking; bar: buckets; line and area: continuous;
+   *  scatter: one numeric column against another; table: the rows */
+  kind: z.enum(["hbar", "bar", "line", "area", "scatter", "table"]),
+  /** the category or time column; for scatter, the numeric x column */
   x: z.string().optional(),
-  series: z
-    .array(
-      z.object({
-        column: z.string(),
-        label: z.string().max(32),
-        format: formatSchema.default("number"),
-        /** a second axis for a series in different units */
-        axis: z.enum(["left", "right"]).default("left"),
-      }),
-    )
-    .max(5)
-    .default([]),
+  series: z.array(seriesSchema).max(6).default([]),
+  /** vertical marks at x values: a peak, an upgrade, the start of a burst */
+  markers: z.array(z.object({ x: z.union([z.string(), z.number()]), label: z.string().max(28) })).max(4).default([]),
+  /** shaded x ranges: the window being compared, an incident */
+  bands: z.array(z.object({ from: z.union([z.string(), z.number()]), to: z.union([z.string(), z.number()]), label: z.string().max(28) })).max(2).default([]),
   stacked: z.boolean().default(false),
   /** for rankings: order rows by this series column before drawing */
   sortBy: z.string().optional(),
@@ -70,7 +82,7 @@ type Row = Record<string, unknown>;
 /** the old one-chart spec, as a visual, for when the designer is unavailable */
 export function basicVisual(chart: ChartSpec, columns: ColumnMeta[]): VisualSpec {
   if (chart.kind === "none" || chart.kind === "table" || !chart.x || chart.series.length === 0) {
-    return { stats: [], panels: [{ title: "Rows", kind: "table", series: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] };
+    return { stats: [], panels: [{ title: "Rows", kind: "table", series: [], markers: [], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] };
   }
   const time = columns.find((c) => c.name === chart.x)?.type.startsWith("Date");
   return {
@@ -80,7 +92,9 @@ export function basicVisual(chart: ChartSpec, columns: ColumnMeta[]): VisualSpec
         title: "",
         kind: chart.kind === "bar" && !time ? "hbar" : chart.kind,
         x: chart.x,
-        series: chart.series.map((s) => ({ column: s.column, label: s.label, format: /%/.test(s.unit ?? "") ? "percent" : /avax/i.test(s.unit ?? "") ? "avax" : /gas/i.test(s.unit ?? "") ? "gas" : "number", axis: "left" })),
+        series: chart.series.map((s) => ({ column: s.column, label: s.label, format: /%/.test(s.unit ?? "") ? "percent" : /avax/i.test(s.unit ?? "") ? "avax" : /gas/i.test(s.unit ?? "") ? "gas" : "number", axis: "left", mark: "auto", transform: "none", dashed: false })),
+        markers: [],
+        bands: [],
         stacked: !!chart.stacked,
         sortDir: "desc",
         referenceLines: [],
@@ -113,6 +127,16 @@ Rules of the sheet
 - Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
 - Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting".
 - Panel titles: two to four plain words, no "by" chains longer than one.
+Comparisons and overlays (use them whenever the rows hold more than one thing to compare)
+- Two groups or two periods in columns (usdc_*, usdt_*; current_*, previous_*): overlay them in ONE panel. The baseline or previous period is dashed.
+- Things of very different size (a token with 1,000x the volume of another): transform "indexed" rebases each to 100 at its first point, so shape is compared, not size. Say so in the panel title ("indexed to 100").
+- Parts of a whole over time: transform "share" on each part plus stacked area, so each bucket sums to 100%.
+- Running totals: transform "cumulative". Noisy per-minute series: add a "rolling" copy of the same column as a thin line over the raw bars.
+- A count and a rate together: bars (mark "bar") on the left axis, the rate as a line (mark "line") on the right axis.
+- Two numeric measures per group or per record (gas against fee, calls against callers): kind "scatter", x the first measure, one series the second.
+- Markers: put one on the peak and on anything a callout names. Bands: shade the window the question compares.
+- A strong answer usually has one overlay panel that makes the comparison and one supporting panel that explains it.
+
 - Only reference columns that exist. Panel titles are four words or fewer. Half-width panels come in pairs.`;
 
 export interface DesignInput {

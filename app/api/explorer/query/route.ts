@@ -29,7 +29,9 @@ const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const MODEL = "claude-sonnet-5";
 /** the most records one drill lists */
 const DRILL_ROWS = 100;
-const MAX_STEPS = 8;
+// comparisons and joins can take several test runs; the last two steps
+// may only hand back an answer, so the loop always ends with one
+const MAX_STEPS = 14;
 
 interface Body {
   chainId?: string | number;
@@ -135,6 +137,7 @@ export async function POST(req: Request) {
 
   let final: QueryAnswer | null = null;
   let tries = 0;
+  const errors: string[] = [];
   const t0 = Date.now();
 
   const run_sql = tool({
@@ -143,12 +146,17 @@ export async function POST(req: Request) {
     execute: async ({ sql }) => {
       tries += 1;
       const g = guardSql(sql, chainId);
-      if (!g.ok) return { error: g.error };
+      if (!g.ok) {
+        errors.push(g.error);
+        return { error: g.error };
+      }
       try {
         const r = await runQuery(`SELECT * FROM (${g.sql.replace(/\nLIMIT \d+$/, "")}) LIMIT 20`);
         return { columns: r.columns, rows: r.rows, rowCount: r.rowCount, elapsedMs: r.elapsedMs, rowsRead: r.rowsRead };
       } catch (e) {
-        return { error: e instanceof Error ? e.message : String(e) };
+        const msg = e instanceof Error ? e.message : String(e);
+        errors.push(msg);
+        return { error: msg };
       }
     },
   });
@@ -200,7 +208,9 @@ export async function POST(req: Request) {
       system,
       messages,
       tools: { run_sql, render_chart },
-      stopWhen: [stepCountIs(MAX_STEPS)],
+      stopWhen: [stepCountIs(MAX_STEPS), () => final !== null],
+      // near the end of the budget the only move left is to answer
+      prepareStep: ({ stepNumber }) => (stepNumber >= MAX_STEPS - 2 && !final ? { activeTools: ["render_chart"] } : undefined),
       onStepFinish: () => {
         steps += 1;
       },
@@ -211,7 +221,11 @@ export async function POST(req: Request) {
   }
 
   if (!final) {
-    return NextResponse.json({ error: "no chart came back", text: text.slice(0, 600) }, { status: 422 });
+    const last = errors.slice(-2).join(" | ");
+    return NextResponse.json(
+      { error: `The query could not be finished in ${MAX_STEPS} steps.${last ? ` Last database error: ${last.slice(0, 300)}` : ""} Try a narrower question.`, text: text.slice(0, 600) },
+      { status: 422 },
+    );
   }
   const done = final as QueryAnswer;
   const sqlMs = Date.now() - t0;

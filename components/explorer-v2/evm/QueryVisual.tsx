@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Area, Bar, Brush, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, Brush, CartesianGrid, Cell, ComposedChart, Line, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
-import type { Format, Panel, Stat, VisualSpec } from "@/lib/explorer-query/visual";
+import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. Every panel keeps the sheet's
@@ -185,14 +185,46 @@ function PanelChart({
       if (panel.sortDir === "asc") d.reverse();
     }
     if (panel.topN) d = d.slice(0, panel.topN);
-    return d;
-  }, [rows, panel.sortBy, panel.sortDir, panel.topN]);
+    // every series draws from its own key, so one column can appear raw
+    // and transformed (bars and their rolling average) in the same panel
+    const out = d.map((r) => ({ ...r }) as Row);
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    panel.series.forEach((sr, i) => {
+      const k = `__s${i}`;
+      const vals = out.map((r) => num(r[sr.column]));
+      if (sr.transform === "cumulative") {
+        let acc = 0;
+        vals.forEach((v, j) => (out[j][k] = v === null ? null : (acc += v)));
+      } else if (sr.transform === "indexed") {
+        const first = vals.find((v) => v !== null && v !== 0) ?? null;
+        vals.forEach((v, j) => (out[j][k] = v === null || first === null ? null : (v / first) * 100));
+      } else if (sr.transform === "rolling") {
+        vals.forEach((_, j) => {
+          const win = vals.slice(Math.max(0, j - 4), j + 1).filter((v): v is number => v !== null);
+          out[j][k] = win.length ? win.reduce((a, b) => a + b, 0) / win.length : null;
+        });
+      } else if (sr.transform === "share") {
+        const parts = panel.series.map((p, pi) => ({ p, pi })).filter(({ p }) => p.transform === "share");
+        out.forEach((r, j) => {
+          const total = parts.reduce((a, { p }) => a + (num(r[p.column]) ?? 0), 0);
+          out[j][k] = total > 0 ? ((num(r[sr.column]) ?? 0) / total) * 100 : null;
+        });
+      } else vals.forEach((v, j) => (out[j][k] = v));
+    });
+    return out;
+  }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series]);
   const span = useMemo(() => spanOf(data.map((r) => r[x])), [data, x]);
   const horizontal = panel.kind === "hbar";
+  const scatter = panel.kind === "scatter";
+  // a transformed series reads in its own unit: shares are percent, an index is a plain number
+  const unitOf = (sr: Series): Format => (sr.transform === "share" ? "percent" : sr.transform === "indexed" ? "number" : sr.format);
+  const markOf = (sr: Series): "bar" | "line" | "area" => (horizontal ? "bar" : sr.mark !== "auto" ? sr.mark : panel.kind === "line" ? "line" : panel.kind === "area" ? "area" : "bar");
   const left = panel.series.filter((s) => s.axis !== "right");
   const right = panel.series.filter((s) => s.axis === "right");
-  const fmtL = left[0]?.format ?? "number";
-  const fmtR = right[0]?.format ?? "number";
+  const fmtL = left[0] ? unitOf(left[0]) : "number";
+  const fmtR = right[0] ? unitOf(right[0]) : "number";
+  // markers and bands name x values; match them to the drawn category
+  const xOf = (v: string | number) => data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined;
   const label = (v: unknown) => xText(names, x, v, span);
   const height = horizontal ? Math.max(160, data.length * 26 + 36) : 260;
 
@@ -204,16 +236,24 @@ function PanelChart({
     const total = vals.reduce((a, b) => a + b, 0);
     return isRatio(s.format) && vals.length ? total / vals.length : total;
   });
+  const keyOf = (i: number) => `${panel.series[i]?.column}-${i}`;
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
         {panel.title && <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{panel.title}</span>}
-        {panel.series.length > 1 &&
+        {(panel.series.length > 1 || panel.series.some((sr) => sr.dashed || sr.transform !== "none")) &&
           panel.series.map((s, i) => (
-            <span key={s.column} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-              <span className="h-2 w-2" style={{ background: toneOf(s, i) }} />
+            <span key={`${s.column}-${i}`} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+              {s.dashed ? (
+                <span className="w-3 border-t-2 border-dashed" style={{ borderColor: toneOf(s, i) }} />
+              ) : markOf(s) === "line" ? (
+                <span className="w-3 border-t-2" style={{ borderColor: toneOf(s, i) }} />
+              ) : (
+                <span className="h-2 w-2" style={{ background: toneOf(s, i) }} />
+              )}
               {s.label}
+              {s.transform !== "none" && <span className="text-zinc-300 dark:text-zinc-600">{s.transform === "indexed" ? "index" : s.transform}</span>}
             </span>
           ))}
       </div>
@@ -243,7 +283,8 @@ function PanelChart({
             {/* recharts reads axes as direct children: no fragments here */}
             {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
             {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={172} interval={0} />}
-            {!horizontal && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
+            {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
+            {scatter && <XAxis type="number" dataKey={x} domain={["auto", "auto"]} tickFormatter={(v) => fmt(v, "compact", sym, true)} tick={MONO} tickLine={false} axisLine={false} name={x} />}
             {!horizontal && <YAxis yAxisId="left" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             <RechartsTooltip
@@ -258,10 +299,12 @@ function PanelChart({
                       {name ?? fmtX(r[x], span)}
                       {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
                     </p>
+                    {scatter && <p className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">{fmt(r[x], "number", sym)} <span className="text-zinc-400">{x.replace(/_/g, " ")}</span></p>}
                     {panel.series.map((s, i) => (
-                      <p key={s.column} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                      <p key={`${s.column}-${i}`} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
                         <span className="h-1.5 w-1.5" style={{ background: toneOf(s, i) }} />
-                        {fmt(r[s.column], s.format, sym)} <span className="text-zinc-400">{s.label}</span>
+                        {fmt(r[`__s${i}`], unitOf(s), sym)} <span className="text-zinc-400">{s.label}</span>
+                        {s.transform !== "none" && s.transform !== "share" && typeof r[s.column] === "number" && <span className="text-zinc-300 dark:text-zinc-600">raw {fmt(r[s.column], s.format, sym)}</span>}
                       </p>
                     ))}
 
@@ -272,6 +315,23 @@ function PanelChart({
             {hoverIdx === null && hoverKey !== undefined && data.some((r) => r[x] === hoverKey) && (panel.kind === "line" || panel.kind === "area") && (
               <ReferenceLine yAxisId="left" x={hoverKey as string | number} stroke="currentColor" strokeOpacity={0.5} strokeDasharray="2 3" />
             )}
+            {!horizontal &&
+              !scatter &&
+              panel.bands.map((b) => {
+                const x1 = xOf(b.from);
+                const x2 = xOf(b.to);
+                return x1 !== undefined && x2 !== undefined ? (
+                  <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} fill="currentColor" fillOpacity={0.05} stroke="none" label={{ value: b.label, position: "insideTopLeft", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#71717a" }} />
+                ) : null;
+              })}
+            {!horizontal &&
+              !scatter &&
+              panel.markers.map((m) => {
+                const mx = xOf(m.x);
+                return mx !== undefined ? (
+                  <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={{ value: m.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                ) : null;
+              })}
             {panel.referenceLines.map((l) =>
               horizontal ? (
                 <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
@@ -281,36 +341,55 @@ function PanelChart({
             )}
             {panel.series.map((s, i) => {
               const tone = toneOf(s, i);
+              const key = `${s.column}-${i}`;
+              const dataKey = `__s${i}`;
               // a ranking has one unnamed axis pair; an explicit undefined id
               // would not match it, so the prop is left out entirely
               const axis = horizontal ? {} : { yAxisId: s.axis === "right" ? "right" : "left" };
-              if (panel.kind === "line") return <Line key={s.column} {...axis} type="monotone" dataKey={s.column} stroke={tone} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />;
-              if (panel.kind === "area") return <Area key={s.column} {...axis} type="monotone" dataKey={s.column} stroke={tone} fill={tone} fillOpacity={0.16} strokeWidth={1.5} stackId={panel.stacked ? "s" : undefined} isAnimationActive={false} />;
+              const dash = s.dashed ? "5 4" : undefined;
+              if (scatter)
+                return (
+                  <Scatter
+                    key={key}
+                    {...axis}
+                    dataKey={dataKey}
+                    fill={tone}
+                    fillOpacity={0.7}
+                    isAnimationActive={false}
+                    onClick={(d: { payload?: Row }) => d?.payload && canDrill && onPick(d.payload)}
+                  />
+                );
+              const mark = markOf(s);
+              if (mark === "line")
+                return <Line key={key} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeWidth={s.transform === "rolling" ? 2 : 1.5} strokeDasharray={dash} dot={false} isAnimationActive={false} connectNulls />;
+              if (mark === "area")
+                return <Area key={key} {...axis} type="monotone" dataKey={dataKey} stroke={tone} fill={tone} fillOpacity={s.dashed ? 0.05 : 0.16} strokeWidth={1.5} strokeDasharray={dash} stackId={panel.stacked ? `s-${s.axis}` : undefined} isAnimationActive={false} />;
               return (
-                <Bar key={s.column} {...axis} dataKey={s.column} fill={tone} stackId={panel.stacked ? "s" : undefined} isAnimationActive={false} minPointSize={1}>
+                <Bar key={key} {...axis} dataKey={dataKey} fill={tone} stroke={s.dashed ? tone : undefined} strokeDasharray={dash} stackId={panel.stacked ? `s-${s.axis}` : undefined} isAnimationActive={false} minPointSize={1}>
                   {/* the hovered bar keeps full ink; the rest recede */}
                   {data.map((_, j) => (
                     <Cell
                       key={j}
                       fillOpacity={
-                        hoverIdx === null && hoverKey !== undefined
+                        (s.dashed ? 0.35 : 1) *
+                        (hoverIdx === null && hoverKey !== undefined
                           ? data[j]?.[x] === hoverKey
                             ? 0.95
                             : 0.3
                           : selected !== undefined
-                          ? data[j]?.[x] === selected || hoverIdx === j
-                            ? 0.9
-                            : 0.25
-                          : hoverIdx === null || hoverIdx === j
-                            ? 0.85
-                            : 0.35
+                            ? data[j]?.[x] === selected || hoverIdx === j
+                              ? 0.9
+                              : 0.25
+                            : hoverIdx === null || hoverIdx === j
+                              ? 0.85
+                              : 0.35)
                       }
                     />
                   ))}
                 </Bar>
               );
             })}
-            {brush && !horizontal && data.length > 12 && (
+            {brush && !horizontal && !scatter && data.length > 12 && (
               <Brush
                 dataKey={x}
                 height={22}
@@ -337,7 +416,7 @@ function PanelChart({
               {label(data[range[0]]?.[x])} to {label(data[range[1]]?.[x])}
             </span>
             {panel.series.map((s, i) => (
-              <span key={s.column} className="text-zinc-500 dark:text-zinc-400">
+              <span key={keyOf(i)} className="text-zinc-500 dark:text-zinc-400">
                 {isRatio(s.format) ? "avg " : ""}
                 {fmt(sums[i], s.format, sym)} {s.label}
               </span>
@@ -388,7 +467,7 @@ export function QueryVisual({
 }) {
   const charts = visual.panels.filter((p) => p.kind !== "table" && p.x && p.series.length > 0);
   // one panel carries the brush: the first full-width time series
-  const brushIdx = charts.findIndex((p) => p.kind !== "hbar" && p.width === "full" && spanOf(rows.map((r) => r[p.x!])) !== "other");
+  const brushIdx = charts.findIndex((p) => p.kind !== "hbar" && p.kind !== "scatter" && p.width === "full" && spanOf(rows.map((r) => r[p.x!])) !== "other");
   return (
     <div className="flex flex-col gap-6">
       <StatsStrip stats={visual.stats} rows={rows} names={names} sym={sym} />
