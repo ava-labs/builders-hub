@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Board, BoardHeader, LiveDot, StatCell, StatDash } from "@/components/explorer-v2/ui";
@@ -149,6 +149,52 @@ function Spark({ values, className }: { values: number[]; className?: string }) 
   );
 }
 
+/* the trace band: 32 CSS px tall at the block's foot */
+const BAND_PX = 32;
+const BAND_H = 32;
+
+/** where a series ends inside the band, as a share of the band's height:
+ *  the block's right face fills to this level so the trace reads as a
+ *  solid passing through the box, not a picture on its front */
+function bandLevel(values: number[] | undefined): number | null {
+  if (!values || values.length < 2) return null;
+  const pts = bucket(values, SPARK_MAX_POINTS);
+  const min = Math.min(...pts);
+  const span = Math.max(...pts) - min || 1;
+  return ((pts[pts.length - 1] - min) / span) * ((BAND_H - 6) / BAND_H) + 2 / BAND_H;
+}
+
+/** the trace as the block's own floor: a gradient area across the full
+ *  width, the line over it, and a live dot riding the last value */
+function SparkBand({ values }: { values: number[] }) {
+  const id = useId();
+  const pts = bucket(values, SPARK_MAX_POINTS);
+  if (pts.length < 2) return null;
+  const W = 100;
+  const H = BAND_H;
+  const min = Math.min(...pts);
+  const span = Math.max(...pts) - min || 1;
+  const yOf = (v: number) => H - 2 - ((v - min) / span) * (H - 6);
+  const xy = pts.map((v, i) => [((i / (pts.length - 1)) * W).toFixed(2), yOf(v).toFixed(2)]);
+  const d = xy.map(([x, y]) => `${x},${y}`).join(" ");
+  const lastY = yOf(pts[pts.length - 1]);
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: BAND_PX }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full text-zinc-900 dark:text-zinc-50">
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity={0.14} />
+            <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <polygon points={`0,${H} ${d} ${W},${H}`} fill={`url(#${id})`} />
+        <polyline points={d} fill="none" strokeWidth={1.25} vectorEffect="non-scaling-stroke" strokeLinejoin="round" className="stroke-zinc-700 dark:stroke-zinc-300" />
+      </svg>
+      <span className="absolute right-0 h-1.5 w-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-emerald-500 ring-2 ring-white dark:bg-emerald-400 dark:ring-zinc-950" style={{ top: `${(lastY / H) * 100}%` }} />
+    </span>
+  );
+}
+
 /** figure, unit, trace on one line: the unit steps down beside the
  *  number, the trace sits right, on the number's baseline */
 function Figure({ value, unit, spark }: { value: React.ReactNode; unit?: string; spark?: number[] }) {
@@ -180,29 +226,33 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
   return (
     <div className={cn("grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2", cells.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
       {cells.map((c) => {
-          const spark = c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined;
+          const spark = c.values ?? (c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined);
+          const move = c.series ? windowMove(c, n, market?.[c.series]) : null;
+          const level = bandLevel(spark);
           const body = (
             <>
               {c.live && <LiveDot className="mt-1.5 shrink-0" />}
-              <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="relative z-10 flex min-w-0 flex-col gap-1">
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{c.label}</span>
                 <span className="flex min-w-0 flex-wrap items-baseline gap-x-2">
-                  <span className="font-mono text-[17px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
+                  <span className="text-[22px] font-bold leading-none tracking-[-0.02em] tabular-nums text-zinc-900 [font-family:Aeonik,var(--font-sans),sans-serif] dark:text-zinc-50">
                     {c.value}
-                    {c.unit && <span className="ml-1 text-[12px] font-normal text-zinc-400 dark:text-zinc-500">{c.unit}</span>}
+                    {c.unit && <span className="ml-1 font-mono text-[12px] font-normal tracking-normal text-zinc-400 dark:text-zinc-500">{c.unit}</span>}
                   </span>
+                  {move && (
+                    <span className={cn("font-mono text-[10px] tabular-nums tracking-[0.04em]", move.pct >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>
+                      {move.pct >= 0 ? "+" : ""}
+                      {move.pct.toFixed(2)}% <span className="text-zinc-400 dark:text-zinc-500">{move.span}</span>
+                    </span>
+                  )}
                   {c.sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{c.sub}</span>}
                 </span>
               </span>
-              {spark && spark.length >= 2 && (
-                <span className="ml-auto flex h-7 w-24 shrink-0 self-center">
-                  <Spark values={spark} className="h-7 max-w-none" />
-                </span>
-              )}
+              {spark && spark.length >= 2 && <SparkBand values={spark} />}
             </>
           );
           const face =
-            "relative flex h-full items-start gap-3 border border-zinc-200 bg-white px-5 py-3 transition-[background-color,translate] duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-950 md:px-6";
+            "relative flex h-full items-start gap-3 overflow-hidden border border-zinc-200 bg-white px-5 pb-4 pt-3 transition-[background-color,translate] duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-950 md:px-6";
           return (
             <div key={c.label} className="group relative">
               {/* top face, lit */}
@@ -211,12 +261,19 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
                 className="absolute -top-2 left-0 w-full origin-bottom-left skew-x-[-45deg] border border-b-0 border-zinc-200 bg-zinc-100 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-800"
                 style={{ height: DEPTH }}
               />
-              {/* right face, shaded */}
+              {/* right face, shaded; the trace's level wraps onto it */}
               <span
                 aria-hidden
-                className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
+                className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] overflow-hidden border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
                 style={{ width: DEPTH }}
-              />
+              >
+                {level !== null && (
+                  <span
+                    className="absolute inset-x-0 bottom-0 border-t border-zinc-700/70 bg-zinc-900/15 dark:border-zinc-300/70 dark:bg-zinc-50/15"
+                    style={{ height: Math.round(level * BAND_PX) }}
+                  />
+                )}
+              </span>
               {c.href ? (
                 <Link href={c.href} className={cn(face, "hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
                   {body}
@@ -240,6 +297,22 @@ export interface LiveCell {
   live?: boolean;
   /** which market series traces this figure over the clock's window */
   series?: MarketSeries;
+  /** the live number behind `value`, for the move against the window's start */
+  raw?: number;
+  /** the exchange's own 24h move, used when the clock is on a day */
+  change24h?: number;
+  /** a series of the cell's own, oldest first, drawn as the block's trace */
+  values?: number[];
+}
+
+/** how far a live figure has moved since the clock window opened: the
+ *  window's first daily close against the live figure; on the day clock,
+ *  the market's own 24h number */
+function windowMove(c: LiveCell, n: number, series: number[] | undefined): { pct: number; span: string } | null {
+  if (n <= 1) return c.change24h !== undefined ? { pct: c.change24h, span: "24h" } : null;
+  if (c.raw === undefined || !series || series.length < 2 || series[0] <= 0) return null;
+  const span = n <= 7 ? "7d" : n <= 30 ? "30d" : n <= 90 ? "90d" : "1y";
+  return { pct: (c.raw / series[0] - 1) * 100, span };
 }
 
 export function EvmOverviewStats({
