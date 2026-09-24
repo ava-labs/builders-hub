@@ -331,8 +331,23 @@ function StatFigure({ s, rows, all, names, sym, active }: { s: Stat; rows: Row[]
   );
 }
 
-function StatsStrip({ stats, rows, all, names, sym, active }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean }) {
+/** one tile of an answer: a figure or a chart stands on its own card */
+export const CARD =
+  "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
+
+function StatsStrip({ stats, rows, all, names, sym, active, cards }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean }) {
   if (stats.length === 0) return null;
+  if (cards) {
+    return (
+      <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
+        {stats.map((s) => (
+          <div key={s.label} className={cn(CARD, "min-w-0")}>
+            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} />
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div
       className={cn(
@@ -884,11 +899,13 @@ export type QueryVisualProps = {
   panelAction?: (index: number) => ReactNode;
   /** draw panel titles (default true) */
   titles?: boolean;
+  /** each figure and panel on its own card (default); off inside a board tile */
+  cards?: boolean;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -900,13 +917,13 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   );
   const single = panelIndex !== undefined || charts.length === 1;
   return (
-    <div className={cn("flex flex-col", compact ? "gap-3" : "gap-6")}>
-      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} />}
-      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className="-mb-2" />}
+    <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
+      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} />}
+      {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
-        <div className={cn("grid gap-x-10 gap-y-8", !single && "lg:grid-cols-2")}>
+        <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
-            <div key={`${i}-${p.title}-${p.x}`} className={cn(!single && p.width === "full" && "lg:col-span-2")}>
+            <div key={`${i}-${p.title}-${p.x}`} className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && p.width === "full" && "lg:col-span-2")}>
               <PanelBlock
                 panel={p}
                 rows={rows}

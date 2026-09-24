@@ -15,7 +15,7 @@ import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
-import { QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
+import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
 import { type Row, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
@@ -54,10 +54,16 @@ function useCopy() {
 
 
 /** one line on where the answer is: who is writing, and the last step */
-/** the callouts as one paragraph: every sentence closed, no 1.395e+6 */
+/** the callouts as one paragraph: every sentence closed, no 1.395e+6, short addresses */
 function reads(callouts: string[]): string {
   return callouts
-    .map((c) => c.trim().replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m))))
+    .map((c) =>
+      c
+        .trim()
+        .replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m)))
+        // an address reads the way the charts write it
+        .replace(/\b0x[0-9a-fA-F]{40}\b/g, (m) => truncate(m.toLowerCase(), 6)),
+    )
     .filter(Boolean)
     .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))
     .join(" ");
@@ -616,8 +622,8 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
             </div>
 
             {/* the chart, full width; a drill zooms it in place */}
-            <div className="flex min-w-0 flex-col gap-4 rounded-3xl bg-white px-5 py-5 ring-1 ring-zinc-200/70 md:px-6 dark:bg-zinc-950 dark:ring-zinc-800/70">
-              <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div className="flex min-w-0 flex-col gap-3">
+              <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
                 {drill ? (
                   <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
                 ) : (
@@ -644,10 +650,12 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
 
               <ZoomStage level={drill ? `drill-${drill.index}` : laying ? "laying" : "answer"}>
                 {drill ? (
-                  <DrillView drill={drill} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
+                  <div className={cn(CARD, "px-4 py-4 sm:px-5 sm:py-5")}>
+                    <DrillView drill={drill} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} onRows={() => setInspect(true)} />
+                  </div>
                 ) : laying ? (
                   // one draw: the loader holds the space until the layout is final
-                  <div aria-busy="true" className="flex min-h-[18rem] flex-1 flex-col">
+                  <div aria-busy="true" className={cn(CARD, "flex min-h-[18rem] flex-1 flex-col")}>
                     <AvalancheLoader status="Rows are in. Opus 5.5 is laying out the chart" fill framed={false} />
                   </div>
                 ) : charted && visual ? (
@@ -673,7 +681,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                   />
                 ) : allRows.length ? (
                   // no chart to index the rows: the rows, by their shape, are the view
-                  <div className="-mx-3">
+                  <div className={cn(CARD, "px-2 py-3")}>
                     <RowsBody
                       columns={answer.result?.columns ?? []}
                       rows={allRows}
@@ -685,7 +693,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                     />
                   </div>
                 ) : (
-                  <p className="py-10 font-mono text-[12px] text-zinc-500">The query returned no rows.</p>
+                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>The query returned no rows.</p>
                 )}
               </ZoomStage>
             </div>

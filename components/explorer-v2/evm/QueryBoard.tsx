@@ -179,6 +179,7 @@ export function TileChart({ tile, sym }: { tile: ChartTile; sym: string }) {
       onRange={setRange}
       onZoom={() => {}}
       titles={visual.panels.length > 1}
+      cards={false}
     />
   );
 }
