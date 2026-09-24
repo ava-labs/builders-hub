@@ -98,7 +98,8 @@ function schedule(scope: string, s: ScopeSync) {
   if (s.timer) clearTimeout(s.timer);
   s.timer = setTimeout(() => {
     s.timer = null;
-    if (s.state === "loading") return; // the pull's merge sends it
+    // mid-read: the merge may already have run, so look again after it
+    if (s.state === "loading") return schedule(scope, s);
     const put = listBoards(scope).filter((b) => (s.sent.get(b.id) ?? 0) < b.updatedAt);
     const del = Object.entries(goneBoards(scope))
       .filter(([id, at]) => s.sent.has(id) && (s.sent.get(id) ?? 0) < at)

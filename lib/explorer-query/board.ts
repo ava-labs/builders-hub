@@ -262,7 +262,7 @@ export function mergeRemote(scope: string, remote: RemoteBoard[], complete: bool
     }
     if (l && l.updatedAt === r.updatedAt) continue;
     const kept = new Map((l?.tiles ?? []).map((t) => [t.id, t]));
-    const tiles = (r.tiles as Tile[]).map((t) => {
+    const tiles = (r.tiles as Tile[]).map(normalTile).map((t) => {
       const old = kept.get(t.id);
       return t.kind === "chart" && old?.kind === "chart" && old.snapshot && old.sql === t.sql ? { ...t, snapshot: old.snapshot } : t;
     });
@@ -363,6 +363,33 @@ export function noteTile(text = "## A heading\nA line on what this board watches
   return { kind: "note", id: uid(), text, size: "w", order: 0 };
 }
 
+/* a layout that came from elsewhere (a link, the account) gets every
+   field the charts read, so a short or old one draws instead of throwing */
+export function normalVisual(v: Partial<VisualSpec> | undefined): VisualSpec {
+  const panels: Panel[] = (Array.isArray(v?.panels) ? (v.panels as Partial<Panel>[]) : []).map((p) => ({
+    ...(p as Panel),
+    markers: p.markers ?? [],
+    bands: p.bands ?? [],
+    referenceLines: p.referenceLines ?? [],
+    stacked: p.stacked ?? false,
+    sortDir: p.sortDir ?? "desc",
+    width: p.width ?? "full",
+    series: (Array.isArray(p.series) ? (p.series as Partial<Panel["series"][number]>[]) : []).map((x) => ({
+      ...(x as Panel["series"][number]),
+      format: x.format ?? "number",
+      axis: x.axis ?? "left",
+      mark: x.mark ?? "auto",
+      transform: x.transform ?? "none",
+      dashed: x.dashed ?? false,
+    })),
+  }));
+  return { stats: Array.isArray(v?.stats) ? v.stats : [], panels: panels.length ? panels : TABLE_VISUAL.panels, callouts: [] };
+}
+
+function normalTile(t: Tile): Tile {
+  return t.kind === "chart" ? { ...t, visual: normalVisual(t.visual) } : t;
+}
+
 /* ------------------------------------------------------------------ */
 /* share links: the board without its rows, as base64url JSON           */
 
@@ -418,7 +445,7 @@ export function decodeBoard(s: string): { name: string; tiles: Tile[] } | null {
           question: String(t.question ?? ""),
           title: String(t.title ?? ""),
           sql: t.sql,
-          visual: { stats: Array.isArray(t.visual.stats) ? t.visual.stats : [], panels: t.visual.panels, callouts: [] },
+          visual: normalVisual(t.visual),
           panelIndex: typeof t.panelIndex === "number" && t.panelIndex < t.visual.panels.length ? t.panelIndex : null,
           view: t.view,
           size,
