@@ -374,6 +374,7 @@ export function Party({
   chainId,
   href,
   len = 6,
+  full = false,
 }: {
   addr: string;
   name: string | null | undefined;
@@ -382,6 +383,9 @@ export function Party({
   /** the party's page; with it the mark is a link inside the row's door */
   href?: string;
   len?: number;
+  /** the whole address where the column has room (the list page); the
+   *  row's own grid decides, so nothing is cut that did not have to be */
+  full?: boolean;
 }) {
   const fixture = knownAddress(addr);
   const label = name ?? fixture?.label;
@@ -390,6 +394,13 @@ export function Party({
       <TokenMark address={addr} chainId={chainId} token={token} size={14} />
     ) : label ? (
       <span className="truncate font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
+    ) : full ? (
+      // the whole address once the sheet is wide enough for two of them
+      // side by side; below that, the middle goes, never the ends
+      <>
+        <span className={cn("truncate min-[1400px]:hidden", idInk)}>{truncate(addr, 10)}</span>
+        <span className={cn("hidden truncate min-[1400px]:inline", idInk)}>{addr}</span>
+      </>
     ) : (
       <span className={cn("truncate", idInk)}>{truncate(addr, len)}</span>
     );

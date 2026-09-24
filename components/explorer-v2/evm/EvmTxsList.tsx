@@ -92,7 +92,9 @@ export function EvmTxsList({ network }: { network: string }) {
   const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
   const m = metrics ?? {};
 
-  const cols = "md:grid-cols-[0.75rem_9.5rem_minmax(0,14rem)_minmax(0,1fr)_minmax(0,11rem)_9rem_3.5rem]";
+  // the parties take what the fixed columns leave: at 1400px and up that is
+  // room for two whole addresses
+  const cols = "md:grid-cols-[0.75rem_8rem_minmax(0,10rem)_minmax(0,1fr)_minmax(0,9rem)_7.5rem_3.5rem]";
   const loading = streaming ? rows.length === 0 : indexed.loading && rows.length === 0;
 
   return (
@@ -136,10 +138,10 @@ export function EvmTxsList({ network }: { network: string }) {
                     </span>
                     <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} len={10} />
+                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full />
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to ? (
-                        <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} href={`${base}/address/${t.to}`} len={10} />
+                        <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} href={`${base}/address/${t.to}`} full />
                       ) : (
                         <span className="truncate">contract creation</span>
                       )}
