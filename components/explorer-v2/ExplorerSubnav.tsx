@@ -12,6 +12,8 @@ import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
+import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
+import { queryTarget } from "@/lib/explorer-query/board";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -292,7 +294,15 @@ function ChainSwitcher({
   );
 }
 
-type Tab = { label: string; href: string; isActive: (path: string) => boolean };
+/** query: the tab opens into recent questions and boards on hover */
+type Tab = { label: string; href: string; isActive: (path: string) => boolean; query?: boolean };
+
+/* ask the chain a question, get a chart with its SQL; boards live under it */
+function queryTab(network: string, chainSlug: string): Tab[] {
+  if (!queryTarget(network, chainSlug)) return [];
+  const base = `/explorer/${network}/${chainSlug}/query`;
+  return [{ label: "Query", href: base, isActive: (p) => p.startsWith(base), query: true }];
+}
 
 /* Section tabs per chain kind. Detail pages light up their list's tab
    (a block detail is still "Blocks"); on EVM chains the stats surfaces
@@ -380,6 +390,7 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       href: `${base}/validators`,
       isActive: (p) => p.startsWith(`${base}/validators`) || p.startsWith(`${base}/node`),
     });
+    tabs.push(...queryTab(network, chainSlug));
     return tabs;
   }
 
@@ -399,20 +410,14 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       // list tabs mirror the P-Chain's; detail pages light their list
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) && !p.startsWith(`${base}/atomic`) },
+        // the tab's views: EVM txs, the C-Chain's atomic imports and exports
+        // (txs/atomic), ICM messages (txs/icm); atomic detail pages light it too
+        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) || p.startsWith(`${base}/atomic-tx`) },
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
+        ...queryTab(network, chainSlug),
       );
-      // cross-chain (shared-memory) txs exist only on the C-Chain — they ride
-      // in blockExtraData, invisible to eth_*, hence their own tab
-      if (chainSlug === "c-chain") {
-        tabs.push({
-          label: "Atomic",
-          href: `${base}/atomic`,
-          isActive: (p) => p.startsWith(`${base}/atomic`),
-        });
-      }
     }
     // who's on the chain: population charts for every catalog chain,
     // leaderboards where ClickHouse ingests it
@@ -421,37 +426,15 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       href: `${base}/accounts`,
       isActive: (p) => p.startsWith(`${base}/accounts`),
     });
-    if (catalogChain.blockchainId) {
-      tabs.push({
-        label: "Details",
-        href: `${base}/details`,
-        isActive: (p) => p.startsWith(`${base}/details`),
-      });
-    }
     if (catalogChain.isTestnet !== true) {
-      // the C-Chain's validators ARE the Primary Network's, so it alone
-      // also carries the staking-economics instrument as a sibling tab
-      if (chainSlug === "c-chain") {
-        tabs.push({
-          label: "Staking",
-          href: `${base}/staking`,
-          isActive: (p) => p.startsWith(`${base}/staking`),
-        });
-      }
+      // the C-Chain's validators ARE the Primary Network's, so on mainnet
+      // the tab also carries their staking economy (validators/staking)
       tabs.push({
         label: "Validators",
         // every chain's set lives in its own chrome — the C-Chain mounts
         // the Primary Network roster, L1s their own weight table
         href: `${base}/validators`,
         isActive: (p) => p.startsWith(`${base}/validators`),
-      });
-    }
-    // ICM activity needs an RPC to derive cross-chain txs from
-    if (catalogChain.rpcUrl) {
-      tabs.push({
-        label: "ICM",
-        href: `${base}/icm`,
-        isActive: (p) => p.startsWith(`${base}/icm`),
       });
     }
   }
@@ -688,6 +671,21 @@ export function ExplorerSubnav({
                   >
                     {tab.label}
                   </span>
+                );
+              }
+
+              if (tab.query && chainSlug) {
+                return (
+                  <QueryTab
+                    key={tab.label}
+                    network={network}
+                    chainSlug={chainSlug}
+                    href={tab.href}
+                    label={tab.label}
+                    className={cls}
+                    bar={bar}
+                    active={active}
+                  />
                 );
               }
 

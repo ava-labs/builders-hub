@@ -42,6 +42,16 @@ function releaseQuerySlot(): void {
   queryQueue.shift()?.();
 }
 
+/** run one request to the box inside the shared gate */
+export async function withQuerySlot<T>(run: () => Promise<T>): Promise<T> {
+  await acquireQuerySlot();
+  try {
+    return await run();
+  } finally {
+    releaseQuerySlot();
+  }
+}
+
 export async function queryClickHouse<T>(sql: string): Promise<ClickHouseResponse<T>> {
   await acquireQuerySlot();
   try {

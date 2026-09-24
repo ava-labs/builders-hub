@@ -14,6 +14,7 @@ import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, use
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { AddressSummary, TxListResponse } from "@/lib/evm-explorer";
 import type { SourcifyContract } from "@/lib/sourcify-client";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* A token, on the address route: the contract that IS the token. Mark and
    name as the subject, the readings a token is judged by in a strip
@@ -44,7 +45,7 @@ export function EvmToken({
   const base = `/explorer/${network}/${c.chainSlug}`;
   const [tab, setTab] = useState<Tab>(initialTab === "contract" ? "contract" : "transfers");
 
-  const meta = useErc20Meta(c.rpcUrl, addr);
+  const meta = useErc20Meta(readRpc(c.chainId, c.rpcUrl), addr);
   const symbol = listed?.symbol ?? meta?.symbol ?? "TOKEN";
   const name = listed?.name ?? meta?.name ?? verified?.name ?? "Token";
   const decimals = listed?.decimals ?? meta?.decimals ?? 18;
@@ -57,7 +58,7 @@ export function EvmToken({
 
   const summary = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, { retry404Ms: 15_000 });
   const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
-  const transfers = useTokenTransfers(c.rpcUrl, addr, { span: 2_000, limit: 50 });
+  const transfers = useTokenTransfers(readRpc(c.chainId, c.rpcUrl), addr, { span: 2_000, limit: 50 });
   const tokens = useTokenList(c.chainId);
 
   // how much it moved over the log window, in tokens and dollars

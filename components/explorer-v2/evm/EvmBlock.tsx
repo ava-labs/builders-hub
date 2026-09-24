@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,15 +11,23 @@ import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { NotFound, RailRow } from "./EvmTx";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcBlock } from "./useRpcBlock";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import { knownAddress, type BlockDetail, type TxSummary } from "@/lib/evm-explorer";
+import { knownAddress, type BlockDetail } from "@/lib/evm-explorer";
 import { useTokenList } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
+import { BlockGasMap } from "./BlockGasMap";
+import { GenesisJsonSection } from "@/components/explorer/EvmChainDetails";
+import mainnetGenesis from "@/constants/cchain-genesis/mainnet.json";
+import fujiGenesis from "@/constants/cchain-genesis/fuji.json";
+import { readRpc } from "@/lib/explorer-rpc";
+
+// the C-Chain's genesis, vendored from avalanchego, drawn on block 0
+const GENESIS: Record<string, object> = { "43114": mainnetGenesis, "43113": fujiGenesis };
+
 
 /* One block, split like the tx page. Left: the gas map (every tx as its
    share of the gas, inked by what it called, the calls that bought the
@@ -28,8 +36,6 @@ import { TokenMark } from "./TokenMark";
    txs, fees, base fee, gas). Its transactions in a headed table below.
    Previous and next live in the section header, where a reader's hand
    already is. */
-
-type MethodOf = (t: TxSummary) => { label: string; named: boolean };
 
 interface BlockProposer {
   proposerId: string;
@@ -68,178 +74,6 @@ function useBlockProposer(chainId: string, block: number | null): BlockProposer 
   return p;
 }
 
-/* the gas map's inks: the block's biggest calls each get their own, in
-   the order they bought gas; plain sends stay in the block gray and the
-   long tail in a pale gray, so the eye lands on what mattered */
-const GROUP_TONES = ["#7c3aed", "#0061E2", "#0d9488", "#d97706", "#db2777"];
-const SEND_TONE = "#A2AFB2";
-const TAIL_TONE = "#d4d4d8";
-const REVERT_STRIPES = "repeating-linear-gradient(135deg, rgba(230,33,47,0.9) 0 3px, transparent 3px 7px)";
-
-interface GasGroup {
-  label: string;
-  named: boolean;
-  tone: string;
-  gas: number;
-  n: number;
-  reverted: number;
-}
-
-/** What the block's gas bought: every tx in block order, as wide as the
- *  gas it used, inked by what it called. Hover a segment for the tx;
- *  click it to jump to its row. The limit bar under it says how much of
- *  the block that was. */
-function GasMap({
-  txs,
-  gasUsed,
-  gasLimit,
-  method,
-  sym,
-}: {
-  txs: TxSummary[];
-  /** the header's gasUsed: since Helicon the gas RESERVED, the sum of its
-   *  txs' gas limits, which is what fills the block against its limit */
-  gasUsed: number;
-  gasLimit: number;
-  method: MethodOf;
-  sym: string;
-}) {
-  const [hover, setHover] = useState<string | null>(null);
-  // a plain send is named by its token, so it never reads as an ERC-20 transfer()
-  const sendLabel = `${sym} send`;
-  const labelOf = (t: TxSummary) => (t.methodId ? method(t).label : sendLabel);
-  const txGas = txs.reduce((s, t) => s + t.gasUsed, 0) || 1;
-
-  // group by what was called, biggest buyer first; the top five get inks
-  const groups = useMemo(() => {
-    const by = new Map<string, GasGroup>();
-    for (const t of txs) {
-      const label = labelOf(t);
-      const e = by.get(label) ?? { label, named: t.methodId ? method(t).named : false, tone: TAIL_TONE, gas: 0, n: 0, reverted: 0 };
-      e.gas += t.gasUsed;
-      e.n += 1;
-      if (!t.success) e.reverted += 1;
-      by.set(label, e);
-    }
-    const sorted = [...by.values()].sort((a, b) => b.gas - a.gas);
-    let ink = 0;
-    for (const g of sorted) g.tone = g.label === sendLabel ? SEND_TONE : ink < GROUP_TONES.length ? GROUP_TONES[ink++] : TAIL_TONE;
-    return sorted;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txs, method]);
-  const toneOf = new Map(groups.map((g) => [g.label, g.tone]));
-  const shown = groups.slice(0, 6);
-  const rest = groups.slice(6);
-  const hoverTx = hover ? txs.find((t) => t.hash === hover) : undefined;
-  const hoverLabel = hoverTx ? labelOf(hoverTx) : null;
-  const pctOfLimit = gasLimit > 0 ? (gasUsed / gasLimit) * 100 : 0;
-
-  return (
-    <Board divide={false} className="flex h-full flex-col">
-      <div className="flex items-baseline justify-between gap-4 px-5 pt-5 md:px-6">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Gas Map</span>
-        <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-          {/* the segments are receipt gas: gas charged, max(used, limit / 2) */}
-          <span className={INK}>{formatNumber(txs.reduce((sum, t) => sum + t.gasUsed, 0))}</span> gas charged · {txs.length} tx{txs.length === 1 ? "" : "s"} in block order
-        </span>
-      </div>
-
-      {txs.length === 0 ? (
-        <p className="px-5 py-8 font-mono text-[12px] text-zinc-400 md:px-6 dark:text-zinc-500">An empty block: consensus accepted it with no transactions.</p>
-      ) : (
-        <div className="flex flex-1 flex-col gap-5 px-5 pb-5 pt-4 md:px-6">
-          {/* the map */}
-          <div className="relative">
-            <div className="flex h-16 w-full gap-[2px]" onMouseLeave={() => setHover(null)}>
-              {txs.map((t) => {
-                const share = t.gasUsed / txGas;
-                const label = labelOf(t);
-                const dim = hover !== null && hover !== t.hash;
-                return (
-                  <Link
-                    key={t.hash}
-                    href={`#tx-${t.hash}`}
-                    onMouseEnter={() => setHover(t.hash)}
-                    onFocus={() => setHover(t.hash)}
-                    aria-label={`${label}, ${formatNumber(t.gasUsed)} gas${t.success ? "" : ", reverted"}`}
-                    className={cn("relative block h-full min-w-[3px] overflow-hidden transition-opacity duration-150", dim && "opacity-35")}
-                    style={{ flexGrow: t.gasUsed, flexBasis: 0, background: toneOf.get(label) }}
-                  >
-                    {!t.success && <span aria-hidden className="absolute inset-0" style={{ background: REVERT_STRIPES }} />}
-                    {/* wide segments name themselves */}
-                    {share >= 0.12 && (
-                      <span className="absolute inset-x-2 bottom-1.5 hidden truncate sm:block font-mono text-[10px] leading-none text-white/95">
-                        {label}
-                        <span className="ml-1.5 text-white/70">{(share * 100).toFixed(0)}%</span>
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-            {/* the hovered tx, under the map */}
-            {hoverTx && (
-              <div className="pointer-events-none absolute left-0 top-full z-20 mt-2">
-                <TipPlate>
-                  <p className="flex items-center gap-2 font-mono text-[11px] text-zinc-900 dark:text-zinc-100">
-                    <span className="h-1.5 w-1.5" style={{ background: toneOf.get(hoverLabel!) }} />
-                    {hoverLabel}
-                    {!hoverTx.success && <span className="text-[#E6212F]">reverted</span>}
-                  </p>
-                  <p className="font-mono text-[10px] tabular-nums text-zinc-500">
-                    {formatNumber(hoverTx.gasUsed)} gas charged · {((hoverTx.gasUsed / txGas) * 100).toFixed(1)}% of the block
-                    {hoverTx.feeWei ? ` · ${formatEther(hoverTx.feeWei, { decimals: 6 })} ${sym}` : ""}
-                  </p>
-                  <p className="font-mono text-[10px] text-zinc-400">
-                    {truncate(hoverTx.from, 6)} → {hoverTx.to ? truncate(hoverTx.to, 6) : "contract creation"} · #{hoverTx.txIndex}
-                  </p>
-                </TipPlate>
-              </div>
-            )}
-          </div>
-
-          {/* how much of the block that was */}
-          <div className="flex items-center gap-3 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-            <span className="h-1 flex-1 bg-zinc-100 dark:bg-zinc-900">
-              <span className={cn("block h-full", pctOfLimit >= 90 ? "bg-[#E6212F]" : "bg-zinc-700 dark:bg-zinc-300")} style={{ width: `${Math.max(pctOfLimit > 0 ? 0.5 : 0, Math.min(100, pctOfLimit)).toFixed(2)}%` }} />
-            </span>
-            <span className="shrink-0">
-              reserved <span className={INK}>{pctOfLimit.toFixed(1)}%</span> of the {formatNumber(gasLimit)} limit
-            </span>
-          </div>
-
-          {/* what bought the gas */}
-          <div className="mt-auto grid gap-x-8 gap-y-2 font-mono text-[12px] sm:grid-cols-2">
-            {shown.map((g) => (
-              <span
-                key={g.label}
-                className={cn("flex min-w-0 items-center justify-between gap-3 transition-opacity", hoverLabel && hoverLabel !== g.label && "opacity-40")}
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="h-2 w-2 shrink-0" style={{ background: g.tone }} />
-                  <span className={cn("min-w-0 truncate", g.label === sendLabel ? "text-zinc-500 dark:text-zinc-400" : g.named ? fnInk : "text-zinc-500 dark:text-zinc-400")}>{g.label}</span>
-                  <span className="shrink-0 text-zinc-400 dark:text-zinc-500">×{g.n}</span>
-                  {g.reverted > 0 && <span className="shrink-0 text-[10px] text-[#E6212F]">{g.reverted} reverted</span>}
-                </span>
-                <span className="shrink-0 tabular-nums text-zinc-900 dark:text-zinc-50">{((g.gas / txGas) * 100).toFixed(0)}%</span>
-              </span>
-            ))}
-            {rest.length > 0 && (
-              <span className="flex items-center justify-between gap-3 text-zinc-400 dark:text-zinc-500">
-                <span className="flex items-center gap-2">
-                  <span className="h-2 w-2" style={{ background: TAIL_TONE }} />
-                  {rest.length} more method{rest.length === 1 ? "" : "s"}
-                </span>
-                <span className="tabular-nums">{((rest.reduce((s, g) => s + g.gas, 0) / txGas) * 100).toFixed(0)}%</span>
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-    </Board>
-  );
-}
-
 export function EvmBlock({ network, id }: { network: string; id: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
@@ -249,7 +83,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // C-Chain: the RPC is the primary source. The indexer trails the chain
   // (seconds to a minute) and the live boards link to blocks the moment
   // they are sealed, so the indexer alone would 404 on every fresh block.
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const fromRpc = useRpcBlock(liveRpc, id);
   const b = fromRpc.data ?? indexed.data;
   const loading = !b && (indexed.loading || fromRpc.loading);
@@ -267,6 +101,12 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
 
   const tokens = useTokenList(c.chainId);
   const method = useMethodNames(c.chainId, b?.transactions ?? []);
+  // the gas map and the table share one pointer and one selection: hover
+  // a segment and its row lights up, pick a group and the table narrows
+  const [hover, setHover] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Set<string> | null>(null);
+  const nameOf = (addr: string) => tokens.get(addr.toLowerCase())?.symbol;
+  const shownTxs = b ? (filter ? b.transactions.filter((t) => filter.has(t.hash)) : b.transactions) : [];
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;
   const chargedGas = b ? b.transactions.reduce((sum, t) => sum + t.gasUsed, 0) : 0;
@@ -324,7 +164,19 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                 the readings a block is judged by in the rail on the right */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
               <div className="flex min-w-0 flex-col gap-6">
-                <GasMap txs={b.transactions} gasUsed={b.gasUsed} gasLimit={b.gasLimit} method={method} sym={sym} />
+                <BlockGasMap
+                  txs={b.transactions}
+                  gasUsed={b.gasUsed}
+                  gasLimit={b.gasLimit}
+                  method={method}
+                  sym={sym}
+                  base={base}
+                  blockNumber={b.number}
+                  nameOf={nameOf}
+                  hover={hover}
+                  onHover={setHover}
+                  onFilter={setFilter}
+                />
 
                 {/* the identifiers */}
                 <Board divide={false} className="px-5 md:px-6">
@@ -429,7 +281,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                       <span className="flex items-center gap-2">
                         <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
                           <span
-                            className={cn("block h-full", gasPct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                            className={cn("block h-full", gasPct >= 90 ? "bg-zinc-800 dark:bg-zinc-300" : "bg-[#A2AFB2] dark:bg-zinc-600")}
                             style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
                           />
                         </span>
@@ -446,7 +298,10 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
           </section>
 
           <section id="transactions" className="flex flex-col gap-4">
-            <SectionHeader label={`Transactions · ${b.transactions.length}`} />
+            <SectionHeader
+              label={filter ? `Transactions · ${shownTxs.length} of ${b.transactions.length}` : `Transactions · ${b.transactions.length}`}
+              action={filter ? <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">selected on the gas map</span> : undefined}
+            />
             <Board>
               {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
               <div className="overflow-x-auto">
@@ -467,11 +322,18 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                   <span className="text-right">USD</span>
                 </div>
               )}
-              {b.transactions.map((t) => {
+              {shownTxs.map((t) => {
                 const m = method(t);
                 const value = Number(t.value);
                 return (
-                  <RowDoor key={t.hash} id={`tx-${t.hash}`} href={`${base}/tx/${t.hash}`} className={cn(ROW, "md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}>
+                  <RowDoor
+                    key={t.hash}
+                    id={`tx-${t.hash}`}
+                    href={`${base}/tx/${t.hash}`}
+                    onMouseEnter={() => setHover(t.hash)}
+                    onMouseLeave={() => setHover(null)}
+                    className={cn(ROW, "md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]", hover === t.hash && "bg-zinc-50 dark:bg-zinc-900")}
+                  >
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
@@ -519,6 +381,13 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
               </div>
             </Board>
           </section>
+          {/* block 0 is the chain's founding document: show it verbatim */}
+          {b.number === 0 && GENESIS[String(c.chainId)] && (
+            <GenesisJsonSection
+              raw={JSON.stringify(GENESIS[String(c.chainId)], null, 2)}
+              sourceUrl={`https://github.com/ava-labs/avalanchego/blob/master/genesis/genesis_${String(c.chainId) === "43113" ? "fuji" : "mainnet"}.json`}
+            />
+          )}
         </div>
       )}
     </EvmShell>

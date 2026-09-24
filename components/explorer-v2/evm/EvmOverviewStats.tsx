@@ -250,7 +250,14 @@ const BLOCK_FACE = "items-start gap-3 px-5 pb-12 pt-3 md:px-6";
    identity, pulse, ledger, then the clocked readings below. */
 export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCell[] }) {
   const clock = useExplorerTimeRange();
-  const n = RANGE_DAYS[clock];
+  return <LiveReadoutAt chainId={chainId} cells={cells} days={RANGE_DAYS[clock]} />;
+}
+
+/* The readout on a fixed window of `days`, off the page clock: pages
+   without clocked charts (Blocks) use it so the subnav shows no range
+   control there. */
+export function LiveReadoutAt({ chainId, cells, days }: { chainId: string; cells: LiveCell[]; days: number }) {
+  const n = days;
   const market = useMarketHistory(chainId, n, cells.some((c) => c.series));
   if (cells.length === 0) return null;
   return (

@@ -731,8 +731,11 @@ export function PrimaryStakingContent({
   validatorsHref,
   base,
   network = "mainnet",
+  switched = false,
 }: {
   validatorsHref: string;
+  /** the page's view switch already leads to the validator set; drop the header link */
+  switched?: boolean;
   /** the staking tab's own path: every ChartBoard doors into its metric
    *  sheet under it (base/total-stake, base/apy, …) */
   base?: string;
@@ -964,13 +967,15 @@ export function PrimaryStakingContent({
         <SectionHeader
           label="Primary Network Staking"
           action={
-            <Link
-              href={validatorsHref}
-              className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-            >
-              The validator set
-              <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-            </Link>
+            switched ? undefined : (
+              <Link
+                href={validatorsHref}
+                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              >
+                The validator set
+                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+              </Link>
+            )
           }
         />
         <LiveReadout

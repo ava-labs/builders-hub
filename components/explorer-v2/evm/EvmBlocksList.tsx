@@ -9,9 +9,12 @@ import { formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, HEAD, ROW, INK, MUTED } from "./LiveBoards";
-import { LiveReadout } from "./EvmOverviewStats";
+import { LiveReadoutAt } from "./EvmOverviewStats";
+import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
+import { BlockRangeMap } from "./BlockRangeMap";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* The Blocks tab: the chain's pace, then the chain itself. A strip of
    live cadence readings (block time, blocks per minute, TPS, gas per
@@ -28,7 +31,7 @@ export function EvmBlocksList({ network }: { network: string }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const [older, setOlder] = useState(0);
 
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc, { keep: 100, seed: LIVE_ROWS + 1, keepTxs: 0 });
   const live = head.heads.length > 0;
   const pace = cadence(head.heads, 60_000);
@@ -112,8 +115,11 @@ export function EvmBlocksList({ network }: { network: string }) {
         {live && (
           <section className="flex flex-col gap-4">
             <SectionHeader label="Cadence" />
-            <LiveReadout
+            {/* its own traces, no market series: a fixed window keeps the
+                page off the clock, so the subnav shows no range control */}
+            <LiveReadoutAt
               chainId={String(c.chainId)}
+              days={RANGE_DAYS.month}
               cells={[
                 {
                   label: "Block Time",
@@ -140,6 +146,13 @@ export function EvmBlocksList({ network }: { network: string }) {
                 },
               ]}
             />
+          </section>
+        )}
+
+        {rows.length > 1 && (
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Block Map" />
+            <BlockRangeMap blocks={live ? head.heads.slice(0, 100) : rows} base={base} live={live} />
           </section>
         )}
 

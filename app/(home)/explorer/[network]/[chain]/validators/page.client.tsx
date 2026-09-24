@@ -5,13 +5,15 @@ import { ValidatorsContent } from "@/components/explorer-v2/pchain/PchainValidat
 import { L1ValidatorsContent } from "@/components/explorer-v2/L1Validators";
 import { PrimaryValidatorsContent } from "@/components/explorer-v2/staking/PrimaryValidators";
 import { useChainContext } from "../layout.client";
+import { SectionHeader } from "@/components/explorer-v2/ui";
+import { ValidatorsViewSwitch } from "@/components/explorer-v2/evm/views";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { L1Chain } from "@/types/stats";
 
 /* The chain's Validators tab. The C-Chain's validators ARE the Primary
    Network's, so mainnet C-Chain gets the list-first roster — the set,
    versions, health, and how the count got here. The staking economics
-   live on the sibling Staking tab. Every other chain shows its OWN set
+   are the tab's second view (validators/staking). Every other chain shows its OWN set
    (weight, prepaid balance, client versions) from the P-Chain, inside
    its own chrome — this absorbed /stats/validators/[slug]. */
 export function ChainValidatorsPageClient({ chainSlug }: { chainSlug: string }) {
@@ -33,10 +35,14 @@ export function ChainValidatorsPageClient({ chainSlug }: { chainSlug: string }) 
       website={chain.website}
       socials={chain.socials}
       rpcUrl={chain.rpcUrl}
+      hideIdentity
     >
       <div className="mx-auto w-full max-w-[90rem] px-5 pb-16 pt-2 md:px-6">
         {isPrimarySet ? (
-          <PrimaryValidatorsContent stakingHref={`/explorer/mainnet/${chainSlug}/staking`} />
+          <div className="flex flex-col gap-6">
+            <SectionHeader label="Primary Network" action={<ValidatorsViewSwitch base={`/explorer/mainnet/${chainSlug}`} view="set" />} />
+            <PrimaryValidatorsContent stakingHref={`/explorer/mainnet/${chainSlug}/validators/staking`} switched />
+          </div>
         ) : chainSlug !== "c-chain" && catalog?.subnetId ? (
           <L1ValidatorsContent subnetId={catalog.subnetId} network={pNetwork} base={base} />
         ) : (

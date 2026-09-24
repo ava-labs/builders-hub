@@ -103,11 +103,14 @@ export function EvmChainDetails({
   genesisJson,
   /** upstream source of the vendored genesis (avalanchego) */
   genesisSourceUrl,
+  /** the live block and gas cells; off where the page already shows them (the Overview) */
+  live = true,
 }: {
   catalog: L1Chain;
   genesis?: boolean;
   genesisJson?: object;
   genesisSourceUrl?: string;
+  live?: boolean;
 }) {
   const snap = useRpcSnapshot(catalog.rpcUrl);
   const evmChainId = Number(catalog.chainId);
@@ -123,34 +126,38 @@ export function EvmChainDetails({
         <SectionHeader
           label="Connect"
           action={
-            <span className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+            live && (
+              <span className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+                </span>
+                Live
               </span>
-              Live
-            </span>
+            )
           }
         />
         <Board divide={false}>
           {/* the chain at work, one glance */}
-          <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
-            <StatCell label="Latest Block">
-              {snap.blockNumber !== null ? <StatFigure value={snap.blockNumber} /> : <StatDash />}
-            </StatCell>
-            <StatCell
-              label="Gas Price"
-              href={`/explorer/${catalog.isTestnet === true ? "fuji" : "mainnet"}/${catalog.slug}/gas`}
-            >
-              {snap.gasPriceWei !== null ? (
-                <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                  {formatGwei(snap.gasPriceWei, token?.symbol)}
-                </span>
-              ) : (
-                <StatDash />
-              )}
-            </StatCell>
-          </div>
+          {live && (
+            <div className="grid grid-cols-2 divide-x divide-zinc-200 border-b border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+              <StatCell label="Latest Block">
+                {snap.blockNumber !== null ? <StatFigure value={snap.blockNumber} /> : <StatDash />}
+              </StatCell>
+              <StatCell
+                label="Gas Price"
+                href={`/explorer/${catalog.isTestnet === true ? "fuji" : "mainnet"}/${catalog.slug}/gas`}
+              >
+                {snap.gasPriceWei !== null ? (
+                  <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
+                    {formatGwei(snap.gasPriceWei, token?.symbol)}
+                  </span>
+                ) : (
+                  <StatDash />
+                )}
+              </StatCell>
+            </div>
+          )}
           <div className="px-5 py-2 md:px-6">
             <SpecPlate>
               {catalog.rpcUrl && (
@@ -232,41 +239,46 @@ export function EvmChainDetails({
       </section>
     </div>
 
-    {/* the founding document itself, verbatim — vendored from avalanchego's
-        embedded cChainGenesis, immutable since network launch */}
-    {genesisRaw && (
-      <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Genesis JSON"
-          action={
-            <span className="flex shrink-0 items-center gap-5">
-              <span className="flex items-center gap-1.5">
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                  Copy JSON
-                </span>
-                <CopyButton text={genesisRaw} />
-              </span>
-              {genesisSourceUrl && (
-                <Link
-                  href={genesisSourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                >
-                  Source · avalanchego
-                  <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              )}
-            </span>
-          }
-        />
-        <Board divide={false}>
-          <pre className="whitespace-pre-wrap break-all px-5 py-4 font-mono text-[12px] leading-relaxed text-zinc-700 md:px-6 dark:text-zinc-300">
-            {genesisRaw}
-          </pre>
-        </Board>
-      </section>
-    )}
+    {genesisRaw && <GenesisJsonSection raw={genesisRaw} sourceUrl={genesisSourceUrl} />}
     </>
+  );
+}
+
+/** the founding document itself, verbatim: vendored from avalanchego's
+    embedded cChainGenesis, immutable since network launch. Drawn on the
+    genesis block's page, not on the chain's home */
+export function GenesisJsonSection({ raw, sourceUrl }: { raw: string; sourceUrl?: string }) {
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHeader
+        label="Genesis JSON"
+        action={
+          <span className="flex shrink-0 items-center gap-5">
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                Copy JSON
+              </span>
+              <CopyButton text={raw} />
+            </span>
+            {sourceUrl && (
+              <Link
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                Source · avalanchego
+                <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+            )}
+          </span>
+        }
+      />
+      <Board divide={false}>
+        <pre className="whitespace-pre-wrap break-all px-5 py-4 font-mono text-[12px] leading-relaxed text-zinc-700 md:px-6 dark:text-zinc-300">
+          {raw}
+        </pre>
+      </Board>
+    </section>
   );
 }

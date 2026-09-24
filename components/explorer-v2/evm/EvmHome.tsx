@@ -12,6 +12,7 @@ import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
 import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
+import { ChainRecord } from "./ChainRecord";
 import { useEvmData, LIVE_REFRESH_MS, usePrice } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { LatestBlocksBoard, LatestTxsBoard, type BlockRow, type TxRow } from "./LiveBoards";
@@ -20,6 +21,7 @@ import type { StatsResponse, TxListResponse, BlockListResponse } from "@/lib/evm
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import { useTokenList, decodeErc20Call, formatTokenAmount } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
+import { readRpc } from "@/lib/explorer-rpc";
 
 
 
@@ -47,7 +49,7 @@ export function EvmHome({ network }: { network: string }) {
   // on the Primary Network, and the polling load (one head poll plus a
   // receipts batch per second) is not something to point at every L1's
   // RPC. Every other chain keeps the indexer path.
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc);
   const heads = head.heads;
   const tip = head.tip;
@@ -75,7 +77,11 @@ export function EvmHome({ network }: { network: string }) {
   const avgBlockTime =
     pace.intervalMs != null ? pace.intervalMs / 1000 : span > 0 ? span / (blockList.length - 1) : null;
 
-  const tapeBlocks: TapeBlock[] = heads.length
+  // the stream leads while it is ahead; if it stalls and the indexer
+  // passes it, the indexer's list takes over so the page never freezes
+  const rideHeads = heads.length > 0 && heads[0].number >= (blockList[0]?.number ?? -1);
+
+  const tapeBlocks: TapeBlock[] = rideHeads
     ? heads.slice(0, 20).map((h) => ({
         key: String(h.number),
         number: formatNumber(h.number),
@@ -94,7 +100,7 @@ export function EvmHome({ network }: { network: string }) {
       }));
 
   // the latest-blocks board: same source order as the tape
-  const latestRows: BlockRow[] = heads.length
+  const latestRows: BlockRow[] = rideHeads
     ? heads.slice(0, 11).map((h) => ({
         number: h.number,
         timestamp: Math.floor(h.timestampMs / 1000),
@@ -114,7 +120,8 @@ export function EvmHome({ network }: { network: string }) {
   // the transactions board: receipts as blocks settle (Continuous
   // Execution chains), else the indexer's recent window
   const tokens = useTokenList(c.chainId);
-  const streaming = head.streamTxs.length > 0;
+  // same rule as the blocks: the receipts feed leads only while it is current
+  const streaming = head.streamTxs.length > 0 && head.streamTxs[0].blockNumber >= (txList[0]?.blockNumber ?? -1);
   const txRows: TxRow[] = streaming
     ? head.streamTxs.map((t) => {
         const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
@@ -183,7 +190,7 @@ export function EvmHome({ network }: { network: string }) {
                   label: "Chain Height",
                   live: true,
                   href: `${base}/blocks`,
-                  value: formatNumber(tip?.number ?? s?.tipHeight ?? 0),
+                  value: formatNumber(Math.max(tip?.number ?? 0, s?.tipHeight ?? 0, blockList[0]?.number ?? 0)),
                   // the heights over the stream's window: a straight climb, the cadence's line
                   values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
                 },
@@ -247,7 +254,7 @@ export function EvmHome({ network }: { network: string }) {
             <LatestTxsBoard
               txs={txRows}
               chainId={c.chainId}
-              rpcUrl={c.rpcUrl}
+              rpcUrl={readRpc(c.chainId, c.rpcUrl)}
               symbol={sym ?? "AVAX"}
               base={base}
               loading={txs.loading && !streaming}
@@ -281,6 +288,12 @@ export function EvmHome({ network }: { network: string }) {
           )}
         </div>
       )}
+
+      {/* the chain's record: identifiers, RPC, genesis, and for L1s the
+          P-Chain's creation record. It was the Details tab (/details 308s here) */}
+      <section id="chain" className="mt-12 scroll-mt-24">
+        <ChainRecord />
+      </section>
     </EvmShell>
   );
 }
