@@ -17,7 +17,7 @@ import {
   type AbiParameter,
 } from "viem";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, SectionHeader, HEAD } from "@/components/explorer-v2/ui";
+import { Board, HashChip, SectionHeader, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { truncate } from "@/components/explorer-v2/format";
 import { Tabs, EmptyRow } from "./AddressTables";
 import { TokenMark, NativeMark } from "./TokenMark";
@@ -425,6 +425,21 @@ function labelSlots(keysWanted: Set<string>, addresses: string[], maxBase = 32):
 
 /* ------------------------------------------------------------------ */
 
+/** a 32-byte word without its padding: leading zeros go; a long
+ *  remainder keeps both ends so packed fields stay recognisable */
+function shortWord(word: string): string {
+  const body = word.toLowerCase().replace(/^0x/, "").replace(/^0+/, "") || "0";
+  return body.length <= 20 ? `0x${body}` : `0x${body.slice(0, 10)}…${body.slice(-8)}`;
+}
+
+/** a slot by its number when it is a plain index, else its hash kept short */
+function slotName(slot: string): string {
+  const body = slot.toLowerCase().replace(/^0x/, "");
+  const trimmed = body.replace(/^0+/, "") || "0";
+  if (trimmed.length <= 6) return `slot ${parseInt(trimmed, 16)}`;
+  return `0x${body.slice(0, 10)}…${body.slice(-8)}`;
+}
+
 export function EvmTrace({
   trace,
   state,
@@ -441,6 +456,8 @@ export function EvmTrace({
   symbol: string;
 }) {
   const [tab, setTab] = useState<Tab>("calls");
+  // big executions write hundreds of slots; the state tab pages them
+  const [stateShown, setStateShown] = useState(60);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const frames = useMemo(() => (trace ? flatten(trace.call) : []), [trace]);
@@ -527,22 +544,30 @@ export function EvmTrace({
     const label = wordLabel(word);
     if (label.startsWith("0x") && label.length === 42) return addrVal(label, n);
     if (/^[\d,]+$/.test(label)) return { kind: "number", text: label, title: word };
-    return { kind: "bytes", text: word, title: word };
+    return { kind: "bytes", text: shortWord(word), title: word };
+  };
+
+  /** what a slot moved by, when both sides read as numbers */
+  const slotDelta = (contract: string, before: string | null, after: string | null): { text: string; up: boolean } | null => {
+    let b: bigint, a: bigint;
+    try {
+      b = before ? BigInt(before) : 0n;
+      a = after ? BigInt(after) : 0n;
+    } catch {
+      return null;
+    }
+    if (a === b) return null;
+    const d = a - b;
+    const abs = d < 0n ? -d : d;
+    const tok = tokens.get(contract);
+    if (tok) return { text: `${d < 0n ? "−" : "+"}${formatTokenAmount(abs, tok.decimals)} ${tok.symbol}`, up: d > 0n };
+    // plain integers only; a packed word's difference means nothing
+    if (a < 10n ** 30n && b < 10n ** 30n) return { text: `${d < 0n ? "−" : "+"}${abs.toLocaleString("en-US")}`, up: d > 0n };
+    return null;
   };
 
   return (
     <section id="execution" className="flex scroll-mt-24 flex-col gap-4">
-      <SectionHeader
-        label="Execution"
-        action={
-          trace ? (
-            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-400">
-              {frames.length} calls · depth {Math.max(...frames.map((f) => f.depth)) + 1}
-              {errors ? <span className="text-[#E6212F]"> · {errors} reverted</span> : null}
-            </span>
-          ) : undefined
-        }
-      />
       {state === "loading" && (
         <Board divide={false}>
           <div className="px-5 py-6 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">tracing execution…</div>
@@ -746,46 +771,66 @@ export function EvmTrace({
           )}
 
           {tab === "state" && (
-            <Board>
-              <div className={cn(HEAD, "grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_1.5rem_minmax(0,1.1fr)]")}>
-                <span>Contract</span>
+            <Board divide={false}>
+              <div className={cn(HEAD, "md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_1.25rem_minmax(0,1fr)_minmax(0,9rem)]", "border-b border-zinc-200 dark:border-zinc-800")}>
                 <span>Slot</span>
                 <span className="text-right">Before</span>
                 <span />
                 <span>After</span>
+                <span className="text-right">Change</span>
               </div>
               {storage.length === 0 && <EmptyRow>no storage written</EmptyRow>}
-              {storage.map((s, i, arr) => {
+              {storage.slice(0, stateShown).map((s, i, arr) => {
                 const first = i === 0 || arr[i - 1].contract !== s.contract;
                 const label = slotLabels.get(s.slot.toLowerCase());
+                const delta = slotDelta(s.contract, s.before, s.after);
+                const count = first ? storage.filter((x) => x.contract === s.contract).length : 0;
                 return (
-                  <div key={`${s.contract}-${s.slot}`} className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 font-mono text-[12px] transition-colors hover:bg-zinc-50/60 md:min-h-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_1.5rem_minmax(0,1.1fr)] md:py-1 md:px-6 dark:hover:bg-zinc-900/60">
-                    <span className="min-w-0">{first ? <Who addr={s.contract} n={n} /> : null}</span>
-                    <span className="flex min-w-0 items-center gap-1.5" title={s.slot}>
-                      {label ? (
-                        <>
-                          <span className="text-zinc-400 dark:text-zinc-500">slot {label.base}</span>
-                          {label.keys.map((k, ki) => (
-                            <span key={ki} className="inline-flex items-center">
-                              <span className="text-zinc-300 dark:text-zinc-700">[</span>
-                              <Who addr={k} n={n} />
-                              <span className="text-zinc-300 dark:text-zinc-700">]</span>
-                            </span>
-                          ))}
-                        </>
-                      ) : (
-                        <span className={cn("break-all text-[11px]", C.bytes)}>{s.slot}</span>
-                      )}
-                    </span>
-                    <span className="min-w-0 md:text-right"><V v={slotValue(s.contract, s.before)} className="text-zinc-500 dark:text-zinc-400" /></span>
-                    <span className={cn("text-center", C.punct)}>→</span>
-                    <span className="min-w-0"><V v={slotValue(s.contract, s.after)} /></span>
+                  <div key={`${s.contract}-${s.slot}`}>
+                    {/* each contract heads its own group, so its slots get the whole width */}
+                    {first && (
+                      <div className="flex items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/70 px-5 py-2 font-mono text-[12px] md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40">
+                        <Who addr={s.contract} n={n} />
+                        <span className="shrink-0 text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                          {count} slot{count === 1 ? "" : "s"} written
+                        </span>
+                      </div>
+                    )}
+                    <div className={cn("grid grid-cols-2 items-center gap-x-4 gap-y-1 border-b border-zinc-100 px-5 py-2.5 font-mono text-[12px] transition-colors hover:bg-zinc-50/60 md:h-10 md:py-0 md:px-6 dark:border-zinc-900 dark:hover:bg-zinc-900/60", "md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_1.25rem_minmax(0,1fr)_minmax(0,9rem)]")}>
+                      <span className="flex min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap" title={s.slot}>
+                        {label ? (
+                          <>
+                            <span className="shrink-0 text-zinc-400 dark:text-zinc-500">slot {label.base}</span>
+                            {label.keys.map((k, ki) => (
+                              <span key={ki} className="inline-flex min-w-0 items-center">
+                                <span className="text-zinc-300 dark:text-zinc-700">[</span>
+                                <span className="min-w-0 truncate"><Who addr={k} n={n} /></span>
+                                <span className="text-zinc-300 dark:text-zinc-700">]</span>
+                              </span>
+                            ))}
+                          </>
+                        ) : (
+                          <span className={cn("truncate", C.bytes)}>{slotName(s.slot)}</span>
+                        )}
+                      </span>
+                      <span className="min-w-0 truncate md:text-right"><V v={slotValue(s.contract, s.before)} className="whitespace-nowrap text-zinc-500 dark:text-zinc-400" /></span>
+                      <span className={cn("hidden text-center md:block", C.punct)}>→</span>
+                      <span className="min-w-0 truncate"><V v={slotValue(s.contract, s.after)} className="whitespace-nowrap" /></span>
+                      <span className={cn("truncate tabular-nums md:text-right", delta ? (delta.up ? C.yes : C.no) : "text-zinc-300 dark:text-zinc-700")}>
+                        {delta ? delta.text : "—"}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
+              {storage.length > stateShown && (
+                <div className="flex justify-center py-3">
+                  <LoadMore onClick={() => setStateShown((v) => v + 60)} label={`Show more · ${storage.length - stateShown} slots`} />
+                </div>
+              )}
               {storage.length > 0 && (
                 <div className="px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  mapping keys recovered where the key is an address this execution touched; other slots keep their hash
+                  {storage.length} slots across {new Set(storage.map((x) => x.contract)).size} contracts · mapping keys recovered where the key is an address this execution touched · hover a word for its full value
                 </div>
               )}
             </Board>
