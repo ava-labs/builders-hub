@@ -19,7 +19,8 @@ import type { ColumnMeta, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
 import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { AvalancheLoader } from "./AvalancheLoader";
-import { EXAMPLES } from "@/lib/explorer-query/examples";
+import { EXAMPLES, PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
+import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { forgetQuestions, recentQuestions, rememberQuestion } from "@/lib/explorer-query/recent";
 
 /* A question about the chain, answered as a sheet in the explorer's
@@ -33,8 +34,8 @@ import { forgetQuestions, recentQuestions, rememberQuestion } from "@/lib/explor
 
 /* the suggested questions: frosted cards over a soft wash of each
    category's hue, a row you swipe on a phone and a grid on a desk */
-function Suggestions({ onAsk }: { onAsk: (q: string) => void }) {
-  const cards = EXAMPLES.flatMap((g) => g.items.map((it) => ({ ...it, group: g.group, hue: g.hue })));
+function Suggestions({ onAsk, examples }: { onAsk: (q: string) => void; examples: typeof EXAMPLES }) {
+  const cards = examples.flatMap((g) => g.items.map((it) => ({ ...it, group: g.group, hue: g.hue })));
   return (
     <div className="relative isolate -mx-5 overflow-hidden px-5 py-6 sm:mx-0 sm:rounded-3xl sm:px-6">
       {/* the wash the glass sits on */}
@@ -118,6 +119,13 @@ const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{
 
 function doorFor(col: string, v: unknown, base: string): string | null {
   const c = col.toLowerCase();
+  // P-Chain ids, as the query returns them: NodeID-…, P-avax1…, CB58 tx ids
+  if (typeof v === "string") {
+    if (/^NodeID-[1-9A-HJ-NP-Za-km-z]{20,}$/.test(v)) return `${base}/node/${v}`;
+    if (/^P-(avax|fuji|local)1[02-9ac-hj-np-z]{20,}$/.test(v)) return `${base}/address/${v}`;
+    if (/(^|_)tx_id$/.test(c) && /^[1-9A-HJ-NP-Za-km-z]{40,60}$/.test(v)) return `${base}/tx/${v}`;
+  }
+  if (typeof v === "number" && Number.isInteger(v) && c === "block_height") return `${base}/block/${v}`;
   if (isAddress(v)) return `${base}/address/${v}`;
   if (isHash(v)) return c.includes("block") ? null : `${base}/tx/${v}`;
   if (typeof v === "number" && Number.isInteger(v) && (c === "block_number" || c === "block" || c.endsWith("_block"))) return `${base}/block/${v}`;
@@ -618,8 +626,55 @@ function progress(events: QueryEvent[]): string {
   return line;
 }
 
+/** the chain a Query page asks: its table chain_id and how the page names it */
+interface QueryChain {
+  chainId: string | number;
+  chainSlug?: string;
+  chainName: string;
+  nativeToken?: string;
+  kind: "evm" | "pchain";
+}
+
+/** an EVM chain's Query page, inside the chain's own layout and shell */
 export function EvmQuery({ network }: { network: string }) {
   const c = useChainContext();
+  return (
+    <QueryPage
+      network={network}
+      c={{ chainId: c.chainId, chainSlug: c.chainSlug, chainName: c.chainName, nativeToken: c.nativeToken, kind: "evm" }}
+      examples={EXAMPLES}
+    />
+  );
+}
+
+/** the P-Chain's Query page: its rows carry chain_id 1 (mainnet) or 5 (Fuji) */
+export function PchainQuery({ network }: { network: string }) {
+  return (
+    <QueryPage
+      network={network}
+      c={{ chainId: network === "fuji" ? 5 : 1, chainSlug: "p-chain", chainName: "the P-Chain", nativeToken: "AVAX", kind: "pchain" }}
+      examples={PCHAIN_EXAMPLES}
+    />
+  );
+}
+
+/* each chain family's own chrome; stable components, so a re-render of
+   the wrapper never remounts the page and loses its answer */
+function QueryShell({ kind, network, children }: { kind: QueryChain["kind"]; network: string; children: React.ReactNode }) {
+  if (kind === "pchain")
+    return (
+      <ExplorerShell chain="p-chain" network={network} hideHeader>
+        <div className="mx-auto w-full max-w-[90rem] px-5 pb-24 pt-2 md:px-6">{children}</div>
+      </ExplorerShell>
+    );
+  return (
+    <EvmShell network={network} search={false}>
+      {children}
+    </EvmShell>
+  );
+}
+
+function QueryPage({ network, c, examples }: { network: string; c: QueryChain; examples: typeof EXAMPLES }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
 
@@ -878,7 +933,7 @@ export function EvmQuery({ network }: { network: string }) {
     ? { x: leadPanel.x!, col: leadPanel.series[0].column, max: Math.max(0, ...rows.map((r) => (typeof r[leadPanel.series[0].column] === "number" ? (r[leadPanel.series[0].column] as number) : 0))) }
     : null;
   const recordRows = !!answer?.result && isTxList(answer.result.columns);
-  const tables = answer?.sql ? [...new Set([...answer.sql.matchAll(/\b(?:FROM|JOIN)\s+(raw_\w+)/gi)].map((m) => m[1]))] : [];
+  const tables = answer?.sql ? [...new Set([...answer.sql.matchAll(/\b(?:FROM|JOIN)\s+((?:raw|decoded|p)_\w+)/gi)].map((m) => m[1]))] : [];
   const cov = answer?.coverage;
   const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
   const busy = phase !== "idle";
@@ -900,7 +955,15 @@ export function EvmQuery({ network }: { network: string }) {
         rows={1}
         autoFocus={!answer}
         disabled={busy}
-        placeholder={answer ? "Refine this answer: only reverted, per hour, add fees" : `Ask ${c.chainName} about its transactions, gas, contracts or tokens`}
+        placeholder={
+          answer
+            ? c.kind === "pchain"
+              ? "Refine this answer: only L1s, per week, add delegators"
+              : "Refine this answer: only reverted, per hour, add fees"
+            : c.kind === "pchain"
+              ? "Ask the P-Chain about validators, staking, delegations, L1s or supply"
+              : `Ask ${c.chainName} about its transactions, gas, contracts or tokens`
+        }
         className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
       />
       <button
@@ -917,7 +980,7 @@ export function EvmQuery({ network }: { network: string }) {
 
   return (
     // the prompt box below is this page's search bar; the shell's would repeat it
-    <EvmShell network={network} search={false}>
+    <QueryShell kind={c.kind} network={network}>
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
@@ -942,7 +1005,7 @@ export function EvmQuery({ network }: { network: string }) {
           {!answer && !busy && (
             <div className="flex flex-col gap-6 pt-3">
               <Recent chain={c.chainSlug ?? String(c.chainId)} onAsk={(q) => void ask(q, false)} />
-              <Suggestions onAsk={(q) => void ask(q, false)} />
+              <Suggestions examples={examples} onAsk={(q) => void ask(q, false)} />
             </div>
           )}
         </section>
@@ -1101,7 +1164,9 @@ export function EvmQuery({ network }: { network: string }) {
                   />
                   <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
                     <span className="text-zinc-400 dark:text-zinc-500">
-                      One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces, with chain_id = {c.chainId}. At most 2,000 rows.
+                      {c.kind === "pchain"
+                        ? `One SELECT over the P-Chain tables (decoded_p_txs, the UTXO and snapshot tables), with chain_id = ${c.chainId}. At most 2,000 rows.`
+                        : `One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces, with chain_id = ${c.chainId}. At most 2,000 rows.`}
                     </span>
                     <button type="button" onClick={() => void runSql()} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="bg-zinc-900 px-3 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
                       Run
@@ -1206,6 +1271,6 @@ export function EvmQuery({ network }: { network: string }) {
           </>
         )}
       </div>
-    </EvmShell>
+    </QueryShell>
   );
 }

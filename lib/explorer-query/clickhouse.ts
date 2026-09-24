@@ -3,7 +3,8 @@
    itself, so the model always sees the real columns and types. */
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
-import { ALLOWED_TABLES, MAX_ROWS } from "./guard";
+import { MAX_ROWS } from "./guard";
+import { targetOf } from "./target";
 
 export interface ColumnMeta {
   name: string;
@@ -134,9 +135,13 @@ async function postStats(sql: string): Promise<RawJson> {
   }
   // the endpoint streams, so a query can fail after the rows began: the trailer says so
   if (!res.ok || body.error || body.complete === false) {
-    throw new Error((body.error ?? body.message ?? `stats-api ${res.status}`).replace(/^clickhouse:\s*/, "").slice(0, 500));
+    // the reason is in message ("clickhouse: … code: 47, message: …"); error is only the status text
+    const why = body.message ?? body.error ?? `stats-api ${res.status}`;
+    const inner = why.match(/message:\s*(.+?)(?:\s*\(version [^)]*\))?$/s)?.[1] ?? why;
+    throw new Error(inner.replace(/^clickhouse:\s*/, "").slice(0, 500));
   }
-  const meta = body.columns.map((name, i) => ({ name, type: body.types[i] ?? "String" }));
+  // an empty answer can carry null in place of its lists
+  const meta = (body.columns ?? []).map((name, i) => ({ name, type: body.types?.[i] ?? "String" }));
   // the endpoint writes times as ISO (2026-09-24T16:25:46Z); ClickHouse's own
   // format (2026-09-24 16:25:46) is what the page reads as time
   const times = new Set(meta.filter((c) => /^(Nullable\()?DateTime/.test(c.type)).map((c) => c.name));
@@ -146,8 +151,8 @@ async function postStats(sql: string): Promise<RawJson> {
     if (days.has(name)) return v.slice(0, 10);
     return times.has(name) ? v.replace("T", " ").replace(/(\.\d+)?Z$/, "") : v;
   };
-  const data = body.rows.map((r) => Object.fromEntries(meta.map((c, i) => [c.name, tidy(c.name, r[i])])));
-  return { meta, data, rows: body.rowCount, statistics: { elapsed: body.elapsedMs / 1000, rows_read: 0, bytes_read: 0 } };
+  const data = (body.rows ?? []).map((r) => Object.fromEntries(meta.map((c, i) => [c.name, tidy(c.name, r[i])])));
+  return { meta, data, rows: body.rowCount ?? data.length, statistics: { elapsed: body.elapsedMs / 1000, rows_read: 0, bytes_read: 0 } };
 }
 
 async function post(sql: string): Promise<RawJson> {
@@ -221,13 +226,15 @@ export async function runQuery(sql: string): Promise<QueryResult> {
 /* ------------------------------------------------------------------ */
 /* the schema card                                                     */
 
-let schemaCache: { at: number; text: string } | null = null;
+const schemaCache = new Map<string, { at: number; text: string }>();
 const SCHEMA_TTL_MS = 60 * 60_000;
 
 /** the tables as the database describes them, one line per table */
-export async function schemaCard(): Promise<string> {
-  if (schemaCache && Date.now() - schemaCache.at < SCHEMA_TTL_MS) return schemaCache.text;
-  const list = ALLOWED_TABLES.map((t) => `'${t}'`).join(", ");
+export async function schemaCard(chainId: number): Promise<string> {
+  const { kind, tables } = targetOf(chainId);
+  const hit = schemaCache.get(kind);
+  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.text;
+  const list = tables.map((t) => `'${t}'`).join(", ");
   const r = await runQuery(
     `SELECT table, name, type FROM system.columns WHERE database = currentDatabase() AND table IN (${list}) ORDER BY table, position`,
   );
@@ -236,11 +243,11 @@ export async function schemaCard(): Promise<string> {
     const t = String(row.table);
     (by.get(t) ?? by.set(t, []).get(t)!).push(`${row.name} ${row.type}`);
   }
-  const text = ALLOWED_TABLES.filter((t) => by.has(t))
+  const text = tables.filter((t) => by.has(t))
     .map((t) => `${t}(${by.get(t)!.join(", ")})`)
     .join("\n");
   if (!text) throw new Error("schema card empty");
-  schemaCache = { at: Date.now(), text };
+  schemaCache.set(kind, { at: Date.now(), text });
   return text;
 }
 
@@ -262,7 +269,9 @@ export async function coverage(chainId: number): Promise<Coverage | null> {
   if (hit && Date.now() - hit.at < COVERAGE_TTL_MS) return hit.value;
   try {
     const r = await runQuery(
-      `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
+      targetOf(chainId).kind === "pchain"
+        ? `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_height) AS lo, max(block_height) AS hi, count() AS blocks FROM raw_p_blocks WHERE chain_id = ${chainId}`
+        : `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
     );
     const row = r.rows[0];
     if (!row || !row.blocks) return null;
@@ -275,7 +284,8 @@ export async function coverage(chainId: number): Promise<Coverage | null> {
 }
 
 export function coverageText(chainId: number, c: Coverage): string {
-  return `raw_blocks holds ${c.blocks} blocks for chain ${chainId}: #${c.lo} to #${c.hi}, ${c.since} to ${c.until} UTC.`;
+  const table = targetOf(chainId).kind === "pchain" ? "raw_p_blocks" : "raw_blocks";
+  return `${table} holds ${c.blocks} blocks for chain ${chainId}: heights ${c.lo} to ${c.hi}, ${c.since} to ${c.until} UTC.`;
 }
 
 /** how far behind the clock the index may run before "now" means its last block */

@@ -5,6 +5,9 @@
    database behind /api/signatures, the token list, Sourcify itself for
    verified contracts, and the well-known address book. */
 
+import { pchainRows, toHexBytes } from "./pchain-ids";
+import { targetOf } from "./target";
+import l1ChainsData from "@/constants/l1-chains.json";
 import { getFunctionBySelector, getEventVariantsByTopic } from "@/abi/event-signatures.generated";
 import { getVerifiedContractResolvingProxies } from "@/lib/sourcify";
 import { knownAddress } from "@/lib/evm-explorer";
@@ -176,11 +179,12 @@ export function fillDrill(template: string, row: Row): { ok: true; sql: string }
       return "NULL";
     }
     if (mode === "bytes") {
-      if (typeof v !== "string" || !/^0x[0-9a-fA-F]*$/.test(v)) {
-        error = `{{${col}:bytes}} needs a 0x hex string, got ${JSON.stringify(v).slice(0, 60)}`;
+      const hex = typeof v === "string" ? toHexBytes(v) : null;
+      if (hex === null) {
+        error = `{{${col}:bytes}} needs a 0x hex string, a CB58 id, a NodeID or a bech32 address, got ${JSON.stringify(v).slice(0, 60)}`;
         return "NULL";
       }
-      return `unhex('${v.slice(2).toLowerCase()}')`;
+      return `unhex('${hex}')`;
     }
     if (typeof v === "number" || typeof v === "boolean") return String(v);
     if (mode === "raw") {
@@ -201,4 +205,22 @@ export function fillTitle(template: string, row: Row, names: Names): string {
     const s = String(v);
     return names[col]?.[s.toLowerCase()] ?? (/^0x[0-9a-fA-F]{20,}$/.test(s) ? `${s.slice(0, 8)}…${s.slice(-4)}` : s);
   });
+}
+
+/** names for any target's rows: the EVM lookups above, or on the P-Chain
+    bech32 addresses and L1 names for subnet ids */
+export async function nameRows(chainId: number, columns: ColumnMeta[], rows: Row[], baseUrl: string): Promise<Names> {
+  const target = targetOf(chainId);
+  if (target.kind === "evm") return enrichNames(chainId, columns, rows, baseUrl);
+  pchainRows(rows, columns, target.hrp ?? "avax");
+  const names: Names = {};
+  const bySubnet = new Map((l1ChainsData as { subnetId?: string; chainName: string }[]).filter((c) => c.subnetId).map((c) => [c.subnetId!.toLowerCase(), c.chainName]));
+  for (const c of columns.filter((k) => /subnet/i.test(k.name))) {
+    for (const r of rows) {
+      const v = r[c.name];
+      const name = typeof v === "string" ? bySubnet.get(v.toLowerCase()) : undefined;
+      if (name) (names[c.name] ??= {})[String(v).toLowerCase()] = name;
+    }
+  }
+  return names;
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowUp, ArrowUpRight, History, Search, Sparkles } from "lucide-react";
 import { EXAMPLE_PROMPTS } from "@/lib/explorer-query/examples";
 import { recentQuestions } from "@/lib/explorer-query/recent";
+import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { cn } from "@/lib/utils";
@@ -25,16 +26,6 @@ import { buildBlockUrl, buildTxUrl, buildAddressUrl } from "@/utils/eip3091";
 // search API round-trip. The dropdown still reuses the shared chain-suggestion
 // engine (matchChains + ChainHitRow) so a builder can jump to any other chain
 // by name/ID from the same box.
-
-/* The same box asks questions. Anything that is not an identifier and
-   reads like a sentence (three or more words, or a question mark) opens
-   the Query page with it; a word or two still finds chains by name. */
-function looksLikeQuestion(q: string, chainHit: boolean): boolean {
-  if (classifyEvmLocally(q) || looksLikeIdentifier(q)) return false;
-  const words = q.split(/\s+/).filter(Boolean).length;
-  if (q.endsWith("?")) return true;
-  return chainHit ? words >= 3 : words >= 2;
-}
 
 /** Resolve an EVM identifier to the entity row Enter/click will follow. */
 function evmEntity(query: string, base: string, chainName: string): EntityHit | null {
@@ -93,9 +84,10 @@ export function EvmSearchBox({
   const trimmed = q.trim();
   const entity = trimmed ? evmEntity(trimmed, base, chainName) : null;
   const chains: ChainMatch[] = trimmed.length >= 2 ? matchChains(trimmed, null) : [];
-  const question = askable && !entity && looksLikeQuestion(trimmed, chains.length > 0);
+  const identifier = !!classifyEvmLocally(trimmed) || looksLikeIdentifier(trimmed);
+  const question = askable && !entity && looksLikeQuestion(trimmed, { identifier, chainHit: chains.length > 0 });
   // a phrase of two words or more can always be asked, even when a chain matches
-  const canAsk = askable && !entity && trimmed.split(/\s+/).length >= 2 && !looksLikeIdentifier(trimmed);
+  const canAsk = askable && !entity && canAskPhrase(trimmed, identifier);
   const askHref = `${base}/query?q=${encodeURIComponent(trimmed)}`;
   const hasResults = !!entity || chains.length > 0 || canAsk;
 

@@ -3,12 +3,13 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
 import { runQuery, anchored, type ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Turn } from "@/lib/explorer-query/types";
-import { enrichNames } from "@/lib/explorer-query/enrich";
+import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
 import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
+import { targetOf } from "@/lib/explorer-query/target";
 import { checkChatRateLimit, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
 
@@ -40,7 +41,11 @@ interface Body {
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as Body;
   const chainId = Number(body.chainId);
-  const chain = (l1ChainsData as { chainId: string; chainName: string; networkToken?: { symbol?: string } }[]).find((c) => c.chainId === String(chainId));
+  // the P-Chain's tables key their rows 1 (mainnet) and 5 (Fuji); EVM chains by their chain id
+  const chain =
+    targetOf(chainId).kind === "pchain"
+      ? { chainId: String(chainId), chainName: chainId === 5 ? "P-Chain (Fuji)" : "P-Chain", networkToken: { symbol: "AVAX" } }
+      : (l1ChainsData as { chainId: string; chainName: string; networkToken?: { symbol?: string } }[]).find((c) => c.chainId === String(chainId));
   if (!Number.isFinite(chainId) || !chain) return NextResponse.json({ error: "unknown chain" }, { status: 400 });
   const symbol = chain.networkToken?.symbol ?? "AVAX";
 
@@ -53,7 +58,7 @@ export async function POST(req: Request) {
     try {
       const run = await anchored(d.sql, chainId);
       const result = await runQuery(run.sql);
-      const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+      const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "drill failed" }, { status: 400 });
@@ -67,7 +72,7 @@ export async function POST(req: Request) {
     try {
       const run = await anchored(g.sql, chainId);
       const result = await runQuery(run.sql);
-      const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+      const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
@@ -84,7 +89,7 @@ export async function POST(req: Request) {
       const t0 = Date.now();
       try {
         const result = await runQuery((await anchored(recipe.sql, chainId)).sql);
-        const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+        const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
         const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
@@ -94,7 +99,7 @@ export async function POST(req: Request) {
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
     try {
       const result = await runQuery((await anchored(recipe.sql, chainId)).sql);
-      const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+      const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });

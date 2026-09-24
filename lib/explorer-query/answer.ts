@@ -5,8 +5,9 @@ import { z } from "zod";
 import { guardSql } from "./guard";
 import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
-import { enrichNames, fillDrill } from "./enrich";
-import { systemPrompt } from "./prompt";
+import { fillDrill, nameRows } from "./enrich";
+import { pchainPrompt, systemPrompt } from "./prompt";
+import { targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey } from "./cache";
 import { basicVisual } from "./visual";
 
@@ -78,7 +79,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       const run = await anchored(recipe.sql, a.chainId);
       const result = await runQuery(run.sql);
       if (result.rowCount === 0) throw new Error("empty");
-      const names = await enrichNames(a.chainId, result.columns, result.rows, a.baseUrl);
+      const names = await nameRows(a.chainId, result.columns, result.rows, a.baseUrl);
       const cover = await coverage(a.chainId);
       return {
         anchor: run.anchor,
@@ -102,13 +103,17 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
 
   let schema: string;
   try {
-    schema = await schemaCard();
+    schema = await schemaCard(a.chainId);
   } catch (e) {
     a.emit({ type: "error", error: `the database is not reachable: ${e instanceof Error ? e.message : String(e)}`, status: 503 });
     return null;
   }
   const cover = await coverage(a.chainId);
-  const system = systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: cover ? coverageText(a.chainId, cover) : null });
+  const coverLine = cover ? coverageText(a.chainId, cover) : null;
+  const system =
+    targetOf(a.chainId).kind === "pchain"
+      ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine })
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];
@@ -265,7 +270,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     return null;
   }
   const done = final as QueryAnswer;
-  if (done.result) done.names = await enrichNames(a.chainId, done.result.columns, done.result.rows, a.baseUrl);
+  if (done.result) done.names = await nameRows(a.chainId, done.result.columns, done.result.rows, a.baseUrl);
   done.coverage = cover;
   done.key = key;
   // draw something at once; the page asks the designer for the real layout
