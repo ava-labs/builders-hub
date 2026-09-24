@@ -40,7 +40,7 @@ export function ChatBubble() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pulseIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { messages, sendMessage, status, setMessages } = useChat({
+  const { messages, sendMessage, status, setMessages, error } = useChat({
     id: 'chat-bubble',
     transport: bubbleTransport,
     onFinish() {
@@ -49,6 +49,18 @@ export function ChatBubble() {
   });
 
   const isLoading = status === 'streaming' || status === 'submitted';
+
+  // the transport surfaces a failed request as its response body; the
+  // route answers with JSON that carries a readable `message`
+  const errorText = (() => {
+    if (!error) return null;
+    try {
+      const body = JSON.parse(error.message);
+      return typeof body?.message === 'string' ? body.message : error.message;
+    } catch {
+      return error.message || 'The chat did not answer. Try again.';
+    }
+  })();
 
   // Prevent hydration mismatch
   useEffect(() => {
@@ -88,12 +100,12 @@ export function ChatBubble() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Hide on /chat and /console pages — AFTER all hooks to avoid Rules of Hooks violation
+  // Hide on /chat and /console pages, AFTER all hooks to avoid Rules of Hooks violation
   if (pathname.startsWith('/chat') || pathname.startsWith('/console')) {
     return null;
   }
 
-  // On /stats and /explorer, hide the bubble on mobile via CSS — those pages
+  // On /stats and /explorer, hide the bubble on mobile via CSS: those pages
   // are dense (charts, tables, search results) and the floating button steals
   // tap targets. Desktop still shows it.
   const hideOnMobile =
@@ -114,9 +126,15 @@ export function ChatBubble() {
     }
   };
 
+  // the page the visitor has open travels with every message, so the
+  // assistant can explain what is on screen; the full chat inherits it
+  const page = { path: pathname };
+  const knowsPage = pathname.startsWith('/explorer') || pathname.startsWith('/docs') || pathname.startsWith('/academy');
+
   const handleOpenFullChat = () => {
     if (messages.length > 0) {
       sessionStorage.setItem('chat-bubble-messages', JSON.stringify(messages));
+      sessionStorage.setItem('chat-bubble-page', JSON.stringify(page));
     }
     router.push('/chat');
   };
@@ -133,7 +151,7 @@ export function ChatBubble() {
 
   const onSubmit = () => {
     if (!inputValue.trim() || isLoading) return;
-    sendMessage({ text: inputValue.trim() });
+    sendMessage({ text: inputValue.trim() }, { body: { page } });
     setInputValue('');
     setState('expanded');
   };
@@ -200,7 +218,7 @@ export function ChatBubble() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your question..."
+              placeholder={knowsPage ? 'Ask about this page...' : 'Type your question...'}
               rows={2}
               className="w-full bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
             />
@@ -298,6 +316,14 @@ export function ChatBubble() {
               );
             })}
 
+            {errorText && !isLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-bl-md text-sm leading-relaxed bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50 [overflow-wrap:anywhere]">
+                  {errorText}
+                </div>
+              </div>
+            )}
+
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700/50 px-4 py-3 rounded-2xl rounded-bl-md">
@@ -330,7 +356,7 @@ export function ChatBubble() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a message..."
+                placeholder={knowsPage ? 'Ask about this page...' : 'Type a message...'}
                 rows={1}
                 className="flex-1 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700/50 rounded-xl px-4 py-3 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 resize-none focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-500/40 dark:focus:ring-red-500/30 dark:focus:border-red-500/40 transition-all"
               />
