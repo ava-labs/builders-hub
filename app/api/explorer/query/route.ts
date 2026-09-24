@@ -5,7 +5,9 @@ import { z } from "zod";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
 import { runQuery, schemaCard, coverage } from "@/lib/explorer-query/clickhouse";
-import { chartSpecSchema, type QueryAnswer, type Turn } from "@/lib/explorer-query/types";
+import { chartSpecSchema, drillSchema, type QueryAnswer, type Turn } from "@/lib/explorer-query/types";
+import { enrichNames, fillDrill } from "@/lib/explorer-query/enrich";
+import { siteBaseUrl } from "@/lib/chat/site-url";
 import { systemPrompt } from "@/lib/explorer-query/prompt";
 import { checkChatRateLimit, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -20,7 +22,11 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = "claude-sonnet-5";
+// Opus for the design of the query: it has to hold the schema, the gas
+// vocabulary and the drill contract at once and get the SQL right first time
+const MODEL = "claude-opus-5-5";
+/** the most records one drill lists */
+const DRILL_ROWS = 100;
 const MAX_STEPS = 8;
 
 interface Body {
@@ -28,6 +34,18 @@ interface Body {
   prompt?: string;
   history?: Turn[];
   sql?: string;
+  /** open one row of an answer into its records */
+  drill?: { sql: string; row: Record<string, unknown> };
+}
+
+/** a drill template filled from one row, guarded, capped */
+function drillSql(template: string, row: Record<string, unknown>, chainId: number): { ok: true; sql: string } | { ok: false; error: string } {
+  const filled = fillDrill(template, row);
+  if (!filled.ok) return filled;
+  const g = guardSql(filled.sql, chainId);
+  if (!g.ok) return g;
+  const sql = g.sql.replace(/\bLIMIT\s+(\d+)\s*$/i, (_m, n: string) => `LIMIT ${Math.min(Number(n), DRILL_ROWS)}`);
+  return { ok: true, sql };
 }
 
 export async function POST(req: Request) {
@@ -37,13 +55,29 @@ export async function POST(req: Request) {
   if (!Number.isFinite(chainId) || !chain) return NextResponse.json({ error: "unknown chain" }, { status: 400 });
   const symbol = chain.networkToken?.symbol ?? "AVAX";
 
+  const baseUrl = siteBaseUrl();
+
+  // one row of an answer, opened: the records behind it, no model
+  if (body.drill && typeof body.drill.sql === "string" && body.drill.row && typeof body.drill.row === "object") {
+    const d = drillSql(body.drill.sql, body.drill.row, chainId);
+    if (!d.ok) return NextResponse.json({ error: d.error }, { status: 400 });
+    try {
+      const result = await runQuery(d.sql);
+      const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+      return NextResponse.json({ sql: d.sql, result, names });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "drill failed" }, { status: 400 });
+    }
+  }
+
   // the reader edited the SQL: run it, no model
   if (typeof body.sql === "string" && !body.prompt) {
     const g = guardSql(body.sql, chainId);
     if (!g.ok) return NextResponse.json({ error: g.error }, { status: 400 });
     try {
       const result = await runQuery(g.sql);
-      return NextResponse.json({ sql: g.sql, result });
+      const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+      return NextResponse.json({ sql: g.sql, result, names });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
     }
@@ -104,10 +138,11 @@ export async function POST(req: Request) {
       note: z.string(),
       sql: z.string(),
       chart: chartSpecSchema,
+      drill: drillSchema.optional().describe("how one row opens into its records; required when rows are groups"),
     }),
-    execute: async ({ title, note, sql, chart }) => {
+    execute: async ({ title, note, sql, chart, drill }) => {
       if (chart.kind === "none") {
-        final = { title, note, sql: "", chart, result: null };
+        final = { title, note, sql: "", chart, drill: null, result: null, names: {} };
         return { ok: true };
       }
       const g = guardSql(sql, chainId);
@@ -117,7 +152,17 @@ export async function POST(req: Request) {
         const cols = new Set(result.columns.map((c) => c.name));
         const missing = [chart.x, ...chart.series.map((s) => s.column)].filter((c): c is string => !!c && !cols.has(c));
         if (missing.length) return { error: `chart refers to columns the query does not return: ${missing.join(", ")}` };
-        final = { title, note, sql: g.sql, chart, result };
+        // the drill must work on a real row before the answer ships
+        if (drill && result.rows[0]) {
+          const d = drillSql(drill.sql, result.rows[0], chainId);
+          if (!d.ok) return { error: `drill: ${d.error}` };
+          try {
+            await runQuery(d.sql.replace(/\bLIMIT\s+\d+\s*$/i, "LIMIT 1"));
+          } catch (e) {
+            return { error: `drill: ${e instanceof Error ? e.message : String(e)}` };
+          }
+        }
+        final = { title, note, sql: g.sql, chart, drill: drill ?? null, result, names: {} };
         return { ok: true, rows: result.rowCount };
       } catch (e) {
         return { error: e instanceof Error ? e.message : String(e) };
@@ -146,6 +191,8 @@ export async function POST(req: Request) {
   if (!final) {
     return NextResponse.json({ error: "no chart came back", text: text.slice(0, 600) }, { status: 422 });
   }
-  const answer: QueryAnswer = { ...(final as QueryAnswer), model: { steps, ms: Date.now() - t0, tries } };
+  const done = final as QueryAnswer;
+  if (done.result) done.names = await enrichNames(chainId, done.result.columns, done.result.rows, baseUrl);
+  const answer: QueryAnswer = { ...done, model: { steps, ms: Date.now() - t0, tries } };
   return NextResponse.json(answer);
 }
