@@ -65,7 +65,51 @@ interface RawJson {
   statistics?: { elapsed: number; rows_read: number; bytes_read: number };
 }
 
+/* Two ways in. ClickHouse now sits inside the stats-api cluster with no
+   public port, so the usual path is stats-api's own query endpoint
+   (/v2/query, a key per holder). A direct URL (QUERY_CLICKHOUSE_URL, the
+   local test harness) still wins when it is set. */
+const STATS_QUERY_URL = process.env.STATS_QUERY_URL || "https://stats-api.avax.network/v2/query";
+
+interface StatsQueryJson {
+  columns: string[];
+  types: string[];
+  rows: unknown[][];
+  rowCount: number;
+  truncated: boolean;
+  elapsedMs: number;
+  complete: boolean;
+  error?: string;
+  message?: string;
+}
+
+async function postStats(sql: string): Promise<RawJson> {
+  const key = process.env.STATS_QUERY_KEY;
+  if (!key) throw new Error("STATS_QUERY_KEY is not set");
+  const res = await fetch(STATS_QUERY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Query-Key": key },
+    body: JSON.stringify({ sql, maxRows: MAX_ROWS, timeoutSeconds: QUERY_TIMEOUT_S, format: "json" }),
+    signal: AbortSignal.timeout((QUERY_TIMEOUT_S + 10) * 1000),
+  });
+  const text = await res.text();
+  let body: StatsQueryJson;
+  try {
+    body = JSON.parse(text) as StatsQueryJson;
+  } catch {
+    throw new Error(`stats-api ${res.status}: ${text.slice(0, 200)}`);
+  }
+  // the endpoint streams, so a query can fail after the rows began: the trailer says so
+  if (!res.ok || body.error || body.complete === false) {
+    throw new Error((body.error ?? body.message ?? `stats-api ${res.status}`).replace(/^clickhouse:\s*/, "").slice(0, 500));
+  }
+  const meta = body.columns.map((name, i) => ({ name, type: body.types[i] ?? "String" }));
+  const data = body.rows.map((r) => Object.fromEntries(meta.map((c, i) => [c.name, r[i]])));
+  return { meta, data, rows: body.rowCount, statistics: { elapsed: body.elapsedMs / 1000, rows_read: 0, bytes_read: 0 } };
+}
+
 async function post(sql: string): Promise<RawJson> {
+  if (!process.env.QUERY_CLICKHOUSE_URL && process.env.STATS_QUERY_KEY) return postStats(sql);
   const base = endpoint();
   const qs = new URLSearchParams(SETTINGS);
   // the box rejects a fifth concurrent query outright; share the site's gate

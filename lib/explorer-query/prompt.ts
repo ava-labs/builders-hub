@@ -47,6 +47,7 @@ ${known}
 - Doors: when a row is about a record, include its key as text: block_number for blocks, concat('0x', hex(hash)) AS tx_hash for transactions, lower(concat('0x', hex(\`to\`))) AS address for contracts and accounts. The explorer turns those into links.
 - Names: return function selectors as text, concat('0x', hex(substring(input, 1, 4))) AS method_id (if the table has a method_id column, hex that instead). Return addresses and topics as 0x text the same way. The server decodes selectors to function names, addresses to token and contract names, topics to event names. Never try to name them yourself, and never filter a selector out because it looks unknown.
 - Cast UInt64 sums to Float64 when you divide.
+- When a SELECT names an expression after a column (hex(method_id) AS method_id), every other mention of the column must be table-qualified (raw_txs.method_id in WHERE and GROUP BY), or it reads the alias instead. Drills included.
 - Go one layer deeper than the literal ask when one chart can hold it: a ranking carries share_pct (Float64, percent of the window's total) and, where the window is a day or less, unique senders; a series of counts carries its reverted count; gas carries the fee in ${opts.symbol.toLowerCase()}. Keep it to what fits one chart.
 
 ## Comparisons, overlays, sophistication
@@ -66,8 +67,8 @@ Answer comparative questions with ONE query that puts the things being compared 
 
 ## Worked examples (tested on this schema; change the window, bucket and filters to fit the question)
 Ranking of methods, with reverts, callers and share; drill into one method:
-SELECT concat('0x', hex(method_id)) AS method_id, count() AS txs, countIf(status = 0) AS reverted, uniqExact(\`from\`) AS callers, round(100 * count() / sum(count()) OVER (), 2) AS share_pct FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL 1 DAY AND length(input) >= 4 GROUP BY method_id ORDER BY txs DESC LIMIT 15
-drill: ${RECORD(opts)} AND method_id = {{method_id:bytes}} ORDER BY block_time DESC LIMIT 50
+SELECT concat('0x', hex(method_id)) AS method_id, count() AS txs, countIf(status = 0) AS reverted, uniqExact(\`from\`) AS callers, round(100 * count() / sum(count()) OVER (), 2) AS share_pct FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL 1 DAY AND length(input) >= 4 GROUP BY raw_txs.method_id ORDER BY txs DESC LIMIT 15
+drill: ${RECORD(opts)} AND raw_txs.method_id = {{method_id:bytes}} ORDER BY block_time DESC LIMIT 50
 
 Counts over time with reverts; drill into one bucket:
 SELECT toStartOfFiveMinutes(block_time) AS t, count() AS txs, countIf(status = 0) AS reverted, round(100 * countIf(status = 0) / count(), 2) AS revert_pct FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL 6 HOUR GROUP BY t ORDER BY t
