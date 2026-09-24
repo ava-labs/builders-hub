@@ -1093,9 +1093,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
               values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
             },
             {
-              // block headers: since Helicon they carry the gas CHARGED
-              // (every tx's gas limit), not the gas executed
-              label: "Gas Charged · 24h",
+              // block headers: since Helicon they carry the gas RESERVED
+              // (the sum of every tx's gas limit), not the gas used
+              label: "Gas Reserved · 24h",
               href: `${base}/gas/utilization`,
               value: gas24h !== null ? fmtGas(gas24h) : "—",
               sub: revertedGasPct !== null && range === "day" ? `${revertedGasPct.toFixed(0)}% by reverts` : "hourly",
@@ -1200,11 +1200,11 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
 
       {/* the longer record, and when blockspace is cheap */}
       <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label={isHourly ? "Gas Charged · 7 days" : "Gas Charged"} href={`${base}/gas/utilization`}>
+        <ChartBoard label={isHourly ? "Gas Reserved · 7 days" : "Gas Reserved"} href={`${base}/gas/utilization`}>
           <p className="mb-3 font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            The gas blocks charged each day. Since Helicon (Sep 22, 2026) a block charges every
-            transaction&apos;s gas limit when it is accepted, so this runs above the gas executed; before,
-            the two were equal.
+            The gas blocks reserved each day. Since Helicon (Sep 22, 2026) a block reserves every
+            transaction&apos;s gas limit when it is accepted, and each transaction is charged the larger of
+            its gas used and half its limit; before, all three were the gas used.
           </p>
           {gasBars.length ? (
             <div className="h-44">
@@ -1221,7 +1221,7 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
                       return (
                         <TipPlate>
                           <p className="text-[10px] text-zinc-500">{dayLong(d.d)}</p>
-                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{fmtGas(d.gas)} gas charged</p>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{fmtGas(d.gas)} gas reserved</p>
                           <p className="text-[10px] tabular-nums text-zinc-500">
                             blocks {d.utilPct.toFixed(1)}% full on average · {d.blocks.toLocaleString("en-US")} blocks
                           </p>

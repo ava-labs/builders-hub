@@ -264,7 +264,7 @@ export function EvmStats({
               )}
             </ChartSection>
 
-            <ChartSection label={`Gas Used${weekFloor(range)}`}>
+            <ChartSection label={`Gas Charged${weekFloor(range)}`}>
               {series("gasUsed").length ? (
                 <DualChart data={series("gasUsed")} kind="bars" fmt={fmtCompact} aLabel="gas" />
               ) : (

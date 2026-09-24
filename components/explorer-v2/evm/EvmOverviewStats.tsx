@@ -38,9 +38,9 @@ const SPARK_MAX_POINTS = 60;
 /* utilization off the blocks table, windowed on the clock; 404 = not
    ingested. Complete UTC days only: today's partial day would read as a
    collapse at the window's end. Since Helicon (2026-09-22) a block
-   header's gasUsed is the sum of its transactions' gas LIMITS, what
-   Continuous Execution charges at acceptance, so the blocks table measures
-   fullness, not execution. Gas Used comes from the indexer's receipt sums. */
+   header's gasUsed is the sum of its transactions' gas LIMITS, the gas a
+   block reserves, so the blocks table measures fullness. Gas Charged comes
+   from the indexer's receipt sums: ACP-194's max(used, limit / 2). */
 type GasDay = { d: string; utilPct: number; gas: number };
 function useGasHistory(chainId: string, n: number) {
   const days = 2 * n <= 7 ? 7 : 2 * n <= 30 ? 30 : 2 * n <= 90 ? 90 : 365;
@@ -422,7 +422,7 @@ export function EvmOverviewStats({
   };
 
   const feesUsd = usdPrice !== null && win("feesPaid") ? `$${fmtCompact(win("feesPaid")!.cur * usdPrice)}` : undefined;
-  // executed gas: the indexer's receipt sums, not the header's charged gas
+  // gas charged: the indexer's receipt sums, not the header's reserved gas
   const gasPair = win("gasUsed");
   const gasTrace = trace("gasUsed");
 
@@ -442,7 +442,7 @@ export function EvmOverviewStats({
           spark: trace("activeAddresses"),
         })}
         {cell(`Contracts Deployed`, `${base}/accounts`, win("contracts"), fmtCompact, { spark: trace("contracts") })}
-        {cell(`Gas Used`, `${base}/gas`, gasPair, fmtCompact, { spark: gasTrace })}
+        {cell(`Gas Charged`, `${base}/gas`, gasPair, fmtCompact, { spark: gasTrace })}
         {cell(
           // the C-Chain burns every fee; sovereign L1s choose their own
           // fee destination, so the generic label stays honest there
