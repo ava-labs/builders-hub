@@ -43,12 +43,55 @@ export interface TraceResponse {
   /** gas by opcode, totals, from the struct log */
   opcodes: { op: string; gas: number; count: number }[] | null;
   steps: number | null;
+  /** where the gas went, from the struct log. Under ACP-194 the callTracer
+   *  root reports gas CHARGED, max(used, limit/2), so the execution's own
+   *  cost is only recoverable here */
+  gas: GasBreakdown | null;
+}
+
+export interface GasBreakdown {
+  /** the tx gas limit */
+  limit: number;
+  /** base cost before the first opcode: 21k plus calldata and access list */
+  intrinsic: number;
+  /** what the top-level frame's opcodes consumed, subcalls included */
+  execution: number;
+  /** storage refund the EVM credited at the end. Since Helicon (ACP-194)
+   *  coreth credits none, so this is 0 for post-upgrade transactions */
+  refund: number;
+  /** gas used, the EVM's own figure: intrinsic + execution - refund */
+  used: number;
 }
 
 interface StructLog {
   op: string;
+  gas: number;
   gasCost: number;
   depth: number;
+  refund?: number;
+}
+
+interface StructTrace {
+  /** the EVM's gas used for the transaction, refunds as the fork credits them */
+  gas: number;
+  structLogs: StructLog[];
+}
+
+/** gas used from the struct log: the first top-level step starts with the
+ *  limit minus intrinsic gas; the last one ends with what is left. The
+ *  tracer's own `gas` is the figure the chain charged on, so the refund is
+ *  whatever separates the two (none since Helicon) */
+function gasBreakdown(limit: number, trace: StructTrace): GasBreakdown | null {
+  const logs = trace.structLogs;
+  const top = logs.filter((l) => l.depth === 1);
+  if (!top.length || !limit) return null;
+  const first = top[0];
+  const last = top[top.length - 1];
+  const intrinsic = limit - first.gas;
+  const execution = first.gas - (last.gas - last.gasCost);
+  const before = intrinsic + execution;
+  const used = trace.gas > 0 && trace.gas <= before ? trace.gas : before;
+  return { limit, intrinsic, execution, refund: before - used, used };
 }
 
 const cache = new Map<string, TraceResponse>();
@@ -96,7 +139,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
     const [call, prestate, struct] = await Promise.all([
       rpc<TraceFrame>(url, "debug_traceTransaction", [hash, { tracer: "callTracer", tracerConfig: { withLog: true } }]),
       rpc<TraceResponse["prestate"]>(url, "debug_traceTransaction", [hash, { tracer: "prestateTracer", tracerConfig: { diffMode: true } }]).catch(() => null),
-      rpc<{ structLogs: StructLog[] }>(url, "debug_traceTransaction", [hash, { disableStorage: true, disableMemory: true, disableStack: true, disableReturnData: true }]).catch(() => null),
+      rpc<StructTrace>(url, "debug_traceTransaction", [hash, { disableStorage: true, disableMemory: true, disableStack: true, disableReturnData: true }]).catch(() => null),
     ]);
     let opcodes: TraceResponse["opcodes"] = null;
     let steps: number | null = null;
@@ -111,7 +154,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
       opcodes = [...agg.entries()].map(([op, v]) => ({ op, ...v })).sort((a, b) => b.gas - a.gas);
       steps = struct.structLogs.length;
     }
-    const out: TraceResponse = { call, prestate, opcodes, steps };
+    const gas = struct?.structLogs ? gasBreakdown(parseInt(call.gas, 16), struct) : null;
+    const out: TraceResponse = { call, prestate, opcodes, steps, gas };
     // a pending or unknown tx must not be cached as a result; only final traces are
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
     cache.set(key, out);

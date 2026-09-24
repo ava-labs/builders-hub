@@ -150,13 +150,13 @@ export function EvmTxStory({
     }
   })();
 
-  // one flow is already the sentence; the ledger earns its rows at two
-  const ledger = flows.length > 1;
+  // the sender's ledger: every asset that left or arrived, priced
+  const ledger = flows.length > 0;
   const showMovements = flows.length === 0 && story.movements.length > 0;
 
   return (
     <Board divide={false}>
-      <p className={cn("px-5 py-5 font-mono text-[15px] leading-[1.9] md:px-6 md:text-[17px]", "text-zinc-600 dark:text-zinc-400")}>{sentence}</p>
+      <p className={cn("px-5 py-7 font-mono text-[15px] leading-[1.9] md:px-6 md:py-8 md:text-[17px]", "text-zinc-600 dark:text-zinc-400")}>{sentence}</p>
 
       {/* the sender's ledger: what left, what arrived */}
       {ledger && (

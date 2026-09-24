@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { PrimaryStakingContent } from "@/components/explorer-v2/staking/PrimaryStaking";
 import { PrimaryValidatorsContent } from "@/components/explorer-v2/staking/PrimaryValidators";
-import { Board, CellLabel, SectionHeader, TypeFilterRail } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, TypeFilterRail, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import {
   VersionBarChart,
@@ -202,7 +202,7 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
         {data && (
           <>
             <Board>
-              <div className="hidden grid-cols-[minmax(19rem,1.6fr)_1fr_0.7fr_0.6fr_0.7fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+              <div className={cn(HEAD, "grid-cols-[minmax(19rem,1.6fr)_1fr_0.7fr_0.6fr_0.7fr_0.7fr]")}>
                 <span>Node</span>
                 <SortHeader label="Total Stake" k="totalStake" />
                 <SortHeader label="Delegators" k="delegatorCount" />
@@ -263,12 +263,7 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
               )}
             </Board>
             {shown < rows.length && (
-              <button
-                onClick={() => setShown((s) => s + 50)}
-                className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-              >
-                Load more
-              </button>
+              <LoadMore onClick={() => setShown((s) => s + 50)} />
             )}
           </>
         )}

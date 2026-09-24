@@ -71,25 +71,30 @@ const subscribe = (l: () => void) => {
   };
 };
 
+/* a pick follows the visitor from page to page for the length of the
+   visit, and no further: every new visit opens on the default window, so
+   the explorer always greets a reader with the same month */
 export function setExplorerRange(next: ExplorerRange) {
   if (next === range) return;
   range = next;
   try {
-    localStorage.setItem(STORAGE_KEY, next);
+    sessionStorage.setItem(STORAGE_KEY, next);
   } catch {
-    /* private mode: the session keeps the value, reloads reset it */
+    /* private mode: the in-memory value carries the session, reloads reset it */
   }
   emit();
 }
 
-/* restore the visitor's last pick once, on the first client subscription —
-   after hydration, so the server-rendered default never mismatches */
+/* restore this visit's pick once, on the first client subscription, after
+   hydration, so the server-rendered default never mismatches */
 let restored = false;
 function restoreOnce() {
   if (restored) return;
   restored = true;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY) as ExplorerRange | null;
+    // an older build kept the pick across visits; forget that copy
+    localStorage.removeItem(STORAGE_KEY);
+    const saved = sessionStorage.getItem(STORAGE_KEY) as ExplorerRange | null;
     if (saved && saved !== range && EXPLORER_RANGES.some((r) => r.value === saved)) {
       range = saved;
       emit();

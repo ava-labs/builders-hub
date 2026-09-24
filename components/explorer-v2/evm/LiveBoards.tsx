@@ -5,14 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
-import { formatNumber, truncate } from "@/components/explorer-v2/format";
-import { useVerifiedContracts, functionNameFromAbi, prewarmContractNames } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
+import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/format";
+import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
+import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
 import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
-import type { Head } from "./useHeadStream";
+import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
 
 /* The home page's two live boards, in the ledger's own grammar: one line
    per row, a header naming every column, ink for identity, one
@@ -27,29 +27,15 @@ import type { Head } from "./useHeadStream";
    root catching up is bookkeeping, not finality, and a reader should
    leave thinking the chain is fast, because it is. */
 
-export const HEAD =
-  "hidden gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500";
-export const ROW =
-  "grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:py-0 md:px-6 dark:hover:bg-zinc-900";
-export const INK = "font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50";
-export const MUTED = "font-mono text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500";
+export { HEAD, ROW, INK, MUTED, RowSkeleton, ageShort };
 
 /** a transferred amount beside its method: two places when it is money,
  *  four when it is small, a floor when it is dust */
-function fmtAmount(v: number): string {
+export function fmtAmount(v: number): string {
   if (v >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
   if (v >= 1) return v.toFixed(2);
   if (v >= 0.0001) return v.toFixed(4);
   return "<0.0001";
-}
-
-/** "5s", "2m", "1h": the age without its "ago", the column header says it */
-export function ageShort(unixSecs: number): string {
-  const s = Math.max(0, Math.floor(Date.now() / 1000 - unixSecs));
-  if (s < 60) return `${s}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
 }
 
 /** A height, every digit in the same ink: the belt's motion already
@@ -80,17 +66,18 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
 }
 
 const PHASE_TITLE: Record<Phase, string> = {
-  accepted: "final: accepted by consensus, executing",
-  executed: "final: executing; the state root is committed by a later block",
+  accepted: "final: accepted by consensus; state root pending",
+  executed: "final: state root pending, committed by a later block",
   settled: "final: state root committed",
 };
 
-/** The state root as one mark and one word. Executing: a red dot that
- *  breathes, every dot on the page in the same phase, because they are
- *  all the same wait. Committed: the dot settles solid and quiet and the
- *  word turns over. No bar, no fill: the commit lands whenever the next
- *  header after the τ floor does, and a categorical state deserves a
- *  categorical mark. A batch of commits cascades on `delayMs`. */
+/** The state root as one mark and one word. Pending: a light gray dot
+ *  that breathes, every dot on the page in the same phase, because they
+ *  are all the same wait. Committed: the dot settles solid and darker and
+ *  the word turns over. No bar, no fill: the commit lands whenever the
+ *  next header after the τ floor does, and a categorical state deserves a
+ *  categorical mark. Gray, not green: a pending root is bookkeeping, not
+ *  a live signal. A batch of commits cascades on `delayMs`. */
 export function PhaseTrack({
   phase,
   label = true,
@@ -130,7 +117,7 @@ export function PhaseTrack({
     >
       <motion.span
         ref={dot}
-        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-[#E6212F]")}
+        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-zinc-300 dark:bg-zinc-600")}
         initial={false}
         animate={{ scale: committed ? [1, 1.8, 1] : 1 }}
         transition={{ duration: 0.5, delay: committed ? delayMs / 1000 : 0, ease: "easeOut" }}
@@ -138,7 +125,7 @@ export function PhaseTrack({
       />
       {label && (
         <motion.span
-          key={committed ? "committed" : "executing"}
+          key={committed ? "committed" : "pending"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
@@ -147,7 +134,7 @@ export function PhaseTrack({
             committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
           )}
         >
-          {committed ? "committed" : "executing"}
+          {committed ? "committed" : "pending"}
         </motion.span>
       )}
     </span>
@@ -384,22 +371,45 @@ export function Party({
   name,
   token,
   chainId,
+  href,
+  len = 6,
+  full = false,
 }: {
   addr: string;
   name: string | null | undefined;
   token?: TokenInfo | null;
   chainId?: string;
+  /** the party's page; with it the mark is a link inside the row's door */
+  href?: string;
+  len?: number;
+  /** the whole address where the column has room (the list page); the
+   *  row's own grid decides, so nothing is cut that did not have to be */
+  full?: boolean;
 }) {
-  if (token && chainId) return <TokenMark address={addr} chainId={chainId} token={token} size={14} />;
   const fixture = knownAddress(addr);
   const label = name ?? fixture?.label;
-  return label ? (
-    <span className="truncate font-medium text-zinc-900 dark:text-zinc-50" title={addr}>
-      {label}
-    </span>
+  const inner =
+    token && chainId ? (
+      <TokenMark address={addr} chainId={chainId} token={token} size={14} />
+    ) : label ? (
+      <span className="truncate font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
+    ) : full ? (
+      // the whole address once the sheet is wide enough for two of them
+      // side by side; below that, the middle goes, never the ends
+      <>
+        <span className={cn("truncate min-[1400px]:hidden", idInk)}>{truncate(addr, 10)}</span>
+        <span className={cn("hidden truncate min-[1400px]:inline", idInk)}>{addr}</span>
+      </>
+    ) : (
+      <span className={cn("truncate", idInk)}>{truncate(addr, len)}</span>
+    );
+  return href ? (
+    <Link href={href} title={addr} className="flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]" onClick={(e) => e.stopPropagation()}>
+      {inner}
+    </Link>
   ) : (
-    <span className="truncate" title={addr}>
-      {truncate(addr, 6)}
+    <span className="flex min-w-0 items-center" title={addr}>
+      {inner}
     </span>
   );
 }
@@ -433,34 +443,29 @@ export function LatestTxsBoard({
     },
     hover,
   );
-  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const tokens = useTokenList(chainId);
-
-  // what the tx did: the verified ABI of the called contract names the
-  // selector first, then the generated registry, then the bare selector
-  const method = (t: TxRow): { label: string; named: boolean } => {
-    const sel = t.methodId?.toLowerCase() ?? "";
-    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
-    const fromAbi = functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel);
-    const name = fromAbi ?? getFunctionBySelector(sel)?.name ?? null;
-    return name ? { label: name, named: true } : { label: sel, named: false };
-  };
+  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
+  const method = useMethodNames(chainId, rows);
 
   // no lifecycle column here: rows live a few seconds and settlement
   // takes five or more, so it would never be seen to turn. The blocks
   // board, where rows live ten seconds, carries the track.
-  const cols = "md:grid-cols-[0.75rem_6.5rem_minmax(0,7rem)_minmax(0,1fr)_minmax(0,8rem)_7rem]";
+  const cols = "md:grid-cols-[0.75rem_6.5rem_minmax(0,7rem)_minmax(0,1fr)_minmax(0,9rem)_7rem]";
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Transactions" action={<ViewAll href={`${base}/txs`} />} />
       <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+        {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+        <div className="overflow-x-auto">
+        <div className="md:min-w-[46rem] xl:min-w-0">
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span />
           <span>Hash</span>
           <span>Method</span>
           <span>From → To</span>
           <span className="text-right">Value</span>
-          <span className="text-right">Fee</span>
+          {/* the C-Chain burns every fee; a sovereign L1 chooses its own destination */}
+          <span className="text-right">{CONTINUOUS_EXECUTION_CHAINS.has(String(chainId)) ? "Burn" : "Fee"}</span>
         </div>
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
         <Belt>
@@ -469,17 +474,19 @@ export function LatestTxsBoard({
           const value = Number(t.value);
           return (
             <MotionRow key={t.hash} animateIn={streaming} overflow={i >= ROWS}>
-            <Link href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+            <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
               {/* status: a red X only when it reverted, the row stays quiet otherwise */}
               <span className="flex h-3 w-3 items-center justify-center">
                 {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
               </span>
-              <span className={cn(INK, "truncate")}>{truncate(t.hash, 6)}</span>
-              <span className={cn("truncate font-mono text-[12px]", m.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
+              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                {truncate(t.hash, 6)}
+              </Link>
+              <span className={cn("truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
                 {m.label}
               </span>
               <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                <Party addr={t.from} name={null} />
+                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
                 <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                 {t.to ? (
                   <Party
@@ -487,6 +494,7 @@ export function LatestTxsBoard({
                     name={contracts.get(t.to.toLowerCase())?.name}
                     token={tokens.get(t.to.toLowerCase())}
                     chainId={chainId}
+                    href={`${base}/address/${t.to}`}
                   />
                 ) : (
                   <span className="truncate">contract creation</span>
@@ -506,20 +514,22 @@ export function LatestTxsBoard({
                   <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-              <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+              <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", feeInk)}>
                 {t.feeWei !== null ? (
                   <>
                     {(t.feeWei / 1e18).toFixed(6)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
                   </>
                 ) : (
-                  <span className="text-zinc-300 dark:text-zinc-700">…</span>
+                  <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-            </Link>
+            </RowDoor>
             </MotionRow>
           );
         })}
         </Belt>
+        </div>
+        </div>
       </Board>
     </section>
   );
@@ -538,15 +548,3 @@ function ViewAll({ href }: { href: string }) {
   );
 }
 
-export function RowSkeleton({ n }: { n: number }) {
-  return (
-    <>
-      {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="flex h-11 items-center justify-between px-5 md:px-6">
-          <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-          <div className="h-3 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-        </div>
-      ))}
-    </>
-  );
-}

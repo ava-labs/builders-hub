@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Bar,
+  CartesianGrid,
   ComposedChart,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
@@ -14,22 +15,26 @@ import { useExplorer } from "@/components/explorer/ExplorerContext";
 import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { LiveTag, getChainFromBlockchainId } from "@/components/explorer/L1ExplorerPage";
 import { FeedDown } from "@/components/explorer-v2/evm/bits";
-import { Board, BoardHeader, CellLabel, ChartBoard, StatDash, idInk } from "@/components/explorer-v2/ui";
-import { timeAgo, truncate } from "@/components/explorer-v2/format";
-import { Stat, TipPlate } from "@/components/explorer-v2/staking/bits";
+import { CellLabel, ChartBoard, idInk } from "@/components/explorer-v2/ui";
+import { dayLong, dayShort, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { ShareMap, TAIL_TONE, type SharePart } from "@/components/explorer-v2/ShareMap";
 import { buildTxUrl } from "@/utils/eip3091";
 import { formatTokenValue } from "@/utils/formatTokenValue";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
 /* The chain's ICM tab in the gas page's grammar: what the chain SAYS and
-   what it HEARS, on the page clock. The lead board states the window
-   once; the daily chart and route ledger follow it (the chart floors at
-   a week — a one-bar day chart says nothing — and labels that one
-   exception). The stats half comes from the ClickHouse ICM history, the
-   feed half is the live message stream off the recent block window. The
-   network-wide observatory keeps the ecosystem lens; the daily chart
+   what it HEARS, on the page clock, as readout blocks, a daily chart in
+   human dates and a share map of who is on the other end. The chart
+   floors at a week (a one-bar day chart says nothing) and labels that one
+   exception. The totals count every Teleporter event on this chain; the
+   route map counts only messages whose partner is in the chain catalog,
+   so the remainder is drawn as its own part and the two always agree.
+   The feed half is the live message stream off the recent block window.
+   The network-wide observatory keeps the ecosystem lens; the daily chart
    doors into it. */
 
 interface IcmTx {
@@ -102,7 +107,8 @@ function fmtCount(v: number): string {
 }
 
 /* per-chain daily sent/received off the ICM history, fetched wide enough
-   for the clock and windowed client-side */
+   for the clock and windowed client-side; complete UTC days only, so a
+   partial today never reads as a collapse */
 function useIcmSeries(chainId: string, windowDays: number): { days: IcmDay[] | null; failed: boolean } {
   const [days, setDays] = useState<IcmDay[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -114,8 +120,9 @@ function useIcmSeries(chainId: string, windowDays: number): { days: IcmDay[] | n
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((data: { icmMessages?: { data?: IcmDay[] } }) => {
         if (cancelled) return;
-        const pts = data.icmMessages?.data ?? [];
-        // API is newest-first; charts read left→right in time
+        const today = new Date().toISOString().slice(0, 10);
+        const pts = (data.icmMessages?.data ?? []).filter((p) => p.date < today);
+        // API is newest-first; charts read left to right in time
         setDays([...pts].sort((a, b) => a.timestamp - b.timestamp));
       })
       .catch(() => {
@@ -128,8 +135,8 @@ function useIcmSeries(chainId: string, windowDays: number): { days: IcmDay[] | n
   return { days, failed };
 }
 
-/* who this chain talks to, split by direction, plus the network total
-   for the share figure — the flow feed takes the clock's window directly */
+/* who this chain talks to, split by direction, plus the network total;
+   the flow feed takes the clock's window directly */
 function useIcmRoutes(chainId: string, windowDays: number): { routes: Route[] | null; networkTotal: number } {
   const [routes, setRoutes] = useState<Route[] | null>(null);
   const [networkTotal, setNetworkTotal] = useState(0);
@@ -174,21 +181,34 @@ function useIcmRoutes(chainId: string, windowDays: number): { routes: Route[] | 
   return { routes, networkTotal };
 }
 
-/* daily received/sent stacked — steel is what arrived, red is what left */
+/* daily received/sent stacked: steel is what arrived, red is what left */
+const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
+
 function DailyChart({ days }: { days: IcmDay[] }) {
   return (
     <div className="h-48">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={days} barCategoryGap="22%">
+        <ComposedChart data={days} barCategoryGap="22%" margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <CartesianGrid vertical={false} stroke="rgba(161,161,170,0.18)" />
           <XAxis
             dataKey="date"
             tickLine={false}
             axisLine={false}
-            tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }}
+            tick={AXIS_TICK}
             minTickGap={48}
             interval="preserveStartEnd"
+            tickFormatter={(d: string) => dayShort(d)}
           />
-          <YAxis hide domain={[0, "dataMax"]} />
+          <YAxis
+            orientation="right"
+            width={44}
+            tickCount={3}
+            domain={[0, "dataMax"]}
+            tickLine={false}
+            axisLine={false}
+            tick={AXIS_TICK}
+            tickFormatter={(v: number) => fmtCount(v)}
+          />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
@@ -196,7 +216,7 @@ function DailyChart({ days }: { days: IcmDay[] }) {
               const d = payload[0].payload as IcmDay;
               return (
                 <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{d.date}</p>
+                  <p className="text-[10px] text-zinc-500">{dayLong(d.date)}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                     {d.incomingCount.toLocaleString()} received
                   </p>
@@ -260,7 +280,7 @@ export function IcmMessagesPage({
   const [reload, setReload] = useState(0);
   const loadedOnce = useRef(false);
 
-  // the page clock in the subnav — the totals, chart, and routes ride it;
+  // the page clock in the subnav: the totals, chart, and routes ride it;
   // the daily chart floors at a week (one bar says nothing) and labels it
   const clock = useExplorerTimeRange();
   const rangeDays = RANGE_DAYS[clock];
@@ -342,7 +362,7 @@ export function IcmMessagesPage({
     }
   };
 
-  // the fetched series is wider than the clock on sub-fetch windows —
+  // the fetched series is wider than the clock on sub-fetch windows:
   // slice the window for the totals and the chart's floored window
   const windowed = useMemo(() => (days ? days.slice(-rangeDays) : null), [days, rangeDays]);
   const chartSeries = useMemo(() => (days ? days.slice(-chartDays) : null), [days, chartDays]);
@@ -356,73 +376,100 @@ export function IcmMessagesPage({
     return { received, sent, latest, avg: received / windowed.length };
   }, [windowed]);
 
-  // share must come from ONE counting basis: the flow table counts each
-  // routed message once, so both sides of the ratio use it — mixing in the
-  // event-based daily series (send + receive both count) overshoots 100%
-  const share = useMemo(() => {
-    if (!routes?.length || networkTotal <= 0) return null;
-    const involved = routes.reduce((s, r) => s + r.sent + r.received, 0);
-    return Math.min(100, (involved / networkTotal) * 100);
-  }, [routes, networkTotal]);
-
   const partnerSlug = (id: string): string | null =>
     (l1ChainsData as L1Chain[]).find((c) => String(c.chainId) === id && c.isTestnet !== true)
       ?.slug ?? null;
 
-  const maxRoute = routes?.length ? routes[0].sent + routes[0].received : 0;
+  // the busiest day in the chart's window, for the caption
+  const peak = useMemo(
+    () => (chartSeries ?? []).reduce<IcmDay | null>((m, d) => (!m || d.incomingCount + d.outgoingCount > m.incomingCount + m.outgoingCount ? d : m), null),
+    [chartSeries],
+  );
+
+  // the route map on the totals' basis: named partners first, then what
+  // the flow feed could not place, so the map adds up to the headline
+  const routeParts = useMemo<SharePart[]>(() => {
+    if (!routes || !totals) return [];
+    const parts: SharePart[] = routes.map((r) => {
+      const slug = partnerSlug(r.chainId);
+      return {
+        key: r.chainId,
+        label: r.name,
+        value: r.sent + r.received,
+        href: slug ? `/explorer/${network}/${slug}/icm` : undefined,
+        sub: `${r.received.toLocaleString("en-US")} received · ${r.sent.toLocaleString("en-US")} sent`,
+      };
+    });
+    const placed = routes.reduce((s, r) => s + r.sent + r.received, 0);
+    const rest = totals.received + totals.sent - placed;
+    if (rest > 0) {
+      parts.push({
+        key: "unplaced",
+        label: "Unlisted partners",
+        value: rest,
+        tone: TAIL_TONE,
+        sub: "partner not in the chain catalog, or not yet delivered",
+        detail: "counted on this chain, but the route feed cannot name the other end",
+      });
+    }
+    return parts;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routes, totals, network]);
+
+  const inWindow = clock === "all" ? "all time" : `in the ${rangeLabel.toLowerCase()}`;
 
   return (
-    <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-10 px-5 pb-16 pt-2 md:px-6">
-      {/* the chain's ICM ledger — the window is stated once, up here */}
-      <Board divide={false} className="border">
-        <BoardHeader
-          label="Interchain Messaging"
-          display
-          action={
-            <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-              {rangeLabel}
-            </span>
-          }
-        />
-        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-          <Stat
-            label="Messages"
-            sub={share !== null ? `${share.toFixed(1)}% of all routed messages` : undefined}
-          >
-            {totals ? fmtCount(totals.received + totals.sent) : seriesFailed ? <StatDash /> : "…"}
-          </Stat>
-          <Stat label="Received / Sent" sub="received on-chain · sent outward">
-            {totals ? (
-              <>
-                {fmtCount(totals.received)}
-                <span className="mx-1.5 text-sm text-zinc-400 dark:text-zinc-500">/</span>
-                {fmtCount(totals.sent)}
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </Stat>
-          <Stat label="Partner Chains" sub={routes?.length ? `busiest: ${routes[0].name}` : undefined}>
-            {routes ? routes.length : <StatDash />}
-          </Stat>
-          {/* the one cell that doesn't follow the clock, labeled */}
-          <Stat
-            label="Latest Day"
-            sub={totals ? `avg ${fmtCount(Math.round(totals.avg))}/day` : undefined}
-          >
-            {totals?.latest ? fmtCount(totals.latest.incomingCount) : <StatDash />}
-          </Stat>
-        </div>
-      </Board>
+    <div className="flex flex-col gap-12">
+      {/* the chain's ICM readings, as blocks; the window is the clock's */}
+      <LiveReadout
+        chainId={String(chainId)}
+        cells={[
+          {
+            label: "Messages",
+            value: totals ? fmtCount(totals.received + totals.sent) : seriesFailed ? "—" : "…",
+            sub: rangeLabel.toLowerCase(),
+            values: windowed?.map((d) => d.incomingCount + d.outgoingCount),
+          },
+          {
+            label: "Received",
+            value: totals ? fmtCount(totals.received) : "—",
+            sub: "delivered to this chain",
+            values: windowed?.map((d) => d.incomingCount),
+          },
+          {
+            label: "Sent",
+            value: totals ? fmtCount(totals.sent) : "—",
+            sub: "sent from this chain",
+            values: windowed?.map((d) => d.outgoingCount),
+          },
+          {
+            label: "Partner Chains",
+            value: routes ? String(routes.length) : "—",
+            sub: routes?.length ? `busiest: ${routes[0].name}` : undefined,
+          },
+          {
+            label: "Latest Day",
+            value: totals?.latest ? fmtCount(totals.latest.incomingCount + totals.latest.outgoingCount) : "—",
+            sub: totals?.latest ? `${dayShort(totals.latest.date)} · avg ${fmtCount(Math.round((totals.received + totals.sent) / (windowed?.length || 1)))}/day` : undefined,
+          },
+        ]}
+      />
 
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        {/* the cadence — doors into the network-wide observatory */}
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        {/* the cadence: doors into the network-wide observatory */}
         <ChartBoard
           label={rangeDays < 7 ? "Daily Messages · 7 days" : "Daily Messages"}
           action={<DirectionKey />}
           href="/explorer/mainnet/icm"
           className="min-w-0"
         >
+          {totals && peak && (
+            <p className="mb-3 font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              <span className="text-zinc-900 dark:text-zinc-50">{totals.received.toLocaleString("en-US")}</span> received and{" "}
+              <span className="text-zinc-900 dark:text-zinc-50">{totals.sent.toLocaleString("en-US")}</span> sent {inWindow}; the busiest day was{" "}
+              {dayLong(peak.date)}, with {(peak.incomingCount + peak.outgoingCount).toLocaleString("en-US")}.
+            </p>
+          )}
           {chartSeries?.length ? (
             <DailyChart days={chartSeries} />
           ) : (
@@ -432,68 +479,31 @@ export function IcmMessagesPage({
           )}
         </ChartBoard>
 
-        {/* who's on the other end */}
-        <ChartBoard label="Routes" bodyClassName="p-0" className="min-w-0">
-          <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-            {routes === null &&
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between px-5 py-3.5 md:px-6">
-                  <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                  <div className="h-3 w-20 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                </div>
-              ))}
-            {routes !== null && routes.length === 0 && (
-              <p className="px-5 py-10 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 md:px-6 dark:text-zinc-500">
-                No routed messages in the window
-              </p>
-            )}
-            {routes?.slice(0, 8).map((r) => {
-              const slug = partnerSlug(r.chainId);
-              const total = r.sent + r.received;
-              const width = maxRoute > 0 ? (total / maxRoute) * 100 : 0;
-              const receivedShare = total > 0 ? (r.received / total) * 100 : 0;
-              return (
-                <div
-                  key={r.chainId}
-                  className="grid grid-cols-[minmax(0,11rem)_1fr_auto] items-center gap-4 px-5 py-3 md:px-6"
-                >
-                  <span className="flex min-w-0 items-center gap-2.5">
-                    {r.logo ? (
-                      <img src={r.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
-                    ) : (
-                      <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
-                    )}
-                    {slug ? (
-                      <Link
-                        href={`/explorer/${network}/${slug}/icm`}
-                        className="truncate text-[13px] font-medium text-[#0061E2] hover:underline dark:text-[#5f9dff]"
-                      >
-                        {r.name}
-                      </Link>
-                    ) : (
-                      <span className="truncate text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                        {r.name}
-                      </span>
-                    )}
-                  </span>
-                  {/* the route's weight, split by direction */}
-                  <span className="h-2 bg-zinc-100 dark:bg-zinc-900">
-                    <span className="flex h-full" style={{ width: `${width.toFixed(1)}%` }}>
-                      <span className="h-full bg-[#A2AFB2]/80" style={{ width: `${receivedShare.toFixed(1)}%` }} />
-                      <span className="h-full flex-1 bg-[#E6212F]/75" />
-                    </span>
-                  </span>
-                  <span className="whitespace-nowrap font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                    ↓ {fmtCount(r.received)} · ↑ {fmtCount(r.sent)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </ChartBoard>
+        {/* who is on the other end */}
+        {routes === null ? (
+          <div className="h-64 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+        ) : routeParts.length === 0 ? (
+          <p className="px-5 py-10 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 md:px-6 dark:text-zinc-500">
+            No routed messages in the window
+          </p>
+        ) : (
+          <ShareMap
+            label="Routes"
+            summary={totals ? `${fmtCount(totals.received + totals.sent)} messages · ${rangeLabel.toLowerCase()}` : undefined}
+            parts={routeParts}
+            fmt={(v) => `${v.toLocaleString("en-US")} msg${v === 1 ? "" : "s"}`}
+            // every part named: the unplaced remainder is often the biggest
+            legend={Math.min(routeParts.length, 10)}
+            note={
+              networkTotal > 0 ? (
+                <>Partner chains by messages both ways. The route feed names {fmtCount(routes.reduce((s, r) => s + r.sent + r.received, 0))} of them; the rest are counted here but their other end is not in the chain catalog.</>
+              ) : undefined
+            }
+          />
+        )}
       </div>
 
-      {/* the stream itself — live, so it wears the dot, not a window */}
+      {/* the stream itself: live, so it wears the dot, not a window */}
       <section className="flex flex-col gap-4">
       <ChartBoard label="Live Messages" action={<LiveTag />} bodyClassName="p-0">
         {feedDown && (
@@ -559,9 +569,19 @@ export function IcmMessagesPage({
                   </span>
                   <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                     <CellLabel>Value</CellLabel>
-                    {formatTokenValue(tx.value)} {tokenSymbol ?? ""}
+                    {/* a message usually carries no value: a quiet dash, not "0 AVAX" */}
+                    {Number(tx.value) > 0 ? (
+                      <>
+                        {formatTokenValue(tx.value)} {tokenSymbol ?? ""}
+                      </>
+                    ) : (
+                      <span className="text-zinc-300 dark:text-zinc-700">—</span>
+                    )}
                   </span>
-                  <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                  <span
+                    className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400"
+                    title={formatTime(Math.floor(new Date(tx.timestamp).getTime() / 1000))}
+                  >
                     <CellLabel>Age</CellLabel>
                     {timeAgo(Math.floor(new Date(tx.timestamp).getTime() / 1000))}
                   </span>
@@ -573,7 +593,7 @@ export function IcmMessagesPage({
       </ChartBoard>
         {moreFailed && (
           <p className="text-center font-mono text-[10px] uppercase tracking-[0.16em] text-[#E6212F]">
-            Couldn't load older messages — try again
+            Couldn't load older messages. Try again.
           </p>
         )}
         {cursor != null && !feedDown && (

@@ -1,43 +1,244 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import {
-  Board,
-  CellLabel,
-  DetailSkeleton,
-  HashChip,
-  SectionHeader,
-  SpecLine,
-  SpecSheet,
-  StatCell,
-  StatStrip,
-  SubjectHeadline,
-} from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, INK, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
-import { FeedDown, methodLabel } from "./bits";
+import { FeedDown, useMethodNames } from "./bits";
 import { useEvmData, usePrice, usdOfWei } from "./hooks";
-import { NotFound } from "./EvmTx";
+import { NotFound, RailRow } from "./EvmTx";
+import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcBlock } from "./useRpcBlock";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import { knownAddress, type BlockDetail } from "@/lib/evm-explorer";
+import { knownAddress, type BlockDetail, type TxSummary } from "@/lib/evm-explorer";
 import { useTokenList } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
 
-/* One block. The readings a block is judged by sit in a strip (how many
-   txs, how full, what it cost, where it stands in Continuous Execution);
-   its identifiers sit in a compact sheet beneath, label and value side
-   by side; its transactions in a headed table. Previous and next live in
-   the section header, where a reader's hand already is. */
+/* One block, split like the tx page. Left: the gas map (every tx as its
+   share of the gas, inked by what it called, the calls that bought the
+   most listed under it), then its identifiers. Right: the
+   readings a block is judged by, stacked in a rail (final, state root,
+   txs, fees, base fee, gas). Its transactions in a headed table below.
+   Previous and next live in the section header, where a reader's hand
+   already is. */
 
-const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
-const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
+type MethodOf = (t: TxSummary) => { label: string; named: boolean };
+
+interface BlockProposer {
+  proposerId: string;
+  proposerParentId: string;
+  proposerNodeId: string;
+  proposerPChainHeight: number;
+  proposerTimestamp: number;
+}
+
+/** the validator that built the block, from the Snowman++ wrapper. The
+ *  Data API trails a fresh block by seconds, so a miss is asked again a
+ *  few times before the page gives up on it. */
+function useBlockProposer(chainId: string, block: number | null): BlockProposer | null {
+  const [p, setP] = useState<BlockProposer | null>(null);
+  useEffect(() => {
+    setP(null);
+    if (block === null || (chainId !== "43114" && chainId !== "43113")) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ask = (tries: number) => {
+      fetch(`/api/block-proposer/${chainId}/${block}`)
+        .then((res) => (res.ok ? res.json() : res.status === 404 ? null : Promise.reject(new Error(String(res.status)))))
+        .then((data: BlockProposer | null) => {
+          if (cancelled) return;
+          if (data) setP(data);
+          else if (tries > 0) timer = setTimeout(() => ask(tries - 1), 5000);
+        })
+        .catch(() => {});
+    };
+    ask(4);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [chainId, block]);
+  return p;
+}
+
+/* the gas map's inks: the block's biggest calls each get their own, in
+   the order they bought gas; plain sends stay in the block gray and the
+   long tail in a pale gray, so the eye lands on what mattered */
+const GROUP_TONES = ["#7c3aed", "#0061E2", "#0d9488", "#d97706", "#db2777"];
+const SEND_TONE = "#A2AFB2";
+const TAIL_TONE = "#d4d4d8";
+const REVERT_STRIPES = "repeating-linear-gradient(135deg, rgba(230,33,47,0.9) 0 3px, transparent 3px 7px)";
+
+interface GasGroup {
+  label: string;
+  named: boolean;
+  tone: string;
+  gas: number;
+  n: number;
+  reverted: number;
+}
+
+/** What the block's gas bought: every tx in block order, as wide as the
+ *  gas it used, inked by what it called. Hover a segment for the tx;
+ *  click it to jump to its row. The limit bar under it says how much of
+ *  the block that was. */
+function GasMap({
+  txs,
+  gasUsed,
+  gasLimit,
+  method,
+  sym,
+}: {
+  txs: TxSummary[];
+  /** the header's gasUsed: since Helicon the gas RESERVED, the sum of its
+   *  txs' gas limits, which is what fills the block against its limit */
+  gasUsed: number;
+  gasLimit: number;
+  method: MethodOf;
+  sym: string;
+}) {
+  const [hover, setHover] = useState<string | null>(null);
+  // a plain send is named by its token, so it never reads as an ERC-20 transfer()
+  const sendLabel = `${sym} send`;
+  const labelOf = (t: TxSummary) => (t.methodId ? method(t).label : sendLabel);
+  const txGas = txs.reduce((s, t) => s + t.gasUsed, 0) || 1;
+
+  // group by what was called, biggest buyer first; the top five get inks
+  const groups = useMemo(() => {
+    const by = new Map<string, GasGroup>();
+    for (const t of txs) {
+      const label = labelOf(t);
+      const e = by.get(label) ?? { label, named: t.methodId ? method(t).named : false, tone: TAIL_TONE, gas: 0, n: 0, reverted: 0 };
+      e.gas += t.gasUsed;
+      e.n += 1;
+      if (!t.success) e.reverted += 1;
+      by.set(label, e);
+    }
+    const sorted = [...by.values()].sort((a, b) => b.gas - a.gas);
+    let ink = 0;
+    for (const g of sorted) g.tone = g.label === sendLabel ? SEND_TONE : ink < GROUP_TONES.length ? GROUP_TONES[ink++] : TAIL_TONE;
+    return sorted;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [txs, method]);
+  const toneOf = new Map(groups.map((g) => [g.label, g.tone]));
+  const shown = groups.slice(0, 6);
+  const rest = groups.slice(6);
+  const hoverTx = hover ? txs.find((t) => t.hash === hover) : undefined;
+  const hoverLabel = hoverTx ? labelOf(hoverTx) : null;
+  const pctOfLimit = gasLimit > 0 ? (gasUsed / gasLimit) * 100 : 0;
+
+  return (
+    <Board divide={false} className="flex h-full flex-col">
+      <div className="flex items-baseline justify-between gap-4 px-5 pt-5 md:px-6">
+        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Gas Map</span>
+        <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+          {/* the segments are receipt gas: gas charged, max(used, limit / 2) */}
+          <span className={INK}>{formatNumber(txs.reduce((sum, t) => sum + t.gasUsed, 0))}</span> gas charged · {txs.length} tx{txs.length === 1 ? "" : "s"} in block order
+        </span>
+      </div>
+
+      {txs.length === 0 ? (
+        <p className="px-5 py-8 font-mono text-[12px] text-zinc-400 md:px-6 dark:text-zinc-500">An empty block: consensus accepted it with no transactions.</p>
+      ) : (
+        <div className="flex flex-1 flex-col gap-5 px-5 pb-5 pt-4 md:px-6">
+          {/* the map */}
+          <div className="relative">
+            <div className="flex h-16 w-full gap-[2px]" onMouseLeave={() => setHover(null)}>
+              {txs.map((t) => {
+                const share = t.gasUsed / txGas;
+                const label = labelOf(t);
+                const dim = hover !== null && hover !== t.hash;
+                return (
+                  <Link
+                    key={t.hash}
+                    href={`#tx-${t.hash}`}
+                    onMouseEnter={() => setHover(t.hash)}
+                    onFocus={() => setHover(t.hash)}
+                    aria-label={`${label}, ${formatNumber(t.gasUsed)} gas${t.success ? "" : ", reverted"}`}
+                    className={cn("relative block h-full min-w-[3px] overflow-hidden transition-opacity duration-150", dim && "opacity-35")}
+                    style={{ flexGrow: t.gasUsed, flexBasis: 0, background: toneOf.get(label) }}
+                  >
+                    {!t.success && <span aria-hidden className="absolute inset-0" style={{ background: REVERT_STRIPES }} />}
+                    {/* wide segments name themselves */}
+                    {share >= 0.12 && (
+                      <span className="absolute inset-x-2 bottom-1.5 hidden truncate sm:block font-mono text-[10px] leading-none text-white/95">
+                        {label}
+                        <span className="ml-1.5 text-white/70">{(share * 100).toFixed(0)}%</span>
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+            {/* the hovered tx, under the map */}
+            {hoverTx && (
+              <div className="pointer-events-none absolute left-0 top-full z-20 mt-2">
+                <TipPlate>
+                  <p className="flex items-center gap-2 font-mono text-[11px] text-zinc-900 dark:text-zinc-100">
+                    <span className="h-1.5 w-1.5" style={{ background: toneOf.get(hoverLabel!) }} />
+                    {hoverLabel}
+                    {!hoverTx.success && <span className="text-[#E6212F]">reverted</span>}
+                  </p>
+                  <p className="font-mono text-[10px] tabular-nums text-zinc-500">
+                    {formatNumber(hoverTx.gasUsed)} gas charged · {((hoverTx.gasUsed / txGas) * 100).toFixed(1)}% of the block
+                    {hoverTx.feeWei ? ` · ${formatEther(hoverTx.feeWei, { decimals: 6 })} ${sym}` : ""}
+                  </p>
+                  <p className="font-mono text-[10px] text-zinc-400">
+                    {truncate(hoverTx.from, 6)} → {hoverTx.to ? truncate(hoverTx.to, 6) : "contract creation"} · #{hoverTx.txIndex}
+                  </p>
+                </TipPlate>
+              </div>
+            )}
+          </div>
+
+          {/* how much of the block that was */}
+          <div className="flex items-center gap-3 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+            <span className="h-1 flex-1 bg-zinc-100 dark:bg-zinc-900">
+              <span className={cn("block h-full", pctOfLimit >= 90 ? "bg-[#E6212F]" : "bg-zinc-700 dark:bg-zinc-300")} style={{ width: `${Math.max(pctOfLimit > 0 ? 0.5 : 0, Math.min(100, pctOfLimit)).toFixed(2)}%` }} />
+            </span>
+            <span className="shrink-0">
+              reserved <span className={INK}>{pctOfLimit.toFixed(1)}%</span> of the {formatNumber(gasLimit)} limit
+            </span>
+          </div>
+
+          {/* what bought the gas */}
+          <div className="mt-auto grid gap-x-8 gap-y-2 font-mono text-[12px] sm:grid-cols-2">
+            {shown.map((g) => (
+              <span
+                key={g.label}
+                className={cn("flex min-w-0 items-center justify-between gap-3 transition-opacity", hoverLabel && hoverLabel !== g.label && "opacity-40")}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="h-2 w-2 shrink-0" style={{ background: g.tone }} />
+                  <span className={cn("min-w-0 truncate", g.label === sendLabel ? "text-zinc-500 dark:text-zinc-400" : g.named ? fnInk : "text-zinc-500 dark:text-zinc-400")}>{g.label}</span>
+                  <span className="shrink-0 text-zinc-400 dark:text-zinc-500">×{g.n}</span>
+                  {g.reverted > 0 && <span className="shrink-0 text-[10px] text-[#E6212F]">{g.reverted} reverted</span>}
+                </span>
+                <span className="shrink-0 tabular-nums text-zinc-900 dark:text-zinc-50">{((g.gas / txGas) * 100).toFixed(0)}%</span>
+              </span>
+            ))}
+            {rest.length > 0 && (
+              <span className="flex items-center justify-between gap-3 text-zinc-400 dark:text-zinc-500">
+                <span className="flex items-center gap-2">
+                  <span className="h-2 w-2" style={{ background: TAIL_TONE }} />
+                  {rest.length} more method{rest.length === 1 ? "" : "s"}
+                </span>
+                <span className="tabular-nums">{((rest.reduce((s, g) => s + g.gas, 0) / txGas) * 100).toFixed(0)}%</span>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </Board>
+  );
+}
 
 export function EvmBlock({ network, id }: { network: string; id: string }) {
   const c = useChainContext();
@@ -60,9 +261,18 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // hidden for blocks sealed before Helicon; they carry no settledHeight
   const showLife = !!liveRpc && life.supported;
 
+  const proposer = useBlockProposer(String(c.chainId), b?.number ?? null);
+  // the proposer is a Primary Network validator: its page lives on the P-Chain
+  const pBase = `/explorer/${network}/p-chain`;
+
   const tokens = useTokenList(c.chainId);
+  const method = useMethodNames(c.chainId, b?.transactions ?? []);
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;
+  const chargedGas = b ? b.transactions.reduce((sum, t) => sum + t.gasUsed, 0) : 0;
+  const reverted = b ? b.transactions.filter((t) => !t.success).length : 0;
+  // the C-Chain burns every fee; sovereign L1s choose their own destination
+  const burnsFees = String(c.chainId) === "43114" || String(c.chainId) === "43113";
 
   // what the block cost, in the token and in dollars. Receipts give the
   // exact sum (RPC path); the indexer path only knows gas × base fee,
@@ -110,146 +320,172 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
               </span>
             </div>
 
-            {/* the readings */}
-            <StatStrip cols={5}>
-              <StatCell label="Transactions" href={b.txCount > 0 ? "#transactions" : undefined}>
-                <span className={FIG}>{formatNumber(b.txCount)}</span>
-              </StatCell>
-              <StatCell
-                label="Gas Used"
-                sub={
-                  <span className="flex items-center gap-2">
-                    <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
-                      <span
-                        className={cn("block h-full", gasPct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
-                        style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
-                      />
-                    </span>
-                    of {formatNumber(b.gasLimit)}
-                  </span>
-                }
-              >
-                <span className={FIG}>
-                  {gasPct.toFixed(1)}
-                  <span className={UNIT}>%</span>
-                </span>
-              </StatCell>
-              <StatCell label="Base Fee" href={`${base}/gas/base-fee`}>
-                <span className={FIG}>{b.baseFeePerGas && b.baseFeePerGas !== "0" ? formatNano(b.baseFeePerGas, sym) : "—"}</span>
-              </StatCell>
-              <StatCell
-                label={String(c.chainId) === "43114" || String(c.chainId) === "43113" ? "Fees Burned" : "Fees Paid"}
-                href={`${base}/gas`}
-                sub={
-                  feesWei > 0n ? (
-                    <>
-                      {usdOfWei(feesWei, usd) ?? ""}
-                      {!exactFees && b.transactions.length > 0 && (
-                        <span title="gas used × base fee; priority fees not included">{usd ? " · " : ""}at base fee</span>
-                      )}
-                    </>
-                  ) : undefined
-                }
-              >
-                <span className={FIG}>
-                  {formatEther(feesWei.toString(), { decimals: feesWei >= 10n ** 18n ? 3 : 5 })}{" "}
-                  <span className={UNIT}>{sym}</span>
-                </span>
-              </StatCell>
-              {showLife ? (
-                <StatCell
-                  label="State Root"
-                  live={life.phase !== "settled"}
-                  href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}
-                  sub={
-                    life.ready ? (
-                      <span className="flex items-center gap-2">
+            {/* the split: what the block did and its identity on the left;
+                the readings a block is judged by in the rail on the right */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+              <div className="flex min-w-0 flex-col gap-6">
+                <GasMap txs={b.transactions} gasUsed={b.gasUsed} gasLimit={b.gasLimit} method={method} sym={sym} />
+
+                {/* the identifiers */}
+                <Board divide={false} className="px-5 md:px-6">
+                  <SpecSheet>
+                    <SpecLine label="Hash">
+                      <HashChip value={b.hash} len={66} />
+                    </SpecLine>
+                    <SpecLine label="Parent">
+                      <HashChip value={b.parentHash} href={`${base}/block/${b.number - 1}`} len={66} />
+                    </SpecLine>
+                    {b.miner && (
+                      <SpecLine label="Fee Recipient">
+                        <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-3 gap-y-1">
+                          {burn && <span title={burn.note}>{burn.label}</span>}
+                          <HashChip
+                            value={b.miner}
+                            href={`${base}/address/${b.miner}`}
+                            len={66}
+                            className={burn ? "text-zinc-400 dark:text-zinc-500" : undefined}
+                          />
+                        </span>
+                      </SpecLine>
+                    )}
+                    {proposer && (
+                      <>
+                        <SpecLine label="Proposer">
+                          <HashChip value={proposer.proposerNodeId} href={`${pBase}/node/${proposer.proposerNodeId}`} len={66} />
+                        </SpecLine>
+                        <SpecLine label="Proposer P-Chain Height">
+                          <Link href={`${pBase}/block/${proposer.proposerPChainHeight}`} className={cn("font-mono hover:text-[#E6212F]", idInk)}>
+                            #{formatNumber(proposer.proposerPChainHeight)}
+                          </Link>
+                          <span className="ml-3 font-mono text-[12px] font-normal text-zinc-400 dark:text-zinc-500">the validator set this block was proposed under</span>
+                        </SpecLine>
+                        <SpecLine label="Proposer Block ID">
+                          <HashChip value={proposer.proposerId} len={66} />
+                        </SpecLine>
+                        <SpecLine label="Proposer Parent ID">
+                          <HashChip value={proposer.proposerParentId} len={66} />
+                        </SpecLine>
+                      </>
+                    )}
+                    <SpecLine label="Gas Limit">{formatNumber(b.gasLimit)}</SpecLine>
+                    <SpecLine label="Timestamp">
+                      <span className="font-mono tabular-nums">{b.timestamp}</span>
+                      <span className="ml-3 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">unix seconds</span>
+                    </SpecLine>
+                  </SpecSheet>
+                </Board>
+              </div>
+
+              {/* the readings: the rail stands as tall as the column beside
+                  it, its rows sharing the height, so both end on one line */}
+              <Board divide={false} className="flex flex-col border">
+                {/* finality: a block is final the moment it is accepted */}
+                <RailRow label="Status">Final</RailRow>
+                {/* the state root is bookkeeping a later block does, not finality */}
+                {showLife && (
+                  <RailRow label="State Root" href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}>
+                    {life.ready ? (
+                      <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `in #${formatNumber(life.settledBy)} · ` : ""}block is final
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">pending</span>}
                       </span>
+                    ) : (
+                      "…"
+                    )}
+                  </RailRow>
+                )}
+                <RailRow
+                  label="Transactions"
+                  href={b.txCount > 0 ? "#transactions" : undefined}
+                  sub={reverted > 0 ? <span className="text-[#E6212F]">{reverted} reverted</span> : undefined}
+                >
+                  {formatNumber(b.txCount)}
+                </RailRow>
+                <RailRow
+                  label={burnsFees ? "Fees Burned" : "Fees Paid"}
+                  href={`${base}/gas`}
+                  sub={
+                    feesWei > 0n ? (
+                      <>
+                        {usdOfWei(feesWei, usd) ?? ""}
+                        {!exactFees && b.transactions.length > 0 && (
+                          <span title="gas used × base fee; priority fees not included">{usd ? " · " : ""}at base fee</span>
+                        )}
+                      </>
                     ) : undefined
                   }
                 >
-                  <span className={FIG}>{life.settledBy ? "Committed" : life.ready ? "Executing" : "…"}</span>
-                </StatCell>
-              ) : (
-                <StatCell label="Age">
-                  <span className={FIG}>{timeAgo(b.timestamp)}</span>
-                </StatCell>
-              )}
-            </StatStrip>
-
-            {/* the identifiers */}
-            <Board divide={false} className="px-5 md:px-6">
-              <SpecSheet>
-                <SpecLine label="Hash">
-                  <HashChip value={b.hash} len={66} />
-                </SpecLine>
-                <SpecLine label="Parent">
-                  <HashChip value={b.parentHash} href={`${base}/block/${b.number - 1}`} len={66} />
-                </SpecLine>
-                <SpecLine label="Gas Limit">{formatNumber(b.gasLimit)}</SpecLine>
-                {b.miner && (
-                  <SpecLine label="Fee Recipient">
-                    <span className="inline-flex max-w-full flex-wrap items-baseline gap-x-3 gap-y-1">
-                      {burn && <span title={burn.note}>{burn.label}</span>}
-                      <HashChip
-                        value={b.miner}
-                        href={`${base}/address/${b.miner}`}
-                        len={66}
-                        className={burn ? "text-zinc-400 dark:text-zinc-500" : undefined}
-                      />
+                  <span className={feeInk}>{formatEther(feesWei.toString(), { decimals: feesWei >= 10n ** 18n ? 3 : 5 })}</span> <span className={UNIT}>{sym}</span>
+                </RailRow>
+                <RailRow label="Base Fee" href={`${base}/gas/base-fee`}>
+                  {b.baseFeePerGas && b.baseFeePerGas !== "0" ? formatNano(b.baseFeePerGas, sym) : "—"}
+                </RailRow>
+                {/* ACP-194: a header reserves every tx's gas limit; each receipt
+                    charges max(used, limit / 2), which is what fees pay on */}
+                <RailRow
+                  label="Gas Reserved"
+                  sub={
+                    <span className="flex flex-col gap-1.5">
+                      <span className="flex items-center gap-2">
+                        <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
+                          <span
+                            className={cn("block h-full", gasPct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                            style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
+                          />
+                        </span>
+                        {gasPct.toFixed(1)}% of {formatNumber(b.gasLimit)}
+                      </span>
+                      {b.transactions.length > 0 && <span>{formatNumber(chargedGas)} charged</span>}
                     </span>
-                  </SpecLine>
-                )}
-              </SpecSheet>
-            </Board>
+                  }
+                >
+                  {formatNumber(b.gasUsed)}
+                </RailRow>
+              </Board>
+            </div>
           </section>
 
           <section id="transactions" className="flex flex-col gap-4">
             <SectionHeader label={`Transactions · ${b.transactions.length}`} />
             <Board>
+              {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+              <div className="overflow-x-auto">
+              <div className="divide-y divide-zinc-200 md:min-w-[58rem] lg:min-w-0 dark:divide-zinc-800">
               {b.transactions.length === 0 && (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
                   no transactions
                 </div>
               )}
               {b.transactions.length > 0 && (
-                <div className="hidden grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_12rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}>
                   <span />
                   <span>Hash</span>
                   <span>Method</span>
                   <span>From → To</span>
-                  <span className="text-right">Gas Used</span>
+                  <span className="text-right">Gas Charged</span>
                   <span className="text-right">Value</span>
+                  <span className="text-right">USD</span>
                 </div>
               )}
               {b.transactions.map((t) => {
-                const m = methodLabel(t);
-                const named = !m.startsWith("0x");
+                const m = method(t);
                 const value = Number(t.value);
                 return (
-                  <Link
-                    key={t.hash}
-                    href={`${base}/tx/${t.hash}`}
-                    className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_12rem] md:py-0 md:px-6 dark:hover:bg-zinc-900"
-                  >
+                  <RowDoor key={t.hash} id={`tx-${t.hash}`} href={`${base}/tx/${t.hash}`} className={cn(ROW, "md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}>
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
-                    <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-50">
-                      {truncate(t.hash, 12)}
-                    </span>
+                    <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(t.hash, 6)}</span>
                     <span className="min-w-0">
                       <CellLabel>Method</CellLabel>
                       <span
-                        className={cn("block truncate font-mono text-[12px]", named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")}
+                        className={cn("block truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")}
                         title={t.methodId || undefined}
                       >
-                        {m}
+                        {m.label}
                       </span>
                     </span>
-                    <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+                    <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
                       <span className="truncate">{truncate(t.from, 8)}</span>
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
@@ -260,20 +496,27 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                       )}
                     </span>
                     <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                      <CellLabel>Gas Used</CellLabel>
+                      <CellLabel>Gas Charged</CellLabel>
                       {formatNumber(t.gasUsed)}
                     </span>
                     <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", value > 0 ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 dark:text-zinc-600")}>
                       <CellLabel>Value</CellLabel>
-                      {value > 0 ? formatEther(t.value, { decimals: 4 }) : "0"}{" "}
-                      <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
-                      {value > 0 && usdOfWei(t.value, usd) && (
-                        <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>
+                      {value > 0 ? (
+                        <>
+                          {formatEther(t.value, { decimals: 4 })} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
+                        </>
+                      ) : (
+                        <span className="text-zinc-300 dark:text-zinc-700">—</span>
                       )}
                     </span>
-                  </Link>
+                    <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
+                      {(value > 0 && usdOfWei(t.value, usd)) || ""}
+                    </span>
+                  </RowDoor>
                 );
               })}
+                          </div>
+              </div>
             </Board>
           </section>
         </div>

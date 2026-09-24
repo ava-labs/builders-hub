@@ -117,7 +117,7 @@ export function EvmChainDetails({
 
   return (
     <>
-    <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[1.05fr_1fr]">
+    <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-[1.05fr_1fr]">
       {/* what it's doing, and how to reach it */}
       <section className="flex flex-col gap-4">
         <SectionHeader

@@ -177,7 +177,7 @@ export function EvmStats({
           </Board>
 
           {/* who's here */}
-          <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection
               label={`Active Addresses${weekFloor(range)}`}
               action={<OverlayKey label="senders" />}
@@ -216,7 +216,7 @@ export function EvmStats({
           </div>
 
           {/* the long arc */}
-          <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection label={`Total Addresses${weekFloor(range)}`}>
               {series("cumulativeAddresses").length ? (
                 <DualChart
@@ -245,7 +245,7 @@ export function EvmStats({
           </div>
 
           {/* what's being built, and what it burns */}
-          <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection
               label={`Contracts Deployed${weekFloor(range)}`}
               action={<OverlayKey label="deployers" dashed />}
@@ -264,7 +264,7 @@ export function EvmStats({
               )}
             </ChartSection>
 
-            <ChartSection label={`Gas Used${weekFloor(range)}`}>
+            <ChartSection label={`Gas Charged${weekFloor(range)}`}>
               {series("gasUsed").length ? (
                 <DualChart data={series("gasUsed")} kind="bars" fmt={fmtCompact} aLabel="gas" />
               ) : (
@@ -274,7 +274,7 @@ export function EvmStats({
           </div>
 
           {/* the price of blockspace */}
-          <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             <ChartSection label={`Fees Paid${weekFloor(range)}`}>
               {series("feesPaid").length ? (
                 <DualChart
