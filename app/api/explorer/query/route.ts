@@ -8,6 +8,7 @@ import { runQuery, schemaCard, coverage } from "@/lib/explorer-query/clickhouse"
 import { chartSpecSchema, drillSchema, type QueryAnswer, type Turn } from "@/lib/explorer-query/types";
 import { enrichNames, fillDrill } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
+import { designVisual } from "@/lib/explorer-query/visual";
 import { systemPrompt } from "@/lib/explorer-query/prompt";
 import { checkChatRateLimit, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -22,9 +23,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-// Opus for the design of the query: it has to hold the schema, the gas
-// vocabulary and the drill contract at once and get the SQL right first time
-const MODEL = "claude-opus-5-5";
+// two models, two jobs: Sonnet turns the question into SQL and a drill;
+// Opus (lib/explorer-query/visual.ts) then designs how the rows are shown
+const MODEL = "claude-sonnet-5";
 /** the most records one drill lists */
 const DRILL_ROWS = 100;
 const MAX_STEPS = 8;
@@ -142,7 +143,7 @@ export async function POST(req: Request) {
     }),
     execute: async ({ title, note, sql, chart, drill }) => {
       if (chart.kind === "none") {
-        final = { title, note, sql: "", chart, drill: null, result: null, names: {} };
+        final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null };
         return { ok: true };
       }
       const g = guardSql(sql, chainId);
@@ -162,7 +163,7 @@ export async function POST(req: Request) {
             return { error: `drill: ${e instanceof Error ? e.message : String(e)}` };
           }
         }
-        final = { title, note, sql: g.sql, chart, drill: drill ?? null, result, names: {} };
+        final = { title, note, sql: g.sql, chart, drill: drill ?? null, result, names: {}, visual: null };
         return { ok: true, rows: result.rowCount };
       } catch (e) {
         return { error: e instanceof Error ? e.message : String(e) };
@@ -192,7 +193,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "no chart came back", text: text.slice(0, 600) }, { status: 422 });
   }
   const done = final as QueryAnswer;
-  if (done.result) done.names = await enrichNames(chainId, done.result.columns, done.result.rows, baseUrl);
-  const answer: QueryAnswer = { ...done, model: { steps, ms: Date.now() - t0, tries } };
+  const sqlMs = Date.now() - t0;
+  let designMs = 0;
+  let designer = false;
+  let designError: string | undefined;
+  if (done.result) {
+    done.names = await enrichNames(chainId, done.result.columns, done.result.rows, baseUrl);
+    const d = await designVisual({ question: prompt, title: done.title, note: done.note, symbol, columns: done.result.columns, rows: done.result.rows, names: done.names, chart: done.chart });
+    done.visual = d.visual;
+    designMs = d.ms;
+    designer = d.fromDesigner;
+    designError = d.error;
+  }
+  const answer: QueryAnswer = { ...done, model: { steps, ms: sqlMs, tries, designMs, designer, designError } };
   return NextResponse.json(answer);
 }

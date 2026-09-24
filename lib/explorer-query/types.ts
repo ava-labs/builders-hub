@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { QueryResult } from "./clickhouse";
+import type { VisualSpec } from "./visual";
 
 /* The shapes that cross from the query route to the page. */
 
@@ -47,7 +48,9 @@ export interface QueryAnswer {
   drill: Drill | null;
   result: QueryResult | null;
   names: Names;
-  model?: { steps: number; ms: number; tries: number };
+  /** how the designer laid the answer out; the page draws this */
+  visual: VisualSpec | null;
+  model?: { steps: number; ms: number; tries: number; designMs?: number; designer?: boolean; designError?: string };
 }
 
 export interface DrillAnswer {

@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Area, Bar, Brush, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, SectionHeader, HEAD, ROW, INK, idInk, fnInk } from "@/components/explorer-v2/ui";
@@ -13,6 +11,8 @@ import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.
 import { setSelection, askAbout } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
 import type { ColumnMeta, QueryResult } from "@/lib/explorer-query/clickhouse";
+import type { VisualSpec } from "@/lib/explorer-query/visual";
+import { QueryVisual } from "./QueryVisual";
 
 /* Ask the chain a question; get a chart you can audit. The model writes
    one ClickHouse SELECT; the page draws the rows and shows the SQL that
@@ -22,8 +22,6 @@ import type { ColumnMeta, QueryResult } from "@/lib/explorer-query/clickhouse";
    underneath, each a door to its own page. A brush selects a range and
    asks the next question about that alone; the chat bubble can be asked
    about whatever is open. */
-
-const TONES = ["#E6212F", "#0061E2", "#0d9488", "#d97706", "#7c3aed", "#db2777"];
 
 const EXAMPLES = [
   "Most popular methods over the last 7 days",
@@ -49,16 +47,6 @@ function fmtNum(v: unknown): string {
   if (Number.isInteger(v)) return formatNumber(v);
   const a = Math.abs(v);
   return a >= 1000 ? formatNumber(Math.round(v)) : a >= 1 ? v.toFixed(2) : a >= 0.01 ? v.toFixed(4) : v.toPrecision(3);
-}
-
-function fmtAxis(v: unknown): string {
-  if (typeof v !== "number") return String(v ?? "");
-  const a = Math.abs(v);
-  if (a >= 1e12) return `${(v / 1e12).toFixed(1)}T`;
-  if (a >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
-  if (a >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
-  if (a >= 1e3) return `${(v / 1e3).toFixed(1)}k`;
-  return Number.isInteger(v) ? String(v) : v.toFixed(2);
 }
 
 type Span = "minutes" | "hours" | "days" | "other";
@@ -208,7 +196,6 @@ interface OpenDrill {
 
 export function EvmQuery({ network }: { network: string }) {
   const c = useChainContext();
-  const router = useRouter();
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
 
@@ -278,6 +265,8 @@ export function EvmQuery({ network }: { network: string }) {
         // keep the chart if its columns survived the edit, else fall back to rows
         const cols = new Set(body.result.columns.map((k) => k.name));
         const keep = chart.kind !== "none" && (!chart.x || cols.has(chart.x)) && chart.series.every((s) => cols.has(s.column));
+        const v = prev?.visual;
+        const keepVisual = !!v && v.panels.every((pn) => (!pn.x || cols.has(pn.x)) && pn.series.every((sr) => cols.has(sr.column))) && v.stats.every((st) => cols.has(st.column));
         return {
           title: prev?.title ?? "Your query",
           note: "Edited by hand and re-run.",
@@ -286,6 +275,7 @@ export function EvmQuery({ network }: { network: string }) {
           drill: keep ? (prev?.drill ?? null) : null,
           result: body.result,
           names: body.names ?? {},
+          visual: keepVisual ? v : null,
         };
       });
     } catch (e) {
@@ -360,35 +350,16 @@ export function EvmQuery({ network }: { network: string }) {
 
   const rows: Row[] = answer?.result?.rows ?? [];
   const names = answer?.names ?? {};
-  const chart = answer?.chart;
-  const xKey = chart?.x;
-  const span = useMemo(() => (xKey ? spanOf(rows.map((r) => r[xKey])) : "other"), [rows, xKey]);
-  const drawable = !!chart && chart.kind !== "table" && chart.kind !== "none" && !!xKey && chart.series.length > 0 && rows.length > 0;
-  // the x axis names records (block numbers): clicking a point opens one
-  const xDoors = !!xKey && rows.length > 0 && !!doorFor(xKey, rows[0][xKey], base);
   const canDrill = !!answer?.drill;
-  const xLabel = (v: unknown) => (xKey ? (nameFor(names, xKey, v) ?? fmtX(v, span)) : "");
-
-  // the brushed range, summed per series; shares and rates average instead
-  const picked = range ? rows.slice(range[0], range[1] + 1) : rows;
-  const isRatio = (s: { unit?: string; label: string; column: string }) => /%|share|ratio|rate|price|avg|average|median|p\d\d/i.test(`${s.unit ?? ""} ${s.label} ${s.column}`);
-  const sums =
-    chart?.series.map((s) => {
-      const vals = picked.map((r) => r[s.column]).filter((v): v is number => typeof v === "number");
-      const total = vals.reduce((acc, v) => acc + v, 0);
-      return isRatio(s) && vals.length ? total / vals.length : total;
-    }) ?? [];
-  const rangeLabel = range && xKey ? `${xLabel(rows[range[0]]?.[xKey])} to ${xLabel(rows[range[1]]?.[xKey])}` : null;
-
-  const onPoint = (row: Row | undefined) => {
-    if (!row || !xKey) return;
-    if (canDrill) {
-      const i = rows.indexOf(row);
-      void openDrill(row, i);
-      return;
-    }
-    const door = doorFor(xKey, row[xKey], base);
-    if (door) router.push(door);
+  // the designer's layout, or the rows alone when it had nothing to draw
+  const visual: VisualSpec | null = answer?.visual ?? null;
+  const tableOnly = !visual || visual.panels.every((p) => p.kind === "table");
+  // for the rows table: how time reads, from the first panel's x
+  const firstX = visual?.panels.find((p) => p.x)?.x;
+  const span = useMemo(() => (firstX ? spanOf(rows.map((r) => r[firstX])) : "other"), [rows, firstX]);
+  const onPoint = (row: Row) => {
+    const i = rows.indexOf(row);
+    if (i >= 0) void openDrill(row, i);
   };
 
   return (
@@ -466,116 +437,29 @@ export function EvmQuery({ network }: { network: string }) {
             <Board divide={false} className="flex flex-col gap-5 border px-5 py-5 md:px-6">
               {answer.note && <p className="font-mono text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-300">{answer.note}</p>}
 
-              {/* the chart */}
-              {drawable && chart && xKey && (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
-                    <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
-                      {chart.series.map((s, i) => (
-                        <span key={s.column} className="flex items-center gap-1.5">
-                          <span className="h-2 w-2" style={{ background: TONES[i % TONES.length] }} />
-                          {s.label}
-                          {s.unit && <span className="text-zinc-400 dark:text-zinc-600">{s.unit}</span>}
-                        </span>
-                      ))}
-                    </span>
-                    <span className="text-zinc-300 dark:text-zinc-600">hover reads · {canDrill ? "click opens the records" : xDoors ? "click opens the block" : "drag selects"}</span>
-                  </div>
-                  <div className="h-72 text-zinc-900 dark:text-zinc-100">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart
-                        data={rows}
-                        margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                        barCategoryGap="18%"
-                        className={xDoors || canDrill ? "cursor-pointer" : undefined}
-                        onClick={(s) => onPoint((s as { activePayload?: { payload: Row }[] } | null)?.activePayload?.[0]?.payload)}
-                      >
-                        <CartesianGrid vertical={false} stroke="rgba(161,161,170,0.18)" />
-                        <XAxis dataKey={xKey} tickFormatter={xLabel} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} minTickGap={28} interval={rows.length <= 16 ? 0 : "preserveEnd"} />
-                        <YAxis tickFormatter={fmtAxis} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={52} />
-                        <RechartsTooltip
-                          cursor={chart.kind === "bar" ? { fill: "rgba(161,161,170,0.10)" } : { stroke: "rgba(161,161,170,0.4)" }}
-                          content={({ active, payload }) => {
-                            if (!active || !payload?.[0]) return null;
-                            const r = payload[0].payload as Row;
-                            const name = nameFor(names, xKey, r[xKey]);
-                            return (
-                              <TipPlate>
-                                <p className="font-mono text-[10px] text-zinc-500">
-                                  {name ?? fmtX(r[xKey], span)}
-                                  {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[xKey]).length > 20 ? truncate(String(r[xKey]), 6) : String(r[xKey])}</span>}
-                                </p>
-                                {chart.series.map((s, i) => (
-                                  <p key={s.column} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                                    <span className="h-1.5 w-1.5" style={{ background: TONES[i % TONES.length] }} />
-                                    {fmtNum(r[s.column])} <span className="text-zinc-400">{s.unit ?? s.label}</span>
-                                  </p>
-                                ))}
-                                {(canDrill || xDoors) && <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-300 dark:text-zinc-600">{canDrill ? "click for the records" : "click opens"}</p>}
-                              </TipPlate>
-                            );
-                          }}
-                        />
-                        {chart.series.map((s, i) => {
-                          const tone = TONES[i % TONES.length];
-                          if (chart.kind === "bar") return <Bar key={s.column} dataKey={s.column} fill={tone} fillOpacity={0.85} stackId={chart.stacked ? "s" : undefined} isAnimationActive={false} minPointSize={1} />;
-                          if (chart.kind === "area") return <Area key={s.column} type="monotone" dataKey={s.column} stroke={tone} fill={tone} fillOpacity={0.18} strokeWidth={1.5} stackId={chart.stacked ? "s" : undefined} isAnimationActive={false} />;
-                          return <Line key={s.column} type="monotone" dataKey={s.column} stroke={tone} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />;
-                        })}
-                        {rows.length > 12 && (
-                          <Brush
-                            dataKey={xKey}
-                            height={22}
-                            travellerWidth={8}
-                            stroke="#A2AFB2"
-                            fill="transparent"
-                            tickFormatter={xLabel}
-                            onChange={(r) => {
-                              const s = r?.startIndex ?? 0;
-                              const e = r?.endIndex ?? rows.length - 1;
-                              setRange(s === 0 && e === rows.length - 1 ? null : [s, e]);
-                            }}
-                          />
-                        )}
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-
-                  {/* what the brush picked out */}
-                  {range && (
-                    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border border-zinc-900 px-3 py-2 font-mono text-[11px] dark:border-zinc-100">
-                      <span className="flex flex-wrap items-baseline gap-x-3 tabular-nums text-zinc-900 dark:text-zinc-50">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E6212F]">Selected</span>
-                        <span>{range[1] - range[0] + 1} points</span>
-                        <span className="text-zinc-500 dark:text-zinc-400">{rangeLabel}</span>
-                        {chart.series.map((s, i) => (
-                          <span key={s.column} className="text-zinc-500 dark:text-zinc-400">
-                            {isRatio(s) ? "avg " : ""}
-                            {fmtNum(sums[i])} {s.unit ?? s.label}
-                          </span>
-                        ))}
-                      </span>
-                      <span className="flex items-center gap-4 text-[10px] uppercase tracking-[0.14em]">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const lo = rows[range[0]]?.[xKey];
-                            const hi = rows[range[1]]?.[xKey];
-                            void ask(`Only between ${String(lo)} and ${String(hi)} (inclusive), same figures, finer buckets if that helps.`, true);
-                          }}
-                          className="text-zinc-600 hover:text-[#E6212F] dark:text-zinc-300"
-                        >
-                          Zoom in
-                        </button>
-                        <button type="button" onClick={() => setRange(null)} className="text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-50">
-                          Clear
-                        </button>
-                      </span>
-                    </div>
-                  )}
-                </div>
+              {/* the visual the designer laid out */}
+              {visual && !tableOnly && (
+                <QueryVisual
+                  visual={visual}
+                  rows={rows}
+                  names={names}
+                  sym={sym}
+                  canDrill={canDrill}
+                  onPick={onPoint}
+                  range={range}
+                  onRange={setRange}
+                  onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} (inclusive), same figures, finer buckets if that helps.`, true)}
+                />
               )}
-
+              {visual && tableOnly && visual.callouts.length > 0 && (
+                <ul className="flex flex-col gap-1.5 border-l-2 border-zinc-900 pl-4 dark:border-zinc-100">
+                  {visual.callouts.map((k, i) => (
+                    <li key={i} className="font-mono text-[12px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+                      {k}
+                    </li>
+                  ))}
+                </ul>
+              )}
               {answer.chart.kind === "none" && <p className="font-mono text-[12px] text-zinc-500">Nothing to draw for this question.</p>}
 
               {/* provenance: where the figures came from */}
@@ -588,7 +472,8 @@ export function EvmQuery({ network }: { network: string }) {
                     </span>
                     <span>{formatNumber(answer.result.rowsRead)} rows read</span>
                     <span>{(answer.result.elapsedMs / 1000).toFixed(2)} s</span>
-                    {answer.model && <span>model {(answer.model.ms / 1000).toFixed(0)} s · {answer.model.tries} tr{answer.model.tries === 1 ? "y" : "ies"}</span>}
+                    {answer.model && <span>sql {(answer.model.ms / 1000).toFixed(0)} s · {answer.model.tries} tr{answer.model.tries === 1 ? "y" : "ies"}</span>}
+                    {answer.model?.designMs ? <span>{answer.model.designer ? "designed by opus" : "basic layout"} {(answer.model.designMs / 1000).toFixed(0)} s</span> : null}
                     <span>{answer.result.ranAt.slice(11, 19)} UTC</span>
                   </span>
                   <button type="button" onClick={() => setShowSql((v) => !v)} className={cn("transition-colors hover:text-[#E6212F]", showSql && "text-zinc-900 dark:text-zinc-50")}>

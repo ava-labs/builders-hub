@@ -49,6 +49,9 @@ const SETTINGS: Record<string, string> = {
   max_bytes_before_external_group_by: "3000000000",
   max_memory_usage: "9000000000",
   max_rows_to_read: "20000000000",
+  // a SELECT that aliases hex(method_id) AS method_id must still filter on
+  // the column in WHERE, not on its own alias
+  prefer_column_name_to_alias: "1",
 };
 
 interface RawJson {
