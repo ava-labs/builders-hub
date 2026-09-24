@@ -589,11 +589,22 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
               </motion.div>
             )}
           </AnimatePresence>
+          {!answer && !busy && (
+            // the landing's one line of intent, above the box it points at
+            <div className="flex flex-col gap-1.5 pt-2 sm:pt-4">
+              <h1 className="text-[26px] font-semibold tracking-tight text-zinc-900 sm:text-[32px] dark:text-zinc-50">Ask {c.chainName}</h1>
+              <p className="max-w-2xl text-[14.5px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                {c.kind === "pchain"
+                  ? "Validators, delegations, L1s and supply, in plain words. Each answer is SQL over the P-Chain's own records, drawn as charts you can filter and pin."
+                  : "Transactions, gas, contracts and tokens, in plain words. Each answer is SQL over every block, drawn as charts you can filter and pin."}
+              </p>
+            </div>
+          )}
           {input}
           {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
-            <div className="flex flex-col gap-6 pt-3">
+            <div className="flex flex-col pt-1">
               <QueryHome chain={c.chainSlug ?? String(c.chainId)} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />
             </div>
           )}
