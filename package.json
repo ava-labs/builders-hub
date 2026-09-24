@@ -3,13 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "resolutions": {
+    "**/ethers/ws": "^8.21.3",
+    "**/viem/ws": "^8.21.3",
+    "@ai-sdk/provider-utils": "^4.0.33",
+    "@dicebear/initials": "^9.4.3",
     "@modelcontextprotocol/sdk": "^1.26.0",
+    "@noble/secp256k1": "^2.0.0",
+    "@shikijs/types": "3.23.0",
     "axios": "^1.18.0",
+    "effect": "^3.20.0",
     "fast-xml-parser": ">=5.5.9",
     "katex": "0.16.35",
-    "@shikijs/types": "3.23.0",
     "next": "^16.3.3",
-    "@noble/secp256k1": "^2.0.0"
+    "underscore": "^1.13.8",
+    "yaml": "^2.9.1"
   },
   "scripts": {
     "build": "tsc --noEmit && next build",
