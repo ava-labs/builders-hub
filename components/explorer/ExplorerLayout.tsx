@@ -55,6 +55,9 @@ interface ExplorerLayoutProps {
   // Drop the chain-identity header (ChainHeader + search) entirely — for
   // detail subpages that carry their own title and breadcrumb back up
   hideHeader?: boolean;
+  // Drop only the chain's name block and keep the search: for tabs whose
+  // subject is not the chain itself (the validator set is the network's)
+  hideIdentity?: boolean;
   // Latest block for validation (optional)
   latestBlock?: number;
 }
@@ -72,6 +75,7 @@ export function ExplorerLayout({
   loading = false,
   showSearch = false,
   hideHeader = false,
+  hideIdentity = false,
   latestBlock,
 }: ExplorerLayoutProps) {
   // L1s wear their own brand color as the accent (live dots, tape cube,
@@ -333,6 +337,8 @@ export function ExplorerLayout({
           // `header > div` (the global navbar padding hack)
           <Rise delay={0.05}>
           <header className="flex flex-col gap-6 pb-6">
+            {!hideIdentity && (
+            <>
             {/* chain identity — shared with the stats surfaces */}
             <ChainHeader
               chainName={chainName}
@@ -365,6 +371,8 @@ export function ExplorerLayout({
                   : undefined
               }
             />
+            </>
+            )}
 
             {/* search — identical grammar to the P-Chain shell's SearchBox:
                 hairline field, icon left, "/" affordance, Enter to submit.

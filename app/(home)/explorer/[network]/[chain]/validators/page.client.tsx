@@ -35,6 +35,7 @@ export function ChainValidatorsPageClient({ chainSlug }: { chainSlug: string }) 
       website={chain.website}
       socials={chain.socials}
       rpcUrl={chain.rpcUrl}
+      hideIdentity
     >
       <div className="mx-auto w-full max-w-[90rem] px-5 pb-16 pt-2 md:px-6">
         {isPrimarySet ? (
