@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
+import type { Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
 
 /* Draws what the designer specified: a strip of headline figures, one
@@ -469,6 +470,8 @@ export function QueryVisual({
   selected,
   hoverKey,
   onHoverKey,
+  selection,
+  onSelection,
 }: {
   visual: VisualSpec;
   rows: Row[];
@@ -482,7 +485,12 @@ export function QueryVisual({
   selected?: unknown;
   hoverKey?: unknown;
   onHoverKey?: (k: unknown) => void;
+  /** the reader's picks; the page owns them (lib/explorer-query/selection.ts) */
+  selection?: Selection;
+  onSelection?: (s: Selection) => void;
 }) {
+  void selection;
+  void onSelection;
   const charts = visual.panels.filter((p) => p.kind !== "table" && p.x && p.series.length > 0);
   // one panel carries the brush: the first full-width time series
   const brushIdx = charts.findIndex((p) => p.kind !== "hbar" && p.kind !== "scatter" && p.width === "full" && spanOf(rows.map((r) => r[p.x!])) !== "other");
