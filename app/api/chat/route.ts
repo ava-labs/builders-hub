@@ -231,6 +231,8 @@ export async function POST(req: Request) {
   // the page the visitor has open: identity for the prompt, data on demand
   const pageRef = parsePageRef(page?.path);
   const pageMode = !!pageRef && pageRef.kind !== 'site';
+  // what the reader picked out on the page, as the visual described it
+  const selection = pageRef && typeof page?.selection === 'string' ? page.selection.slice(0, 3000) : null;
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -392,6 +394,7 @@ export async function POST(req: Request) {
     ]);
     pageContext = `\n\n${brief}\n`;
     if (docText) pageContext += `\n=== CURRENT PAGE CONTENT ===\n${docText}\n=== END CURRENT PAGE CONTENT ===\n`;
+    if (selection) pageContext += `\n=== SELECTED ON THIS PAGE ===\n${selection}\n=== END SELECTED ===\n`;
     console.log(`[PageContext] ${pageRef.kind} ${pageRef.path} (${pageContext.length} chars)`);
   }
 
@@ -968,5 +971,6 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 When code context is provided in the context block, use it directly with GitHub links. Only search GitHub if context is insufficient.
 
 ## Current Page
-When a CURRENT PAGE block is present, the user is looking at that page right now. Treat "this", "here", "this transaction", "this number" as references to it, and call page_data before you explain what it shows.`;
+When a CURRENT PAGE block is present, the user is looking at that page right now. Treat "this", "here", "this transaction", "this number" as references to it, and call page_data before you explain what it shows.
+When a SELECTED ON THIS PAGE block is present, the user picked those records out by hand. "This", "these", "the selected" mean the selection. Answer about the selection first; use page_data only when the selection alone cannot answer. Link the records the selection lists.`;
 }

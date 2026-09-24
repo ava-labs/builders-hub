@@ -12,6 +12,7 @@ import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, pha
 import { LiveReadout } from "./EvmOverviewStats";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
+import { BlockRangeMap } from "./BlockRangeMap";
 
 /* The Blocks tab: the chain's pace, then the chain itself. A strip of
    live cadence readings (block time, blocks per minute, TPS, gas per
@@ -140,6 +141,13 @@ export function EvmBlocksList({ network }: { network: string }) {
                 },
               ]}
             />
+          </section>
+        )}
+
+        {rows.length > 1 && (
+          <section className="flex flex-col gap-4">
+            <SectionHeader label="Block Map" />
+            <BlockRangeMap blocks={live ? head.heads.slice(0, 100) : rows} base={base} live={live} />
           </section>
         )}
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { ASK_EVENT, getSelection } from '@/components/explorer-v2/dig/selection';
 import { usePathname, useRouter } from 'next/navigation';
 import { useChat, type UIMessage } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
@@ -100,6 +101,19 @@ export function ChatBubble() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // "Ask about this" on an explorer visual: open and send the question
+  // with the selection attached
+  useEffect(() => {
+    const onAsk = (e: Event) => {
+      const prompt = (e as CustomEvent<{ prompt: string }>).detail?.prompt;
+      if (!prompt) return;
+      setState('expanded');
+      sendMessage({ text: prompt }, { body: { page: { path: pathname, selection: getSelection()?.brief } } });
+    };
+    window.addEventListener(ASK_EVENT, onAsk);
+    return () => window.removeEventListener(ASK_EVENT, onAsk);
+  }, [pathname, sendMessage]);
+
   // Hide on /chat and /console pages, AFTER all hooks to avoid Rules of Hooks violation
   if (pathname.startsWith('/chat') || pathname.startsWith('/console')) {
     return null;
@@ -129,6 +143,9 @@ export function ChatBubble() {
   // the page the visitor has open travels with every message, so the
   // assistant can explain what is on screen; the full chat inherits it
   const page = { path: pathname };
+  // what the reader has picked out on the page (a run of txs on a gas
+  // map, a range of blocks) rides along too, read at send time
+  const pageWithSelection = () => ({ ...page, selection: getSelection()?.brief });
   const knowsPage = pathname.startsWith('/explorer') || pathname.startsWith('/docs') || pathname.startsWith('/academy');
 
   const handleOpenFullChat = () => {
@@ -151,7 +168,7 @@ export function ChatBubble() {
 
   const onSubmit = () => {
     if (!inputValue.trim() || isLoading) return;
-    sendMessage({ text: inputValue.trim() }, { body: { page } });
+    sendMessage({ text: inputValue.trim() }, { body: { page: pageWithSelection() } });
     setInputValue('');
     setState('expanded');
   };
