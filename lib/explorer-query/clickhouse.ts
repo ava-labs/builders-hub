@@ -83,16 +83,49 @@ interface StatsQueryJson {
   message?: string;
 }
 
+/* the endpoint runs two ad-hoc queries at once and turns a third away
+   (503), so this instance holds its own two slots and waits for one */
+const STATS_SLOTS = 2;
+let statsBusy = 0;
+const statsQueue: (() => void)[] = [];
+
+async function statsSlot<T>(run: () => Promise<T>): Promise<T> {
+  if (statsBusy >= STATS_SLOTS) await new Promise<void>((r) => statsQueue.push(r));
+  statsBusy += 1;
+  try {
+    return await run();
+  } finally {
+    statsBusy -= 1;
+    statsQueue.shift()?.();
+  }
+}
+
 async function postStats(sql: string): Promise<RawJson> {
   const key = process.env.STATS_QUERY_KEY;
   if (!key) throw new Error("STATS_QUERY_KEY is not set");
-  const res = await fetch(STATS_QUERY_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Query-Key": key },
-    body: JSON.stringify({ sql, maxRows: MAX_ROWS, timeoutSeconds: QUERY_TIMEOUT_S, format: "json" }),
-    signal: AbortSignal.timeout((QUERY_TIMEOUT_S + 10) * 1000),
-  });
-  const text = await res.text();
+  // busy (503) and over the rate (429) are worth a short wait; other
+  // instances share the key, so this one's slots are not the whole story
+  let res: Response | null = null;
+  let text = "";
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    // the rows stream: the query runs until the body is read, so the slot is held until then
+    const got = await statsSlot(async () => {
+      const r = await fetch(STATS_QUERY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Query-Key": key },
+        body: JSON.stringify({ sql, maxRows: MAX_ROWS, timeoutSeconds: QUERY_TIMEOUT_S, format: "json" }),
+        signal: AbortSignal.timeout((QUERY_TIMEOUT_S + 10) * 1000),
+      });
+      return { r, t: await r.text() };
+    });
+    res = got.r;
+    text = got.t;
+    if (res.status !== 429 && res.status !== 503) break;
+    const after = Number(res.headers.get("retry-after"));
+    if (attempt === 3) break;
+    await new Promise((r) => setTimeout(r, Math.min(8, Number.isFinite(after) && after > 0 ? after : 1 + attempt) * 1000));
+  }
+  if (!res) throw new Error("stats-api did not answer");
   let body: StatsQueryJson;
   try {
     body = JSON.parse(text) as StatsQueryJson;
