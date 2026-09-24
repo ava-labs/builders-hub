@@ -137,7 +137,16 @@ async function postStats(sql: string): Promise<RawJson> {
     throw new Error((body.error ?? body.message ?? `stats-api ${res.status}`).replace(/^clickhouse:\s*/, "").slice(0, 500));
   }
   const meta = body.columns.map((name, i) => ({ name, type: body.types[i] ?? "String" }));
-  const data = body.rows.map((r) => Object.fromEntries(meta.map((c, i) => [c.name, r[i]])));
+  // the endpoint writes times as ISO (2026-09-24T16:25:46Z); ClickHouse's own
+  // format (2026-09-24 16:25:46) is what the page reads as time
+  const times = new Set(meta.filter((c) => /^(Nullable\()?DateTime/.test(c.type)).map((c) => c.name));
+  const days = new Set(meta.filter((c) => /^(Nullable\()?Date(32)?(\)|$)/.test(c.type)).map((c) => c.name));
+  const tidy = (name: string, v: unknown) => {
+    if (typeof v !== "string") return v;
+    if (days.has(name)) return v.slice(0, 10);
+    return times.has(name) ? v.replace("T", " ").replace(/(\.\d+)?Z$/, "") : v;
+  };
+  const data = body.rows.map((r) => Object.fromEntries(meta.map((c, i) => [c.name, tidy(c.name, r[i])])));
   return { meta, data, rows: body.rowCount, statistics: { elapsed: body.elapsedMs / 1000, rows_read: 0, bytes_read: 0 } };
 }
 
