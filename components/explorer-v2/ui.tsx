@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -141,13 +142,15 @@ export function Board({
   children,
   className,
   divide = true,
+  ...rest
 }: {
   children: React.ReactNode;
   className?: string;
   divide?: boolean;
-}) {
+} & Pick<React.HTMLAttributes<HTMLDivElement>, "onMouseEnter" | "onMouseLeave">) {
   return (
     <div
+      {...rest}
       className={cn(
         "border-b border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80",
         divide && "divide-y divide-zinc-200 dark:divide-zinc-800",
@@ -185,7 +188,7 @@ export function ChartBoard({
     <>
       <div
         className={cn(
-          "flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 transition-colors md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40",
+          "flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 transition-colors md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40",
           href && "group-hover/chart:bg-zinc-100 dark:group-hover/chart:bg-zinc-900",
         )}
       >
@@ -201,7 +204,7 @@ export function ChartBoard({
     </>
   );
   const frame =
-    "border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80";
+    "min-w-0 border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80";
   if (href) {
     return (
       <Link
@@ -235,21 +238,14 @@ export function SpecRow({
   align?: "baseline" | "start";
 }) {
   return (
-    // hierarchy over volume: quiet mono label, sans value. Mono in the value
-    // column is reserved for identifiers (HashChip carries its own font-mono),
-    // so hashes read as data while types, dates, and amounts read as language.
-    <div
-      className={cn(
-        "flex justify-between gap-6 py-3.5",
-        align === "baseline" ? "items-baseline" : "items-start",
-      )}
-    >
-      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+    // the same sheet as SpecLine: a fixed label column, the value beside it,
+    // so every detail page on every chain sets its identifiers the same way
+    // on a phone the label stands over its value; from sm up they share a line
+    <div className={cn("flex flex-col gap-1 py-3 sm:flex-row sm:gap-6", align === "baseline" ? "sm:items-baseline" : "sm:items-start")}>
+      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-32 md:w-40 dark:text-zinc-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-right text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">
-        {children}
-      </dd>
+      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 [overflow-wrap:anywhere] dark:text-zinc-50">{children}</dd>
     </div>
   );
 }
@@ -318,6 +314,7 @@ export function StatCell({
   live = false,
   href,
   sub,
+  even = false,
   children,
 }: {
   label: string;
@@ -325,6 +322,9 @@ export function StatCell({
   href?: string;
   /** Optional muted line under the figure — a qualifier or an affordance hint. */
   sub?: React.ReactNode;
+  /** hold the sub line's height even when there is no sub, so every
+   *  figure in a grid of these sits on the same line */
+  even?: boolean;
   children: React.ReactNode;
 }) {
   const cls = "flex flex-col gap-1.5 px-5 py-5 md:px-6";
@@ -332,19 +332,18 @@ export function StatCell({
     <>
       <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400 lg:whitespace-nowrap">
         {live && (
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
-          </span>
+          <LiveDot />
         )}
         {label}
       </span>
       {children}
-      {sub != null && (
-        <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
+      {sub != null ? (
+        <span className="font-mono text-[10px] leading-4 tracking-[0.04em] text-zinc-400 dark:text-zinc-500">
           {sub}
         </span>
-      )}
+      ) : even ? (
+        <span aria-hidden className="h-4" />
+      ) : null}
     </>
   );
   return href ? (
@@ -409,10 +408,7 @@ export function DetailSkeleton({ label }: { label: string }) {
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <p className="flex shrink-0 items-center gap-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
-            </span>
+            <LiveDot />
             {label}
           </p>
           <div className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
@@ -420,7 +416,7 @@ export function DetailSkeleton({ label }: { label: string }) {
         </div>
 
         {/* two rails of spec-plate row shapes, like the loaded page */}
-        <div className="grid items-start gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
           {[0, 1].map((col) => (
             <Board key={col} divide={false} className="px-5 py-2 md:px-6">
               <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -489,7 +485,132 @@ export function DarkToggle<T extends string>({
    whether it's a standalone HashChip link or the lead cell of a row-
    Link (where a nested <a> is invalid and the row itself navigates).
    Blue = "this ID takes you to its page", everywhere, no exceptions. */
+/* the ledger's color code, the same on every table and in the trace:
+   identifiers blue, functions violet, what it cost red. Everything else is
+   ink or gray, so a row scans by hue before it is read. */
 export const idInk = "text-[#0061E2] dark:text-[#5f9dff]";
+export const fnInk = "text-violet-700 dark:text-violet-300";
+export const feeInk = "text-red-700 dark:text-red-300";
+
+/* ------------------------------------------------------------------ */
+/* Ledger voices: the shared classes every table and strip is set in.  */
+/** a column header row, hidden on phones where rows label their own cells */
+export const HEAD =
+  "hidden gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500";
+/** a row: two columns on phones, one 44px line at md and up */
+export const ROW =
+  "grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:py-0 md:px-6 dark:hover:bg-zinc-900";
+/** identity in a cell */
+export const INK = "font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50";
+/** a quiet measurement in a cell */
+export const MUTED = "font-mono text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500";
+/** a strip figure, and the unit beside it */
+export const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
+export const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
+
+/** the live pulse: a small green dot with a ping ring. Red belongs to
+ *  alerts, reverts and drops; a healthy feed should not look like one. */
+export const LIVE_DOT = "bg-emerald-500 dark:bg-emerald-400";
+export function LiveDot({ className, size = "h-1.5 w-1.5" }: { className?: string; size?: string }) {
+  return (
+    <span className={cn("relative flex", size, className)}>
+      <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", LIVE_DOT)} />
+      <span className={cn("relative inline-flex rounded-full", size, LIVE_DOT)} />
+    </span>
+  );
+}
+
+/** A row that opens a page on click and Enter without being an anchor,
+ *  so the hash, the parties and the token inside it can be real links.
+ *  Nested anchors are invalid HTML; this keeps one link per identifier. */
+export function RowDoor({ href, className, children, title, id }: { href: string; className?: string; children: React.ReactNode; title?: string; id?: string }) {
+  const router = useRouter();
+  return (
+    <div
+      id={id}
+      role="link"
+      tabIndex={0}
+      title={title}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("a, button")) return;
+        if (e.metaKey || e.ctrlKey) window.open(href, "_blank");
+        else router.push(href);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) router.push(href);
+      }}
+      className={cn("cursor-pointer focus-visible:outline-none focus-visible:bg-zinc-50 dark:focus-visible:bg-zinc-900", className)}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** the one button that asks a list for more */
+export function LoadMore({ onClick, label = "Load more", disabled = false }: { onClick: () => void; label?: string; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
+    >
+      {disabled ? "Loading…" : label}
+    </button>
+  );
+}
+
+/** an empty table's one line */
+export function EmptyRow({ children }: { children: React.ReactNode }) {
+  return <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">{children}</div>;
+}
+
+/** placeholder rows at the ledger's pitch while a list loads */
+export function RowSkeleton({ n }: { n: number }) {
+  return (
+    <>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="flex h-11 items-center justify-between px-5 md:px-6">
+          <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+          <div className="h-3 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** underline tabs in the subnav's voice, no boxes */
+export function Tabs<T extends string>({
+  tabs,
+  active,
+  onChange,
+  labels,
+}: {
+  tabs: T[];
+  active: T;
+  onChange: (t: T) => void;
+  labels: Record<T, string>;
+}) {
+  return (
+    // a phone scrolls the tabs sideways rather than letting the last one fall off
+    <div className="flex items-center gap-5 overflow-x-auto border-b border-zinc-200 [scrollbar-width:none] sm:gap-6 dark:border-zinc-800 [&::-webkit-scrollbar]:hidden">
+      {tabs.map((t) => (
+        <button
+          key={t}
+          onClick={() => onChange(t)}
+          aria-pressed={active === t}
+          className={cn(
+            "-mb-px shrink-0 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
+            active === t
+              ? "border-[#E6212F] text-zinc-900 dark:text-zinc-50"
+              : "border-transparent text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
+          )}
+        >
+          {labels[t]}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* HashChip — mono truncated hash/address with copy                    */
@@ -608,16 +729,12 @@ export function TxTypePill({
   label?: string;
   className?: string;
 }) {
+  // no box inside a hairline row: the family tone rides a 4px square and
+  // the word sits in the ledger's gray, like a Method cell
   const tone = pillTone(type);
   return (
-    <span
-      className={cn(
-        "inline-flex min-w-0 max-w-full items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em]",
-        PILL_TONES[tone],
-        className,
-      )}
-    >
-      <span className="size-1 shrink-0 bg-current opacity-80" aria-hidden />
+    <span className={cn("inline-flex min-w-0 max-w-full items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600 dark:text-zinc-300", className)}>
+      <span className={cn("size-1 shrink-0 bg-current", TONE_TEXT[tone])} aria-hidden />
       <span className="truncate">{label ?? type}</span>
     </span>
   );
@@ -705,11 +822,12 @@ export function SpecLine({
   align?: "baseline" | "start";
 }) {
   return (
-    <div className={cn("flex gap-6 py-3", align === "baseline" ? "items-baseline" : "items-start")}>
-      <dt className="w-32 shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 md:w-40 dark:text-zinc-500">
+    // on a phone the label stands over its value; from sm up they share a line
+    <div className={cn("flex flex-col gap-1 py-3 sm:flex-row sm:gap-6", align === "baseline" ? "sm:items-baseline" : "sm:items-start")}>
+      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-32 md:w-40 dark:text-zinc-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">{children}</dd>
+      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 [overflow-wrap:anywhere] dark:text-zinc-50">{children}</dd>
     </div>
   );
 }

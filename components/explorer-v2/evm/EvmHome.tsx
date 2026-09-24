@@ -1,12 +1,16 @@
 "use client";
 
-import Link from "next/link";
+import { useMemo } from "react";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
-import { Board, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+
+/* the block tape under the title: off while we judge the page without
+   it; the Latest Blocks board below carries the same cadence */
+const SHOW_TAPE = false;
+import { Board } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
-import { EvmOverviewStats } from "./EvmOverviewStats";
+import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { useEvmData, LIVE_REFRESH_MS, usePrice } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
@@ -17,14 +21,6 @@ import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import { useTokenList, decodeErc20Call, formatTokenAmount } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
 
-function LiveDot() {
-  return (
-    <span className="relative flex h-1.5 w-1.5">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
-    </span>
-  );
-}
 
 
 export function EvmHome({ network }: { network: string }) {
@@ -56,6 +52,21 @@ export function EvmHome({ network }: { network: string }) {
   const heads = head.heads;
   const tip = head.tip;
   const pace = cadence(heads);
+  // the stream's blocks, oldest first, as the two rate readouts' traces:
+  // the gap before each block in seconds, and its transactions over that gap
+  const paceTrace = useMemo(() => {
+    if (heads.length < 4) return null;
+    const asc = [...heads].reverse();
+    const gaps: number[] = [];
+    const tps: number[] = [];
+    for (let i = 1; i < asc.length; i++) {
+      const gap = (asc[i].timestampMs - asc[i - 1].timestampMs) / 1000;
+      if (gap <= 0) continue;
+      gaps.push(gap);
+      tps.push(asc[i].txCount / gap);
+    }
+    return gaps.length >= 3 ? { gaps, tps } : null;
+  }, [heads]);
 
   // indexer fallback: span = newest − oldest second-precision timestamp
   const span =
@@ -63,7 +74,6 @@ export function EvmHome({ network }: { network: string }) {
   const recentTps = pace.tps ?? (span > 0 ? blockList.reduce((acc, b) => acc + b.txCount, 0) / span : null);
   const avgBlockTime =
     pace.intervalMs != null ? pace.intervalMs / 1000 : span > 0 ? span / (blockList.length - 1) : null;
-  const cadenceBlocks = pace.n || blockList.length;
 
   const tapeBlocks: TapeBlock[] = heads.length
     ? heads.slice(0, 20).map((h) => ({
@@ -88,6 +98,7 @@ export function EvmHome({ network }: { network: string }) {
     ? heads.slice(0, 11).map((h) => ({
         number: h.number,
         timestamp: Math.floor(h.timestampMs / 1000),
+        timestampMs: h.timestampMs,
         txCount: h.txCount,
         gasUsed: h.gasUsed,
         gasLimit: h.gasLimit,
@@ -146,18 +157,13 @@ export function EvmHome({ network }: { network: string }) {
   return (
     <EvmShell
       network={network}
-      aside={
-        s && !noData ? (
-          <Link href={`${base}/blocks`} className="group flex flex-col items-end gap-1.5">
-            <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-              <LiveDot />
-              Chain Height
-            </span>
-            <StatFigure
-              value={tip?.number ?? s.tipHeight}
-              className="text-3xl transition-colors group-hover:text-[#E6212F] md:text-[2.5rem]"
-            />
-          </Link>
+      tape={
+        SHOW_TAPE && !noData ? (
+          blocks.loading && !blockList.length && !heads.length ? (
+            <BlockTapeSkeleton />
+          ) : tapeBlocks.length > 0 ? (
+            <BlockTape blocks={tapeBlocks} />
+          ) : undefined
         ) : undefined
       }
     >
@@ -169,82 +175,67 @@ export function EvmHome({ network }: { network: string }) {
         </Board>
       ) : (
         <div className="flex flex-col gap-12">
-          <div className="flex flex-col gap-4">
-            {blocks.loading && !blockList.length && !heads.length ? (
-              <BlockTapeSkeleton />
-            ) : (
-              tapeBlocks.length > 0 && <BlockTape blocks={tapeBlocks} />
-            )}
+          {/* the pulse: what is true this second */}
+          <LiveReadout
+            chainId={c.chainId}
+            cells={[
+                {
+                  label: "Chain Height",
+                  live: true,
+                  href: `${base}/blocks`,
+                  value: formatNumber(tip?.number ?? s?.tipHeight ?? 0),
+                  // the heights over the stream's window: a straight climb, the cadence's line
+                  values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
+                },
 
-            {/* the ledger — live figures (EVM explorer API + CoinGecko)
-                riding as the first rows of the Etherscan-grade readings
-                board: totals, the last day with its day-over-day move,
-                and what it cost. Every cell doors into its tab. */}
-            <EvmOverviewStats
-              chainId={c.chainId}
-              base={base}
-              symbol={sym}
-              usdPrice={price?.price ?? null}
-              usdSettled={priceSettled}
-              liveCells={[
                 ...(price
                   ? [
                       {
                         label: "Price",
                         live: true,
+                        href: isCchain ? `/explorer/${network}/token` : undefined,
+                        series: "price" as const,
                         value: formatPrice(price.price),
-                        sub: (
-                          <>
-                            {price.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX ` : ""}
-                            <span className={price.change24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
-                              {price.change24h >= 0 ? "+" : ""}
-                              {price.change24h.toFixed(2)}%
-                            </span>
-                          </>
-                        ),
+                        // the readout turns these into the move over the clock's window
+                        raw: price.price,
+                        change24h: price.change24h,
+                        sub: price.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX` : undefined,
                       },
                       {
                         label: "Market Cap",
                         live: true,
+                        href: isCchain ? `/explorer/${network}/token` : undefined,
+                        series: "marketCap" as const,
                         value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
+                        raw: price.marketCap || undefined,
                       },
                     ]
                   : []),
                 {
                   label: "Avg Block Time",
                   live: true,
-                  value: avgBlockTime != null ? `${avgBlockTime.toFixed(2)} s` : "—",
-                  sub:
-                    recentTps != null
-                      ? `${recentTps.toFixed(1)} TPS · last ${cadenceBlocks} blocks`
-                      : undefined,
+                  href: `${base}/blocks`,
+                  value: avgBlockTime != null ? avgBlockTime.toFixed(2) : "—",
+                  unit: avgBlockTime != null ? "s" : undefined,
+                  // each block's gap to the one before it, over the stream's window
+                  values: paceTrace?.gaps,
                 },
                 {
-                  label: "Latest Block",
-                  value: tip
-                    ? timeAgo(Math.floor(tip.timestampMs / 1000))
-                    : blockList[0]
-                      ? timeAgo(blockList[0].timestamp)
-                      : "—",
-                  href: `${base}/blocks`,
+                  label: "Throughput",
                   live: true,
+                  href: `${base}/txs`,
+                  value: recentTps != null ? recentTps.toFixed(1) : "—",
+                  unit: recentTps != null ? "TPS" : undefined,
+                  // each block's transactions per second of its gap
+                  values: paceTrace?.tps,
                 },
-              ]}
-            />
-          </div>
+            ]}
+          />
 
-          {/* what the chain is FOR — the activity breakdown on the page
-              clock: stacked behavior bands for the C-Chain, the accent
-              area for everyone else. Both door into the Transactions tab. */}
-          {isCchain ? (
-            <CchainActivityChart href={`${base}/txs`} />
-          ) : (
-            <TxHistoryChart chainId={c.chainId} href={`${base}/txs`} />
-          )}
-
-          {/* 2:3: the blocks board has five short columns, the transactions
+          {/* the live chain first: what is happening right now. 2:3 because
+              the blocks board has five short columns and the transactions
               board carries hash, method, parties, value and fee */}
-          <div className="grid gap-12 lg:grid-cols-[2fr_3fr]">
+          <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <LatestBlocksBoard
               rows={latestRows}
               tip={tip}
@@ -263,6 +254,31 @@ export function EvmHome({ network }: { network: string }) {
               streaming={streaming}
             />
           </div>
+
+
+          <div className="flex flex-col gap-4">
+            {/* the ledger: live figures (EVM explorer API + CoinGecko)
+                riding as the first rows of the Etherscan-grade readings
+                board: totals, the last day with its day-over-day move,
+                and what it cost. Every cell doors into its tab. */}
+            <EvmOverviewStats
+              chainId={c.chainId}
+              base={base}
+              symbol={sym}
+              usdPrice={price?.price ?? null}
+              usdSettled={priceSettled}
+            />
+          </div>
+
+
+          {/* what the chain is FOR: the activity breakdown on the page
+              clock: stacked behavior bands for the C-Chain, the accent
+              area for everyone else. Both door into the Transactions tab. */}
+          {isCchain ? (
+            <CchainActivityChart href={`${base}/txs`} />
+          ) : (
+            <TxHistoryChart chainId={c.chainId} href={`${base}/txs`} />
+          )}
         </div>
       )}
     </EvmShell>

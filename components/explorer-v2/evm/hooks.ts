@@ -204,3 +204,39 @@ export function usdOfWei(wei: string | number | bigint | undefined, usdPrice: nu
   if (v < 0.01) return "<$0.01";
   return `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+/** An address list past its first page: the first page arrives through
+ *  useEvmData, later pages are fetched on `more()` with the block cursor
+ *  the API hands back (`nextBefore`), and appended. A new first page (a
+ *  new address) starts the list over. */
+export function useMorePages<T>(
+  chainId: number | string,
+  resource: string,
+  listKey: string,
+  first: { [k: string]: unknown; nextBefore?: number } | null,
+  limit = 50,
+): { items: T[]; more: () => void; hasMore: boolean; loadingMore: boolean } {
+  const [extra, setExtra] = useState<T[]>([]);
+  const [cursor, setCursor] = useState<number | undefined>(undefined);
+  const [loadingMore, setLoadingMore] = useState(false);
+  useEffect(() => {
+    setExtra([]);
+    setCursor(first?.nextBefore);
+  }, [first]);
+  const base = ((first?.[listKey] as T[] | undefined) ?? []);
+  const more = useCallback(() => {
+    if (cursor === undefined || loadingMore) return;
+    setLoadingMore(true);
+    fetch(evmApiPath(chainId, resource, { limit, before: cursor }))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((page: ({ nextBefore?: number } & Record<string, unknown>) | null) => {
+        const rows = (page?.[listKey] as T[] | undefined) ?? [];
+        setExtra((x) => [...x, ...rows]);
+        // a short or cursorless page is the end of the list
+        setCursor(rows.length >= limit ? page?.nextBefore : undefined);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingMore(false));
+  }, [chainId, resource, listKey, cursor, loadingMore, limit]);
+  return { items: [...base, ...extra], more, hasMore: cursor !== undefined, loadingMore };
+}

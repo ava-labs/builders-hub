@@ -758,7 +758,7 @@ export function NetworkStablecoins() {
         {/* how the market splits: dominance by token, then by currency.
             The grid stretches both cells and the treemap fills its board,
             so the pair shares one bottom edge */}
-        <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartBoard
             label="Dominance"
             className="flex min-w-0 flex-col"
@@ -828,7 +828,7 @@ export function NetworkStablecoins() {
         {/* what stands behind the peg, and how tightly it holds. Three
             backing rows share the peg watch's height, so the pair lands
             on one bottom edge */}
-        <div className="grid gap-x-8 gap-y-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartBoard
             label="Backing"
             bodyClassName="flex flex-1 flex-col p-0"

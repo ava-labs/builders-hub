@@ -4,12 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader, StatCell, StatStrip } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, HEAD, ROW, INK, MUTED } from "./LiveBoards";
-import { FIG, UNIT } from "./AddressTables";
+import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, HEAD, ROW, INK, MUTED } from "./LiveBoards";
+import { LiveReadout } from "./EvmOverviewStats";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
 
@@ -55,6 +55,25 @@ export function EvmBlocksList({ network }: { network: string }) {
     return (gas / pace.spanMs) * 1000;
   })();
 
+  // each reading's own trace over the last minute of heads, oldest first
+  const series = (() => {
+    const hs = [...head.heads].reverse().filter((h) => tip && tip.timestampMs - h.timestampMs <= 60_000);
+    const gaps: number[] = [];
+    const tps: number[] = [];
+    const gas: number[] = [];
+    const perMin: number[] = [];
+    const root: number[] = [];
+    for (let i = 1; i < hs.length; i++) {
+      const gap = Math.max(1, hs[i].timestampMs - hs[i - 1].timestampMs);
+      gaps.push(gap / 1000);
+      tps.push((hs[i].txCount / gap) * 1000);
+      gas.push(hs[i].gasUsed / gap);
+      perMin.push(hs.filter((x) => x.timestampMs <= hs[i].timestampMs && hs[i].timestampMs - x.timestampMs < 15_000).length * 4);
+      if (hs[i].settledHeight != null) root.push(hs[i].settledHeight!);
+    }
+    return { gaps, tps, gas, perMin, root };
+  })();
+
   const rows = live
     ? head.heads.slice(0, LIVE_ROWS + 1).map((h) => ({
         number: h.number,
@@ -71,6 +90,10 @@ export function EvmBlocksList({ network }: { network: string }) {
         gasLimit: b.gasLimit,
       }));
 
+  // the belt holds still under the pointer so a row can be clicked
+  const [hover, setHover] = useState(false);
+  const frozen = useFreeze({ rows, tip, executedHeight: head.executedHeight }, hover);
+  const shownRows = frozen.rows;
   const showRoot = tip?.settledHeight != null;
   const cols = showRoot
     ? "md:grid-cols-[8rem_9rem_3.5rem_minmax(0,1fr)_9rem_3.5rem]"
@@ -89,38 +112,40 @@ export function EvmBlocksList({ network }: { network: string }) {
         {live && (
           <section className="flex flex-col gap-4">
             <SectionHeader label="Cadence" />
-            <StatStrip cols={5}>
-              <StatCell label="Block Time" live sub="mean gap, last 60 s">
-                <span className={FIG}>
-                  {pace.intervalMs != null ? (pace.intervalMs / 1000).toFixed(2) : "…"} <span className={UNIT}>s</span>
-                </span>
-              </StatCell>
-              <StatCell label="Blocks / min" live>
-                <span className={FIG}>{pace.blocksPerMin != null ? pace.blocksPerMin.toFixed(0) : "…"}</span>
-              </StatCell>
-              <StatCell label="TPS" live sub="last 60 s">
-                <span className={FIG}>{pace.tps != null ? pace.tps.toFixed(1) : "…"}</span>
-              </StatCell>
-              <StatCell label="Gas / s" live sub={tip ? `block limit ${formatNumber(tip.gasLimit)}` : undefined}>
-                <span className={FIG}>
-                  {gasPerSec != null ? (gasPerSec / 1e6).toFixed(2) : "…"} <span className={UNIT}>M</span>
-                </span>
-              </StatCell>
-              <StatCell
-                label="State Root"
-                live
-                href={tip?.settledHeight != null ? `${base}/block/${tip.settledHeight}` : undefined}
-                sub={tip ? `tip #${formatNumber(tip.number)}` : undefined}
-              >
-                <span className={FIG}>{tip?.settledHeight != null ? `#${formatNumber(tip.settledHeight)}` : "…"}</span>
-              </StatCell>
-            </StatStrip>
+            <LiveReadout
+              chainId={String(c.chainId)}
+              cells={[
+                {
+                  label: "Block Time",
+                  live: true,
+                  value: pace.intervalMs != null ? (pace.intervalMs / 1000).toFixed(2) : "…",
+                  unit: "s",
+                  values: series.gaps,
+                },
+                { label: "Blocks / min", live: true, value: pace.blocksPerMin != null ? pace.blocksPerMin.toFixed(0) : "…", values: series.perMin },
+                { label: "TPS", live: true, value: pace.tps != null ? pace.tps.toFixed(1) : "…", values: series.tps },
+                {
+                  label: "Gas / s",
+                  live: true,
+                  value: gasPerSec != null ? (gasPerSec / 1e6).toFixed(2) : "…",
+                  unit: "M",
+                  values: series.gas,
+                },
+                {
+                  label: "State Root",
+                  live: true,
+                  href: tip?.settledHeight != null ? `${base}/block/${tip.settledHeight}` : undefined,
+                  value: tip?.settledHeight != null ? `#${formatNumber(tip.settledHeight)}` : "…",
+                  values: series.root,
+                },
+              ]}
+            />
           </section>
         )}
 
         <section className="flex flex-col gap-4">
           <SectionHeader label="Blocks" />
-          <Board divide={false}>
+          <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
             <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
               <span>Height</span>
               <span>Time (UTC)</span>
@@ -139,11 +164,11 @@ export function EvmBlocksList({ network }: { network: string }) {
               ) : (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">no blocks</div>
               ))}
-            <Belt rows={live ? LIVE_ROWS : rows.length}>
-              {rows.map((b, i) => (
+            <Belt rows={live ? LIVE_ROWS : shownRows.length}>
+              {shownRows.map((b, i) => (
                 <MotionRow key={b.number} animateIn={live} overflow={i >= LIVE_ROWS}>
                   <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
-                    <Height value={b.number} against={rows[i === 0 ? 1 : 0]?.number} />
+                    <Height value={b.number} />
                     <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>
                       <CellLabel>Time</CellLabel>
                       {clock(b.timestampMs, live)}
@@ -152,7 +177,12 @@ export function EvmBlocksList({ network }: { network: string }) {
                     <span className="col-span-2 md:col-span-1">
                       <GasBar used={b.gasUsed} limit={b.gasLimit} />
                     </span>
-                    {showRoot && <PhaseTrack phase={phaseOf(b.number, head.executedHeight, tip!.settledHeight)} />}
+                    {showRoot && (
+                      <PhaseTrack
+                        phase={phaseOf(b.number, frozen.executedHeight, frozen.tip?.settledHeight ?? null)}
+                        delayMs={(LIVE_ROWS - i) * 40}
+                      />
+                    )}
                     <span className={cn(MUTED, "text-right")}>{ageShort(Math.floor(b.timestampMs / 1000))}</span>
                   </Link>
                 </MotionRow>
@@ -165,7 +195,7 @@ export function EvmBlocksList({ network }: { network: string }) {
                 href={`${base}/block/${b.number}`}
                 className={cn(ROW, cols, "border-b border-zinc-200 dark:border-zinc-800")}
               >
-                <Height value={b.number} against={undefined} />
+                <Height value={b.number} />
                 <span className={cn(MUTED, "text-zinc-500 dark:text-zinc-400")}>{clock(b.timestamp * 1000, false)}</span>
                 <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
                 <span className="col-span-2 md:col-span-1">

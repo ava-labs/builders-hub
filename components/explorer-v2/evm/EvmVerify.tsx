@@ -248,7 +248,7 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
     <EvmShell network={network}>
       <div className="flex flex-col gap-8">
         <section className="flex flex-col gap-4">
-          <SectionHeader label="Verify contract" />
+          <SectionHeader label="Verify Contract" />
           <Board divide={false} className="px-5 py-4 md:px-6">
             <SpecPlate>
               <SpecRow label="Address">
@@ -281,7 +281,7 @@ export function EvmVerify({ network, addr }: { network: string; addr: string }) 
         ) : (
         <>
         <section className="flex flex-col gap-4">
-          <SectionHeader label="Compiler input" />
+          <SectionHeader label="Compiler Input" />
 
           <Board divide={false}>
             <label

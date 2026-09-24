@@ -376,7 +376,7 @@ export function NetworkIcm() {
 
         {/* who talks, and to whom — the leaderboard and the route ledger
             (the old flow sankey, flattened into rows) */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartBoard label="Top Chains" bodyClassName="p-0" className="min-w-0">
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {topChains.length === 0 && <LedgerSkeleton />}
@@ -495,7 +495,7 @@ export function NetworkIcm() {
         {/* what moves, and along which corridors — the two old pies as
             ledgers. Both read the all-time ICTT feed, so each carries its
             own All-Time chip rather than the page clock */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
           <ChartBoard
             label="Tokens by Transfers"
             bodyClassName="p-0"

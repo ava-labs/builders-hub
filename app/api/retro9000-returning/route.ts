@@ -1,13 +1,29 @@
 import { NextResponse } from 'next/server';
+import { Session } from 'next-auth';
 import { prisma } from '@/prisma/prisma';
+import { withAuth } from '@/lib/protectedRoute';
+import { normalizeEmail } from '@/lib/utils';
 
-export async function POST(request: Request) {
+/**
+ * The application row is keyed by email, and the upsert overwrites every field
+ * of an existing row. The email therefore decides *whose* application is being
+ * written, which makes it an authorisation input — it comes from the session,
+ * never from the request body. Taking it from the body let anyone overwrite any
+ * applicant's submission by naming their address.
+ *
+ * The form already renders this field disabled and prefilled from the session,
+ * so binding it here matches what the UI has always shown the user.
+ */
+export const POST = withAuth(async (request: Request, _context: unknown, session: Session) => {
   try {
     const formData = await request.json();
-    const email = (formData.email as string)?.trim().toLowerCase();
+    // Normalised with the shared helper, matching how the signup path keys
+    // users, so the upsert cannot be split across casing variants.
+    const sessionEmail = session.user?.email;
+    const email = sessionEmail ? normalizeEmail(sessionEmail) : undefined;
     if (!email) {
       return NextResponse.json(
-        { success: false, message: 'Email is required' },
+        { success: false, message: 'A verified account email is required' },
         { status: 400 }
       );
     }
@@ -85,10 +101,12 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ success: true, id: result.id });
   } catch (error) {
+    // Log the detail, return none of it: the raw message carries Prisma column
+    // and constraint names straight to the client.
     console.error('Error processing Retro9000 Returning application:', error);
     return NextResponse.json(
-      { success: false, message: error instanceof Error ? error.message : 'Internal server error' },
+      { success: false, message: 'Internal server error' },
       { status: 500 }
     );
   }
-}
+});

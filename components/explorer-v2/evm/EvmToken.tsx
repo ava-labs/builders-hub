@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Board, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline } from "@/components/explorer-v2/ui";
-import { formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { Board, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD, ROW, idInk } from "@/components/explorer-v2/ui";
+import { formatNumber, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
 import { useEvmData } from "./hooks";
 import { EvmContract } from "./EvmContract";
 import { TokenLogo } from "./TokenMark";
@@ -170,12 +170,13 @@ export function EvmToken({
           />
         ) : (
           <Board>
-            <div className="hidden grid-cols-[7.5rem_minmax(0,1fr)_1.5rem_minmax(0,1fr)_minmax(0,12rem)_3.5rem] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+            <div className={cn(HEAD, "grid-cols-[7.5rem_9rem_1.5rem_9rem_minmax(0,1fr)_6rem_3.5rem]")}>
               <span>Tx</span>
               <span>From</span>
               <span />
               <span>To</span>
               <span className="text-right">Amount</span>
+              <span className="text-right">USD</span>
               <span className="text-right">Age</span>
             </div>
             {transfers.rows.length === 0 && <EmptyRow>{transfers.loading ? "Loading…" : `no transfers in the last ~${windowMin} min`}</EmptyRow>}
@@ -183,18 +184,18 @@ export function EvmToken({
               <Link
                 key={`${r.txHash}-${r.logIndex}`}
                 href={`${base}/tx/${r.txHash}`}
-                className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:grid-cols-[7.5rem_minmax(0,1fr)_1.5rem_minmax(0,1fr)_minmax(0,12rem)_3.5rem] md:py-0 md:px-6 dark:hover:bg-zinc-900"
+                className={cn(ROW, "md:grid-cols-[7.5rem_9rem_1.5rem_9rem_minmax(0,1fr)_6rem_3.5rem]")}
               >
-                <span className="min-w-0 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-50">{truncate(r.txHash, 6)}</span>
-                <span className="min-w-0 truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{truncate(r.from, 10)}</span>
+                <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(r.txHash, 6)}</span>
+                <span className="min-w-0 truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{truncate(r.from, 8)}</span>
                 <span className="text-center font-mono text-zinc-300 dark:text-zinc-700">→</span>
-                <span className="min-w-0 truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{truncate(r.to, 10)}</span>
+                <span className="min-w-0 truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400">{truncate(r.to, 8)}</span>
                 <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
                   {formatTokenAmount(r.amount, decimals)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
-                  {usdOfToken(r.amount, decimals, price) && <>{" "}<span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfToken(r.amount, decimals, price)}</span></>}
                 </span>
+                <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">{usdOfToken(r.amount, decimals, price) ?? ""}</span>
                 <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
-                  {r.timestamp ? timeAgo(r.timestamp).replace(" ago", "") : `#${formatNumber(r.blockNumber)}`}
+                  {r.timestamp ? ageShort(r.timestamp) : `#${formatNumber(r.blockNumber)}`}
                 </span>
               </Link>
             ))}

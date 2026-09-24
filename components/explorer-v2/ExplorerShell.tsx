@@ -335,21 +335,13 @@ export function ExplorerShell({
         {!hideHeader && (
           <Rise delay={0.05}>
             <header className="flex flex-col gap-6 pb-10">
-              {/* title row. pl-0!/pr-0! override the global `header > div` navbar
-                  padding hack (global.css) that otherwise pushes it in by 3rem. */}
-              <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
-                <div className="flex flex-col gap-2.5">
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-                    Avalanche Primary Network
-                  </p>
-                  <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
-                    {c.title}<span className="text-[#E6212F]">.</span>
-                  </h1>
-                </div>
+              {/* the subnav names the chain; the header is the search and the
+                  page's live figure beside it. pl-0!/pr-0! override the global
+                  `header > div` navbar padding hack (global.css). */}
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
+                <SearchBox chain={chain} network={network} />
                 {aside}
               </div>
-              {/* search — its own full-width row */}
-              <SearchBox chain={chain} network={network} />
             </header>
           </Rise>
         )}

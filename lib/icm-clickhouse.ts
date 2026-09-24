@@ -166,11 +166,15 @@ for (const c of l1ChainsData) {
   });
 }
 
-function lookupChain(chainIdNum: number): ChainInfo | undefined {
-  return chainMap.get(String(chainIdNum));
+function lookupChain(chainId: number | string): ChainInfo | undefined {
+  return chainMap.get(String(chainId));
 }
 
-const blockchainHexToChainId: Map<string, number> = new Map();
+// Keyed to the catalog's chainId as written. Most EVM chains carry their
+// numeric EVM chain id, but chains the explorer does not index carry their
+// CB58 blockchain id instead (omnicoin, 2026-09: ~258K messages a month to
+// the C-Chain); a Number() cast turned those into NaN and dropped them.
+const blockchainHexToChainId: Map<string, string> = new Map();
 for (const c of l1ChainsData) {
   const typed = c as L1ChainEntry;
   if (!typed.blockchainId) continue;
@@ -178,7 +182,7 @@ for (const c of l1ChainsData) {
     const hex = typed.blockchainId.startsWith("0x")
       ? typed.blockchainId.slice(2).toUpperCase()
       : CB58ToHex(typed.blockchainId).slice(2).toUpperCase();
-    blockchainHexToChainId.set(hex, Number(typed.chainId));
+    blockchainHexToChainId.set(hex, String(typed.chainId));
   } catch {
     // Skip entries with unparseable blockchainId
   }
@@ -203,7 +207,8 @@ interface RawCrossChainFlow {
 }
 
 interface CrossChainFlow {
-  source_chain_id: number;
+  /** the catalog's chainId: numeric EVM id, or CB58 for unindexed chains */
+  source_chain_id: string;
   dest_chain_id: number;
   msg_count: number;
 }

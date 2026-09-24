@@ -223,7 +223,7 @@ function GasVolumeChart({ data }: { data: GasDayPoint[] }) {
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{d.d}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {fmtGas(d.gas)} gas
+                    {fmtGas(d.gas)} gas reserved
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
                     {d.blocks.toLocaleString("en-US")} blocks
@@ -329,7 +329,7 @@ function BestHoursList({ cells, unit }: { cells: GasMarket["heatmap"]; unit: str
   };
 
   return (
-    <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
       <Board className="border">
         <BoardHeader label="Cheapest Hours · vs week median" />
         {cheapest.map(row)}
@@ -458,7 +458,7 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
       </ChartBoard>
 
       {/* the complementary time scale beside the volatility it smooths over */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={isHourly ? "Base Fee · last 7 days, daily" : "Base Fee · last 48 hours, hourly"}
           action={<BandKey unit={unit} />}
@@ -566,7 +566,7 @@ function UtilTrendChart({ data }: { data: GasDayPoint[] }) {
                     {d.utilPct.toFixed(1)}% utilized
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
-                    {fmtGas(d.gas)} gas · {d.blocks.toLocaleString("en-US")} blocks
+                    {fmtGas(d.gas)} gas reserved · {d.blocks.toLocaleString("en-US")} blocks
                   </p>
                 </TipPlate>
               );
@@ -698,12 +698,13 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
               <StatDash />
             )}
           </GasStat>
-          <GasStat label="Gas Used">{stats ? fmtGas(stats.totalGas) : <StatDash />}</GasStat>
+          {/* block headers: since Helicon the gas reserved (sum of tx gas limits) */}
+          <GasStat label="Gas Reserved" sub="sum of tx gas limits since Helicon">{stats ? fmtGas(stats.totalGas) : <StatDash />}</GasStat>
         </div>
       </Board>
 
       {/* the live pulse beside its longer record */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label={`Block by Block · last ${FEE_HISTORY_BLOCKS} blocks, live`}>
           {fee.utilization.length ? (
             <LiveUtilBars utilization={fee.utilization} />
@@ -722,7 +723,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
       </div>
 
       {/* the shape of demand, then its absolute size */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label={`Block Fullness Distribution · ${histLabel}`}>
           {market?.histogram.length ? (
             <UtilHistogram histogram={market.histogram} />
@@ -990,7 +991,7 @@ function SeasonalitySheet({ catalog, base }: { catalog: L1Chain; base: string })
       </ChartBoard>
 
       {/* the grid collapsed both ways: by hour, then by weekday */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label="Hour of Day Profile · all days collapsed">
           {market?.heatmap.length ? (
             <HourProfileChart cells={market.heatmap} unit={unit} />

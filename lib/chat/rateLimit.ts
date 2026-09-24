@@ -59,6 +59,15 @@ function cleanupOldEntries(): void {
 export { getClientIP } from '@/lib/net/clientIp';
 
 
+/** the loopback address in any of the spellings a dev server forwards, port included */
+function isLoopback(identifier: string): boolean {
+  const host = identifier
+    .replace(/^\[([^\]]+)\](:\d+)?$/, '$1')
+    .replace(/^(\d+\.\d+\.\d+\.\d+):\d+$/, '$1')
+    .toLowerCase();
+  return host === 'unknown' || host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '::ffff:127.0.0.1';
+}
+
 /**
  * Check rate limit for a chat request
  *
@@ -71,6 +80,18 @@ export function checkChatRateLimit(
   isAuthenticated: boolean
 ): RateLimitResult {
   const now = Date.now();
+
+  // Local development: every request arrives from the one loopback address
+  // (or with no proxy header at all), so a few smoke tests would lock the
+  // developer out for an hour. Production is not affected.
+  if (process.env.NODE_ENV === 'development' && !isAuthenticated && isLoopback(identifier)) {
+    return {
+      allowed: true,
+      remaining: RATE_LIMITS.anonymous.maxRequests,
+      resetTime: new Date(now + RATE_LIMITS.anonymous.windowMs),
+      limit: RATE_LIMITS.anonymous.maxRequests,
+    };
+  }
 
   // Periodic cleanup
   if (now - lastCleanup > CLEANUP_INTERVAL_MS) {

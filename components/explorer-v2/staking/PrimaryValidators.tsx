@@ -17,17 +17,15 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, StatDash, StatCell, LoadMore, SectionHeader, HEAD, ROW, FIG, UNIT, EmptyRow, RowSkeleton, idInk } from "@/components/explorer-v2/ui";
 import {
-  VersionBarChart,
-  VersionBreakdownInline,
   calculateVersionStats,
   compareVersions,
   type VersionBreakdownData,
   defaultVersionTarget,
 } from "@/components/stats/VersionBreakdown";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import { ChartEmpty, Stat, TipPlate } from "./bits";
+import { ChartEmpty, TipPlate } from "./bits";
 import {
   NANO,
   fmtCompact,
@@ -54,9 +52,6 @@ import {
    not a windowed trend. So there is no range chip; each card states its own
    basis instead (· current set, · 14d, · all-time). */
 
-const TH =
-  "px-4 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-5";
-const TD = "px-4 py-3 font-mono text-[12px] tabular-nums md:px-5";
 
 const QUIET_BAR = "#A2AFB2";
 const SEATS_COLOR = "#0061E2";
@@ -101,7 +96,7 @@ function sortValue(v: MergedValidator, key: SortKey): number {
 }
 
 function uptimeTone(pct: number): string {
-  if (pct >= 99) return "text-emerald-600 dark:text-emerald-400";
+  if (pct >= 99) return "text-zinc-700 dark:text-zinc-300";
   if (pct >= 90) return "text-amber-600 dark:text-amber-400";
   return "text-[#E6212F]";
 }
@@ -113,7 +108,7 @@ function daysLeftTone(days: number): string {
 }
 
 function missRateTone(pct: number): string {
-  if (pct === 0) return "text-emerald-600 dark:text-emerald-400";
+  if (pct === 0) return "text-zinc-700 dark:text-zinc-300";
   if (pct < 5) return "text-amber-600 dark:text-amber-400";
   return "text-[#E6212F]";
 }
@@ -318,7 +313,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
       <button
         onClick={() => toggleSort(k)}
         className={cn(
-          "uppercase tracking-[0.16em] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100",
+          "uppercase tracking-[0.14em] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100",
           active && "text-zinc-900 dark:text-zinc-100",
         )}
       >
@@ -447,35 +442,39 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
             }
           />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-            <Stat label="Validators">
-              {sdkValidators ? sdkValidators.length.toLocaleString("en-US") : <StatDash />}
-            </Stat>
-            <Stat
+            <StatCell even label="Validators">
+              <span className={FIG}>{sdkValidators ? sdkValidators.length.toLocaleString("en-US") : <StatDash />}</span>
+            </StatCell>
+            <StatCell
+              even
               label={`Up to Date${minVersion ? ` · ${minVersion}` : ""}`}
               sub={
                 versionStats ? `${versionStats.nodesPercentAbove.toFixed(1)}% of nodes` : undefined
               }
             >
-              {versionStats ? (
-                <>
-                  {versionStats.stakePercentAbove.toFixed(1)}
-                  <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </Stat>
-            <Stat label="Total Weight" sub="own stake + delegations">
-              {totalWeight !== null ? (
-                <>
-                  {fmtCompact(totalWeight)}
-                  <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </Stat>
-            <Stat
+              <span className={FIG}>
+                {versionStats ? (
+                  <>
+                    {versionStats.stakePercentAbove.toFixed(1)} <span className={UNIT}>%</span>
+                  </>
+                ) : (
+                  <StatDash />
+                )}
+              </span>
+            </StatCell>
+            <StatCell even label="Total Weight" sub="own stake + delegations">
+              <span className={FIG}>
+                {totalWeight !== null ? (
+                  <>
+                    {fmtCompact(totalWeight)} <span className={UNIT}>AVAX</span>
+                  </>
+                ) : (
+                  <StatDash />
+                )}
+              </span>
+            </StatCell>
+            <StatCell
+              even
               label="Expiring · 30d"
               sub={
                 expiringSoon ? (
@@ -487,9 +486,81 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
                 ) : undefined
               }
             >
-              {expiringSoon ? expiringSoon.within30.toLocaleString("en-US") : <StatDash />}
-            </Stat>
+              <span className={FIG}>{expiringSoon ? expiringSoon.within30.toLocaleString("en-US") : <StatDash />}</span>
+            </StatCell>
           </div>
+        </Board>
+      </section>
+
+      {/* what the fleet runs: one row per client version, newest first,
+          each with its share of nodes as a bar and its share of stake.
+          Versions at or past the target sit in ink; older ones in amber. */}
+      <section className="flex flex-col gap-4">
+        <SectionHeader
+          label="Client Versions"
+          action={
+            availableVersions.length > 0 ? (
+              <label className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+                Target
+                <select
+                  value={minVersion}
+                  onChange={(e) => setMinVersion(e.target.value)}
+                  className="border border-zinc-200 bg-white px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-700 outline-none transition-colors focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:focus:border-zinc-100"
+                >
+                  {availableVersions.map((version) => (
+                    <option key={version} value={version}>
+                      {version}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : undefined
+          }
+        />
+        <Board divide={false}>
+          {versions && minVersion && versionStats ? (
+            <>
+              <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-zinc-200 px-5 py-3 font-mono text-[12.5px] tabular-nums text-zinc-900 md:px-6 dark:border-zinc-800 dark:text-zinc-50">
+                <span>
+                  {versionStats.stakePercentAbove.toFixed(1)}% <span className="text-zinc-400 dark:text-zinc-500">of stake</span>
+                </span>
+                <span>
+                  {versionStats.nodesPercentAbove.toFixed(1)}% <span className="text-zinc-400 dark:text-zinc-500">of nodes</span>
+                </span>
+                <span className="text-zinc-400 dark:text-zinc-500">
+                  on {minVersion} or newer · {totalNodes.toLocaleString("en-US")} nodes reporting
+                </span>
+              </div>
+              <div className={cn(HEAD, "grid-cols-[7rem_minmax(0,1fr)_6rem_6rem_6rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
+                <span>Version</span>
+                <span>Share of Nodes</span>
+                <span className="text-right">Nodes</span>
+                <span className="text-right">Nodes %</span>
+                <span className="text-right">Stake %</span>
+              </div>
+              {Object.entries(versions.byClientVersion)
+                .sort(([a], [b]) => compareVersions(b, a))
+                .map(([version, data]) => {
+                  const current = compareVersions(version, minVersion) >= 0;
+                  const nodePct = totalNodes > 0 ? (data.nodes / totalNodes) * 100 : 0;
+                  const totalStake = versions.totalStakeString ? Number(BigInt(versions.totalStakeString) / 1_000_000n) : 0;
+                  const stakePct = totalStake > 0 && data.stakeString ? (Number(BigInt(data.stakeString) / 1_000_000n) / totalStake) * 100 : null;
+                  return (
+                    <div key={version} className={cn(ROW, "md:grid-cols-[7rem_minmax(0,1fr)_6rem_6rem_6rem]", "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
+                      <span className={cn("font-mono text-[12.5px] tabular-nums", current ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-500 dark:text-zinc-400")}>{version}</span>
+                      <span className="block h-1.5 w-full bg-zinc-100 dark:bg-zinc-900">
+                        <span className={cn("block h-full", current ? "bg-zinc-800 dark:bg-zinc-200" : "bg-amber-500/80")} style={{ width: `${Math.max(nodePct > 0 ? 0.6 : 0, nodePct).toFixed(1)}%` }} />
+                      </span>
+                      <span className="font-mono text-[12px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">{data.nodes.toLocaleString("en-US")}</span>
+                      <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{nodePct.toFixed(1)}%</span>
+                      <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">{stakePct === null ? "—" : `${stakePct.toFixed(1)}%`}</span>
+                    </div>
+                  );
+                })}
+            </>
+          ) : (
+            <RowSkeleton n={5} />
+          )}
         </Board>
       </section>
 
@@ -497,8 +568,8 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
           the live count rides in the card's action slot as a quiet qualifier
           (rows / total while filtering) — no window chip, this IS the set */}
       <section className="flex flex-col gap-4">
-        <div className="relative w-full sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+        <div className="flex w-full items-center gap-3 border border-zinc-200 bg-white px-4 py-2.5 transition-colors focus-within:border-zinc-900 sm:max-w-sm dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
+          <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
           <input
             value={query}
             onChange={(e) => {
@@ -507,7 +578,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
             }}
             placeholder="Filter by NodeID or version"
             spellCheck={false}
-            className="w-full border border-zinc-200 bg-white/80 py-2.5 pl-11 pr-10 font-mono text-[12px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100"
+            className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
           />
           {query && (
             <button
@@ -517,14 +588,14 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
                 setShown(50);
               }}
               aria-label="Clear filter"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+              className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        <ChartBoard
+        <SectionHeader
           label="Validator Set"
           action={
             merged.length ? (
@@ -535,183 +606,69 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
               </span>
             ) : undefined
           }
-          bodyClassName="p-0 overflow-x-auto"
-        >
-          <table className="w-full min-w-[62rem] border-collapse">
-            <thead>
-              <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
-                <th className={TH}>#</th>
-                <th className={TH}>Node</th>
-                <th className={TH}>
-                  <SortHeader label="Version" k="version" />
-                </th>
-                <th className={cn(TH, "text-right")}>
-                  <SortHeader label="Total Stake" k="stake" />
-                </th>
-                <th className={cn(TH, "text-right")}>
-                  <SortHeader label="Delegators" k="delegators" />
-                </th>
-                <th className={cn(TH, "text-right")}>
-                  <SortHeader label="Fee" k="fee" />
-                </th>
-                <th className={cn(TH, "text-right")}>
-                  <SortHeader label="Uptime" k="uptime" />
-                </th>
-                <th className={cn(TH, "text-right whitespace-nowrap")}>
-                  <SortHeader label="Days Left" k="daysLeft" />
-                </th>
-                <th className={cn(TH, "text-right whitespace-nowrap")}>
-                  <SortHeader label="Miss · 14d" k="missRate" />
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {sdkValidators === null && !sdkFailed
-                ? Array.from({ length: 10 }, (_, i) => (
-                    <tr key={i}>
-                      <td colSpan={9} className="px-4 py-3 md:px-5">
-                        <div className="h-4 w-full animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                      </td>
-                    </tr>
-                  ))
-                : rows.slice(0, shown).map((v, i) => {
-                    const stake =
-                      v.p2p?.total_stake ??
-                      (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
-                    return (
-                      <tr
-                        key={v.nodeId}
-                        className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                      >
-                        <td className={cn(TD, "text-zinc-400 dark:text-zinc-500")}>{i + 1}</td>
-                        <td className={TD}>
-                          <Link
-                            href={nodeHref(v.nodeId)}
-                            className="text-[#0061E2] hover:underline dark:text-[#5f9dff]"
-                          >
-                            {v.nodeId.slice(0, 12)}…{v.nodeId.slice(-8)}
-                          </Link>
-                        </td>
-                        <td className={cn(TD, "text-zinc-500 dark:text-zinc-400")}>
-                          {v.version?.replace("avalanchego/", "") ?? "—"}
-                        </td>
-                        <td className={cn(TD, "text-right text-zinc-900 dark:text-zinc-100")}>
-                          {fmtCompact(stake / NANO)} AVAX
-                        </td>
-                        <td className={cn(TD, "text-right text-zinc-500 dark:text-zinc-400")}>
-                          {v.delegatorCount.toLocaleString("en-US")}
-                        </td>
-                        <td className={cn(TD, "text-right text-zinc-500 dark:text-zinc-400")}>
-                          {num(v.delegationFee)?.toFixed(0) ?? "—"}%
-                        </td>
-                        <td className={cn(TD, "text-right")}>
-                          {v.p2p ? (
-                            <span className={uptimeTone(v.p2p.p50_uptime)}>
-                              {v.p2p.p50_uptime.toFixed(2)}%
-                            </span>
-                          ) : (
-                            <span className="text-zinc-300 dark:text-zinc-700">—</span>
-                          )}
-                        </td>
-                        <td className={cn(TD, "text-right")}>
-                          {v.p2p ? (
-                            <span className={daysLeftTone(v.p2p.days_left)}>{v.p2p.days_left}</span>
-                          ) : (
-                            <span className="text-zinc-300 dark:text-zinc-700">—</span>
-                          )}
-                        </td>
-                        <td className={cn(TD, "text-right")}>
-                          {v.p2p ? (
-                            <span className={missRateTone(v.p2p.miss_rate_14d)}>
-                              {v.p2p.miss_rate_14d.toFixed(1)}%
-                            </span>
-                          ) : (
-                            <span className="text-zinc-300 dark:text-zinc-700">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              {sdkValidators !== null && rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="px-4 py-10 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 md:px-5 dark:text-zinc-500"
-                  >
-                    {q ? "No validators match" : "No validators found"}
-                  </td>
-                </tr>
-              )}
-              {sdkFailed && sdkValidators === null && (
-                <tr>
-                  <td
-                    colSpan={9}
-                    className="px-4 py-10 text-center font-mono text-[11px] uppercase tracking-[0.22em] text-[#E6212F] md:px-5"
-                  >
-                    Validator feed unavailable
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </ChartBoard>
+        />
+        <Board divide={false}>
+          {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+          <div className="overflow-x-auto">
+          <div className="md:min-w-[62rem] xl:min-w-0">
+          <div className={cn(HEAD, "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_9rem_6rem_4rem_6rem_6rem_6rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
+            <span>#</span>
+            <span>Node</span>
+            <span><SortHeader label="Version" k="version" /></span>
+            <span className="text-right"><SortHeader label="Total Stake" k="stake" /></span>
+            <span className="text-right"><SortHeader label="Delegators" k="delegators" /></span>
+            <span className="text-right"><SortHeader label="Fee" k="fee" /></span>
+            <span className="text-right"><SortHeader label="Uptime" k="uptime" /></span>
+            <span className="text-right whitespace-nowrap"><SortHeader label="Days Left" k="daysLeft" /></span>
+            <span className="text-right whitespace-nowrap"><SortHeader label="Miss · 14d" k="missRate" /></span>
+          </div>
+          {sdkValidators === null && !sdkFailed && <RowSkeleton n={12} />}
+          {sdkValidators !== null &&
+            rows.slice(0, shown).map((v, i) => {
+              const stake = v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
+              return (
+                <Link key={v.nodeId} href={nodeHref(v.nodeId)} className={cn(ROW, "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_9rem_6rem_4rem_6rem_6rem_6rem]", "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
+                  <span className="font-mono text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">{i + 1}</span>
+                  <span className={cn("min-w-0 truncate font-mono text-[12px]", idInk)} title={v.nodeId}>
+                    {v.nodeId}
+                  </span>
+                  <span className="truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+                    {v.version?.replace("avalanchego/", "") ?? "—"}
+                  </span>
+                  <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+                    {fmtCompact(stake / NANO)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">AVAX</span>
+                  </span>
+                  <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    {v.delegatorCount.toLocaleString("en-US")}
+                  </span>
+                  <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                    {num(v.delegationFee)?.toFixed(0) ?? "—"}%
+                  </span>
+                  <span className={cn("font-mono text-[12px] tabular-nums md:text-right", v.p2p ? uptimeTone(v.p2p.p50_uptime) : "text-zinc-300 dark:text-zinc-700")}>
+                    {v.p2p ? `${v.p2p.p50_uptime.toFixed(2)}%` : "—"}
+                  </span>
+                  <span className={cn("font-mono text-[12px] tabular-nums md:text-right", v.p2p ? daysLeftTone(v.p2p.days_left) : "text-zinc-300 dark:text-zinc-700")}>
+                    {v.p2p ? v.p2p.days_left : "—"}
+                  </span>
+                  <span className={cn("font-mono text-[12px] tabular-nums md:text-right", v.p2p ? missRateTone(v.p2p.miss_rate_14d) : "text-zinc-300 dark:text-zinc-700")}>
+                    {v.p2p ? `${v.p2p.miss_rate_14d.toFixed(1)}%` : "—"}
+                  </span>
+                </Link>
+              );
+            })}
+          {sdkValidators !== null && rows.length === 0 && <EmptyRow>{q ? "no validators match" : "no validators found"}</EmptyRow>}
+          {sdkFailed && sdkValidators === null && <EmptyRow><span className="text-[#E6212F]">validator feed unavailable</span></EmptyRow>}
+          </div>
+          </div>
+        </Board>
         {shown < rows.length && (
-          <button
-            onClick={() => setShown((s) => s + 50)}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-          >
-            Load more · {(rows.length - shown).toLocaleString("en-US")} remaining
-          </button>
+          <LoadMore onClick={() => setShown((s) => s + 50)} label={`Load more · ${(rows.length - shown).toLocaleString("en-US")} remaining`} />
         )}
       </section>
 
-      {/* what the fleet is running */}
-      <ChartBoard
-        label="Client Versions"
-        action={
-          availableVersions.length > 0 ? (
-            <label className="flex shrink-0 items-center gap-2">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                Target
-              </span>
-              <select
-                value={minVersion}
-                onChange={(e) => setMinVersion(e.target.value)}
-                className="border border-zinc-200 bg-white/80 px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] text-zinc-700 outline-none transition-colors focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:focus:border-zinc-100"
-              >
-                {availableVersions.map((version) => (
-                  <option key={version} value={version}>
-                    {version}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : undefined
-        }
-        bodyClassName="flex flex-col gap-4"
-      >
-        {versions && minVersion ? (
-          <>
-            <VersionBarChart
-              versionBreakdown={versions}
-              minVersion={minVersion}
-              totalNodes={totalNodes}
-              height="h-8"
-            />
-            <VersionBreakdownInline versions={versions.byClientVersion} minVersion={minVersion} limit={5} />
-            {versionStats && (
-              <p className="text-[13px] leading-relaxed tabular-nums text-zinc-500 dark:text-zinc-400">
-                {versionStats.stakePercentAbove.toFixed(1)}% of stake runs {minVersion} or newer
-              </p>
-            )}
-          </>
-        ) : (
-          <ChartEmpty failed={false} />
-        )}
-      </ChartBoard>
 
       {/* how the fleet is behaving */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label="Block Miss Rate · 14d">
           {missBuckets.length ? (
             <BucketBars

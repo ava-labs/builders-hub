@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, ExternalLink, ShieldCheck } from "lucide-react";
+import { Check, Copy, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, CellLabel, SpecPlate, SpecRow, idInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SpecPlate, SpecRow, Tabs, idInk } from "@/components/explorer-v2/ui";
 import ContractReadSection from "@/components/explorer/ContractReadSection";
 import ContractWriteSection from "@/components/explorer/ContractWriteSection";
 import SourceCodeViewer from "@/components/explorer/SourceCodeViewer";
 import { fetchVerifiedContract, type SourcifyContract } from "@/lib/sourcify-client";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
+import { EvmBytecode } from "./EvmBytecode";
 
 /* ------------------------------------------------------------------ */
 /* The Contract tab.                                                   */
@@ -124,31 +125,6 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "write", label: "Write" },
 ];
 
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors",
-        active
-          ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-          : "border-zinc-200 bg-white/80 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:text-zinc-100",
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 function CopyAbiButton({ abi }: { abi: unknown[] }) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(() => {
@@ -169,26 +145,6 @@ function CopyAbiButton({ abi }: { abi: unknown[] }) {
   );
 }
 
-function Unverified({ verifyHref }: { verifyHref: string }) {
-  return (
-    <Board divide={false} className="px-6 py-12 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">
-        Source code not verified
-      </p>
-      <p className="mx-auto mt-4 max-w-lg text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-        Verify this contract to publish its source and ABI here, and to make every call and event
-        against it decode by name across the explorer.
-      </p>
-      <Link
-        href={verifyHref}
-        className="mt-6 inline-flex items-center gap-2 border border-zinc-900 bg-zinc-900 px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        <ShieldCheck className="size-3.5" />
-        Verify contract
-      </Link>
-    </Board>
-  );
-}
 
 export function EvmContract({
   network,
@@ -239,33 +195,28 @@ export function EvmContract({
       return (
         <Board divide={false} className="px-5 py-8 md:px-6">
           <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-            Verified — waiting for the explorer to catch up…
+            Verified. Waiting for the explorer to catch up…
           </p>
         </Board>
       );
     }
-    return <Unverified verifyHref={`${base}/verify/${addr.toLowerCase()}`} />;
+    // unverified: the chain still has plenty to say about it
+    return <EvmBytecode addr={addr} base={base} chainId={c.chainId} rpcUrl={c.rpcUrl} />;
   }
 
   const abi = (contract.abi ?? []) as unknown[];
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        {SUB_TABS.map((sub) => (
-          <TabButton key={sub.id} active={tab === sub.id} onClick={() => setTab(sub.id)}>
-            {sub.label}
-          </TabButton>
-        ))}
-      </div>
+      <Tabs tabs={SUB_TABS.map((t) => t.id)} active={tab} onChange={setTab} labels={Object.fromEntries(SUB_TABS.map((t) => [t.id, t.label])) as Record<SubTab, string>} />
 
       {tab === "code" && (
         <>
           <Board divide={false} className="px-5 py-4 md:px-6">
             <SpecPlate>
               <SpecRow label="Verification">
-                <span className="inline-flex items-center gap-1.5 border border-[#4e9a52]/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-[#3f7d43] dark:text-[#77c47b]">
-                  <Check className="size-3" />
+                <span className="inline-flex items-center gap-1.5">
+                  <Check className="size-3.5 text-[#3f7d43] dark:text-[#77c47b]" />
                   {contract.match === "exact_match" ? "Exact match" : "Match"}
                 </span>
               </SpecRow>
