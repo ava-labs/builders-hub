@@ -1,3 +1,5 @@
+import { getClientIP } from '@/lib/net/clientIp'
+
 const store = new Map<string, { count: number; resetAt: number }>()
 
 interface RateLimitOptions {
@@ -15,8 +17,9 @@ export function checkRateLimit(
   request: Request,
   { maxRequests = 60, windowMs = 60_000 }: RateLimitOptions = {}
 ): RateLimitResult {
-  const forwarded = request.headers.get('x-forwarded-for')
-  const clientId = forwarded ? forwarded.split(',')[0].trim() : 'anonymous'
+  // Shared resolver: the leftmost x-forwarded-for entry used here before is
+  // set by the client, so the limit was effectively opt-out.
+  const clientId = getClientIP(request)
 
   const now = Date.now()
 
