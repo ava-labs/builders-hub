@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TxsViewSwitch } from "./views";
 import { chainOfId, crossChainTxUrl } from "@/lib/crosschain-links";
 import { Board, CellLabel, SectionHeader, TxTypePill, idInk, HEAD, ROW, INK, MUTED, LoadMore, Tabs, EmptyRow, RowDoor, RowSkeleton, HashChip, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, FIG, UNIT } from "@/components/explorer-v2/ui";
 import { Party } from "@/components/explorer-v2/evm/LiveBoards";
@@ -58,37 +59,6 @@ interface AtomicTxRow {
   evmAddresses: string[]; amounts: string[]; assetIds: string[];
 }
 interface LineageHop { chain: string; txHash: string; timestamp: number; blockNumber: number }
-
-/** The Transactions tab's two views on the C-Chain: the EVM receipts and
- *  the shared-memory transfers. Links, not buttons, so each view has a
- *  URL to share (txs, txs/atomic). */
-export function TxsViewSwitch({ base, view }: { base: string; view: "evm" | "atomic" }) {
-  const views = [
-    { key: "evm", label: "EVM", title: "EVM transactions: calls, transfers, deployments", href: `${base}/txs` },
-    { key: "atomic", label: "Atomic", title: "Atomic imports and exports with the P-Chain and X-Chain", href: `${base}/txs/atomic` },
-  ] as const;
-  return (
-    // a div, not a nav: the global `nav a` rules would restyle the chips
-    <div role="group" aria-label="Transaction view" className="flex shrink-0 items-center gap-1.5">
-      {views.map((v) => (
-        <Link
-          key={v.key}
-          href={v.href}
-          title={v.title}
-          aria-current={view === v.key ? "page" : undefined}
-          className={cn(
-            "border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors",
-            view === v.key
-              ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-              : "border-zinc-200 bg-white/80 text-zinc-500 hover:border-zinc-400 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-400 dark:hover:border-zinc-500 dark:hover:text-zinc-100",
-          )}
-        >
-          {v.label}
-        </Link>
-      ))}
-    </div>
-  );
-}
 
 type Claim = LineageHop | null;
 
@@ -184,7 +154,7 @@ export function AtomicTxsList({ network, chainSlug, address }: { network: string
   return (
     <EvmShell network={network}>
       <section className="flex flex-col gap-4">
-        <SectionHeader label="Atomic Transactions" action={<TxsViewSwitch base={base} view="atomic" />} />
+        <SectionHeader label="Atomic Transactions" action={<TxsViewSwitch base={base} slug={chainSlug} view="atomic" />} />
         <StatStrip cols={3}>
           <StatCell label="Into C-Chain" even sub={rows.length ? `${imports} imports` : undefined}>
             <span className={FIG}>

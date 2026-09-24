@@ -18,7 +18,7 @@ export async function generateMetadata({
     title: "Avalanche Staking | Avalanche Explorer",
     description:
       "Primary Network staking: total stake and its growth, staking APY, rewards minted, and how the stake distributes across the validator set.",
-    url: `/explorer/${network}/${chainSlug}/staking`,
+    url: `/explorer/${network}/${chainSlug}/validators/staking`,
   });
 }
 
@@ -27,6 +27,7 @@ export async function generateMetadata({
    lands on its own validator set instead. */
 export default async function ChainStakingPage({ params }: StakingPageProps) {
   const { network, chain } = await params;
-  if (chain !== "c-chain") redirect(`/explorer/${network}/${chain}/validators`);
+  // the staking feeds watch mainnet alone
+  if (chain !== "c-chain" || network !== "mainnet") redirect(`/explorer/${network}/${chain}/validators`);
   return <ChainStakingPageClient chainSlug={chain} />;
 }

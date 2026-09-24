@@ -396,7 +396,7 @@ export function IcmMessagesPage({
         key: r.chainId,
         label: r.name,
         value: r.sent + r.received,
-        href: slug ? `/explorer/${network}/${slug}/icm` : undefined,
+        href: slug ? `/explorer/${network}/${slug}/txs/icm` : undefined,
         sub: `${r.received.toLocaleString("en-US")} received · ${r.sent.toLocaleString("en-US")} sent`,
       };
     });

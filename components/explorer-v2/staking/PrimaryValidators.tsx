@@ -229,7 +229,7 @@ function CountChart({ data }: { data: CountPoint[] }) {
   );
 }
 
-export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string }) {
+export function PrimaryValidatorsContent({ stakingHref, switched = false }: { stakingHref: string; switched?: boolean }) {
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
   const { data: p2p } = useP2pValidators();
@@ -432,13 +432,15 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
             label="Primary Network Validators"
             display
             action={
-              <Link
-                href={stakingHref}
-                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-              >
-                Staking economics
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-              </Link>
+              switched ? undefined : (
+                <Link
+                  href={stakingHref}
+                  className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+                >
+                  Staking economics
+                  <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+                </Link>
+              )
             }
           />
           <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">

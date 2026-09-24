@@ -12,6 +12,7 @@ import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
 import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
+import { ChainRecord } from "./ChainRecord";
 import { useEvmData, LIVE_REFRESH_MS, usePrice } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { LatestBlocksBoard, LatestTxsBoard, type BlockRow, type TxRow } from "./LiveBoards";
@@ -281,6 +282,12 @@ export function EvmHome({ network }: { network: string }) {
           )}
         </div>
       )}
+
+      {/* the chain's record: identifiers, RPC, genesis, and for L1s the
+          P-Chain's creation record. It was the Details tab (/details 308s here) */}
+      <section id="chain" className="mt-12 scroll-mt-24">
+        <ChainRecord />
+      </section>
     </EvmShell>
   );
 }

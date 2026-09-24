@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { ArrowUp, ArrowUpRight, Check, Copy, X } from "lucide-react";
@@ -696,7 +696,10 @@ export function EvmQuery({ network }: { network: string }) {
         setHistory([...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6));
         setPrompt("");
         const url = new URL(window.location.href);
-        if (!refine) url.searchParams.set("q", text);
+        if (!refine) {
+          asked.current = text;
+          url.searchParams.set("q", text);
+        }
         window.history.replaceState(null, "", url.toString());
         setPhase("idle");
         setStarted(null);
@@ -768,14 +771,15 @@ export function EvmQuery({ network }: { network: string }) {
     [answer, drill, c.chainId, base],
   );
 
-  // a shared link asks on load
-  const asked = useRef(false);
+  // a shared link asks on load, and so does a question typed into the
+  // search bar while this page is open (same route, new ?q)
+  const qParam = useSearchParams().get("q");
+  const asked = useRef<string | null>(null);
   useEffect(() => {
-    if (asked.current) return;
-    asked.current = true;
-    const q = new URLSearchParams(window.location.search).get("q");
-    if (q) void ask(q, false);
-  }, [ask]);
+    if (!qParam || qParam === asked.current) return;
+    asked.current = qParam;
+    void ask(qParam, false);
+  }, [qParam, ask]);
   useEffect(() => () => setSelection(null), []);
 
   const reset = () => {
@@ -788,6 +792,7 @@ export function EvmQuery({ network }: { network: string }) {
     setDrill(null);
     setDesigning(false);
     setSelection(null);
+    asked.current = null;
     const url = new URL(window.location.href);
     url.searchParams.delete("q");
     window.history.replaceState(null, "", url.toString());

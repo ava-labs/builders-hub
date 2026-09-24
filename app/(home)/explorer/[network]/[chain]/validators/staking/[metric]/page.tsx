@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: StakingMetricPageProps): Prom
     description: def
       ? `Primary Network ${def.title.toLowerCase()}: ${def.blurb}`
       : "Primary Network staking detail.",
-    url: `/explorer/${network}/${chainSlug}/staking/${metric}`,
+    url: `/explorer/${network}/${chainSlug}/validators/staking/${metric}`,
   });
 }
 
@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: StakingMetricPageProps): Prom
    carried by the C-Chain. */
 export default async function ChainStakingMetricPage({ params }: StakingMetricPageProps) {
   const { network, chain, metric } = await params;
-  if (chain !== "c-chain") redirect(`/explorer/${network}/${chain}/validators`);
+  // the staking feeds watch mainnet alone
+  if (chain !== "c-chain" || network !== "mainnet") redirect(`/explorer/${network}/${chain}/validators`);
   if (!isStakingMetricKey(metric)) notFound();
   return <ChainStakingMetricPageClient chainSlug={chain} network={network} metric={metric} />;
 }

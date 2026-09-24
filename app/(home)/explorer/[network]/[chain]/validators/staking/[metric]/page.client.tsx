@@ -3,7 +3,7 @@
 import { ExplorerLayout } from "@/components/explorer/ExplorerLayout";
 import { StakingMetricContent } from "@/components/explorer-v2/staking/StakingMetricPage";
 import type { StakingMetricKey } from "@/components/explorer-v2/staking/staking-metrics";
-import { useChainContext } from "../../layout.client";
+import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 
 /* A staking metric's detail sheet, mounted inside the chain's own chrome —
    same shell idiom as the gas sheets. */
@@ -34,7 +34,7 @@ export function ChainStakingMetricPageClient({
     >
       <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-10 px-5 pb-16 pt-8 md:px-6">
         <StakingMetricContent
-          base={`/explorer/${network}/${chainSlug}/staking`}
+          base={`/explorer/${network}/${chainSlug}/validators/staking`}
           network={network}
           metric={metric}
         />

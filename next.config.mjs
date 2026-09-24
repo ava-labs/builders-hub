@@ -127,6 +127,29 @@ const config = {
         destination: '/explorer/:network/:chain/txs/atomic',
         permanent: true,
       },
+      // ICM folded into Transactions and Staking into Validators, as views;
+      // Details became the foot of the Overview. The P-Chain and X-Chain
+      // keep their own staking and chain pages, so they are left out
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!p-chain|x-chain)[^/]+)/icm',
+        destination: '/explorer/:network/:chain/txs/icm',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/c-chain/staking/:path*',
+        destination: '/explorer/:network/c-chain/validators/staking/:path*',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!p-chain|x-chain|c-chain)[^/]+)/staking/:path*',
+        destination: '/explorer/:network/:chain/validators',
+        permanent: true,
+      },
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain((?!p-chain|x-chain)[^/]+)/details',
+        destination: '/explorer/:network/:chain#chain',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):

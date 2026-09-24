@@ -399,14 +399,12 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       // list tabs mirror the P-Chain's; detail pages light their list
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        // the C-Chain's atomic imports and exports are the tab's second
-        // view (txs/atomic), and their detail pages light it too
+        // the tab's views: EVM txs, the C-Chain's atomic imports and exports
+        // (txs/atomic), ICM messages (txs/icm); atomic detail pages light it too
         { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) || p.startsWith(`${base}/atomic-tx`) },
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
-        // ask the chain a question, get a chart with its SQL (prototype)
-        { label: "Query", href: `${base}/query`, isActive: (p) => p.startsWith(`${base}/query`) },
       );
     }
     // who's on the chain: population charts for every catalog chain,
@@ -416,37 +414,15 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       href: `${base}/accounts`,
       isActive: (p) => p.startsWith(`${base}/accounts`),
     });
-    if (catalogChain.blockchainId) {
-      tabs.push({
-        label: "Details",
-        href: `${base}/details`,
-        isActive: (p) => p.startsWith(`${base}/details`),
-      });
-    }
     if (catalogChain.isTestnet !== true) {
-      // the C-Chain's validators ARE the Primary Network's, so it alone
-      // also carries the staking-economics instrument as a sibling tab
-      if (chainSlug === "c-chain") {
-        tabs.push({
-          label: "Staking",
-          href: `${base}/staking`,
-          isActive: (p) => p.startsWith(`${base}/staking`),
-        });
-      }
+      // the C-Chain's validators ARE the Primary Network's, so on mainnet
+      // the tab also carries their staking economy (validators/staking)
       tabs.push({
         label: "Validators",
         // every chain's set lives in its own chrome — the C-Chain mounts
         // the Primary Network roster, L1s their own weight table
         href: `${base}/validators`,
         isActive: (p) => p.startsWith(`${base}/validators`),
-      });
-    }
-    // ICM activity needs an RPC to derive cross-chain txs from
-    if (catalogChain.rpcUrl) {
-      tabs.push({
-        label: "ICM",
-        href: `${base}/icm`,
-        isActive: (p) => p.startsWith(`${base}/icm`),
       });
     }
   }

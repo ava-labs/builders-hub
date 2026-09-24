@@ -16,7 +16,7 @@ import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, useChain
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
 import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-list";
-import { TxsViewSwitch } from "./AtomicPages";
+import { TxsViewSwitch } from "./views";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxListResponse } from "@/lib/evm-explorer";
 
@@ -103,7 +103,7 @@ export function EvmTxsList({ network }: { network: string }) {
     <EvmShell network={network}>
       <section className="flex flex-col gap-4">
         {/* the C-Chain's shared-memory transfers are this tab's second view */}
-        <SectionHeader label="Transactions" action={c.chainSlug === "c-chain" ? <TxsViewSwitch base={base} view="evm" /> : undefined} />
+        <SectionHeader label="Transactions" action={<TxsViewSwitch base={base} slug={c.chainSlug} view="evm" />} />
         <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
           <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
             <span />
