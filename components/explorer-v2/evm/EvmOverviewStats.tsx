@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Board, BoardHeader, LiveDot, StatCell, StatDash } from "@/components/explorer-v2/ui";
@@ -149,9 +149,9 @@ function Spark({ values, className }: { values: number[]; className?: string }) 
   );
 }
 
-/* the trace band: 32 CSS px tall at the block's foot */
-const BAND_PX = 32;
-const BAND_H = 32;
+/* the trace band: 40 CSS px tall at the block's foot, under the text */
+const BAND_PX = 40;
+const BAND_H = 40;
 
 /** where a series ends inside the band, as a share of the band's height:
  *  the block's right face fills to this level so the trace reads as a
@@ -161,36 +161,28 @@ function bandLevel(values: number[] | undefined): number | null {
   const pts = bucket(values, SPARK_MAX_POINTS);
   const min = Math.min(...pts);
   const span = Math.max(...pts) - min || 1;
-  return ((pts[pts.length - 1] - min) / span) * ((BAND_H - 6) / BAND_H) + 2 / BAND_H;
+  return ((pts[pts.length - 1] - min) / span) * ((BAND_H - 4) / BAND_H) + 1 / BAND_H;
 }
 
-/** the trace as the block's own floor: a gradient area across the full
- *  width, the line over it, and a live dot riding the last value */
+/** the trace as the block's liquid: the area under the line filled in
+ *  the tape's block gray, one flat tone, a crisp top edge, the level
+ *  carried onto the shaded right face. The same vessel the block tape
+ *  draws, poured to a curve instead of a line. */
 function SparkBand({ values }: { values: number[] }) {
-  const id = useId();
   const pts = bucket(values, SPARK_MAX_POINTS);
   if (pts.length < 2) return null;
   const W = 100;
   const H = BAND_H;
   const min = Math.min(...pts);
   const span = Math.max(...pts) - min || 1;
-  const yOf = (v: number) => H - 2 - ((v - min) / span) * (H - 6);
-  const xy = pts.map((v, i) => [((i / (pts.length - 1)) * W).toFixed(2), yOf(v).toFixed(2)]);
-  const d = xy.map(([x, y]) => `${x},${y}`).join(" ");
-  const lastY = yOf(pts[pts.length - 1]);
+  const yOf = (v: number) => H - 1 - ((v - min) / span) * (H - 4);
+  const d = pts.map((v, i) => `${((i / (pts.length - 1)) * W).toFixed(2)},${yOf(v).toFixed(2)}`).join(" ");
   return (
     <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0" style={{ height: BAND_PX }}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full text-zinc-900 dark:text-zinc-50">
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="currentColor" stopOpacity={0.14} />
-            <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <polygon points={`0,${H} ${d} ${W},${H}`} fill={`url(#${id})`} />
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-full w-full">
+        <polygon points={`0,${H} ${d} ${W},${H}`} className="fill-[#A2AFB2]/40 dark:fill-[#A2AFB2]/30" />
         <polyline points={d} fill="none" strokeWidth={1.25} vectorEffect="non-scaling-stroke" strokeLinejoin="round" className="stroke-zinc-700 dark:stroke-zinc-300" />
       </svg>
-      <span className="absolute right-0 h-1.5 w-1.5 -translate-y-1/2 translate-x-1/2 rounded-full bg-emerald-500 ring-2 ring-white dark:bg-emerald-400 dark:ring-zinc-950" style={{ top: `${(lastY / H) * 100}%` }} />
     </span>
   );
 }
@@ -252,7 +244,7 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
             </>
           );
           const face =
-            "relative flex h-full items-start gap-3 overflow-hidden border border-zinc-200 bg-white px-5 pb-4 pt-3 transition-[background-color,translate] duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-950 md:px-6";
+            "relative flex h-full items-start gap-3 overflow-hidden border border-zinc-200 bg-white px-5 pb-12 pt-3 transition-[background-color,translate] duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-950 md:px-6";
           return (
             <div key={c.label} className="group relative">
               {/* top face, lit */}
@@ -269,7 +261,7 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
               >
                 {level !== null && (
                   <span
-                    className="absolute inset-x-0 bottom-0 border-t border-zinc-700/70 bg-zinc-900/15 dark:border-zinc-300/70 dark:bg-zinc-50/15"
+                    className="absolute inset-x-0 bottom-0 border-t border-zinc-700/60 bg-[#A2AFB2]/70 dark:border-zinc-300/60 dark:bg-[#A2AFB2]/50"
                     style={{ height: Math.round(level * BAND_PX) }}
                   />
                 )}

@@ -177,6 +177,7 @@ export function EvmHome({ network }: { network: string }) {
                       {
                         label: "Price",
                         live: true,
+                        href: isCchain ? `/explorer/${network}/token` : undefined,
                         series: "price" as const,
                         value: formatPrice(price.price),
                         // the readout turns these into the move over the clock's window
@@ -187,6 +188,7 @@ export function EvmHome({ network }: { network: string }) {
                       {
                         label: "Market Cap",
                         live: true,
+                        href: isCchain ? `/explorer/${network}/token` : undefined,
                         series: "marketCap" as const,
                         value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
                         raw: price.marketCap || undefined,
