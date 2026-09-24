@@ -9,7 +9,8 @@ import { formatNumber, formatTime } from "@/components/explorer-v2/format";
 import { useEvmData, refreshMsForChain } from "./hooks";
 import { useHeadStream, cadence, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { Belt, MotionRow, Height, GasBar, PhaseTrack, RowSkeleton, ageShort, phaseOf, useFreeze, HEAD, ROW, INK, MUTED } from "./LiveBoards";
-import { LiveReadout } from "./EvmOverviewStats";
+import { LiveReadoutAt } from "./EvmOverviewStats";
+import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
 import { BlockRangeMap } from "./BlockRangeMap";
@@ -113,8 +114,11 @@ export function EvmBlocksList({ network }: { network: string }) {
         {live && (
           <section className="flex flex-col gap-4">
             <SectionHeader label="Cadence" />
-            <LiveReadout
+            {/* its own traces, no market series: a fixed window keeps the
+                page off the clock, so the subnav shows no range control */}
+            <LiveReadoutAt
               chainId={String(c.chainId)}
+              days={RANGE_DAYS.month}
               cells={[
                 {
                   label: "Block Time",

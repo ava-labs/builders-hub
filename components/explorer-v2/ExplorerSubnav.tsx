@@ -399,22 +399,15 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       // list tabs mirror the P-Chain's; detail pages light their list
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) && !p.startsWith(`${base}/atomic`) },
+        // the C-Chain's atomic imports and exports are the tab's second
+        // view (txs/atomic), and their detail pages light it too
+        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) || p.startsWith(`${base}/atomic-tx`) },
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
         // ask the chain a question, get a chart with its SQL (prototype)
         { label: "Query", href: `${base}/query`, isActive: (p) => p.startsWith(`${base}/query`) },
       );
-      // cross-chain (shared-memory) txs exist only on the C-Chain — they ride
-      // in blockExtraData, invisible to eth_*, hence their own tab
-      if (chainSlug === "c-chain") {
-        tabs.push({
-          label: "Atomic",
-          href: `${base}/atomic`,
-          isActive: (p) => p.startsWith(`${base}/atomic`),
-        });
-      }
     }
     // who's on the chain: population charts for every catalog chain,
     // leaderboards where ClickHouse ingests it

@@ -120,6 +120,13 @@ const config = {
         destination: '/explorer/:network/:chain/accounts',
         permanent: true,
       },
+      // the Atomic tab folded into Transactions as its second view; the
+      // query string (?address=) rides along
+      {
+        source: '/explorer/:network(mainnet|fuji|devnet)/:chain/atomic',
+        destination: '/explorer/:network/:chain/txs/atomic',
+        permanent: true,
+      },
       // ── Renamed/moved pages ──
       {
         // ACP-236 was renamed upstream (avalanche-foundation/ACPs):

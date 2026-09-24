@@ -7,15 +7,16 @@ import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, SectionHeader, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
-import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, RANGE_LABEL } from "@/components/explorer-v2/time-range";
 import { truncate } from "@/components/explorer-v2/format";
 import { useEvmData, LIVE_REFRESH_MS, usePrice, usdOfWei } from "./hooks";
 import { useHeadStream, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { Belt, MotionRow, Party, RowSkeleton, ageShort, fmtAmount, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
-import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, weekFloor, useChainMetrics } from "./metric-charts";
+import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, useChainMetrics } from "./metric-charts";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
 import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-list";
+import { TxsViewSwitch } from "./AtomicPages";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxListResponse } from "@/lib/evm-explorer";
 
@@ -23,7 +24,7 @@ import type { TxListResponse } from "@/lib/evm-explorer";
    On the C-Chain rows enter as the executor writes them (one at a time,
    the home board's belt at 25 rows), each with what it did, who to, what
    moved, what it cost, and how old it is. Other chains keep the indexer
-   list. The charts beneath give the feed its shape on the page clock. */
+   list. The charts beneath give the feed its shape over the last month. */
 
 const LIVE_ROWS = 25;
 const PAGE = 25;
@@ -87,8 +88,9 @@ export function EvmTxsList({ network }: { network: string }) {
   const contracts = useVerifiedContracts(c.chainId, rows.map((t) => t.to));
   const method = useMethodNames(c.chainId, rows);
 
-  const clock = useExplorerTimeRange();
-  const range = RANGE_DAYS[clock];
+  // a fixed month, off the page clock: a list page carries no range
+  // control, so its two charts say their window in the title
+  const range = RANGE_DAYS.month;
   const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
   const m = metrics ?? {};
 
@@ -100,7 +102,8 @@ export function EvmTxsList({ network }: { network: string }) {
   return (
     <EvmShell network={network}>
       <section className="flex flex-col gap-4">
-        <SectionHeader label="Transactions" />
+        {/* the C-Chain's shared-memory transfers are this tab's second view */}
+        <SectionHeader label="Transactions" action={c.chainSlug === "c-chain" ? <TxsViewSwitch base={base} view="evm" /> : undefined} />
         <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
           <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
             <span />
@@ -201,7 +204,7 @@ export function EvmTxsList({ network }: { network: string }) {
 
       {/* the shape of the feed over time */}
       <div className="mt-10 grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartSection label={`Transactions${weekFloor(range)}`} action={<OverlayKey label="avg tps" dashed />}>
+        <ChartSection label={`Transactions · ${RANGE_LABEL.month}`} action={<OverlayKey label="avg tps" dashed />}>
           {metricSeries(m, range, "txCount", "avgTps").length ? (
             <DualChart
               data={metricSeries(m, range, "txCount", "avgTps")}
@@ -217,7 +220,7 @@ export function EvmTxsList({ network }: { network: string }) {
           )}
         </ChartSection>
 
-        <ChartSection label={`Total Transactions${weekFloor(range)}`}>
+        <ChartSection label={`Total Transactions · ${RANGE_LABEL.month}`}>
           {metricSeries(m, range, "cumulativeTxCount").length ? (
             <DualChart data={metricSeries(m, range, "cumulativeTxCount")} kind="area" fmt={fmtCompact} aLabel="txs all-time" />
           ) : (
