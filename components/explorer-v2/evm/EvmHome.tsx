@@ -58,7 +58,6 @@ export function EvmHome({ network }: { network: string }) {
   const recentTps = pace.tps ?? (span > 0 ? blockList.reduce((acc, b) => acc + b.txCount, 0) / span : null);
   const avgBlockTime =
     pace.intervalMs != null ? pace.intervalMs / 1000 : span > 0 ? span / (blockList.length - 1) : null;
-  const cadenceBlocks = pace.n || blockList.length;
 
   const tapeBlocks: TapeBlock[] = heads.length
     ? heads.slice(0, 20).map((h) => ({
@@ -169,6 +168,8 @@ export function EvmHome({ network }: { network: string }) {
                   live: true,
                   href: `${base}/blocks`,
                   value: formatNumber(tip?.number ?? s?.tipHeight ?? 0),
+                  // the heights over the stream's window: a straight climb, the cadence's line
+                  values: heads.length >= 2 ? [...heads].reverse().map((h) => h.number) : undefined,
                 },
 
                 ...(price
@@ -178,21 +179,17 @@ export function EvmHome({ network }: { network: string }) {
                         live: true,
                         series: "price" as const,
                         value: formatPrice(price.price),
-                        sub: (
-                          <>
-                            {price.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX ` : ""}
-                            <span className={price.change24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]"}>
-                              {price.change24h >= 0 ? "+" : ""}
-                              {price.change24h.toFixed(2)}%
-                            </span>
-                          </>
-                        ),
+                        // the readout turns these into the move over the clock's window
+                        raw: price.price,
+                        change24h: price.change24h,
+                        sub: price.priceInAvax && sym && sym !== "AVAX" ? `@ ${formatAvaxPrice(price.priceInAvax)} AVAX` : undefined,
                       },
                       {
                         label: "Market Cap",
                         live: true,
                         series: "marketCap" as const,
                         value: price.marketCap ? formatMarketCap(price.marketCap) : "—",
+                        raw: price.marketCap || undefined,
                       },
                     ]
                   : []),
@@ -202,7 +199,6 @@ export function EvmHome({ network }: { network: string }) {
                   href: `${base}/blocks`,
                   value: avgBlockTime != null ? avgBlockTime.toFixed(2) : "—",
                   unit: avgBlockTime != null ? "s" : undefined,
-                  sub: `last ${cadenceBlocks} blocks`,
                 },
                 {
                   label: "Throughput",
@@ -210,7 +206,6 @@ export function EvmHome({ network }: { network: string }) {
                   href: `${base}/txs`,
                   value: recentTps != null ? recentTps.toFixed(1) : "—",
                   unit: recentTps != null ? "TPS" : undefined,
-                  sub: `last ${cadenceBlocks} blocks`,
                 },
             ]}
           />
