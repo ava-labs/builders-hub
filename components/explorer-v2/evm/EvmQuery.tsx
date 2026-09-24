@@ -2,99 +2,86 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { ArrowUp, Check, Copy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, SectionHeader, HEAD, ROW, INK, idInk, fnInk } from "@/components/explorer-v2/ui";
-import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { Board, CellLabel, HEAD, ROW, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
+import { RailRow } from "./EvmTx";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection, askAbout } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
 import type { ColumnMeta, QueryResult } from "@/lib/explorer-query/clickhouse";
-import type { VisualSpec } from "@/lib/explorer-query/visual";
-import { QueryVisual } from "./QueryVisual";
+import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
+import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 
-/* Ask the chain a question; get a chart you can audit. The model writes
-   one ClickHouse SELECT; the page draws the rows and shows the SQL that
-   made them, editable and re-runnable. The server decodes what the rows
-   name (selectors to functions, addresses to contracts and tokens), and
-   every group opens: click a bar or a row and the records behind it list
-   underneath, each a door to its own page. A brush selects a range and
-   asks the next question about that alone; the chat bubble can be asked
-   about whatever is open. */
+/* A question about the chain, answered as a sheet in the explorer's
+   own grammar. The query stage returns rows first and the page draws
+   them at once; the layout stage then arranges them (headline figures,
+   panels, a short reading). Beside the answer, the rail says where the
+   figures came from: the table, the window the database holds, what was
+   scanned, and the SQL. Any group opens into its transactions, drawn as
+   the explorer draws transactions everywhere else. */
 
-const EXAMPLES = [
-  "Most popular methods over the last 7 days",
-  "Transactions per hour over the last 3 days, with reverts",
-  "Fees burned per day over the last 30 days, in AVAX",
-  "Top 15 contracts by gas charged in the last 24 hours",
-  "Gas reserved per block against the limit, last 2 hours",
-  "USDC transfers per hour over the last 2 days, count and volume",
+const EXAMPLES: { group: string; items: string[] }[] = [
+  { group: "Activity", items: ["Transactions per 5 minutes, with reverts", "Busiest senders in the last hour"] },
+  { group: "Gas and fees", items: ["Fees burned per 5 minutes", "Gas reserved per block against the limit"] },
+  { group: "Contracts", items: ["Most called methods", "Top contracts by gas charged"] },
+  { group: "Tokens", items: ["USDC transfers per 5 minutes, count and volume", "Largest USDT transfers in the last hour"] },
 ];
 
 type Row = Record<string, unknown>;
+type Span = ReturnType<typeof spanOf>;
 
 /* ------------------------------------------------------------------ */
-/* values, names, doors                                                */
+/* columns as people read them                                         */
+
+const HEADERS: Record<string, string> = {
+  t: "Time",
+  method_id: "Method",
+  txs: "Txs",
+  share_pct: "Share",
+  unique_senders: "Callers",
+  senders: "Callers",
+  reverted: "Reverted",
+  fees_avax: "Fees",
+  fee_avax: "Fee",
+  gas_charged: "Gas charged",
+  gas_reserved: "Gas reserved",
+  gas_limit: "Gas limit",
+  address: "Address",
+  to_address: "To",
+  from_address: "From",
+  tx_hash: "Hash",
+  block_number: "Block",
+  status: "Status",
+};
+
+const header = (col: string) => HEADERS[col] ?? col.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
+/** the unit a column is in: the layout's word first, then its name */
+function formatOf(col: string, visual: VisualSpec | null): Format {
+  const fromVisual = visual?.panels.flatMap((p) => p.series).find((s) => s.column === col)?.format ?? visual?.stats.find((s) => s.column === col)?.format;
+  if (fromVisual) return fromVisual;
+  if (/pct|share|percent|rate/.test(col)) return "percent";
+  if (/avax|fee/.test(col)) return "avax";
+  if (/gas/.test(col)) return "gas";
+  return "number";
+}
 
 const isAddress = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{40}$/.test(v);
 const isHash = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{64}$/.test(v);
 const isSelector = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v);
 const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
 
-function fmtNum(v: unknown): string {
-  if (typeof v !== "number") return String(v ?? "");
-  if (Number.isInteger(v)) return formatNumber(v);
-  const a = Math.abs(v);
-  return a >= 1000 ? formatNumber(Math.round(v)) : a >= 1 ? v.toFixed(2) : a >= 0.01 ? v.toFixed(4) : v.toPrecision(3);
-}
-
-type Span = "minutes" | "hours" | "days" | "other";
-
-/** a time label as short as the series allows */
-function fmtX(v: unknown, span: Span): string {
-  if (isTime(v)) {
-    const s = v.replace("T", " ");
-    if (span === "days") return s.slice(5, 10);
-    if (span === "hours") return s.slice(5, 16);
-    return s.slice(11, 16);
-  }
-  return typeof v === "number" ? formatNumber(v) : String(v ?? "");
-}
-
-function spanOf(xs: unknown[]): Span {
-  const ts = xs.filter(isTime).map((s) => new Date(s.replace(" ", "T") + (s.length <= 10 ? "T00:00:00Z" : "Z")).getTime());
-  if (ts.length < 2) return "other";
-  const w = Math.max(...ts) - Math.min(...ts);
-  return w <= 3 * 3600e3 ? "minutes" : w <= 3 * 86400e3 ? "hours" : "days";
-}
-
-/** the decoded name for a cell, if the server found one */
-function nameFor(names: Names, col: string, v: unknown): string | undefined {
-  return typeof v === "string" ? names[col]?.[v.toLowerCase()] : undefined;
-}
-
-/** a cell as a person reads it: name, short hex, number, or text */
-function cellText(names: Names, col: string, v: unknown, span: Span): string {
-  const name = nameFor(names, col, v);
-  if (name) return name;
-  if (isAddress(v) || isHash(v)) return truncate(v, 8);
-  if (isSelector(v)) return v;
-  if (typeof v === "number") return fmtNum(v);
-  if (isTime(v)) return span === "other" ? v.replace("T", " ") : fmtX(v, span);
-  return String(v ?? "");
-}
-
-/** where a cell leads, if anywhere */
 function doorFor(col: string, v: unknown, base: string): string | null {
   const c = col.toLowerCase();
   if (isAddress(v)) return `${base}/address/${v}`;
   if (isHash(v)) return c.includes("block") ? null : `${base}/tx/${v}`;
-  if (typeof v === "number" && Number.isInteger(v) && (c === "block_number" || c === "block" || c.endsWith("_block") || c === "number")) return `${base}/block/${v}`;
+  if (typeof v === "number" && Number.isInteger(v) && (c === "block_number" || c === "block" || c.endsWith("_block"))) return `${base}/block/${v}`;
   return null;
 }
 
-/** the drill title with the row's values, named where the server named them */
 function fillTitle(template: string, row: Row, names: Names): string {
   return template.replace(/\{\{\s*([A-Za-z_]\w*)\s*(?::(?:bytes|raw))?\s*\}\}/g, (_m, col: string) => {
     const v = row[col];
@@ -103,85 +90,175 @@ function fillTitle(template: string, row: Row, names: Names): string {
   });
 }
 
-/* ------------------------------------------------------------------ */
-/* the rows                                                            */
+const toUnix = (s: string) => Math.floor(new Date(s.replace(" ", "T") + (s.length <= 10 ? "T00:00:00Z" : "Z")).getTime() / 1000);
 
-function RowsTable({
+function duration(secs: number): string {
+  if (secs < 90) return `${Math.round(secs)} s`;
+  if (secs < 5400) return `${Math.round(secs / 60)} min`;
+  if (secs < 172800) return `${(secs / 3600).toFixed(1)} h`;
+  return `${Math.round(secs / 86400)} days`;
+}
+
+function ago(unix: number): string {
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - unix);
+  return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m` : s < 86400 ? `${Math.floor(s / 3600)}h` : `${Math.floor(s / 86400)}d`;
+}
+
+/* ------------------------------------------------------------------ */
+/* the result rows                                                     */
+
+function ResultTable({
   columns,
   rows,
   names,
+  visual,
   base,
+  sym,
   span,
-  dim,
   onPick,
   picked,
-  limit = 200,
+  dim,
 }: {
   columns: ColumnMeta[];
   rows: Row[];
   names: Names;
+  visual: VisualSpec | null;
   base: string;
+  sym: string;
   span: Span;
-  /** rows outside the brushed range fade */
-  dim?: (i: number) => boolean;
-  /** rows are groups: clicking one opens its records */
   onPick?: (row: Row, i: number) => void;
-  picked?: number | null;
-  limit?: number;
+  picked: number | null;
+  dim?: (i: number) => boolean;
 }) {
-  const grid = { gridTemplateColumns: `repeat(${columns.length}, minmax(7rem, 1fr))` };
+  const numeric = new Set(columns.filter((c) => /Int|Float|Decimal/.test(c.type)).map((c) => c.name));
+  const tpl = columns.map((c) => (numeric.has(c.name) ? "8.5rem" : "minmax(9rem,1fr)")).join(" ");
   return (
     <div className="overflow-x-auto">
-      <div className={cn(HEAD, "grid")} style={grid}>
-        {columns.map((col) => (
-          <span key={col.name} className="truncate" title={col.type}>
-            {col.name}
-          </span>
-        ))}
-      </div>
-      {rows.slice(0, limit).map((r, i) => (
-        <div
-          key={i}
-          role={onPick ? "button" : undefined}
-          tabIndex={onPick ? 0 : undefined}
-          onClick={(e) => {
-            if (!onPick || (e.target as HTMLElement).closest("a")) return;
-            onPick(r, i);
-          }}
-          onKeyDown={(e) => {
-            if (onPick && e.key === "Enter" && e.target === e.currentTarget) onPick(r, i);
-          }}
-          className={cn(ROW, "grid", onPick && "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900", picked === i && "bg-zinc-100 dark:bg-zinc-900", dim?.(i) && "opacity-40")}
-          style={grid}
-        >
-          {columns.map((col) => {
-            const v = r[col.name];
-            const door = doorFor(col.name, v, base);
-            const name = nameFor(names, col.name, v);
-            const text = cellText(names, col.name, v, span);
-            const tone = name ? (isSelector(v) ? fnInk : "text-zinc-900 dark:text-zinc-50") : typeof v === "number" ? "text-zinc-900 dark:text-zinc-50" : isSelector(v) ? "text-zinc-400 dark:text-zinc-500" : "text-zinc-500 dark:text-zinc-400";
-            const inner = (
-              <>
-                <span className="truncate">{text}</span>
-                {name && (isAddress(v) || isSelector(v)) && <span className="truncate text-[10px] text-zinc-400 dark:text-zinc-600">{isAddress(v) ? truncate(v, 6) : v}</span>}
-              </>
-            );
-            return door ? (
-              <Link key={col.name} href={door} className={cn("flex min-w-0 flex-col font-mono text-[12px] hover:text-[#E6212F]", name ? "text-zinc-900 dark:text-zinc-50" : idInk)} title={String(v)}>
-                {inner}
-              </Link>
-            ) : (
-              <span key={col.name} className={cn("flex min-w-0 flex-col font-mono text-[12px] tabular-nums", tone)} title={String(v)}>
-                {inner}
-              </span>
-            );
-          })}
+      <div className="min-w-max md:min-w-0">
+        <div className={cn(HEAD, "grid")} style={{ gridTemplateColumns: tpl }}>
+          {columns.map((c) => (
+            <span key={c.name} className={cn("truncate", numeric.has(c.name) && "text-right")} title={`${c.name} · ${c.type}`}>
+              {header(c.name)}
+            </span>
+          ))}
         </div>
-      ))}
-      {rows.length > limit && <p className="px-5 py-3 font-mono text-[11px] text-zinc-400 md:px-6">first {limit} of {formatNumber(rows.length)} rows</p>}
+        {rows.slice(0, 200).map((r, i) => (
+          <div
+            key={i}
+            role={onPick ? "button" : undefined}
+            tabIndex={onPick ? 0 : undefined}
+            onClick={(e) => {
+              if (onPick && !(e.target as HTMLElement).closest("a")) onPick(r, i);
+            }}
+            onKeyDown={(e) => {
+              if (onPick && e.key === "Enter" && e.target === e.currentTarget) onPick(r, i);
+            }}
+            className={cn(ROW, "grid items-baseline", onPick && "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900", picked === i && "bg-zinc-100 dark:bg-zinc-900", dim?.(i) && "opacity-40")}
+            style={{ gridTemplateColumns: tpl }}
+          >
+            {columns.map((c) => {
+              const v = r[c.name];
+              const name = nameFor(names, c.name, v);
+              const door = doorFor(c.name, v, base);
+              if (numeric.has(c.name)) {
+                const f = formatOf(c.name, visual);
+                return (
+                  <span key={c.name} className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                    {typeof v === "number" ? fmt(v, f, sym) : String(v ?? "")}
+                  </span>
+                );
+              }
+              const main = name ?? (isAddress(v) || isHash(v) ? truncate(v, 8) : isSelector(v) ? v.toLowerCase() : isTime(v) ? fmtX(v, span === "other" ? "hours" : span) : String(v ?? ""));
+              const cls = cn("min-w-0 truncate font-mono text-[12px]", name && isSelector(v) ? fnInk : name ? "text-zinc-900 dark:text-zinc-50" : isSelector(v) ? "text-zinc-400 dark:text-zinc-500" : door ? idInk : "text-zinc-600 dark:text-zinc-300");
+              const body = (
+                <>
+                  {main}
+                  {name && (isAddress(v) || isSelector(v)) && <span className="ml-2 text-[10px] text-zinc-400 dark:text-zinc-600">{isAddress(v) ? truncate(v, 4) : String(v).toLowerCase()}</span>}
+                </>
+              );
+              return door ? (
+                <Link key={c.name} href={door} title={String(v)} className={cn(cls, "hover:text-[#E6212F]")}>
+                  {body}
+                </Link>
+              ) : (
+                <span key={c.name} title={String(v)} className={cls}>
+                  {body}
+                </span>
+              );
+            })}
+          </div>
+        ))}
+        {rows.length > 200 && <p className="px-5 py-3 font-mono text-[11px] text-zinc-400 md:px-6">First 200 of {formatNumber(rows.length)} rows.</p>}
+      </div>
     </div>
   );
 }
+
+/* transactions, drawn as the explorer draws them everywhere else */
+const TX_COLS = "md:grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_3rem]";
+
+function TxLedger({ rows, names, base, sym }: { rows: Row[]; names: Names; base: string; sym: string }) {
+  const who = (col: string, v: unknown) => nameFor(names, col, v) ?? (isAddress(v) ? truncate(v, 6) : "");
+  return (
+    <div className="overflow-x-auto">
+      <div className="divide-y divide-zinc-200 md:min-w-[56rem] lg:min-w-0 dark:divide-zinc-800">
+        <div className={cn(HEAD, "grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_3rem]")}>
+          <span />
+          <span>Hash</span>
+          <span>Method</span>
+          <span>From → To</span>
+          <span className="text-right">Block</span>
+          <span className="text-right">Gas charged</span>
+          <span className="text-right">Fee</span>
+          <span className="text-right">Age</span>
+        </div>
+        {rows.map((r) => {
+          const hash = String(r.tx_hash);
+          const m = r.method_id;
+          const mName = nameFor(names, "method_id", m);
+          const failed = r.status === 0 || r.status === "0";
+          return (
+            <RowDoor key={hash} href={`${base}/tx/${hash}`} className={cn(ROW, TX_COLS)}>
+              <span className="flex h-3 w-3 items-center justify-center">{failed && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}</span>
+              <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(hash, 6)}</span>
+              <span className="min-w-0">
+                <CellLabel>Method</CellLabel>
+                <span className={cn("block truncate font-mono text-[12px]", mName ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={String(m ?? "")}>
+                  {mName ?? (m && m !== "0x" ? String(m).toLowerCase() : "transfer")}
+                </span>
+              </span>
+              <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
+                <CellLabel>From → To</CellLabel>
+                <Link href={`${base}/address/${String(r.from_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.from_address)}>
+                  {who("from_address", r.from_address)}
+                </Link>
+                <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
+                <Link href={`${base}/address/${String(r.to_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.to_address)}>
+                  {who("to_address", r.to_address)}
+                </Link>
+              </span>
+              <Link href={`${base}/block/${String(r.block_number)}`} className={cn("font-mono text-[12px] tabular-nums hover:text-[#E6212F] md:text-right", idInk)}>
+                <CellLabel>Block</CellLabel>
+                {typeof r.block_number === "number" ? formatNumber(r.block_number) : String(r.block_number ?? "")}
+              </Link>
+              <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
+                <CellLabel>Gas charged</CellLabel>
+                {typeof r.gas_charged === "number" ? formatNumber(r.gas_charged) : ""}
+              </span>
+              <span className="font-mono text-[12px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+                <CellLabel>Fee</CellLabel>
+                {typeof r.fee_avax === "number" ? fmt(r.fee_avax, "avax", sym) : ""}
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">{isTime(r.t) ? ago(toUnix(r.t)) : ""}</span>
+            </RowDoor>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const isTxList = (cols: ColumnMeta[]) => ["tx_hash", "from_address", "to_address"].every((k) => cols.some((c) => c.name === k));
 
 /* ------------------------------------------------------------------ */
 
@@ -191,7 +268,17 @@ interface OpenDrill {
   index: number;
   answer: DrillAnswer | null;
   error: string | null;
-  showSql: boolean;
+}
+
+function useCopy() {
+  const [done, setDone] = useState<string | null>(null);
+  const copy = (key: string, text: string) => {
+    void navigator.clipboard.writeText(text).then(() => {
+      setDone(key);
+      setTimeout(() => setDone(null), 1400);
+    });
+  };
+  return { done, copy };
 }
 
 export function EvmQuery({ network }: { network: string }) {
@@ -200,147 +287,168 @@ export function EvmQuery({ network }: { network: string }) {
   const sym = c.nativeToken ?? "AVAX";
 
   const [prompt, setPrompt] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
+  const [phase, setPhase] = useState<"idle" | "query" | "running">("idle");
+  const [designing, setDesigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<QueryAnswer | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
+  const [sqlOpen, setSqlOpen] = useState(false);
   const [sqlDraft, setSqlDraft] = useState("");
-  const [showSql, setShowSql] = useState(false);
   const [range, setRange] = useState<[number, number] | null>(null);
   const [drill, setDrill] = useState<OpenDrill | null>(null);
+  const [started, setStarted] = useState<number | null>(null);
+  const [, tick] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const drillRef = useRef<HTMLDivElement>(null);
+  const token = useRef(0);
+  const { done: copied, copy } = useCopy();
+
+  // the elapsed clock while a stage runs
+  useEffect(() => {
+    if (!started) return;
+    const id = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [started]);
+
+  const post = async <T,>(body: object): Promise<T> => {
+    const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
+    const out = (await res.json()) as T & { error?: string };
+    if (!res.ok || out.error) throw new Error(out.error ?? `HTTP ${res.status}`);
+    return out;
+  };
+
+  /** the second stage: arrange rows the page already shows */
+  const design = useCallback(
+    async (question: string, a: QueryAnswer) => {
+      if (!a.result || a.result.rows.length === 0) return;
+      const my = ++token.current;
+      setDesigning(true);
+      try {
+        const out = await post<{ visual: VisualSpec; designer: boolean; ms: number }>({
+          design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart },
+        });
+        if (my !== token.current) return;
+        setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
+      } catch {
+        /* the rows stay; the sheet shows them as a table */
+      } finally {
+        if (my === token.current) setDesigning(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [c.chainId],
+  );
 
   const ask = useCallback(
     async (q: string, refine: boolean) => {
       const text = q.trim();
       if (!text) return;
-      setBusy(refine ? "refining" : "asking");
+      token.current++;
+      setPhase("query");
+      setStarted(Date.now());
       setError(null);
       setRange(null);
       setDrill(null);
+      setDesigning(false);
+      setSqlOpen(false);
       const hist = refine ? history : [];
       try {
-        const res = await fetch("/api/explorer/query", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ chainId: c.chainId, prompt: text, history: hist }),
-        });
-        const body = (await res.json()) as QueryAnswer & { error?: string };
-        if (!res.ok || body.error) throw new Error(body.error ?? `HTTP ${res.status}`);
-        setAnswer(body);
-        setSqlDraft(body.sql);
-        setHistory([...hist, { prompt: text, sql: body.sql, title: body.title }].slice(-6));
+        const a = await post<QueryAnswer>({ prompt: text, history: hist, skipDesign: true });
+        setAnswer(a);
+        setSqlDraft(a.sql);
+        setHistory([...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6));
         setPrompt("");
-        if (!refine) {
-          const url = new URL(window.location.href);
-          url.searchParams.set("q", text);
-          window.history.replaceState(null, "", url.toString());
-        }
+        const url = new URL(window.location.href);
+        if (!refine) url.searchParams.set("q", text);
+        window.history.replaceState(null, "", url.toString());
+        setPhase("idle");
+        setStarted(null);
+        void design(text, a);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "the query failed");
-      } finally {
-        setBusy(null);
+        setError(e instanceof Error ? e.message : "The query failed.");
+        setPhase("idle");
+        setStarted(null);
       }
     },
-    [c.chainId, history],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [c.chainId, history, design],
   );
 
-  /** the reader edited the SQL: run it as written */
+  /** the reader's own SQL, run through the same guard */
   const runSql = useCallback(async () => {
-    setBusy("running");
+    setPhase("running");
     setError(null);
     setRange(null);
     setDrill(null);
     try {
-      const res = await fetch("/api/explorer/query", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ chainId: c.chainId, sql: sqlDraft }),
-      });
-      const body = (await res.json()) as { sql: string; result: QueryResult; names: Names; error?: string };
-      if (!res.ok || body.error) throw new Error(body.error ?? `HTTP ${res.status}`);
+      const out = await post<{ sql: string; result: QueryResult; names: Names }>({ sql: sqlDraft });
+      const cols = new Set(out.result.columns.map((k) => k.name));
+      let next: QueryAnswer | null = null;
       setAnswer((prev) => {
         const chart: ChartSpec = prev?.chart ?? { kind: "table", series: [] };
-        // keep the chart if its columns survived the edit, else fall back to rows
-        const cols = new Set(body.result.columns.map((k) => k.name));
-        const keep = chart.kind !== "none" && (!chart.x || cols.has(chart.x)) && chart.series.every((s) => cols.has(s.column));
         const v = prev?.visual;
-        const keepVisual = !!v && v.panels.every((pn) => (!pn.x || cols.has(pn.x)) && pn.series.every((sr) => cols.has(sr.column))) && v.stats.every((st) => cols.has(st.column));
-        return {
-          title: prev?.title ?? "Your query",
-          note: "Edited by hand and re-run.",
-          sql: body.sql,
-          chart: keep ? chart : { kind: "table", series: [] },
-          drill: keep ? (prev?.drill ?? null) : null,
-          result: body.result,
-          names: body.names ?? {},
-          visual: keepVisual ? v : null,
-        };
+        const fits = !!v && v.panels.every((p) => (!p.x || cols.has(p.x)) && p.series.every((s) => cols.has(s.column))) && v.stats.every((s) => cols.has(s.column));
+        const dFits = !!prev?.drill && [...prev.drill.sql.matchAll(/\{\{\s*(\w+)/g)].every((m) => cols.has(m[1]));
+        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, names: out.names ?? {}, visual: fits ? v! : null };
+        return next;
       });
+      if (next && !(next as QueryAnswer).visual) void design(history[history.length - 1]?.prompt ?? "", next);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "the query failed");
+      setError(e instanceof Error ? e.message : "The query failed.");
     } finally {
-      setBusy(null);
+      setPhase("idle");
     }
-  }, [c.chainId, sqlDraft]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.chainId, sqlDraft, history, design]);
 
-  /** one row of the answer, opened into the records behind it */
+  /** one group, opened into the transactions behind it */
   const openDrill = useCallback(
     async (row: Row, index: number) => {
       if (!answer?.drill) return;
+      if (drill?.index === index) {
+        setDrill(null);
+        setSelection(null);
+        return;
+      }
       const title = fillTitle(answer.drill.title, row, answer.names);
-      setDrill({ title, row, index, answer: null, error: null, showSql: false });
-      setTimeout(() => drillRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+      setDrill({ title, row, index, answer: null, error: null });
+      setTimeout(() => drillRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
       try {
-        const res = await fetch("/api/explorer/query", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ chainId: c.chainId, drill: { sql: answer.drill.sql, row } }),
-        });
-        const body = (await res.json()) as DrillAnswer & { error?: string };
-        if (!res.ok || body.error) throw new Error(body.error ?? `HTTP ${res.status}`);
-        setDrill((d) => (d && d.index === index ? { ...d, answer: body } : d));
-        // the chat bubble can be asked about what is open
-        const hashCol = body.result.columns.find((k) => k.name.toLowerCase().includes("hash"))?.name;
+        const out = await post<DrillAnswer>({ drill: { sql: answer.drill.sql, row } });
+        setDrill((d) => (d && d.index === index ? { ...d, answer: out } : d));
         setSelection({
           kind: "records",
           title,
-          brief: [
-            `Open on the Query page: ${title} (${body.result.rowCount} rows, from this SQL):`,
-            body.sql,
-            "First rows:",
-            ...body.result.rows.slice(0, 12).map((r) => "- " + body.result.columns.map((k) => `${k.name}=${String(r[k.name])}`).join(" ")),
-          ].join("\n"),
-          hrefs: hashCol ? body.result.rows.slice(0, 8).map((r) => `${base}/tx/${String(r[hashCol])}`) : [],
+          brief: [`Open on the Query page: ${title} (${out.result.rowCount} rows), from:`, out.sql, "Rows:", ...out.result.rows.slice(0, 12).map((r) => "- " + out.result.columns.map((k) => `${k.name}=${String(r[k.name])}`).join(" "))].join("\n"),
+          hrefs: out.result.rows.slice(0, 8).map((r) => `${base}/tx/${String(r.tx_hash ?? "")}`),
         });
       } catch (e) {
-        setDrill((d) => (d && d.index === index ? { ...d, error: e instanceof Error ? e.message : "the records did not load" } : d));
+        setDrill((d) => (d && d.index === index ? { ...d, error: e instanceof Error ? e.message : "The transactions did not load." } : d));
       }
     },
-    [answer, c.chainId, base],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [answer, drill, c.chainId, base],
   );
 
-  // a shared link: ?q= asks on load
+  // a shared link asks on load
   const asked = useRef(false);
   useEffect(() => {
     if (asked.current) return;
     asked.current = true;
     const q = new URLSearchParams(window.location.search).get("q");
-    if (q) {
-      setPrompt(q);
-      void ask(q, false);
-    }
+    if (q) void ask(q, false);
   }, [ask]);
   useEffect(() => () => setSelection(null), []);
 
   const reset = () => {
+    token.current++;
     setAnswer(null);
     setHistory([]);
     setError(null);
     setPrompt("");
     setRange(null);
     setDrill(null);
+    setDesigning(false);
     setSelection(null);
     const url = new URL(window.location.href);
     url.searchParams.delete("q");
@@ -350,249 +458,314 @@ export function EvmQuery({ network }: { network: string }) {
 
   const rows: Row[] = answer?.result?.rows ?? [];
   const names = answer?.names ?? {};
+  const visual = answer?.visual ?? null;
   const canDrill = !!answer?.drill;
-  // the designer's layout, or the rows alone when it had nothing to draw
-  const visual: VisualSpec | null = answer?.visual ?? null;
-  const tableOnly = !visual || visual.panels.every((p) => p.kind === "table");
-  // for the rows table: how time reads, from the first panel's x
-  const firstX = visual?.panels.find((p) => p.x)?.x;
+  const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
+  const firstX = visual?.panels.find((p) => p.x)?.x ?? answer?.chart.x;
   const span = useMemo(() => (firstX ? spanOf(rows.map((r) => r[firstX])) : "other"), [rows, firstX]);
-  const onPoint = (row: Row) => {
-    const i = rows.indexOf(row);
-    if (i >= 0) void openDrill(row, i);
-  };
+  const tables = answer?.sql ? [...new Set([...answer.sql.matchAll(/\b(?:FROM|JOIN)\s+(raw_\w+)/gi)].map((m) => m[1]))] : [];
+  const cov = answer?.coverage;
+  const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
+  const busy = phase !== "idle";
+  const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
+  const shareUrl = typeof window !== "undefined" && history[0] ? `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(history[0].prompt)}` : "";
+
+  const input = (
+    <div className="flex items-end gap-2 border border-zinc-300 bg-white px-3 py-2 transition-colors focus-within:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
+      <textarea
+        ref={inputRef}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            void ask(prompt, !!answer);
+          }
+        }}
+        rows={1}
+        autoFocus={!answer}
+        disabled={busy}
+        placeholder={answer ? "Refine this answer: only reverted, per hour, add fees" : `Ask ${c.chainName} about its transactions, gas, contracts or tokens`}
+        className="max-h-40 min-h-[1.75rem] flex-1 resize-none bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 outline-none placeholder:text-zinc-400 disabled:opacity-60 dark:text-zinc-50 dark:placeholder:text-zinc-600"
+      />
+      <button
+        type="button"
+        onClick={() => void ask(prompt, !!answer)}
+        disabled={busy || !prompt.trim()}
+        aria-label={answer ? "Refine" : "Ask"}
+        className="flex h-7 w-7 shrink-0 items-center justify-center bg-zinc-900 text-white transition-opacity disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900"
+      >
+        <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
+      </button>
+    </div>
+  );
 
   return (
     <EvmShell network={network}>
-      <div className="flex flex-col gap-10">
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label="Query"
-            action={
-              answer ? (
-                <button type="button" onClick={reset} className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500">
-                  New question
-                </button>
-              ) : undefined
-            }
-          />
-          <Board divide={false} className="flex flex-col gap-4 border px-5 py-5 md:px-6">
-            <p className="font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Ask {c.chainName} a question in plain words. The answer is a chart, the query that made it, and a door into every record it counts.
-            </p>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-              <textarea
-                ref={inputRef}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void ask(prompt, !!answer);
-                  }
-                }}
-                rows={2}
-                placeholder={answer ? "Refine: make it daily, only reverted, add fees..." : "Most popular methods over the last 7 days"}
-                disabled={!!busy}
-                className="min-h-[3.25rem] flex-1 resize-none border border-zinc-200 bg-transparent px-3 py-2 font-mono text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-zinc-900 disabled:opacity-60 dark:border-zinc-800 dark:text-zinc-50 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100"
-              />
-              <button
-                type="button"
-                onClick={() => void ask(prompt, !!answer)}
-                disabled={!!busy || !prompt.trim()}
-                className="h-[3.25rem] shrink-0 border border-zinc-900 px-5 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-900 transition-colors hover:bg-zinc-900 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-zinc-900 dark:border-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-100 dark:hover:text-zinc-900"
-              >
-                {busy ? `${busy}…` : answer ? "Refine" : "Ask"}
+      <div className="flex flex-col gap-8">
+        {/* the question */}
+        <section className="flex flex-col gap-3">
+          {answer && history.length > 0 && (
+            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 font-mono text-[11px]">
+              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-zinc-400 dark:text-zinc-500">
+                {history.map((t, i) => (
+                  <span key={i} className="flex items-baseline gap-2">
+                    {i > 0 && <span className="text-zinc-300 dark:text-zinc-700">/</span>}
+                    <span className={cn(i === history.length - 1 && "text-zinc-700 dark:text-zinc-200")}>{t.prompt}</span>
+                  </span>
+                ))}
+              </span>
+              <button type="button" onClick={reset} className="shrink-0 uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-[#E6212F] dark:text-zinc-500">
+                New question
               </button>
             </div>
-            {!answer && !busy && (
-              <div className="flex flex-wrap gap-2">
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex}
-                    type="button"
-                    onClick={() => {
-                      setPrompt(ex);
-                      void ask(ex, false);
-                    }}
-                    className="border border-zinc-200 px-2.5 py-1 font-mono text-[11px] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
-                  >
-                    {ex}
-                  </button>
-                ))}
-              </div>
-            )}
-            {busy && (
-              <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                {busy === "running" ? "Running your query on ClickHouse…" : "Writing the query, testing it, then running it in full. Fifteen to sixty seconds."}
-              </p>
-            )}
-            {error && <p className="border border-[#E6212F]/40 px-3 py-2 font-mono text-[11px] text-[#E6212F]">{error}</p>}
-          </Board>
+          )}
+          {input}
+          {busy && (
+            <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+              {phase === "running" ? "Running your SQL" : "Writing and testing the SQL"} · {elapsed} s
+            </p>
+          )}
+          {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
+          {!answer && !busy && (
+            <div className="grid gap-x-8 gap-y-5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+              {EXAMPLES.map((g) => (
+                <div key={g.group} className="flex flex-col gap-2">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">{g.group}</span>
+                  {g.items.map((ex) => (
+                    <button key={ex} type="button" onClick={() => void ask(ex, false)} className="text-left font-mono text-[12px] leading-snug text-zinc-600 transition-colors hover:text-[#E6212F] dark:text-zinc-300">
+                      {ex}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {answer && (
-          <section className="flex flex-col gap-4">
-            <SectionHeader label={answer.title} />
-            <Board divide={false} className="flex flex-col gap-5 border px-5 py-5 md:px-6">
-              {answer.note && <p className="font-mono text-[12px] leading-relaxed text-zinc-600 dark:text-zinc-300">{answer.note}</p>}
+          <>
+            {/* the sheet: the answer on the left, where it came from on the right */}
+            <section className="flex flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <h1 className="font-mono text-xl font-bold tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">{answer.title}</h1>
+                {answer.note && <p className="max-w-3xl text-[14px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>}
+              </div>
 
-              {/* the visual the designer laid out */}
-              {visual && !tableOnly && (
-                <QueryVisual
-                  visual={visual}
-                  rows={rows}
-                  names={names}
-                  sym={sym}
-                  canDrill={canDrill}
-                  onPick={onPoint}
-                  range={range}
-                  onRange={setRange}
-                  onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} (inclusive), same figures, finer buckets if that helps.`, true)}
-                />
-              )}
-              {visual && tableOnly && visual.callouts.length > 0 && (
-                <ul className="flex flex-col gap-1.5 border-l-2 border-zinc-900 pl-4 dark:border-zinc-100">
-                  {visual.callouts.map((k, i) => (
-                    <li key={i} className="font-mono text-[12px] leading-relaxed text-zinc-700 dark:text-zinc-300">
-                      {k}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {answer.chart.kind === "none" && <p className="font-mono text-[12px] text-zinc-500">Nothing to draw for this question.</p>}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+                <Board divide={false} className="flex min-w-0 flex-col gap-6 border px-5 py-5 md:px-6">
+                  {charted && visual ? (
+                    <QueryVisual
+                      visual={visual}
+                      rows={rows}
+                      names={names}
+                      sym={sym}
+                      canDrill={canDrill}
+                      onPick={(r) => {
+                        const i = rows.indexOf(r);
+                        if (i >= 0) void openDrill(r, i);
+                      }}
+                      range={range}
+                      onRange={setRange}
+                      onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
+                      selected={drill && firstX ? drill.row[firstX] : undefined}
+                    />
+                  ) : designing ? (
+                    <div className="flex flex-col gap-5" aria-busy="true">
+                      <div className="grid grid-cols-2 gap-px bg-zinc-200 sm:grid-cols-4 dark:bg-zinc-800">
+                        {[0, 1, 2, 3].map((k) => (
+                          <div key={k} className="flex flex-col gap-2 bg-white px-5 py-4 dark:bg-zinc-950">
+                            <span className="h-2 w-16 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                            <span className="h-5 w-24 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {[92, 74, 61, 48, 40, 33, 27].map((w) => (
+                          <span key={w} className="h-4 animate-pulse bg-zinc-100 dark:bg-zinc-900" style={{ width: `${w}%` }} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="font-mono text-[12px] text-zinc-500">{rows.length ? "The rows are below." : "The query returned no rows."}</p>
+                  )}
 
-              {/* provenance: where the figures came from */}
-              {answer.result && (
-                <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-zinc-200 pt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:border-zinc-800 dark:text-zinc-500">
-                  <span className="flex flex-wrap gap-x-4 gap-y-1 tabular-nums">
-                    <span>ClickHouse</span>
-                    <span>
-                      <span className={INK}>{formatNumber(answer.result.rowCount)}</span> rows{answer.result.truncated ? " (capped)" : ""}
+                  {visual && visual.callouts.length > 0 && (
+                    <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Reading</span>
+                      <ul className="flex flex-col gap-1.5">
+                        {visual.callouts.map((k, i) => (
+                          <li key={i} className="text-[13.5px] leading-relaxed text-zinc-700 dark:text-zinc-300">
+                            {k}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </Board>
+
+                {/* provenance */}
+                <Board divide={false} className="flex flex-col self-start border">
+                  <RailRow label="Source" sub="Indexed ClickHouse tables, read-only">
+                    {tables.length ? tables.join(", ") : "none"}
+                  </RailRow>
+                  {cov && (
+                    <RailRow
+                      label="Data window"
+                      sub={
+                        <>
+                          <Link href={`${base}/block/${cov.lo}`} className="hover:text-[#E6212F]">
+                            #{formatNumber(cov.lo)}
+                          </Link>
+                          {" to "}
+                          <Link href={`${base}/block/${cov.hi}`} className="hover:text-[#E6212F]">
+                            #{formatNumber(cov.hi)}
+                          </Link>
+                          {` · ${formatNumber(cov.blocks)} blocks`}
+                        </>
+                      }
+                    >
+                      {duration(covSecs)}
+                    </RailRow>
+                  )}
+                  {answer.result && (
+                    <RailRow label="Result" sub={`${formatNumber(answer.result.rowsRead)} rows scanned in ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
+                      {formatNumber(answer.result.rowCount)} row{answer.result.rowCount === 1 ? "" : "s"}
+                      {answer.result.truncated ? " (capped)" : ""}
+                    </RailRow>
+                  )}
+                  <div className="flex flex-col gap-2.5 px-5 py-3.5">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Query</span>
+                    <span className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px]">
+                      <button type="button" onClick={() => setSqlOpen((v) => !v)} className="text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
+                        {sqlOpen ? "Hide SQL" : "Edit SQL"}
+                      </button>
+                      <button type="button" onClick={() => copy("sql", answer.sql)} className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+                        {copied === "sql" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} SQL
+                      </button>
+                      {shareUrl && (
+                        <button type="button" onClick={() => copy("link", shareUrl)} className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+                          {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link
+                        </button>
+                      )}
                     </span>
-                    <span>{formatNumber(answer.result.rowsRead)} rows read</span>
-                    <span>{(answer.result.elapsedMs / 1000).toFixed(2)} s</span>
-                    {answer.model && <span>sql {(answer.model.ms / 1000).toFixed(0)} s · {answer.model.tries} tr{answer.model.tries === 1 ? "y" : "ies"}</span>}
-                    {answer.model?.designMs ? <span>{answer.model.designer ? "designed by opus" : "basic layout"} {(answer.model.designMs / 1000).toFixed(0)} s</span> : null}
-                    <span>{answer.result.ranAt.slice(11, 19)} UTC</span>
-                  </span>
-                  <button type="button" onClick={() => setShowSql((v) => !v)} className={cn("transition-colors hover:text-[#E6212F]", showSql && "text-zinc-900 dark:text-zinc-50")}>
-                    {showSql ? "Hide SQL" : "Show SQL"}
-                  </button>
-                </div>
-              )}
+                    <span className="font-mono text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+                      Sonnet 5 wrote it in {Math.round((answer.model?.ms ?? 0) / 1000)} s
+                      {answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.
+                      {designing ? " Opus 5.5 is laying it out." : answer.model?.designMs ? ` Opus 5.5 laid it out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
+                    </span>
+                  </div>
+                </Board>
+              </div>
 
-              {/* the query itself, editable */}
-              {showSql && (
-                <div className="flex flex-col gap-2">
+              {sqlOpen && (
+                <Board divide={false} className="flex flex-col gap-3 border px-5 py-4 md:px-6">
                   <textarea
                     value={sqlDraft}
                     onChange={(e) => setSqlDraft(e.target.value)}
                     spellCheck={false}
-                    rows={Math.min(18, Math.max(6, sqlDraft.split("\n").length + 1))}
-                    className="w-full resize-y border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none focus:border-zinc-900 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-100 dark:focus:border-zinc-100"
+                    rows={Math.min(18, Math.max(5, sqlDraft.split("\n").length + 1))}
+                    className="w-full resize-y bg-zinc-50 px-3 py-2 font-mono text-[12px] leading-relaxed text-zinc-900 outline-none dark:bg-zinc-900/50 dark:text-zinc-100"
                   />
-                  <div className="flex items-center justify-between gap-4 font-mono text-[10px] uppercase tracking-[0.14em]">
-                    <span className="text-zinc-400 dark:text-zinc-500">One SELECT on raw_blocks, raw_txs, raw_logs, raw_traces. chain_id = {c.chainId}. 2,000 rows at most.</span>
-                    <button type="button" onClick={() => void runSql()} disabled={!!busy || sqlDraft.trim() === answer.sql.trim()} className="text-zinc-900 hover:text-[#E6212F] disabled:opacity-40 dark:text-zinc-50">
-                      Run edited SQL
+                  <div className="flex flex-wrap items-center justify-between gap-3 font-mono text-[11px]">
+                    <span className="text-zinc-400 dark:text-zinc-500">
+                      One SELECT over raw_blocks, raw_txs, raw_logs or raw_traces, with chain_id = {c.chainId}. At most 2,000 rows.
+                    </span>
+                    <button type="button" onClick={() => void runSql()} disabled={busy || sqlDraft.trim() === answer.sql.trim()} className="bg-zinc-900 px-3 py-1.5 uppercase tracking-[0.14em] text-white disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900">
+                      Run
                     </button>
                   </div>
                   {answer.drill && (
-                    <div className="flex flex-col gap-1 pt-2">
-                      <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">Drill: the records behind one row</span>
-                      <pre className="overflow-x-auto border border-zinc-200 bg-zinc-50 px-3 py-2 font-mono text-[11px] leading-relaxed text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">{answer.drill.sql}</pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Board>
-
-            {/* the rows, with doors; groups open into their records */}
-            {answer.result && answer.result.columns.length > 0 && (
-              <Board>
-                {canDrill && (
-                  <p className="px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:text-zinc-500">Click a row to list the transactions behind it</p>
-                )}
-                <RowsTable
-                  columns={answer.result.columns}
-                  rows={rows}
-                  names={names}
-                  base={base}
-                  span={span}
-                  dim={range ? (i) => i < range[0] || i > range[1] : undefined}
-                  onPick={canDrill ? (row, i) => void openDrill(row, i) : undefined}
-                  picked={drill?.index ?? null}
-                />
-              </Board>
-            )}
-
-            {/* the records behind the picked row */}
-            {drill && (
-              <div ref={drillRef} className="flex flex-col gap-4 scroll-mt-24">
-                <SectionHeader
-                  label={drill.title}
-                  action={
-                    <span className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.14em]">
-                      {drill.answer && (
-                        <button type="button" onClick={() => askAbout(`Explain these records: ${drill.title}.`)} className="text-zinc-600 transition-colors hover:text-[#E6212F] dark:text-zinc-300">
-                          Ask about these
-                        </button>
-                      )}
-                      {drill.answer && (
-                        <button type="button" onClick={() => setDrill((d) => (d ? { ...d, showSql: !d.showSql } : d))} className="text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-50">
-                          {drill.showSql ? "Hide SQL" : "SQL"}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDrill(null);
-                          setSelection(null);
-                        }}
-                        className="text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-50"
-                      >
-                        Close
-                      </button>
-                    </span>
-                  }
-                />
-                <Board divide={false} className="border-l-2 border-l-[#E6212F]">
-                  {!drill.answer && !drill.error && <p className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6">Loading the records…</p>}
-                  {drill.error && <p className="px-5 py-4 font-mono text-[11px] text-[#E6212F] md:px-6">{drill.error}</p>}
-                  {drill.answer && (
-                    <>
-                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 md:px-6 dark:text-zinc-500">
-                        <span>
-                          <span className={INK}>{formatNumber(drill.answer.result.rowCount)}</span> records{drill.answer.result.rowCount >= 100 ? " (first 100)" : ""}
-                        </span>
-                        <span>{(drill.answer.result.elapsedMs / 1000).toFixed(2)} s</span>
-                        <span>every hash, block and address is a door</span>
-                      </div>
-                      {drill.showSql && <pre className="overflow-x-auto border-y border-zinc-200 bg-zinc-50 px-5 py-3 font-mono text-[11px] leading-relaxed text-zinc-600 md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-300">{drill.answer.sql}</pre>}
-                      <RowsTable columns={drill.answer.result.columns} rows={drill.answer.result.rows} names={drill.answer.names} base={base} span="other" limit={100} />
-                    </>
+                    <details className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400">
+                      <summary className="cursor-pointer select-none">How a group opens into its transactions</summary>
+                      <pre className="mt-2 overflow-x-auto bg-zinc-50 px-3 py-2 leading-relaxed dark:bg-zinc-900/50">{answer.drill.sql}</pre>
+                    </details>
                   )}
                 </Board>
-              </div>
-            )}
-          </section>
-        )}
+              )}
+            </section>
 
-        {history.length > 1 && (
-          <section className="flex flex-col gap-3">
-            <SectionHeader label="This thread" />
-            <ol className="flex flex-col gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-              {history.map((t, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="w-5 shrink-0 text-right text-zinc-300 dark:text-zinc-700">{i + 1}</span>
-                  <span className="min-w-0 truncate">{t.prompt}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
+            {/* the rows */}
+            {answer.result && answer.result.columns.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">Rows · {formatNumber(rows.length)}</span>
+                  {canDrill && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Select a row or a bar to list its transactions.</span>}
+                </div>
+                <Board>
+                  {isTxList(answer.result.columns) ? (
+                    <TxLedger rows={rows} names={names} base={base} sym={sym} />
+                  ) : (
+                    <ResultTable
+                      columns={answer.result.columns}
+                      rows={rows}
+                      names={names}
+                      visual={visual}
+                      base={base}
+                      sym={sym}
+                      span={span}
+                      onPick={canDrill ? (r, i) => void openDrill(r, i) : undefined}
+                      picked={drill?.index ?? null}
+                      dim={range ? (i) => i < range[0] || i > range[1] : undefined}
+                    />
+                  )}
+                </Board>
+              </section>
+            )}
+
+            {/* the transactions behind one group */}
+            {drill && (
+              <section ref={drillRef} className="flex scroll-mt-24 flex-col gap-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+                  <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">
+                    {drill.title}
+                    {drill.answer && <span className="text-zinc-400 dark:text-zinc-500"> · {formatNumber(drill.answer.result.rowCount)}</span>}
+                  </span>
+                  <span className="flex items-center gap-4 font-mono text-[11px]">
+                    {drill.answer && (
+                      <button type="button" onClick={() => askAbout(`Explain these transactions: ${drill.title}.`)} className="text-zinc-600 transition-colors hover:text-[#E6212F] dark:text-zinc-300">
+                        Ask the assistant
+                      </button>
+                    )}
+                    {drill.answer && (
+                      <button type="button" onClick={() => copy("drill", drill.answer!.sql)} className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+                        {copied === "drill" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} SQL
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDrill(null);
+                        setSelection(null);
+                      }}
+                      className="text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-50"
+                    >
+                      Close
+                    </button>
+                  </span>
+                </div>
+                <Board>
+                  {!drill.answer && !drill.error && (
+                    <div className="flex flex-col gap-2 px-5 py-4 md:px-6">
+                      {[0, 1, 2, 3].map((k) => (
+                        <span key={k} className="h-4 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
+                      ))}
+                    </div>
+                  )}
+                  {drill.error && <p className="px-5 py-4 font-mono text-[12px] text-[#E6212F] md:px-6">{drill.error}</p>}
+                  {drill.answer &&
+                    (drill.answer.result.rowCount === 0 ? (
+                      <p className="px-5 py-4 font-mono text-[12px] text-zinc-400 md:px-6">No transactions matched.</p>
+                    ) : isTxList(drill.answer.result.columns) ? (
+                      <TxLedger rows={drill.answer.result.rows} names={drill.answer.names} base={base} sym={sym} />
+                    ) : (
+                      <ResultTable columns={drill.answer.result.columns} rows={drill.answer.result.rows} names={drill.answer.names} visual={null} base={base} sym={sym} span="other" picked={null} />
+                    ))}
+                </Board>
+              </section>
+            )}
+          </>
         )}
-        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-300 dark:text-zinc-600">Prototype. Figures come from the indexer's raw tables, not from the node. Check anything that matters against the chain. {sym} figures divide wei by 1e18.</p>
       </div>
     </EvmShell>
   );

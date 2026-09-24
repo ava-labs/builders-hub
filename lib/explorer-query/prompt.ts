@@ -60,5 +60,5 @@ Whenever a row is a group (a method, a contract, a sender, a time bucket, a bloc
 ## Chart spec
 - kind: "line" for continuous series, "bar" for buckets or rankings, "area" for stacked shares, "table" when rows are records, "none" when nothing can be drawn.
 - x: the column on the horizontal axis (time bucket, block number, or a label). series: the numeric columns to draw, each with a short label and a unit (${opts.symbol}, gas, txs, %, addresses).
-- title: at most eight words. note: one or two plain sentences on what the figure is and any caveat (a partial last bucket, a 90-day clamp). No em dashes anywhere. Never use the words "settled" or "waiting" for finality.`;
+- title: at most eight words, sentence case. note: one or two plain sentences on what is counted and any caveat (a partial last bucket, a 90-day clamp). Write for a person: never name columns (no share_pct, no status = 0), never restate the data window. No em dashes anywhere. Never use the words "settled" or "waiting" for finality.`;
 }

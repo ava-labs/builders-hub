@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Area, Bar, Brush, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
-import { INK } from "@/components/explorer-v2/ui";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
@@ -14,7 +13,11 @@ import type { Format, Panel, Stat, VisualSpec } from "@/lib/explorer-query/visua
    grammar: hover reads, click opens the records behind a point, a brush
    on a time series selects a range. */
 
-const TONES = ["#E6212F", "#0061E2", "#0d9488", "#d97706", "#7c3aed"];
+/* ink for what is counted, red only for what failed, then the categorical
+   inks for further series */
+const TONES = ["currentColor", "#0061E2", "#0d9488", "#d97706", "#7c3aed"];
+const FAIL = /revert|fail|error|drop/i;
+const toneOf = (s: { column: string; label: string }, i: number) => (FAIL.test(`${s.column} ${s.label}`) ? "#E6212F" : TONES[i % TONES.length]);
 const MONO = { fontSize: 10, fontFamily: "var(--font-geist-mono)" };
 
 type Row = Record<string, unknown>;
@@ -75,8 +78,14 @@ export function nameFor(names: Names, col: string | undefined, v: unknown): stri
   return col && typeof v === "string" ? names[col]?.[v.toLowerCase()] : undefined;
 }
 
+const clip = (t: string, n = 26) => (t.length > n ? `${t.slice(0, n - 1)}…` : t);
+
 function xText(names: Names, x: string | undefined, v: unknown, span: Span): string {
-  return nameFor(names, x, v) ?? (isAddress(v) || isHash(v) ? truncate(v, 6) : fmtX(v, span));
+  const name = nameFor(names, x, v);
+  if (name) return clip(name);
+  if (isAddress(v) || isHash(v)) return truncate(v, 6);
+  if (typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v)) return v.toLowerCase();
+  return clip(fmtX(v, span));
 }
 
 /* ------------------------------------------------------------------ */
@@ -108,14 +117,14 @@ function statValue(rows: Row[], s: Stat): number | string | null {
 function StatsStrip({ stats, rows, names, sym }: { stats: Stat[]; rows: Row[]; names: Names; sym: string }) {
   if (stats.length === 0) return null;
   return (
-    <div className={cn("grid divide-y divide-zinc-200 border border-zinc-200 sm:divide-x sm:divide-y-0 dark:divide-zinc-800 dark:border-zinc-800", stats.length === 1 ? "sm:grid-cols-1" : stats.length === 2 ? "sm:grid-cols-2" : stats.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4")}>
+    <div className={cn("-mx-5 -mt-5 grid border-b border-zinc-200 md:-mx-6 dark:border-zinc-800", stats.length === 1 ? "sm:grid-cols-1" : stats.length === 2 ? "sm:grid-cols-2" : stats.length === 3 ? "sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
       {stats.map((s) => {
         const v = statValue(rows, s);
         const text = typeof v === "number" ? fmt(v, s.format, sym) : v === null ? "…" : (nameFor(names, s.column, v) ?? String(v));
         return (
-          <div key={s.label} className="flex flex-col gap-1.5 px-5 py-4">
+          <div key={s.label} className="flex flex-col gap-2 border-zinc-200 px-5 py-5 [&:not(:first-child)]:border-l md:px-6 dark:border-zinc-800">
             <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{s.label}</span>
-            <span className={cn("font-mono text-[22px] leading-none tabular-nums tracking-tight", INK)}>{text}</span>
+            <span className="font-mono text-[26px] leading-none tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{text}</span>
             {s.sub && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{s.sub}</span>}
           </div>
         );
@@ -138,6 +147,7 @@ function PanelChart({
   range,
   onRange,
   onZoom,
+  selected,
 }: {
   panel: Panel;
   rows: Row[];
@@ -150,6 +160,8 @@ function PanelChart({
   range: [number, number] | null;
   onRange: (r: [number, number] | null) => void;
   onZoom: (lo: unknown, hi: unknown) => void;
+  /** the x value of the group whose records are open */
+  selected?: unknown;
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const x = panel.x!;
@@ -184,20 +196,15 @@ function PanelChart({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          {panel.title && <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{panel.title}</span>}
-          <span className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
-            {panel.series.map((s, i) => (
-              <span key={s.column} className="flex items-center gap-1.5">
-                <span className="h-2 w-2" style={{ background: TONES[i % TONES.length] }} />
-                {s.label}
-                {s.axis === "right" && <span className="text-zinc-300 dark:text-zinc-600">right</span>}
-              </span>
-            ))}
-          </span>
-        </span>
-        <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-300 dark:text-zinc-600">hover reads{canDrill ? " · click opens the records" : ""}{brush ? " · drag the rail selects" : ""}</span>
+      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+        {panel.title && <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{panel.title}</span>}
+        {panel.series.length > 1 &&
+          panel.series.map((s, i) => (
+            <span key={s.column} className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+              <span className="h-2 w-2" style={{ background: toneOf(s, i) }} />
+              {s.label}
+            </span>
+          ))}
       </div>
       <div style={{ height }} className={cn("text-zinc-900 dark:text-zinc-100", canDrill && "cursor-pointer")}>
         <ResponsiveContainer width="100%" height="100%">
@@ -216,7 +223,7 @@ function PanelChart({
             <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.18)" />
             {/* recharts reads axes as direct children: no fragments here */}
             {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
-            {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={150} interval={0} />}
+            {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={172} interval={0} />}
             {!horizontal && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
             {!horizontal && <YAxis yAxisId="left" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
@@ -234,11 +241,11 @@ function PanelChart({
                     </p>
                     {panel.series.map((s, i) => (
                       <p key={s.column} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                        <span className="h-1.5 w-1.5" style={{ background: TONES[i % TONES.length] }} />
+                        <span className="h-1.5 w-1.5" style={{ background: toneOf(s, i) }} />
                         {fmt(r[s.column], s.format, sym)} <span className="text-zinc-400">{s.label}</span>
                       </p>
                     ))}
-                    {canDrill && <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-300 dark:text-zinc-600">click for the records</p>}
+
                   </TipPlate>
                 );
               }}
@@ -251,7 +258,7 @@ function PanelChart({
               ),
             )}
             {panel.series.map((s, i) => {
-              const tone = TONES[i % TONES.length];
+              const tone = toneOf(s, i);
               // a ranking has one unnamed axis pair; an explicit undefined id
               // would not match it, so the prop is left out entirely
               const axis = horizontal ? {} : { yAxisId: s.axis === "right" ? "right" : "left" };
@@ -261,7 +268,18 @@ function PanelChart({
                 <Bar key={s.column} {...axis} dataKey={s.column} fill={tone} stackId={panel.stacked ? "s" : undefined} isAnimationActive={false} minPointSize={1}>
                   {/* the hovered bar keeps full ink; the rest recede */}
                   {data.map((_, j) => (
-                    <Cell key={j} fillOpacity={hoverIdx === null || hoverIdx === j ? 0.85 : 0.35} />
+                    <Cell
+                      key={j}
+                      fillOpacity={
+                        selected !== undefined
+                          ? data[j]?.[x] === selected || hoverIdx === j
+                            ? 0.9
+                            : 0.25
+                          : hoverIdx === null || hoverIdx === j
+                            ? 0.85
+                            : 0.35
+                      }
+                    />
                   ))}
                 </Bar>
               );
@@ -325,6 +343,7 @@ export function QueryVisual({
   range,
   onRange,
   onZoom,
+  selected,
 }: {
   visual: VisualSpec;
   rows: Row[];
@@ -335,6 +354,7 @@ export function QueryVisual({
   range: [number, number] | null;
   onRange: (r: [number, number] | null) => void;
   onZoom: (lo: unknown, hi: unknown) => void;
+  selected?: unknown;
 }) {
   const charts = visual.panels.filter((p) => p.kind !== "table" && p.x && p.series.length > 0);
   // one panel carries the brush: the first full-width time series
@@ -346,19 +366,10 @@ export function QueryVisual({
         <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
           {charts.map((p, i) => (
             <div key={i} className={cn(p.width === "full" && "lg:col-span-2")}>
-              <PanelChart panel={p} rows={rows} names={names} sym={sym} canDrill={canDrill} onPick={onPick} brush={i === brushIdx} range={range} onRange={onRange} onZoom={onZoom} />
+              <PanelChart panel={p} rows={rows} names={names} sym={sym} canDrill={canDrill} onPick={onPick} brush={i === brushIdx} range={range} onRange={onRange} onZoom={onZoom} selected={selected} />
             </div>
           ))}
         </div>
-      )}
-      {visual.callouts.length > 0 && (
-        <ul className="flex flex-col gap-1.5 border-l-2 border-zinc-900 pl-4 dark:border-zinc-100">
-          {visual.callouts.map((c, i) => (
-            <li key={i} className="font-mono text-[12px] leading-relaxed text-zinc-700 dark:text-zinc-300">
-              {c}
-            </li>
-          ))}
-        </ul>
       )}
     </div>
   );

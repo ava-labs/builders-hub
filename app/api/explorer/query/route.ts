@@ -4,11 +4,12 @@ import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
-import { runQuery, schemaCard, coverage } from "@/lib/explorer-query/clickhouse";
+import { runQuery, schemaCard, coverage, coverageText, type ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type Turn } from "@/lib/explorer-query/types";
 import { enrichNames, fillDrill } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual } from "@/lib/explorer-query/visual";
+import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { systemPrompt } from "@/lib/explorer-query/prompt";
 import { checkChatRateLimit, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -37,6 +38,10 @@ interface Body {
   sql?: string;
   /** open one row of an answer into its records */
   drill?: { sql: string; row: Record<string, unknown> };
+  /** answer with the data and a basic layout; the page asks for the design next */
+  skipDesign?: boolean;
+  /** lay out rows the page already has */
+  design?: { question: string; title: string; note: string; columns: ColumnMeta[]; rows: Record<string, unknown>[]; names: Names; chart: ChartSpec };
 }
 
 /** a drill template filled from one row, guarded, capped */
@@ -84,6 +89,22 @@ export async function POST(req: Request) {
     }
   }
 
+  // the second phase: the designer lays out rows the page already drew
+  if (body.design && Array.isArray(body.design.rows) && Array.isArray(body.design.columns)) {
+    const d = body.design;
+    const out = await designVisual({
+      question: String(d.question ?? "").slice(0, 1500),
+      title: String(d.title ?? "").slice(0, 200),
+      note: String(d.note ?? "").slice(0, 800),
+      symbol,
+      columns: d.columns.slice(0, 40),
+      rows: d.rows.slice(0, 2000),
+      names: d.names ?? {},
+      chart: d.chart ?? { kind: "table", series: [] },
+    });
+    return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });
+  }
+
   const prompt = String(body.prompt ?? "").trim().slice(0, 1500);
   if (!prompt) return NextResponse.json({ error: "empty prompt" }, { status: 400 });
 
@@ -100,7 +121,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `the database is not reachable: ${e instanceof Error ? e.message : String(e)}` }, { status: 503 });
   }
   const cover = await coverage(chainId);
-  const system = systemPrompt({ chainId, chainName: chain.chainName, symbol, schema, coverage: cover });
+  const system = systemPrompt({ chainId, chainName: chain.chainName, symbol, schema, coverage: cover ? coverageText(chainId, cover) : null });
 
   // earlier turns, so "make it weekly" refines the last chart
   const history = Array.isArray(body.history) ? body.history.slice(-4) : [];
@@ -143,7 +164,7 @@ export async function POST(req: Request) {
     }),
     execute: async ({ title, note, sql, chart, drill }) => {
       if (chart.kind === "none") {
-        final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null };
+        final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null };
         return { ok: true };
       }
       const g = guardSql(sql, chainId);
@@ -163,7 +184,7 @@ export async function POST(req: Request) {
             return { error: `drill: ${e instanceof Error ? e.message : String(e)}` };
           }
         }
-        final = { title, note, sql: g.sql, chart, drill: drill ?? null, result, names: {}, visual: null };
+        final = { title, note, sql: g.sql, chart, drill: drill ?? null, result, names: {}, visual: null, coverage: null };
         return { ok: true, rows: result.rowCount };
       } catch (e) {
         return { error: e instanceof Error ? e.message : String(e) };
@@ -199,6 +220,11 @@ export async function POST(req: Request) {
   let designError: string | undefined;
   if (done.result) {
     done.names = await enrichNames(chainId, done.result.columns, done.result.rows, baseUrl);
+  }
+  done.coverage = cover;
+  if (done.result && body.skipDesign) {
+    done.visual = null;
+  } else if (done.result) {
     const d = await designVisual({ question: prompt, title: done.title, note: done.note, symbol, columns: done.result.columns, rows: done.result.rows, names: done.names, chart: done.chart });
     done.visual = d.visual;
     designMs = d.ms;

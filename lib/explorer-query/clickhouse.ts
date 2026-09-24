@@ -116,23 +116,35 @@ export async function schemaCard(): Promise<string> {
   return text;
 }
 
-const coverageCache = new Map<number, { at: number; text: string }>();
+export interface Coverage {
+  since: string;
+  until: string;
+  lo: number;
+  hi: number;
+  blocks: number;
+}
+
+const coverageCache = new Map<number, { at: number; value: Coverage }>();
 const COVERAGE_TTL_MS = 10 * 60_000;
 
 /** what window of this chain the database holds */
-export async function coverage(chainId: number): Promise<string | null> {
+export async function coverage(chainId: number): Promise<Coverage | null> {
   const hit = coverageCache.get(chainId);
-  if (hit && Date.now() - hit.at < COVERAGE_TTL_MS) return hit.text;
+  if (hit && Date.now() - hit.at < COVERAGE_TTL_MS) return hit.value;
   try {
     const r = await runQuery(
       `SELECT toString(min(block_time)) AS since, toString(max(block_time)) AS until, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
     );
     const row = r.rows[0];
     if (!row || !row.blocks) return null;
-    const text = `raw_blocks holds ${row.blocks} blocks for chain ${chainId}: #${row.lo} to #${row.hi}, ${row.since} to ${row.until} UTC.`;
-    coverageCache.set(chainId, { at: Date.now(), text });
-    return text;
+    const value: Coverage = { since: String(row.since), until: String(row.until), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
+    coverageCache.set(chainId, { at: Date.now(), value });
+    return value;
   } catch {
     return null;
   }
+}
+
+export function coverageText(chainId: number, c: Coverage): string {
+  return `raw_blocks holds ${c.blocks} blocks for chain ${chainId}: #${c.lo} to #${c.hi}, ${c.since} to ${c.until} UTC.`;
 }
