@@ -399,6 +399,10 @@ curl -X POST --data '{
 
 #### `avax.getAtomicTxStatus`
 
+<Callout type="warn" title="Deprecated">
+This method is deprecated. After the Helicon upgrade, the public API endpoints do not serve it. Use [`avax.getAtomicTx`](#avaxgetatomictx) instead. When the transaction is accepted, `avax.getAtomicTx` returns `blockHeight`.
+</Callout>
+
 Returns the status of the specified atomic transaction.
 
 **Signature:**
