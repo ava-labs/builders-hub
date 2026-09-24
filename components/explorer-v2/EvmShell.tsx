@@ -2,7 +2,6 @@
 
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
-import { ChainHeader } from "@/components/explorer-v2/ChainHeader";
 import { Rise } from "@/components/explorer-v2/ui";
 import { EvmSearchBox } from "@/components/explorer-v2/evm/EvmSearch";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
@@ -56,24 +55,20 @@ export function EvmShell({
             className="mb-8"
           />
         )}
-        <Rise delay={0.05}>
-          <header className="flex flex-col gap-6 pb-10">
-            <ChainHeader
-              chainName={c.chainName}
-              chainLogoURI={c.chainLogoURI}
-              website={c.website}
-              socials={c.socials}
-              wallet={
-                c.rpcUrl
-                  ? { rpcUrl: c.rpcUrl, chainId: Number(c.chainId) || undefined, tokenSymbol: c.nativeToken }
-                  : undefined
-              }
-              aside={aside}
-            />
-            {tape}
-            {search && <EvmSearchBox base={base} chainName={c.chainName} />}
-          </header>
-        </Rise>
+        {/* the subnav already names the chain; the header is the search, the
+            one thing every explorer page begins with, and whatever live
+            figure the page hangs beside it */}
+        {(search || aside || tape) && (
+          <Rise delay={0.05}>
+            <header className="flex flex-col gap-6 pb-10">
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pl-0! pr-0!">
+                {search && <EvmSearchBox base={base} chainName={c.chainName} />}
+                {aside}
+              </div>
+              {tape}
+            </header>
+          </Rise>
+        )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
     </main>

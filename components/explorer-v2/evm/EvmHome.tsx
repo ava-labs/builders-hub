@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 
 /* the block tape under the title: off while we judge the page without
    it; the Latest Blocks board below carries the same cadence */
 const SHOW_TAPE = false;
-import { Board, LiveDot, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+import { Board } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import { formatGwei } from "./format";
 import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
@@ -152,20 +151,6 @@ export function EvmHome({ network }: { network: string }) {
           ) : undefined
         ) : undefined
       }
-      aside={
-        s && !noData ? (
-          <Link href={`${base}/blocks`} className="group flex flex-col items-end gap-1.5">
-            <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-              <LiveDot />
-              Chain Height
-            </span>
-            <StatFigure
-              value={tip?.number ?? s.tipHeight}
-              className="text-3xl transition-colors group-hover:text-[#E6212F] md:text-[2.5rem]"
-            />
-          </Link>
-        ) : undefined
-      }
     >
       {noData ? (
         <Board divide={false} className="px-6 py-16 text-center">
@@ -179,6 +164,12 @@ export function EvmHome({ network }: { network: string }) {
           <LiveReadout
             chainId={c.chainId}
             cells={[
+                {
+                  label: "Chain Height",
+                  live: true,
+                  href: `${base}/blocks`,
+                  value: formatNumber(tip?.number ?? s?.tipHeight ?? 0),
+                },
 
                 ...(price
                   ? [

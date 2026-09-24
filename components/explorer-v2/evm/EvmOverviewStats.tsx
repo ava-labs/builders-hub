@@ -178,7 +178,7 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
   // live row reads as the digital-blocks motif rather than a table
   const DEPTH = "0.5rem";
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2 lg:grid-cols-4">
+    <div className={cn("grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2", cells.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
       {cells.map((c) => {
           const spark = c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined;
           const body = (
