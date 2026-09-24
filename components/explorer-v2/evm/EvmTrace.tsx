@@ -988,7 +988,8 @@ export function EvmTrace({
               {logs.map(({ frameId, log }, i) => {
                 const caller = frames.find((f) => f.id === frameId);
                 return (
-                  <div key={i} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 px-5 py-2.5 font-mono text-[12px] md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,14rem)] md:px-6">
+                  // a phone wraps a 42-character address rather than push it off the screen
+                  <div key={i} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 px-5 py-2.5 font-mono text-[12px] max-md:[overflow-wrap:anywhere] max-md:[&_.whitespace-nowrap]:whitespace-normal md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,14rem)] md:px-6">
                     <span className="tabular-nums text-zinc-400 dark:text-zinc-500">#{i}</span>
                     <EventBody log={log} n={n} />
                     <span className="col-start-2 truncate text-[11px] text-zinc-400 md:col-start-auto md:text-right dark:text-zinc-500" title="the call that emitted it">
