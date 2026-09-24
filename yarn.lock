@@ -291,10 +291,10 @@
     util "^0.12.5"
     viem "^2.33.3"
 
-"@avalanche-sdk/client@^0.1.2":
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.1.2.tgz#024e7c5914a479882a694f86470fa2d2ecc85862"
-  integrity sha512-RR8XHbSzOL+SZadmjF078/8UqWi/ut8q3Qb9CDlefCAXlrXG3e6WyaEuKPZFn4r0dKqmP+YoYfmZm4B2VLGADw==
+"@avalanche-sdk/client@^0.1.3":
+  version "0.1.3"
+  resolved "https://registry.yarnpkg.com/@avalanche-sdk/client/-/client-0.1.3.tgz#90e35ce6668fb1ca7b963481c8c45b23391ddbbb"
+  integrity sha512-mehzkf8pL9QEesbWV4RDub4wCHq2u4PwxTEjLXVgbIrNFJNP9BmSF6cS0gkvkp6xSjzos0Eus6wTl0tk0nlXrw==
   dependencies:
     "@avalabs/avalanchejs" "5.1.0"
     "@noble/hashes" "1.3.3"
