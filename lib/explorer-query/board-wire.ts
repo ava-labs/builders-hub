@@ -16,21 +16,37 @@ export const boardIdSchema = z.string().regex(/^[A-Za-z0-9_-]{6,40}$/);
 const base = { id: z.string().max(40), order: z.number(), size: z.enum(["s", "m", "l", "w"]) };
 
 /* a chart tile's layout is checked against the designer's own grammar,
-   which also fills its defaults; any other field passes through */
+   which also fills its defaults; fields the board does not use are dropped */
 const tileSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("note"), text: z.string().max(4000), ...base }).passthrough(),
-  z
-    .object({
-      kind: z.literal("chart"),
-      question: z.string().max(2000),
-      title: z.string().max(200),
-      sql: z.string().max(20_000),
-      visual: visualSpecSchema,
-      panelIndex: z.number().int().min(0).nullable(),
-      ...base,
-    })
-    .passthrough(),
+  z.object({ kind: z.literal("note"), text: z.string().max(4000), ...base }),
+  z.object({
+    kind: z.literal("chart"),
+    question: z.string().max(2000),
+    title: z.string().max(200),
+    sql: z.string().max(20_000),
+    visual: visualSpecSchema,
+    panelIndex: z.number().int().min(0).nullable(),
+    view: z.enum(["hbar", "bar", "line", "area", "scatter", "table"]).optional(),
+    ...base,
+  }),
 ]);
+
+/** a deleted board's row is kept this long, for the reader's other devices */
+export const TOMBSTONE_MS = 30 * 24 * 3600 * 1000;
+
+/* writes per reader, per server instance: a sync sends a board a second
+   after an edit, so a person stays far below this; a loop does not */
+const WRITES_PER_MIN = 120;
+const writes = new Map<string, number[]>();
+export function writeAllowed(userId: string): boolean {
+  const now = Date.now();
+  const recent = (writes.get(userId) ?? []).filter((t) => now - t < 60_000);
+  if (recent.length >= WRITES_PER_MIN) return false;
+  recent.push(now);
+  writes.set(userId, recent);
+  if (writes.size > 5000) writes.clear();
+  return true;
+}
 
 export const boardBodySchema = z.object({
   scope: scopeSchema,

@@ -1040,11 +1040,12 @@ model VerificationJob {
 
 /// A reader's explorer Query board: tiles of saved SQL and chart layouts.
 /// Rows are not stored; each device reruns the SQL. id is chosen on the
-/// device that made the board, so a board keeps its id across devices.
-/// A deleted board keeps its row with deleted_at set, so the delete
-/// reaches the reader's other devices.
+/// device that made the board, so a board keeps its id across devices;
+/// the key is (user_id, id), so one reader's ids never meet another's.
+/// A deleted board keeps its row with deleted_at set for 30 days, so the
+/// delete reaches the reader's other devices.
 model QueryBoard {
-  id         String    @id
+  id         String
   user_id    String
   /// network:chain, e.g. mainnet:c-chain (a board's SQL names one chain)
   scope      String
@@ -1055,5 +1056,6 @@ model QueryBoard {
   deleted_at DateTime? @db.Timestamptz(3)
   user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@id([user_id, id])
   @@index([user_id, scope])
 }

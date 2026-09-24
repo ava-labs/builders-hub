@@ -9,7 +9,7 @@ CREATE TABLE "QueryBoard" (
     "updated_at" TIMESTAMPTZ(3) NOT NULL,
     "deleted_at" TIMESTAMPTZ(3),
 
-    CONSTRAINT "QueryBoard_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "QueryBoard_pkey" PRIMARY KEY ("user_id","id")
 );
 
 -- CreateIndex
