@@ -223,7 +223,7 @@ function GasVolumeChart({ data }: { data: GasDayPoint[] }) {
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{d.d}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {fmtGas(d.gas)} gas
+                    {fmtGas(d.gas)} gas charged
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
                     {d.blocks.toLocaleString("en-US")} blocks
@@ -566,7 +566,7 @@ function UtilTrendChart({ data }: { data: GasDayPoint[] }) {
                     {d.utilPct.toFixed(1)}% utilized
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
-                    {fmtGas(d.gas)} gas · {d.blocks.toLocaleString("en-US")} blocks
+                    {fmtGas(d.gas)} gas charged · {d.blocks.toLocaleString("en-US")} blocks
                   </p>
                 </TipPlate>
               );
@@ -698,7 +698,8 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
               <StatDash />
             )}
           </GasStat>
-          <GasStat label="Gas Used">{stats ? fmtGas(stats.totalGas) : <StatDash />}</GasStat>
+          {/* block headers: since Helicon the gas charged (tx gas limits) */}
+          <GasStat label="Gas Charged" sub="gas limits since Helicon">{stats ? fmtGas(stats.totalGas) : <StatDash />}</GasStat>
         </div>
       </Board>
 
