@@ -70,6 +70,8 @@ export interface QueryAnswer {
   draftVisual?: boolean;
   /** the cache key of this answer's recipe; the layout is kept under it */
   key?: string;
+  /** the question belongs to the other chain's data; the page asks it there */
+  route?: "p-chain" | "c-chain";
   model?: {
     steps: number;
     ms: number;

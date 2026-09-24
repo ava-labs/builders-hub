@@ -277,6 +277,11 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
       try {
         const a = await stream({ prompt: text, history: hist }, my);
         if (my !== token.current) return;
+        // a question about the other chain's data is asked on that chain's page
+        if (a.route && a.route !== c.chainSlug) {
+          router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
+          return;
+        }
         answerSql.current = a.sql;
         setAnswer(a);
         setSqlDraft(a.sql);
@@ -300,7 +305,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [c.chainId, history, design],
+    [c.chainId, c.chainSlug, network, router, history, design],
   );
 
   /** the reader's own SQL, run through the same guard */
@@ -367,7 +372,10 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
 
   // a shared link asks on load, and so does a question typed into the
   // search bar while this page is open (same route, new ?q)
-  const qParam = useSearchParams().get("q");
+  const params = useSearchParams();
+  const qParam = params.get("q");
+  // sent here from the other chain's Query page
+  const cameFrom = params.get("from");
   const asked = useRef<string | null>(null);
   // the latest ask, read by the effect below without making it a trigger:
   // only a new ?q may ask, never a re-render (New question changes ask)
@@ -605,6 +613,11 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
           <section className="flex flex-col gap-5">
             {/* the answer, and its takeaway in one quiet lead */}
             <div className="flex flex-col gap-2">
+              {cameFrom && cameFrom !== c.chainSlug && (
+                <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+                  Asked on the {cameFrom === "p-chain" ? "P-Chain" : "C-Chain"} page. This data lives on the {c.kind === "pchain" ? "P-Chain" : "C-Chain"}, so it is answered here.
+                </span>
+              )}
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
                 {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} question={history.at(-1)?.prompt} className="mt-1 shrink-0" />}
@@ -685,6 +698,22 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                     onSelection={setSel}
                     panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} question={history.at(-1)?.prompt} /> : undefined}
                   />
+                ) : allRows.length === 1 ? (
+                  // one row is a set of figures: each column on its own card
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {(answer.result?.columns ?? []).map((col) => {
+                      const v = allRows[0][col.name];
+                      const f = formatOf(col.name, visual);
+                      return (
+                        <div key={col.name} className={cn(CARD, "flex min-w-0 flex-col gap-2 px-4 py-4 sm:px-5 sm:py-5")}>
+                          <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{header(col.name)}</span>
+                          <span className="truncate font-mono text-[22px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">
+                            {typeof v === "number" ? fmt(v, /pct|percent|ratio/i.test(col.name) && f === "number" ? "percent" : f, sym) : (nameFor(names, col.name, v) ?? (isAddress(v) ? truncate(String(v), 6) : String(v ?? "")))}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : allRows.length ? (
                   // no chart to index the rows: the rows, by their shape, are the view
                   <div className={cn(CARD, "px-2 py-3")}>

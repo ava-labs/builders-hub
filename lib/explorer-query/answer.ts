@@ -178,10 +178,11 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         sql: z.string(),
         chart: chartSpecSchema,
         drill: drillSchema.optional().describe("how one row opens into its records; required when rows are groups"),
+        route: z.enum(["p-chain", "c-chain"]).optional().describe("with kind none: the question belongs to this chain's data instead"),
       }),
-      execute: async ({ title, note, sql, chart, drill }) => {
+      execute: async ({ title, note, sql, chart, drill, route }) => {
         if (chart.kind === "none") {
-          final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null };
+          final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null, ...(route ? { route } : {}) };
           step("final", 0, true, "no chart");
           return { ok: true };
         }
@@ -209,7 +210,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             const d = drillSql(drill.sql, result.rows[0], a.chainId);
             if (!d.ok) return fail(`drill: ${d.error}`, Date.now() - q0);
             try {
-              await runQuery((await anchored(d.sql, a.chainId)).sql.replace(/\bLIMIT\s+\d+\s*$/i, "LIMIT 1"));
+              const probe = await runQuery((await anchored(d.sql, a.chainId)).sql.replace(/\bLIMIT\s+\d+\s*$/i, "LIMIT 1"));
+              // a drill that opens onto nothing is the "No records matched" a reader hits
+              if (probe.rowCount === 0) return fail("drill: it found no records for the first row. Keep the main query's window and filters, and filter on that row's own values (use :bytes for hex ids and addresses).", Date.now() - q0);
             } catch (e) {
               return fail(`drill: ${e instanceof Error ? e.message : String(e)}`, Date.now() - q0);
             }

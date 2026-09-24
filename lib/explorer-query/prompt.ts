@@ -72,7 +72,9 @@ Answer comparative questions with ONE query that puts the things being compared 
 ## How to work
 1. If the question fits a worked example below, adapt it and call render_chart directly. Do not test first: render_chart runs the query and returns the database error if it fails, so a wrong final costs one step, the same as a test.
 2. Call run_sql first only when you write something the examples do not cover: a join, a period comparison, bytes decoding. Fix and retry from the error.
-3. If the question cannot be answered from these tables, call render_chart with kind "none" and say why in the note.
+3. If the question is about the P-Chain (staking, stake or staking ratio, validators, delegators or delegations, uptime, L1 or subnet validators, AVAX supply or issuance), do not answer it here: call render_chart with kind "none", route "p-chain", sql "" and a one-line note. The page sends the question to the P-Chain.
+4. If the question cannot be answered from these tables, call render_chart with kind "none" and say why in the note.
+5. A drill must find records for the row it opens: keep the main query's window and filters, and filter on the row's own values. render_chart tests it on the first row and returns an error if it finds none.
 
 ## Worked examples (tested on this schema; change the window, bucket and filters to fit the question)
 Ranking of methods, with reverts, callers and share; drill into one method:
@@ -149,7 +151,9 @@ ${opts.coverage ? `\n${opts.coverage}` : ""}
 ## How to work
 1. If the question fits a worked example below, adapt it and call render_chart directly; render_chart runs it and returns the database error if it fails.
 2. Call run_sql first only for joins, UTXO balances, or anything the examples do not cover.
-3. If the question cannot be answered from these tables, call render_chart with kind "none" and say why in the note.
+3. If the question is about C-Chain activity (EVM transactions, gas, contracts, tokens such as USDC or USDT), do not answer it here: call render_chart with kind "none", route "c-chain", sql "" and a one-line note. The page sends the question to the C-Chain.
+4. If the question cannot be answered from these tables, call render_chart with kind "none" and say why in the note.
+5. A drill must find records for the row it opens: keep the main query's window and filters, and filter on the row's own values. render_chart tests it on the first row and returns an error if it finds none.
 
 ## Worked examples (tested on these tables)
 The largest validators now, with their delegations; drill into one validator's transactions:
