@@ -291,85 +291,133 @@ function ResultTable({
   );
 }
 
-/* transactions, drawn as the explorer draws them everywhere else */
-const TX_COLS = "md:grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_5rem]";
+/* transactions, drawn as the explorer draws them everywhere else. The
+   columns follow what the query returned: the standard ones where they
+   exist, then whatever else it carried (an amount, a value, a token),
+   so the figure the question was about is never dropped. */
+const LEDGER_KNOWN = new Set(["t", "tx_hash", "method_id", "from_address", "to_address", "block_number", "gas_charged", "fee_avax", "status"]);
 
 function TxLedger({
+  columns,
   rows,
   names,
+  visual,
   base,
   sym,
   hoverTx,
   onHoverTx,
 }: {
+  columns: ColumnMeta[];
   rows: Row[];
   names: Names;
+  visual: VisualSpec | null;
   base: string;
   sym: string;
   hoverTx?: string | null;
   onHoverTx?: (h: string | null) => void;
 }) {
+  const has = new Set(columns.map((c) => c.name));
+  const extras = columns.filter((c) => !LEDGER_KNOWN.has(c.name));
+  const numericExtra = (c: ColumnMeta) => /Int|Float|Decimal/.test(c.type);
+  const cols: { key: string; head: string; width: string; right?: boolean }[] = [
+    { key: "status", head: "", width: "0.75rem" },
+    { key: "tx_hash", head: "Hash", width: "minmax(0,1.1fr)" },
+    ...(has.has("method_id") ? [{ key: "method_id", head: "Method", width: "minmax(0,1fr)" }] : []),
+    { key: "from_to", head: "From → To", width: "minmax(0,1.7fr)" },
+    ...extras.map((c) => ({ key: c.name, head: header(c.name), width: numericExtra(c) ? "8.5rem" : "minmax(0,1fr)", right: numericExtra(c) })),
+    ...(has.has("block_number") ? [{ key: "block_number", head: "Block", width: "6.5rem", right: true }] : []),
+    ...(has.has("gas_charged") ? [{ key: "gas_charged", head: "Gas charged", width: "6.5rem", right: true }] : []),
+    ...(has.has("fee_avax") ? [{ key: "fee_avax", head: "Fee", width: "minmax(0,7rem)", right: true }] : []),
+    ...(has.has("t") ? [{ key: "t", head: "Time (UTC)", width: "5rem", right: true }] : []),
+  ];
+  const tpl = { gridTemplateColumns: cols.map((c) => c.width).join(" ") };
   const who = (col: string, v: unknown) => nameFor(names, col, v) ?? (isAddress(v) ? truncate(v, 6) : "");
+
+  const cell = (key: string, r: Row) => {
+    const v = r[key];
+    switch (key) {
+      case "status":
+        return <span className="flex h-3 w-3 items-center justify-center">{(v === 0 || v === "0") && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}</span>;
+      case "tx_hash":
+        return <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(String(v), 6)}</span>;
+      case "method_id": {
+        const mName = nameFor(names, "method_id", v);
+        return (
+          <span className={cn("block min-w-0 truncate font-mono text-[12px]", mName ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={String(v ?? "")}>
+            {mName ?? (v && v !== "0x" ? String(v).toLowerCase() : "transfer")}
+          </span>
+        );
+      }
+      case "from_to":
+        return (
+          <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+            <Link href={`${base}/address/${String(r.from_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.from_address)}>
+              {who("from_address", r.from_address)}
+            </Link>
+            <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
+            <Link href={`${base}/address/${String(r.to_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.to_address)}>
+              {who("to_address", r.to_address)}
+            </Link>
+          </span>
+        );
+      case "block_number":
+        return (
+          <Link href={`${base}/block/${String(v)}`} className={cn("text-right font-mono text-[12px] tabular-nums hover:text-[#E6212F]", idInk)}>
+            {typeof v === "number" ? formatNumber(v) : String(v ?? "")}
+          </Link>
+        );
+      case "gas_charged":
+        return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{typeof v === "number" ? formatNumber(v) : ""}</span>;
+      case "fee_avax":
+        return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{typeof v === "number" ? fmt(v, "avax", sym) : ""}</span>;
+      case "t":
+        return (
+          <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400" title={isTime(v) ? `${ago(toUnix(v))} ago` : undefined}>
+            {isTime(v) ? v.replace("T", " ").slice(11, 19) : ""}
+          </span>
+        );
+      default: {
+        // the query's own figures: an amount in a token, a value, a label
+        const name = nameFor(names, key, v);
+        if (typeof v === "number") return <span className="text-right font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(v, formatOf(key, visual), sym)}</span>;
+        if (isAddress(v))
+          return (
+            <Link href={`${base}/address/${v}`} className={cn("min-w-0 truncate font-mono text-[12px] hover:text-[#E6212F]", name ? "text-zinc-900 dark:text-zinc-50" : idInk)} title={v}>
+              {name ?? truncate(v, 6)}
+            </Link>
+          );
+        return <span className="min-w-0 truncate font-mono text-[12px] text-zinc-600 dark:text-zinc-300">{name ?? String(v ?? "")}</span>;
+      }
+    }
+  };
+
   return (
     <div className="overflow-x-auto">
-      <div className="divide-y divide-zinc-200 md:min-w-[56rem] lg:min-w-0 dark:divide-zinc-800">
-        <div className={cn(HEAD, "grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_5rem]")}>
-          <span />
-          <span>Hash</span>
-          <span>Method</span>
-          <span>From → To</span>
-          <span className="text-right">Block</span>
-          <span className="text-right">Gas charged</span>
-          <span className="text-right">Fee</span>
-          <span className="text-right">Time (UTC)</span>
+      <div className="min-w-[48rem] divide-y divide-zinc-200 dark:divide-zinc-800">
+        <div className={cn(HEAD, "grid")} style={tpl}>
+          {cols.map((c) => (
+            <span key={c.key} className={cn("truncate", c.right && "text-right")}>
+              {c.head}
+            </span>
+          ))}
         </div>
-        {rows.map((r) => {
+        {rows.map((r, i) => {
           const hash = String(r.tx_hash);
-          const m = r.method_id;
-          const mName = nameFor(names, "method_id", m);
-          const failed = r.status === 0 || r.status === "0";
           return (
             <RowDoor
-              key={hash}
+              key={`${hash}-${i}`}
               id={`rec-${hash}`}
               href={`${base}/tx/${hash}`}
               onMouseEnter={() => onHoverTx?.(hash)}
               onMouseLeave={() => onHoverTx?.(null)}
-              className={cn(ROW, TX_COLS, hoverTx === hash && "bg-zinc-50 dark:bg-zinc-900")}
+              style={tpl}
+              className={cn(ROW, "grid items-center", hoverTx === hash && "bg-zinc-50 dark:bg-zinc-900")}
             >
-              <span className="flex h-3 w-3 items-center justify-center">{failed && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}</span>
-              <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(hash, 6)}</span>
-              <span className="min-w-0">
-                <CellLabel>Method</CellLabel>
-                <span className={cn("block truncate font-mono text-[12px]", mName ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={String(m ?? "")}>
-                  {mName ?? (m && m !== "0x" ? String(m).toLowerCase() : "transfer")}
+              {cols.map((c) => (
+                <span key={c.key} className={cn("min-w-0", c.right && "text-right")}>
+                  {cell(c.key, r)}
                 </span>
-              </span>
-              <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
-                <CellLabel>From → To</CellLabel>
-                <Link href={`${base}/address/${String(r.from_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.from_address)}>
-                  {who("from_address", r.from_address)}
-                </Link>
-                <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
-                <Link href={`${base}/address/${String(r.to_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.to_address)}>
-                  {who("to_address", r.to_address)}
-                </Link>
-              </span>
-              <Link href={`${base}/block/${String(r.block_number)}`} className={cn("font-mono text-[12px] tabular-nums hover:text-[#E6212F] md:text-right", idInk)}>
-                <CellLabel>Block</CellLabel>
-                {typeof r.block_number === "number" ? formatNumber(r.block_number) : String(r.block_number ?? "")}
-              </Link>
-              <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                <CellLabel>Gas charged</CellLabel>
-                {typeof r.gas_charged === "number" ? formatNumber(r.gas_charged) : ""}
-              </span>
-              <span className="font-mono text-[12px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
-                <CellLabel>Fee</CellLabel>
-                {typeof r.fee_avax === "number" ? fmt(r.fee_avax, "avax", sym) : ""}
-              </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400" title={isTime(r.t) ? `${ago(toUnix(r.t))} ago` : undefined}>
-                {isTime(r.t) ? r.t.replace("T", " ").slice(11, 19) : ""}
-              </span>
+              ))}
             </RowDoor>
           );
         })}
@@ -377,7 +425,6 @@ function TxLedger({
     </div>
   );
 }
-
 
 /* the records themselves, as a chart: one dot per transaction, placed
    by when it landed and what it cost, red where it reverted. Hover a dot
@@ -401,7 +448,9 @@ function RecordPlot({
   // plot the figure that actually varies: a run of calls all charged the
   // half-limit floor is a flat line in gas and still spreads in fee
   const spread = (k: string) => new Set(rows.map((r) => r[k]).filter((v) => typeof v === "number")).size;
-  const yCol = spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null;
+  // the query's own figure (an amount) first, then gas, then fee
+  const own = Object.keys(rows[0] ?? {}).find((k) => !LEDGER_KNOWN.has(k) && typeof rows[0][k] === "number" && spread(k) > 1);
+  const yCol = own ?? (spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null);
   const timed = rows.every((r) => isTime(r.t));
   if (!yCol || rows.length < 2) return null;
   const pts = rows.map((r, i) => ({
@@ -414,11 +463,11 @@ function RecordPlot({
     row: r,
   }));
   const clock = (u: number) => new Date(u * 1000).toISOString().slice(11, 19);
-  const yFmt: Format = yCol === "fee_avax" ? "avax" : "gas";
+  const yFmt: Format = yCol === "fee_avax" ? "avax" : yCol === "gas_charged" ? "gas" : "compact";
   return (
     <div className="flex flex-col gap-2 border-b border-zinc-200 px-5 pb-3 pt-4 md:px-6 dark:border-zinc-800">
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
-        <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : "Gas charged"} per transaction</span>
+        <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : yCol === "gas_charged" ? "Gas charged" : header(yCol)} per transaction</span>
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
           succeeded
@@ -463,9 +512,9 @@ function RecordPlot({
               onMouseLeave={() => onHoverTx(null)}
               onClick={(d: { payload?: { hash: string } }) => d?.payload?.hash && router.push(`${base}/tx/${d.payload.hash}`)}
             >
-              {pts.map((p) => (
+              {pts.map((p, i) => (
                 <Cell
-                  key={p.hash}
+                  key={`${p.hash}-${i}`}
                   fill={p.failed ? "#E6212F" : "currentColor"}
                   fillOpacity={hoverTx ? (hoverTx === p.hash ? 1 : 0.2) : 0.7}
                   stroke={hoverTx === p.hash ? (p.failed ? "#E6212F" : "currentColor") : "none"}
@@ -916,12 +965,12 @@ export function EvmQuery({ network }: { network: string }) {
               <section className="flex flex-col gap-3">
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">Rows · {formatNumber(rows.length)}</span>
-                  {canDrill && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Select a row or a bar to list its transactions.</span>}
+                  {canDrill && !recordRows && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Select a row or a bar to list its transactions.</span>}
                   {recordRows && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Select a point or a row to open the transaction.</span>}
                 </div>
                 <Board>
                   {isTxList(answer.result.columns) ? (
-                    <TxLedger rows={rows} names={names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
+                    <TxLedger columns={answer.result.columns} rows={rows} names={names} visual={visual} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
                   ) : (
                     <ResultTable
                       columns={answer.result.columns}
@@ -989,7 +1038,7 @@ export function EvmQuery({ network }: { network: string }) {
                     ) : isTxList(drill.answer.result.columns) ? (
                       <>
                         <RecordPlot rows={drill.answer.result.rows} names={drill.answer.names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
-                        <TxLedger rows={drill.answer.result.rows} names={drill.answer.names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
+                        <TxLedger columns={drill.answer.result.columns} rows={drill.answer.result.rows} names={drill.answer.names} visual={null} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
                       </>
                     ) : (
                       <ResultTable columns={drill.answer.result.columns} rows={drill.answer.result.rows} names={drill.answer.names} visual={null} base={base} sym={sym} span="other" picked={null} />

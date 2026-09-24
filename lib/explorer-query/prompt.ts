@@ -55,7 +55,7 @@ Whenever a row is a group (a method, a contract, a sender, a time bucket, a bloc
 - The drill keeps the same chain_id and time-window filters as the main query, ORDER BY block_time DESC, LIMIT 50.
 - Return record columns in this order when they apply: block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(\`from\`))) AS from_address, lower(concat('0x', hex(\`to\`))) AS to_address, method_id (hex text), gas_used AS gas_charged, gas_used * gas_price / 1e18 AS fee_${opts.symbol.toLowerCase()}, status.
 - drill.title reads like "Transactions calling {{method_id}} in the last 7 days" or "Blocks in the {{t}} bucket". The server fills the placeholders with names where it knows them.
-- Rows that already are records (a list of transactions) need no drill.
+- Rows that already are records (a list of transactions) need no drill, but they MUST carry the same record columns as a drill (t, block_number, tx_hash, from_address, to_address, method_id, gas_charged, fee, status) next to the figure the question is about (for a token transfer: the amount in token units, and the token contract). Join raw_logs to raw_txs on tx_hash (with the same chain_id and time bound on both) to get them.
 
 ## Chart spec
 - kind: "line" for continuous series, "bar" for buckets or rankings, "area" for stacked shares, "table" when rows are records, "none" when nothing can be drawn.

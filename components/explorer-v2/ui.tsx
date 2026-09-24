@@ -530,7 +530,7 @@ export function RowDoor({
   title,
   id,
   ...rest
-}: { href: string; className?: string; children: React.ReactNode; title?: string; id?: string } & Pick<React.HTMLAttributes<HTMLDivElement>, "onMouseEnter" | "onMouseLeave">) {
+}: { href: string; className?: string; children: React.ReactNode; title?: string; id?: string } & Pick<React.HTMLAttributes<HTMLDivElement>, "onMouseEnter" | "onMouseLeave" | "style">) {
   const router = useRouter();
   return (
     <div

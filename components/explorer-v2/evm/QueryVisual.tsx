@@ -70,7 +70,13 @@ export function fmt(v: unknown, format: Format, sym: string, axis = false): stri
     case "compact":
       return compact(v);
     default:
-      return axis ? compact(v) : Number.isInteger(v) ? formatNumber(v) : v >= 1 ? v.toFixed(2) : v.toPrecision(3);
+      return axis
+        ? compact(v)
+        : Number.isInteger(v)
+          ? formatNumber(v)
+          : Math.abs(v) >= 1
+            ? v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : v.toPrecision(3);
   }
 }
 
