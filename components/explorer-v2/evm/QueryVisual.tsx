@@ -10,7 +10,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
-import { CHART_MS, FADE_CLASS, MOTION, useReduced, useTween } from "./query/motion";
+import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -269,6 +269,37 @@ function compare(s: Stat, v: number | string | null, all: number | string | null
   return `${s.agg} ${pct(Math.abs(d))}% ${d > 0 ? "above" : "below"} all`;
 }
 
+/* the column behind a figure, as a strip of bars in row order: the
+   peak (for max) or the selected rows (while selecting) carry the ink */
+function Spark({ s, rows, all }: { s: Stat; rows: Row[]; all: Row[] }) {
+  const bars = useMemo(() => {
+    // only rows that run through time make a strip worth reading; a
+    // ranking in row order is one tall bar and a slope
+    const when = Object.keys(all[0] ?? {}).find((k) => isTime(all[0][k]));
+    if (!when || all.length < 6) return null;
+    const timed = [...all].sort((a, b) => String(a[when]).localeCompare(String(b[when]))).slice(-80);
+    const nums = timed.map((r) => r[s.column]);
+    if (!nums.every((v): v is number => typeof v === "number" && v >= 0)) return null;
+    const hi = Math.max(...nums) || 1;
+    const picked = new Set(rows);
+    const peak = nums.indexOf(hi);
+    // square root heights, so one spike leaves the rest readable
+    return nums.map((v, i) => ({ h: Math.max(0.08, Math.sqrt(v / hi)), ink: rows.length < all.length ? picked.has(timed[i]) : s.agg === "max" ? i === peak : false }));
+  }, [s.column, s.agg, rows, all]);
+  if (!bars) return null;
+  return (
+    <span aria-hidden className="mt-1 flex h-5 items-end gap-px">
+      {bars.map((b, i) => (
+        <span
+          key={i}
+          className={cn("min-w-px flex-1 rounded-[1px] transition-colors duration-300", b.ink ? "bg-[#0061E2] dark:bg-[#5b9bff]" : "bg-zinc-200 dark:bg-zinc-800")}
+          style={{ height: `${b.h * 100}%` }}
+        />
+      ))}
+    </span>
+  );
+}
+
 function StatFigure({ s, rows, all, names, sym, active }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean }) {
   const reduced = useReduced();
   const v = statValue(rows, s);
@@ -278,9 +309,9 @@ function StatFigure({ s, rows, all, names, sym, active }: { s: Stat; rows: Row[]
   const shown = num !== null ? fmt(t !== null && Number.isInteger(num) ? Math.round(t) : (t ?? num), s.format, sym) : v === null ? "…" : text(v);
   const sub = active ? compare(s, v, statValue(all, s), text) : s.sub;
   return (
-    <div className="flex flex-col gap-2 px-5 py-5 md:px-6">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{s.label}</span>
-      <span className="font-mono text-[26px] leading-none tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{shown}</span>
+    <div className="flex min-w-0 flex-col gap-1.5 px-4 py-4 sm:gap-2 sm:px-5 sm:py-5 md:px-6">
+      <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{s.label}</span>
+      <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{shown}</span>
       <AnimatePresence mode="wait" initial={false}>
         {sub && (
           <motion.span
@@ -295,6 +326,7 @@ function StatFigure({ s, rows, all, names, sym, active }: { s: Stat; rows: Row[]
           </motion.span>
         )}
       </AnimatePresence>
+      <Spark s={s} rows={rows} all={all} />
     </div>
   );
 }
@@ -302,7 +334,13 @@ function StatFigure({ s, rows, all, names, sym, active }: { s: Stat; rows: Row[]
 function StatsStrip({ stats, rows, all, names, sym, active }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean }) {
   if (stats.length === 0) return null;
   return (
-    <div className={cn("-mx-5 -mt-5 grid border-b border-zinc-100 md:-mx-6 dark:border-zinc-900", stats.length === 1 ? "sm:grid-cols-1" : stats.length === 2 ? "sm:grid-cols-2" : stats.length === 3 ? "sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4")}>
+    <div
+      className={cn(
+        "-mx-5 -mt-5 grid grid-cols-2 border-b border-zinc-100 md:-mx-6 dark:border-zinc-900 [&>*]:border-zinc-100 dark:[&>*]:border-zinc-900 [&>*:nth-child(even)]:border-l sm:[&>*+*]:border-l",
+        stats.length === 1 ? "grid-cols-1" : stats.length === 2 ? "sm:grid-cols-2" : stats.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4",
+        stats.length > 2 && "[&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+3)]:border-t-0",
+      )}
+    >
       {stats.map((s) => (
         <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} />
       ))}
@@ -336,6 +374,8 @@ type PanelProps = {
   live: Selection;
   onSelection?: (s: Selection) => void;
   compact: boolean;
+  /** a log y axis: one outlier no longer flattens every other mark */
+  log?: boolean;
 };
 
 /** the small door to a mark's records, drawn beside the hovered bar */
@@ -358,7 +398,7 @@ function OpenMark({ cx, cy, label, onOpen }: { cx: number; cy: number; label: st
   );
 }
 
-function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hoverKey, onHoverKey, selection, live, onSelection, compact }: PanelProps) {
+function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hoverKey, onHoverKey, selection, live, onSelection, compact, log = false }: PanelProps) {
   const reduced = useReduced();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [kb, setKb] = useState<number | null>(null);
@@ -411,6 +451,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
   }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x]);
   const span = useMemo(() => spanOf(base.map((r) => r[x])), [base, x]);
   const horizontal = panel.kind === "hbar";
+  const narrow = useNarrow();
   const scatter = panel.kind === "scatter";
   const timeX = scatter && base.some((r) => typeof r.__x === "number");
   // time or numeric buckets are a continuum: drag to select a range.
@@ -592,7 +633,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
           <ComposedChart
             data={data}
             layout={horizontal ? "vertical" : "horizontal"}
-            margin={{ top: drillMark && !horizontal ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : 12, left: 0, bottom: 0 }}
+            margin={{ top: drillMark && !horizontal ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
             barCategoryGap={horizontal ? "26%" : "18%"}
             onMouseDown={(s) => {
               dragged.current = false;
@@ -643,7 +684,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
             <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.14)" />
             {/* recharts reads axes as direct children: no fragments here */}
             {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
-            {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={compact ? 120 : 172} interval={0} />}
+            {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
             {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
             {scatter && (
               <XAxis
@@ -658,7 +699,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                 name={x}
               />
             )}
-            {!horizontal && <YAxis yAxisId="left" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
+            {!horizontal && <YAxis yAxisId="left" scale={log ? "log" : "auto"} domain={log ? ["auto", "auto"] : undefined} tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             <RechartsTooltip
               // the keyboard drives the tooltip through defaultIndex; off the
@@ -918,7 +959,7 @@ function viewsFor(panel: Panel, rows: Row[]): View[] {
   return parts ? ["hbar", "pie", "table"] : ["hbar", "table"];
 }
 
-const SEG = "relative flex h-6 w-6 items-center justify-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
+const SEG = "relative flex h-7 min-w-7 items-center justify-center gap-1.5 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
 
 function PanelBlock(props: PanelProps) {
   const { panel, rows } = props;
@@ -930,6 +971,19 @@ function PanelBlock(props: PanelProps) {
   // a running total, for counts over time; shares and rates do not add up
   const canRun = views.includes("line") && panel.series.some((s) => s.format !== "percent" && s.transform === "none");
   const [running, setRunning] = useState(false);
+  // one mark far above the rest (a 20M transfer among 1M ones) squeezes
+  // the others onto the floor; such a panel opens on a log axis
+  const skewed = useMemo(() => {
+    const col = panel.series.find((x) => x.axis !== "right")?.column;
+    if (!col || panel.series.some((x) => x.transform !== "none" || x.format === "percent")) return false;
+    const v = rows.map((r) => r[col]).filter((n): n is number => typeof n === "number");
+    if (v.length < 8 || v.some((n) => n <= 0)) return false;
+    const sorted = [...v].sort((a, b) => a - b);
+    return sorted[sorted.length - 1] / sorted[Math.floor(sorted.length / 2)] > 12;
+  }, [panel.series, rows]);
+  const [logOn, setLog] = useState<boolean | null>(null);
+  const canLog = skewed && (view === "scatter" || view === "line");
+  const log = canLog && !running && (logOn ?? true);
   const drawn: Panel = useMemo(
     () => ({
       ...panel,
@@ -958,22 +1012,38 @@ function PanelBlock(props: PanelProps) {
           {running && <span className="ml-2 font-normal text-zinc-400 dark:text-zinc-500">running total</span>}
         </span>
         <div className="flex shrink-0 items-center gap-1.5">
-        {props.action && <span className="opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 [@media(hover:none)]:opacity-100">{props.action}</span>}
+        {props.action && <span className="hidden opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 sm:inline [@media(hover:none)]:opacity-100">{props.action}</span>}
         <div
           role="group"
           aria-label={`View ${panel.title || "panel"} as`}
-          className="flex shrink-0 items-center gap-px rounded-full bg-zinc-100/80 p-0.5 opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 [@media(hover:none)]:opacity-100 dark:bg-zinc-900"
+          className="flex shrink-0 items-center gap-px rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800"
         >
           {views.map((v) => {
             const { label, icon: Icon } = VIEW_META[v];
             const on = view === v;
             return (
-              <button key={v} type="button" title={label} aria-label={label} aria-pressed={on} onClick={() => setView(v)} className={cn(SEG, on ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100")}>
-                {on && <motion.span layoutId={`${id}-pill`} transition={t} className="absolute inset-0 rounded-full bg-white shadow-sm dark:bg-zinc-700" />}
+              <button key={v} type="button" title={`See as ${label.toLowerCase()}`} aria-label={label} aria-pressed={on} onClick={() => setView(v)} className={cn(SEG, on ? "px-2.5 text-zinc-900 dark:text-zinc-50" : "px-1.5 text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100")}>
+                {on && <motion.span layoutId={`${id}-pill`} transition={t} className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700" />}
                 <Icon className="relative h-3.5 w-3.5" strokeWidth={1.75} />
+                {on && <span className="relative font-mono text-[10.5px] font-medium">{label}</span>}
               </button>
             );
           })}
+          {canLog && !running && (
+            <>
+              <span className="mx-1 h-3.5 w-px bg-zinc-200 dark:bg-zinc-800" />
+              <button
+                type="button"
+                title={log ? "Log scale: each step up is 10x. Click for a linear axis." : "Linear axis. Click for a log scale."}
+                aria-label="Log scale"
+                aria-pressed={log}
+                onClick={() => setLog(!log)}
+                className={cn(SEG, "px-2 font-mono text-[10.5px] font-medium", log ? "bg-white text-zinc-900 shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700 dark:text-zinc-50" : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100")}
+              >
+                log
+              </button>
+            </>
+          )}
           {canRun && view !== "table" && (
             <>
               <span className="mx-1 h-3.5 w-px bg-zinc-200 dark:bg-zinc-800" />
@@ -994,7 +1064,7 @@ function PanelBlock(props: PanelProps) {
       </div>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={family} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: reduced ? { duration: 0 } : { ...MOTION, duration: 0.12 } }} transition={t}>
-          {family === "pie" ? <PieView {...props} /> : family === "table" ? <PanelTable {...props} /> : <PanelChart {...props} panel={drawn} />}
+          {family === "pie" ? <PieView {...props} /> : family === "table" ? <PanelTable {...props} /> : <PanelChart {...props} panel={drawn} log={log} />}
         </motion.div>
       </AnimatePresence>
     </section>
@@ -1068,7 +1138,7 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
   };
 
   return (
-    <div className={cn("grid items-center gap-8", compact ? "sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]" : "sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]")}>
+    <div className={cn("grid items-center gap-6 sm:gap-10", compact ? "sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)]" : "sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]")}>
       <div
         tabIndex={0}
         role="group"
@@ -1076,7 +1146,7 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
         aria-label={`${panel.title || "Pie"}, ${slices.length} slices. Arrow keys move${selecting ? ", Space selects" : ""}${canDrill ? ", Enter opens" : ""}.`}
         onKeyDown={onKey}
         onBlur={() => walk(null)}
-        className={cn("relative rounded-full text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/40 focus-visible:ring-offset-4 focus-visible:ring-offset-white dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-950", FADE_CLASS, compact ? "h-40" : "h-60")}
+        className={cn("relative mx-auto aspect-square w-full rounded-full text-zinc-900 outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/40 focus-visible:ring-offset-4 focus-visible:ring-offset-white dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-950", FADE_CLASS, compact ? "max-w-40" : "max-w-52 sm:max-w-60")}
       >
         <span className="sr-only" aria-live="polite">
           {kb !== null && slices[kb] ? `${slices[kb].label}: ${fmt(slices[kb].value, s.format, sym)}${hasSel && on[kb] ? ", selected" : ""}` : ""}
@@ -1111,9 +1181,11 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
           </span>
         </div>
       </div>
-      <ul className="flex flex-col">
+      <ul className="flex flex-col gap-0.5">
         {slices.map((sl, i) => {
           const pickable = !!sl.row && (selecting || canDrill);
+          const share = total ? sl.value / total : 0;
+          const lead = slices[0]?.value ? sl.value / slices[0].value : 0;
           return (
             <li key={String(sl.key)} className="group/row relative flex items-center">
               <button
@@ -1126,15 +1198,19 @@ function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverK
                 onMouseLeave={() => onHoverKey?.(undefined)}
                 style={{ opacity: inkOf(i) < 0.5 ? 0.45 : 1 }}
                 className={cn(
-                  "flex min-w-0 flex-1 items-center gap-3 rounded-md py-1.5 pr-8 pl-1.5 text-left transition-[opacity,background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50",
+                  "grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1 rounded-lg py-1.5 pr-8 pl-2 text-left sm:grid-cols-[auto_minmax(0,11rem)_minmax(0,1fr)_auto_auto] transition-[opacity,background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50",
                   pickable && "hover:bg-zinc-50 dark:hover:bg-zinc-900",
                   focusIdx === i && "bg-zinc-50 dark:bg-zinc-900",
                 )}
               >
                 <span className="h-2 w-2 shrink-0 rounded-full text-zinc-900 dark:text-zinc-100" style={{ background: sl.tone }} />
-                <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-zinc-800 dark:text-zinc-200">{sl.label}</span>
+                <span className="min-w-0 truncate font-mono text-[12px] text-zinc-800 dark:text-zinc-200">{sl.label}</span>
+                {/* the share as a bar: the room beside a legend says how big */}
+                <span aria-hidden className="col-span-3 col-start-2 row-start-2 h-1 overflow-hidden rounded-full bg-zinc-100 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:h-1.5 dark:bg-zinc-900">
+                  <span className="block h-full rounded-full text-zinc-900 transition-[width] duration-500 ease-out dark:text-zinc-100" style={{ width: `${Math.min(100, Math.max(1.5, lead * 100))}%`, background: sl.tone, opacity: sl.row ? 0.85 : 0.6 }} />
+                </span>
                 <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(sl.value, s.format, sym)}</span>
-                <span className="w-12 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{total ? `${((sl.value / total) * 100).toFixed(sl.value / total < 0.1 ? 1 : 0)}%` : ""}</span>
+                <span className="w-11 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{total ? `${(share * 100).toFixed(share < 0.1 ? 1 : 0)}%` : ""}</span>
               </button>
               {selecting && canDrill && sl.row && (
                 <button

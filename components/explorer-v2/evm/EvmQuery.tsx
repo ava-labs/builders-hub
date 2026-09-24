@@ -622,7 +622,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                   <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
                 ) : (
                   <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {sel.length ? `${formatNumber(picked.length)} of ${formatNumber(allRows.length)} rows` : canDrill && charted ? "Select to filter. Click a mark to open it." : `${formatNumber(allRows.length)} rows`}
+                    {sel.length ? `${formatNumber(picked.length)} of ${formatNumber(allRows.length)} rows` : charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""}
                   </span>
                 )}
                 <span className="flex items-center gap-1">

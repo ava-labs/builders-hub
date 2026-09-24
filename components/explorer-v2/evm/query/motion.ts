@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useReducedMotion } from "framer-motion";
 
 /* One motion for the whole sheet: the same curve and length for a dim,
@@ -51,4 +51,17 @@ export function useTween(target: number | null, ms = 250): number | null {
   }, [target, reduced, ms]);
 
   return target === null || reduced ? target : shown;
+}
+
+/** a phone-width viewport; charts give their axes less room there */
+export function useNarrow(): boolean {
+  return useSyncExternalStore(
+    (fn) => {
+      const m = window.matchMedia("(max-width: 639px)");
+      m.addEventListener("change", fn);
+      return () => m.removeEventListener("change", fn);
+    },
+    () => window.matchMedia("(max-width: 639px)").matches,
+    () => false,
+  );
 }
