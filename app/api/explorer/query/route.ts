@@ -5,7 +5,7 @@ import { runQuery, anchored, type ColumnMeta } from "@/lib/explorer-query/clickh
 import type { Turn } from "@/lib/explorer-query/types";
 import { enrichNames } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
-import { designVisual } from "@/lib/explorer-query/visual";
+import { designVisual, writeReading } from "@/lib/explorer-query/visual";
 import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
@@ -31,6 +31,8 @@ interface Body {
   drill?: { sql: string; row: Record<string, unknown> };
   /** lay out a kept answer, by its key */
   key?: string;
+  /** with key: write the kept layout's reading again from fresh rows */
+  reading?: boolean;
   /** lay out rows the page already has */
   design?: { question: string; title: string; note: string; columns: ColumnMeta[]; rows: Record<string, unknown>[]; names: Names; chart: ChartSpec };
 }
@@ -77,6 +79,18 @@ export async function POST(req: Request) {
   if (typeof body.key === "string" && /^[0-9a-f]{32}$/.test(body.key) && !body.prompt) {
     const recipe = await getRecipe(body.key);
     if (!recipe) return NextResponse.json({ error: "unknown answer" }, { status: 404 });
+    // a kept layout: only its reading is written again, from fresh rows
+    if (recipe.visual && body.reading) {
+      const t0 = Date.now();
+      try {
+        const result = await runQuery((await anchored(recipe.sql, chainId)).sql);
+        const names = await enrichNames(chainId, result.columns, result.rows, baseUrl);
+        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names });
+        return NextResponse.json({ callouts, ms: Date.now() - t0 });
+      } catch (e) {
+        return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
+      }
+    }
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
     try {
       const result = await runQuery((await anchored(recipe.sql, chainId)).sql);

@@ -568,6 +568,8 @@ export function EvmQuery({ network }: { network: string }) {
   const [designing, setDesigning] = useState(false);
   // what the model has done so far on this question
   const [events, setEvents] = useState<QueryEvent[]>([]);
+  // a kept answer's reading, being written again
+  const [reading, setReading] = useState(false);
   // the SQL the model handed back, so an edit is not laid out as if it were kept
   const answerSql = useRef("");
   const [error, setError] = useState<string | null>(null);
@@ -629,6 +631,21 @@ export function EvmQuery({ network }: { network: string }) {
     }
   };
 
+  /** a kept layout's sentences, written again from the rows just fetched */
+  const reread = async (a: QueryAnswer) => {
+    const my = token.current;
+    setReading(true);
+    try {
+      const out = await post<{ callouts: string[]; ms: number }>({ key: a.key, reading: true });
+      if (my !== token.current) return;
+      setAnswer((prev) => (prev && prev.sql === a.sql && prev.visual ? { ...prev, visual: { ...prev.visual, callouts: out.callouts } } : prev));
+    } catch {
+      /* the chart stands without its reading */
+    } finally {
+      if (my === token.current) setReading(false);
+    }
+  };
+
   /** the second stage: arrange rows the page already shows */
   const design = useCallback(
     async (question: string, a: QueryAnswer) => {
@@ -661,6 +678,7 @@ export function EvmQuery({ network }: { network: string }) {
       if (!text) return;
       const my = ++token.current;
       setEvents([]);
+      setReading(false);
       setPhase("query");
       setStarted(Date.now());
       setError(null);
@@ -683,6 +701,7 @@ export function EvmQuery({ network }: { network: string }) {
         setPhase("idle");
         setStarted(null);
         if (a.draftVisual) void design(text, a);
+        else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
       } catch (e) {
         setError(e instanceof Error ? e.message : "The query failed.");
         setPhase("idle");
@@ -895,9 +914,19 @@ export function EvmQuery({ network }: { network: string }) {
                     <p className="font-mono text-[12px] text-zinc-500">{rows.length ? "The rows are below." : "The query returned no rows."}</p>
                   )}
 
-                  {!laying && visual && visual.callouts.length > 0 && (
+                  {!laying && visual && (visual.callouts.length > 0 || reading) && (
                     <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Reading</span>
+                      {/* a kept answer's reading is written again from its fresh rows; hold its space meanwhile */}
+                      {reading && (
+                        <ul aria-busy="true" aria-label="Writing the reading" className="flex flex-col gap-1.5">
+                          {[92, 78, 64].map((w) => (
+                            <li key={w} className="flex h-[23px] items-center">
+                              <span className="h-2.5 animate-pulse rounded-sm bg-zinc-200/80 dark:bg-zinc-800" style={{ width: `${w}%` }} />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       <ul className="flex flex-col gap-1.5">
                         {visual.callouts.map((k, i) => (
                           <li key={i} className="text-[13.5px] leading-relaxed text-zinc-700 dark:text-zinc-300">

@@ -150,14 +150,9 @@ export interface DesignInput {
   chart: ChartSpec;
 }
 
-export async function designVisual(input: DesignInput): Promise<{ visual: VisualSpec; ms: number; fromDesigner: boolean; error?: string }> {
-  const t0 = Date.now();
-  const fallback = basicVisual(input.chart, input.columns);
-  if (input.rows.length === 0) return { visual: fallback, ms: 0, fromDesigner: false };
-  let error: string | undefined;
-
-  // the rows as the designer sees them: names where the server found them
-  const sample = input.rows.slice(0, 15).map((r) => {
+/** the rows as a model sees them: names where the server found them */
+function sampleRows(input: Pick<DesignInput, "rows" | "columns" | "names">, n: number): Row[] {
+  return input.rows.slice(0, n).map((r) => {
     const o: Row = {};
     for (const c of input.columns) {
       const v = r[c.name];
@@ -166,6 +161,64 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     }
     return o;
   });
+}
+
+const READER_MODEL = "claude-haiku-4-5-20251001";
+
+/** fresh callouts for a kept layout: the layout outlives its rows, the
+    sentences do not, so a fast model writes them again from these rows */
+export async function writeReading(input: Omit<DesignInput, "chart">): Promise<string[]> {
+  if (input.rows.length === 0) return [];
+  let out: string[] = [];
+  const reading = tool({
+    description: "One to three callouts on these rows.",
+    inputSchema: z.object({ callouts: z.array(z.string().max(160)).max(3) }),
+    execute: async ({ callouts }) => {
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).slice(0, 3);
+      return { ok: true };
+    },
+  });
+  try {
+    await generateText({
+      model: anthropic(READER_MODEL),
+      system: [
+        "You write the short reading under a chart on the Avalanche explorer.",
+        "At most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas).",
+        "No adjectives, no restating the title. Do not mention the data window. No em dashes. Never say settled or waiting.",
+        "Quote only figures you can see in the rows or the column summaries. Call the reading tool once.",
+      ].join("\n"),
+      messages: [
+        {
+          role: "user",
+          content: [
+            `Question: ${input.question}`,
+            `Title: ${input.title}`,
+            `Native token: ${input.symbol}. Rows: ${input.rows.length}.`,
+            `Columns and summaries:`,
+            ...summarize(input.columns, input.rows).map((s) => `- ${s}`),
+            `First rows:`,
+            ...sampleRows(input, 15).map((r) => JSON.stringify(r)),
+          ].join("\n"),
+        },
+      ],
+      tools: { reading },
+      toolChoice: { type: "tool", toolName: "reading" },
+      stopWhen: [stepCountIs(1)],
+      maxRetries: 1,
+    });
+  } catch (e) {
+    console.warn("[explorer-query] reading failed:", e instanceof Error ? e.message : e);
+  }
+  return out;
+}
+
+export async function designVisual(input: DesignInput): Promise<{ visual: VisualSpec; ms: number; fromDesigner: boolean; error?: string }> {
+  const t0 = Date.now();
+  const fallback = basicVisual(input.chart, input.columns);
+  if (input.rows.length === 0) return { visual: fallback, ms: 0, fromDesigner: false };
+  let error: string | undefined;
+
+  const sample = sampleRows(input, 15);
   const cols = new Set(input.columns.map((c) => c.name));
 
   let visual: VisualSpec | null = null;
