@@ -522,10 +522,11 @@ export function LiveDot({ className, size = "h-1.5 w-1.5" }: { className?: strin
 /** A row that opens a page on click and Enter without being an anchor,
  *  so the hash, the parties and the token inside it can be real links.
  *  Nested anchors are invalid HTML; this keeps one link per identifier. */
-export function RowDoor({ href, className, children, title }: { href: string; className?: string; children: React.ReactNode; title?: string }) {
+export function RowDoor({ href, className, children, title, id }: { href: string; className?: string; children: React.ReactNode; title?: string; id?: string }) {
   const router = useRouter();
   return (
     <div
+      id={id}
       role="link"
       tabIndex={0}
       title={title}
