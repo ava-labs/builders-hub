@@ -8,7 +8,7 @@ import { Board, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, St
 import { formatNumber, formatTime, timeAgo } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown } from "./bits";
-import { useEvmData, usePrice, usdOfWei } from "./hooks";
+import { useEvmData, useMorePages, usePrice, usdOfWei } from "./hooks";
 import { EvmContract, useIsContract, useVerifiedContract } from "./EvmContract";
 import { EvmToken } from "./EvmToken";
 import { TokenMark, NativeMark } from "./TokenMark";
@@ -16,7 +16,7 @@ import { FIG, UNIT, Tabs, TxTable, TransferTable, EmptyRow } from "./AddressTabl
 import { useNativeBalance, useTokenBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
-import { knownAddress, type AddressSummary, type TxListResponse, type TransferListResponse } from "@/lib/evm-explorer";
+import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
 
 /* An address, read as a portfolio: what it holds (native balance, tokens,
    the dollar total) in a strip, who it is in a sheet, what it has done in
@@ -55,6 +55,9 @@ export function EvmAddress({
   const summary = useEvmData<AddressSummary>(c.chainId, `address/${addr}`, undefined, { retry404Ms: 15_000 });
   const txs = useEvmData<TxListResponse>(c.chainId, `address/${addr}/txs`, { limit: 50 });
   const transfers = useEvmData<TransferListResponse>(c.chainId, `address/${addr}/transfers`, { limit: 50 });
+  // past the first 50, on request, off the API's block cursor
+  const txPages = useMorePages<TxSummary>(c.chainId, `address/${addr}/txs`, "transactions", txs.data as unknown as Record<string, unknown> | null);
+  const transferPages = useMorePages<Transfer>(c.chainId, `address/${addr}/transfers`, "transfers", transfers.data as unknown as Record<string, unknown> | null);
 
   // who: a verified record proves a contract; otherwise ask the chain
   const { contract: verified } = useVerifiedContract(c.chainId, addr, { expectVerified: justVerified });
@@ -203,9 +206,9 @@ export function EvmAddress({
                 {activeTab === "contract" ? (
                   <EvmContract network={network} addr={addr} justVerified={justVerified} />
                 ) : activeTab === "txs" ? (
-                  <TxTable txs={txs.data?.transactions ?? []} self={addr} base={base} symbol={sym} usd={usd} chainId={c.chainId} tokens={tokens} loading={txs.loading} error={txs.error} retry={txs.retry} />
+                  <TxTable txs={txPages.items} self={addr} base={base} symbol={sym} usd={usd} chainId={c.chainId} tokens={tokens} loading={txs.loading} error={txs.error} retry={txs.retry} more={{ onMore: txPages.more, hasMore: txPages.hasMore, loading: txPages.loadingMore }} />
                 ) : activeTab === "transfers" ? (
-                  <TransferTable transfers={transfers.data?.transfers ?? []} self={addr} base={base} chainId={c.chainId} tokens={tokens} prices={prices} loading={transfers.loading} error={transfers.error} retry={transfers.retry} />
+                  <TransferTable transfers={transferPages.items} self={addr} base={base} chainId={c.chainId} tokens={tokens} prices={prices} loading={transfers.loading} error={transfers.error} retry={transfers.retry} rpcUrl={c.rpcUrl} more={{ onMore: transferPages.more, hasMore: transferPages.hasMore, loading: transferPages.loadingMore }} />
                 ) : (
                   <Board>
                     <div className={cn(HEAD, "grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_8rem_10rem]")}>
