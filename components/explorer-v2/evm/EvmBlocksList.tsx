@@ -14,6 +14,7 @@ import { RANGE_DAYS } from "@/components/explorer-v2/time-range";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { BlockListResponse } from "@/lib/evm-explorer";
 import { BlockRangeMap } from "./BlockRangeMap";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* The Blocks tab: the chain's pace, then the chain itself. A strip of
    live cadence readings (block time, blocks per minute, TPS, gas per
@@ -30,7 +31,7 @@ export function EvmBlocksList({ network }: { network: string }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const [older, setOlder] = useState(0);
 
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc, { keep: 100, seed: LIVE_ROWS + 1, keepTxs: 0 });
   const live = head.heads.length > 0;
   const pace = cadence(head.heads, 60_000);

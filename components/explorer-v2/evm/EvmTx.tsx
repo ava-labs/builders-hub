@@ -26,6 +26,7 @@ import { knownAddress, type TxDetail } from "@/lib/evm-explorer";
 import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount, useSignatures } from "@/lib/token-list";
 import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* One transaction, in the block page's grammar: status in the section
    header, the hash as the subject with its time beside it, the readings
@@ -226,7 +227,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
 
   // C-Chain: the RPC answers the second the tx executes; the indexer copy
   // replaces it when it lands, bringing the internal calls with it.
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const fromRpc = useRpcTx(liveRpc, txHash);
   const t = indexed.data ?? fromRpc.data;
   const loading = !t && (indexed.loading || fromRpc.loading);

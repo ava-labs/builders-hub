@@ -19,6 +19,7 @@ import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-li
 import { TxsViewSwitch } from "./views";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxListResponse } from "@/lib/evm-explorer";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* The Transactions tab: the receipts stream as a full-width ledger.
    On the C-Chain rows enter as the executor writes them (one at a time,
@@ -37,7 +38,7 @@ export function EvmTxsList({ network }: { network: string }) {
   const sym = c.nativeToken ?? "AVAX";
   const [limit, setLimit] = useState(PAGE);
 
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc, { keep: 40, seed: 8, keepTxs: 160 });
   const streaming = head.streamTxs.length > 0;
 

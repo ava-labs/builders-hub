@@ -23,6 +23,7 @@ import { BlockGasMap } from "./BlockGasMap";
 import { GenesisJsonSection } from "@/components/explorer/EvmChainDetails";
 import mainnetGenesis from "@/constants/cchain-genesis/mainnet.json";
 import fujiGenesis from "@/constants/cchain-genesis/fuji.json";
+import { readRpc } from "@/lib/explorer-rpc";
 
 // the C-Chain's genesis, vendored from avalanchego, drawn on block 0
 const GENESIS: Record<string, object> = { "43114": mainnetGenesis, "43113": fujiGenesis };
@@ -82,7 +83,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // C-Chain: the RPC is the primary source. The indexer trails the chain
   // (seconds to a minute) and the live boards link to blocks the moment
   // they are sealed, so the indexer alone would 404 on every fresh block.
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const fromRpc = useRpcBlock(liveRpc, id);
   const b = fromRpc.data ?? indexed.data;
   const loading = !b && (indexed.loading || fromRpc.loading);

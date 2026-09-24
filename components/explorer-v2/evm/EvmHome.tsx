@@ -21,6 +21,7 @@ import type { StatsResponse, TxListResponse, BlockListResponse } from "@/lib/evm
 import { formatPrice, formatAvaxPrice } from "@/utils/formatPrice";
 import { useTokenList, decodeErc20Call, formatTokenAmount } from "@/lib/token-list";
 import { formatMarketCap } from "@/lib/utils/format-market-cap";
+import { readRpc } from "@/lib/explorer-rpc";
 
 
 
@@ -48,7 +49,7 @@ export function EvmHome({ network }: { network: string }) {
   // on the Primary Network, and the polling load (one head poll plus a
   // receipts batch per second) is not something to point at every L1's
   // RPC. Every other chain keeps the indexer path.
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc);
   const heads = head.heads;
   const tip = head.tip;
@@ -253,7 +254,7 @@ export function EvmHome({ network }: { network: string }) {
             <LatestTxsBoard
               txs={txRows}
               chainId={c.chainId}
-              rpcUrl={c.rpcUrl}
+              rpcUrl={readRpc(c.chainId, c.rpcUrl)}
               symbol={sym ?? "AVAX"}
               base={base}
               loading={txs.loading && !streaming}

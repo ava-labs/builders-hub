@@ -17,6 +17,7 @@ import { useNativeBalance, useTokenBalances } from "./useErc20";
 import { formatPriceUsd, formatTokenAmount, formatUsd, usdOfToken, usdValue, useTokenList, useTokenPrices } from "@/lib/token-list";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type AddressSummary, type Transfer, type TxListResponse, type TxSummary, type TransferListResponse } from "@/lib/evm-explorer";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* An address, read as a portfolio: what it holds (native balance, tokens,
    the dollar total) in a strip, who it is in a sheet, what it has done in
@@ -61,7 +62,7 @@ export function EvmAddress({
 
   // who: a verified record proves a contract; otherwise ask the chain
   const { contract: verified } = useVerifiedContract(c.chainId, addr, { expectVerified: justVerified });
-  const hasCode = useIsContract(c.rpcUrl, addr);
+  const hasCode = useIsContract(readRpc(c.chainId, c.rpcUrl), addr);
   const isContract = verified !== null || hasCode === true;
   const fixture = knownAddress(addr);
 
@@ -71,7 +72,7 @@ export function EvmAddress({
 
   // what it holds: native balance from the RPC; tokens = the ones its
   // recent transfers touched plus the majors, asked with one balanceOf batch
-  const liveRpc = c.rpcUrl;
+  const liveRpc = readRpc(c.chainId, c.rpcUrl);
   const nativeWei = useNativeBalance(liveRpc, addr);
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
@@ -208,7 +209,7 @@ export function EvmAddress({
                 ) : activeTab === "txs" ? (
                   <TxTable txs={txPages.items} self={addr} base={base} symbol={sym} usd={usd} chainId={c.chainId} tokens={tokens} loading={txs.loading} error={txs.error} retry={txs.retry} more={{ onMore: txPages.more, hasMore: txPages.hasMore, loading: txPages.loadingMore }} />
                 ) : activeTab === "transfers" ? (
-                  <TransferTable transfers={transferPages.items} self={addr} base={base} chainId={c.chainId} tokens={tokens} prices={prices} loading={transfers.loading} error={transfers.error} retry={transfers.retry} rpcUrl={c.rpcUrl} more={{ onMore: transferPages.more, hasMore: transferPages.hasMore, loading: transferPages.loadingMore }} />
+                  <TransferTable transfers={transferPages.items} self={addr} base={base} chainId={c.chainId} tokens={tokens} prices={prices} loading={transfers.loading} error={transfers.error} retry={transfers.retry} rpcUrl={readRpc(c.chainId, c.rpcUrl)} more={{ onMore: transferPages.more, hasMore: transferPages.hasMore, loading: transferPages.loadingMore }} />
                 ) : (
                   <Board>
                     <div className={cn(HEAD, "grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_8rem_10rem]")}>

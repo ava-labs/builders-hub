@@ -11,6 +11,7 @@ import SourceCodeViewer from "@/components/explorer/SourceCodeViewer";
 import { fetchVerifiedContract, type SourcifyContract } from "@/lib/sourcify-client";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { EvmBytecode } from "./EvmBytecode";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* ------------------------------------------------------------------ */
 /* The Contract tab.                                                   */
@@ -201,7 +202,7 @@ export function EvmContract({
       );
     }
     // unverified: the chain still has plenty to say about it
-    return <EvmBytecode addr={addr} base={base} chainId={c.chainId} rpcUrl={c.rpcUrl} />;
+    return <EvmBytecode addr={addr} base={base} chainId={c.chainId} rpcUrl={readRpc(c.chainId, c.rpcUrl)} />;
   }
 
   const abi = (contract.abi ?? []) as unknown[];
@@ -290,7 +291,7 @@ export function EvmContract({
 
       {tab === "read" && (
         <Board divide={false}>
-          <ContractReadSection abi={abi} address={addr} rpcUrl={c.rpcUrl} themeColor={c.themeColor} />
+          <ContractReadSection abi={abi} address={addr} rpcUrl={readRpc(c.chainId, c.rpcUrl)} themeColor={c.themeColor} />
         </Board>
       )}
 
