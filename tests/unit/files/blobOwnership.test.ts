@@ -22,6 +22,8 @@ import {
 
 const VICTIM = 'aaaaaaaa-1111-2222-3333-444444444444';
 const ATTACKER = 'bbbbbbbb-5555-6666-7777-888888888888';
+// Real User ids are Prisma cuids (`@default(cuid())`), not UUIDs.
+const CUID_OWNER = 'cmkd7xsmd0000k104ejq2x28i';
 // The host is never read: these helpers parse the path only.
 const VICTIM_URL = `https://example.com/${VICTIM}/9f8e7d6c.png`;
 
@@ -61,6 +63,12 @@ describe('uploaderIdFromBlobKey', () => {
   it('returns null for a legacy key', () => {
     expect(uploaderIdFromBlobKey('old-logo.png')).toBeNull();
   });
+
+  // User ids are Prisma cuids, not UUIDs. A hex-only pattern read every real
+  // upload as legacy, so owners got 403 deleting their own files.
+  it('extracts a cuid uploader id', () => {
+    expect(uploaderIdFromBlobKey(`https://example.com/${CUID_OWNER}/a845fcb0-x.png`)).toBe(CUID_OWNER);
+  });
 });
 
 describe('canUserDeleteFile', () => {
@@ -82,6 +90,12 @@ describe('canUserDeleteFile', () => {
     const allowed = await canUserDeleteFile(VICTIM_URL, VICTIM, []);
     expect(allowed).toBe(true);
     expect(projectFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('allows a cuid-id uploader to delete their own blob', async () => {
+    const url = `https://example.com/${CUID_OWNER}/a845fcb0-x.png`;
+    expect(await canUserDeleteFile(url, CUID_OWNER, [])).toBe(true);
+    expect(await canUserDeleteFile(url, 'cmkd7xsmd0000k104ejq2x99z', [])).toBe(false);
   });
 
   it('allows an admin', async () => {

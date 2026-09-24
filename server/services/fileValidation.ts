@@ -61,8 +61,9 @@ export function uploaderIdFromBlobKey(fileNameOrUrl: string): string | null {
   if (slash <= 0) return null;
 
   const prefix = key.slice(0, slash);
-  // Keys are `<uuid>/<uuid><ext>`; anything else is not one of ours.
-  return /^[0-9a-f-]{16,64}$/i.test(prefix) ? prefix : null;
+  // Keys are `<userId>/<uuid><ext>`. User ids are Prisma cuids (lowercase
+  // alphanumeric), so the prefix is not hex-only; anything else is not ours.
+  return /^[0-9a-z-]{16,64}$/i.test(prefix) ? prefix : null;
 }
 
 /**
