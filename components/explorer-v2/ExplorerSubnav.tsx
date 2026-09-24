@@ -403,6 +403,8 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
+        // ask the chain a question, get a chart with its SQL (prototype)
+        { label: "Query", href: `${base}/query`, isActive: (p) => p.startsWith(`${base}/query`) },
       );
       // cross-chain (shared-memory) txs exist only on the C-Chain — they ride
       // in blockExtraData, invisible to eth_*, hence their own tab
