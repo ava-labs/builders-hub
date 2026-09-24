@@ -10,7 +10,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
-import { fmt, nameFor } from "./QueryVisual";
+import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { LEDGER_KNOWN, ResultTable, type Row, ago, doorFor, downloadCsv, formatOf, header, isAddress, isTime, isTxList, toUnix } from "./QueryRows";
 
 /* The rows behind the chart, read in a sheet beside it. The chart is
@@ -34,6 +34,12 @@ export function shapeOf(columns: ColumnMeta[], rows: Row[], visual: VisualSpec |
   if (!timed && nums.length > 0 && text.length >= 1 && text.length <= 2) {
     const lead = visual?.panels.flatMap((p) => p.series).find((s) => nums.some((n) => n.name === s.column))?.column;
     return { kind: "rank", label: text[0].name, value: lead ?? nums[0].name };
+  }
+  // a series over time reads the same way: one bar per bucket, in order
+  const when = columns.find((c) => isTime(first[c.name]));
+  if (when && nums.length > 0 && text.length <= 2) {
+    const lead = visual?.panels.flatMap((p) => p.series).find((s) => nums.some((n) => n.name === s.column))?.column;
+    return { kind: "rank", label: when.name, value: lead ?? nums[0].name };
   }
   return { kind: "table" };
 }
@@ -128,6 +134,7 @@ export function RankList({
   const f = formatOf(shape.value, visual);
   // a share of a share reads as nonsense
   const share = f !== "percent" && vals.every((v) => v >= 0) && total > 0;
+  const span = spanOf(rows.map((r) => r[shape.label]));
   return (
     <ul className="flex flex-col">
       <li className="flex items-baseline justify-between px-3 pb-1 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
@@ -137,7 +144,7 @@ export function RankList({
       {rows.slice(0, shown).map((r, i) => {
         const raw = r[shape.label];
         const name = nameFor(names, shape.label, raw);
-        const text = name ?? (isAddress(raw) ? truncate(raw, 6) : String(raw ?? ""));
+        const text = name ?? (isAddress(raw) ? truncate(raw, 6) : isTime(raw) ? fmtX(raw, span) : String(raw ?? ""));
         const v = vals[i];
         const door = doorFor(shape.label, raw, base);
         const body = (

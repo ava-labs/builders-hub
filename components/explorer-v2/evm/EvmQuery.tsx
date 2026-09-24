@@ -541,7 +541,8 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   keyState.current = { inspect, drill: !!drill, sel: sel.length, rows: level.total, answer: !!answer };
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // a focused chart handles its own Escape first (it clears the picks)
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
       const k = keyState.current;
@@ -686,18 +687,13 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
             <div className="flex min-w-0 flex-col gap-4 rounded-3xl bg-white px-5 py-5 ring-1 ring-zinc-200/70 md:px-6 dark:bg-zinc-950 dark:ring-zinc-800/70">
               <div className="flex min-h-8 flex-wrap items-center justify-between gap-x-4 gap-y-2">
                 {drill ? (
-                  <Crumbs items={[{ label: `All ${answer.title}`, onClick: popZoom }, { label: drill.title }]} />
+                  <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
                 ) : (
                   <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {sel.length ? `${formatNumber(picked.length)} of ${formatNumber(allRows.length)} rows · ${selWords}` : canDrill && charted ? "Select to filter. Click a mark to open it." : `${formatNumber(allRows.length)} rows`}
+                    {sel.length ? `${formatNumber(picked.length)} of ${formatNumber(allRows.length)} rows` : canDrill && charted ? "Select to filter. Click a mark to open it." : `${formatNumber(allRows.length)} rows`}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
-                  {!drill && sel.length > 0 && (
-                    <button type="button" onClick={() => setSel([])} className="rounded-full px-2.5 py-1 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50">
-                      Clear
-                    </button>
-                  )}
                   {level.total > 0 && (
                     <button
                       type="button"
