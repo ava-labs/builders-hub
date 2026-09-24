@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, Check, Copy, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, Copy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, HEAD, ROW, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
@@ -23,12 +23,81 @@ import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
    scanned, and the SQL. Any group opens into its transactions, drawn as
    the explorer draws transactions everywhere else. */
 
-const EXAMPLES: { group: string; items: string[] }[] = [
-  { group: "Activity", items: ["Transactions per 5 minutes, with reverts", "Busiest senders in the last hour"] },
-  { group: "Gas and fees", items: ["Fees burned per 5 minutes", "Gas reserved per block against the limit"] },
-  { group: "Contracts", items: ["Most called methods", "Top contracts by gas charged"] },
-  { group: "Tokens", items: ["USDC transfers per 5 minutes, count and volume", "Largest USDT transfers in the last hour"] },
+const EXAMPLES: { group: string; hue: string; items: { q: string; hint: string }[] }[] = [
+  {
+    group: "Activity",
+    hue: "#E6212F",
+    items: [
+      { q: "Transactions per 5 minutes, with reverts", hint: "Throughput and failure, bucketed" },
+      { q: "Busiest senders in the last hour", hint: "Who is sending the most" },
+    ],
+  },
+  {
+    group: "Gas and fees",
+    hue: "#d97706",
+    items: [
+      { q: "Fees burned per 5 minutes", hint: "AVAX removed from supply" },
+      { q: "Gas reserved per block against the limit", hint: "How full blocks run" },
+    ],
+  },
+  {
+    group: "Contracts",
+    hue: "#0061E2",
+    items: [
+      { q: "Most called methods", hint: "Decoded, with reverts and callers" },
+      { q: "Top contracts by gas charged", hint: "Who the chain works for" },
+    ],
+  },
+  {
+    group: "Tokens",
+    hue: "#0d9488",
+    items: [
+      { q: "USDC transfers per 5 minutes, count and volume", hint: "Stablecoin flow" },
+      { q: "Largest USDT transfers in the last hour", hint: "Size, sender, receiver" },
+    ],
+  },
 ];
+
+/* the suggested questions: frosted cards over a soft wash of each
+   category's hue, a row you swipe on a phone and a grid on a desk */
+function Suggestions({ onAsk }: { onAsk: (q: string) => void }) {
+  const cards = EXAMPLES.flatMap((g) => g.items.map((it) => ({ ...it, group: g.group, hue: g.hue })));
+  return (
+    <div className="relative isolate -mx-5 overflow-hidden px-5 py-6 sm:mx-0 sm:rounded-3xl sm:px-6">
+      {/* the wash the glass sits on */}
+      <div aria-hidden className="absolute inset-0 -z-10 bg-zinc-50 dark:bg-zinc-950" />
+      <div aria-hidden className="absolute -left-16 -top-20 -z-10 h-72 w-72 rounded-full bg-[#E6212F]/25 blur-3xl dark:bg-[#E6212F]/20" />
+      <div aria-hidden className="absolute left-1/3 top-10 -z-10 h-64 w-64 rounded-full bg-[#d97706]/20 blur-3xl dark:bg-[#d97706]/15" />
+      <div aria-hidden className="absolute -bottom-24 right-1/4 -z-10 h-80 w-80 rounded-full bg-[#0061E2]/25 blur-3xl dark:bg-[#0061E2]/20" />
+      <div aria-hidden className="absolute -right-16 -top-10 -z-10 h-64 w-64 rounded-full bg-[#0d9488]/25 blur-3xl dark:bg-[#0d9488]/20" />
+
+      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+        {cards.map((c) => (
+          <button
+            key={c.q}
+            type="button"
+            onClick={() => onAsk(c.q)}
+            className="group relative flex min-h-[9.5rem] w-[15.5rem] shrink-0 snap-start flex-col justify-between gap-5 overflow-hidden rounded-2xl border border-white/60 bg-white/55 p-4 text-left shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_24px_-12px_rgba(24,24,27,0.25)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_16px_32px_-14px_rgba(24,24,27,0.35)] sm:w-auto dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)] dark:hover:bg-white/[0.1]"
+          >
+            {/* the card's own tint, strongest in the corner */}
+            <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-50 blur-2xl transition-opacity group-hover:opacity-80" style={{ background: c.hue }} />
+            <span className="relative flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full" style={{ background: c.hue }} />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600 dark:text-zinc-300">{c.group}</span>
+            </span>
+            <span className="relative flex flex-col gap-1.5">
+              <span className="text-[16px] font-medium leading-snug tracking-tight text-zinc-900 dark:text-zinc-50">{c.q}</span>
+              <span className="flex items-center justify-between gap-3 text-[12.5px] text-zinc-500 dark:text-zinc-400">
+                {c.hint}
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-zinc-400 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:group-hover:text-zinc-50" />
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 type Row = Record<string, unknown>;
 type Span = ReturnType<typeof spanOf>;
@@ -471,7 +540,7 @@ export function EvmQuery({ network }: { network: string }) {
   const shareUrl = typeof window !== "undefined" && history[0] ? `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(history[0].prompt)}` : "";
 
   const input = (
-    <div className="flex items-end gap-2 border border-zinc-300 bg-white px-3 py-2 transition-colors focus-within:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
+    <div className="flex items-end gap-2 rounded-2xl border border-zinc-300 bg-white px-4 py-2.5 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] transition-colors focus-within:border-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
       <textarea
         ref={inputRef}
         value={prompt}
@@ -493,7 +562,7 @@ export function EvmQuery({ network }: { network: string }) {
         onClick={() => void ask(prompt, !!answer)}
         disabled={busy || !prompt.trim()}
         aria-label={answer ? "Refine" : "Ask"}
-        className="flex h-7 w-7 shrink-0 items-center justify-center bg-zinc-900 text-white transition-opacity disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white transition-opacity disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900"
       >
         <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
       </button>
@@ -528,17 +597,8 @@ export function EvmQuery({ network }: { network: string }) {
           )}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
-            <div className="grid gap-x-8 gap-y-5 pt-4 sm:grid-cols-2 lg:grid-cols-4">
-              {EXAMPLES.map((g) => (
-                <div key={g.group} className="flex flex-col gap-2">
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">{g.group}</span>
-                  {g.items.map((ex) => (
-                    <button key={ex} type="button" onClick={() => void ask(ex, false)} className="text-left font-mono text-[12px] leading-snug text-zinc-600 transition-colors hover:text-[#E6212F] dark:text-zinc-300">
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-              ))}
+            <div className="pt-3">
+              <Suggestions onAsk={(q) => void ask(q, false)} />
             </div>
           )}
         </section>
