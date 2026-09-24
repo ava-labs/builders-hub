@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,43 @@ import { TokenMark } from "./TokenMark";
    already is. */
 
 type MethodOf = (t: TxSummary) => { label: string; named: boolean };
+
+interface BlockProposer {
+  proposerId: string;
+  proposerParentId: string;
+  proposerNodeId: string;
+  proposerPChainHeight: number;
+  proposerTimestamp: number;
+}
+
+/** the validator that built the block, from the Snowman++ wrapper. The
+ *  Data API trails a fresh block by seconds, so a miss is asked again a
+ *  few times before the page gives up on it. */
+function useBlockProposer(chainId: string, block: number | null): BlockProposer | null {
+  const [p, setP] = useState<BlockProposer | null>(null);
+  useEffect(() => {
+    setP(null);
+    if (block === null || (chainId !== "43114" && chainId !== "43113")) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const ask = (tries: number) => {
+      fetch(`/api/block-proposer/${chainId}/${block}`)
+        .then((res) => (res.ok ? res.json() : res.status === 404 ? null : Promise.reject(new Error(String(res.status)))))
+        .then((data: BlockProposer | null) => {
+          if (cancelled) return;
+          if (data) setP(data);
+          else if (tries > 0) timer = setTimeout(() => ask(tries - 1), 5000);
+        })
+        .catch(() => {});
+    };
+    ask(4);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [chainId, block]);
+  return p;
+}
 
 /* the gas map's inks: the block's biggest calls each get their own, in
    the order they bought gas; plain sends stay in the block gray and the
@@ -128,7 +165,7 @@ function GasMap({
                     {!t.success && <span aria-hidden className="absolute inset-0" style={{ background: REVERT_STRIPES }} />}
                     {/* wide segments name themselves */}
                     {share >= 0.12 && (
-                      <span className="absolute inset-x-2 bottom-1.5 truncate font-mono text-[10px] leading-none text-white/95">
+                      <span className="absolute inset-x-2 bottom-1.5 hidden truncate sm:block font-mono text-[10px] leading-none text-white/95">
                         {label}
                         <span className="ml-1.5 text-white/70">{(share * 100).toFixed(0)}%</span>
                       </span>
@@ -221,6 +258,10 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // hidden for blocks sealed before Helicon; they carry no settledHeight
   const showLife = !!liveRpc && life.supported;
 
+  const proposer = useBlockProposer(String(c.chainId), b?.number ?? null);
+  // the proposer is a Primary Network validator: its page lives on the P-Chain
+  const pBase = `/explorer/${network}/p-chain`;
+
   const tokens = useTokenList(c.chainId);
   const method = useMethodNames(c.chainId, b?.transactions ?? []);
   const burn = b ? knownAddress(b.miner) : undefined;
@@ -277,7 +318,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
 
             {/* the split: what the block did and its identity on the left;
                 the readings a block is judged by in the rail on the right */}
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
               <div className="flex min-w-0 flex-col gap-6">
                 <GasMap txs={b.transactions} gasUsed={b.gasUsed} gasLimit={b.gasLimit} method={method} sym={sym} />
 
@@ -303,6 +344,25 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                         </span>
                       </SpecLine>
                     )}
+                    {proposer && (
+                      <>
+                        <SpecLine label="Proposer">
+                          <HashChip value={proposer.proposerNodeId} href={`${pBase}/node/${proposer.proposerNodeId}`} len={66} />
+                        </SpecLine>
+                        <SpecLine label="Proposer P-Chain Height">
+                          <Link href={`${pBase}/block/${proposer.proposerPChainHeight}`} className={cn("font-mono hover:text-[#E6212F]", idInk)}>
+                            #{formatNumber(proposer.proposerPChainHeight)}
+                          </Link>
+                          <span className="ml-3 font-mono text-[12px] font-normal text-zinc-400 dark:text-zinc-500">the validator set this block was proposed under</span>
+                        </SpecLine>
+                        <SpecLine label="Proposer Block ID">
+                          <HashChip value={proposer.proposerId} len={66} />
+                        </SpecLine>
+                        <SpecLine label="Proposer Parent ID">
+                          <HashChip value={proposer.proposerParentId} len={66} />
+                        </SpecLine>
+                      </>
+                    )}
                     <SpecLine label="Gas Limit">{formatNumber(b.gasLimit)}</SpecLine>
                     <SpecLine label="Timestamp">
                       <span className="font-mono tabular-nums">{b.timestamp}</span>
@@ -317,6 +377,18 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
               <Board divide={false} className="flex flex-col border">
                 {/* finality: a block is final the moment it is accepted */}
                 <RailRow label="Status">Final</RailRow>
+                {/* who built it: a Primary Network validator, one click from its page */}
+                {proposer && (
+                  <RailRow
+                    label="Proposed By"
+                    href={`${pBase}/node/${proposer.proposerNodeId}`}
+                    sub={`at P-Chain #${formatNumber(proposer.proposerPChainHeight)}`}
+                  >
+                    <span className={cn("block truncate text-[14px]", idInk)} title={proposer.proposerNodeId}>
+                      {proposer.proposerNodeId}
+                    </span>
+                  </RailRow>
+                )}
                 {/* the state root is bookkeeping a later block does, not finality */}
                 {showLife && (
                   <RailRow label="State Root" href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}>
@@ -379,6 +451,9 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
           <section id="transactions" className="flex flex-col gap-4">
             <SectionHeader label={`Transactions · ${b.transactions.length}`} />
             <Board>
+              {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+              <div className="overflow-x-auto">
+              <div className="divide-y divide-zinc-200 md:min-w-[58rem] lg:min-w-0 dark:divide-zinc-800">
               {b.transactions.length === 0 && (
                 <div className="px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
                   no transactions
@@ -413,7 +488,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                         {m.label}
                       </span>
                     </span>
-                    <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+                    <span className="col-span-2 flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
                       <span className="truncate">{truncate(t.from, 8)}</span>
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
@@ -443,6 +518,8 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                   </RowDoor>
                 );
               })}
+                          </div>
+              </div>
             </Board>
           </section>
         </div>
