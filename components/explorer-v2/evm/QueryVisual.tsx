@@ -148,6 +148,8 @@ function PanelChart({
   onRange,
   onZoom,
   selected,
+  hoverKey,
+  onHoverKey,
 }: {
   panel: Panel;
   rows: Row[];
@@ -162,6 +164,9 @@ function PanelChart({
   onZoom: (lo: unknown, hi: unknown) => void;
   /** the x value of the group whose records are open */
   selected?: unknown;
+  /** the x value under the pointer anywhere on the page (a table row, another panel) */
+  hoverKey?: unknown;
+  onHoverKey?: (k: unknown) => void;
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const x = panel.x!;
@@ -217,8 +222,16 @@ function PanelChart({
               const r = (s as { activePayload?: { payload: Row }[] } | null)?.activePayload?.[0]?.payload;
               if (r && canDrill) onPick(r);
             }}
-            onMouseMove={(s) => setHoverIdx(typeof (s as { activeTooltipIndex?: number })?.activeTooltipIndex === "number" ? ((s as { activeTooltipIndex?: number }).activeTooltipIndex as number) : null)}
-            onMouseLeave={() => setHoverIdx(null)}
+            onMouseMove={(s) => {
+              const i = (s as { activeTooltipIndex?: number })?.activeTooltipIndex;
+              const idx = typeof i === "number" ? i : null;
+              setHoverIdx(idx);
+              onHoverKey?.(idx === null ? undefined : data[idx]?.[x]);
+            }}
+            onMouseLeave={() => {
+              setHoverIdx(null);
+              onHoverKey?.(undefined);
+            }}
           >
             <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.18)" />
             {/* recharts reads axes as direct children: no fragments here */}
@@ -250,6 +263,9 @@ function PanelChart({
                 );
               }}
             />
+            {hoverIdx === null && hoverKey !== undefined && data.some((r) => r[x] === hoverKey) && (panel.kind === "line" || panel.kind === "area") && (
+              <ReferenceLine yAxisId="left" x={hoverKey as string | number} stroke="currentColor" strokeOpacity={0.5} strokeDasharray="2 3" />
+            )}
             {panel.referenceLines.map((l) =>
               horizontal ? (
                 <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
@@ -271,7 +287,11 @@ function PanelChart({
                     <Cell
                       key={j}
                       fillOpacity={
-                        selected !== undefined
+                        hoverIdx === null && hoverKey !== undefined
+                          ? data[j]?.[x] === hoverKey
+                            ? 0.95
+                            : 0.3
+                          : selected !== undefined
                           ? data[j]?.[x] === selected || hoverIdx === j
                             ? 0.9
                             : 0.25
@@ -344,6 +364,8 @@ export function QueryVisual({
   onRange,
   onZoom,
   selected,
+  hoverKey,
+  onHoverKey,
 }: {
   visual: VisualSpec;
   rows: Row[];
@@ -355,6 +377,8 @@ export function QueryVisual({
   onRange: (r: [number, number] | null) => void;
   onZoom: (lo: unknown, hi: unknown) => void;
   selected?: unknown;
+  hoverKey?: unknown;
+  onHoverKey?: (k: unknown) => void;
 }) {
   const charts = visual.panels.filter((p) => p.kind !== "table" && p.x && p.series.length > 0);
   // one panel carries the brush: the first full-width time series
@@ -366,7 +390,7 @@ export function QueryVisual({
         <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
           {charts.map((p, i) => (
             <div key={i} className={cn(p.width === "full" && "lg:col-span-2")}>
-              <PanelChart panel={p} rows={rows} names={names} sym={sym} canDrill={canDrill} onPick={onPick} brush={i === brushIdx} range={range} onRange={onRange} onZoom={onZoom} selected={selected} />
+              <PanelChart panel={p} rows={rows} names={names} sym={sym} canDrill={canDrill} onPick={onPick} brush={i === brushIdx} range={range} onRange={onRange} onZoom={onZoom} selected={selected} hoverKey={hoverKey} onHoverKey={onHoverKey} />
             </div>
           ))}
         </div>

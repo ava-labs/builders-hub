@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
+import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { ArrowUp, ArrowUpRight, Check, Copy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
@@ -187,6 +190,9 @@ function ResultTable({
   onPick,
   picked,
   dim,
+  lead,
+  hoverKey,
+  onHoverKey,
 }: {
   columns: ColumnMeta[];
   rows: Row[];
@@ -198,13 +204,18 @@ function ResultTable({
   onPick?: (row: Row, i: number) => void;
   picked: number | null;
   dim?: (i: number) => boolean;
+  /** the chart's x column and first series: each row shows its own bar */
+  lead?: { x: string; col: string; max: number } | null;
+  hoverKey?: unknown;
+  onHoverKey?: (k: unknown) => void;
 }) {
   const numeric = new Set(columns.filter((c) => /Int|Float|Decimal/.test(c.type)).map((c) => c.name));
-  const tpl = columns.map((c) => (numeric.has(c.name) ? "8.5rem" : "minmax(9rem,1fr)")).join(" ");
+  const tpl = (lead ? "4.5rem " : "") + columns.map((c) => (numeric.has(c.name) ? "8.5rem" : "minmax(9rem,1fr)")).join(" ");
   return (
     <div className="overflow-x-auto">
       <div className="min-w-max md:min-w-0">
         <div className={cn(HEAD, "grid")} style={{ gridTemplateColumns: tpl }}>
+          {lead && <span title="this row's bar on the chart">Chart</span>}
           {columns.map((c) => (
             <span key={c.name} className={cn("truncate", numeric.has(c.name) && "text-right")} title={`${c.name} · ${c.type}`}>
               {header(c.name)}
@@ -222,9 +233,26 @@ function ResultTable({
             onKeyDown={(e) => {
               if (onPick && e.key === "Enter" && e.target === e.currentTarget) onPick(r, i);
             }}
-            className={cn(ROW, "grid items-baseline", onPick && "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900", picked === i && "bg-zinc-100 dark:bg-zinc-900", dim?.(i) && "opacity-40")}
+            onMouseEnter={() => lead && onHoverKey?.(r[lead.x])}
+            onMouseLeave={() => lead && onHoverKey?.(undefined)}
+            className={cn(
+              ROW,
+              "grid items-center",
+              onPick && "cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-900",
+              picked === i && "bg-zinc-100 dark:bg-zinc-900",
+              lead && hoverKey !== undefined && r[lead.x] === hoverKey && "bg-zinc-50 dark:bg-zinc-900",
+              dim?.(i) && "opacity-40",
+            )}
             style={{ gridTemplateColumns: tpl }}
           >
+            {lead && (
+              <span className="flex h-3 items-center" aria-hidden>
+                <span
+                  className={cn("block h-2 transition-colors", picked === i || (hoverKey !== undefined && r[lead.x] === hoverKey) ? "bg-zinc-900 dark:bg-zinc-50" : "bg-zinc-300 dark:bg-zinc-700")}
+                  style={{ width: `${Math.max(4, (lead.max > 0 && typeof r[lead.col] === "number" ? (r[lead.col] as number) / lead.max : 0) * 100)}%` }}
+                />
+              </span>
+            )}
             {columns.map((c) => {
               const v = r[c.name];
               const name = nameFor(names, c.name, v);
@@ -264,14 +292,28 @@ function ResultTable({
 }
 
 /* transactions, drawn as the explorer draws them everywhere else */
-const TX_COLS = "md:grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_3rem]";
+const TX_COLS = "md:grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_5rem]";
 
-function TxLedger({ rows, names, base, sym }: { rows: Row[]; names: Names; base: string; sym: string }) {
+function TxLedger({
+  rows,
+  names,
+  base,
+  sym,
+  hoverTx,
+  onHoverTx,
+}: {
+  rows: Row[];
+  names: Names;
+  base: string;
+  sym: string;
+  hoverTx?: string | null;
+  onHoverTx?: (h: string | null) => void;
+}) {
   const who = (col: string, v: unknown) => nameFor(names, col, v) ?? (isAddress(v) ? truncate(v, 6) : "");
   return (
     <div className="overflow-x-auto">
       <div className="divide-y divide-zinc-200 md:min-w-[56rem] lg:min-w-0 dark:divide-zinc-800">
-        <div className={cn(HEAD, "grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_3rem]")}>
+        <div className={cn(HEAD, "grid-cols-[0.75rem_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.8fr)_6.5rem_6.5rem_minmax(0,7rem)_5rem]")}>
           <span />
           <span>Hash</span>
           <span>Method</span>
@@ -279,7 +321,7 @@ function TxLedger({ rows, names, base, sym }: { rows: Row[]; names: Names; base:
           <span className="text-right">Block</span>
           <span className="text-right">Gas charged</span>
           <span className="text-right">Fee</span>
-          <span className="text-right">Age</span>
+          <span className="text-right">Time (UTC)</span>
         </div>
         {rows.map((r) => {
           const hash = String(r.tx_hash);
@@ -287,7 +329,14 @@ function TxLedger({ rows, names, base, sym }: { rows: Row[]; names: Names; base:
           const mName = nameFor(names, "method_id", m);
           const failed = r.status === 0 || r.status === "0";
           return (
-            <RowDoor key={hash} href={`${base}/tx/${hash}`} className={cn(ROW, TX_COLS)}>
+            <RowDoor
+              key={hash}
+              id={`rec-${hash}`}
+              href={`${base}/tx/${hash}`}
+              onMouseEnter={() => onHoverTx?.(hash)}
+              onMouseLeave={() => onHoverTx?.(null)}
+              className={cn(ROW, TX_COLS, hoverTx === hash && "bg-zinc-50 dark:bg-zinc-900")}
+            >
               <span className="flex h-3 w-3 items-center justify-center">{failed && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}</span>
               <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(hash, 6)}</span>
               <span className="min-w-0">
@@ -318,10 +367,115 @@ function TxLedger({ rows, names, base, sym }: { rows: Row[]; names: Names; base:
                 <CellLabel>Fee</CellLabel>
                 {typeof r.fee_avax === "number" ? fmt(r.fee_avax, "avax", sym) : ""}
               </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">{isTime(r.t) ? ago(toUnix(r.t)) : ""}</span>
+              <span className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400" title={isTime(r.t) ? `${ago(toUnix(r.t))} ago` : undefined}>
+                {isTime(r.t) ? r.t.replace("T", " ").slice(11, 19) : ""}
+              </span>
             </RowDoor>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+
+/* the records themselves, as a chart: one dot per transaction, placed
+   by when it landed and what it cost, red where it reverted. Hover a dot
+   and its row lights; click it and the transaction opens. */
+function RecordPlot({
+  rows,
+  names,
+  base,
+  sym,
+  hoverTx,
+  onHoverTx,
+}: {
+  rows: Row[];
+  names: Names;
+  base: string;
+  sym: string;
+  hoverTx: string | null;
+  onHoverTx: (h: string | null) => void;
+}) {
+  const router = useRouter();
+  // plot the figure that actually varies: a run of calls all charged the
+  // half-limit floor is a flat line in gas and still spreads in fee
+  const spread = (k: string) => new Set(rows.map((r) => r[k]).filter((v) => typeof v === "number")).size;
+  const yCol = spread("gas_charged") > 1 ? "gas_charged" : spread("fee_avax") > 0 ? "fee_avax" : spread("gas_charged") > 0 ? "gas_charged" : null;
+  const timed = rows.every((r) => isTime(r.t));
+  if (!yCol || rows.length < 2) return null;
+  const pts = rows.map((r, i) => ({
+    x: timed ? toUnix(String(r.t)) : i,
+    y: r[yCol] as number,
+    hash: String(r.tx_hash),
+    failed: r.status === 0 || r.status === "0",
+    method: nameFor(names, "method_id", r.method_id) ?? (r.method_id && r.method_id !== "0x" ? String(r.method_id).toLowerCase() : "transfer"),
+    from: nameFor(names, "from_address", r.from_address) ?? (isAddress(r.from_address) ? truncate(r.from_address, 5) : ""),
+    row: r,
+  }));
+  const clock = (u: number) => new Date(u * 1000).toISOString().slice(11, 19);
+  const yFmt: Format = yCol === "fee_avax" ? "avax" : "gas";
+  return (
+    <div className="flex flex-col gap-2 border-b border-zinc-200 px-5 pb-3 pt-4 md:px-6 dark:border-zinc-800">
+      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+        <span className="font-bold uppercase tracking-[0.18em]">{yCol === "fee_avax" ? "Fee" : "Gas charged"} per transaction</span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+          succeeded
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-[#E6212F]" />
+          reverted
+        </span>
+      </div>
+      <div className="h-44 cursor-pointer text-zinc-900 dark:text-zinc-100">
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="rgba(161,161,170,0.18)" />
+            <XAxis type="number" dataKey="x" domain={["dataMin", "dataMax"]} tickFormatter={(v) => (timed ? clock(v) : `#${v + 1}`)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} />
+            <YAxis type="number" dataKey="y" tickFormatter={(v) => fmt(v, yFmt, sym, true)} tick={{ fontSize: 10, fontFamily: "var(--font-geist-mono)" }} tickLine={false} axisLine={false} width={56} />
+            <ZAxis range={[36, 36]} />
+            <RechartsTooltip
+              cursor={{ stroke: "rgba(161,161,170,0.4)" }}
+              content={({ active, payload }) => {
+                if (!active || !payload?.[0]) return null;
+                const p = payload[0].payload as (typeof pts)[number];
+                return (
+                  <TipPlate>
+                    <p className="flex items-center gap-2 font-mono text-[11px] text-zinc-900 dark:text-zinc-100">
+                      <span className={fnInk}>{p.method}</span>
+                      {p.failed && <span className="text-[#E6212F]">reverted</span>}
+                    </p>
+                    <p className="font-mono text-[10px] tabular-nums text-zinc-500">
+                      {fmt(p.y, yFmt, sym)} · {timed ? `${clock(p.x)} UTC` : `record ${p.x + 1}`}
+                    </p>
+                    <p className="font-mono text-[10px] text-zinc-400">
+                      {truncate(p.hash, 6)} from {p.from}
+                    </p>
+                  </TipPlate>
+                );
+              }}
+            />
+            <Scatter
+              data={pts}
+              isAnimationActive={false}
+              onMouseEnter={(d: { payload?: { hash: string } }) => onHoverTx(d?.payload?.hash ?? null)}
+              onMouseLeave={() => onHoverTx(null)}
+              onClick={(d: { payload?: { hash: string } }) => d?.payload?.hash && router.push(`${base}/tx/${d.payload.hash}`)}
+            >
+              {pts.map((p) => (
+                <Cell
+                  key={p.hash}
+                  fill={p.failed ? "#E6212F" : "currentColor"}
+                  fillOpacity={hoverTx ? (hoverTx === p.hash ? 1 : 0.2) : 0.7}
+                  stroke={hoverTx === p.hash ? (p.failed ? "#E6212F" : "currentColor") : "none"}
+                  strokeWidth={hoverTx === p.hash ? 6 : 0}
+                  strokeOpacity={0.25}
+                />
+              ))}
+            </Scatter>
+          </ScatterChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );
@@ -366,6 +520,10 @@ export function EvmQuery({ network }: { network: string }) {
   const [range, setRange] = useState<[number, number] | null>(null);
   const [drill, setDrill] = useState<OpenDrill | null>(null);
   const [started, setStarted] = useState<number | null>(null);
+  // one pointer for the whole sheet: a bar and its row, a dot and its row
+  const [hoverKey, setHoverKey] = useState<unknown>(undefined);
+  const [hoverTx, setHoverTx] = useState<string | null>(null);
+  const router = useRouter();
   const [, tick] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const drillRef = useRef<HTMLDivElement>(null);
@@ -532,6 +690,11 @@ export function EvmQuery({ network }: { network: string }) {
   const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
   const firstX = visual?.panels.find((p) => p.x)?.x ?? answer?.chart.x;
   const span = useMemo(() => (firstX ? spanOf(rows.map((r) => r[firstX])) : "other"), [rows, firstX]);
+  const leadPanel = visual?.panels.find((p) => p.kind !== "table" && p.x && p.series.length);
+  const lead = leadPanel
+    ? { x: leadPanel.x!, col: leadPanel.series[0].column, max: Math.max(0, ...rows.map((r) => (typeof r[leadPanel.series[0].column] === "number" ? (r[leadPanel.series[0].column] as number) : 0))) }
+    : null;
+  const recordRows = !!answer?.result && isTxList(answer.result.columns);
   const tables = answer?.sql ? [...new Set([...answer.sql.matchAll(/\b(?:FROM|JOIN)\s+(raw_\w+)/gi)].map((m) => m[1]))] : [];
   const cov = answer?.coverage;
   const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
@@ -620,11 +783,14 @@ export function EvmQuery({ network }: { network: string }) {
                       rows={rows}
                       names={names}
                       sym={sym}
-                      canDrill={canDrill}
+                      canDrill={canDrill || recordRows}
                       onPick={(r) => {
+                        if (recordRows && r.tx_hash) return router.push(`${base}/tx/${String(r.tx_hash)}`);
                         const i = rows.indexOf(r);
                         if (i >= 0) void openDrill(r, i);
                       }}
+                      hoverKey={hoverKey}
+                      onHoverKey={setHoverKey}
                       range={range}
                       onRange={setRange}
                       onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
@@ -751,10 +917,11 @@ export function EvmQuery({ network }: { network: string }) {
                 <div className="flex items-baseline justify-between gap-4">
                   <span className="font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-zinc-900 dark:text-zinc-100">Rows · {formatNumber(rows.length)}</span>
                   {canDrill && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Select a row or a bar to list its transactions.</span>}
+                  {recordRows && <span className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Select a point or a row to open the transaction.</span>}
                 </div>
                 <Board>
                   {isTxList(answer.result.columns) ? (
-                    <TxLedger rows={rows} names={names} base={base} sym={sym} />
+                    <TxLedger rows={rows} names={names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
                   ) : (
                     <ResultTable
                       columns={answer.result.columns}
@@ -767,6 +934,9 @@ export function EvmQuery({ network }: { network: string }) {
                       onPick={canDrill ? (r, i) => void openDrill(r, i) : undefined}
                       picked={drill?.index ?? null}
                       dim={range ? (i) => i < range[0] || i > range[1] : undefined}
+                      lead={lead}
+                      hoverKey={hoverKey}
+                      onHoverKey={setHoverKey}
                     />
                   )}
                 </Board>
@@ -817,7 +987,10 @@ export function EvmQuery({ network }: { network: string }) {
                     (drill.answer.result.rowCount === 0 ? (
                       <p className="px-5 py-4 font-mono text-[12px] text-zinc-400 md:px-6">No transactions matched.</p>
                     ) : isTxList(drill.answer.result.columns) ? (
-                      <TxLedger rows={drill.answer.result.rows} names={drill.answer.names} base={base} sym={sym} />
+                      <>
+                        <RecordPlot rows={drill.answer.result.rows} names={drill.answer.names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
+                        <TxLedger rows={drill.answer.result.rows} names={drill.answer.names} base={base} sym={sym} hoverTx={hoverTx} onHoverTx={setHoverTx} />
+                      </>
                     ) : (
                       <ResultTable columns={drill.answer.result.columns} rows={drill.answer.result.rows} names={drill.answer.names} visual={null} base={base} sym={sym} span="other" picked={null} />
                     ))}
