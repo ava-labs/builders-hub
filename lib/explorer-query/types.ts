@@ -40,6 +40,18 @@ export interface Turn {
   title: string;
 }
 
+/** one model step, timed: what the model spent thinking and what the database spent */
+export interface StepTiming {
+  n: number;
+  kind: "test" | "final";
+  writer: string;
+  modelMs: number;
+  sqlMs: number;
+  ok: boolean;
+  /** rows back, or the error */
+  detail: string;
+}
+
 export interface QueryAnswer {
   title: string;
   note: string;
@@ -52,11 +64,33 @@ export interface QueryAnswer {
   visual: VisualSpec | null;
   /** the window of the chain the database holds, whatever the question asked */
   coverage: Coverage | null;
-  model?: { steps: number; ms: number; tries: number; designMs?: number; designer?: boolean; designError?: string };
+  /** now() was read as this block time, because the index runs behind the clock */
+  anchor?: string | null;
+  /** visual is the basic layout, drawn while the designer works */
+  draftVisual?: boolean;
+  /** the cache key of this answer's recipe; the layout is kept under it */
+  key?: string;
+  model?: {
+    steps: number;
+    ms: number;
+    tries: number;
+    designMs?: number;
+    designer?: boolean;
+    designError?: string;
+    /** the model that wrote the SQL */
+    writer?: string;
+    /** answered from a kept recipe, no model asked */
+    cached?: boolean;
+    timings?: StepTiming[];
+    /** input tokens read from the prompt cache, of all input tokens */
+    cacheRead?: number;
+    inputTokens?: number;
+  };
 }
 
 export interface DrillAnswer {
   sql: string;
+  anchor?: string | null;
   result: QueryResult;
   names: Names;
 }

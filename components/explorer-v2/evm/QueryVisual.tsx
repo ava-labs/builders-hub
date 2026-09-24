@@ -188,6 +188,10 @@ function PanelChart({
     // every series draws from its own key, so one column can appear raw
     // and transformed (bars and their rolling average) in the same panel
     const out = d.map((r) => ({ ...r }) as Row);
+    // a scatter's x axis is numeric; a time column is plotted as epoch ms
+    if (panel.kind === "scatter" && panel.x && out.some((r) => isTime(r[panel.x!]))) {
+      for (const r of out) r.__x = isTime(r[panel.x]) ? Date.parse(String(r[panel.x]).replace(" ", "T") + (String(r[panel.x]).length <= 10 ? "T00:00:00Z" : "Z")) : null;
+    }
     const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
     panel.series.forEach((sr, i) => {
       const k = `__s${i}`;
@@ -212,10 +216,11 @@ function PanelChart({
       } else vals.forEach((v, j) => (out[j][k] = v));
     });
     return out;
-  }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series]);
+  }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x]);
   const span = useMemo(() => spanOf(data.map((r) => r[x])), [data, x]);
   const horizontal = panel.kind === "hbar";
   const scatter = panel.kind === "scatter";
+  const timeX = scatter && data.some((r) => typeof r.__x === "number");
   // a transformed series reads in its own unit: shares are percent, an index is a plain number
   const unitOf = (sr: Series): Format => (sr.transform === "share" ? "percent" : sr.transform === "indexed" ? "number" : sr.format);
   const markOf = (sr: Series): "bar" | "line" | "area" => (horizontal ? "bar" : sr.mark !== "auto" ? sr.mark : panel.kind === "line" ? "line" : panel.kind === "area" ? "area" : "bar");
@@ -284,7 +289,19 @@ function PanelChart({
             {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
             {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={172} interval={0} />}
             {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
-            {scatter && <XAxis type="number" dataKey={x} domain={["auto", "auto"]} tickFormatter={(v) => fmt(v, "compact", sym, true)} tick={MONO} tickLine={false} axisLine={false} name={x} />}
+            {scatter && (
+              <XAxis
+                type="number"
+                dataKey={timeX ? "__x" : x}
+                domain={timeX ? ["dataMin", "dataMax"] : ["auto", "auto"]}
+                tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span) : fmt(v, "compact", sym, true))}
+                tick={MONO}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={28}
+                name={x}
+              />
+            )}
             {!horizontal && <YAxis yAxisId="left" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
             <RechartsTooltip
@@ -299,7 +316,7 @@ function PanelChart({
                       {name ?? fmtX(r[x], span)}
                       {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
                     </p>
-                    {scatter && <p className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">{fmt(r[x], "number", sym)} <span className="text-zinc-400">{x.replace(/_/g, " ")}</span></p>}
+                    {scatter && !timeX && <p className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">{fmt(r[x], "number", sym)} <span className="text-zinc-400">{x.replace(/_/g, " ")}</span></p>}
                     {panel.series.map((s, i) => (
                       <p key={`${s.column}-${i}`} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
                         <span className="h-1.5 w-1.5" style={{ background: toneOf(s, i) }} />

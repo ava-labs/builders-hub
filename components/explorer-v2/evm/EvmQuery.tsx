@@ -14,10 +14,12 @@ import { RailRow } from "./EvmTx";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection, askAbout } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
+import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { ColumnMeta, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
 import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
-import { FishingGame } from "./FishingGame";
+import { AvalancheLoader } from "./AvalancheLoader";
+import { EXAMPLES } from "@/lib/explorer-query/examples";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -27,40 +29,6 @@ import { FishingGame } from "./FishingGame";
    scanned, and the SQL. Any group opens into its transactions, drawn as
    the explorer draws transactions everywhere else. */
 
-const EXAMPLES: { group: string; hue: string; items: { q: string; hint: string }[] }[] = [
-  {
-    group: "Activity",
-    hue: "#E6212F",
-    items: [
-      { q: "Transactions per 5 minutes, with reverts", hint: "Throughput and failure, bucketed" },
-      { q: "Busiest senders in the last hour", hint: "Who is sending the most" },
-    ],
-  },
-  {
-    group: "Gas and fees",
-    hue: "#d97706",
-    items: [
-      { q: "Fees burned per 5 minutes", hint: "AVAX removed from supply" },
-      { q: "Gas reserved per block against the limit", hint: "How full blocks run" },
-    ],
-  },
-  {
-    group: "Contracts",
-    hue: "#0061E2",
-    items: [
-      { q: "Most called methods", hint: "Decoded, with reverts and callers" },
-      { q: "Top contracts by gas charged", hint: "Who the chain works for" },
-    ],
-  },
-  {
-    group: "Tokens",
-    hue: "#0d9488",
-    items: [
-      { q: "USDC transfers per 5 minutes, count and volume", hint: "Stablecoin flow" },
-      { q: "Largest USDT transfers in the last hour", hint: "Size, sender, receiver" },
-    ],
-  },
-];
 
 /* the suggested questions: frosted cards over a soft wash of each
    category's hue, a row you swipe on a phone and a grid on a desk */
@@ -573,6 +541,23 @@ function useCopy() {
   return { done, copy };
 }
 
+/** one line on where the answer is: who is writing, and the last step */
+function progress(events: QueryEvent[]): string {
+  let who = "The model";
+  let line = "Writing the SQL";
+  for (const e of events) {
+    if (e.type === "stage") {
+      if (e.stage === "cached") return "Kept answer: running its SQL for fresh rows";
+      who = e.writer ?? who;
+      line = e.stage === "escalated" ? `${who} is taking over` : `${who} is writing the SQL`;
+    } else if (e.type === "step") {
+      const what = e.kind === "test" ? `test ${e.n}` : "final query";
+      line = e.ok ? `${who}: ${what} ran, ${e.detail}` : `${who}: ${what} failed, fixing`;
+    }
+  }
+  return line;
+}
+
 export function EvmQuery({ network }: { network: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
@@ -581,6 +566,10 @@ export function EvmQuery({ network }: { network: string }) {
   const [prompt, setPrompt] = useState("");
   const [phase, setPhase] = useState<"idle" | "query" | "running">("idle");
   const [designing, setDesigning] = useState(false);
+  // what the model has done so far on this question
+  const [events, setEvents] = useState<QueryEvent[]>([]);
+  // the SQL the model handed back, so an edit is not laid out as if it were kept
+  const answerSql = useRef("");
   const [error, setError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<QueryAnswer | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
@@ -613,6 +602,33 @@ export function EvmQuery({ network }: { network: string }) {
     return out;
   };
 
+  /** a question, streamed: each step as it ends, then the answer */
+  const stream = async (body: object, my: number): Promise<QueryAnswer> => {
+    const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
+    if (!res.ok || !res.body) {
+      const out = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(out.error ?? `HTTP ${res.status}`);
+    }
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) buf += dec.decode(value, { stream: true });
+      let nl: number;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        const e = JSON.parse(line) as QueryEvent;
+        if (e.type === "answer") return e.answer;
+        if (e.type === "error") throw new Error(e.error);
+        if (my === token.current) setEvents((prev) => [...prev, e]);
+      }
+      if (done) throw new Error("The answer stopped before it finished.");
+    }
+  };
+
   /** the second stage: arrange rows the page already shows */
   const design = useCallback(
     async (question: string, a: QueryAnswer) => {
@@ -620,13 +636,17 @@ export function EvmQuery({ network }: { network: string }) {
       const my = ++token.current;
       setDesigning(true);
       try {
-        const out = await post<{ visual: VisualSpec; designer: boolean; ms: number }>({
-          design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart },
-        });
+        // a kept answer is laid out by the server from its own SQL; hand-edited rows are sent
+        const out = await post<{ visual: VisualSpec; designer: boolean; ms: number }>(
+          a.key && a.sql === answerSql.current
+            ? { key: a.key }
+            : { design: { question, title: a.title, note: a.note, columns: a.result.columns, rows: a.result.rows, names: a.names, chart: a.chart } },
+        );
         if (my !== token.current) return;
-        setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
+        setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, visual: out.visual, draftVisual: false, model: { ...(prev.model ?? { steps: 0, ms: 0, tries: 0 }), designMs: out.ms, designer: out.designer } } : prev));
       } catch {
-        /* the rows stay; the sheet shows them as a table */
+        // the designer failed: draw the basic layout rather than wait forever
+        if (my === token.current) setAnswer((prev) => (prev && prev.sql === a.sql ? { ...prev, draftVisual: false } : prev));
       } finally {
         if (my === token.current) setDesigning(false);
       }
@@ -639,7 +659,8 @@ export function EvmQuery({ network }: { network: string }) {
     async (q: string, refine: boolean) => {
       const text = q.trim();
       if (!text) return;
-      token.current++;
+      const my = ++token.current;
+      setEvents([]);
       setPhase("query");
       setStarted(Date.now());
       setError(null);
@@ -649,7 +670,9 @@ export function EvmQuery({ network }: { network: string }) {
       setSqlOpen(false);
       const hist = refine ? history : [];
       try {
-        const a = await post<QueryAnswer>({ prompt: text, history: hist, skipDesign: true });
+        const a = await stream({ prompt: text, history: hist }, my);
+        if (my !== token.current) return;
+        answerSql.current = a.sql;
         setAnswer(a);
         setSqlDraft(a.sql);
         setHistory([...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6));
@@ -659,7 +682,7 @@ export function EvmQuery({ network }: { network: string }) {
         window.history.replaceState(null, "", url.toString());
         setPhase("idle");
         setStarted(null);
-        void design(text, a);
+        if (a.draftVisual) void design(text, a);
       } catch (e) {
         setError(e instanceof Error ? e.message : "The query failed.");
         setPhase("idle");
@@ -757,6 +780,8 @@ export function EvmQuery({ network }: { network: string }) {
   const visual = answer?.visual ?? null;
   const canDrill = !!answer?.drill;
   const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
+  // the basic layout is never drawn while the real one is on its way
+  const laying = designing || (!!answer?.draftVisual && !!answer.result?.rowCount);
   const firstX = visual?.panels.find((p) => p.x)?.x ?? answer?.chart.x;
   const span = useMemo(() => (firstX ? spanOf(rows.map((r) => r[firstX])) : "other"), [rows, firstX]);
   const leadPanel = visual?.panels.find((p) => p.kind !== "table" && p.x && p.series.length);
@@ -822,7 +847,7 @@ export function EvmQuery({ network }: { network: string }) {
             </div>
           )}
           {input}
-          {busy && <FishingGame status={`${phase === "running" ? "Running your SQL" : "Writing and testing the SQL"} · ${elapsed} s`} />}
+          {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
             <div className="pt-3">
@@ -842,7 +867,12 @@ export function EvmQuery({ network }: { network: string }) {
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
                 <Board divide={false} className="flex min-w-0 flex-col gap-6 border px-5 py-5 md:px-6">
-                  {charted && visual ? (
+                  {/* one draw: the loader holds the space until the layout is final */}
+                  {laying ? (
+                    <div aria-busy="true">
+                      <AvalancheLoader status="Rows are in below. Opus 5.5 is laying out the chart" height={260} />
+                    </div>
+                  ) : charted && visual ? (
                     <QueryVisual
                       visual={visual}
                       rows={rows}
@@ -861,15 +891,11 @@ export function EvmQuery({ network }: { network: string }) {
                       onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
                       selected={drill && firstX ? drill.row[firstX] : undefined}
                     />
-                  ) : designing ? (
-                    <div aria-busy="true">
-                      <FishingGame status="Rows are in below. Opus 5.5 is laying out the chart" height={260} />
-                    </div>
                   ) : (
                     <p className="font-mono text-[12px] text-zinc-500">{rows.length ? "The rows are below." : "The query returned no rows."}</p>
                   )}
 
-                  {visual && visual.callouts.length > 0 && (
+                  {!laying && visual && visual.callouts.length > 0 && (
                     <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
                       <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Reading</span>
                       <ul className="flex flex-col gap-1.5">
@@ -901,6 +927,11 @@ export function EvmQuery({ network }: { network: string }) {
                             #{formatNumber(cov.hi)}
                           </Link>
                           {` · ${formatNumber(cov.blocks)} blocks`}
+                          {answer.anchor && (
+                            <span className="mt-1 block text-amber-700 dark:text-amber-400">
+                              The index ends {duration(Math.max(0, Math.floor(Date.now() / 1000) - toUnix(answer.anchor)))} before now, so &ldquo;now&rdquo; is its last block, {answer.anchor.slice(11, 16)} UTC.
+                            </span>
+                          )}
                         </>
                       }
                     >
@@ -929,10 +960,25 @@ export function EvmQuery({ network }: { network: string }) {
                       )}
                     </span>
                     <span className="font-mono text-[10px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                      Sonnet 5 wrote it in {Math.round((answer.model?.ms ?? 0) / 1000)} s
-                      {answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.
+                      {answer.model?.cached
+                        ? `Kept answer (${answer.model.writer ?? "model"} wrote the SQL); rows fresh in ${Math.round((answer.model.ms ?? 0) / 100) / 10} s.`
+                        : `${answer.model?.writer ?? "The model"} wrote it in ${Math.round((answer.model?.ms ?? 0) / 1000)} s${answer.model?.tries ? `, ${answer.model.tries} test run${answer.model.tries === 1 ? "" : "s"}` : ""}.`}
                       {designing ? " Opus 5.5 is laying it out." : answer.model?.designMs ? ` Opus 5.5 laid it out in ${Math.round(answer.model.designMs / 1000)} s.` : ""}
+                      {answer.model?.inputTokens ? ` ${Math.round((100 * (answer.model.cacheRead ?? 0)) / answer.model.inputTokens)}% of the prompt read from cache.` : ""}
                     </span>
+                    {!!answer.model?.timings?.length && (
+                      <ol className="flex flex-col gap-1 font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                        {answer.model.timings.map((t) => (
+                          <li key={t.n} className="flex items-baseline gap-2" title={t.detail}>
+                            <span className={cn("w-1.5 shrink-0", t.ok ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]")}>{t.ok ? "✓" : "×"}</span>
+                            <span className="w-10 shrink-0">{t.kind === "test" ? "test" : "final"}</span>
+                            <span className="shrink-0">model {(t.modelMs / 1000).toFixed(1)} s</span>
+                            <span className="shrink-0">sql {(t.sqlMs / 1000).toFixed(2)} s</span>
+                            {!t.ok && <span className="min-w-0 truncate text-[#E6212F]">{t.detail}</span>}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
                   </div>
                 </Board>
               </div>

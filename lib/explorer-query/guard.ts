@@ -46,6 +46,12 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const otherChain = sql.match(/\bchain_id\s*(=|==)\s*(\d+)/g)?.find((s) => !new RegExp(`\\b${chainId}\\b`).test(s));
   if (otherChain) return { ok: false, error: `only chain_id = ${chainId} is readable on this page` };
 
+  // the big tables hold years; a read with no window scans all of them
+  const wide = [...tables].filter((t) => t !== "raw_blocks");
+  if (wide.length && !/\b(block_time|block_number)\s*(>=|>|<=|<|=|==|BETWEEN|IN)/i.test(sql)) {
+    return { ok: false, error: `bound ${wide.join(", ")} on block_time or block_number (for example block_time >= now() - INTERVAL 1 DAY)` };
+  }
+
   // rows: cap what comes back
   const lim = sql.match(/\bLIMIT\s+(\d+)(?:\s*,\s*(\d+))?/i);
   if (!lim) sql = `${sql}\nLIMIT ${MAX_ROWS}`;

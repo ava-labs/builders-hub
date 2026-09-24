@@ -2,6 +2,7 @@
    the tables it may read. The schema card is read from the database
    itself, so the model always sees the real columns and types. */
 
+import { withQuerySlot } from "@/lib/clickhouse/client";
 import { ALLOWED_TABLES, MAX_ROWS } from "./guard";
 
 export interface ColumnMeta {
@@ -52,6 +53,8 @@ const SETTINGS: Record<string, string> = {
   // a SELECT that aliases hex(method_id) AS method_id must still filter on
   // the column in WHERE, not on its own alias
   prefer_column_name_to_alias: "1",
+  // every time on the page is UTC, whatever zone the server runs in
+  session_timezone: "UTC",
 };
 
 interface RawJson {
@@ -62,22 +65,61 @@ interface RawJson {
   statistics?: { elapsed: number; rows_read: number; bytes_read: number };
 }
 
-export async function runQuery(sql: string): Promise<QueryResult> {
+async function post(sql: string): Promise<RawJson> {
   const base = endpoint();
   const qs = new URLSearchParams(SETTINGS);
-  const res = await fetch(`${base.replace(/\/$/, "")}/?${qs}`, {
-    method: "POST",
-    headers: headers(),
-    body: `${sql}\nFORMAT JSON`,
-    signal: AbortSignal.timeout((QUERY_TIMEOUT_S + 5) * 1000),
+  // the box rejects a fifth concurrent query outright; share the site's gate
+  const { res, text } = await withQuerySlot(async () => {
+    const res = await fetch(`${base.replace(/\/$/, "")}/?${qs}`, {
+      method: "POST",
+      headers: headers(),
+      body: `${sql}\nFORMAT JSON`,
+      signal: AbortSignal.timeout((QUERY_TIMEOUT_S + 5) * 1000),
+    });
+    return { res, text: await res.text() };
   });
-  const text = await res.text();
   if (!res.ok) {
     // ClickHouse puts the readable reason on one line after the code
     const line = text.split("\n").find((l) => /DB::Exception/.test(l)) ?? text;
     throw new Error(line.replace(/^Code:\s*\d+\.\s*/, "").slice(0, 500));
   }
-  const body = JSON.parse(text) as RawJson;
+  return JSON.parse(text) as RawJson;
+}
+
+/** a column of raw bytes: an address, a hash, calldata. JSON cannot carry
+    bytes, so these arrive mangled and must be asked for again as hex */
+function binaryColumns(body: RawJson): string[] {
+  return body.meta
+    .filter((c) => {
+      const t = c.type.replace(/^(Nullable|LowCardinality)\((.*)\)$/, "$2");
+      if (/^FixedString\(/.test(t)) return true;
+      return t === "String" && body.data.some((r) => typeof r[c.name] === "string" && /[\uFFFD\u0000-\u0008\u000E-\u001F]/.test(r[c.name] as string));
+    })
+    .map((c) => c.name);
+}
+
+export async function runQuery(sql: string): Promise<QueryResult> {
+  let body = await post(sql);
+  // a query that returned bytes (a model forgot hex()) runs once more with
+  // those columns as 0x text, so the page never shows mangled bytes
+  const bytes = binaryColumns(body);
+  if (bytes.length) {
+    const cols = body.meta
+      .map((c) => {
+        const q = "`" + c.name.replace(/`/g, "") + "`";
+        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : q;
+      })
+      .join(", ");
+    body = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+  }
+  // an address read from a log topic is left-padded to 32 bytes; show the 20
+  for (const c of body.meta) {
+    if (!/address|^from|^to|sender|recipient|caller|contract/i.test(c.name)) continue;
+    for (const r of body.data) {
+      const v = r[c.name];
+      if (typeof v === "string" && /^0x0{24}[0-9a-fA-F]{40}$/.test(v)) r[c.name] = `0x${v.slice(26).toLowerCase()}`;
+    }
+  }
   return {
     columns: body.meta,
     rows: body.data,
@@ -119,6 +161,7 @@ export async function schemaCard(): Promise<string> {
 export interface Coverage {
   since: string;
   until: string;
+  untilUnix: number;
   lo: number;
   hi: number;
   blocks: number;
@@ -133,11 +176,11 @@ export async function coverage(chainId: number): Promise<Coverage | null> {
   if (hit && Date.now() - hit.at < COVERAGE_TTL_MS) return hit.value;
   try {
     const r = await runQuery(
-      `SELECT toString(min(block_time)) AS since, toString(max(block_time)) AS until, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
+      `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
     );
     const row = r.rows[0];
     if (!row || !row.blocks) return null;
-    const value: Coverage = { since: String(row.since), until: String(row.until), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
+    const value: Coverage = { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
     coverageCache.set(chainId, { at: Date.now(), value });
     return value;
   } catch {
@@ -147,4 +190,19 @@ export async function coverage(chainId: number): Promise<Coverage | null> {
 
 export function coverageText(chainId: number, c: Coverage): string {
   return `raw_blocks holds ${c.blocks} blocks for chain ${chainId}: #${c.lo} to #${c.hi}, ${c.since} to ${c.until} UTC.`;
+}
+
+/** how far behind the clock the index may run before "now" means its last block */
+const LAG_S = 15 * 60;
+
+/** "now" as the data knows it. When the index runs behind the clock, a
+    window such as the last hour would end past the data and come back
+    empty; so now() is read as the time of the last indexed block. The
+    query as written keeps now(), so it stays right once the index is live. */
+export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
+  if (!/\bnow\(\s*\)/i.test(sql)) return { sql, anchor: null };
+  const c = await coverage(chainId);
+  if (!c) return { sql, anchor: null };
+  if (!Number.isFinite(c.untilUnix) || Date.now() / 1000 - c.untilUnix < LAG_S) return { sql, anchor: null };
+  return { sql: sql.replace(/\bnow\(\s*\)/gi, `toDateTime(${Math.floor(c.untilUnix)})`), anchor: c.until };
 }

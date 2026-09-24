@@ -187,7 +187,8 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   try {
     await generateText({
       model: anthropic(DESIGN_MODEL),
-      system: HOUSE_STYLE,
+      // the house style is the same for every answer; read it from the cache
+      system: { role: "system", content: HOUSE_STYLE, providerOptions: { anthropic: { cacheControl: { type: "ephemeral" } } } },
       messages: [
         {
           role: "user",
