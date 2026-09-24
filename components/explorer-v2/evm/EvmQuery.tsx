@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, ArrowUpRight, Check, ChevronRight, Copy, Download, History, MessageSquarePlus, Rows3 } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
@@ -15,14 +15,16 @@ import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
-import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
+import { QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
 import { type Row, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
+import { QueryHome } from "./QueryHome";
+import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { AvalancheLoader } from "./AvalancheLoader";
 import { EXAMPLES, PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { forgetQuestions, recentQuestions, rememberQuestion } from "@/lib/explorer-query/recent";
+import { rememberQuestion } from "@/lib/explorer-query/recent";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -36,47 +38,6 @@ import { forgetQuestions, recentQuestions, rememberQuestion } from "@/lib/explor
    question the reader sees stays the one they typed */
 const FILTER_MARK = "\n\n(Only the rows where ";
 
-
-/* the suggested questions: frosted cards over a soft wash of each
-   category's hue, a row you swipe on a phone and a grid on a desk */
-function Suggestions({ onAsk, examples }: { onAsk: (q: string) => void; examples: typeof EXAMPLES }) {
-  const cards = examples.flatMap((g) => g.items.map((it) => ({ ...it, group: g.group, hue: g.hue })));
-  return (
-    <div className="relative isolate -mx-5 overflow-hidden px-5 py-6 sm:mx-0 sm:rounded-3xl sm:px-6">
-      {/* the wash the glass sits on */}
-      <div aria-hidden className="absolute inset-0 -z-10 bg-zinc-50 dark:bg-zinc-950" />
-      <div aria-hidden className="absolute -left-16 -top-20 -z-10 h-72 w-72 rounded-full bg-[#E6212F]/25 blur-3xl dark:bg-[#E6212F]/20" />
-      <div aria-hidden className="absolute left-1/3 top-10 -z-10 h-64 w-64 rounded-full bg-[#d97706]/20 blur-3xl dark:bg-[#d97706]/15" />
-      <div aria-hidden className="absolute -bottom-24 right-1/4 -z-10 h-80 w-80 rounded-full bg-[#0061E2]/25 blur-3xl dark:bg-[#0061E2]/20" />
-      <div aria-hidden className="absolute -right-16 -top-10 -z-10 h-64 w-64 rounded-full bg-[#0d9488]/25 blur-3xl dark:bg-[#0d9488]/20" />
-
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-        {cards.map((c) => (
-          <button
-            key={c.q}
-            type="button"
-            onClick={() => onAsk(c.q)}
-            className="group relative flex min-h-[9.5rem] w-[15.5rem] shrink-0 snap-start flex-col justify-between gap-5 overflow-hidden rounded-2xl border border-white/60 bg-white/55 p-4 text-left shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_8px_24px_-12px_rgba(24,24,27,0.25)] backdrop-blur-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/75 hover:shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_16px_32px_-14px_rgba(24,24,27,0.35)] sm:w-auto dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)] dark:hover:bg-white/[0.1]"
-          >
-            {/* the card's own tint, strongest in the corner */}
-            <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full opacity-50 blur-2xl transition-opacity group-hover:opacity-80" style={{ background: c.hue }} />
-            <span className="relative flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full" style={{ background: c.hue }} />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600 dark:text-zinc-300">{c.group}</span>
-            </span>
-            <span className="relative flex flex-col gap-1.5">
-              <span className="text-[16px] font-medium leading-snug tracking-tight text-zinc-900 dark:text-zinc-50">{c.q}</span>
-              <span className="flex items-center justify-between gap-3 text-[12.5px] text-zinc-500 dark:text-zinc-400">
-                {c.hint}
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-zinc-400 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:group-hover:text-zinc-50" />
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 
 function useCopy() {
@@ -92,45 +53,16 @@ function useCopy() {
 
 
 
-/** the questions this device asked on this chain, newest first */
-function Recent({ chain, onAsk }: { chain: string; onAsk: (q: string) => void }) {
-  const [items, setItems] = useState<string[]>([]);
-  useEffect(() => setItems(recentQuestions(chain)), [chain]);
-  if (!items.length) return null;
-  return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
-        <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-          <History className="h-3 w-3" /> Recent
-        </span>
-        <button
-          type="button"
-          onClick={() => {
-            forgetQuestions(chain);
-            setItems([]);
-          }}
-          className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-        >
-          Clear
-        </button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {items.map((q) => (
-          <button
-            key={q}
-            type="button"
-            onClick={() => onAsk(q)}
-            className="max-w-full truncate rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-mono text-[12px] text-zinc-700 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
-          >
-            {q}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+/** one line on where the answer is: who is writing, and the last step */
+/** the callouts as one paragraph: every sentence closed, no 1.395e+6 */
+function reads(callouts: string[]): string {
+  return callouts
+    .map((c) => c.trim().replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m))))
+    .filter(Boolean)
+    .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))
+    .join(" ");
 }
 
-/** one line on where the answer is: who is writing, and the last step */
 function progress(events: QueryEvent[]): string {
   let who = "The model";
   let line = "Writing the SQL";
@@ -468,8 +400,6 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
   // the basic layout is never drawn while the real one is on its way
   const laying = designing || (!!answer?.draftVisual && !!answer.result?.rowCount);
-  const firstX = visual?.panels.find((p) => p.x)?.x ?? answer?.chart.x;
-  const span = useMemo(() => (firstX ? spanOf(allRows.map((r) => r[firstX])) : "other"), [allRows, firstX]);
   const recordRows = !!answer?.result && isTxList(answer.result.columns);
   const tables = answer?.sql ? [...new Set([...answer.sql.matchAll(/\b(?:FROM|JOIN)\s+((?:raw|decoded|p)_\w+)/gi)].map((m) => m[1]))] : [];
   const cov = answer?.coverage;
@@ -658,8 +588,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
             <div className="flex flex-col gap-6 pt-3">
-              <Recent chain={c.chainSlug ?? String(c.chainId)} onAsk={(q) => void ask(q, false)} />
-              <Suggestions examples={examples} onAsk={(q) => void ask(q, false)} />
+              <QueryHome chain={c.chainSlug ?? String(c.chainId)} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />
             </div>
           )}
         </section>
@@ -668,7 +597,10 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
           <section className="flex flex-col gap-5">
             {/* the answer, and its takeaway in one quiet lead */}
             <div className="flex flex-col gap-2">
-              <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
+                {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} question={history.at(-1)?.prompt} className="mt-1 shrink-0" />}
+              </div>
               {!laying && reading && (
                 <span aria-busy="true" aria-label="Writing the reading" className="flex max-w-3xl flex-col gap-1.5 pt-1">
                   {[92, 64].map((w) => (
@@ -677,7 +609,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                 </span>
               )}
               {!laying && !reading && visual && visual.callouts.length > 0 ? (
-                <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{visual.callouts.join(" ")}</p>
+                <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{reads(visual.callouts)}</p>
               ) : (
                 !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>
               )}
@@ -737,6 +669,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
                     onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
                     selection={sel}
                     onSelection={setSel}
+                    panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} question={history.at(-1)?.prompt} /> : undefined}
                   />
                 ) : allRows.length ? (
                   // no chart to index the rows: the rows, by their shape, are the view

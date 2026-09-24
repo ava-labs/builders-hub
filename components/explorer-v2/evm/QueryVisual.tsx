@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { Area, Bar, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, ArrowUp, ChartArea, ChartBar, ChartColumn, ChartLine, ChartPie, ChartScatter, ChevronRight, Sigma, Table2, X as XIcon, type LucideIcon } from "lucide-react";
@@ -315,6 +315,10 @@ function StatsStrip({ stats, rows, all, names, sym, active }: { stats: Stat[]; r
 
 type PanelProps = {
   panel: Panel;
+  /** a control the page adds to the panel header, e.g. pin to a board */
+  action?: ReactNode;
+  /** draw the panel's own title; off where a tile already names it */
+  titled?: boolean;
   /** every row of the answer; marks outside the selection dim, they do not leave */
   rows: Row[];
   names: Names;
@@ -835,16 +839,24 @@ export type QueryVisualProps = {
   compact?: boolean;
   /** draw only visual.panels[panelIndex] */
   panelIndex?: number;
+  /** a control for each panel's header, given its index in visual.panels */
+  panelAction?: (index: number) => ReactNode;
+  /** draw panel titles (default true) */
+  titles?: boolean;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
   const picked = useMemo(() => applySelection(rows, live), [rows, live]);
-  const charts = (panelIndex !== undefined ? [visual.panels[panelIndex]] : visual.panels).filter(isChart);
+  // each chart keeps its index in visual.panels, for the page's panel controls
+  const charts = useMemo(
+    () => (panelIndex !== undefined ? [panelIndex] : visual.panels.map((_, i) => i)).flatMap((idx) => { const p = visual.panels[idx]; return isChart(p) ? [{ p, idx }] : []; }),
+    [visual, panelIndex],
+  );
   const single = panelIndex !== undefined || charts.length === 1;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : "gap-6")}>
@@ -852,7 +864,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
       {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className="-mb-2" />}
       {charts.length > 0 && (
         <div className={cn("grid gap-x-10 gap-y-8", !single && "lg:grid-cols-2")}>
-          {charts.map((p, i) => (
+          {charts.map(({ p, idx }, i) => (
             <div key={`${i}-${p.title}-${p.x}`} className={cn(!single && p.width === "full" && "lg:col-span-2")}>
               <PanelBlock
                 panel={p}
@@ -868,6 +880,8 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
                 live={live}
                 onSelection={onSelection}
                 compact={compact}
+                action={panelAction?.(idx)}
+                titled={titles}
               />
             </div>
           ))}
@@ -940,9 +954,11 @@ function PanelBlock(props: PanelProps) {
     <section aria-label={panel.title || undefined} className="group/panel flex flex-col gap-3">
       <div className="flex min-h-7 items-center justify-between gap-3">
         <span className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-          {panel.title}
+          {props.titled !== false && panel.title}
           {running && <span className="ml-2 font-normal text-zinc-400 dark:text-zinc-500">running total</span>}
         </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+        {props.action && <span className="opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 [@media(hover:none)]:opacity-100">{props.action}</span>}
         <div
           role="group"
           aria-label={`View ${panel.title || "panel"} as`}
@@ -973,6 +989,7 @@ function PanelBlock(props: PanelProps) {
               </button>
             </>
           )}
+        </div>
         </div>
       </div>
       <AnimatePresence mode="wait" initial={false}>

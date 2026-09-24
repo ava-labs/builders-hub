@@ -176,6 +176,7 @@ export function TileChart({ tile, sym }: { tile: ChartTile; sym: string }) {
       range={range}
       onRange={setRange}
       onZoom={() => {}}
+      titles={visual.panels.length > 1}
     />
   );
 }
@@ -331,7 +332,7 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
 
   return (
     <>
-      <header className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5">
         <Grip handle={handle} />
         {renaming ? (
           <InlineName
@@ -356,7 +357,7 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
           <RotateCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
         </button>
         <TileMenu tile={tile} ctx={ctx} onRename={() => setRenaming(true)} />
-      </header>
+      </div>
       <div className={cn("min-w-0 transition-opacity duration-300", busy && tile.snapshot && "opacity-60")}>
         <TileChart tile={tile} sym={ctx.sym} />
       </div>
@@ -548,7 +549,7 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
   return (
     <div className="flex flex-col gap-8 pt-4">
       {/* the board's header */}
-      <header className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
           <Link href={askHref(props.network, props.chainSlug)} className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
             Query
@@ -588,7 +589,7 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
             </Link>
           </div>
         </div>
-      </header>
+      </div>
 
       {tiles.length === 0 ? (
         <div className="flex flex-col items-center gap-5 rounded-3xl border border-dashed border-zinc-300 px-6 py-20 text-center dark:border-zinc-800">
@@ -755,7 +756,7 @@ export function QueryBoardsPage({ network, chainSlug, kind }: { network: string;
   return (
     <QueryPageShell kind={kind} network={network}>
       <div className="flex flex-col gap-8 pt-4">
-        <header className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <nav aria-label="Breadcrumb" className="flex items-center gap-2 font-mono text-[10.5px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
             <Link href={askHref(network, chainSlug)} className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-100">
               Query
@@ -770,7 +771,7 @@ export function QueryBoardsPage({ network, chainSlug, kind }: { network: string;
             </p>
           </div>
           {bad && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">That board link could not be read.</p>}
-        </header>
+        </div>
         {hydrated && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <NewBoardCard network={network} chainSlug={chainSlug} />

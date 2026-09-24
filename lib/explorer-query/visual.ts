@@ -125,7 +125,7 @@ Rules of the sheet
 - Time series are lines; counts over buckets are bars; parts of a whole over time are stacked areas or stacked bars. Never put a count and a percent on the same axis; use axis "right" or a second panel.
 - Gas reserved against a limit: a line with the limit as a reference line. Fees in AVAX use format avax. Gas figures use format gas (compact with the word gas). Percent columns use percent.
 - Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
-- Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting".
+- Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting". Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.
 - Panel titles: two to four plain words, no "by" chains longer than one.
 Comparisons and overlays (use them whenever the rows hold more than one thing to compare)
 - Two groups or two periods in columns (usdc_*, usdt_*; current_*, previous_*): overlay them in ONE panel. The baseline or previous period is dashed.
@@ -185,6 +185,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">): Promise<s
         "You write the short reading under a chart on the Avalanche explorer.",
         "At most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas).",
         "No adjectives, no restating the title. Do not mention the data window. No em dashes. Never say settled or waiting.",
+        "Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.",
         "Quote only figures you can see in the rows or the column summaries. Call the reading tool once.",
       ].join("\n"),
       messages: [

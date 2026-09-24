@@ -353,7 +353,7 @@ export function QueryInspector({
           )}
         >
           {!desk && <span aria-hidden className="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700" />}
-          <header className="flex items-start gap-3 px-5 pb-3 pt-4">
+          <div className="flex items-start gap-3 px-5 pb-3 pt-4">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <h2 id={titleId} className="flex items-baseline gap-2 text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                 Rows
@@ -399,7 +399,7 @@ export function QueryInspector({
                 <X className="h-4 w-4" />
               </button>
             </div>
-          </header>
+          </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-8">
             <RowsBody columns={columns} rows={rows} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} table={table} />
           </div>
