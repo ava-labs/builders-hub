@@ -90,6 +90,7 @@ model User {
   notification_means         Json?                     @default("{}")
   github_access_token        String?
   chatConversations          ChatConversation[]
+  queryBoards                QueryBoard[]
   consoleLog                 ConsoleLog[]
   evaluations                Evaluation[]              @relation("Evaluations")
   faucetClaims               FaucetClaim[]
@@ -1035,4 +1036,24 @@ model VerificationJob {
   @@index([chain_id, address])
   @@index([payload_hash])
   @@index([created_at])
+}
+
+/// A reader's explorer Query board: tiles of saved SQL and chart layouts.
+/// Rows are not stored; each device reruns the SQL. id is chosen on the
+/// device that made the board, so a board keeps its id across devices.
+/// A deleted board keeps its row with deleted_at set, so the delete
+/// reaches the reader's other devices.
+model QueryBoard {
+  id         String    @id
+  user_id    String
+  /// network:chain, e.g. mainnet:c-chain (a board's SQL names one chain)
+  scope      String
+  name       String
+  tiles      Json      @default("[]")
+  created_at DateTime  @db.Timestamptz(3)
+  updated_at DateTime  @db.Timestamptz(3)
+  deleted_at DateTime? @db.Timestamptz(3)
+  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, scope])
 }

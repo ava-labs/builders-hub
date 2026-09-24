@@ -52,6 +52,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
+import type { SyncState } from "@/lib/explorer-query/board-sync";
 import {
   SIZE_LABEL,
   TILE_SIZES,
@@ -568,7 +570,7 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
               className="-ml-2 w-full max-w-2xl px-2 py-0.5 text-[28px] font-semibold tracking-tight text-zinc-900 sm:text-[32px] dark:text-zinc-50"
             />
             <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              {tiles.length} {tiles.length === 1 ? "tile" : "tiles"} · updated {ago(board.updatedAt, now)} · kept on this device
+              {tiles.length} {tiles.length === 1 ? "tile" : "tiles"} · updated {ago(board.updatedAt, now)} · <SyncNote sync={api.sync} />
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -666,21 +668,53 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
   );
 }
 
+/** where the boards are kept, in a few words; signed out, a way to sign in */
+function SyncNote({ sync, long = false }: { sync: SyncState; long?: boolean }) {
+  if (sync === "off") {
+    return (
+      <>
+        {long ? "Kept in this browser. " : "on this device · "}
+        <SignInToSync inline label={long ? "Sign in to keep them in your Builder Hub account" : "sign in to sync"} />
+        {long && "."}
+      </>
+    );
+  }
+  if (sync === "loading") return <span>{long ? "Syncing with your account." : "syncing"}</span>;
+  if (sync === "error") return <span className="text-amber-600 dark:text-amber-500">{long ? "Could not reach your account; changes stay in this browser and sync when it is back." : "not synced, kept here"}</span>;
+  return <span>{long ? "Synced to your Builder Hub account." : "synced to your account"}</span>;
+}
+
+function SignInToSync({ inline = false, label = "Sign in to sync boards" }: { inline?: boolean; label?: string }) {
+  const { openLoginModal } = useLoginModalTrigger();
+  return (
+    <button
+      type="button"
+      onClick={() => openLoginModal(typeof window !== "undefined" ? window.location.href : undefined)}
+      className={inline ? "underline decoration-zinc-300 underline-offset-2 transition-colors hover:text-zinc-900 dark:decoration-zinc-700 dark:hover:text-zinc-100" : btn}
+    >
+      {label}
+    </button>
+  );
+}
+
 /** one board's canvas, from this device's store */
 export function QueryBoardPage({ boardId, ...props }: BoardPageProps & { boardId: string }) {
   const hydrated = useHydrated();
-  const { boards } = useBoards(boardScope(props.network, props.chainSlug));
+  const { boards, sync } = useBoards(boardScope(props.network, props.chainSlug));
   const board = boards.find((b) => b.id === boardId);
   return (
     <QueryPageShell kind={props.kind} network={props.network}>
-      {!hydrated ? (
+      {!hydrated || (!board && sync === "loading") ? (
         <div className="h-96" aria-busy="true" />
       ) : board ? (
         <BoardCanvas board={board} props={props} />
       ) : (
         <div className="flex flex-col items-start gap-3 pt-10">
-          <p className="text-[18px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50">This board is not on this device</p>
-          <p className="max-w-md text-[14px] text-zinc-500 dark:text-zinc-400">Boards are kept in this browser. To move one, open it where it was made and share its link.</p>
+          <p className="text-[18px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50">{sync === "off" ? "This board is not on this device" : "This board is not in your account"}</p>
+          <p className="max-w-md text-[14px] text-zinc-500 dark:text-zinc-400">
+            {sync === "off" ? "Sign in to see the boards you keep on your other devices, or open a shared link to this board." : "It may have been deleted on another device. A shared link to it still opens a copy."}
+          </p>
+          {sync === "off" && <SignInToSync />}
           <Link href={boardsHref(props.network, props.chainSlug)} className={btn}>
             <LayoutGrid className="h-3.5 w-3.5" /> All boards
           </Link>
@@ -739,7 +773,7 @@ export function NewBoardCard({ network, chainSlug, className }: { network: strin
 export function QueryBoardsPage({ network, chainSlug, kind }: { network: string; chainSlug: string; kind: Kind }) {
   const hydrated = useHydrated();
   const scope = boardScope(network, chainSlug);
-  const { boards } = useBoards(scope);
+  const { boards, sync } = useBoards(scope);
   const now = useNow();
   const router = useRouter();
   const shared = useSearchParams().get("board");
@@ -767,7 +801,8 @@ export function QueryBoardsPage({ network, chainSlug, kind }: { network: string;
           <div className="flex flex-col gap-1.5">
             <h1 className="text-[28px] font-semibold tracking-tight text-zinc-900 sm:text-[32px] dark:text-zinc-50">Boards</h1>
             <p className="max-w-xl text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Pages of charts built from your answers. Each chart keeps its SQL and runs again when you open the board. Kept on this device.
+              Pages of charts built from your answers. Each chart keeps its SQL and runs again when you open the board.{" "}
+              <SyncNote sync={sync} long />
             </p>
           </div>
           {bad && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">That board link could not be read.</p>}

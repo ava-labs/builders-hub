@@ -1,15 +1,19 @@
 /* Boards: pages a reader builds from answers. A tile keeps the question,
    the SQL and the layout the designer chose, so it can run again without
    a model; its last rows ride along as a snapshot, so a board opens drawn
-   and refreshes behind the reader. Everything lives on this device, per
-   chain and network (a board's SQL names one chain_id). */
+   and refreshes behind the reader. The device keeps every board, per
+   chain and network (a board's SQL names one chain_id); a signed-in
+   reader's boards also sync to the account (board-sync.ts). */
 
 import { useSyncExternalStore } from "react";
 import type { ColumnMeta } from "./clickhouse";
 import type { Names, QueryAnswer } from "./types";
 import type { Panel, VisualSpec } from "./visual";
+import { useBoardSync } from "./board-sync";
 
 const KEY = "explorer-query-boards:v1";
+/** deleted board ids and when, per scope, until the account has the delete */
+const GONE_KEY = "explorer-query-boards:gone:v1";
 const EVENT = "explorer-query-boards";
 /** rows kept per snapshot; enough to draw any panel, small enough to store */
 export const SNAPSHOT_ROWS = 500;
@@ -169,7 +173,111 @@ export function renameBoard(scope: string, id: string, name: string): void {
 }
 
 export function deleteBoard(scope: string, id: string): void {
+  const gone = readGone();
+  gone[scope] = { ...(gone[scope] ?? {}), [id]: Date.now() };
+  writeGone(gone);
   mutate(scope, (bs) => bs.filter((b) => b.id !== id));
+}
+
+/* ------------------------------------------------------------------ */
+/* tombstones and the account's copy                                   */
+
+type Gone = Record<string, Record<string, number>>;
+
+function readGone(): Gone {
+  try {
+    const g = JSON.parse(localStorage.getItem(GONE_KEY) ?? "{}") as unknown;
+    return g && typeof g === "object" ? (g as Gone) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeGone(g: Gone): void {
+  try {
+    localStorage.setItem(GONE_KEY, JSON.stringify(g));
+  } catch {
+    /* a lost tombstone only means the board comes back */
+  }
+}
+
+/** boards this device deleted, and when */
+export function goneBoards(scope: string): Record<string, number> {
+  return readGone()[scope] ?? {};
+}
+
+export function forgetGone(scope: string, ids: string[]): void {
+  const g = readGone();
+  if (!g[scope]) return;
+  for (const id of ids) delete g[scope][id];
+  writeGone(g);
+}
+
+/** the account's copy of a board, as this device receives it */
+export interface RemoteBoard {
+  id: string;
+  name: string;
+  tiles: unknown[];
+  createdAt: number;
+  updatedAt: number;
+  deletedAt: number | null;
+}
+
+/** what a merge leaves for the device to send */
+export interface MergeOut {
+  put: Board[];
+  del: { id: string; at: number }[];
+}
+
+/* the newer edit wins, board by board. The account's copy carries no
+   rows, so a board taken from it keeps this device's snapshots for the
+   tiles both copies share. `complete` means remote is every board the
+   account has for the scope, so a board only here is new and goes up. */
+export function mergeRemote(scope: string, remote: RemoteBoard[], complete: boolean): MergeOut {
+  const store = parse(readRaw());
+  const local = new Map((store[scope] ?? []).map((b) => [b.id, b]));
+  const gone = goneBoards(scope);
+  const out: MergeOut = { put: [], del: [] };
+  const settled: string[] = [];
+  for (const r of remote) {
+    const l = local.get(r.id);
+    if (r.deletedAt !== null) {
+      if (l && l.updatedAt > r.deletedAt) out.put.push(l);
+      else local.delete(r.id);
+      settled.push(r.id);
+      continue;
+    }
+    const at = gone[r.id];
+    if (at !== undefined) {
+      if (at >= r.updatedAt) {
+        out.del.push({ id: r.id, at });
+        continue;
+      }
+      // edited on another device after this one deleted it: it comes back
+      settled.push(r.id);
+    }
+    if (l && l.updatedAt > r.updatedAt) {
+      out.put.push(l);
+      continue;
+    }
+    if (l && l.updatedAt === r.updatedAt) continue;
+    const kept = new Map((l?.tiles ?? []).map((t) => [t.id, t]));
+    const tiles = (r.tiles as Tile[]).map((t) => {
+      const old = kept.get(t.id);
+      return t.kind === "chart" && old?.kind === "chart" && old.snapshot && old.sql === t.sql ? { ...t, snapshot: old.snapshot } : t;
+    });
+    local.set(r.id, { id: r.id, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt, tiles });
+  }
+  if (complete) {
+    const known = new Set(remote.map((r) => r.id));
+    for (const b of local.values()) if (!known.has(b.id)) out.put.push(b);
+    // a delete of a board the account never had needs no sending
+    for (const id of Object.keys(gone)) if (!known.has(id)) settled.push(id);
+  }
+  forgetGone(scope, settled);
+  store[scope] = [...local.values()];
+  write(store);
+  return out;
 }
 
 /** a tile goes to the end of the board */
@@ -365,8 +473,11 @@ export function useBoards(scope: string) {
     () => snapshot(scope),
     () => NONE,
   );
+  const sync = useBoardSync(scope);
   return {
     boards,
+    /** off: kept on this device only; loading: reading the account */
+    sync,
     create: (name?: string, tiles?: Tile[]) => createBoard(scope, name, tiles),
     rename: (id: string, name: string) => renameBoard(scope, id, name),
     remove: (id: string) => deleteBoard(scope, id),
