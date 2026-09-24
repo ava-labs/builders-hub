@@ -173,12 +173,13 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
   const n = RANGE_DAYS[clock];
   const market = useMarketHistory(chainId, n, cells.some((c) => c.series));
   if (cells.length === 0) return null;
-  const grid =
-    "grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800";
+  // the readings as blocks: each cell is an extruded cuboid in the sheet's
+  // axonometric projection, the same faces the block tape draws, so the
+  // live row reads as the digital-blocks motif rather than a table
+  const DEPTH = "0.5rem";
   return (
-    <Board divide={false} className="border">
-      <div className={grid}>
-        {cells.map((c) => {
+    <div className="grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2 lg:grid-cols-4">
+      {cells.map((c) => {
           const spark = c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined;
           const body = (
             <>
@@ -200,19 +201,33 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
               )}
             </>
           );
-          const cls = "flex items-start gap-3 px-5 py-3 md:px-6";
-          return c.href ? (
-            <Link key={c.label} href={c.href} className={cn(cls, "transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
-              {body}
-            </Link>
-          ) : (
-            <div key={c.label} className={cls}>
-              {body}
+          const face =
+            "relative flex h-full items-start gap-3 border border-zinc-200 bg-white px-5 py-3 transition-[background-color,translate] duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-950 md:px-6";
+          return (
+            <div key={c.label} className="group relative">
+              {/* top face, lit */}
+              <span
+                aria-hidden
+                className="absolute -top-2 left-0 w-full origin-bottom-left skew-x-[-45deg] border border-b-0 border-zinc-200 bg-zinc-100 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-800"
+                style={{ height: DEPTH }}
+              />
+              {/* right face, shaded */}
+              <span
+                aria-hidden
+                className="absolute -right-2 top-0 h-full origin-top-left skew-y-[-45deg] border border-l-0 border-zinc-200 bg-zinc-200 transition-transform duration-200 ease-out group-hover:-translate-y-1 dark:border-zinc-800 dark:bg-zinc-900"
+                style={{ width: DEPTH }}
+              />
+              {c.href ? (
+                <Link href={c.href} className={cn(face, "hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
+                  {body}
+                </Link>
+              ) : (
+                <div className={face}>{body}</div>
+              )}
             </div>
           );
         })}
-      </div>
-    </Board>
+    </div>
   );
 }
 
