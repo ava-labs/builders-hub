@@ -44,13 +44,14 @@ export function Height({ value }: { value: number }) {
   return <span className={INK}>{formatNumber(value)}</span>;
 }
 
-/** Gas as the row's one bar: fills the column, no percent beside it */
+/** Gas as the row's one bar: fills the column, no percent beside it. A full
+ *  block is demand, not a fault: it goes to ink, never to the alarm red */
 export function GasBar({ used, limit }: { used: number; limit: number }) {
   const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
   return (
     <span className="block h-1.5 w-full bg-zinc-100 dark:bg-zinc-900" title={`${pct.toFixed(1)}% of gas limit`}>
       <span
-        className={cn("block h-full", pct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+        className={cn("block h-full", pct >= 90 ? "bg-zinc-800 dark:bg-zinc-300" : "bg-[#A2AFB2] dark:bg-zinc-600")}
         style={{ width: `${Math.max(pct > 0 ? 1.5 : 0, pct).toFixed(1)}%` }}
       />
     </span>
@@ -274,6 +275,12 @@ export interface BlockRow {
   gasLimit: number;
 }
 
+/** most of the newest blocks are at 90% of the gas limit or more */
+function busy(rows: BlockRow[]): boolean {
+  const recent = rows.slice(0, 8).filter((b) => b.gasLimit > 0);
+  return recent.length >= 4 && recent.filter((b) => b.gasUsed / b.gasLimit >= 0.9).length * 2 > recent.length;
+}
+
 export function LatestBlocksBoard({
   rows: incomingRows,
   tip,
@@ -301,7 +308,20 @@ export function LatestBlocksBoard({
   const rows = shown.rows;
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader label="Latest Blocks" action={<ViewAll href={`${base}/blocks`} />} />
+      <SectionHeader
+        label="Latest Blocks"
+        action={
+          <span className="flex shrink-0 items-center gap-4">
+            {/* a run of full blocks says why ages stretch: the chain is busy, not behind */}
+            {busy(rows) && (
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400" title="Most recent blocks use 90% or more of the gas limit. Blocks are full because demand is high.">
+                Blocks full · high demand
+              </span>
+            )}
+            <ViewAll href={`${base}/blocks`} />
+          </span>
+        }
+      />
       <Board divide={false} className="group/belt" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span>Height</span>

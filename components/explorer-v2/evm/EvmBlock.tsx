@@ -429,7 +429,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                       <span className="flex items-center gap-2">
                         <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
                           <span
-                            className={cn("block h-full", gasPct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                            className={cn("block h-full", gasPct >= 90 ? "bg-zinc-800 dark:bg-zinc-300" : "bg-[#A2AFB2] dark:bg-zinc-600")}
                             style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
                           />
                         </span>
