@@ -1,0 +1,54 @@
+---
+title: BoltRPC
+category: RPC Endpoints
+available: ["C-Chain"]
+description: "BoltRPC provides managed Avalanche C-Chain JSON-RPC and WebSocket endpoints with published request-unit pricing and ISO/IEC 27001:2022 certified infrastructure."
+logo: /images/boltrpc.png
+developer: BoltRPC
+website: https://boltrpc.io/
+documentation: https://boltrpc.io/docs
+---
+
+## Overview
+
+BoltRPC is a multi-chain RPC platform operated by Matrixed.Link that provides HTTPS and WebSocket access to Avalanche C-Chain (chain ID 43114). Developers connect with a single API key pattern and use standard JSON-RPC clients without a custom SDK.
+
+## Features
+
+- **Avalanche C-Chain RPC**: Standard JSON-RPC 2.0 over HTTPS for reads, writes, and logs
+- **WebSocket subscriptions**: Real-time block, transaction, and event streams over `wss`
+- **Request-unit pricing**: Published method weights with flat monthly plans
+- **Certified infrastructure**: Runs on Matrixed.Link ISO/IEC 27001:2022 certified node infrastructure
+- **Multi-chain API key**: One key pattern across supported networks, including Avalanche via the `avax` slug
+- **Client compatible**: Works with ethers.js, viem, web3.py, Foundry, and raw HTTP clients
+
+## Getting Started
+
+1. Create an API key at [dashboard.boltrpc.io](https://dashboard.boltrpc.io) (trial at [trial.boltrpc.io](https://trial.boltrpc.io)).
+2. Point your client at the Avalanche C-Chain endpoint:
+
+```typescript
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider(
+  "https://endpoints.boltrpc.io/rpc/YOUR_API_KEY/avax"
+);
+```
+
+3. Optional WebSocket:
+
+```text
+wss://endpoints.boltrpc.io/ws/YOUR_API_KEY/avax
+```
+
+Replace `YOUR_API_KEY` with your dashboard key. Avalanche C-Chain ID is `43114`.
+
+## Documentation
+
+For endpoint formats, method coverage, and network details, visit the [BoltRPC Documentation](https://boltrpc.io/docs) and the [Avalanche network page](https://boltrpc.io/networks/avalanche).
+
+## Use Cases
+
+- **dApps and wallets**: Connect applications to Avalanche C-Chain through EVM-compatible RPC methods
+- **Indexers and bots**: High-volume `eth_call` / `eth_getLogs` workloads with published RU pricing
+- **Enterprise deployments**: Teams that need certified infrastructure for Avalanche C-Chain access
