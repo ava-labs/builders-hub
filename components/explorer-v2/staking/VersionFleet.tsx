@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChartNoAxesGantt, ChartPie } from "lucide-react";
+import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 import { cn } from "@/lib/utils";
 import { BoardHeader } from "@/components/explorer-v2/ui";
 import { compareVersions, type VersionBreakdownData } from "@/components/stats/VersionBreakdown";
@@ -10,8 +11,8 @@ import { MOTION, useReduced, useTween } from "@/components/explorer-v2/evm/query
 
 /* What the fleet runs, as two solids: the Primary Network's nodes and its
    stake, each cut into one segment per client version, newest first. A
-   version at or past the target is set in ink (newest darkest); an older
-   one in amber. Hover a segment or a row and that version lights across
+   version at or past the target is green (newest deepest); the minor line
+   just behind it amber; anything older red. Hover a segment or a row and that version lights across
    both solids and the list; click it and the roster below filters to the
    nodes that run it. The target is a row of pills, not a select, so the
    choice and its effect sit in the same view.                          */
@@ -23,23 +24,33 @@ export interface FleetVersion {
   /** null when the feed has no stake for the bucket */
   stakePct: number | null;
   current: boolean;
-  /** the segment's paint, as classes for light and dark */
+  /** the segment's paint: one hex, so bars, donuts and swatches match */
   paint: string;
 }
 
-const INK = ["bg-zinc-800 dark:bg-zinc-200", "bg-zinc-600 dark:bg-zinc-300", "bg-zinc-400 dark:bg-zinc-500", "bg-zinc-300 dark:bg-zinc-600"];
-const OLD = ["bg-amber-500", "bg-amber-400", "bg-amber-300", "bg-amber-200 dark:bg-amber-200/70"];
-const UNKNOWN = "bg-zinc-200 dark:bg-zinc-800";
+const GREEN = ["#16a34a", "#4ade80", "#86efac", "#bbf7d0"];
+const AMBER = ["#f59e0b", "#fbbf24", "#fcd34d"];
+const RED = ["#E6212F", "#f87171", "#fca5a5"];
+const UNKNOWN = "#a1a1aa";
+
+function minorParts(v: string): [number, number] | null {
+  const m = /(\d+)\.(\d+)/.exec(v);
+  return m ? [Number(m[1]), Number(m[2])] : null;
+}
 
 export function fleetOf(versions: VersionBreakdownData, target: string): FleetVersion[] {
   const entries = Object.entries(versions.byClientVersion).sort(([a], [b]) => compareVersions(b, a));
   const totalNodes = entries.reduce((s, [, d]) => s + d.nodes, 0);
   const totalStake = versions.totalStakeString ? Number(BigInt(versions.totalStakeString) / 1_000_000n) : 0;
-  let ink = 0;
-  let old = 0;
+  const t = minorParts(target);
+  const n = { g: 0, a: 0, r: 0 };
+  const pick = (tones: string[], k: "g" | "a" | "r") => tones[Math.min(n[k]++, tones.length - 1)];
   return entries.map(([version, d]) => {
     const current = version !== "Unknown" && compareVersions(version, target) >= 0;
-    const paint = version === "Unknown" ? UNKNOWN : current ? INK[Math.min(ink++, INK.length - 1)] : OLD[Math.min(old++, OLD.length - 1)];
+    const m = minorParts(version);
+    // one minor line behind the target is a nudge; further back is a risk
+    const near = !!(m && t && m[0] === t[0] && m[1] === t[1] - 1);
+    const paint = version === "Unknown" ? UNKNOWN : current ? pick(GREEN, "g") : near ? pick(AMBER, "a") : pick(RED, "r");
     return {
       version,
       nodes: d.nodes,
@@ -49,6 +60,38 @@ export function fleetOf(versions: VersionBreakdownData, target: string): FleetVe
       paint,
     };
   });
+}
+
+export type FleetView = "bars" | "donut";
+export type FleetGrain = "minor" | "patch";
+
+const SEG = "relative flex h-7 min-w-7 items-center justify-center gap-1.5 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/50";
+
+/** the Query panels' switch: a pill that slides to the choice, its label shown only when on */
+function Switch<T extends string>({ id, value, onChange, options }: { id: string; value: T; onChange: (v: T) => void; options: { v: T; label: string; icon?: typeof ChartPie }[] }) {
+  const reduced = useReduced();
+  return (
+    <div role="group" className="flex shrink-0 items-center gap-px rounded-full bg-zinc-100 p-0.5 ring-1 ring-inset ring-zinc-200/70 dark:bg-zinc-900 dark:ring-zinc-800">
+      {options.map(({ v, label, icon: Icon }) => {
+        const on = value === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            aria-label={label}
+            aria-pressed={on}
+            title={label}
+            onClick={() => onChange(v)}
+            className={cn(SEG, on ? "px-2.5 text-zinc-900 dark:text-zinc-50" : cn(Icon ? "px-1.5" : "px-2.5", "text-zinc-500 hover:bg-white/60 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"))}
+          >
+            {on && <motion.span layoutId={`${id}-pill`} transition={reduced ? { duration: 0 } : MOTION} className="absolute inset-0 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.12)] dark:bg-zinc-700" />}
+            {Icon && <Icon className="relative h-3.5 w-3.5" strokeWidth={1.75} />}
+            {(on || !Icon) && <span className="relative font-mono text-[10.5px] font-medium">{label}</span>}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function VersionFleet({
@@ -61,6 +104,8 @@ export function VersionFleet({
   reporting,
   picked,
   onPick,
+  grain,
+  onGrain,
 }: {
   fleet: FleetVersion[];
   target: string;
@@ -74,8 +119,12 @@ export function VersionFleet({
   /** the version the roster is filtered to */
   picked: string | null;
   onPick: (v: string | null) => void;
+  /** count by minor line (1.15) or by release (1.15.1) */
+  grain: FleetGrain;
+  onGrain: (g: FleetGrain) => void;
 }) {
   const [hover, setHover] = useState<string | null>(null);
+  const [view, setView] = useState<FleetView>("bars");
   const lit = hover ?? picked;
   const reduced = useReduced();
   const stake = useTween(stakePct, 500);
@@ -138,10 +187,39 @@ export function VersionFleet({
           <p className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{reporting.toLocaleString("en-US")} nodes reporting</p>
         </div>
 
-        {/* the two solids */}
-        <div className="flex min-w-0 flex-col gap-7 pt-2" onMouseLeave={() => setHover(null)}>
-          <Solid label="Nodes" fleet={fleet} share={(f) => f.nodePct} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
-          <Solid label="Stake" fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+        {/* the distribution, drawn the way the reader asks */}
+        <div className="flex min-w-0 flex-col gap-5">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Switch
+              id="fleet-grain"
+              value={grain}
+              onChange={onGrain}
+              options={[
+                { v: "minor", label: "Minor" },
+                { v: "patch", label: "Patch" },
+              ]}
+            />
+            <Switch
+              id="fleet-view"
+              value={view}
+              onChange={setView}
+              options={[
+                { v: "bars", label: "Bars", icon: ChartNoAxesGantt },
+                { v: "donut", label: "Donuts", icon: ChartPie },
+              ]}
+            />
+          </div>
+          {view === "bars" ? (
+            <div className="flex min-w-0 flex-col gap-7" onMouseLeave={() => setHover(null)}>
+              <Solid label="Nodes" fleet={fleet} share={(f) => f.nodePct} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+              <Solid label="Stake" fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4" onMouseLeave={() => setHover(null)}>
+              <Donut label="Nodes" fleet={fleet} share={(f) => f.nodePct} count={(f) => `${f.nodes.toLocaleString("en-US")} nodes`} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+              <Donut label="Stake" fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -165,10 +243,10 @@ export function VersionFleet({
                   dim && "opacity-45",
                 )}
               >
-                <span className={cn("h-2.5 w-2.5", f.paint)} />
+                <span className="h-2.5 w-2.5 rounded-[2px]" style={{ background: f.paint }} />
                 <span className={cn("font-mono text-[12.5px] tabular-nums", f.current ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-500 dark:text-zinc-400")}>{f.version}</span>
                 <span className="block h-1.5 w-full rounded-full bg-zinc-100 dark:bg-zinc-900">
-                  <span className={cn("block h-full rounded-full transition-[width] duration-500", f.paint)} style={{ width: `${Math.max(f.nodePct > 0 ? 1 : 0, f.nodePct)}%` }} />
+                  <span className="block h-full rounded-full transition-[width] duration-500" style={{ width: `${Math.max(f.nodePct > 0 ? 1 : 0, f.nodePct)}%`, background: f.paint }} />
                 </span>
                 <span className="font-mono text-[12px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
                   {f.nodes.toLocaleString("en-US")}
@@ -222,14 +300,14 @@ function Solid({
         {/* top face: the same cut, lit */}
         <div aria-hidden className="absolute -top-2 left-0 flex h-2 w-full origin-bottom-left skew-x-[-45deg] overflow-hidden">
           {parts.map(({ f, w }) => (
-            <span key={f.version} className={cn("relative h-full transition-opacity duration-200", f.paint, lit && lit !== f.version && "opacity-30")} style={{ width: `${(w / total) * 100}%` }}>
-              <span className="absolute inset-0 bg-white/45 dark:bg-black/25" />
+            <span key={f.version} className={cn("relative h-full transition-opacity duration-200", lit && lit !== f.version && "opacity-30")} style={{ width: `${(w / total) * 100}%`, background: f.paint }}>
+              <span className="absolute inset-0 bg-white/40 dark:bg-white/20" />
             </span>
           ))}
         </div>
         {/* right face: the last cut, in shade */}
         {last && (
-          <span aria-hidden className={cn("absolute -right-2 top-0 h-full w-2 origin-top-left skew-y-[-45deg] transition-opacity duration-200", last.f.paint, lit && lit !== last.f.version && "opacity-30")}>
+          <span aria-hidden className={cn("absolute -right-2 top-0 h-full w-2 origin-top-left skew-y-[-45deg] transition-opacity duration-200", lit && lit !== last.f.version && "opacity-30")} style={{ background: last.f.paint }}>
             <span className="absolute inset-0 bg-black/25" />
           </span>
         )}
@@ -246,14 +324,83 @@ function Solid({
               onClick={() => onPick(f.version)}
               className={cn(
                 "h-full min-w-px border-r border-white/60 transition-opacity duration-200 last:border-r-0 focus-visible:outline-none dark:border-black/40",
-                f.paint,
                 lit && lit !== f.version && "opacity-30",
               )}
-              style={{ width: `${(w / total) * 100}%` }}
+              style={{ width: `${(w / total) * 100}%`, background: f.paint }}
             />
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** one ring of versions; the centre reads the lit version, or the target's share */
+function Donut({
+  label,
+  fleet,
+  share,
+  count,
+  lit,
+  onHover,
+  onPick,
+}: {
+  label: string;
+  fleet: FleetVersion[];
+  share: (f: FleetVersion) => number;
+  count?: (f: FleetVersion) => string;
+  lit: string | null;
+  onHover: (v: string | null) => void;
+  onPick: (v: string) => void;
+}) {
+  const parts = fleet.map((f) => ({ f, value: share(f) })).filter((p) => p.value > 0);
+  const total = parts.reduce((s, p) => s + p.value, 0) || 1;
+  const focus = parts.find((p) => p.f.version === lit);
+  const ontarget = parts.filter((p) => p.f.current).reduce((s, p) => s + p.value, 0);
+  const pct = ((focus ? focus.value : ontarget) / total) * 100;
+  const t = useTween(pct, 350);
+  return (
+    <div className="flex min-w-0 flex-col items-center gap-2">
+      <div className="relative aspect-square w-full max-w-52">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={parts}
+              dataKey="value"
+              nameKey="f.version"
+              innerRadius="68%"
+              outerRadius="96%"
+              startAngle={90}
+              endAngle={-270}
+              paddingAngle={parts.length > 1 ? 1.5 : 0}
+              stroke="none"
+              isAnimationActive={false}
+              onMouseEnter={(_, i) => onHover(parts[i]?.f.version ?? null)}
+              onClick={(_, i) => parts[i] && onPick(parts[i].f.version)}
+              className="cursor-pointer outline-none"
+            >
+              {parts.map((p) => (
+                <Cell
+                  key={p.f.version}
+                  fill={p.f.paint}
+                  fillOpacity={lit && lit !== p.f.version ? 0.25 : 1}
+                  style={{ transition: "fill-opacity 250ms cubic-bezier(0.32,0.72,0,1)", outline: "none" }}
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1 text-center">
+          <span className="font-mono text-[22px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{(t ?? pct).toFixed(1)}%</span>
+          <span className="max-w-[70%] truncate font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+            {focus ? (count ? count(focus.f) : focus.f.version) : "on target"}
+          </span>
+        </div>
+      </div>
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        {label}
+        {focus && <span className="ml-2 font-normal normal-case tracking-normal text-zinc-900 dark:text-zinc-100">{focus.f.version}</span>}
+      </span>
     </div>
   );
 }

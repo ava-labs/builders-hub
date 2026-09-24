@@ -19,7 +19,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Board, ChartBoard, LoadMore, SectionHeader, HEAD, ROW, EmptyRow, RowSkeleton, idInk } from "@/components/explorer-v2/ui";
 import { StatSlab } from "@/components/explorer-v2/StatSlab";
-import { VersionFleet, fleetOf } from "./VersionFleet";
+import { VersionFleet, fleetOf, type FleetGrain } from "./VersionFleet";
 import {
   calculateVersionStats,
   compareVersions,
@@ -144,6 +144,15 @@ function daysBucket(days: number): string {
 function minorOf(v?: string): string {
   const m = /(\d+)\.(\d+)/.exec(v ?? "");
   return m ? `${m[1]}.${m[2]}` : "Unknown";
+}
+/** a node's release ("1.15.1") */
+function patchOf(v?: string): string {
+  const m = /(\d+)\.(\d+)\.(\d+)/.exec(v ?? "");
+  return m ? `${m[1]}.${m[2]}.${m[3]}` : minorOf(v);
+}
+/** the key a version pick matches on: a release pick has three parts */
+function versionKey(v: string | undefined, pick: string): string {
+  return pick.split(".").length === 3 ? patchOf(v) : minorOf(v);
 }
 
 /* what the roster is cut to: every figure and chart above it can set one
@@ -303,6 +312,7 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
   const [shown, setShown] = useState(50);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "stake", dir: -1 });
   const [minVersion, setMinVersion] = useState("");
+  const [grain, setGrain] = useState<FleetGrain>("minor");
 
   /* ---------------------------------------------------------------- */
   /* versions — the Primary Network's slice of the shared stats feed   */
@@ -326,7 +336,7 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
       const by: Record<string, { nodes: number; stake: number }> = {};
       let total = 0;
       for (const v of merged) {
-        const k = minorOf(v.version);
+        const k = grain === "patch" ? patchOf(v.version) : minorOf(v.version);
         const stake = v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
         by[k] = { nodes: (by[k]?.nodes ?? 0) + 1, stake: (by[k]?.stake ?? 0) + stake };
         total += stake;
@@ -342,14 +352,15 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
     return primary?.byClientVersion
       ? { byClientVersion: primary.byClientVersion, totalStakeString: primary.totalStakeString }
       : null;
-  }, [merged, p2p, subnets]);
+  }, [merged, p2p, subnets, grain]);
 
   const availableVersions = useMemo(
     () =>
+      // targets stay minor lines whatever grain the breakdown is cut at
       versions
-        ? Object.keys(versions.byClientVersion)
-            .filter((v) => v !== "Unknown")
-            .sort((a, b) => versionRank(b) - versionRank(a))
+        ? [...new Set(Object.keys(versions.byClientVersion).filter((v) => v !== "Unknown").map((v) => minorOf(v)))].sort((a, b) =>
+            compareVersions(b, a),
+          )
         : [],
     [versions],
   );
@@ -358,7 +369,7 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
   useEffect(() => {
     if (!minVersion && versions) {
       const target = defaultVersionTarget(versions.byClientVersion);
-      if (target) setMinVersion(target);
+      if (target) setMinVersion(minorOf(target));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableVersions]);
@@ -380,7 +391,7 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
   const rows = useMemo(() => {
     const filtered = merged.filter((v) => {
       if (q && !v.nodeId.toLowerCase().includes(q) && !(v.version ?? "").toLowerCase().includes(q)) return false;
-      if (cut.version && minorOf(v.version) !== cut.version) return false;
+      if (cut.version && versionKey(v.version, cut.version) !== cut.version) return false;
       if (cut.behind && (minorOf(v.version) === "Unknown" || compareVersions(minorOf(v.version), minVersion) >= 0)) return false;
       if (cut.expiring && !(v.p2p && v.p2p.days_left < 30)) return false;
       if (cut.lowUptime && !(v.p2p && v.p2p.p50_uptime < 80)) return false;
@@ -517,21 +528,6 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
       {/* the set at a glance: each figure a solid; the ones that can cut
           the roster do, and wear the selection blue while they do */}
       <section className="flex flex-col gap-4">
-        <SectionHeader
-          label="Primary Network Validators"
-          action={
-            switched ? undefined : (
-              <Link
-                href={stakingHref}
-                className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-              >
-                <span className="sm:hidden">Staking</span>
-                <span className="max-sm:hidden">Staking economics</span>
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-              </Link>
-            )
-          }
-        />
         <div className="grid grid-cols-2 gap-x-3 gap-y-4 lg:grid-cols-4 lg:gap-x-4">
           <StatSlab
             label="Validators"
@@ -599,6 +595,8 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
             reporting={totalNodes}
             picked={cut.version ?? null}
             onPick={(v) => cutBy("version", v ?? undefined)}
+            grain={grain}
+            onGrain={setGrain}
           />
         ) : (
           <Board divide={false} className="border">
