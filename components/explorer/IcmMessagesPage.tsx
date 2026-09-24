@@ -491,7 +491,7 @@ export function IcmMessagesPage({
             label="Routes"
             summary={totals ? `${fmtCount(totals.received + totals.sent)} messages · ${rangeLabel.toLowerCase()}` : undefined}
             parts={routeParts}
-            fmt={(v) => `${v.toLocaleString("en-US")} msgs`}
+            fmt={(v) => `${v.toLocaleString("en-US")} msg${v === 1 ? "" : "s"}`}
             // every part named: the unplaced remainder is often the biggest
             legend={Math.min(routeParts.length, 10)}
             note={
