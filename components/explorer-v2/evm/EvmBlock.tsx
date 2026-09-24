@@ -97,6 +97,8 @@ function GasMap({
   sym,
 }: {
   txs: TxSummary[];
+  /** the header's gasUsed: since Helicon the gas CHARGED, every tx's gas
+   *  limit, which is what fills the block against its limit */
   gasUsed: number;
   gasLimit: number;
   method: MethodOf;
@@ -137,7 +139,8 @@ function GasMap({
       <div className="flex items-baseline justify-between gap-4 px-5 pt-5 md:px-6">
         <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Gas Map</span>
         <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-          <span className={INK}>{formatNumber(gasUsed)}</span> gas · {txs.length} tx{txs.length === 1 ? "" : "s"} in block order
+          {/* the segments are receipt gas, what execution spent */}
+          <span className={INK}>{formatNumber(txs.reduce((sum, t) => sum + t.gasUsed, 0))}</span> gas executed · {txs.length} tx{txs.length === 1 ? "" : "s"} in block order
         </span>
       </div>
 
@@ -201,7 +204,7 @@ function GasMap({
               <span className={cn("block h-full", pctOfLimit >= 90 ? "bg-[#E6212F]" : "bg-zinc-700 dark:bg-zinc-300")} style={{ width: `${Math.max(pctOfLimit > 0 ? 0.5 : 0, Math.min(100, pctOfLimit)).toFixed(2)}%` }} />
             </span>
             <span className="shrink-0">
-              <span className={INK}>{pctOfLimit.toFixed(1)}%</span> of the {formatNumber(gasLimit)} limit
+              charged <span className={INK}>{pctOfLimit.toFixed(1)}%</span> of the {formatNumber(gasLimit)} limit
             </span>
           </div>
 
@@ -266,6 +269,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   const method = useMethodNames(c.chainId, b?.transactions ?? []);
   const burn = b ? knownAddress(b.miner) : undefined;
   const gasPct = b && b.gasLimit > 0 ? (b.gasUsed / b.gasLimit) * 100 : 0;
+  const executedGas = b ? b.transactions.reduce((sum, t) => sum + t.gasUsed, 0) : 0;
   const reverted = b ? b.transactions.filter((t) => !t.success).length : 0;
   // the C-Chain burns every fee; sovereign L1s choose their own destination
   const burnsFees = String(c.chainId) === "43114" || String(c.chainId) === "43113";
@@ -377,18 +381,6 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
               <Board divide={false} className="flex flex-col border">
                 {/* finality: a block is final the moment it is accepted */}
                 <RailRow label="Status">Final</RailRow>
-                {/* who built it: a Primary Network validator, one click from its page */}
-                {proposer && (
-                  <RailRow
-                    label="Proposed By"
-                    href={`${pBase}/node/${proposer.proposerNodeId}`}
-                    sub={`at P-Chain #${formatNumber(proposer.proposerPChainHeight)}`}
-                  >
-                    <span className={cn("block truncate text-[14px]", idInk)} title={proposer.proposerNodeId}>
-                      {proposer.proposerNodeId}
-                    </span>
-                  </RailRow>
-                )}
                 {/* the state root is bookkeeping a later block does, not finality */}
                 {showLife && (
                   <RailRow label="State Root" href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}>
@@ -428,17 +420,22 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                 <RailRow label="Base Fee" href={`${base}/gas/base-fee`}>
                   {b.baseFeePerGas && b.baseFeePerGas !== "0" ? formatNano(b.baseFeePerGas, sym) : "—"}
                 </RailRow>
+                {/* since Helicon a header charges every tx's gas limit at
+                    acceptance; the receipts say what execution spent */}
                 <RailRow
-                  label="Gas Used"
+                  label="Gas Charged"
                   sub={
-                    <span className="flex items-center gap-2">
-                      <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
-                        <span
-                          className={cn("block h-full", gasPct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
-                          style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
-                        />
+                    <span className="flex flex-col gap-1.5">
+                      <span className="flex items-center gap-2">
+                        <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
+                          <span
+                            className={cn("block h-full", gasPct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                            style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
+                          />
+                        </span>
+                        {gasPct.toFixed(1)}% of {formatNumber(b.gasLimit)}
                       </span>
-                      {gasPct.toFixed(1)}% of {formatNumber(b.gasLimit)}
+                      {b.transactions.length > 0 && <span>{formatNumber(executedGas)} executed</span>}
                     </span>
                   }
                 >
