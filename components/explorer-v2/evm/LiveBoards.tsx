@@ -12,7 +12,6 @@ import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
 import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
-import { usePrice, usdOfWei } from "./hooks";
 import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
 
 /* The home page's two live boards, in the ledger's own grammar: one line
@@ -447,8 +446,6 @@ export function LatestTxsBoard({
   const tokens = useTokenList(chainId);
   const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
   const method = useMethodNames(chainId, rows);
-  const { price } = usePrice(chainId);
-  const usd = price?.price ?? null;
 
   // no lifecycle column here: rows live a few seconds and settlement
   // takes five or more, so it would never be seen to turn. The blocks
@@ -505,9 +502,6 @@ export function LatestTxsBoard({
                 {value > 0 ? (
                   <span className="text-zinc-900 dark:text-zinc-50">
                     {fmtAmount(value / 1e18)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
-                    {usdOfWei(t.value, usd) && !usdOfWei(t.value, usd)!.startsWith("<") && (
-                      <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>
-                    )}
                   </span>
                 ) : t.tokenAmount ? (
                   <span className="text-zinc-900 dark:text-zinc-50" title={t.tokenAmount}>
