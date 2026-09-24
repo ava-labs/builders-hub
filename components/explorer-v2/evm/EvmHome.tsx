@@ -215,7 +215,7 @@ export function EvmHome({ network }: { network: string }) {
           {/* the live chain first: what is happening right now. 2:3 because
               the blocks board has five short columns and the transactions
               board carries hash, method, parties, value and fee */}
-          <div className="grid gap-12 lg:grid-cols-[2fr_3fr]">
+          <div className="grid grid-cols-1 gap-12 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
             <LatestBlocksBoard
               rows={latestRows}
               tip={tip}

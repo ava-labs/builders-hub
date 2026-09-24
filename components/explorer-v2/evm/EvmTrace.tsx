@@ -591,6 +591,10 @@ export function EvmTrace({
                 </span>
                 <span>gas</span>
               </div>
+              {/* a call tree keeps its indents: on a phone it scrolls sideways
+                  inside its board instead of folding every address */}
+              <div className="overflow-x-auto">
+              <div className="min-w-[46rem] lg:min-w-0">
               {frames.map((f) => {
                 if (hidden(f)) return null;
                 const fr = f.frame;
@@ -724,6 +728,8 @@ export function EvmTrace({
                   </div>
                 );
               })}
+              </div>
+              </div>
             </Board>
           )}
 
@@ -837,7 +843,7 @@ export function EvmTrace({
           )}
 
           {tab === "gas" && (
-            <div className="grid gap-8 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <Board>
                 <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_9rem]")}>
                   <span>Frame (own gas)</span>

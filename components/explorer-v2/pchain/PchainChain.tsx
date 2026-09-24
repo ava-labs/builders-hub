@@ -157,7 +157,7 @@ export function ChainDetailsContent({
       )}
       {tx && isChain && (
         <div className="flex flex-col gap-10">
-          <div className="grid items-start gap-8 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
           {/* Identity */}
           <section className="flex flex-col gap-4">
             <SectionHeader

@@ -320,7 +320,7 @@ export function InkDelta({ value }: { value: number | null }) {
     <span className="whitespace-nowrap text-zinc-700 dark:text-zinc-300">
       <span className="text-[8px]">{flat ? "■" : value > 0 ? "▲" : "▼"}</span>{" "}
       {Math.abs(value) >= 100 ? Math.abs(value).toFixed(0) : Math.abs(value).toFixed(1)}%
-      <span className="text-zinc-400 dark:text-zinc-500"> vs prev</span>
+      <span className="hidden text-zinc-400 sm:inline dark:text-zinc-500"> vs prev</span>
     </span>
   );
 }

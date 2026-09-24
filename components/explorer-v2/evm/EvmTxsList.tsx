@@ -136,7 +136,7 @@ export function EvmTxsList({ network }: { network: string }) {
                       <CellLabel>Method</CellLabel>
                       {mth.label}
                     </span>
-                    <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+                    <span className="col-span-2 flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
                       <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full />
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>

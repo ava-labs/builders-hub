@@ -608,6 +608,9 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
           }
         />
         <Board divide={false}>
+          {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+          <div className="overflow-x-auto">
+          <div className="md:min-w-[62rem] xl:min-w-0">
           <div className={cn(HEAD, "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_9rem_6rem_4rem_6rem_6rem_6rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
             <span>#</span>
             <span>Node</span>
@@ -655,6 +658,8 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
             })}
           {sdkValidators !== null && rows.length === 0 && <EmptyRow>{q ? "no validators match" : "no validators found"}</EmptyRow>}
           {sdkFailed && sdkValidators === null && <EmptyRow><span className="text-[#E6212F]">validator feed unavailable</span></EmptyRow>}
+          </div>
+          </div>
         </Board>
         {shown < rows.length && (
           <LoadMore onClick={() => setShown((s) => s + 50)} label={`Load more · ${(rows.length - shown).toLocaleString("en-US")} remaining`} />
@@ -663,7 +668,7 @@ export function PrimaryValidatorsContent({ stakingHref }: { stakingHref: string 
 
 
       {/* how the fleet is behaving */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label="Block Miss Rate · 14d">
           {missBuckets.length ? (
             <BucketBars

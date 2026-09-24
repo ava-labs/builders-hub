@@ -338,7 +338,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
 
             {/* the split: what happened and who, on the left; the readings a
                 tx is judged by, stacked in a rail on the right */}
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
               <div className="flex min-w-0 flex-col gap-6">
                 {/* what happened, for anyone */}
                 {story && (

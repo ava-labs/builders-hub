@@ -301,7 +301,7 @@ export function AtomicTxDetail({ network, chainSlug, txHash }: { network: string
             />
           </Board>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <UtxoColumn base={base} title={`Consumed · ${consumed.length}`} utxos={consumed} side="in" />
             <UtxoColumn base={base} title={`Emitted · ${emitted.length}`} utxos={emitted} side="out" />
           </div>

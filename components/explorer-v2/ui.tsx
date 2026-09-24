@@ -188,7 +188,7 @@ export function ChartBoard({
     <>
       <div
         className={cn(
-          "flex min-h-9 items-center justify-between gap-4 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 transition-colors md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40",
+          "flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-zinc-200 bg-zinc-50/80 px-5 py-2 transition-colors md:px-6 dark:border-zinc-800 dark:bg-zinc-900/40",
           href && "group-hover/chart:bg-zinc-100 dark:group-hover/chart:bg-zinc-900",
         )}
       >
@@ -204,7 +204,7 @@ export function ChartBoard({
     </>
   );
   const frame =
-    "border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80";
+    "min-w-0 border border-zinc-200 bg-white/80 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/80";
   if (href) {
     return (
       <Link
@@ -240,11 +240,12 @@ export function SpecRow({
   return (
     // the same sheet as SpecLine: a fixed label column, the value beside it,
     // so every detail page on every chain sets its identifiers the same way
-    <div className={cn("flex gap-6 py-3", align === "baseline" ? "items-baseline" : "items-start")}>
-      <dt className="w-32 shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 md:w-40 dark:text-zinc-500">
+    // on a phone the label stands over its value; from sm up they share a line
+    <div className={cn("flex flex-col gap-1 py-3 sm:flex-row sm:gap-6", align === "baseline" ? "sm:items-baseline" : "sm:items-start")}>
+      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-32 md:w-40 dark:text-zinc-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">{children}</dd>
+      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 [overflow-wrap:anywhere] dark:text-zinc-50">{children}</dd>
     </div>
   );
 }
@@ -415,7 +416,7 @@ export function DetailSkeleton({ label }: { label: string }) {
         </div>
 
         {/* two rails of spec-plate row shapes, like the loaded page */}
-        <div className="grid items-start gap-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
           {[0, 1].map((col) => (
             <Board key={col} divide={false} className="px-5 py-2 md:px-6">
               <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -590,14 +591,15 @@ export function Tabs<T extends string>({
   labels: Record<T, string>;
 }) {
   return (
-    <div className="flex items-center gap-6 border-b border-zinc-200 dark:border-zinc-800">
+    // a phone scrolls the tabs sideways rather than letting the last one fall off
+    <div className="flex items-center gap-5 overflow-x-auto border-b border-zinc-200 [scrollbar-width:none] sm:gap-6 dark:border-zinc-800 [&::-webkit-scrollbar]:hidden">
       {tabs.map((t) => (
         <button
           key={t}
           onClick={() => onChange(t)}
           aria-pressed={active === t}
           className={cn(
-            "-mb-px border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
+            "-mb-px shrink-0 whitespace-nowrap border-b-2 pb-2.5 font-mono text-[11px] font-bold uppercase tracking-[0.18em] transition-colors",
             active === t
               ? "border-[#E6212F] text-zinc-900 dark:text-zinc-50"
               : "border-transparent text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
@@ -820,11 +822,12 @@ export function SpecLine({
   align?: "baseline" | "start";
 }) {
   return (
-    <div className={cn("flex gap-6 py-3", align === "baseline" ? "items-baseline" : "items-start")}>
-      <dt className="w-32 shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 md:w-40 dark:text-zinc-500">
+    // on a phone the label stands over its value; from sm up they share a line
+    <div className={cn("flex flex-col gap-1 py-3 sm:flex-row sm:gap-6", align === "baseline" ? "sm:items-baseline" : "sm:items-start")}>
+      <dt className="shrink-0 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-zinc-400 sm:w-32 md:w-40 dark:text-zinc-500">
         {label}
       </dt>
-      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 dark:text-zinc-50">{children}</dd>
+      <dd className="min-w-0 text-[13.5px] font-medium tabular-nums text-zinc-900 [overflow-wrap:anywhere] dark:text-zinc-50">{children}</dd>
     </div>
   );
 }

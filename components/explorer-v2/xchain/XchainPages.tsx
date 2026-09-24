@@ -146,7 +146,7 @@ export function XchainHome({ network }: { network: string }) {
           </div>
         </Board>
 
-        <div className="grid gap-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
           <section className="flex min-w-0 flex-col gap-4">
             <SectionHeader
               label="Latest Blocks"
@@ -536,7 +536,7 @@ export function XchainTx({ network, txHash }: { network: string; txHash: string 
               />
             </Board>
           ) : (
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <UtxoColumn base={base} title={`Consumed · ${consumed.length}`} utxos={consumed} side="in" />
               <UtxoColumn base={base} title={`Emitted · ${emitted.length}`} utxos={emitted} side="out" />
             </div>

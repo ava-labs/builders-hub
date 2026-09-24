@@ -248,7 +248,7 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
             <span>Functions · {facts.selectors.length} selectors in the dispatcher</span>
             <span>{named.length} named</span>
           </div>
-          <div className="grid gap-x-8 px-5 py-2 font-mono text-[12px] sm:grid-cols-2 lg:grid-cols-3 md:px-6">
+          <div className="grid grid-cols-1 gap-x-8 px-5 py-2 font-mono text-[12px] sm:grid-cols-2 lg:grid-cols-3 md:px-6">
             {named.map((f) => (
               <span key={f.sel} className="flex min-h-7 items-baseline gap-2" title={f.verified ? "from a verified contract with this selector" : "from the signature database"}>
                 <span className={cn("text-violet-700 dark:text-violet-300", !f.verified && "underline decoration-dotted decoration-current underline-offset-4")}>{f.name!.split("(")[0]}</span>

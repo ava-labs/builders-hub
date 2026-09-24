@@ -372,7 +372,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
               across one rule; each card doors into its staking sheet.
               Fixed windows from the feed — the labels say so. */}
           {staking && (
-            <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+            <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
               <ChartBoard
                 label="Rewards Paid · last 30 days"
                 href={`${base}/staking/rewards`}
@@ -451,7 +451,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
             </div>
           )}
 
-          <div className="grid gap-12 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
             {/* Latest blocks */}
             <section className="flex flex-col gap-4">
               <SectionHeader

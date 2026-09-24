@@ -681,7 +681,7 @@ export default function ExplorerPortal() {
         {/* the Primary Network's two chains, with the network itself
             turning beside them */}
         <Rise delay={0.18}>
-          <section className="grid gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
+          <section className="grid grid-cols-1 gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
             <div className="flex flex-col gap-4">
               <ContractChainBoard />
               <PlatformChainBoard />

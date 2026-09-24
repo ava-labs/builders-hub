@@ -715,7 +715,7 @@ export function PchainTx({ chain, network, txHash }: { chain: string; network: s
                 />
               </Board>
             ) : (
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <UtxoColumn base={base} title={`Consumed · ${tx.consumedUtxos.length}`} utxos={tx.consumedUtxos} side="in" />
                 <UtxoColumn base={base} title={`Emitted · ${flowEmitted.length}`} utxos={flowEmitted} side="out" />
               </div>

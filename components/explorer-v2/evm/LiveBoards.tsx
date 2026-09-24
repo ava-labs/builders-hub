@@ -455,6 +455,9 @@ export function LatestTxsBoard({
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Transactions" action={<ViewAll href={`${base}/txs`} />} />
       <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+        {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+        <div className="overflow-x-auto">
+        <div className="md:min-w-[46rem] xl:min-w-0">
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span />
           <span>Hash</span>
@@ -525,6 +528,8 @@ export function LatestTxsBoard({
           );
         })}
         </Belt>
+        </div>
+        </div>
       </Board>
     </section>
   );

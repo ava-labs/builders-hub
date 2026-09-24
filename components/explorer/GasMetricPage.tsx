@@ -329,7 +329,7 @@ function BestHoursList({ cells, unit }: { cells: GasMarket["heatmap"]; unit: str
   };
 
   return (
-    <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+    <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
       <Board className="border">
         <BoardHeader label="Cheapest Hours · vs week median" />
         {cheapest.map(row)}
@@ -458,7 +458,7 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
       </ChartBoard>
 
       {/* the complementary time scale beside the volatility it smooths over */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={isHourly ? "Base Fee · last 7 days, daily" : "Base Fee · last 48 hours, hourly"}
           action={<BandKey unit={unit} />}
@@ -703,7 +703,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
       </Board>
 
       {/* the live pulse beside its longer record */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label={`Block by Block · last ${FEE_HISTORY_BLOCKS} blocks, live`}>
           {fee.utilization.length ? (
             <LiveUtilBars utilization={fee.utilization} />
@@ -722,7 +722,7 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
       </div>
 
       {/* the shape of demand, then its absolute size */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label={`Block Fullness Distribution · ${histLabel}`}>
           {market?.histogram.length ? (
             <UtilHistogram histogram={market.histogram} />
@@ -990,7 +990,7 @@ function SeasonalitySheet({ catalog, base }: { catalog: L1Chain; base: string })
       </ChartBoard>
 
       {/* the grid collapsed both ways: by hour, then by weekday */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard label="Hour of Day Profile · all days collapsed">
           {market?.heatmap.length ? (
             <HourProfileChart cells={market.heatmap} unit={unit} />
