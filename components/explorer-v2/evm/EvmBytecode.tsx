@@ -10,6 +10,7 @@ import { formatNumber } from "@/components/explorer-v2/format";
 import { rpcBatch } from "./useHeadStream";
 import { useVerifiedContract } from "./EvmContract";
 import { useSignatures } from "@/lib/token-list";
+import { isGenesisCode } from "@/lib/evm-explorer";
 
 /* What an unverified contract still tells you, read off the chain: its
    runtime bytecode (size, hash, the compiler that produced it), whether
@@ -143,6 +144,9 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
   const implTarget = facts?.implementation ?? facts?.beacon ?? null;
   const { contract: implVerified } = useVerifiedContract(chainId, implTarget ?? "0x0000000000000000000000000000000000000000");
   const verifyHref = `${base}/verify/${addr.toLowerCase()}`;
+  // genesis code has no deploy tx and no source to submit: say where it
+  // came from instead of offering verification
+  const genesis = isGenesisCode(chainId, addr);
 
   const functions = useMemo(
     () =>
@@ -160,14 +164,14 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
       {/* what the chain knows, and the door to telling it more */}
       <Board divide={false} className="px-5 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-200 py-3 dark:border-zinc-800">
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Source not verified</span>
-          <Link
+          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{genesis ? "Genesis code" : "Source not verified"}</span>
+          {!genesis && <Link
             href={verifyHref}
             className="inline-flex items-center gap-2 border border-zinc-900 bg-zinc-900 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white transition-opacity hover:opacity-90 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
           >
             <ShieldCheck className="size-3.5" />
             Verify contract
-          </Link>
+          </Link>}
         </div>
         <SpecSheet>
           {loading && <SpecLine label="Bytecode">…</SpecLine>}
@@ -178,6 +182,12 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
                 {formatNumber(facts.bytes)} bytes
                 {facts.solc && <span className="text-zinc-500 dark:text-zinc-400"> · solc {facts.solc}</span>}
               </SpecLine>
+              {genesis && (
+                <SpecLine label="Origin">
+                  C-Chain genesis
+                  <span className="text-zinc-500 dark:text-zinc-400"> · allocated at launch, not deployed by a transaction</span>
+                </SpecLine>
+              )}
               <SpecLine label="Code Hash">
                 <HashChip value={facts.hash} len={66} />
               </SpecLine>
@@ -200,8 +210,39 @@ export function EvmBytecode({ addr, base, chainId, rpcUrl }: { addr: string; bas
         </SpecSheet>
       </Board>
 
+      {/* genesis code: say what it can do before listing anything that
+          reads like a way to move the burned AVAX */}
+      {genesis && facts && facts.bytes > 0 && (
+        <Board divide={false}>
+          <div className="border-b border-zinc-200 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:border-zinc-800 dark:text-zinc-500">
+            What this code can do
+          </div>
+          <div className="flex flex-col gap-3 px-5 py-4 text-[14px] leading-relaxed text-zinc-700 md:px-6 dark:text-zinc-300">
+            <p>
+              <span className="font-medium text-zinc-900 dark:text-zinc-50">Nothing: every call to it reverts.</span> It cannot move the burned AVAX held here. No
+              key controls this address, and the code holds no call, transfer or self-destruct instruction that could send value out.
+            </p>
+            <p className="text-zinc-500 dark:text-zinc-400">
+              Its two entry points used opcodes from Avalanche&apos;s early multi-coin feature (<span className="font-mono text-[12px]">0xcd</span>,{" "}
+              <span className="font-mono text-[12px]">0xcf</span>), which the C-Chain no longer executes, so a call to either one reverts.
+            </p>
+            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+              {facts.selectors.map((sel) => {
+                const name = sigs.fn.get(sel)?.name;
+                return (
+                  <span key={sel} className="mr-5 inline-block">
+                    {sel}
+                    {name && <span className="ml-1.5">{name.split("(")[0]}, retired</span>}
+                  </span>
+                );
+              })}
+            </p>
+          </div>
+        </Board>
+      )}
+
       {/* the interface, read off the dispatcher */}
-      {facts && facts.selectors.length > 0 && (
+      {!genesis && facts && facts.selectors.length > 0 && (
         <Board divide={false}>
           <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:px-6 dark:border-zinc-800 dark:text-zinc-500">
             <span>Functions · {facts.selectors.length} selectors in the dispatcher</span>
