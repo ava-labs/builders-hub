@@ -83,3 +83,30 @@ export function ageOrDate(ts: number): { text: string; title: string } {
     title: iso.replace("T", " ").slice(0, 19) + " UTC",
   };
 }
+
+/* ---- human dates for charts: every axis and tooltip speaks these ---- */
+
+const asDate = (d: string | number): Date =>
+  typeof d === "number" ? new Date(d * 1000) : /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T00:00:00Z`) : new Date(d.length === 16 ? `${d}:00Z` : d);
+
+/** "Aug 26": an axis tick */
+export function dayShort(d: string | number): string {
+  const t = asDate(d);
+  return Number.isNaN(t.getTime()) ? String(d) : t.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+/** "Tue, Aug 26, 2026": a tooltip's day */
+export function dayLong(d: string | number): string {
+  const t = asDate(d);
+  return Number.isNaN(t.getTime())
+    ? String(d)
+    : t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+/** "Tue, Aug 26 · 14:00 UTC": a tooltip's hour, from "2026-08-26T14:00" or unix seconds */
+export function hourLong(d: string | number): string {
+  const t = asDate(d);
+  if (Number.isNaN(t.getTime())) return String(d);
+  const day = t.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+  return `${day} · ${String(t.getUTCHours()).padStart(2, "0")}:00 UTC`;
+}
