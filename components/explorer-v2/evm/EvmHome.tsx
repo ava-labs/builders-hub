@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
 
@@ -51,6 +52,21 @@ export function EvmHome({ network }: { network: string }) {
   const heads = head.heads;
   const tip = head.tip;
   const pace = cadence(heads);
+  // the stream's blocks, oldest first, as the two rate readouts' traces:
+  // the gap before each block in seconds, and its transactions over that gap
+  const paceTrace = useMemo(() => {
+    if (heads.length < 4) return null;
+    const asc = [...heads].reverse();
+    const gaps: number[] = [];
+    const tps: number[] = [];
+    for (let i = 1; i < asc.length; i++) {
+      const gap = (asc[i].timestampMs - asc[i - 1].timestampMs) / 1000;
+      if (gap <= 0) continue;
+      gaps.push(gap);
+      tps.push(asc[i].txCount / gap);
+    }
+    return gaps.length >= 3 ? { gaps, tps } : null;
+  }, [heads]);
 
   // indexer fallback: span = newest − oldest second-precision timestamp
   const span =
@@ -201,6 +217,8 @@ export function EvmHome({ network }: { network: string }) {
                   href: `${base}/blocks`,
                   value: avgBlockTime != null ? avgBlockTime.toFixed(2) : "—",
                   unit: avgBlockTime != null ? "s" : undefined,
+                  // each block's gap to the one before it, over the stream's window
+                  values: paceTrace?.gaps,
                 },
                 {
                   label: "Throughput",
@@ -208,6 +226,8 @@ export function EvmHome({ network }: { network: string }) {
                   href: `${base}/txs`,
                   value: recentTps != null ? recentTps.toFixed(1) : "—",
                   unit: recentTps != null ? "TPS" : undefined,
+                  // each block's transactions per second of its gap
+                  values: paceTrace?.tps,
                 },
             ]}
           />

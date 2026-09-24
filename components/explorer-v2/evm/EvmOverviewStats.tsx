@@ -80,8 +80,9 @@ function useGasHistory(chainId: string, n: number) {
    traces; 404 = the chain has no listed token */
 type MarketSeries = "price" | "marketCap";
 function useMarketHistory(chainId: string, n: number, wanted: boolean) {
-  // the upstream stops at a year, so the all-time clock traces the last year
-  const days = !wanted ? null : n <= 7 ? "7" : n <= 30 ? "30" : n <= 90 ? "90" : "365";
+  // the upstream stops at a year, so the all-time clock traces the last
+  // year; the day clock gets hourly points
+  const days = !wanted ? null : n <= 1 ? "1" : n <= 7 ? "7" : n <= 30 ? "30" : n <= 90 ? "90" : "365";
   const [hist, setHist] = useState<Record<MarketSeries, number[]> | null>(null);
   useEffect(() => {
     if (!days) return;
@@ -91,7 +92,7 @@ function useMarketHistory(chainId: string, n: number, wanted: boolean) {
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { prices?: number[]; marketCaps?: number[] } | null) => {
         if (cancelled || !data?.prices?.length) return;
-        const cut = (arr: number[]) => arr.slice(-n);
+        const cut = (arr: number[]) => (n <= 1 ? arr : arr.slice(-n));
         setHist({ price: cut(data.prices), marketCap: cut(data.marketCaps ?? []) });
       })
       .catch(() => {});
@@ -255,7 +256,8 @@ export function LiveReadout({ chainId, cells }: { chainId: string; cells: LiveCe
   return (
     <div className={cn("grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2", cells.length >= 5 ? "lg:grid-cols-5" : "lg:grid-cols-4")}>
       {cells.map((c) => {
-        const spark = c.values ?? (c.series && n >= SPARK_MIN_DAYS ? market?.[c.series] : undefined);
+        // market series are fetched at the clock's own resolution, so they trace at every clock
+        const spark = c.values ?? (c.series ? market?.[c.series] : undefined);
         const move = c.series ? windowMove(c, n, market?.[c.series]) : null;
         return (
           <ReadoutBlock key={c.label} href={c.href} side={<SideLevel level={bandLevel(spark)} />} className={BLOCK_FACE}>
