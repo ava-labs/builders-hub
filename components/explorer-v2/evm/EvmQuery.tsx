@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
-import { ArrowUp, ArrowUpRight, Check, Copy, X } from "lucide-react";
+import { ArrowUp, ArrowUpRight, Check, Copy, Download, History, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { Board, CellLabel, HEAD, ROW, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
@@ -20,6 +20,7 @@ import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
 import { QueryVisual, fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 import { AvalancheLoader } from "./AvalancheLoader";
 import { EXAMPLES } from "@/lib/explorer-query/examples";
+import { forgetQuestions, recentQuestions, rememberQuestion } from "@/lib/explorer-query/recent";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -541,6 +542,65 @@ function useCopy() {
   return { done, copy };
 }
 
+/** the rows exactly as the query returned them, with decoded names beside
+    the raw values they name */
+function downloadCsv(a: QueryAnswer) {
+  if (!a.result) return;
+  const cols = a.result.columns.map((k) => k.name);
+  const named = cols.filter((k) => a.names[k] && Object.keys(a.names[k]).length);
+  const head = [...cols, ...named.map((k) => `${k}_name`)];
+  const cell = (v: unknown) => {
+    const t = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const lines = a.result.rows.map((r) => [...cols.map((k) => cell(r[k])), ...named.map((k) => cell(a.names[k]?.[String(r[k]).toLowerCase()] ?? ""))].join(","));
+  const blob = new Blob([[head.join(","), ...lines].join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${a.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "query"}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/** the questions this device asked on this chain, newest first */
+function Recent({ chain, onAsk }: { chain: string; onAsk: (q: string) => void }) {
+  const [items, setItems] = useState<string[]>([]);
+  useEffect(() => setItems(recentQuestions(chain)), [chain]);
+  if (!items.length) return null;
+  return (
+    <div className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+          <History className="h-3 w-3" /> Recent
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            forgetQuestions(chain);
+            setItems([]);
+          }}
+          className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+        >
+          Clear
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {items.map((q) => (
+          <button
+            key={q}
+            type="button"
+            onClick={() => onAsk(q)}
+            className="max-w-full truncate rounded-full border border-zinc-200 bg-white px-3 py-1.5 font-mono text-[12px] text-zinc-700 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-50"
+          >
+            {q}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** one line on where the answer is: who is writing, and the last step */
 function progress(events: QueryEvent[]): string {
   let who = "The model";
@@ -699,6 +759,7 @@ export function EvmQuery({ network }: { network: string }) {
         if (!refine) {
           asked.current = text;
           url.searchParams.set("q", text);
+          rememberQuestion(c.chainSlug ?? String(c.chainId), text);
         }
         window.history.replaceState(null, "", url.toString());
         setPhase("idle");
@@ -775,11 +836,15 @@ export function EvmQuery({ network }: { network: string }) {
   // search bar while this page is open (same route, new ?q)
   const qParam = useSearchParams().get("q");
   const asked = useRef<string | null>(null);
+  // the latest ask, read by the effect below without making it a trigger:
+  // only a new ?q may ask, never a re-render (New question changes ask)
+  const askRef = useRef(ask);
+  askRef.current = ask;
   useEffect(() => {
     if (!qParam || qParam === asked.current) return;
     asked.current = qParam;
-    void ask(qParam, false);
-  }, [qParam, ask]);
+    void askRef.current(qParam, false);
+  }, [qParam]);
   useEffect(() => () => setSelection(null), []);
 
   const reset = () => {
@@ -875,7 +940,8 @@ export function EvmQuery({ network }: { network: string }) {
           {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
-            <div className="pt-3">
+            <div className="flex flex-col gap-6 pt-3">
+              <Recent chain={c.chainSlug ?? String(c.chainId)} onAsk={(q) => void ask(q, false)} />
               <Suggestions onAsk={(q) => void ask(q, false)} />
             </div>
           )}
@@ -989,6 +1055,11 @@ export function EvmQuery({ network }: { network: string }) {
                       <button type="button" onClick={() => copy("sql", answer.sql)} className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
                         {copied === "sql" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} SQL
                       </button>
+                      {answer.result && answer.result.rowCount > 0 && (
+                        <button type="button" onClick={() => downloadCsv(answer)} className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+                          <Download className="h-3 w-3" /> CSV
+                        </button>
+                      )}
                       {shareUrl && (
                         <button type="button" onClick={() => copy("link", shareUrl)} className="flex items-center gap-1 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
                           {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link

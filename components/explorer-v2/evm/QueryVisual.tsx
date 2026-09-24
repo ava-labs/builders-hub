@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Area, Bar, Brush, CartesianGrid, Cell, ComposedChart, Line, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, Brush, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
+import { ArrowDown, ArrowUp, ChartArea, ChartBar, ChartColumn, ChartLine, ChartPie, ChartScatter, Sigma, Table2, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
@@ -492,11 +493,240 @@ export function QueryVisual({
         <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
           {charts.map((p, i) => (
             <div key={i} className={cn(p.width === "full" && "lg:col-span-2")}>
-              <PanelChart panel={p} rows={rows} names={names} sym={sym} canDrill={canDrill} onPick={onPick} brush={i === brushIdx} range={range} onRange={onRange} onZoom={onZoom} selected={selected} hoverKey={hoverKey} onHoverKey={onHoverKey} />
+              <PanelBlock panel={p} rows={rows} names={names} sym={sym} canDrill={canDrill} onPick={onPick} brush={i === brushIdx} range={range} onRange={onRange} onZoom={onZoom} selected={selected} hoverKey={hoverKey} onHoverKey={onHoverKey} />
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* one panel, seen any way the data allows                              */
+
+type View = "line" | "area" | "bar" | "hbar" | "pie" | "scatter" | "table";
+
+const VIEW_META: Record<View, { label: string; icon: LucideIcon }> = {
+  line: { label: "Line", icon: ChartLine },
+  area: { label: "Area", icon: ChartArea },
+  bar: { label: "Columns", icon: ChartColumn },
+  hbar: { label: "Bars", icon: ChartBar },
+  pie: { label: "Pie", icon: ChartPie },
+  scatter: { label: "Scatter", icon: ChartScatter },
+  table: { label: "Table", icon: Table2 },
+};
+
+/** the views that fit a panel's shape: time reads as a line, an area,
+    columns or a table; groups as bars, a pie or a table; two measures as
+    a scatter or a table */
+function viewsFor(panel: Panel, rows: Row[]): View[] {
+  if (panel.kind === "scatter") return ["scatter", "table"];
+  const time = spanOf(rows.map((r) => r[panel.x!])) !== "other";
+  if (time) return ["line", "area", "bar", "table"];
+  const first = panel.series[0]?.column;
+  const parts = !!first && rows.length >= 2 && rows.every((r) => typeof r[first] !== "number" || (r[first] as number) >= 0) && panel.series[0].format !== "percent";
+  return parts ? ["hbar", "pie", "table"] : ["hbar", "table"];
+}
+
+type PanelProps = Parameters<typeof PanelChart>[0];
+
+function PanelBlock(props: PanelProps) {
+  const { panel, rows } = props;
+  const views = useMemo(() => viewsFor(panel, rows), [panel, rows]);
+  const start: View = views.includes(panel.kind as View) ? (panel.kind as View) : panel.kind === "bar" && views.includes("hbar") ? "hbar" : views[0];
+  const [view, setView] = useState<View>(start);
+  // a running total, for counts over time; shares and rates do not add up
+  const canRun = views.includes("line") && panel.series.some((s) => s.format !== "percent" && s.transform === "none");
+  const [running, setRunning] = useState(false);
+  const drawn: Panel = useMemo(
+    () => ({
+      ...panel,
+      title: "",
+      kind: view === "pie" || view === "table" ? panel.kind : view,
+      // a view the reader picked applies to every series; the designer's
+      // mixed marks (bars with a rate line) belong to its own view
+      series: panel.series.map((s) => ({
+        ...s,
+        mark: view === start ? s.mark : ("auto" as const),
+        transform: running && s.format !== "percent" && s.transform === "none" ? ("cumulative" as const) : s.transform,
+      })),
+    }),
+    [panel, view, running, start],
+  );
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+          {panel.title}
+          {running && <span className="ml-2 font-normal text-zinc-400 dark:text-zinc-500">running total</span>}
+        </span>
+        <div role="group" aria-label={`View ${panel.title || "panel"} as`} className="flex shrink-0 items-center gap-0.5 rounded-lg border border-zinc-200 p-0.5 dark:border-zinc-800">
+          {views.map((v) => {
+            const { label, icon: Icon } = VIEW_META[v];
+            return (
+              <button
+                key={v}
+                type="button"
+                title={label}
+                aria-label={label}
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                  view === v ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-100",
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </button>
+            );
+          })}
+          {canRun && view !== "table" && (
+            <>
+              <span className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
+              <button
+                type="button"
+                title="Running total"
+                aria-label="Running total"
+                aria-pressed={running}
+                onClick={() => setRunning((r) => !r)}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-md transition-colors",
+                  running ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-100",
+                )}
+              >
+                <Sigma className="h-3.5 w-3.5" strokeWidth={1.75} />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+      {view === "pie" ? <PieView {...props} /> : view === "table" ? <PanelTable {...props} /> : <PanelChart {...props} panel={drawn} brush={props.brush && view !== "hbar"} />}
+    </div>
+  );
+}
+
+const PIE_TONES = ["currentColor", "#0061E2", "#0d9488", "#d97706", "#7c3aed", "#db2777", "#65a30d"];
+const PIE_MAX = 7;
+
+/** parts of a whole: the leaders as slices, the rest as one grey slice */
+function PieView({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey }: PanelProps) {
+  const x = panel.x!;
+  const s = panel.series[0];
+  const { slices, total } = useMemo(() => {
+    const sorted = [...rows].filter((r) => typeof r[s.column] === "number" && (r[s.column] as number) > 0).sort((a, b) => (b[s.column] as number) - (a[s.column] as number));
+    const total = sorted.reduce((a, r) => a + (r[s.column] as number), 0);
+    const head = sorted.slice(0, PIE_MAX).map((r, i) => ({ key: r[x], label: xText(names, x, r[x], "other"), value: r[s.column] as number, row: r as Row | null, tone: PIE_TONES[i] }));
+    const rest = sorted.slice(PIE_MAX).reduce((a, r) => a + (r[s.column] as number), 0);
+    if (rest > 0) head.push({ key: "__rest", label: `${sorted.length - PIE_MAX} more`, value: rest, row: null, tone: "#d4d4d8" });
+    return { slices: head, total };
+  }, [rows, s.column, x, names]);
+  const lit = (k: unknown) => hoverKey === undefined || hoverKey === k;
+
+  return (
+    <div className="grid items-center gap-6 sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)]">
+      <div className="relative h-60 text-zinc-900 dark:text-zinc-100">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="label"
+              innerRadius="62%"
+              outerRadius="96%"
+              paddingAngle={1}
+              stroke="none"
+              isAnimationActive={false}
+              onMouseEnter={(d: { payload?: { key: unknown } }) => onHoverKey?.(d?.payload?.key)}
+              onMouseLeave={() => onHoverKey?.(undefined)}
+              onClick={(d: { payload?: { row: Row | null } }) => d?.payload?.row && canDrill && onPick(d.payload.row)}
+            >
+              {slices.map((sl) => (
+                <Cell key={String(sl.key)} fill={sl.tone} fillOpacity={lit(sl.key) ? 1 : 0.25} cursor={sl.row && canDrill ? "pointer" : "default"} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-mono text-[18px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(total, s.format, sym)}</span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{s.label}</span>
+        </div>
+      </div>
+      <ul className="flex flex-col">
+        {slices.map((sl) => (
+          <li key={String(sl.key)}>
+            <button
+              type="button"
+              disabled={!sl.row || !canDrill}
+              onClick={() => sl.row && onPick(sl.row)}
+              onMouseEnter={() => onHoverKey?.(sl.key)}
+              onMouseLeave={() => onHoverKey?.(undefined)}
+              className={cn("flex w-full items-center gap-3 border-b border-zinc-100 py-1.5 text-left transition-opacity dark:border-zinc-900", !lit(sl.key) && "opacity-40", sl.row && canDrill && "hover:bg-zinc-50 dark:hover:bg-zinc-900")}
+            >
+              <span className="h-2 w-2 shrink-0 rounded-[2px] text-zinc-900 dark:text-zinc-100" style={{ background: sl.tone }} />
+              <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-zinc-800 dark:text-zinc-200">{sl.label}</span>
+              <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(sl.value, s.format, sym)}</span>
+              <span className="w-12 text-right font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{total ? `${((sl.value / total) * 100).toFixed(sl.value / total < 0.1 ? 1 : 0)}%` : ""}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** the panel's own rows as a table: its x and its series, sortable */
+function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHoverKey }: PanelProps) {
+  const x = panel.x!;
+  const span = useMemo(() => spanOf(rows.map((r) => r[x])), [rows, x]);
+  const [sort, setSort] = useState<{ col: string; dir: "asc" | "desc" } | null>(null);
+  const shown = useMemo(() => {
+    if (!sort) return rows;
+    const k = sort.col;
+    return [...rows].sort((a, b) => {
+      const va = a[k];
+      const vb = b[k];
+      const c = typeof va === "number" && typeof vb === "number" ? va - vb : String(va ?? "").localeCompare(String(vb ?? ""));
+      return sort.dir === "asc" ? c : -c;
+    });
+  }, [rows, sort]);
+  const cols = [{ column: x, label: x.replace(/_/g, " "), format: "number" as Format, isX: true }, ...panel.series.map((s) => ({ column: s.column, label: s.label, format: s.format, isX: false }))];
+  const flip = (col: string) => setSort((cur) => (cur?.col === col ? (cur.dir === "desc" ? { col, dir: "asc" } : null) : { col, dir: "desc" }));
+
+  return (
+    <div className="max-h-[26rem] overflow-auto border-t border-zinc-200 dark:border-zinc-800">
+      <table className="w-full border-collapse font-mono text-[12px] tabular-nums">
+        <thead className="sticky top-0 bg-white dark:bg-zinc-950">
+          <tr>
+            {cols.map((c) => (
+              <th key={c.column} className={cn("border-b border-zinc-200 px-3 py-2 font-normal dark:border-zinc-800", c.isX ? "text-left" : "text-right")}>
+                <button type="button" onClick={() => flip(c.column)} className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100">
+                  {c.label}
+                  {sort?.col === c.column && (sort.dir === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />)}
+                </button>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {shown.map((r, i) => (
+            <tr
+              key={i}
+              onClick={() => canDrill && onPick(r)}
+              onMouseEnter={() => onHoverKey?.(r[x])}
+              onMouseLeave={() => onHoverKey?.(undefined)}
+              className={cn("border-b border-zinc-100 transition-colors dark:border-zinc-900", canDrill && "cursor-pointer", hoverKey !== undefined && hoverKey === r[x] ? "bg-zinc-50 dark:bg-zinc-900" : canDrill && "hover:bg-zinc-50 dark:hover:bg-zinc-900")}
+            >
+              {cols.map((c) => (
+                <td key={c.column} className={cn("px-3 py-1.5", c.isX ? "text-left text-zinc-800 dark:text-zinc-200" : "text-right text-zinc-900 dark:text-zinc-50")}>
+                  {c.isX ? xText(names, x, r[x], span === "other" ? "other" : span) : fmt(r[c.column], c.format, sym)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

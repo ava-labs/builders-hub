@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowUp, ArrowUpRight, Search, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowUpRight, History, Search, Sparkles } from "lucide-react";
+import { EXAMPLE_PROMPTS } from "@/lib/explorer-query/examples";
+import { recentQuestions } from "@/lib/explorer-query/recent";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { cn } from "@/lib/utils";
@@ -61,6 +63,9 @@ export function EvmSearchBox({
   // questions are answered from the indexed tables; chains with an RPC in the catalog
   const slug = base.split("/").pop();
   const askable = (l1ChainsData as L1Chain[]).some((c) => c.slug === slug && !!c.rpcUrl);
+  // an empty, focused box offers the way back to asking: this device's
+  // recent questions, a few to start from, and the Query page itself
+  const [recent, setRecent] = useState<string[]>([]);
 
   // "/" jumps to the box from anywhere on the page (the site navbar owns ⌘K)
   useEffect(() => {
@@ -122,7 +127,10 @@ export function EvmSearchBox({
             setQ(e.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            if (askable && slug) setRecent(recentQuestions(slug).slice(0, 4));
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
             if (e.key === "Escape") setOpen(false);
@@ -146,6 +154,43 @@ export function EvmSearchBox({
           <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
         </button>
       </div>
+
+      {open && !trimmed && askable && (
+        <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
+          {[
+            { label: "Recent", icon: History, items: recent },
+            { label: "Ask", icon: Sparkles, items: EXAMPLE_PROMPTS.filter((q) => !recent.includes(q)).slice(0, recent.length ? 3 : 5) },
+          ]
+            .filter((g) => g.items.length)
+            .map((g) => (
+              <div key={g.label}>
+                <div className="border-b border-zinc-100 px-4 py-2 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400 dark:border-zinc-900 dark:text-zinc-500">{g.label}</div>
+                {g.items.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => go(`${base}/query?q=${encodeURIComponent(item)}`)}
+                    className="group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900"
+                  >
+                    <g.icon className={cn("h-3.5 w-3.5 shrink-0", g.label === "Ask" ? "text-[#E6212F]" : "text-zinc-400 dark:text-zinc-500")} />
+                    <span className="min-w-0 flex-1 truncate font-mono text-[13px] text-zinc-800 dark:text-zinc-200">{item}</span>
+                    <ArrowUpRight className="h-3 w-3 shrink-0 text-zinc-300 group-hover:text-[#E6212F] dark:text-zinc-600" />
+                  </button>
+                ))}
+              </div>
+            ))}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => go(`${base}/query`)}
+            className="group flex w-full items-center justify-between px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          >
+            All questions and the Query page
+            <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      )}
 
       {open && trimmed.length > 0 && hasResults && (
         <div className="absolute z-30 mt-2 max-h-[26rem] w-full overflow-auto rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
