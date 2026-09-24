@@ -35,11 +35,11 @@ interface CchainActivityDay {
 }
 
 /* Stack order: biggest band lowest (the /api/cchain-activity contract). */
-const ACTIVITY_SERIES: { key: keyof Omit<CchainActivityDay, "date">; label: string; tone: string }[] = [
-  { key: "tokens", label: "Tokens", tone: "#A2AFB2" },
-  { key: "other", label: "Other", tone: "#d4d4d8" },
-  { key: "defi", label: "DeFi", tone: "#E6212F" },
-  { key: "nft", label: "NFT", tone: "#52525b" },
+const ACTIVITY_SERIES: { key: keyof Omit<CchainActivityDay, "date">; label: string; tone: string; what: string }[] = [
+  { key: "tokens", label: "Tokens", tone: "#0d9488", what: "ERC-20 transfers" },
+  { key: "other", label: "Other", tone: "#d4d4d8", what: "AVAX sends and calls with no token, NFT or swap event" },
+  { key: "defi", label: "DeFi", tone: "#E6212F", what: "swaps on Uniswap-style pools and LFJ Liquidity Book" },
+  { key: "nft", label: "NFT", tone: "#7c3aed", what: "ERC-721 and ERC-1155 transfers" },
 ];
 
 /* the served window per clock tick: the classification can't afford a
@@ -134,6 +134,7 @@ export function CchainActivityChart({ href }: { href?: string }) {
               onFocus={() => setFocus(sr.key)}
               onBlur={() => setFocus(null)}
               onClick={(e) => e.preventDefault()}
+              title={sr.what}
               className={cn("flex items-center gap-1.5 transition-opacity", focus && focus !== sr.key ? "opacity-40" : "opacity-100")}
             >
               <span className="h-2 w-2" style={{ background: sr.tone }} />
@@ -207,6 +208,15 @@ export function CchainActivityChart({ href }: { href?: string }) {
             ))}
           </BarChart>
         </ResponsiveContainer>
+      </div>
+      <div className="grid gap-x-8 gap-y-1.5 border-t border-zinc-200 px-5 py-3 font-mono text-[10px] text-zinc-400 md:px-6 lg:grid-cols-2 dark:border-zinc-800 dark:text-zinc-500">
+        {bySize.map((sr) => (
+          <p key={sr.key} className="flex items-baseline gap-2">
+            <span className="mt-px h-2 w-2 shrink-0 self-center" style={{ background: sr.tone }} />
+            <span className="uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">{sr.label}</span>
+            <span>{sr.what}</span>
+          </p>
+        ))}
       </div>
     </ChartBoard>
   );
