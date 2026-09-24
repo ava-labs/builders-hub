@@ -29,6 +29,28 @@ describe('isValidRpcUrl (textual gate)', () => {
   it('rejects a bracketed IPv6 loopback', () => {
     expect(isValidRpcUrl('https://[::1]/rpc')).toBe(false);
   });
+
+  // The URL parser rewrites these to hex (`[::ffff:a9fe:a9fe]`), which none of
+  // the IPv6 patterns match, yet they connect to the embedded IPv4 address.
+  it('rejects IPv4-mapped and IPv4-compatible IPv6 forms of private addresses', () => {
+    for (const host of [
+      '[::ffff:127.0.0.1]',
+      '[::ffff:169.254.169.254]',
+      '[::ffff:a9fe:a9fe]',
+      '[0:0:0:0:0:ffff:10.0.0.1]',
+      '[::127.0.0.1]',
+    ]) {
+      expect(isValidRpcUrl(`https://${host}/rpc`)).toBe(false);
+    }
+  });
+
+  it('rejects the IPv6 unspecified address', () => {
+    expect(isValidRpcUrl('https://[::]/rpc')).toBe(false);
+  });
+
+  it('accepts an IPv4-mapped public address', () => {
+    expect(isValidRpcUrl('https://[::ffff:34.120.1.1]/rpc')).toBe(true);
+  });
 });
 
 describe('isPublicRpcHost (resolving gate)', () => {
@@ -51,6 +73,11 @@ describe('isPublicRpcHost (resolving gate)', () => {
       { address: '10.1.2.3', family: 4 },
     ]);
     expect(await isPublicRpcHost('mixed.example')).toBe(false);
+  });
+
+  it('rejects a name that resolves to an IPv4-mapped private address', async () => {
+    lookupMock.mockResolvedValue([{ address: '::ffff:169.254.169.254', family: 6 }]);
+    expect(await isPublicRpcHost('mapped.example')).toBe(false);
   });
 
   it('rejects a name that does not resolve', async () => {

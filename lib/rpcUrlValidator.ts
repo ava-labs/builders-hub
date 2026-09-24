@@ -41,8 +41,7 @@ export function isValidRpcUrl(rawUrl: string): boolean {
   try {
     const parsed = new URL(rawUrl);
     if (parsed.protocol !== 'https:') return false;
-    const hostname = parsed.hostname;
-    return !PRIVATE_IP_PATTERNS.some(re => re.test(stripBrackets(hostname)));
+    return !isPrivateAddress(parsed.hostname);
   } catch {
     return false;
   }
@@ -53,6 +52,45 @@ function stripBrackets(hostname: string): string {
   return hostname.startsWith('[') && hostname.endsWith(']')
     ? hostname.slice(1, -1)
     : hostname;
+}
+
+/**
+ * True when a hostname or address literal points somewhere private.
+ *
+ * IPv6 literals are canonicalised first, then any embedded IPv4 address is
+ * checked as IPv4. Without that, `[::ffff:169.254.169.254]` — which the URL
+ * parser rewrites to `[::ffff:a9fe:a9fe]` — matches none of the IPv6 patterns
+ * yet connects to the metadata service. `::` (unspecified) reaches the local
+ * host on most stacks, so it is private too.
+ */
+function isPrivateAddress(hostname: string): boolean {
+  let host = stripBrackets(hostname).toLowerCase();
+
+  if (host.includes(':')) {
+    try {
+      host = stripBrackets(new URL(`https://[${host}]/`).hostname);
+    } catch {
+      return true; // not a parseable IPv6 literal: refuse rather than guess
+    }
+    if (host === '::') return true;
+    const embedded = embeddedIpv4(host);
+    if (embedded) return isPrivateAddress(embedded);
+  }
+
+  return PRIVATE_IP_PATTERNS.some(re => re.test(host));
+}
+
+/**
+ * The IPv4 address inside an IPv4-mapped (`::ffff:a.b.c.d`) or
+ * IPv4-compatible (`::a.b.c.d`) IPv6 address, given in canonical form, where
+ * the last 32 bits are two hex groups.
+ */
+function embeddedIpv4(canonicalV6: string): string | null {
+  const m = /^::(?:ffff:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(canonicalV6);
+  if (!m) return null;
+  const hi = parseInt(m[1], 16);
+  const lo = parseInt(m[2], 16);
+  return `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
 }
 
 /**
@@ -74,7 +112,7 @@ export async function isPublicRpcHost(hostname: string): Promise<boolean> {
   // A literal address needs no lookup — and must not get one, since resolving
   // it would be a no-op that masks a bad literal.
   if (/^[\d.]+$/.test(host) || host.includes(':')) {
-    return !PRIVATE_IP_PATTERNS.some(re => re.test(host));
+    return !isPrivateAddress(host);
   }
 
   try {
@@ -82,7 +120,7 @@ export async function isPublicRpcHost(hostname: string): Promise<boolean> {
     const records = await lookup(host, { all: true });
     if (records.length === 0) return false;
     return records.every(
-      ({ address }) => !PRIVATE_IP_PATTERNS.some(re => re.test(address)),
+      ({ address }) => !isPrivateAddress(address),
     );
   } catch {
     // A name that will not resolve is not a name worth fetching.
