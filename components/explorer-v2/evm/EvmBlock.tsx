@@ -4,7 +4,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD, ROW, FIG, UNIT, idInk, fnInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, StatCell, StatStrip, SubjectHeadline, HEAD, ROW, FIG, UNIT, idInk, fnInk, RowDoor } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
@@ -217,11 +217,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                 const m = method(t);
                 const value = Number(t.value);
                 return (
-                  <Link
-                    key={t.hash}
-                    href={`${base}/tx/${t.hash}`}
-                    className={cn(ROW, "md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}
-                  >
+                  <RowDoor key={t.hash} href={`${base}/tx/${t.hash}`} className={cn(ROW, "md:grid-cols-[0.75rem_minmax(0,1.4fr)_minmax(0,9rem)_minmax(0,1.6fr)_7rem_minmax(0,9rem)_6rem]")}>
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
@@ -262,7 +258,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     <span className="font-mono text-[12px] tabular-nums text-zinc-400 md:text-right dark:text-zinc-500">
                       {(value > 0 && usdOfWei(t.value, usd)) || ""}
                     </span>
-                  </Link>
+                  </RowDoor>
                 );
               })}
             </Board>

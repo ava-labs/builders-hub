@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, CellLabel, HashChip, HEAD, ROW, FIG, UNIT, Tabs, EmptyRow, idInk, fnInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, HashChip, HEAD, ROW, FIG, UNIT, Tabs, EmptyRow, idInk, fnInk, RowDoor } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { formatEther } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
@@ -67,11 +67,13 @@ export function TxTable({
         const m = method(t);
         const value = Number(t.value);
         return (
-          <Link key={t.hash} href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+          <RowDoor key={t.hash} href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
             <span className="flex h-3 w-3 items-center justify-center">
               {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
             </span>
-            <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(t.hash, 6)}</span>
+            <Link href={`${base}/tx/${t.hash}`} className={cn("min-w-0 truncate font-mono text-[12.5px] hover:text-[#E6212F]", idInk)} onClick={(e) => e.stopPropagation()}>
+              {truncate(t.hash, 6)}
+            </Link>
             <span className={cn("min-w-0 truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
               <CellLabel>Method</CellLabel>
               {m.label}
@@ -83,7 +85,9 @@ export function TxTable({
               <CellLabel>Counterparty</CellLabel>
               <span className="shrink-0 text-zinc-300 dark:text-zinc-700">{out ? "→" : "←"}</span>
               {other ? (
-                tok ? <TokenMark address={other} chainId={chainId} token={tok} size={14} /> : <span className="truncate">{truncate(other, 8)}</span>
+                <Link href={`${base}/address/${other}`} className={cn("flex min-w-0 items-center truncate hover:text-[#E6212F]", !tok && idInk)} title={other} onClick={(e) => e.stopPropagation()}>
+                  {tok ? <TokenMark address={other} chainId={chainId} token={tok} size={14} /> : truncate(other, 8)}
+                </Link>
               ) : (
                 <span className="truncate">contract creation</span>
               )}
@@ -105,7 +109,7 @@ export function TxTable({
               <CellLabel>Age</CellLabel>
               {ageShort(t.timestamp)}
             </span>
-          </Link>
+          </RowDoor>
         );
       })}
     </Board>
@@ -167,8 +171,10 @@ export function TransferTable({
         })();
         const usd = tok ? usdOfToken(amount, tok.decimals, prices.get(x.token.toLowerCase())) : undefined;
         return (
-          <Link key={`${x.txHash}-${i}`} href={`${base}/tx/${x.txHash}`} className={cn(ROW, cols)}>
-            <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(x.txHash, 6)}</span>
+          <RowDoor key={`${x.txHash}-${i}`} href={`${base}/tx/${x.txHash}`} className={cn(ROW, cols)}>
+            <Link href={`${base}/tx/${x.txHash}`} className={cn("min-w-0 truncate font-mono text-[12.5px] hover:text-[#E6212F]", idInk)} onClick={(e) => e.stopPropagation()}>
+              {truncate(x.txHash, 6)}
+            </Link>
             {!hideToken && (
               <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px]">
                 <CellLabel>Token</CellLabel>
@@ -207,7 +213,7 @@ export function TransferTable({
               <CellLabel>Age</CellLabel>
               {ageShort(x.timestamp)}
             </span>
-          </Link>
+          </RowDoor>
         );
       })}
     </Board>

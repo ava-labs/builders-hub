@@ -5,7 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader, idInk, fnInk, feeInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { truncate } from "@/components/explorer-v2/format";
@@ -92,7 +92,7 @@ export function EvmTxsList({ network }: { network: string }) {
   const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
   const m = metrics ?? {};
 
-  const cols = "md:grid-cols-[0.75rem_7.5rem_minmax(0,10rem)_minmax(0,1fr)_minmax(0,11rem)_8rem_3.5rem]";
+  const cols = "md:grid-cols-[0.75rem_9.5rem_minmax(0,14rem)_minmax(0,1fr)_minmax(0,11rem)_9rem_3.5rem]";
   const loading = streaming ? rows.length === 0 : indexed.loading && rows.length === 0;
 
   return (
@@ -120,11 +120,13 @@ export function EvmTxsList({ network }: { network: string }) {
               const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
               return (
                 <MotionRow key={t.hash} animateIn={streaming} overflow={i >= LIVE_ROWS}>
-                  <Link href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+                  <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
-                    <span className={cn(INK, idInk, "truncate")}>{truncate(t.hash, 6)}</span>
+                    <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                      {truncate(t.hash, 8)}
+                    </Link>
                     <span
                       className={cn("truncate font-mono text-[12px]", mth.named ? fnInk : "text-zinc-400 dark:text-zinc-500")}
                       title={t.methodId || undefined}
@@ -134,10 +136,10 @@ export function EvmTxsList({ network }: { network: string }) {
                     </span>
                     <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <Party addr={t.from} name={null} />
+                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} len={10} />
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to ? (
-                        <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} />
+                        <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} href={`${base}/address/${t.to}`} len={10} />
                       ) : (
                         <span className="truncate">contract creation</span>
                       )}
@@ -174,7 +176,7 @@ export function EvmTxsList({ network }: { network: string }) {
                       <CellLabel>Age</CellLabel>
                       {t.timestamp ? ageShort(t.timestamp) : ""}
                     </span>
-                  </Link>
+                  </RowDoor>
                 </MotionRow>
               );
             })}

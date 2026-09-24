@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, idInk, fnInk, feeInk } from "@/components/explorer-v2/ui";
+import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/format";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { useMethodNames } from "./bits";
@@ -372,22 +372,34 @@ export function Party({
   name,
   token,
   chainId,
+  href,
+  len = 6,
 }: {
   addr: string;
   name: string | null | undefined;
   token?: TokenInfo | null;
   chainId?: string;
+  /** the party's page; with it the mark is a link inside the row's door */
+  href?: string;
+  len?: number;
 }) {
-  if (token && chainId) return <TokenMark address={addr} chainId={chainId} token={token} size={14} />;
   const fixture = knownAddress(addr);
   const label = name ?? fixture?.label;
-  return label ? (
-    <span className="truncate font-medium text-zinc-900 dark:text-zinc-50" title={addr}>
-      {label}
-    </span>
+  const inner =
+    token && chainId ? (
+      <TokenMark address={addr} chainId={chainId} token={token} size={14} />
+    ) : label ? (
+      <span className="truncate font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
+    ) : (
+      <span className={cn("truncate", idInk)}>{truncate(addr, len)}</span>
+    );
+  return href ? (
+    <Link href={href} title={addr} className="flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]" onClick={(e) => e.stopPropagation()}>
+      {inner}
+    </Link>
   ) : (
-    <span className="truncate" title={addr}>
-      {truncate(addr, 6)}
+    <span className="flex min-w-0 items-center" title={addr}>
+      {inner}
     </span>
   );
 }
@@ -451,17 +463,19 @@ export function LatestTxsBoard({
           const value = Number(t.value);
           return (
             <MotionRow key={t.hash} animateIn={streaming} overflow={i >= ROWS}>
-            <Link href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+            <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
               {/* status: a red X only when it reverted, the row stays quiet otherwise */}
               <span className="flex h-3 w-3 items-center justify-center">
                 {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
               </span>
-              <span className={cn(INK, idInk, "truncate")}>{truncate(t.hash, 6)}</span>
+              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                {truncate(t.hash, 6)}
+              </Link>
               <span className={cn("truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
                 {m.label}
               </span>
               <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                <Party addr={t.from} name={null} />
+                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
                 <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                 {t.to ? (
                   <Party
@@ -469,6 +483,7 @@ export function LatestTxsBoard({
                     name={contracts.get(t.to.toLowerCase())?.name}
                     token={tokens.get(t.to.toLowerCase())}
                     chainId={chainId}
+                    href={`${base}/address/${t.to}`}
                   />
                 ) : (
                   <span className="truncate">contract creation</span>
@@ -500,7 +515,7 @@ export function LatestTxsBoard({
                   <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-            </Link>
+            </RowDoor>
             </MotionRow>
           );
         })}

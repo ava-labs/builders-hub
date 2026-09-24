@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { animate, motion, useInView, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -515,6 +516,31 @@ export function LiveDot({ className, size = "h-1.5 w-1.5" }: { className?: strin
       <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", LIVE_DOT)} />
       <span className={cn("relative inline-flex rounded-full", size, LIVE_DOT)} />
     </span>
+  );
+}
+
+/** A row that opens a page on click and Enter without being an anchor,
+ *  so the hash, the parties and the token inside it can be real links.
+ *  Nested anchors are invalid HTML; this keeps one link per identifier. */
+export function RowDoor({ href, className, children, title }: { href: string; className?: string; children: React.ReactNode; title?: string }) {
+  const router = useRouter();
+  return (
+    <div
+      role="link"
+      tabIndex={0}
+      title={title}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("a, button")) return;
+        if (e.metaKey || e.ctrlKey) window.open(href, "_blank");
+        else router.push(href);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) router.push(href);
+      }}
+      className={cn("cursor-pointer focus-visible:outline-none focus-visible:bg-zinc-50 dark:focus-visible:bg-zinc-900", className)}
+    >
+      {children}
+    </div>
   );
 }
 
