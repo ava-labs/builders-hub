@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 
 /* The wait, drawn as the Avalanche mark. The mark is cut into a grid of
    cells, the same cells the block map uses. Cells fall and stack from
@@ -48,8 +49,28 @@ interface Cell {
 
 const ease = (t: number) => t * t;
 
-export function AvalancheLoader({ status, height = 220 }: { status: string; height?: number }) {
+/** the tallest the mark grows, so a tall box gets air around it, not a giant mark */
+const MARK_MAX = 150;
+/** the status line's height and its distance under the ground */
+const STATUS_H = 16;
+const STATUS_GAP = 18;
+
+export function AvalancheLoader({
+  status,
+  height = 220,
+  fill = false,
+  framed = true,
+}: {
+  status: string;
+  /** the box's height; ignored when it fills its parent */
+  height?: number;
+  /** take the parent's height (a board that stretches to its row) */
+  fill?: boolean;
+  /** its own card; off inside a board that already frames it */
+  framed?: boolean;
+}) {
   const wrap = useRef<HTMLDivElement>(null);
+  const statusEl = useRef<HTMLParagraphElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -76,6 +97,7 @@ export function AvalancheLoader({ status, height = 220 }: { status: string; heig
     const big = new Path2D(BIG);
     const small = new Path2D(SMALL);
     let w = 0;
+    let h = 0;
     let cells: Cell[] = [];
     let ground = 0;
     let left = 0;
@@ -84,13 +106,19 @@ export function AvalancheLoader({ status, height = 220 }: { status: string; heig
     // cut the mark into cells at this size
     const layout = () => {
       w = box.clientWidth;
+      h = box.clientHeight;
       cv.width = w * dpr;
-      cv.height = height * dpr;
+      cv.height = h * dpr;
       cv.style.width = `${w}px`;
-      cv.style.height = `${height}px`;
-      const s = (height * 0.64) / BOX.h;
+      cv.style.height = `${h}px`;
+      // the mark, its ground and the status line under it are one group,
+      // centered in the frame and lifted a touch, since the eye reads the
+      // true middle as low
+      const markH = Math.min((h - STATUS_GAP - STATUS_H) * 0.72, MARK_MAX);
+      const s = markH / BOX.h;
       const ox = (w - BOX.w * s) / 2;
-      const oy = height * 0.16;
+      const oy = Math.max(8, (h - (markH + STATUS_GAP + STATUS_H)) / 2 - h * 0.02);
+      if (statusEl.current) statusEl.current.style.top = `${oy + markH + STATUS_GAP}px`;
       ground = oy + BOX.h * s + 1;
       left = ox - 24;
       right = ox + BOX.w * s + 24;
@@ -150,7 +178,7 @@ export function AvalancheLoader({ status, height = 220 }: { status: string; heig
       const t = still ? FILL + HOLD / 2 : (now - t0) % CYCLE;
       const [ir, ig, ib] = inkRgb;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, height);
+      ctx.clearRect(0, 0, w, h);
 
       // the ground the mark stands on
       ctx.fillStyle = `rgba(${ir},${ig},${ib},0.14)`;
@@ -217,12 +245,26 @@ export function AvalancheLoader({ status, height = 220 }: { status: string; heig
       cv.removeEventListener("pointermove", onMove);
       cv.removeEventListener("pointerleave", onLeave);
     };
-  }, [height]);
+  }, []);
 
   return (
-    <div ref={wrap} role="status" aria-live="polite" className="relative select-none overflow-hidden rounded-2xl border border-zinc-200 bg-white/60 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/60">
-      <canvas ref={canvas} className="block text-zinc-900 dark:text-zinc-100" aria-hidden="true" />
-      <p className="pointer-events-none absolute inset-x-0 bottom-0 px-4 py-2.5 text-center font-mono text-[11px] tabular-nums text-zinc-600 dark:text-zinc-300">{status}</p>
+    <div
+      role="status"
+      aria-live="polite"
+      style={fill ? undefined : { height }}
+      className={cn(
+        "relative flex select-none flex-col overflow-hidden",
+        fill && "h-full min-h-[18rem]",
+        framed && "rounded-2xl border border-zinc-200 bg-white/60 backdrop-blur-sm dark:border-zinc-800 dark:bg-zinc-950/60",
+      )}
+    >
+      <div ref={wrap} className="relative min-h-0 flex-1">
+        <canvas ref={canvas} className="absolute inset-0 block text-zinc-900 dark:text-zinc-100" aria-hidden="true" />
+        {/* placed by the layout, under the ground line */}
+        <p ref={statusEl} className="pointer-events-none absolute inset-x-0 px-4 text-center font-mono text-[11px] leading-4 tabular-nums text-zinc-600 dark:text-zinc-300">
+          {status}
+        </p>
+      </div>
     </div>
   );
 }

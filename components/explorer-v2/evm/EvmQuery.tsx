@@ -894,8 +894,9 @@ export function EvmQuery({ network }: { network: string }) {
                 <Board divide={false} className="flex min-w-0 flex-col gap-6 border px-5 py-5 md:px-6">
                   {/* one draw: the loader holds the space until the layout is final */}
                   {laying ? (
-                    <div aria-busy="true">
-                      <AvalancheLoader status="Rows are in below. Opus 5.5 is laying out the chart" height={260} />
+                    // the board stretches to the rail beside it; the loader fills it, unframed
+                    <div aria-busy="true" className="flex min-h-[18rem] flex-1 flex-col">
+                      <AvalancheLoader status="Rows are in below. Opus 5.5 is laying out the chart" fill framed={false} />
                     </div>
                   ) : charted && visual ? (
                     <QueryVisual
