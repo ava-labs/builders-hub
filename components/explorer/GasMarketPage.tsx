@@ -10,6 +10,8 @@ import {
   Brush,
   CartesianGrid,
   ComposedChart,
+  ReferenceDot,
+  ReferenceLine,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -35,6 +37,11 @@ import type {
   GasRangeDays,
 } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
+import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { ShareMap, TAIL_TONE } from "@/components/explorer-v2/ShareMap";
+import { dayLong, dayShort, hourLong, truncate } from "@/components/explorer-v2/format";
+
+const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
 
 /* The chain's gas market as one instrument, in depth: what a unit of
    blockspace costs right now (RPC, live), what your transaction costs in
@@ -438,23 +445,26 @@ export function FeeBandChart<T extends { p25: number; p50: number; p75: number; 
   xTick?: (d: T) => string;
 }) {
   const shaped = useMemo(
-    () => data.map((d) => ({ ...d, band: Math.max(0, d.p75 - d.p25), xLabel: xTick?.(d) ?? "" })),
+    () => data.map((d, i) => ({ ...d, band: Math.max(0, d.p75 - d.p25), xLabel: xTick?.(d) ?? String(i) })),
     [data, xTick],
   );
+  // the window's high, marked where it happened
+  const peak = shaped.reduce<(typeof shaped)[number] | null>((m, d) => (!m || d.p50 > m.p50 ? d : m), null);
   return (
-    <div className={cn("text-zinc-900 dark:text-zinc-100", detailed ? "h-full" : "h-40")}>
+    <div className={cn("text-zinc-900 dark:text-zinc-100", detailed ? "h-full" : "h-44")}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={shaped}>
+        <ComposedChart data={shaped} margin={{ top: 14, right: 0, left: 0, bottom: 0 }}>
           {detailed && (
             <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-zinc-200 dark:stroke-zinc-800" />
           )}
-          {detailed && (
+          {(detailed || xTick) && (
             <XAxis
               dataKey="xLabel"
               tickLine={false}
               axisLine={false}
               minTickGap={48}
-              tick={{ fontSize: 10, fill: "currentColor", opacity: 0.45 }}
+              interval="preserveStartEnd"
+              tick={{ fontSize: 10, fill: "currentColor", opacity: 0.45, fontFamily: "monospace" }}
             />
           )}
           <YAxis
@@ -508,6 +518,16 @@ export function FeeBandChart<T extends { p25: number; p50: number; p75: number; 
             dot={false}
             isAnimationActive={false}
           />
+          {peak && !detailed && (
+            <ReferenceDot
+              x={peak.xLabel}
+              y={peak.p50}
+              r={2.5}
+              fill="currentColor"
+              stroke="none"
+              label={{ value: `high ${peak.p50}`, position: "top", fontSize: 10, fill: "#71717a", fontFamily: "monospace" }}
+            />
+          )}
           {/* detailed mode pans: drag the window, drag its edges */}
           {detailed && (
             <Brush
@@ -541,18 +561,33 @@ export function FeeHeatmap({ cells, unit }: { cells: GasMarket["heatmap"]; unit:
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = Math.max(max - min, 1e-9);
+  const cheapest = cells.reduce((m, c) => (c.p50 > 0 && (!m || c.p50 < m.p50) ? c : m), null as (typeof cells)[number] | null);
+  const priciest = cells.reduce((m, c) => (!m || c.p50 > m.p50 ? c : m), null as (typeof cells)[number] | null);
+  const when = (c: (typeof cells)[number]) => `${DOW_LABELS[c.dow - 1]} ${String(c.hour).padStart(2, "0")}:00 UTC`;
 
   return (
     <div className="flex flex-col gap-3">
+      {cheapest && priciest && (
+        <p className="font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+          Cheapest around <span className="text-zinc-900 dark:text-zinc-50">{when(cheapest)}</span> ({cheapest.p50} {unit}); priciest around{" "}
+          <span className="text-zinc-900 dark:text-zinc-50">{when(priciest)}</span> ({priciest.p50} {unit}).
+        </p>
+      )}
       <div className="grid grid-cols-[2.5rem_repeat(24,minmax(0,1fr))] gap-px">
         {/* hour header */}
         <span />
         {Array.from({ length: 24 }, (_, h) => (
           <span
             key={`h-${h}`}
-            className="pb-1 text-center font-mono text-[9px] tabular-nums text-zinc-400 dark:text-zinc-500"
+            className="overflow-visible whitespace-nowrap pb-1 text-left font-mono text-[9px] tabular-nums text-zinc-400 dark:text-zinc-500"
           >
-            {h % 6 === 0 ? h : ""}
+            {/* the hour spills left into the empty cells after it; ":00" only where it fits */}
+            {h % 6 === 0 ? (
+              <>
+                {String(h).padStart(2, "0")}
+                <span className="hidden sm:inline">:00</span>
+              </>
+            ) : ""}
           </span>
         ))}
         {DOW_LABELS.map((label, i) => {
@@ -946,7 +981,11 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
   // the window's daily rows for every range but day, which keeps its live
   // hourly band; the gas bars fall back to 7 days on day (a 1-bar chart says
   // nothing) and label that exception
-  const windowedDaily = useMemo(() => (history ?? []).slice(-RANGE_DAYS[range]), [history, range]);
+  // complete UTC days only: today's partial day would read as a collapse
+  const windowedDaily = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return (history ?? []).filter((d) => d.d < today).slice(-RANGE_DAYS[range]);
+  }, [history, range]);
   const gasBars = isHourly ? history ?? [] : windowedDaily;
 
   const unknownAddresses = useMemo(
@@ -981,126 +1020,135 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
       ? Math.min(100, (protocolsTotalGas / market.rangeTotalGas) * 100)
       : null;
 
+  // the cost of an everyday action, in money when the token is priced
+  const costOf = (gas: number): string => {
+    if (effectiveWei === null) return "—";
+    const wei = effectiveWei * gas;
+    if (usd !== null) return fmtUsd((wei / 1e18) * usd);
+    return usdSettled ? `${fmtNative(wei)} ${symbol}` : "…";
+  };
+  const reverted = market?.reverted;
+  const revertedGasPct = reverted && reverted.gas > 0 ? (reverted.revertedGas / reverted.gas) * 100 : null;
+
+  // the window's base-fee story in numbers: now, the low, the high and when
+  const feeSeries = isHourly ? market?.hourly ?? [] : windowedDaily;
+  const feePeak = feeSeries.reduce<{ v: number; at: string } | null>((m, d) => {
+    const at = "t" in d ? (d as { t: string }).t : (d as GasDayPoint).d;
+    return !m || d.p50 > m.v ? { v: d.p50, at } : m;
+  }, null);
+  const feeLow = feeSeries.reduce<number | null>((m, d) => (m === null || d.p50 < m ? d.p50 : m), null);
+
+  // the long-tail group is a remainder, so it closes the strip
+  const protocolParts = [...(market?.protocols ?? [])].sort((a, b) => Number(/long tail/i.test(a.name) && !a.address) - Number(/long tail/i.test(b.name) && !b.address)).map((p) => {
+    const tail = !p.address && /long tail/i.test(p.name);
+    const named = p.address ? names.get(p.address.toLowerCase()) : p.name;
+    return {
+      key: p.key,
+      label: named ?? (p.address ? truncate(p.address, 10) : p.name),
+      value: p.gas,
+      mono: !named,
+      href: protocolHref(p, base) ?? undefined,
+      sub: [p.category, `${p.txs.toLocaleString("en-US")} txs`, `${p.senders.toLocaleString("en-US")} sender${p.senders === 1 ? "" : "s"}`].filter(Boolean).join(" · "),
+      detail: p.address ?? undefined,
+      tone: tail ? TAIL_TONE : undefined,
+    };
+  });
+
   return (
-    <div className="flex flex-col gap-10">
-      {/* the answer first: what a transaction costs, in money — in the
-          homepage pillar panels' voice (#1F1F1F board, EBF0FA lead over
-          the E6212F punch, steel spec labels) */}
-      <section className="flex flex-col gap-3">
-        <CostPanel
-          effectiveWei={effectiveWei}
-          usd={usd}
-          usdSettled={usdSettled}
-          symbol={symbol}
-          unit={unit}
+    <div className="flex flex-col gap-12">
+      {/* the answer first, as readout blocks: what things cost this
+          second, and the market those prices come off */}
+      <section className="flex flex-col gap-4">
+        <LiveReadout
+          chainId={String(evmChainId)}
+          cells={[
+            {
+              label: "Base Fee",
+              live: true,
+              href: `${base}/gas/base-fee`,
+              value: fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : "—",
+              unit: fee.baseFeeWei !== null ? unit : undefined,
+              sub: "per gas",
+              values: market?.hourly.map((h) => h.p50),
+            },
+            {
+              label: `Send ${symbol || "tokens"}`,
+              live: true,
+              value: costOf(ACTIONS[0].gas),
+              sub: effectiveWei !== null ? `${fmtNano(effectiveWei * ACTIONS[0].gas)} ${unit}` : undefined,
+            },
+            {
+              label: "DEX Swap",
+              live: true,
+              value: costOf(ACTIONS[2].gas),
+              sub: `~${(ACTIONS[2].gas / 1000).toFixed(0)}K gas`,
+            },
+            {
+              label: "Utilization",
+              live: true,
+              href: `${base}/gas/utilization`,
+              value: avgUtil !== null ? avgUtil.toFixed(1) : "—",
+              unit: avgUtil !== null ? "%" : undefined,
+              sub: `last ${FEE_HISTORY_BLOCKS} blocks`,
+              values: fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined,
+            },
+            {
+              label: "Gas Used · 24h",
+              href: `${base}/gas/utilization`,
+              value: gas24h !== null ? fmtGas(gas24h) : "—",
+              sub: revertedGasPct !== null && range === "day" ? `${revertedGasPct.toFixed(0)}% by reverts` : "hourly",
+              values: market?.hourly.slice(-24).map((h) => h.gas),
+            },
+          ]}
         />
-        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          Priced at the live base fee plus the median priority tip, using typical gas for each
-          action. Actual costs vary by contract.
+        <p className="font-mono text-[11px] leading-relaxed text-zinc-400 dark:text-zinc-500">
+          Priced at the live base fee plus the median priority tip, with typical gas per action
+          {usd !== null ? `, ${symbol} at $${usd >= 1 ? usd.toFixed(2) : usd.toPrecision(3)}` : ""}. An ERC-20 transfer costs {costOf(ACTIONS[1].gas)} and an NFT mint {costOf(ACTIONS[3].gas)}. Real costs vary by contract.
         </p>
       </section>
 
-      {/* the market underneath those prices — straight off the RPC */}
-      <section className="flex flex-col gap-4">
-        <Board divide={false} className="border">
-          <BoardHeader
-            label="Gas Market"
-            display
-            action={
-              <span className="flex shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
-                </span>
-                Live
-              </span>
-            }
-          />
-          <div className="grid grid-cols-3 divide-x divide-zinc-200 dark:divide-zinc-800">
-            <GasStat label="Base Fee" live href={`${base}/gas/base-fee`}>
-              {fee.baseFeeWei !== null ? (
-                <>
-                  {fmtNano(fee.baseFeeWei)}
-                  <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </GasStat>
-            <GasStat
-              label="Utilization"
-              sub={`last ${FEE_HISTORY_BLOCKS} blocks`}
-              href={`${base}/gas/utilization`}
-            >
-              {avgUtil !== null ? (
-                <>
-                  {avgUtil.toFixed(1)}
-                  <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </GasStat>
-            <GasStat
-              label="Gas Used · 24h"
-              sub={
-                range === "day" && revertedPct !== null
-                  ? `${revertedPct.toFixed(1)}% spent by reverted txs`
-                  : undefined
-              }
-            >
-              {gas24h !== null ? fmtGas(gas24h) : <StatDash />}
-            </GasStat>
-          </div>
-        </Board>
-      </section>
-
-      {/* recent market: hourly base fee band beside block-by-block
-          utilization. Every chart card is a door into its stat's detail
-          sheet — the outline and sliding arrow say so. */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      {/* the fee over the clock beside the last blocks' fullness */}
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
-          // day keeps the live hourly band (the one thing that doesn't follow
-          // the clock, so it's labeled); every other range shows the daily
-          // percentile band windowed by the clock, unlabeled
-          label={isHourly ? "Base Fee · hourly" : "Base Fee"}
+          label={isHourly ? "Base Fee · last 48 hours" : "Base Fee"}
           action={<BandKey unit={unit} />}
           href={`${base}/gas/base-fee`}
         >
+          {feePeak && feeLow !== null && (
+            <p className="mb-3 font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              Between <span className="text-zinc-900 dark:text-zinc-50">{feeLow}</span> and{" "}
+              <span className="text-zinc-900 dark:text-zinc-50">{feePeak.v} {unit}</span> this window; the high came{" "}
+              {isHourly ? hourLong(feePeak.at) : dayLong(feePeak.at)}.
+            </p>
+          )}
           {isHourly ? (
             market?.hourly.length ? (
-              <FeeBandChart
-                data={market.hourly}
-                unit={unit}
-                labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
-              />
+              <FeeBandChart data={market.hourly} unit={unit} labelFor={(d) => hourLong(d.t)} xTick={(d) => dayShort(d.t)} />
             ) : (
               <HistoryEmpty missing={marketMissing} />
             )
           ) : windowedDaily.length ? (
-            <FeeBandChart data={windowedDaily} unit={unit} labelFor={(d) => d.d} />
+            <FeeBandChart data={windowedDaily} unit={unit} labelFor={(d) => dayLong(d.d)} xTick={(d) => dayShort(d.d)} />
           ) : (
             <HistoryEmpty missing={historyMissing} />
           )}
         </ChartBoard>
 
-        <ChartBoard
-          label={`Block Utilization · last ${FEE_HISTORY_BLOCKS} blocks`}
-          href={`${base}/gas/utilization`}
-          action={
-            avgUtil !== null ? (
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                avg {avgUtil.toFixed(1)}%
-              </span>
-            ) : undefined
-          }
-        >
+        <ChartBoard label={`Block Fullness · last ${FEE_HISTORY_BLOCKS} blocks`} href={`${base}/gas/utilization`}>
+          {avgUtil !== null && (
+            <p className="mb-3 font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+              The last {FEE_HISTORY_BLOCKS} blocks were <span className="text-zinc-900 dark:text-zinc-50">{avgUtil.toFixed(1)}%</span> full on average; the fullest reached{" "}
+              <span className="text-zinc-900 dark:text-zinc-50">{Math.max(...utilData.map((u) => u.pct)).toFixed(0)}%</span>.
+            </p>
+          )}
           {utilData.length ? (
             <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={utilData} barCategoryGap="12%">
+                <BarChart data={utilData} barCategoryGap="12%" margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                   {/* percent axis pinned to 0–100: a quiet chain must look quiet */}
-                  <YAxis hide domain={[0, 100]} />
+                  <YAxis orientation="right" width={36} domain={[0, 100]} ticks={[0, 50, 100]} tickFormatter={(v: number) => `${v}%`} tickLine={false} axisLine={false} tick={AXIS_TICK} />
+                  <XAxis dataKey="i" tickLine={false} axisLine={false} tick={AXIS_TICK} ticks={[0, utilData.length - 1]} tickFormatter={(i: number) => (i === 0 ? `${utilData.length} blocks ago` : "latest")} />
+                  <ReferenceLine y={avgUtil ?? 0} stroke="#71717a" strokeDasharray="3 3" label={{ value: `avg ${avgUtil?.toFixed(0)}%`, position: "insideTopLeft", fontSize: 10, fill: "#71717a", fontFamily: "monospace" }} />
                   <RechartsTooltip
                     cursor={{ fill: "rgba(161,161,170,0.08)" }}
                     content={({ active, payload }) => {
@@ -1108,11 +1156,9 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
                       const d = payload[0].payload as { i: number; pct: number };
                       return (
                         <TipPlate>
-                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {d.pct.toFixed(1)}% full
-                          </p>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{d.pct.toFixed(1)}% full</p>
                           <p className="text-[10px] tabular-nums text-zinc-500">
-                            {d.i - utilData.length + 1 === 0 ? "latest block" : `${utilData.length - 1 - d.i} blocks ago`}
+                            {d.i === utilData.length - 1 ? "the latest block" : `${utilData.length - 1 - d.i} blocks ago`}
                           </p>
                         </TipPlate>
                       );
@@ -1130,21 +1176,36 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
         </ChartBoard>
       </div>
 
-      {/* the longer record beside the demand mix — one row, two doors.
-          The 60-day fee band lives on the base-fee sheet; repeating it
-          here said nothing the 48h band and the sheet don't. */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard
-          // gas bars follow the clock; day would be a single bar, so it shows
-          // the last 7 days and labels that one exception
-          label={isHourly ? "Gas Used · 7 days" : "Gas Used"}
-          href={`${base}/gas/utilization`}
-        >
+      {/* what the gas bought: by call, then by contract, as share maps */}
+      {protocolParts.length > 0 && (
+        <div className={cn(rangeStale && "opacity-60 transition-opacity")}>
+          <ShareMap
+            label="Where the gas goes"
+            summary={protocolsCoveragePct !== null && market ? `the top contracts: ${protocolsCoveragePct.toFixed(0)}% of ${fmtGas(market.rangeTotalGas)} gas` : undefined}
+            parts={protocolParts}
+            fmt={(v) => `${fmtGas(v)} gas`}
+            note={
+              <>
+                {revertedGasPct !== null && reverted
+                  ? `${revertedGasPct.toFixed(0)}% of this gas was spent by transactions that reverted (${reverted.revertedTxs.toLocaleString("en-US")} of ${reverted.txs.toLocaleString("en-US")}). `
+                  : ""}
+                Contracts grouped by protocol where the registry knows them. <Link href={`${base}/gas/demand`} className="underline decoration-dotted underline-offset-4 hover:text-[#E6212F]">The full table</Link> has fees, senders and the move against the previous window.
+              </>
+            }
+          />
+        </div>
+      )}
+
+      {/* the longer record, and when blockspace is cheap */}
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+        <ChartBoard label={isHourly ? "Gas Used · 7 days" : "Gas Used"} href={`${base}/gas/utilization`}>
           {gasBars.length ? (
-            <div className="h-40">
+            <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={gasBars} barCategoryGap="18%">
-                  <YAxis hide domain={[0, "dataMax"]} />
+                <BarChart data={gasBars} barCategoryGap="18%" margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="rgba(161,161,170,0.18)" />
+                  <XAxis dataKey="d" tickLine={false} axisLine={false} tick={AXIS_TICK} minTickGap={40} interval="preserveStartEnd" tickFormatter={(d: string) => dayShort(d)} />
+                  <YAxis orientation="right" width={44} tickCount={3} domain={[0, "dataMax"]} tickFormatter={(v: number) => fmtGas(v)} tickLine={false} axisLine={false} tick={AXIS_TICK} />
                   <RechartsTooltip
                     cursor={{ fill: "rgba(161,161,170,0.08)" }}
                     content={({ active, payload }) => {
@@ -1152,12 +1213,10 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
                       const d = payload[0].payload as GasDayPoint;
                       return (
                         <TipPlate>
-                          <p className="text-[10px] text-zinc-500">{d.d}</p>
-                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {fmtGas(d.gas)} gas
-                          </p>
+                          <p className="text-[10px] text-zinc-500">{dayLong(d.d)}</p>
+                          <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{fmtGas(d.gas)} gas</p>
                           <p className="text-[10px] tabular-nums text-zinc-500">
-                            {d.utilPct.toFixed(1)}% avg utilization · {d.blocks.toLocaleString()} blocks
+                            blocks {d.utilPct.toFixed(1)}% full on average · {d.blocks.toLocaleString("en-US")} blocks
                           </p>
                         </TipPlate>
                       );
@@ -1172,58 +1231,12 @@ export function GasMarketContent({ catalog, base }: { catalog: L1Chain; base: st
           )}
         </ChartBoard>
 
-        {/* demand mix — doors into the demand sheet with the treemap;
-            the window is the page clock's, unlabeled */}
-        <ChartBoard
-          className={cn(rangeStale && "opacity-60 transition-opacity")}
-          label="By Method"
-          href={`${base}/gas/demand`}
-          action={
-            market?.reverted ? (
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {market.reverted.txs.toLocaleString()} txs
-              </span>
-            ) : undefined
-          }
-        >
-          {market?.selectors.length ? (
-            <SelectorBars selectors={market.selectors} />
-          ) : (
-            <HistoryEmpty missing={marketMissing} />
-          )}
-        </ChartBoard>
+        {market && market.heatmap.length > 0 && (
+          <ChartBoard label="When gas is cheap · median base fee by hour" href={`${base}/gas/fee-seasonality`}>
+            <FeeHeatmap cells={market.heatmap} unit={unit} />
+          </ChartBoard>
+        )}
       </div>
-
-      {/* seasonality: when is blockspace cheap? */}
-      {market && market.heatmap.length > 0 && (
-        <ChartBoard
-          label="Fee Seasonality · median base fee by hour of week"
-          href={`${base}/gas/fee-seasonality`}
-        >
-          <FeeHeatmap cells={market.heatmap} unit={unit} />
-        </ChartBoard>
-      )}
-
-      {/* who's buying the blockspace — the /stats/dapps/treemap successor.
-          The whole map doors into the demand sheet, where the tiles link
-          out individually and the table carries the figures. */}
-      {market && market.protocols.length > 0 && (
-        <ChartBoard
-          className={cn(rangeStale && "opacity-60 transition-opacity")}
-          label="Where the Gas Goes"
-          href={`${base}/gas/demand`}
-          bodyClassName="p-2"
-          action={
-            protocolsCoveragePct !== null ? (
-              <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {protocolsCoveragePct.toFixed(0)}% of {fmtGas(market.rangeTotalGas)} gas
-              </span>
-            ) : undefined
-          }
-        >
-          <ProtocolsTreemap protocols={market.protocols} names={names} base={base} linkless />
-        </ChartBoard>
-      )}
     </div>
   );
 }
