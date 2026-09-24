@@ -130,11 +130,22 @@ function toHead(h: RpcHeader): Head {
 }
 
 /* one JSON-RPC batch, results returned in request order */
+/* The public RPC answers HTTP 500 to a batch of more than about 50 calls,
+   so a batch goes out in chunks of BATCH_MAX, in parallel. A full block
+   carries 100+ transactions; one unchunked receipts batch for it failed
+   the whole poll and froze the live boards for the length of the burst. */
+const BATCH_MAX = 40;
+
 export async function rpcBatch<T>(
   rpcUrl: string,
   calls: { method: string; params: unknown[] }[],
   signal: AbortSignal,
 ): Promise<(T | null)[]> {
+  if (calls.length > BATCH_MAX) {
+    const parts: Promise<(T | null)[]>[] = [];
+    for (let i = 0; i < calls.length; i += BATCH_MAX) parts.push(rpcBatch<T>(rpcUrl, calls.slice(i, i + BATCH_MAX), signal));
+    return (await Promise.all(parts)).flat();
+  }
   const res = await fetch(rpcUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -259,7 +270,8 @@ export function useHeadStream(
         .slice(0, 3)
         .map((h) => h.number);
       if (!want.length) return;
-      const results = await Promise.all(want.map((n) => fetchExecutedTxs(rpcUrl, n, signal())));
+      // one block's failed pull leaves it for the next poll; it never fails the others
+      const results = await Promise.all(want.map((n) => fetchExecutedTxs(rpcUrl, n, signal()).catch(() => null)));
       const incoming: StreamTx[] = [];
       results.forEach((txs, i) => {
         if (txs === null) return;
@@ -303,9 +315,16 @@ export function useHeadStream(
             ? await rpcBatch<RpcHeader>(rpcUrl, missing.map((n) => ({ method: "eth_getBlockByNumber", params: [blockTag(n), false] })), signal())
             : [];
           mergeHeads([tip, ...filled.filter((h): h is RpcHeader => !!h).map(toHead)]);
-          await pullExecuted();
+          // heads show first: the receipts are a second, slower read and a
+          // failure there must never hold a sealed block off the page
           publish();
           lastOk = Date.now();
+          try {
+            await pullExecuted();
+            publish();
+          } catch {
+            /* the transactions feed catches up on a later poll */
+          }
         }
       } catch {
         // the last heads stand; flag the stream stale after two misses
