@@ -43,12 +43,45 @@ export interface TraceResponse {
   /** gas by opcode, totals, from the struct log */
   opcodes: { op: string; gas: number; count: number }[] | null;
   steps: number | null;
+  /** where the gas went, from the struct log. Under ACP-194 the callTracer
+   *  root reports gas CHARGED, max(used, limit/2), so the execution's own
+   *  cost is only recoverable here */
+  gas: GasBreakdown | null;
+}
+
+export interface GasBreakdown {
+  /** the tx gas limit */
+  limit: number;
+  /** base cost before the first opcode: 21k plus calldata and access list */
+  intrinsic: number;
+  /** what the top-level frame's opcodes consumed, subcalls included */
+  execution: number;
+  /** storage refund applied at the end, capped at a fifth of the total */
+  refund: number;
+  /** gas used: intrinsic + execution - refund */
+  used: number;
 }
 
 interface StructLog {
   op: string;
+  gas: number;
   gasCost: number;
   depth: number;
+  refund?: number;
+}
+
+/** gas used from the struct log: the first top-level step starts with the
+ *  limit minus intrinsic gas; the last one ends with what is left */
+function gasBreakdown(limit: number, logs: StructLog[]): GasBreakdown | null {
+  const top = logs.filter((l) => l.depth === 1);
+  if (!top.length || !limit) return null;
+  const first = top[0];
+  const last = top[top.length - 1];
+  const intrinsic = limit - first.gas;
+  const execution = first.gas - (last.gas - last.gasCost);
+  const before = intrinsic + execution;
+  const refund = Math.min(logs[logs.length - 1].refund ?? 0, Math.floor(before / 5));
+  return { limit, intrinsic, execution, refund, used: before - refund };
 }
 
 const cache = new Map<string, TraceResponse>();
@@ -111,7 +144,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ chai
       opcodes = [...agg.entries()].map(([op, v]) => ({ op, ...v })).sort((a, b) => b.gas - a.gas);
       steps = struct.structLogs.length;
     }
-    const out: TraceResponse = { call, prestate, opcodes, steps };
+    const gas = struct?.structLogs ? gasBreakdown(parseInt(call.gas, 16), struct.structLogs) : null;
+    const out: TraceResponse = { call, prestate, opcodes, steps, gas };
     // a pending or unknown tx must not be cached as a result; only final traces are
     if (cache.size >= CACHE_MAX) cache.delete(cache.keys().next().value!);
     cache.set(key, out);

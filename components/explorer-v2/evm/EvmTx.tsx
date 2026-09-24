@@ -459,17 +459,23 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                 >
                   <span className="text-red-700 dark:text-red-300">{formatEther(feeWei.toString(), { decimals: 6 })}</span> <span className={UNIT}>{sym}</span>
                 </RailRow>
+                {/* ACP-194: the receipt charges max(used, limit / 2), and the fee
+                    is paid on that; what execution actually used comes from
+                    the trace's struct log */}
                 <RailRow
-                  label="Gas Used"
+                  label="Gas Charged"
                   sub={
-                    <span className="flex items-center gap-2">
-                      <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
-                        <span
-                          className={cn("block h-full", gasPct >= 95 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
-                          style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
-                        />
+                    <span className="flex flex-col gap-1.5">
+                      <span className="flex items-center gap-2">
+                        <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
+                          <span
+                            className={cn("block h-full", gasPct >= 95 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                            style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
+                          />
+                        </span>
+                        {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
-                      {gasPct.toFixed(0)}% of {formatNumber(t.gasLimit)}
+                      {trace?.gas && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
                   }
                 >
@@ -479,7 +485,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </div>
           </section>
 
-          {liveRpc && <EvmTrace trace={trace} state={traceState} chainId={c.chainId} base={base} sender={t.from} symbol={sym} />}
+          {liveRpc && <EvmTrace trace={trace} state={traceState} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
 
           {!traced && transfers.length > 0 && (
             <section className="flex flex-col gap-4">

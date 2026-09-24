@@ -49,8 +49,8 @@ import {
    the token list, Sourcify, the selector registry, then the signature
    database; anything still unknown stays honest hex. */
 
-type Tab = "calls" | "balances" | "state" | "gas";
-const LABELS: Record<Tab, string> = { calls: "Call Trace", balances: "Balance Changes", state: "State", gas: "Gas" };
+type Tab = "calls" | "events" | "balances" | "state" | "gas";
+const LABELS: Record<Tab, string> = { calls: "Call Trace", events: "Events", balances: "Balance Changes", state: "State", gas: "Gas" };
 
 const CALL_OPS = new Set(["CALL", "STATICCALL", "DELEGATECALL", "CALLCODE", "CREATE", "CREATE2"]);
 
@@ -440,6 +440,244 @@ function slotName(slot: string): string {
   return `0x${body.slice(0, 10)}…${body.slice(-8)}`;
 }
 
+/* ------------------------------------------------------------------ */
+/* gas profiler                                                        */
+
+/* one ink per call kind, the same kinds the call tree colors */
+const FLAME_TONES: Record<string, string> = {
+  CALL: "#0061E2",
+  STATICCALL: "#0284c7",
+  DELEGATECALL: "#a21caf",
+  CALLCODE: "#a21caf",
+  CREATE: "#059669",
+  CREATE2: "#059669",
+  SELFDESTRUCT: "#E6212F",
+};
+const FLAME_ROW = 26;
+const FLAME_HATCH = "repeating-linear-gradient(135deg, rgba(230,33,47,0.85) 0 3px, transparent 3px 7px)";
+
+/** a frame's name as one line: contract.function */
+function frameLabel(f: FlatFrame, n: Names): string {
+  const d = decodeCall(f.frame, n);
+  // a creation's input is bytecode, not a call: its first bytes are no selector
+  const fn = f.frame.type.startsWith("CREATE") ? "new contract" : d?.name ?? (f.frame.input && f.frame.input !== "0x" ? f.frame.input.slice(0, 10) : "transfer");
+  const who = nameOf(f.frame.to, n);
+  return who ? `${who}.${fn}` : fn;
+}
+
+/** Where the gas went, as a flame graph. The three totals first on one
+ *  scale (the limit, what ACP-194 charged, what execution used), then the
+ *  call tree as boxes as wide as their gas: intrinsic gas and the top call
+ *  side by side, each call's children under it. Click a box to zoom into
+ *  it; the panel beside the graph reads the box under the cursor. */
+function GasProfiler({
+  frames,
+  gas,
+  charged,
+  logs,
+  n,
+}: {
+  frames: FlatFrame[];
+  gas: NonNullable<TraceResponse["gas"]> | null;
+  /** the receipt's gasUsed: ACP-194 gas charged */
+  charged?: number;
+  logs: { frameId: string }[];
+  n: Names;
+}) {
+  const byId = useMemo(() => new Map(frames.map((f) => [f.id, f])), [frames]);
+  // the callTracer root reports gas CHARGED under ACP-194, so the top
+  // frame's width comes from the struct log's execution figure
+  const gasOf = (f: FlatFrame) => (f.id === "0" && gas ? gas.execution : hexInt(f.frame.gasUsed));
+  const [focus, setFocus] = useState("0");
+  const [pick, setPick] = useState<string | null>(null);
+  const [hover, setHover] = useState<string | null>(null);
+  const root = byId.get("0");
+  if (!root) return null;
+  const focusF = byId.get(focus) ?? root;
+  const atRoot = focusF.id === "0";
+  const intrinsic = atRoot && gas ? gas.intrinsic : 0;
+  const scale = Math.max(1, intrinsic + gasOf(focusF));
+
+  const boxes: { f: FlatFrame; x: number; w: number; row: number }[] = [];
+  const place = (f: FlatFrame, x: number, row: number) => {
+    boxes.push({ f, x, w: gasOf(f) / scale, row });
+    let cx = x;
+    for (const id of f.children) {
+      const c = byId.get(id);
+      if (!c) continue;
+      place(c, cx, row + 1);
+      cx += gasOf(c) / scale;
+    }
+  };
+  place(focusF, intrinsic / scale, 0);
+  const rows = Math.max(1, ...boxes.map((b) => b.row + 1));
+  const trail = focusF.id.split(".").map((_, i, a) => a.slice(0, i + 1).join("."));
+  const shown = byId.get(hover ?? pick ?? focusF.id) ?? focusF;
+  const shownGas = gasOf(shown);
+  const shownSelf = Math.max(0, shownGas - shown.children.reduce((s, id) => s + (byId.get(id) ? gasOf(byId.get(id)!) : 0), 0));
+  const used = gas?.used ?? gasOf(root);
+  const limit = gas?.limit ?? hexInt(root.frame.gas);
+  const pctOf = (v: number) => (limit > 0 ? `${Math.max(0.4, Math.min(100, (v / limit) * 100)).toFixed(2)}%` : "0%");
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* the three totals on the limit's scale */}
+      <Board divide={false} className="flex flex-col gap-2.5 px-5 py-5 font-mono text-[11px] md:px-6">
+        {[
+          { k: "Gas limit", v: limit, tone: "#e4e4e7" },
+          ...(charged !== undefined ? [{ k: "Gas charged", v: charged, tone: "#A2AFB2" }] : []),
+          { k: "Gas used", v: used, tone: "#0061E2" },
+        ].map((r) => (
+          <div key={r.k} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-4">
+            <span className="uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">{r.k}</span>
+            <span className="flex h-5 items-center gap-2 bg-zinc-50 dark:bg-zinc-900">
+              <span className="h-full" style={{ width: pctOf(r.v), background: r.tone }} />
+              <span className="shrink-0 tabular-nums text-zinc-900 dark:text-zinc-50">{r.v.toLocaleString("en-US")}</span>
+            </span>
+          </div>
+        ))}
+        {charged !== undefined && charged > used && (
+          <p className="pt-1 text-zinc-400 dark:text-zinc-500">Charged is half the limit: ACP-194 charges the larger of gas used and half the limit.</p>
+        )}
+      </Board>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+        <Board divide={false} className="flex min-w-0 flex-col gap-3 px-5 py-4 md:px-6">
+          {/* where the zoom is */}
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+            {trail.map((id, i) => {
+              const f = byId.get(id);
+              if (!f) return null;
+              return (
+                <span key={id} className="flex items-center gap-1.5">
+                  {i > 0 && <span className="text-zinc-300 dark:text-zinc-700">›</span>}
+                  <button type="button" onClick={() => { setFocus(id); setPick(id); }} className={cn("hover:text-[#E6212F]", id === focusF.id && "text-zinc-900 dark:text-zinc-50")}>
+                    {i === 0 ? "whole transaction" : frameLabel(f, n)}
+                  </button>
+                </span>
+              );
+            })}
+            {atRoot && <span className="ml-auto">click a box to zoom</span>}
+          </div>
+          <div className="relative w-full overflow-hidden" style={{ height: rows * FLAME_ROW }} onMouseLeave={() => setHover(null)}>
+            {atRoot && gas && (
+              <div
+                className="absolute flex items-center overflow-hidden px-1.5 font-mono text-[10px] text-zinc-700"
+                style={{ left: 0, width: `${(intrinsic / scale) * 100}%`, top: 0, height: FLAME_ROW - 2, background: "#e4e4e7" }}
+                title={`intrinsic gas · ${intrinsic.toLocaleString("en-US")}: the base cost, 21,000 plus calldata`}
+              >
+                <span className="truncate">intrinsic · {intrinsic.toLocaleString("en-US")}</span>
+              </div>
+            )}
+            {boxes.map(({ f, x, w, row }) => {
+              const g = gasOf(f);
+              const dim = hover !== null && hover !== f.id;
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onMouseEnter={() => setHover(f.id)}
+                  onFocus={() => setHover(f.id)}
+                  onClick={() => {
+                    setPick(f.id);
+                    if (f.children.length) setFocus(f.id);
+                  }}
+                  aria-label={`${frameLabel(f, n)}, ${g.toLocaleString("en-US")} gas`}
+                  className={cn("absolute flex items-center overflow-hidden px-1.5 text-left font-mono text-[10px] text-white transition-opacity", dim && "opacity-60")}
+                  style={{
+                    left: `${x * 100}%`,
+                    width: `max(1px, calc(${w * 100}% - 1px))`,
+                    top: row * FLAME_ROW,
+                    height: FLAME_ROW - 2,
+                    background: FLAME_TONES[f.frame.type] ?? FLAME_TONES.CALL,
+                    filter: `brightness(${1 + (row % 2) * 0.12})`,
+                  }}
+                >
+                  {f.frame.error && <span aria-hidden className="absolute inset-0" style={{ background: FLAME_HATCH }} />}
+                  {w > 0.05 && <span className="relative truncate">{frameLabel(f, n)} · {g.toLocaleString("en-US")}</span>}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
+            {["CALL", "STATICCALL", "DELEGATECALL", "CREATE"].map((k) => (
+              <span key={k} className="flex items-center gap-1.5">
+                <span className="h-2 w-2" style={{ background: FLAME_TONES[k] }} />
+                {k.toLowerCase()}
+              </span>
+            ))}
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2" style={{ background: FLAME_HATCH }} />
+              reverted
+            </span>
+          </div>
+        </Board>
+
+        {/* the box under the cursor, or the one last clicked */}
+        <Board divide={false} className="flex flex-col gap-3 border px-5 py-4 font-mono text-[12px]">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{shown.id === "0" ? "Top call" : `Depth ${shown.depth}`}</span>
+          <span className={cn("break-all", C.fn)}>{frameLabel(shown, n)}</span>
+          <span className="flex min-w-0 items-baseline gap-2 text-zinc-500 dark:text-zinc-400">
+            <span className={cn("shrink-0 text-[10px] font-bold uppercase tracking-[0.14em]", C.type[shown.frame.type] ?? C.type.CALL)}>{shown.frame.type.toLowerCase()}</span>
+            {shown.frame.to && (
+              <Link href={`${n.base}/address/${shown.frame.to}`} title={shown.frame.to} className={cn("truncate hover:text-[#E6212F]", C.addr)}>
+                {truncate(shown.frame.to, 10)}
+              </Link>
+            )}
+          </span>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 tabular-nums">
+            <dt className="text-zinc-400 dark:text-zinc-500">gas</dt>
+            <dd className="text-right text-zinc-900 dark:text-zinc-50">{shownGas.toLocaleString("en-US")}</dd>
+            <dt className="text-zinc-400 dark:text-zinc-500">share</dt>
+            <dd className="text-right text-zinc-900 dark:text-zinc-50">{used > 0 ? `${((shownGas / used) * 100).toFixed(1)}%` : "—"}</dd>
+            <dt className="text-zinc-400 dark:text-zinc-500" title="spent by this call itself, not the calls it made">own gas</dt>
+            <dd className="text-right text-zinc-900 dark:text-zinc-50">{shownSelf.toLocaleString("en-US")}</dd>
+            <dt className="text-zinc-400 dark:text-zinc-500">calls made</dt>
+            <dd className="text-right text-zinc-900 dark:text-zinc-50">{shown.children.length}</dd>
+            <dt className="text-zinc-400 dark:text-zinc-500">events</dt>
+            <dd className="text-right text-zinc-900 dark:text-zinc-50">{logs.filter((l) => l.frameId === shown.id).length}</dd>
+          </dl>
+          {shown.frame.error && <span className="text-[#E6212F]">reverted: {shown.frame.revertReason ?? shown.frame.error}</span>}
+        </Board>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* events                                                              */
+
+/** one emitted event: who emitted it, its name, its decoded arguments */
+function EventBody({ log, n }: { log: { address: string; topics: string[]; data: string }; n: Names }) {
+  const ev = decodeLog(log, n);
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+      <Who addr={log.address} n={n} />
+      <span className={C.punct}>.</span>
+      {ev ? (
+        <>
+          <span className={cn(C.fn, ev.guessed && "underline decoration-dotted decoration-current underline-offset-4")}>{ev.name}</span>
+          {ev.params.length > 0 && (
+            <>
+              <span className={C.punct}>(</span>
+              {ev.params.map((p, k) => (
+                <span key={k} className="inline-flex flex-wrap items-baseline gap-1">
+                  {p.name && <span className={cn("text-[10px]", C.param)}>{p.name}=</span>}
+                  <V v={strVal(p.value, p.type, p.name, log.address, n)} />
+                  {k < ev.params.length - 1 && <span className={C.punct}>,</span>}
+                </span>
+              ))}
+              <span className={C.punct}>)</span>
+            </>
+          )}
+        </>
+      ) : (
+        <V v={{ kind: "bytes", text: log.topics[0] ?? "" }} />
+      )}
+    </span>
+  );
+}
+
 export function EvmTrace({
   trace,
   state,
@@ -447,7 +685,10 @@ export function EvmTrace({
   base,
   sender,
   symbol,
+  charged,
 }: {
+  /** the receipt's gasUsed: what ACP-194 charged */
+  charged?: number;
   trace: TraceResponse | null;
   state: TraceState;
   chainId: string;
@@ -580,7 +821,12 @@ export function EvmTrace({
       )}
       {trace && (
         <>
-          <Tabs tabs={["calls", "balances", "state", "gas"]} active={tab} onChange={setTab} labels={LABELS} />
+          <Tabs
+            tabs={["calls", "events", "balances", "state", "gas"]}
+            active={tab}
+            onChange={setTab}
+            labels={{ ...LABELS, events: logs.length ? `Events · ${logs.length}` : "Events" }}
+          />
 
           {tab === "calls" && (
             <Board divide={false}>
@@ -733,6 +979,27 @@ export function EvmTrace({
             </Board>
           )}
 
+          {/* every event the transaction emitted, in execution order */}
+          {tab === "events" && (
+            <Board>
+              {logs.length === 0 && (
+                <EmptyRow>{trace.call.error ? "the transaction reverted, so the chain kept none of its events" : "this transaction emitted no events"}</EmptyRow>
+              )}
+              {logs.map(({ frameId, log }, i) => {
+                const caller = frames.find((f) => f.id === frameId);
+                return (
+                  <div key={i} className="grid grid-cols-[2.5rem_minmax(0,1fr)] items-baseline gap-x-3 gap-y-1 px-5 py-2.5 font-mono text-[12px] md:grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,14rem)] md:px-6">
+                    <span className="tabular-nums text-zinc-400 dark:text-zinc-500">#{i}</span>
+                    <EventBody log={log} n={n} />
+                    <span className="col-start-2 truncate text-[11px] text-zinc-400 md:col-start-auto md:text-right dark:text-zinc-500" title="the call that emitted it">
+                      {caller ? `in ${frameLabel(caller, n)}` : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </Board>
+          )}
+
           {tab === "balances" && (
             <Board>
               <div className={cn(HEAD, "grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,12rem)_8rem]")}>
@@ -843,38 +1110,8 @@ export function EvmTrace({
           )}
 
           {tab === "gas" && (
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              <Board>
-                <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_9rem]")}>
-                  <span>Frame (own gas)</span>
-                  <span className="text-right">Gas</span>
-                </div>
-                {[...frames]
-                  .sort((a, b) => b.selfGas - a.selfGas)
-                  .slice(0, 10)
-                  .map((f) => {
-                    const d = decodeCall(f.frame, n);
-                    return (
-                      <div key={f.id} className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-4 px-5 py-2 font-mono text-[12px] md:px-6">
-                        <span className="flex min-w-0 items-center gap-1.5">
-                          <Who addr={f.frame.to} n={n} />
-                          <span className={C.punct}>.</span>
-                          <span className={cn("truncate", C.fn)}>{d?.name ?? f.frame.input.slice(0, 10)}</span>
-                          <span className="shrink-0 text-[10px] text-zinc-400 dark:text-zinc-500">depth {f.depth}</span>
-                        </span>
-                        <span className="flex items-center justify-end gap-2 tabular-nums text-zinc-700 dark:text-zinc-300">
-                          <span className="h-1 w-16 bg-zinc-100 dark:bg-zinc-900">
-                            <span className="block h-full bg-[#A2AFB2] dark:bg-zinc-600" style={{ width: `${Math.max(2, Math.round((f.selfGas / Math.max(1, totalGas)) * 100))}%` }} />
-                          </span>
-                          {f.selfGas.toLocaleString("en-US")}
-                        </span>
-                      </div>
-                    );
-                  })}
-                <div className="px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:px-6 dark:text-zinc-500">
-                  {totalGas.toLocaleString("en-US")} gas in total · a frame's own gas excludes the calls it made
-                </div>
-              </Board>
+            <div className="flex flex-col gap-6">
+              <GasProfiler frames={frames} gas={trace.gas ?? null} charged={charged} logs={logs} n={n} />
               <Board>
                 <div className={cn(HEAD, "grid grid-cols-[minmax(0,1fr)_5rem_7rem]")}>
                   <span>Opcode</span>

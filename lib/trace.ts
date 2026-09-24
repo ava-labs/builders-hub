@@ -32,6 +32,14 @@ export interface TraceResponse {
   prestate: { pre: Record<string, PrestateAccount>; post: Record<string, PrestateAccount> } | null;
   opcodes: { op: string; gas: number; count: number }[] | null;
   steps: number | null;
+  /** from the struct log; the callTracer root reports gas charged under ACP-194 */
+  gas?: {
+    limit: number;
+    intrinsic: number;
+    execution: number;
+    refund: number;
+    used: number;
+  } | null;
 }
 
 export const hexInt = (v: string | undefined): number => (v ? parseInt(v, 16) : 0);
