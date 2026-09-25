@@ -12,7 +12,7 @@ export const KNOWN_ADDRESSES: Record<string, string> = {
   "0x152b9d0fdc40c096757f570a51e494bd4b943e50": "BTC.b",
   "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab": "WETH.e",
   "0x60ae616a2155ee3d9a68541ba4544862310933d4": "Trader Joe router",
-  "0x253553366da8546fc250f225fe3d25d0c782303b": "ICM Teleporter Messenger",
+  "0x253b2784c75e510dd0ff1da844684a1ac0aa5fcf": "ICM Teleporter Messenger",
   "0x0100000000000000000000000000000000000000": "fee burn address",
 };
 
@@ -59,6 +59,7 @@ ${known}`
     : `This chain's token contracts are not listed here: find them in raw_logs (group by address), and never assume a C-Chain token address. Token decimals are not in the tables; unless the question names them, count transfers rather than sum amounts.`
 }
 - Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
+- ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
 
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
