@@ -3,9 +3,8 @@
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, EmptyRow, SectionHeader } from "@/components/explorer-v2/ui";
 import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { txTypeLabel } from "@/lib/pchain-explorer";
 import { LEDGER, usePchainPulse, type PchainPulse, type PulseTx } from "@/components/explorer-v2/network/pchain-pulse";
@@ -13,9 +12,9 @@ import { EASE_CSS, useStill } from "@/components/explorer-v2/motion";
 import { NEW_DAYS, useNewcomers, type Newcomer } from "@/components/explorer-v2/network/newcomers";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
-import { BLOCK_GRAY, PICK_BLUE, ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
-import { planCity, streetRoute, turn, type Stop, type Street } from "@/components/explorer-v2/network/city";
-import { districtAbout, districtOf, type District } from "@/components/explorer-v2/network/districts";
+import { BLOCK_GRAY, PICK_BLUE } from "@/components/explorer-v2/network/icm-parts";
+import { planCity, streetRoute, turn, type City, type Stop, type Street, type Ward } from "@/components/explorer-v2/network/city";
+import { districtOf, type District } from "@/components/explorer-v2/network/districts";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
@@ -50,7 +49,7 @@ import type { L1Chain } from "@/types/stats";
    is open rises on the Frontier. It fetches its own data, so the page
    only mounts it. */
 
-interface MapChain {
+export interface MapChain {
   chainId: string;
   chainName: string;
   chainLogoURI: string;
@@ -62,7 +61,7 @@ interface FlowRoute {
   messageCount: number;
 }
 
-interface Node {
+export interface Node {
   id: string;
   name: string;
   logo: string;
@@ -94,7 +93,7 @@ interface Node {
   /** its place among the new L1s, 0 the newest */
   newRank: number;
 }
-interface Route {
+export interface Route {
   key: string;
   from: string;
   to: string;
@@ -111,7 +110,7 @@ interface Route {
 
 /* what the towers say: validator count, message count, or validator
    count painted by client version */
-type SizeBy = "versions" | "validators" | "messages";
+export type SizeBy = "versions" | "validators" | "messages";
 
 /** a set's nodes by client version, against the page's target */
 export interface VersionMix {
@@ -125,7 +124,7 @@ export interface VersionMix {
 }
 type Band = "on" | "near" | "stale" | "unknown";
 const BAND_ORDER: Band[] = ["on", "near", "stale", "unknown"];
-const mixTotal = (m: VersionMix) => m.on + m.near + m.stale + m.unknown;
+export const mixTotal = (m: VersionMix) => m.on + m.near + m.stale + m.unknown;
 
 const W = 1200;
 const H = 640;
@@ -583,7 +582,7 @@ function RoofLogo({ uri, x, y, size, clipId }: { uri: string; x: number; y: numb
   );
 }
 
-function Logo({ uri, name }: { uri: string; name: string }) {
+export function Logo({ uri, name }: { uri: string; name: string }) {
   const [broken, setBroken] = useState(false);
   if (!uri || broken) {
     return (
@@ -605,7 +604,7 @@ function TipRow({ label, value }: { label: string; value: string }) {
 }
 
 /* a set's version split as a thin stacked bar, for the phone lists */
-function MixBar({ mix, className }: { mix: VersionMix; className?: string }) {
+export function MixBar({ mix, className }: { mix: VersionMix; className?: string }) {
   const total = mixTotal(mix);
   if (!total) return null;
   return (
@@ -616,7 +615,7 @@ function MixBar({ mix, className }: { mix: VersionMix; className?: string }) {
 }
 
 /* the share on target in the fleet's ink: green from 80%, red with any older node, amber else */
-function pctInk(mix: VersionMix | null | undefined, pct: number | null): string {
+export function pctInk(mix: VersionMix | null | undefined, pct: number | null): string {
   if (pct === null || !mix) return "text-zinc-400 dark:text-zinc-500";
   if (pct >= 80) return "text-emerald-600 dark:text-emerald-400";
   return mix.stale > 0 ? "text-[#E6212F]" : "text-amber-600 dark:text-amber-400";
@@ -825,7 +824,7 @@ function Signals({ txs, joins }: { txs: PulseTx[]; joins: Map<string, [number, n
 /* the ground's key under the model: the ledger's span, its tiles by
    family, and the door to the P-Chain explorer. Phones, without the
    model, get the ledger as a flat tape, newest at the right. */
-function GroundKey({ pulse, arrivals }: { pulse: PchainPulse; arrivals: Newcomer[] }) {
+export function GroundKey({ pulse, arrivals }: { pulse: PchainPulse; arrivals: Newcomer[] }) {
   const { txs, stats } = pulse;
   const counts = new Map<Fam, number>();
   for (const t of txs) counts.set(famOf(t.type), (counts.get(famOf(t.type)) ?? 0) + 1);
@@ -909,69 +908,32 @@ export interface IcmSummary {
   talking: number;
 }
 
-export function IcmNetworkMap({
-  picked = null,
-  onPick,
-  onSummary,
-  days = 30,
-  windowLabel = "30 days",
-  versions = null,
-  target = "",
-  targets = [],
-  onTarget,
-  hoveredName = null,
-  onHoverName,
-}: {
-  /** a chain the page is pointing at, by name: its tower lights as if hovered */
-  hoveredName?: string | null;
-  /** the tower under the cursor, by name, for the page's other views */
-  onHoverName?: (name: string | null) => void;
-  /** each chain's nodes by client version, by EVM chain ID; turns on the Versions view */
-  versions?: Map<string, VersionMix> | null;
-  /** the version the mix is measured against, and the choices for it */
-  target?: string;
-  targets?: string[];
-  onTarget?: (t: string) => void;
-  /** the message window, in days; the page's clock sets it */
-  days?: number;
-  /** the window spelled out for the header, "30 days" */
-  windowLabel?: string;
-  picked?: string | null;
-  onPick?: (chainName: string) => void;
-  /** the page's figures read the same feed the map draws */
-  onSummary?: (s: IcmSummary) => void;
-}) {
+/** the city, planned: the chains and their lots, the routes on the streets, the ground's ledger */
+export interface CityData {
+  /** the chain feed; null while it loads */
+  chains: MapChain[] | null;
+  failed: boolean;
+  nodes: Node[];
+  routes: Route[];
+  byId: Map<string, Node>;
+  city: City;
+  summary: IcmSummary;
+  pulse: PchainPulse;
+  newcomers: Newcomer[];
+}
+
+/* the city's data: the chains and their validators, the window's ICM
+   routes, the P-Chain's ledger and the week's new L1s, planned into lots
+   and streets. The app reads it for its panels and lists; the canvas
+   draws it. Phones read it without the canvas */
+export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }): CityData {
   const [chains, setChains] = useState<MapChain[] | null>(null);
   const [flows, setFlows] = useState<FlowRoute[]>([]);
   const [failed, setFailed] = useState(false);
-  const [pickedView, setSizeBy] = useState<SizeBy>("versions");
-  // without a version feed the Versions view has nothing to paint
-  const sizeBy: SizeBy = pickedView === "versions" && !versions ? "validators" : pickedView;
-  const painted = sizeBy === "versions";
-  const mixOf = (id: string) => (painted ? versions?.get(id) ?? null : null);
-  const onPct = (id: string) => {
-    const m = versions?.get(id);
-    const known = m ? m.on + m.near + m.stale : 0;
-    return m && known > 0 ? Math.round((m.on / mixTotal(m)) * 100) : null;
-  };
-  const [hover, setHover] = useState<string | null>(null);
-  const [hoverRoute, setHoverRoute] = useState<string | null>(null);
-  // the district the camera has flown into, and the district under the cursor
-  const [focus, setFocus] = useState<District | null>(null);
-  const [hoverDistrict, setHoverDistrict] = useState<District | null>(null);
-  const still = useStill();
-  const router = useRouter();
   // the ground: the P-Chain's latest txs and tip
   const pulse = usePchainPulse("mainnet");
   // the week's new L1s, from the P-Chain
   const newcomers = useNewcomers(pulse.txs);
-  const [ground, setGround] = useState(false);
-  // a ledger tile under the cursor, by tx hash
-  const [hoverTx, setHoverTx] = useState<string | null>(null);
-  const openTx = useCallback((hash: string) => router.push(`/explorer/mainnet/p-chain/tx/${hash}`), [router]);
-  // phones read the map as two lists: the chains, and the routes between them
-  const [phoneView, setPhoneView] = useState<"chains" | "routes">("chains");
-  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -997,7 +959,7 @@ export function IcmNetworkMap({
     return () => controller.abort();
   }, [days]);
 
-  const { nodes, routes, byName, city } = useMemo(() => {
+  const { nodes, routes, city } = useMemo(() => {
     const known = new Map((chains ?? []).map((c) => [String(c.chainId), c]));
     // only routes between mainnet chains the overview knows; the feed mixes in Fuji
     const merged = new Map<string, { from: string; to: string; messages: number }>();
@@ -1109,21 +1071,100 @@ export function IcmNetworkMap({
         const heat = Math.sqrt(r.messages / maxMsgs);
         return [{ key: `${r.from}>${r.to}`, from: r.from, to: r.to, messages: r.messages, d: street.d, width: 0.9 + 2.1 * heat, heat, crown: street.mid, length: street.length }];
       });
-    return { nodes: placed, routes: drawn, byName: new Map(placed.map((n) => [n.name, n])), city };
+    return { nodes: placed, routes: drawn, city };
   }, [chains, flows, sizeBy, newcomers]);
+  const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  const summary = useMemo<IcmSummary>(
+    () => ({
+      byChain: new Map(nodes.map((n) => [n.id, n.out + n.in])),
+      total: routes.reduce((t, r) => t + r.messages, 0),
+      talking: nodes.filter((n) => n.out + n.in > 0).length,
+    }),
+    [nodes, routes],
+  );
+  return { chains, failed, nodes, routes, byId, city, summary, pulse, newcomers };
+}
 
-  useEffect(() => {
-    if (!onSummary || !chains) return;
-    const byChain = new Map(nodes.map((n) => [n.id, n.out + n.in]));
-    onSummary({ byChain, total: routes.reduce((t, r) => t + r.messages, 0), talking: nodes.filter((n) => n.out + n.in > 0).length });
-    // the parent's callback identity does not matter, only the data
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, routes, chains]);
+/** the room the app's panels leave the canvas, in pixels from each edge */
+export interface Inset {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
 
-  // hover leads; a pick holds the light when the cursor leaves
-  const pickedId = picked ? byName.get(picked)?.id ?? null : null;
-  const pointed = hoveredName ? byName.get(hoveredName)?.id ?? null : null;
-  const lit = hover ?? pointed ?? pickedId;
+/* the city's canvas: it draws what useCityData planned, lights what the
+   app points at, and hands every click back to the app */
+export function IcmNetworkMap({
+  data,
+  versions = null,
+  target = "",
+  sizeBy,
+  windowLabel,
+  selected,
+  onSelect,
+  focus,
+  onFocus,
+  lit: litSet = null,
+  hovered = null,
+  onHover,
+  inset,
+}: {
+  data: CityData;
+  /** each chain's nodes by client version, by EVM chain ID; the Versions view paints them */
+  versions?: Map<string, VersionMix> | null;
+  /** the version the mix is measured against */
+  target?: string;
+  sizeBy: SizeBy;
+  /** the message window spelled out, "30 days" */
+  windowLabel: string;
+  /** the set the app has open, by id */
+  selected: string | null;
+  onSelect: (id: string | null) => void;
+  /** the district the camera is in */
+  focus: District | null;
+  onFocus: (d: District | null) => void;
+  /** the sets a search or a figure points at; the rest stand faint */
+  lit?: Set<string> | null;
+  /** a set the app's lists point at, by id: it lights as if hovered */
+  hovered?: string | null;
+  /** the building under the cursor, by id */
+  onHover?: (id: string | null) => void;
+  inset: Inset;
+}) {
+  const { nodes, routes, byId, city, pulse, newcomers } = data;
+  const painted = sizeBy === "versions";
+  const mixOf = (id: string) => (painted ? versions?.get(id) ?? null : null);
+  const onPct = (id: string) => {
+    const m = versions?.get(id);
+    const known = m ? m.on + m.near + m.stale : 0;
+    return m && known > 0 ? Math.round((m.on / mixTotal(m)) * 100) : null;
+  };
+  const [hover, setHover] = useState<string | null>(null);
+  const [hoverRoute, setHoverRoute] = useState<string | null>(null);
+  // the district under the cursor
+  const [hoverDistrict, setHoverDistrict] = useState<District | null>(null);
+  const still = useStill();
+  const router = useRouter();
+  const [ground, setGround] = useState(false);
+  // a ledger tile under the cursor, by tx hash
+  const [hoverTx, setHoverTx] = useState<string | null>(null);
+  const openTx = useCallback((hash: string) => router.push(`/explorer/mainnet/p-chain/tx/${hash}`), [router]);
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  // the canvas draws in its own pixels
+  const wrap = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ w: W, h: H });
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // hover leads; a selection holds the light when the cursor leaves
+  const pickedId = selected && byId.has(selected) ? selected : null;
+  const lit = hover ?? hovered ?? pickedId;
   // the lit set and the sets it talks with; a set with no routes lights alone and dims nothing
   const near = useMemo(() => {
     if (!lit) return null;
@@ -1131,11 +1172,10 @@ export function IcmNetworkMap({
     for (const r of routes) if (r.from === lit || r.to === lit) s.add(r.from).add(r.to);
     return s.size > 1 ? s : null;
   }, [lit, routes]);
-  const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
-  // the page's other views follow the cursor over the towers
+  // the app's lists follow the cursor over the buildings
   useEffect(() => {
-    onHoverName?.(hover ? byId.get(hover)?.name ?? null : null);
-    // the parent's callback identity does not matter, only the tower
+    onHover?.(hover);
+    // the parent's callback identity does not matter, only the building
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hover]);
   // painter's order: back of the plate first
@@ -1149,31 +1189,45 @@ export function IcmNetworkMap({
   }, [city, byId]);
   // a district that left the map (the data moved on) takes the camera back out
   useEffect(() => {
-    if (focus && !districtSets.has(focus)) setFocus(null);
+    if (focus && !districtSets.has(focus)) onFocus(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus, districtSets]);
-  useEffect(() => {
-    if (!focus) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFocus(null);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [focus]);
-  /* the camera: into a district, it frames its buildings in the room the
-     panel leaves on the left; out, it is the whole plate */
-  const PANEL = 300;
+  /* the camera draws the scene in the canvas's own pixels. At home it
+     fits the whole plate into the room the app's panels leave; in a
+     district it frames the district's buildings, closer but never so close
+     that the district loses its neighbours */
+  const room = {
+    x0: inset.left,
+    y0: inset.top,
+    w: Math.max(160, size.w - inset.left - inset.right),
+    h: Math.max(160, size.h - inset.top - inset.bottom),
+  };
+  const sceneTop = Math.min(CY - PLATE * TILT - 8, ...nodes.map((n) => n.y - n.h - n.w * TILT - (n.role === "hub" ? 40 : 22)));
+  const sceneBottom = CY + PLATE * TILT + PLATE_T + 20;
+  const homeK = Math.min(room.w / (2 * PLATE + 24), room.h / (sceneBottom - sceneTop));
   const zoom = useMemo(() => {
+    const fit = (x0: number, y0: number, x1: number, y1: number, k: number) => ({
+      k,
+      tx: room.x0 + room.w / 2 - (k * (x0 + x1)) / 2,
+      ty: room.y0 + room.h / 2 - (k * (y0 + y1)) / 2,
+    });
     const sets = focus ? districtSets.get(focus) : null;
-    if (!sets?.length) return { k: 1, tx: 0, ty: 0 };
+    if (!sets?.length) return fit(CX - PLATE - 12, sceneTop, CX + PLATE + 12, sceneBottom, homeK);
     const x0 = Math.min(...sets.map((n) => n.x - n.w)) - 70;
     const x1 = Math.max(...sets.map((n) => n.x + n.w)) + 70;
     const y0 = Math.min(...sets.map((n) => n.y - n.h - n.w * TILT)) - 60;
     const y1 = Math.max(...sets.map((n) => n.y + n.w * TILT)) + 50;
-    const room = W - PANEL;
-    // close enough to name every set, far enough to keep the district's neighbours in the frame
-    const k = Math.min(2.2, room / (x1 - x0), H / (y1 - y0));
-    return { k, tx: room / 2 - k * ((x0 + x1) / 2), ty: H / 2 - k * ((y0 + y1) / 2) };
-  }, [focus, districtSets]);
+    return fit(x0, y0, x1, y1, Math.min(homeK * 1.8, room.w / (x1 - x0), room.h / (y1 - y0)));
+    // the room and the scene's extent are plain numbers, read fresh
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus, districtSets, room.x0, room.y0, room.w, room.h, homeK, sceneTop]);
   const zx = (x: number) => zoom.k * x + zoom.tx;
   const zy = (y: number) => zoom.k * y + zoom.ty;
+  /** a word's place in the canvas, gliding with the camera */
+  const place = (x: number, y: number): CSSProperties => ({
+    transform: `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`,
+    transition: still ? undefined : `transform 900ms ${EASE_CSS}`,
+  });
   const glide = useGlide(nodes, still);
   // a conversion seen live, by tx, to the foot of the tower it made
   const joins = useMemo(() => {
@@ -1208,13 +1262,14 @@ export function IcmNetworkMap({
     ].sort((a, b) => b[1] - a[1])[0];
 
   // a guest is not in the tables to cut, so its click opens its P-Chain page
-  const pick = (n: Node) => (n.guest ? n.href && router.push(n.href) : onPick?.(n.name));
-  const pickedNode = pickedId ? byId.get(pickedId) : null;
-  const talking = nodes.filter((n) => n.role !== "quiet").sort((a, b) => b.out + b.in - (a.out + a.in));
-  const maxTalk = Math.max(1, ...talking.map((n) => n.out + n.in));
+  // a click selects a set, and a second click lets it go
+  const pick = (n: Node) => onSelect(pickedId === n.id ? null : n.id);
 
   const halo = "pointer-events-none select-none stroke-white [paint-order:stroke] [stroke-width:4px] dark:stroke-zinc-950";
 
+
+  type Box = [number, number, number, number];
+  const hits = (taken: Box[], b: Box) => taken.some((t) => b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]);
 
   /* each district's name round the city's edge, out from its middle, like
      the hours round a dial: under the city in front, and elsewhere just
@@ -1226,7 +1281,8 @@ export function IcmNetworkMap({
         const mid = (t.a0 + t.a1) / 2;
         const c = Math.cos(mid);
         const s = Math.sin(mid);
-        const w = (t.label.length + 3) * 11 * 0.68 + t.label.length * 11 * 0.18 + 8;
+        // the name's width on screen, in the scene's units at the home camera
+        const w = ((t.label.length + 3) * 11 * 0.68 + t.label.length * 11 * 0.18 + 8) / homeK;
         // in front, under the district's last ring; elsewhere just past it
         const front = s > 0.3;
         const r = t.r1 + city.lot * (front ? 0.75 : 0.35);
@@ -1250,18 +1306,26 @@ export function IcmNetworkMap({
           const x = clampX(CX + r * Math.cos(a), gy);
           const under = nodes.filter((n) => n.x + n.w > x - w / 2 - 4 && n.x - n.w < x + w / 2 + 4 && n.y < gy + 40);
           const y = Math.min(gy, ...under.map((n) => n.y - n.h - n.w * TILT - (n.logo ? 18 : 4))) - 10;
-          const cost = gy - y + Math.abs(k - 4) * 3;
+          // rising costs a pixel a pixel; leaving the district's middle costs more, so a name stays by its district
+          const cost = gy - y + Math.abs(k - 4) * 9;
           if (!best || cost < best.cost) best = { x, y, cost };
         }
         const x = best!.x;
         const y = Math.max(16, best!.y);
         return { ward: t, x, y, w, anchor: "middle" as const, box: [x - w / 2, y - 10, x + w / 2, y + 8] as Box };
-      }),
-    [city, nodes],
+      })
+      // a name that would touch another's steps away from the city's middle until it is clear
+      .reduce<{ ward: Ward; x: number; y: number; w: number; anchor: "middle"; box: Box }[]>((placed, s) => {
+        const step = (22 / homeK) * (s.y < CY ? -1 : 1);
+        let { y, box } = s;
+        for (let k = 0; k < 6 && hits(placed.map((p) => p.box), box); k++) {
+          y += step;
+          box = [box[0], box[1] + step, box[2], box[3] + step];
+        }
+        return [...placed, { ...s, y, box }];
+      }, []),
+    [city, nodes, homeK],
   );
-
-  type Box = [number, number, number, number];
-  const hits = (taken: Box[], b: Box) => taken.some((t) => b[0] < t[2] && b[2] > t[0] && b[1] < t[3] && b[3] > t[1]);
 
   /* in a district, a label per set over its roof logo, in the camera's frame:
      straight up, stepped higher, or out to a side, so no two labels meet
@@ -1286,7 +1350,7 @@ export function IcmNetworkMap({
         const x = ax + side * 12;
         return { x, y: ay - lift, anchor: side > 0 ? "start" : "end", lx: x - side * 3, ly: ay - lift, box: side > 0 ? [x, ay - 9 - lift, x + w, ay + 8 - lift] : [x - w, ay - 9 - lift, x, ay + 8 - lift] };
       };
-      const tries = [up(0), aside(1, 0), aside(-1, 0), up(20), aside(1, 20), aside(-1, 20), up(40), aside(1, 40), aside(-1, 40), up(60)].filter((t) => t.box[0] >= 4 && t.box[2] <= W - PANEL - 8 && t.box[1] >= 4);
+      const tries = [up(0), aside(1, 0), aside(-1, 0), up(20), aside(1, 20), aside(-1, 20), up(40), aside(1, 40), aside(-1, 40), up(60)].filter((t) => t.box[0] >= room.x0 + 4 && t.box[2] <= room.x0 + room.w - 4 && t.box[1] >= room.y0 + 4);
       const self = towers[sets.indexOf(n)];
       const clear = (t: Try, withTowers: boolean) => !hits(labels, t.box) && (!withTowers || !hits(towers.filter((b) => b !== self), t.box));
       const pick = tries.find((t) => clear(t, true)) ?? tries.find((t) => clear(t, false));
@@ -1301,162 +1365,27 @@ export function IcmNetworkMap({
 
   /* downtown flies its name from the spire, a flag in the brand's red; its figures are in its tooltip */
   const hubFlag = (n: Node) => {
-    const tip = n.y - n.h - n.w * 0.72 * TILT - 29;
     const fw = 76;
     return (
-      <>
-        <path
-          d={`M${n.x + 1},${tip} L${n.x + fw},${tip} L${n.x + fw - 5},${tip + 8} L${n.x + fw},${tip + 16} L${n.x + 1},${tip + 16} Z`}
-          className={pickedId === n.id ? "fill-[#0061E2] dark:fill-[#5f9dff]" : "fill-[#E6212F]"}
-        />
-        <text x={n.x + 7} y={tip + 8.5} dominantBaseline="central" className="pointer-events-none select-none fill-white font-mono text-[9.5px] font-bold uppercase tracking-[0.16em]">
+      <g style={place(zx(n.x), zy(n.y - n.h - n.w * 0.72 * TILT) - 29)}>
+        <path d={`M1,0 L${fw},0 L${fw - 5},8 L${fw},16 L1,16 Z`} className={pickedId === n.id ? "fill-[#0061E2] dark:fill-[#5f9dff]" : "fill-[#E6212F]"} />
+        <text x={7} y={8.5} dominantBaseline="central" className="pointer-events-none select-none fill-white font-mono text-[9.5px] font-bold uppercase tracking-[0.16em]">
           C-Chain
         </text>
-      </>
+      </g>
     );
   };
 
-  const swatch = (paint: string, label: string) => (
-    <span key={label} className="flex items-center gap-1.5">
-      <span className="h-2.5 w-1.5 border border-zinc-700/40 dark:border-zinc-300/40" style={{ background: paint }} />
-      {label}
-    </span>
-  );
-  const prevMinor = (() => {
-    const m = /^(\d+)\.(\d+)/.exec(target);
-    return m ? `${m[1]}.${Number(m[2]) - 1}` : "behind";
-  })();
-  const legend = (
-    <span className="hidden shrink-0 items-center gap-4 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 lg:flex dark:text-zinc-500">
-      {painted ? (
-        <>
-          {swatch(TONE.on.left, `${target}+`)}
-          {swatch(TONE.near.left, prevMinor)}
-          {swatch(TONE.stale.left, "older")}
-          {swatch(TONE.unknown.left, "unknown")}
-        </>
-      ) : (
-        swatch(BLOCK_GRAY, `height · ${sizeBy}`)
-      )}
-      <span className="flex items-center gap-1.5">
-        <span className="relative flex w-5 items-center">
-          <span className="w-full border-t border-[#2A1F66]/40 dark:border-[#E9E4FF]/50" />
-          <span className="absolute left-1.5 h-1.5 w-1.5 rounded-full bg-[#2A1F66] dark:bg-[#F4F1FF]" />
-        </span>
-        traffic · ICM
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="flex gap-px">
-          {(["stake", "reward", "move"] as const).map((f) => (
-            <span key={f} className={cn("h-2.5 w-1", FAM[f].bg)} />
-          ))}
-        </span>
-        ground · P-Chain
-      </span>
-    </span>
-  );
-
-  /* the city's index under the plate: downtown, then each district with
-     what it is for and every set in it, largest first, the Frontier last.
-     A row cuts the tables as its building does and lights the building;
-     a district's name flies the camera in */
-  const hubNode = nodes.find((n) => n.role === "hub") ?? null;
-  const indexOrder = [...city.wards].sort((a, b) => Number(a.district === "frontier") - Number(b.district === "frontier") || b.ids.length - a.ids.length);
-  const indexRow = (n: Node) => {
-    const on = pickedId === n.id;
-    const pct = onPct(n.id);
-    return (
-      <li key={n.id}>
-        <button
-          type="button"
-          onClick={() => pick(n)}
-          onMouseEnter={() => setHover(n.id)}
-          onMouseLeave={() => setHover(null)}
-          aria-pressed={on}
-          className={cn(
-            "flex w-full items-center gap-2 rounded-md px-1.5 py-[3px] text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900",
-            on && "bg-[#0061E2]/[0.07] dark:bg-[#5b9bff]/10",
-          )}
-        >
-          <Logo uri={n.logo} name={n.name} />
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-[12.5px]",
-              on ? "text-[#0061E2] dark:text-[#5f9dff]" : n.newAt !== null ? "text-[#5400FF] dark:text-[#A48CFF]" : "text-zinc-800 dark:text-zinc-200",
-            )}
-          >
-            {n.role === "hub" ? "C-Chain" : n.name}
-          </span>
-          <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-zinc-400 dark:text-zinc-500">{n.validators}</span>
-          {painted && versions && (
-            <span className={cn("w-8 shrink-0 text-right font-mono text-[10px] tabular-nums", pctInk(versions.get(n.id), pct))}>{pct === null ? "—" : `${pct}%`}</span>
-          )}
-        </button>
-      </li>
-    );
-  };
-  const indexHead = (label: string, count: number | null, district: District | null) => {
-    const words = (
-      <>
-        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.16em]">{label}</span>
-        {count !== null && <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">{count}</span>}
-      </>
-    );
-    return district ? (
-      <>
-        {/* the model is on large screens only, so only there does the name open a district */}
-        <button
-          type="button"
-          onClick={() => setFocus(district)}
-          onMouseEnter={() => setHoverDistrict(district)}
-          onMouseLeave={() => setHoverDistrict(null)}
-          className="hidden items-baseline gap-2 text-zinc-900 transition-colors hover:text-[#5400FF] lg:flex dark:text-zinc-100 dark:hover:text-[#B9A8FF]"
-        >
-          {words}
-        </button>
-        <span className="flex items-baseline gap-2 text-zinc-900 lg:hidden dark:text-zinc-100">{words}</span>
-      </>
-    ) : (
-      <span className="flex items-baseline gap-2 text-zinc-900 dark:text-zinc-100">{words}</span>
-    );
-  };
-  const index = (
-    <div className="border-t border-zinc-200 px-5 pb-3 pt-5 md:px-6 dark:border-zinc-800">
-      <div className="columns-1 gap-x-8 sm:columns-2 lg:columns-4 xl:columns-5">
-        {hubNode && (
-          <section className="mb-5 break-inside-avoid">
-            {indexHead("Downtown", null, null)}
-            <p className="mb-1.5 mt-0.5 text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400">The Primary Network. Its P-Chain registers every L1.</p>
-            <ul>{indexRow(hubNode)}</ul>
-          </section>
-        )}
-        {indexOrder.map((t) => (
-          <section key={t.district} className="mb-5 break-inside-avoid">
-            {indexHead(t.label, t.ids.length, t.district)}
-            <p className="mb-1.5 mt-0.5 text-[11.5px] leading-snug text-zinc-500 dark:text-zinc-400">{districtAbout(t.district)}</p>
-            <ul>{(districtSets.get(t.district) ?? []).map(indexRow)}</ul>
-          </section>
-        ))}
-      </div>
-    </div>
-  );
-
-  let body: React.ReactNode;
-  if (failed) body = <EmptyRow>Chain feed unavailable</EmptyRow>;
-  else if (!chains) body = <div className="h-72 animate-pulse bg-zinc-100 lg:h-[640px] dark:bg-zinc-900" />;
-  else if (nodes.length === 0) body = <EmptyRow>No chains to draw</EmptyRow>;
-  else
-    body = (
-      <>
-        {/* the model, from lg up */}
-        <div
-          className="relative hidden lg:block"
-          onMouseLeave={() => {
-            setHover(null);
-            setHoverRoute(null);
-          }}
-        >
-          <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={`Avalanche L1s as a city: each a building as tall as its validator count, in the district of what it is for, with ${windowLabel} of ICM traffic on its streets`}>
+  return (
+    <div
+      ref={wrap}
+      className="relative h-full w-full overflow-hidden"
+      onMouseLeave={() => {
+        setHover(null);
+        setHoverRoute(null);
+      }}
+    >
+          <svg viewBox={`0 0 ${Math.round(size.w)} ${Math.round(size.h)}`} className="absolute inset-0 block h-full w-full" role="img" aria-label={`Avalanche L1s as a city: each a building as tall as its validator count, in the district of what it is for, with ${windowLabel} of ICM traffic on its streets`}>
             {!still && (
               <style>{`@keyframes ${uid}rise{from{transform:scaleY(0.02)}to{transform:scaleY(1)}}`}</style>
             )}
@@ -1473,21 +1402,13 @@ export function IcmNetworkMap({
             {/* the scene, which the camera moves: the ground, the ledger, the towers and the routes */}
             <g style={{ transformOrigin: "0 0", transform: `matrix(${zoom.k},0,0,${zoom.k},${zoom.tx},${zoom.ty})`, transition: still ? undefined : `transform 900ms ${EASE_CSS}` }}>
 
-            {/* the ground is the P-Chain: a slab in its violet, a lattice and the two rings
-                cut into it; a click opens its explorer. Its ledger rings the rim, over it */}
+            {/* the ground is the P-Chain: a slab in its violet with the city laid on it.
+                A click on it steps back: out of a set, then out of a district. Its ledger rings the rim */}
             <g
-              role="link"
-              tabIndex={0}
-              aria-label="The ground is the P-Chain. Open the P-Chain explorer"
               onMouseEnter={() => setGround(true)}
               onMouseLeave={() => setGround(false)}
-              onFocus={() => setGround(true)}
-              onBlur={() => setGround(false)}
-              onClick={() => (focus ? setFocus(null) : router.push("/explorer/mainnet/p-chain"))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") router.push("/explorer/mainnet/p-chain");
-              }}
-              className="cursor-pointer outline-none"
+              onClick={() => (pickedId ? onSelect(null) : focus ? onFocus(null) : undefined)}
+              className={pickedId || focus ? "cursor-pointer" : undefined}
             >
               <ellipse cx={CX} cy={CY + PLATE_T} rx={PLATE} ry={PLATE * TILT} className="fill-[#E7E2FA] stroke-[#D4CCF4] dark:fill-[#1C1731] dark:stroke-[#2F2752]" strokeWidth={1} />
               <rect x={CX - PLATE} y={CY} width={PLATE * 2} height={PLATE_T} className="fill-[#E7E2FA] dark:fill-[#1C1731]" />
@@ -1498,7 +1419,7 @@ export function IcmNetworkMap({
                 cy={CY}
                 rx={PLATE}
                 ry={PLATE * TILT}
-                className={cn("stroke-[#D4CCF4] transition-[fill] duration-300 dark:stroke-[#2F2752]", ground ? "fill-[#F1EDFF] dark:fill-[#17122E]" : "fill-[#F8F6FF] dark:fill-[#110E1F]")}
+                className={cn("stroke-[#D4CCF4] transition-[fill] duration-300 dark:stroke-[#2F2752]", ground && (pickedId || focus) ? "fill-[#F1EDFF] dark:fill-[#17122E]" : "fill-[#F8F6FF] dark:fill-[#110E1F]")}
                 strokeWidth={1}
               />
               {/* the city, drawn in plan and laid on the plate: each district's
@@ -1547,7 +1468,8 @@ export function IcmNetworkMap({
               </g>
             </g>
 
-            <RimCaption uid={uid} tip={pulse.txs[0] ?? null} ground={ground} still={still} />
+            {/* the ground steps back rather than leaving the city, so the rim keeps the P-Chain's tip */}
+            <RimCaption uid={uid} tip={pulse.txs[0] ?? null} ground={false} still={still} />
             <LedgerRing txs={pulse.txs} outgoing={pulse.outgoing} epoch={pulse.epoch} still={still} hovered={hoverTx} onHover={setHoverTx} onOpen={openTx} />
             {!still && <Signals txs={pulse.txs} joins={joins} />}
             {/* a hovered tile's line to the set it touched */}
@@ -1742,19 +1664,20 @@ export function IcmNetworkMap({
                     onMouseLeave={() => setHoverDistrict(null)}
                     onFocus={() => setHoverDistrict(t.district)}
                     onBlur={() => setHoverDistrict(null)}
-                    onClick={() => setFocus(t.district)}
+                    onClick={() => onFocus(t.district)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
-                        setFocus(t.district);
+                        onFocus(t.district);
                       }
                     }}
                     className="cursor-pointer outline-none"
+                    style={place(zx(s.x), zy(s.y))}
                   >
-                    <rect x={s.box[0] - 6} y={s.box[1] - 4} width={s.box[2] - s.box[0] + 12} height={s.box[3] - s.box[1] + 8} fill="transparent" />
+                    <rect x={-s.w * homeK / 2 - 6} y={-14} width={s.w * homeK + 12} height={26} fill="transparent" />
                     <text
-                      x={s.x}
-                      y={s.y}
+                      x={0}
+                      y={0}
                       textAnchor={s.anchor}
                       dominantBaseline="central"
                       className={cn(halo, "font-mono text-[11px] font-semibold uppercase tracking-[0.18em] transition-[fill] duration-200", on ? "fill-[#5400FF] dark:fill-[#B9A8FF]" : "fill-zinc-800 dark:fill-zinc-100")}
@@ -1762,7 +1685,7 @@ export function IcmNetworkMap({
                       {t.label}
                       <tspan className={cn("font-normal tracking-[0.04em]", on ? "" : "fill-zinc-400 dark:fill-zinc-500")}> {t.ids.length}</tspan>
                     </text>
-                    <line x1={s.box[0]} x2={s.box[0] + 20} y1={s.y + 11} y2={s.y + 11} strokeWidth={1.5} className={cn("transition-opacity duration-200 stroke-[#5400FF] dark:stroke-[#B9A8FF]", on ? "opacity-100" : "opacity-0")} />
+                    <line x1={(-s.w * homeK) / 2} x2={(-s.w * homeK) / 2 + 20} y1={11} y2={11} strokeWidth={1.5} className={cn("transition-opacity duration-200 stroke-[#5400FF] dark:stroke-[#B9A8FF]", on ? "opacity-100" : "opacity-0")} />
                   </g>
                 );
               })}
@@ -1788,84 +1711,20 @@ export function IcmNetworkMap({
               </g>
             )}
           </svg>
-
-          {/* in a district: its sets, each a door into the tables below */}
-          {focus && (() => {
-            const ward = city.wards.find((t) => t.district === focus);
-            const sets = districtSets.get(focus) ?? [];
-            if (!ward) return null;
-            const vals = sets.reduce((a, n) => a + n.validators, 0);
-            const msgs = sets.reduce((a, n) => a + n.out + n.in, 0);
-            const known = versions ? sets.map((n) => versions.get(n.id)).filter((m): m is VersionMix => !!m) : [];
-            const onShare = known.length ? Math.round((known.reduce((a, m) => a + m.on, 0) / Math.max(1, known.reduce((a, m) => a + mixTotal(m), 0))) * 100) : null;
-            return (
-              <div
-                className="absolute bottom-4 right-4 top-4 z-10 flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white/95 shadow-[0_24px_48px_-24px_rgba(24,24,27,0.35)] backdrop-blur animate-in fade-in-0 slide-in-from-right-4 duration-500 dark:border-zinc-800 dark:bg-zinc-950/95"
-                style={{ width: `calc(${(PANEL / W) * 100}% - 16px)` }}
-              >
-                <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5 dark:border-zinc-900">
-                  <button
-                    type="button"
-                    onClick={() => setFocus(null)}
-                    className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-                  >
-                    <ArrowLeft className="h-3 w-3" /> All districts
-                  </button>
-                  <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">Esc</span>
-                </div>
-                <div className="flex flex-col gap-1 px-4 pb-2 pt-3.5">
-                  <span className={cn("font-mono text-[10px] font-bold uppercase tracking-[0.16em]", P_INK)}>District</span>
-                  <h3 className="text-[22px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{ward.label}</h3>
-                  <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-                    {sets.length} L1{sets.length === 1 ? "" : "s"} · {vals.toLocaleString("en-US")} validators · {fmtCompact(msgs)} msgs
-                    {painted && onShare !== null && target ? ` · ${onShare}% on ${target}` : ""}
-                  </p>
-                </div>
-                <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3">
-                  {sets.map((n) => {
-                    const on = pickedId === n.id;
-                    const pct = onPct(n.id);
-                    return (
-                      <li key={n.id}>
-                        <button
-                          type="button"
-                          onClick={() => pick(n)}
-                          onMouseEnter={() => setHover(n.id)}
-                          onMouseLeave={() => setHover(null)}
-                          aria-pressed={on}
-                          className={cn("flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-900", on && "bg-[#0061E2]/[0.07] dark:bg-[#5b9bff]/10")}
-                        >
-                          <Logo uri={n.logo} name={n.name} />
-                          <span className={cn("min-w-0 flex-1 truncate text-[13px]", on ? "text-[#0061E2] dark:text-[#5f9dff]" : n.newAt !== null ? "text-[#5400FF] dark:text-[#A48CFF]" : "text-zinc-900 dark:text-zinc-100")}>{n.name}</span>
-                          <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">{n.validators} val</span>
-                          {painted && versions ? (
-                            <span className={cn("w-9 shrink-0 text-right font-mono text-[10px] tabular-nums", pctInk(versions.get(n.id), pct))}>{pct === null ? "—" : `${pct}%`}</span>
-                          ) : (
-                            <span className="w-12 shrink-0 text-right font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">{n.out + n.in > 0 ? fmtCompact(n.out + n.in) : ""}</span>
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            );
-          })()}
-
           {tipNode && (
             <span
               className="pointer-events-none absolute z-20"
               style={{
-                top: `${(zy(tipNode.y - tipNode.h / 2) / H) * 100}%`,
+                top: zy(tipNode.y - tipNode.h / 2),
                 // on the building's outer side, off downtown and the routes into it, unless the frame's edge is too near
                 ...((() => {
                   const x = zx(tipNode.x);
-                  const outer = x > (focus ? (W - PANEL) / 2 : CX) ? 1 : -1;
-                  const room = outer > 0 ? (focus ? W - PANEL : W) - x : x;
-                  return (room > 260 ? outer : -outer) > 0;
+                  const outer = x > (room.x0 + room.w / 2) ? 1 : -1;
+                  const space = outer > 0 ? room.x0 + room.w - x : x;
+                  return (space > 260 ? outer : -outer) > 0;
                 })()
-                  ? { left: `calc(${(zx(tipNode.x) / W) * 100}% + ${tipNode.w * zoom.k + 16}px)` }
-                  : { right: `calc(${100 - (zx(tipNode.x) / W) * 100}% + ${tipNode.w * zoom.k + 16}px)` }),
+                  ? { left: zx(tipNode.x) + tipNode.w * zoom.k + 16 }
+                  : { right: size.w - zx(tipNode.x) + tipNode.w * zoom.k + 16 }),
                 transform: "translateY(-50%)",
               }}
             >
@@ -1897,18 +1756,14 @@ export function IcmNetworkMap({
                   const p = topPartner(tipNode.id);
                   return p ? <TipRow label="Most with" value={byId.get(p[0])?.name ?? p[0]} /> : null;
                 })()}
-                {tipNode.guest ? (
-                  <p className="mt-1 font-mono text-[10px] text-zinc-400">Not in the directory yet. Click to open it on the P-Chain</p>
-                ) : (
-                  onPick && <p className="mt-1 font-mono text-[10px] text-zinc-400">{pickedId === tipNode.id ? "Click to clear the cut" : "Click to cut the tables"}</p>
-                )}
+                <p className="mt-1 font-mono text-[10px] text-zinc-400">{pickedId === tipNode.id ? "Click to let it go" : "Click to open it"}</p>
               </TipPlate>
             </span>
           )}
           {tipRoute && (
             <span
               className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-[calc(100%+10px)]"
-              style={{ left: `${(zx(tipRoute.crown[0]) / W) * 100}%`, top: `${(zy(tipRoute.crown[1]) / H) * 100}%` }}
+              style={{ left: zx(tipRoute.crown[0]), top: zy(tipRoute.crown[1]) }}
             >
               <TipPlate>
                 <p className="font-mono text-[10px] text-zinc-500">
@@ -1937,7 +1792,7 @@ export function IcmNetworkMap({
             return (
               <span
                 className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-[calc(100%+12px)]"
-                style={{ left: `${(zx(x) / W) * 100}%`, top: `${(zy(y - RING_LIFT) / H) * 100}%` }}
+                style={{ left: zx(x), top: zy(y - RING_LIFT) }}
               >
                 <TipPlate>
                   <p className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-zinc-900 dark:text-zinc-100">
@@ -1954,147 +1809,6 @@ export function IcmNetworkMap({
               </span>
             );
           })()}
-        </div>
-
-        {/* phones and tablets: the model as two lists, the chains and the routes */}
-        <div className="lg:hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-5 py-2.5 dark:border-zinc-900">
-            <ViewSwitch
-              id="icm-map-phone"
-              value={phoneView}
-              onChange={setPhoneView}
-              options={[
-                { v: "chains", label: `Chains · ${talking.length}` },
-                { v: "routes", label: `Routes · ${routes.length}` },
-              ]}
-            />
-            {versions && onTarget && targets.length > 1 && (
-              <ViewSwitch id="icm-map-phone-target" value={target} onChange={onTarget} options={targets.slice(0, 3).map((t) => ({ v: t, label: t }))} />
-            )}
-          </div>
-          {phoneView === "chains" ? (
-            <ul>
-              {talking.map((n, i) => {
-                const on = pickedId === n.id;
-                const total = n.out + n.in;
-                const mix = versions?.get(n.id);
-                const pct = onPct(n.id);
-                return (
-                  <li key={n.id} className={cn("border-b border-zinc-100 last:border-b-0 dark:border-zinc-900", on && "bg-[#0061E2]/[0.06] dark:bg-[#5b9bff]/10")}>
-                    <button type="button" onClick={() => pick(n)} aria-pressed={on} className="grid w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-5 py-2.5 text-left">
-                      <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">{i + 1}</span>
-                      <span className="flex min-w-0 flex-col gap-1.5">
-                        <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                          <Logo uri={n.logo} name={n.name} />
-                          <span className="truncate">{n.name}</span>
-                          <span className="shrink-0 font-mono text-[10px] font-normal text-zinc-400 dark:text-zinc-500">{n.validators} val</span>
-                        </span>
-                        <span className="block h-1.5 max-w-full" style={{ width: `${Math.max(2, (total / maxTalk) * 100)}%`, background: on ? PICK_BLUE : BLOCK_GRAY }} />
-                        {mix && target && (
-                          <span className="flex items-center gap-2">
-                            <MixBar mix={mix} className="w-24 shrink-0" />
-                            <span className={cn("font-mono text-[10px] tabular-nums", pctInk(mix, pct))}>{pct === null ? "not reported" : `${pct}% on ${target}`}</span>
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-right font-mono text-[11px] tabular-nums leading-tight text-zinc-900 dark:text-zinc-50">
-                        {fmtCompact(n.out)} <span className="text-zinc-400 dark:text-zinc-500">out</span>
-                        <br />
-                        {fmtCompact(n.in)} <span className="text-zinc-400 dark:text-zinc-500">in</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <ul>
-              {[...routes]
-                .sort((a, b) => b.messages - a.messages)
-                .map((r) => {
-                  const a = byId.get(r.from);
-                  const b = byId.get(r.to);
-                  if (!a || !b) return null;
-                  const top = Math.max(1, ...routes.map((x) => x.messages));
-                  const on = !!pickedId && (r.from === pickedId || r.to === pickedId);
-                  return (
-                    <li key={r.key} className={cn("border-b border-zinc-100 px-5 py-2.5 last:border-b-0 dark:border-zinc-900", on && "bg-[#0061E2]/[0.06] dark:bg-[#5b9bff]/10")}>
-                      <span className="flex min-w-0 items-center justify-between gap-3">
-                        <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-zinc-900 dark:text-zinc-100">
-                          <Logo uri={a.logo} name={a.name} />
-                          <span className="truncate">{a.role === "hub" ? "C-Chain" : a.name}</span>
-                          <ArrowRight className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
-                          <Logo uri={b.logo} name={b.name} />
-                          <span className="truncate">{b.role === "hub" ? "C-Chain" : b.name}</span>
-                        </span>
-                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmtCompact(r.messages)}</span>
-                      </span>
-                      <span
-                        className="mt-1.5 block h-1.5 max-w-full"
-                        style={{ width: `${Math.max(1.5, Math.sqrt(r.messages / top) * 100)}%`, background: on ? PICK_BLUE : BLOCK_GRAY }}
-                      />
-                    </li>
-                  );
-                })}
-            </ul>
-          )}
-        </div>
-
-        <GroundKey pulse={pulse} arrivals={newcomers} />
-
-        {index}
-
-        {/* the pick, with its door */}
-        {pickedNode && (
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t border-zinc-200 px-5 py-2.5 font-mono text-[11px] md:px-6 dark:border-zinc-800">
-            <span className="min-w-0 truncate text-zinc-500 dark:text-zinc-400">
-              <span className="text-[#0061E2] dark:text-[#5f9dff]">{pickedNode.name}</span> · {pickedNode.validators} val · {fmtCompact(pickedNode.out)} out ·{" "}
-              {fmtCompact(pickedNode.in)} in<span className="hidden sm:inline"> · cuts the tables below</span>
-            </span>
-            {pickedNode.href && (
-              <Link
-                href={pickedNode.href}
-                className="inline-flex shrink-0 items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-[#0061E2] transition-colors hover:text-zinc-900 dark:text-[#5f9dff] dark:hover:text-zinc-100"
-              >
-                Open explorer
-                <ArrowRight className="h-3 w-3" />
-              </Link>
-            )}
-          </div>
-        )}
-      </>
-    );
-
-  return (
-    <section className="flex flex-col gap-4">
-      <SectionHeader
-        label={`Network Map · ${windowLabel}`}
-        action={
-          <span className="flex shrink-0 items-center gap-4">
-            {legend}
-            {painted && onTarget && targets.length > 1 && (
-              <span className="hidden lg:block">
-                <ViewSwitch id="icm-map-target" value={target} onChange={onTarget} options={targets.slice(0, 3).map((t) => ({ v: t, label: t }))} />
-              </span>
-            )}
-            <span className="hidden lg:block">
-              <ViewSwitch
-                id="icm-map-size"
-                value={sizeBy}
-                onChange={setSizeBy}
-                options={[
-                  ...(versions ? [{ v: "versions" as const, label: "Versions" }] : []),
-                  { v: "validators" as const, label: "Validators" },
-                  { v: "messages" as const, label: "Messages" },
-                ]}
-              />
-            </span>
-          </span>
-        }
-      />
-      <Board divide={false} className="border">
-        {body}
-      </Board>
-    </section>
+    </div>
   );
 }
