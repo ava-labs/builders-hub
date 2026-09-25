@@ -8,6 +8,7 @@ import { NetworkStatsBody } from "@/components/explorer-v2/network/NetworkStats"
 import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
+import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
 import { OverviewLiveBoards, type LiveChain } from "./overview-live";
 import {
   SPARK_MIN_DAYS,
@@ -15,7 +16,6 @@ import {
   levelWindow,
   useBurnHistory,
   useNetworkSeries,
-  usePriceHistory,
   useStakeHistory,
 } from "./overview-series";
 
@@ -60,8 +60,6 @@ interface SupplyData {
   totalPBurned: string;
   totalCBurned: string;
   totalXBurned: string;
-  price: number;
-  priceChange24h: number;
 }
 
 /* the overview aggregate's longest upstream window is a year: the ALL
@@ -128,10 +126,11 @@ export function NetworkOverview() {
   const days = RANGE_DAYS[clamped];
   const { data } = useOverviewStats(clamped);
   const supply = useAvaxSupply();
+  // DeFi on the C-Chain: DefiLlama's chain TVL, the same feed the DeFi tab reads
+  const { metrics: defi, loading: defiLoading } = useDapps();
 
   // the figures' pasts: sparks and moves against the previous window
   const series = useNetworkSeries(days);
-  const prices = usePriceHistory(days);
   const stake = useStakeHistory();
   const burn = useBurnHistory();
 
@@ -179,11 +178,6 @@ export function NetworkOverview() {
   const burnWin = levelWindow(burn, days);
   // throughput by day: each day's transactions over its seconds
   const tpsSpark = series && days >= SPARK_MIN_DAYS ? series.txCount.slice(-days).map((p) => p.v / 86_400) : undefined;
-  const priceSpark = prices ? prices.slice(-Math.max(days, SPARK_MIN_DAYS)) : undefined;
-  const priceMove =
-    days <= 1
-      ? supply && Number.isFinite(supply.priceChange24h) ? supply.priceChange24h : null
-      : supply?.price && priceSpark && priceSpark[0] > 0 ? (supply.price / priceSpark[0] - 1) * 100 : null;
 
   // coverage, stated once above the figures it limits
   const coverage =
@@ -212,13 +206,12 @@ export function NetworkOverview() {
             }
             spark={tpsSpark}
           />
+          {/* no spark: the repo holds no chain-wide TVL history, only per protocol */}
           <Readout
-            label="AVAX Price"
-            live
-            href="/explorer/mainnet/token"
-            value={supply ? (supply.price ? `$${supply.price.toFixed(2)}` : "—") : null}
-            delta={priceMove}
-            spark={priceSpark}
+            label="TVL"
+            href="/explorer/mainnet/c-chain/defi"
+            value={defi?.totalTVL ? `$${fmtCompact(defi.totalTVL)}` : defiLoading ? null : "—"}
+            sub={defi?.totalProtocols ? `${defi.totalProtocols.toLocaleString("en-US")} protocols` : undefined}
           />
           <Readout
             label="Staked"
