@@ -4,22 +4,36 @@ import { NextMiddlewareResult } from "next/dist/server/web/types";
 import { NextRequest, NextResponse } from "next/server";
 import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
 import { PROTECTED_PATHS } from "@/lib/auth/protected-paths";
+import { getCorsHeaders } from "@/lib/security/cors";
 
 export async function proxy(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  const response = NextResponse.next();
-  response.headers.set("Access-Control-Allow-Origin", "*");
-  response.headers.set(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-  response.headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization"
-  );
+
+  // CORS: reflect only allowlisted origins instead of the blanket
+  // `Access-Control-Allow-Origin: *` this proxy used to stage on its response
+  // (see issue #3973). Credentials are never granted, so a reflected origin can
+  // read only public, unauthenticated responses. For a disallowed or absent
+  // Origin, `getCorsHeaders` returns nothing and the response is byte-identical
+  // to the prior same-origin behavior.
+  const corsHeaders = getCorsHeaders(req.headers.get("origin"));
+  const grantsCors = Object.keys(corsHeaders).length > 0;
+  const applyCors = (res: NextResponse): NextResponse => {
+    for (const [key, value] of Object.entries(corsHeaders)) {
+      if (key === "Vary") {
+        const existing = res.headers.get("Vary");
+        res.headers.set("Vary", existing ? `${existing}, ${value}` : value);
+      } else {
+        res.headers.set(key, value);
+      }
+    }
+    return res;
+  };
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204 });
+    const headers = grantsCors
+      ? { ...corsHeaders, "Access-Control-Max-Age": "86400" }
+      : corsHeaders;
+    return new Response(null, { status: 204, headers });
   }
 
   // Team1 raw markdown API: the only branch we can't express through the
@@ -61,14 +75,14 @@ export async function proxy(req: NextRequest) {
     const apiUrl = new URL(`/api/raw${pathname}`, req.url);
     const rewriteResponse = NextResponse.rewrite(apiUrl);
     rewriteResponse.headers.set('Vary', 'Accept');
-    return rewriteResponse;
+    return applyCors(rewriteResponse);
   }
 
   // For content paths without markdown request, add Vary header and pass through
   if (isContentPath && !isProtectedAcademyPath) {
     const contentResponse = NextResponse.next();
     contentResponse.headers.set('Vary', 'Accept');
-    return contentResponse;
+    return applyCors(contentResponse);
   }
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -135,8 +149,9 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // For non-protected paths or unauthenticated users on non-protected paths, allow access
-  return NextResponse.next();
+  // For non-protected paths or unauthenticated users on non-protected paths,
+  // allow access, carrying the scoped CORS headers on the pass-through.
+  return applyCors(NextResponse.next());
 }
 
 export const config = {
