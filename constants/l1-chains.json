@@ -205,7 +205,7 @@
     "subnetId": "2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW",
     "slug": "btic",
     "color": "#06B6D4",
-    "category": "General",
+    "category": "Trade",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -248,7 +248,7 @@
     "subnetId": "o4Eariv2Cx1fTvPFXYofpJfS9KgwFaiGN8KFGcCeZM9t87GJr",
     "slug": "codenekt",
     "color": "#22C55E",
-    "category": "General",
+    "category": "Automotive",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -444,7 +444,7 @@
     "subnetId": "VsxF67NQTACc2fLQL9fD3F8LzJ5eezcSGFNitGsk7VxKbPwcD",
     "slug": "even",
     "color": "#F97316",
-    "category": "General",
+    "category": "Music",
     "description": "EVEN's custom Avalanche L1 is an end-to-end platform for artists to release music directly to their fans, designed to onboard creators faster, support real-time token-gated access, enable transparent revenue distribution, and build data-rich tools that help artists better understand and monetize their audiences.",
     "website": "https://www.avax.network/about/blog/even-moves-to-avalanche-to-power-the-future-of-fan-first-music",
     "explorers": [
@@ -552,7 +552,7 @@
     "subnetId": "2LwJgsZLT52eAaxLTMLtBQeiUnEZuMibCqpAzJSQWHvRPs1iWN",
     "slug": "hashfire",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Enterprise",
     "description": "Hashfire, built on a custom Avalanche L1 using AvaCloud's infrastructure, allows governments and enterprises to embed approval processes, compliance rules and payment instructions directly into smart contracts.",
     "website": "https://hashfire.xyz/",
     "socials": {
@@ -631,7 +631,7 @@
     "subnetId": "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu",
     "slug": "innovo",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Energy",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -680,7 +680,7 @@
     "subnetId": "fZu9D9Ldxq9svbgRNdycWCSbLyEZLmTfKNxEnSqF3UXQztHP7",
     "slug": "loyal",
     "color": "#F97316",
-    "category": "General",
+    "category": "Loyalty",
     "description": "Japanese enterprise Loyalty Marketing partnered with blockchain services provider PlayThink to bring Loyalty Marketing's popular loyalty rewards program, 'Ponta', onchain to its 100M users. The Avalanche L1 issues and manage digital loyalty points and NFTs, enabling faster, cheaper, and more transparent customer rewards.",
     "website": "https://www.avax.network/about/press/playthink-and-loyalty-marketing-announce-web3-ecosystem-avalanche/?utm_source=chatgpt.com",
     "explorers": [
@@ -734,7 +734,7 @@
     "blockchainId": "0xd32cc4660bcf8fa7971589f666fddb5ab22aee7e75dcb30b19829a65d4fb0063",
     "slug": "numi",
     "color": "#22C55E",
-    "category": "General",
+    "category": "Media",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -799,7 +799,7 @@
     "subnetId": "26NzZkCTeUHfqdxRcUXDTAurNxDsT6mYLwSEqTz3s11G1rQV14",
     "slug": "pandasea",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Sports",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -812,7 +812,7 @@
     "subnetId": "2wLe8Ma7YcUmxMJ57JVWETMSHz1mjXmJc5gmssvKm3Pw8GkcFq",
     "slug": "playa3ull",
     "color": "#10B981",
-    "category": "General",
+    "category": "Gaming",
     "description": "PLAYA3ULL built a gaming-centric blockchain ecosystem: a dedicated Avalanche L1 powering the native token for in-game gas, transactions and deflationary mechanics. It enables players to truly own, trade, and earn from their in-game assets across a growing library of Web3 titles built on the PLAYA3ULL chain.",
     "website": "https://playa3ull.games/",
     "explorers": [
@@ -885,7 +885,7 @@
     "subnetId": "hkugVjqegihrQcggCnScNW8yQctyY7Z7oj2Mj5tGxWGXNa5iQ",
     "slug": "space",
     "color": "#A855F7",
-    "category": "General",
+    "category": "Collectibles",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -942,7 +942,7 @@
     "subnetId": "2W9sERL7Zf7NrWpz7Bzg3fKSEt46gSQaKAU7ntTMSShLy64yMz",
     "slug": "straitsx",
     "color": "#84CC16",
-    "category": "General",
+    "category": "Finance",
     "description": "StraitsX integrated its SGD-pegged stablecoin XSGD on Avalanche, enabling faster, lower-fee, compliant cross-border payments and DeFi liquidity in Southeast Asia. Built for institutions, exchanges, and fintechs globally, StraitsX powers compliant, programmable transactions with stablecoins.",
     "website": "https://www.straitsx.com/",
     "explorers": [
@@ -975,7 +975,7 @@
     "subnetId": "2LbGgyVZE5aMMYPp3h1F2MkKbjefR51nSZWaZzarDZf8GThCcX",
     "slug": "titan",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Media",
     "description": "Titan Content, the Los Angeles–based K-pop powerhouse, introduced 2GATHR, a next-generation fan engagement app powered by TITAN, a custom Avalanche L1 built with AvaCloud. The app will soon be live on Google Play and the Apple App Store, offering K-pop fans an interactive, verifiable way to connect with their favorite artists.",
     "website": "https://www.avax.network/about/blog/titan-content-launches-2gathr-on-avalanche",
     "explorers": [
@@ -1263,6 +1263,7 @@
     "subnetId": "21uUaTxVdR3Sp6SJhpcSrdH1g66aFoE8mPQDvwKJCjXNexo5y6",
     "slug": "kite",
     "color": "#de9f27",
+    "category": "AI",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1491,6 +1492,7 @@
     "blockchainId": "0x4d17dde28b48d8261d0e157ff214900e6575600325f02d6efb416eebdbde4ba9",
     "subnetId": "2qZWoi4PSG69vdYAQ9otTxMGmRh8YgAXEsm4HMbZZkMamibU76",
     "slug": "the-grotto",
+    "category": "Media",
     "rpcUrl": "https://subnets.avax.network/thegrotto/mainnet/rpc",
     "networkToken": {
       "name": "HERESY",
