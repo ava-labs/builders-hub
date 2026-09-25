@@ -6,14 +6,16 @@ import { Board, HashChip, SectionHeader, SpecLine, SpecSheet } from "@/component
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
-import { BurnBoard, FeeBlock, LiveBurnsBoard, SupplyBoard, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
+import { FeeBlock, LiveBurnsBoard, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
+import { SupplyModel } from "./token-model";
+import { levelWindow, useBurnHistory, useStakeHistory } from "./overview-series";
 import { HoldersSection } from "./token-holders";
 
-/* The network scope's Token facet: AVAX across the P-, C-, and X-Chains
-   (formerly /stats/avax-token). The figures lead; then where the cap
-   sits and what each chain has burned, the fees burned on the page clock
-   beside the live burn, the institutions holding AVAX, and the token's
-   record at the foot. Mainnet-only. */
+/* The network scope's AVAX tab: the token across the P-, C-, and X-Chains
+   (formerly /stats/avax-token). Four figures lead; then the 720M cap as
+   one solid, the fees burned on the page clock beside the live burn, the
+   institutions holding AVAX, and the token's record at the foot, which
+   carries every other figure. Mainnet-only. */
 
 const AVAX_ASSET_ID = "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z";
 const WAVAX = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
@@ -71,6 +73,8 @@ export function NetworkToken() {
   const clock = useExplorerTimeRange();
   const period: Period = clock === "year" || clock === "all" ? "M" : clock === "quarter" ? "W" : "D";
   const prices = usePriceHistory(RANGE_DAYS[clock]);
+  const stakeWin = levelWindow(useStakeHistory(), RANGE_DAYS[clock]);
+  const burnWin = levelWindow(useBurnHistory(), Math.min(365, RANGE_DAYS[clock]));
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -269,7 +273,7 @@ export function NetworkToken() {
         </div>
       ) : (
         <div className="flex flex-col gap-12">
-          <ReadoutRow cols={5}>
+          <ReadoutRow>
             <Readout
               label="AVAX Price"
               live
@@ -277,40 +281,38 @@ export function NetworkToken() {
               sub={data && data.priceChange24h ? `${data.priceChange24h >= 0 ? "▲" : "▼"} ${Math.abs(data.priceChange24h).toFixed(2)}% · 24h` : undefined}
               spark={prices}
             />
-            <Readout label="Circulating Supply" value={fig(circulating)} unit="AVAX" sub={usdOf(circulating, price)} />
-            <Readout label="Total Supply" value={fig(totalSupply)} unit="AVAX" sub={data ? `${pctOf(totalSupply, TOKEN_CAP)} of cap` : undefined} />
+            <Readout label="Circulating" value={fig(circulating)} unit="AVAX" sub={data ? `${pctOf(circulating, TOKEN_CAP)} of cap · ${usdOf(circulating, price) ?? ""}` : undefined} />
             <Readout
-              label="Total Staked"
+              label="Staked"
               href="/explorer/mainnet/p-chain/staking"
               value={fig(n(data?.totalStaked))}
               unit="AVAX"
               sub={data ? `${pctOf(n(data.totalStaked), circulating)} of circulating` : undefined}
+              delta={stakeWin.delta}
+              spark={stakeWin.spark}
             />
-            <Readout label="Total Locked" value={fig(n(data?.totalLocked))} unit="AVAX" sub={data ? `${pctOf(n(data.totalLocked), circulating)} of circulating` : undefined} />
-            <Readout label="Staking Rewards" href="/explorer/mainnet/p-chain/staking" value={fig(n(data?.totalRewards))} unit="AVAX" sub={data ? "issued, all time" : undefined} />
-            <Readout label="Genesis Unlock" value={fig(n(data?.genesisUnlock))} unit="AVAX" sub={data ? `${pctOf(n(data.genesisUnlock), TOKEN_CAP)} of cap` : undefined} />
-            <Readout label="Total Burned" href="/explorer/mainnet/c-chain/gas" value={fig(burned)} unit="AVAX" sub={usdOf(burned, price)} />
-            <Readout label="L1 Validator Fees" href="/explorer/mainnet/p-chain/l1s" value={fig(n(data?.l1ValidatorFees))} unit="AVAX" sub={data ? "paid, all time" : undefined} />
             <Readout
-              label="ICM Fees"
-              href="/explorer/mainnet/chains"
-              value={data ? avax(icmTotal) : loading ? null : "—"}
+              label="Burned"
+              href="/explorer/mainnet/c-chain/gas"
+              value={fig(burned)}
               unit="AVAX"
-              sub={clock === "all" ? "1 year" : RANGE_LABEL[clock]}
-              spark={RANGE_DAYS[clock] >= 7 ? icmWindow.map((d) => d.value) : undefined}
+              sub={usdOf(burned, price)}
+              delta={burnWin.delta}
+              spark={burnWin.spark}
             />
           </ReadoutRow>
 
           {data ? (
-            <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-              <SupplyBoard circulating={circulating} staked={n(data.totalStaked)} locked={n(data.totalLocked)} burned={burned} />
-              <BurnBoard c={n(data.totalCBurned)} p={n(data.totalPBurned)} x={n(data.totalXBurned)} />
-            </div>
+            <SupplyModel
+              circulating={circulating}
+              staked={n(data.totalStaked)}
+              locked={n(data.totalLocked)}
+              burned={burned}
+              burnedBy={{ c: n(data.totalCBurned), p: n(data.totalPBurned), x: n(data.totalXBurned) }}
+              price={price}
+            />
           ) : (
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-              <div className="h-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-              <div className="h-72 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-            </div>
+            <div className="h-72 animate-pulse bg-zinc-100 lg:h-[34rem] dark:bg-zinc-900" />
           )}
 
           {/* the burn over the clock, and the burn this second */}
@@ -346,6 +348,28 @@ export function NetworkToken() {
                   <HashChip value={WAVAX} href={`/explorer/mainnet/c-chain/address/${WAVAX}`} len={12} />
                 </SpecLine>
                 <SpecLine label="Supply Cap">{TOKEN_CAP.toLocaleString("en-US")} AVAX</SpecLine>
+                {data && (
+                  <>
+                    <SpecLine label="Total Supply">
+                      {avax(totalSupply)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(totalSupply, TOKEN_CAP)} of cap, the cap less every burn</span>
+                    </SpecLine>
+                    <SpecLine label="Locked">
+                      {avax(n(data.totalLocked))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.totalLocked), circulating)} of circulating</span>
+                    </SpecLine>
+                    <SpecLine label="Staking Rewards">
+                      {avax(n(data.totalRewards))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· issued, all time</span>
+                    </SpecLine>
+                    <SpecLine label="Genesis Unlock">
+                      {avax(n(data.genesisUnlock))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {pctOf(n(data.genesisUnlock), TOKEN_CAP)} of cap</span>
+                    </SpecLine>
+                    <SpecLine label="L1 Validator Fees">
+                      {avax(n(data.l1ValidatorFees))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· paid, all time</span>
+                    </SpecLine>
+                    <SpecLine label="ICM Fees">
+                      {avax(icmTotal)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {clock === "all" ? "1 year" : RANGE_LABEL[clock]}</span>
+                    </SpecLine>
+                  </>
+                )}
                 <SpecLine label="Denomination">9 decimals on the P- and X-Chains, 18 on the C-Chain</SpecLine>
                 {data?.lastUpdated && <SpecLine label="Updated">{new Date(data.lastUpdated).toLocaleString("en-US")}</SpecLine>}
               </SpecSheet>
