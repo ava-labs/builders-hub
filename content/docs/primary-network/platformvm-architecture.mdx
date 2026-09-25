@@ -3,16 +3,22 @@ title: PlatformVM Architecture
 description: How the P-Chain manages validators, staking, and Avalanche L1 creation inside AvalancheGo.
 ---
 
-PlatformVM (P-Chain) runs on Snowman++ and controls validators, staking rewards, subnet membership, and chain creation. Source lives in [`vms/platformvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm) and its block/tx types in [`vms/platformvm/txs`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/txs).
+PlatformVM (P-Chain) runs on Snowman++ and controls validators, staking rewards, Subnet/L1 membership, and chain creation. Source lives in [`vms/platformvm`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm) and its block/tx types in [`vms/platformvm/platform`](https://github.com/ava-labs/avalanchego/tree/master/vms/platformvm/platform), where [`codec.go`](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/platform/codec.go) registers every type in the order that determines its wire `TypeID`.
 
 At a glance:
 - Snowman++ engine drives PlatformVM block production; mempool feeds Standard/Proposal/Atomic blocks.
-- Validator registry, subnet membership, warp signing, and atomic UTXOs are persisted in the node database.
-- P-Chain APIs expose validator state, subnet/chain creation, staking ops, and block fetch.
+- Validator registry, Subnet/L1 membership, warp signing, and atomic UTXOs are persisted in the node database.
+- P-Chain APIs expose validator state, Subnet/chain creation, staking ops, and block fetch.
+
+<Callout type="info">
+**Helicon activates on Mainnet on September 22, 2026.**
+
+Helicon does not deprecate or disable any existing transaction type. Current validators and delegators continue to work unchanged. It adds auto-renewed staking as an option and lowers the minimum Primary Network staking duration from two weeks to 48 hours. See [Helicon Upgrade](/docs/primary-network/helicon-upgrade).
+</Callout>
 
 ## Responsibilities
 
-- **Validator registry & staking**: Tracks Primary Network validators and delegators, uptime, staking rewards, and validator fees.
+- **Validator registry & staking**: Tracks Primary Network validators and delegators, uptime, staking rewards, and validator fees. Starting with Helicon a validation can be auto-renewed per cycle rather than expiring at a fixed end time, see [Helicon Upgrade](/docs/primary-network/helicon-upgrade).
 - **Subnet/L1 orchestration**: Creates Subnets and chains (`CreateSubnetTx`, `CreateChainTx`), converts Subnets into L1s (`ConvertSubnetToL1Tx`), and maintains Subnet and L1 validator sets (including permissionless add/remove and warp-authorized L1 validator changes).
 - **Warp messaging**: Signs warp messages for cross-chain communication on Avalanche L1s.
 - **Atomic transfers**: Handles import/export of AVAX to/from other chains via shared memory.
@@ -27,23 +33,29 @@ At a glance:
 
 | Transaction | Purpose |
 |-------------|---------|
-| `AddValidatorTx`, `AddDelegatorTx` | Join the Primary Network validator set / delegate stake |
-| `AddSubnetValidatorTx` | Add a validator to a Subnet (validator must also be on Primary) |
-| `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` | Permissionless validation on Subnets that allow it |
+| `AddValidatorTx`, `AddDelegatorTx` | **Disabled since Durango** ([ACP-62](/docs/acps/62-disable-addvalidatortx-and-adddelegatortx)). Issuing one is rejected outright, with `ErrAddValidatorTxPostDurango` / `ErrAddDelegatorTxPostDurango`. Use `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` instead. The type IDs (`0x0c`, `0x0e`) stay registered so nodes can replay pre-Durango history |
+| `AddSubnetValidatorTx` | Add a validator to a Subnet (validator must also be on Primary). Permanently disabled on a Subnet once it has been converted with `ConvertSubnetToL1Tx` |
+| `AddPermissionlessValidatorTx` / `AddPermissionlessDelegatorTx` | Validate or delegate on the Primary Network or on a permissionless Subnet; this is the current path for both |
+| `RemoveSubnetValidatorTx` | Remove a validator from a permissioned Subnet |
 | `CreateSubnetTx` | Create a new Subnet and owner controls |
 | `CreateChainTx` | Launch a new blockchain (VM + genesis) on a Subnet |
-| `ConvertSubnetToL1Tx` | Convert a Subnet into an L1 with its initial validator set ([ACP-77](https://github.com/avalanche-foundation/ACPs/tree/main/ACPs/77-reinventing-subnets)) |
+| `TransferSubnetOwnershipTx` | Hand a Subnet's owner controls to a new owner ([ACP-31](/docs/acps/31-enable-subnet-ownership-transfer)) |
+| `ConvertSubnetToL1Tx` | Convert a Subnet into an L1 with its initial validator set ([ACP-77](/docs/acps/77-reinventing-subnets)) |
 | `RegisterL1ValidatorTx` | Add a validator to an L1, authorized by a warp message from the L1's validator manager |
 | `SetL1ValidatorWeightTx` | Change an L1 validator's weight (a weight of 0 removes the validator) |
 | `IncreaseL1ValidatorBalanceTx` | Top up an L1 validator's continuous-fee balance |
 | `DisableL1ValidatorTx` | Deactivate an L1 validator and reclaim its remaining balance |
+| `AddAutoRenewedValidatorTx` | Join the Primary Network with a cycle duration (`period`) and auto-compound share instead of a fixed end time ([ACP-236](/docs/acps/236-auto-renewed-staking), Helicon) |
+| `SetAutoRenewedValidatorConfigTx` | Change an auto-renewed validator's cycle duration or auto-compound share. A `period` of `0` is how the validator exits after the current cycle (Helicon) |
+| `RewardAutoRenewedValidatorTx` | Settle rewards at a cycle boundary and start the next cycle. Issued by block builders, not by the operator (Helicon) |
 | `ImportTx` / `ExportTx` | Move AVAX to/from other chains via atomic UTXOs |
 | `RewardValidatorTx` | Mint rewards after successful staking periods |
-| `TransformSubnetTx` | Legacy subnet transform (disabled post-Etna) |
+| `TransformSubnetTx` | **Disabled since Etna.** Legacy Subnet transform, rejected with "TransformSubnetTx is not permitted post-Etna". Its type ID (`0x18`) stays registered for the same reason |
 
 ## P-Chain APIs
 
-- Exposed at `/ext/bc/P` with namespaces such as `platform.getBlock`, `platform.getCurrentValidators`, `platform.issueTx`, `platform.getSubnets`, `platform.getBlockchains`.
+- Exposed at `/ext/bc/P` with namespaces such as `platform.getBlock`, `platform.getCurrentValidators`, `platform.issueTx`, `platform.getSubnets`, `platform.getBlockchains`. The full set is in the [P-Chain API reference](/docs/rpcs/p-chain).
+- Helicon adds no new methods, but [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators) gains three fields on auto-renewed validators: `validatorAuthority`, `nextPeriod` and `autoCompoundRewardShares`. They are absent on every other validator, so their presence identifies an auto-renewed validation.
 - Health and metrics are surfaced via the node-level `/ext/health` and `/ext/metrics`.
 
 ## Configuration
@@ -59,9 +71,10 @@ Default chain config location:
 
 - Subnet and chain aliases can be set in `~/.avalanchego/configs/chains/aliases.json`.
 - Upgrade rules and Subnet parameters are read from the chain config and network upgrade settings (`upgrade/`).
+- Minimum staking durations can be overridden with `--min-stake-duration` (delegators, and validators before Helicon) and `--helicon-min-stake-duration` (validators from Helicon onwards). Both are read **only on custom networks**: on Mainnet and Fuji the node ignores them and uses the genesis values. Development networks commonly shorten them so validator lifecycle tests do not have to wait hours.
 
 ## Developer Tips
 
 - When testing new Subnets/VMs, pass `CreateChainTx` genesis bytes and VM IDs via `platform.issueTx`.
-- For permissionless Subnets, ensure the Subnet’s config enables the relevant validator/delegator transactions before issuing them.
-- Use `platform.getBlock` to inspect Proposal/Commit/Abort flow if debugging staking or subnet updates.
+- For permissionless Subnets, ensure the Subnet's config enables the relevant validator/delegator transactions before issuing them.
+- Use `platform.getBlock` to inspect Proposal/Commit/Abort flow if debugging staking or Subnet/L1 updates.
