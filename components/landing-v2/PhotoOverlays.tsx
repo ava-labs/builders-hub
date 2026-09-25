@@ -449,67 +449,79 @@ function PrivacyOverlay() {
   );
 }
 
-/* ---- compliance: the allowlist as a line of marker poles ---------- */
+/* ---- compliance: requests at the vault's lock ---------------------- */
 
-// the pole line recedes slightly left as it comes toward the camera
-const poleX = (y: number) => Math.round(870 - (y - 330) * 0.038);
-const LINE_TOP: Pt = [poleX(300), 300];
-const LINE_FOOT: Pt = [poleX(1900), 1900];
-const GATES = [
-  { y: 540, approved: true, begin: 0 },
-  { y: 880, approved: false, begin: 1.6 },
-  { y: 1220, approved: true, begin: 3.2 },
+// The footage pushes in slowly toward the lock and back (a ping-pong
+// loop), so everything here is anchored on the lock, the one point that
+// holds still, and runs radially to it. Requests arrive from outside the
+// door: approved ones reach the lock and it answers with a white ring;
+// the unapproved one is stopped beyond the door's edge and flares red.
+const LOCK: Pt = [824, 1106];
+const OUTER = 520; // clear of the door's edge through the whole push-in
+const REQUESTS = [
+  { angle: 200, approved: true, begin: 0 },
+  { angle: 330, approved: false, begin: 1.7 },
+  { angle: 160, approved: true, begin: 3.4 },
 ];
-const CROSS_DUR = 4.8;
+const REQUEST_DUR = 5.1;
+
+const polar = (deg: number, r: number): Pt => {
+  const rad = (deg * Math.PI) / 180;
+  return [Math.round(LOCK[0] + r * Math.cos(rad)), Math.round(LOCK[1] + r * Math.sin(rad))];
+};
 
 function ComplianceOverlay() {
   const glow = useGlow();
   return (
-    <Frame label="Approved wallets crossing a line of marker poles while an unapproved wallet is stopped at the line">
-      {/* the chain's access rule: the line every transaction must cross */}
-      <line
-        x1={LINE_TOP[0]}
-        y1={LINE_TOP[1]}
-        x2={LINE_FOOT[0]}
-        y2={LINE_FOOT[1]}
-        stroke="white"
-        strokeOpacity={0.55}
-        strokeWidth={1}
-        strokeDasharray="6 6"
-        vectorEffect="non-scaling-stroke"
-      />
-      {GATES.map(({ y, approved, begin }) => {
-        const x = poleX(y);
-        const stop = x - 34;
+    <Frame label="Approved requests reaching a vault's lock while an unapproved one is refused at the door">
+      {REQUESTS.map(({ angle, approved, begin }) => {
+        const [sx, sy] = polar(angle, 760);
+        const [ex, ey] = approved ? LOCK : polar(angle, OUTER);
         const t = `${begin}s`;
+        const dur = `${REQUEST_DUR}s`;
         return (
-          <g key={y}>
-            <line x1={140} y1={y} x2={approved ? 1460 : stop} y2={y} stroke="white" strokeOpacity={0.22} strokeWidth={1} strokeDasharray="2 7" vectorEffect="non-scaling-stroke" />
+          <g key={angle}>
+            <line x1={sx} y1={sy} x2={ex} y2={ey} stroke="white" strokeOpacity={0.22} strokeWidth={1} strokeDasharray="2 7" vectorEffect="non-scaling-stroke" />
+            <circle cx={sx} cy={sy} r={9} fill={approved ? "white" : "none"} stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0}>
+              <animate attributeName="cx" values={`${sx};${ex};${ex}`} keyTimes="0;0.5;1" dur={dur} begin={t} repeatCount="indefinite" />
+              <animate attributeName="cy" values={`${sy};${ey};${ey}`} keyTimes="0;0.5;1" dur={dur} begin={t} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0.9;0.9;0;0" keyTimes="0;0.08;0.48;0.56;1" dur={dur} begin={t} repeatCount="indefinite" />
+            </circle>
             {approved ? (
-              <circle cx={140} cy={y} r={15} fill="white" opacity={0}>
-                <animate attributeName="cx" values="140;1460;1460" keyTimes="0;0.8;1" dur={`${CROSS_DUR}s`} begin={t} repeatCount="indefinite" />
-                <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.08;0.72;0.8;1" dur={`${CROSS_DUR}s`} begin={t} repeatCount="indefinite" />
+              // the lock answers: a white ring opens from it
+              <circle cx={LOCK[0]} cy={LOCK[1]} r={40} fill="none" stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0}>
+                <animate attributeName="r" values="40;40;150;150" keyTimes="0;0.5;0.72;1" dur={dur} begin={t} repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0;0;0.8;0;0" keyTimes="0;0.5;0.53;0.72;1" dur={dur} begin={t} repeatCount="indefinite" />
               </circle>
             ) : (
-              <>
-                <circle cx={140} cy={y} r={15} fill="none" stroke="white" strokeWidth={1.5} vectorEffect="non-scaling-stroke" opacity={0}>
-                  <animate attributeName="cx" values={`140;${stop};${stop}`} keyTimes="0;0.5;1" dur={`${CROSS_DUR}s`} begin={t} repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.08;0.62;0.75;1" dur={`${CROSS_DUR}s`} begin={t} repeatCount="indefinite" />
-                </circle>
-                {/* the rejection: the line flares red where it holds */}
-                <g opacity={0}>
-                  <animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.48;0.54;0.75;1" dur={`${CROSS_DUR}s`} begin={t} repeatCount="indefinite" />
-                  <line x1={poleX(y - 90)} y1={y - 90} x2={poleX(y + 90)} y2={y + 90} stroke={RED} strokeWidth={22} opacity={0.6} filter={glow} />
-                  <line x1={poleX(y - 90)} y1={y - 90} x2={poleX(y + 90)} y2={y + 90} stroke="#ff8a92" strokeWidth={5} />
-                </g>
-              </>
+              // refused at the door: an arc of the perimeter flares red
+              <g opacity={0}>
+                <animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;0.48;0.54;0.78;1" dur={dur} begin={t} repeatCount="indefinite" />
+                {(() => {
+                  const [ax, ay] = polar(angle - 14, OUTER);
+                  const [bx, by] = polar(angle + 14, OUTER);
+                  const arc = `M${ax},${ay} A${OUTER},${OUTER} 0 0 1 ${bx},${by}`;
+                  return (
+                    <>
+                      <path d={arc} fill="none" stroke={RED} strokeWidth={24} opacity={0.55} filter={glow} />
+                      <path d={arc} fill="none" stroke="#ff8a92" strokeWidth={5} strokeLinecap="round" />
+                    </>
+                  );
+                })()}
+              </g>
             )}
           </g>
         );
       })}
-      <Tag from={[poleX(380), 380]} to={[1060, 250]} text="APPROVED WALLETS ONLY" sub="ENFORCED BY THE CHAIN" />
-      <Tag from={[1460, 540]} to={[1380, 440]} text="ADMITTED" anchor="end" />
-      <Tag from={[poleX(880) - 60, 880]} to={[420, 980]} text="NOT ON THE LIST" anchor="end" />
+      {/* the perimeter every request meets */}
+      <circle cx={LOCK[0]} cy={LOCK[1]} r={OUTER} fill="none" stroke="white" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="3 8" vectorEffect="non-scaling-stroke" />
+      <text x={120} y={200} fontSize={26} fill="white" fillOpacity={0.85} style={LABEL}>
+        APPROVED WALLETS ONLY
+      </text>
+      <text x={120} y={238} fontSize={21} fill="white" fillOpacity={0.5} style={LABEL}>
+        ENFORCED BY THE CHAIN
+      </text>
+      <Tag from={polar(330, OUTER + 24)} to={[1330, 560]} text="REFUSED" anchor="end" />
     </Frame>
   );
 }
