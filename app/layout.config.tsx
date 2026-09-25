@@ -3,7 +3,6 @@ import { type LinkItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/sha
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
-  Logs,
   SendHorizontal,
   Computer,
   Hexagon,
@@ -112,8 +111,6 @@ export const ecosystemMenu: LinkItemType = {
       description:
         'Hands-on learning and real building, from hackathons to workshops and bootcamps.',
       url: '/events',
-      // marker: the popover CSS lays four-item menus out as a 2x2 grid
-      menu: { className: 'nav-grid-2' },
     },
     {
       icon: <Gamepad2 />,
@@ -136,18 +133,32 @@ export const ecosystemMenu: LinkItemType = {
         'Research grants and the Blizzard Fund for your project.',
       url: '/grants',
     },
+    {
+      icon: <ShieldCheck />,
+      text: (
+        <span className="inline-flex items-center gap-1.5">
+          Security Audits
+          <span className="rounded-full border border-brand/40 px-1.5 py-px font-mono text-[9px] uppercase tracking-[0.1em] text-brand dark:border-brand-soft/40 dark:text-brand-soft">
+            New
+          </span>
+        </span>
+      ),
+      description:
+        'Quotes from every vetted firm, free. Subsidized up to 75% by the program.',
+      url: '/audits',
+    },
   ],
 };
 
 export const explorerMenu: LinkItemType = {
   type: "menu",
   text: "Explorer",
-  url: "/explorer",
+  url: "/explorer/mainnet",
   items: [
     {
       icon: <Search />,
       text: "Block Explorer",
-      url: "/explorer",
+      url: "/explorer/mainnet",
       description:
       "Search any block, tx, address, or node across the P-Chain, C-Chain, and every L1.",
     },
@@ -160,24 +171,17 @@ export const explorerMenu: LinkItemType = {
     },
     {
       icon: <DraftingCompass />,
-      text: "Playground",
-      url: "/stats/playground",
+      text: "Query",
+      url: "/explorer/mainnet/query",
       description:
-      "Create and customize charts with real-time chain metrics.",
-    },
-    {
-      icon: <Logs />,
-      text: "All Networks",
-      url: "/explorer/mainnet",
-      description:
-      "Live activity, ICM, validators, and AVAX across every Avalanche chain.",
+      "Ask a chain a question in plain words and get a chart with its SQL.",
     },
     {
       icon: <Network />,
-      text: "C-Chain Stats",
-      url: "/stats/l1/c-chain",
+      text: "C-Chain",
+      url: "/explorer/mainnet/c-chain",
       description:
-      "The latest metrics for the Avalanche C-Chain.",
+      "Live blocks, transactions, gas and chain stats for the Avalanche C-Chain.",
     },
     {
       icon: <Hexagon />,

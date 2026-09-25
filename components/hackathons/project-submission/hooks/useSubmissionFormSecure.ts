@@ -436,24 +436,16 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
     newFile: File
   ): Promise<string> => {
 
-    const fileName = oldImageUrl.split('/').pop();
-    if (!fileName) throw new Error('Invalid old image URL');
+    // Send the whole URL, not just the last segment — see the note in
+    // useSubmissionForm: the uploader prefix is part of the storage key.
+    if (!oldImageUrl) throw new Error('Invalid old image URL');
 
+    // Upload first, delete after: see the note in useSubmissionForm. Deleting
+    // first tied the replacement to permission on the OLD key, so a legacy or
+    // teammate-owned image could not be replaced at all.
+    let newUrl: string;
     try {
-      await axios.delete('/api/file', {
-        params: {
-          fileName,
-          ...(state.hackathonId && { hackaton_id: state.hackathonId }),
-          user_id: session?.user?.id
-        }
-      });
-      const newUrl = await uploadFile(newFile);
-
-      toast({
-        title: 'Image replaced',
-        description: 'The image has been replaced successfully.',
-      });
-      return newUrl;
+      newUrl = await uploadFile(newFile);
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Error replacing image';
       toast({
@@ -463,15 +455,35 @@ export const useSubmissionFormSecure = (lang: EventsLang = 'en') => {
       });
       throw new Error(message);
     }
+
+    try {
+      await axios.delete('/api/file', {
+        params: {
+          url: oldImageUrl,
+          ...(state.hackathonId && { hackaton_id: state.hackathonId }),
+          user_id: session?.user?.id
+        }
+      });
+    } catch (error: any) {
+      console.warn('[files] old image kept:', error?.response?.status ?? error?.message);
+    }
+
+    toast({
+      title: 'Image replaced',
+      description: 'The image has been replaced successfully.',
+    });
+    return newUrl;
   }, [state.hackathonId, session?.user?.id, uploadFile, toast]);
 
   const deleteImage = useCallback(async (oldImageUrl: string): Promise<void> => {
-    const fileName = oldImageUrl.split('/').pop();
-    if (!fileName) throw new Error('Invalid old image URL');
+    // Whole URL again — the uploader prefix is part of the storage key.
+    if (!oldImageUrl) throw new Error('Invalid old image URL');
 
     try {
+      // URLSearchParams encodes values itself; the extra encodeURIComponent
+      // here double-encoded the key.
       const params = new URLSearchParams({
-        fileName: encodeURIComponent(fileName),
+        url: oldImageUrl,
         user_id: session?.user?.id || ''
       });
       if (state.hackathonId) {

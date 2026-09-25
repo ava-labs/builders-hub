@@ -28,6 +28,8 @@ export const PROTECTED_PATHS = [
   "/console/utilities/data-api-keys",
   "/build-games/apply",
   "/academy/team1",
+  "/audits/new",
+  "/audits/admin",
 ] as const;
 
 export function isProtectedPath(pathname: string): boolean {

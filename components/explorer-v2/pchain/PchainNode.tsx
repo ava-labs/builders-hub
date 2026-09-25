@@ -5,27 +5,20 @@ import Link from "next/link";
 import {
   Area,
   AreaChart,
-  Line,
-  LineChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
+  XAxis,
   YAxis,
 } from "recharts";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import {
-  Board,
-  BoardHeader,
-  CellLabel,
-  DetailSkeleton,
-  HashChip,
-  SectionHeader,
-  SpecPlate,
-  SpecRow,
-  SubjectHeadline,
-  TxTypePill,
-  idInk,
-} from "@/components/explorer-v2/ui";
-import { formatAvax, formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { Board, BoardHeader, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecPlate, SpecRow, SpecSheet, SubjectHeadline, TxTypePill, idInk, ROW, LoadMore } from "@/components/explorer-v2/ui";
+import { ShareMap } from "@/components/explorer-v2/ShareMap";
+import { TipPlate } from "@/components/explorer-v2/staking/bits";
+import { RailRow } from "@/components/explorer-v2/evm/EvmTx";
+import { dayLong, dayShort, formatAvax, formatNumber, formatTime, hourLong, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
 import {
@@ -35,12 +28,14 @@ import {
   type CurrentValidator,
 } from "@/lib/pchain-node";
 import { txTypeLabel, type NodeResponse, type NodeStakingTx, type TxSummary, type ValidationsResponse } from "@/lib/pchain-explorer";
+import { cn } from "@/lib/utils";
 
-/* The node page as one instrument, not an endless scroll: a bold summary
-   strip, then two split views — what the validator IS (the spec plate)
-   beside how it's PERFORMING (the hourly charts folded in from the old
-   /stats/validators/node page) — and the long lists capped behind
-   expanders. */
+/* The node page, split like the tx and block pages. Left: the stake map
+   (own stake, delegated, open room against the cap) and the current term
+   as a line through time, with what it pays said as a sentence. Right: the
+   readings a delegator judges a validator by, in a rail. Then the last 14
+   days of uptime and blocks, the track record, the identifiers whole, and
+   the long lists capped behind expanders. */
 
 /* --- the P2P observatory feed (hourly uptime, block production, slots) --- */
 
@@ -92,7 +87,7 @@ function useValidationHistory(network: string, nodeId: string): ValidationsRespo
 }
 
 /* the money context the indexer doesn't mirror: the live validator entry
-   (payout owners, BLS identity) and the network's total stake — the
+   (payout owners, BLS identity) and the network's total stake: the
    denominator that turns this validator's stake into a share */
 function useStakeContext(network: string, nodeId: string, enabled: boolean) {
   const [identity, setIdentity] = useState<CurrentValidator | null>(null);
@@ -120,6 +115,17 @@ const MAX_TOTAL_STAKE_NAVAX = 3_000_000 * 1e9;
 
 const LIST_CAP = 8;
 
+const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
+
+/** nAVAX as a human reads it: millions compact, two decimals below that,
+ *  four under one AVAX */
+function avax(nAvax: number | string | bigint): string {
+  const v = Number(nAvax) / 1e9;
+  if (!Number.isFinite(v)) return "—";
+  if (Math.abs(v) >= 1e6) return `${(v / 1e6).toLocaleString("en-US", { maximumFractionDigits: 2 })}M AVAX`;
+  return `${v.toLocaleString("en-US", { maximumFractionDigits: Math.abs(v) >= 1 ? 2 : 4 })} AVAX`;
+}
+
 const SHARES_DENOM = 1_000_000n;
 
 function delegationFeeCut(gross: number, feePercent: number): bigint {
@@ -140,7 +146,7 @@ export function PchainNode({
   chain: string;
   network: string;
   nodeId: string;
-  /** subnet the caller knows this node validates — lets us ask the P-Chain
+  /** subnet the caller knows this node validates: lets us ask the P-Chain
    *  directly when the indexer (Primary Network only) has never seen it */
   subnetHint?: string;
 }) {
@@ -162,7 +168,7 @@ export function PchainNode({
     const maxTotal = Math.min(5 * v.weight, MAX_TOTAL_STAKE_NAVAX);
     const capacity = Math.max(0, maxTotal - v.totalStake);
     const sharePct = networkStake ? (v.totalStake / networkStake) * 100 : null;
-    // Split each delegation the way the chain does, then sum — not the other
+    // Split each delegation the way the chain does, then sum: not the other
     // way round. avalanchego's reward.Split floors the DELEGATOR's side and
     // gives the validator the remainder, per delegation:
     //   net = floor((1e6 − shares) × gross / 1e6);  fee = gross − net
@@ -183,14 +189,14 @@ export function PchainNode({
   const delegationPayout = identity?.delegationRewardOwner ?? identity?.rewardOwner;
 
   // L1-only validators never stake on the Primary Network. The subnet can
-  // arrive two ways: a ?subnet= hint on the link, or — since the indexer
-  // learned to return L1-only nodes — the node document's own validations.
+  // arrive two ways: a ?subnet= hint on the link, or: since the indexer
+  // learned to return L1-only nodes: the node document's own validations.
   // Either way we go straight to the node for the rich seat view:
   // platform.getCurrentValidators({subnetID, nodeIDs}).
   const l1Subnet = subnetHint ?? n?.validations?.find((v) => v.kind === "l1")?.subnetId;
   // no snapshot, no staking history: the L1 seat IS this node's story
   const l1Only = !!n && !n.hasSnapshot && (n.history?.length ?? 0) === 0;
-  // the document's own l1 validation, shaped like the RPC record — the
+  // the document's own l1 validation, shaped like the RPC record: the
   // render fallback when the RPC can't answer (rate limit, outage). The
   // page must never go blank while holding the seat data in hand.
   const l1FromDoc = useMemo<CurrentValidator | null>(() => {
@@ -297,7 +303,7 @@ export function PchainNode({
       {(error || l1Only) && l1Subnet && !l1Checked && <DetailSkeleton label="Validator" />}
       {error && (!l1Subnet || (l1Checked && !l1)) && <NotFound label="Node not found" id={nodeId} />}
       {/* the seat view: the RPC record when the node answered, the doc's
-          own copy when it couldn't — a rate-limited RPC must not blank a
+          own copy when it couldn't: a rate-limited RPC must not blank a
           page whose data is already in hand */}
       {(error || l1Only) && l1Checked && l1Subnet && (l1 ?? l1FromDoc) && (
         <L1ValidatorView
@@ -309,15 +315,15 @@ export function PchainNode({
         />
       )}
       {/* nodes with staking history (or no l1 seat at all) keep the full
-          indexer document view — including the corner where a subnet hint
+          indexer document view: including the corner where a subnet hint
           exists but neither the RPC nor the doc could produce a seat */}
       {n && (!l1Only || !l1Subnet || (l1Checked && !l1 && !l1FromDoc)) && (
         <div className="flex flex-col gap-10">
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-5">
             <SectionHeader
-              label="Node"
+              label="Validator"
               action={
-                // connection state comes from the Primary Network snapshot —
+                // connection state comes from the Primary Network snapshot:
                 // without one it's a zero value, not a real "Offline"
                 n.hasSnapshot ? (
                   <span
@@ -325,17 +331,25 @@ export function PchainNode({
                       n.validator.connected ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-400 dark:text-zinc-500"
                     }`}
                   >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        n.validator.connected ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"
-                      }`}
-                    />
+                    <span className={`h-1.5 w-1.5 rounded-full ${n.validator.connected ? "bg-emerald-500" : "bg-zinc-400 dark:bg-zinc-600"}`} />
                     {n.validator.connected ? "Connected" : "Offline"}
                   </span>
                 ) : undefined
               }
             />
-            <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
+            <div className="flex flex-col gap-2">
+              <SubjectHeadline value={n.nodeId} copyLabel="Copy NodeID" />
+              {/* who it is, in one line a human can read */}
+              <p className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                {[
+                  n.nodeInfo?.version,
+                  n.nodeInfo?.publicIp,
+                  validations?.totals.firstStart ? `validating since ${dayLong(validations.totals.firstStart)}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
             {!n.hasSnapshot && (
               <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
                 Not in the latest validator snapshot. Showing on-chain history.
@@ -343,366 +357,256 @@ export function PchainNode({
             )}
           </section>
 
-          {/* the numbers that matter, bold, in one strip: the stake story
-              on the first row, the operational story on the second */}
-          {n.hasSnapshot && (
-            <Board divide={false} className="border">
-              <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 dark:divide-zinc-800">
-                <Tile
-                  label="Total stake"
-                  value={formatAvax(n.validator.totalStake, { compact: true })}
-                  strong
-                  sub={stake?.sharePct != null ? `${stake.sharePct.toFixed(2)}% of the network` : undefined}
-                />
-                <Tile label="Own stake" value={formatAvax(n.validator.weight, { compact: true })} />
-                <Tile
-                  label="Delegated"
-                  value={formatAvax(n.validator.delegatorWeight, { compact: true })}
-                  sub={`${formatNumber(n.validator.delegatorCount)} delegators`}
-                />
-                <Tile
-                  label="Open capacity"
-                  value={stake ? formatAvax(stake.capacity, { compact: true }) : "—"}
-                  tone={stake && stake.capacity === 0 ? "bad" : undefined}
-                  sub={
-                    stake
-                      ? stake.capacity === 0
-                        ? "full — no room to delegate"
-                        : `of ${formatAvax(stake.maxTotal, { compact: true })} max`
-                      : undefined
-                  }
-                />
-                <Tile
-                  label="Uptime"
-                  value={`${n.uptime.currentP50.toFixed(1)}%`}
-                  strong
-                  tone={n.uptime.currentP50 >= 98 ? "good" : n.uptime.currentP50 >= 90 ? "warn" : "bad"}
-                />
-                {/* miss_rate_14d arrives as a percent already (0–100) */}
-                <Tile
-                  label="Miss rate · 14d"
-                  value={p2p ? `${p2p.miss_rate_14d.toFixed(1)}%` : "—"}
-                  tone={p2p ? (p2p.miss_rate_14d === 0 ? "good" : p2p.miss_rate_14d < 5 ? "warn" : "bad") : undefined}
-                />
-                <Tile label="Proposed · 14d" value={formatNumber(p2p?.proposed_14d ?? n.proposedBlocks14d)} />
-                <Tile
-                  label="Days left"
-                  value={formatNumber(n.validator.daysLeft)}
-                  sub={stake?.progressPct != null ? `${stake.progressPct.toFixed(0)}% of term elapsed` : undefined}
-                />
-              </div>
-            </Board>
-          )}
-
-          {/* what validating pays: the validator's own reward, its cut of
-              the delegators' rewards, and the split between the two — the
-              money story the roster page can't carry per-node */}
+          {/* the split: the stake and the term on the left, the readings a
+              delegator judges a validator by in the rail on the right */}
           {n.hasSnapshot && stake && (
-            <section className="flex flex-col gap-3">
-              <Board divide={false} className="border">
-                <BoardHeader
-                  label="Potential Rewards"
-                  display
-                  action={
-                    <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                      at term end · if uptime holds
-                    </span>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+              <div className="flex min-w-0 flex-col gap-6">
+                {/* the stake map: what fills this validator's weight, against
+                    the most it may carry */}
+                <ShareMap
+                  label="Stake map"
+                  summary={`${avax(n.validator.totalStake)} of ${avax(stake.maxTotal)} max`}
+                  fmt={(v) => avax(v)}
+                  legend={3}
+                  parts={[
+                    { key: "own", label: "Own stake", value: n.validator.weight, tone: "#18181b", sub: "locked by the operator" },
+                    {
+                      key: "delegated",
+                      label: "Delegated",
+                      value: n.validator.delegatorWeight,
+                      tone: "#0061E2",
+                      sub: `${formatNumber(n.validator.delegatorCount)} delegators`,
+                    },
+                    {
+                      key: "open",
+                      label: "Open capacity",
+                      value: stake.capacity,
+                      tone: "#e4e4e7",
+                      sub: stake.capacity === 0 ? "full: no room to delegate" : "room left to delegate",
+                    },
+                  ].filter((p) => p.value > 0 || p.key === "open")}
+                  note={
+                    stake.capacity === 0
+                      ? `This validator is full. Its stake is capped at five times its own stake, and at 3M AVAX, so new delegations cannot join until one ends.`
+                      : `${avax(stake.capacity)} of room is left before the cap: five times the own stake, and at most 3M AVAX.`
                   }
                 />
-                <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-                  <Tile
-                    label="Own stake reward"
-                    value={formatAvax(n.validator.potentialReward, { compact: true })}
-                  />
-                  <Tile
-                    label="Delegation fee take"
-                    value={formatAvax(stake.feeTake, { compact: true })}
-                    sub={`${n.validator.delegationFeePercent}% of ${formatAvax(n.delegatorsPotentialReward, { compact: true })} gross`}
-                  />
-                  <Tile
-                    label="Validator total"
-                    value={formatAvax(stake.totalTake, { compact: true })}
-                    strong
-                    tone="good"
-                  />
-                  <Tile
-                    label="Delegators net"
-                    value={formatAvax(Math.max(0, n.delegatorsPotentialReward - stake.feeTake), {
-                      compact: true,
-                    })}
-                    sub="gross minus the fee"
-                  />
-                </div>
-                {/* No own-stake-vs-fees split bar here. On any validator whose
-                    own stake dominates it renders as a solid block reading
-                    "99.8% / 0.2%", which is arithmetic the two tiles above
-                    already state and not a number anyone acts on. */}
-              </Board>
-            </section>
-          )}
 
-          {/* the track record, next to the projection above it: every closed
-              term and what it actually paid. This is the question a delegator
-              is really asking before committing stake, and the one the
-              rebuilt page had lost. */}
-          {validations && validations.periods.length > 0 && (
-            <ValidationHistory data={validations} base={base} />
-          )}
-
-          {/* split view: what it IS | how it's PERFORMING */}
-          {n.hasSnapshot && (
-            <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[1fr_1.1fr]">
-              <section className="flex flex-col gap-4">
-                <SectionHeader label="Validation" />
-                <Board divide={false} className="px-5 py-4 md:px-6">
-                  <SpecPlate>
-                    <SpecRow label="Subnet">
-                      <HashChip value={n.validator.subnetId} len={24} />
-                    </SpecRow>
-                    {n.validator.validationId && (
-                      <SpecRow label="Validation ID">
-                        <HashChip value={n.validator.validationId} len={24} />
-                      </SpecRow>
-                    )}
-                    {n.validator.txId && (
-                      <SpecRow label="Staking tx">
-                        <HashChip value={n.validator.txId} href={`${base}/tx/${n.validator.txId}`} len={24} />
-                      </SpecRow>
-                    )}
-                    <SpecRow label="Delegation fee">{n.validator.delegationFeePercent}%</SpecRow>
-                    {/* where the money lands — live from the P-Chain, since
-                        the indexer doesn't mirror reward owners */}
-                    {validationPayout?.addresses?.[0] && (
-                      <SpecRow label="Payout · validation">
-                        <HashChip
-                          value={validationPayout.addresses[0]}
-                          href={`${base}/address/${validationPayout.addresses[0]}`}
-                          len={22}
-                        />
-                      </SpecRow>
-                    )}
-                    {delegationPayout?.addresses?.[0] &&
-                      delegationPayout.addresses[0] !== validationPayout?.addresses?.[0] && (
-                        <SpecRow label="Payout · delegation">
-                          <HashChip
-                            value={delegationPayout.addresses[0]}
-                            href={`${base}/address/${delegationPayout.addresses[0]}`}
-                            len={22}
-                          />
-                        </SpecRow>
-                      )}
-                    {identity?.signer?.publicKey && (
-                      <SpecRow label="BLS public key">
-                        <HashChip value={identity.signer.publicKey} len={22} />
-                      </SpecRow>
-                    )}
-                    {n.nodeInfo?.version && <SpecRow label="Version">{n.nodeInfo.version}</SpecRow>}
-                    {n.nodeInfo?.publicIp && (
-                      <SpecRow label="Public IP">
-                        <span className="font-mono text-[12px]">{n.nodeInfo.publicIp}</span>
-                      </SpecRow>
-                    )}
-                  </SpecPlate>
-                  {/* the term as a bar: dates at the ends, progress in between */}
-                  <div className="flex flex-col gap-1.5 border-t border-zinc-200 py-3.5 dark:border-zinc-800">
-                    <div className="flex h-1.5 w-full overflow-hidden bg-zinc-100 dark:bg-zinc-900">
-                      <div
-                        className="bg-zinc-900 dark:bg-zinc-100"
-                        style={{ width: `${(stake?.progressPct ?? 0).toFixed(1)}%` }}
-                      />
+                {/* the term, as a line through time */}
+                <Board divide={false}>
+                  <div className="flex items-baseline justify-between gap-4 px-5 pt-5 md:px-6">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Current term</span>
+                    <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+                      {formatNumber(Math.round((n.validator.endTimestamp - n.validator.startTimestamp) / 86400))} days
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-3 px-5 pb-5 pt-4 md:px-6">
+                    <div className="relative h-8">
+                      <div className="absolute inset-x-0 top-3 h-2 bg-zinc-100 dark:bg-zinc-900" />
+                      <div className="absolute left-0 top-3 h-2 bg-zinc-900 dark:bg-zinc-100" style={{ width: `${(stake.progressPct ?? 0).toFixed(2)}%` }} />
+                      {/* today */}
+                      <div className="absolute top-0 flex h-8 -translate-x-1/2 flex-col items-center" style={{ left: `${(stake.progressPct ?? 0).toFixed(2)}%` }}>
+                        <span className="h-8 w-px bg-zinc-900 dark:bg-zinc-100" />
+                      </div>
                     </div>
-                    <div className="flex items-baseline justify-between gap-3 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                      <span>{formatTime(n.validator.startTimestamp)}</span>
-                      {stake?.progressPct != null && (
-                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                          {stake.progressPct.toFixed(1)}% · {formatNumber(n.validator.daysLeft)}d left
-                        </span>
-                      )}
-                      <span>{formatTime(n.validator.endTimestamp)}</span>
+                    <div className="grid grid-cols-3 items-baseline gap-3 font-mono text-[11px] tabular-nums">
+                      <span className="text-zinc-500 dark:text-zinc-400">
+                        <span className="block text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">Started</span>
+                        {dayLong(n.validator.startTimestamp)}
+                      </span>
+                      <span className="text-center text-zinc-900 dark:text-zinc-50">
+                        <span className="block text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">Today</span>
+                        {stake.progressPct?.toFixed(0)}% done · {formatNumber(n.validator.daysLeft)} days left
+                      </span>
+                      <span className="text-right text-zinc-500 dark:text-zinc-400">
+                        <span className="block text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">Ends</span>
+                        {dayLong(n.validator.endTimestamp)}
+                      </span>
                     </div>
+                    {/* what the term pays, said as a sentence */}
+                    <p className="border-t border-zinc-200 pt-4 font-mono text-[13px] leading-[1.8] text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+                      If uptime holds until {dayLong(n.validator.endTimestamp)}, this term pays the validator{" "}
+                      <span className="text-emerald-600 dark:text-emerald-400">{avax(stake.totalTake)}</span>{" "}
+                      <span className="text-zinc-400 dark:text-zinc-500">
+                        ({avax(n.validator.potentialReward)} on its own stake, {avax(stake.feeTake)} in its {n.validator.delegationFeePercent}% fee)
+                      </span>{" "}
+                      and its delegators <span className="text-emerald-600 dark:text-emerald-400">{avax(Math.max(0, n.delegatorsPotentialReward - stake.feeTake))}</span>.
+                    </p>
                   </div>
                 </Board>
-              </section>
+              </div>
 
-              <section className="flex flex-col gap-4">
-                <SectionHeader
-                  label="Performance"
-                  action={
-                    uptimeSeries.length > 1 ? (
-                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                        {p2p?.uptime?.length ? "hourly · 14d" : "snapshots"}
+              {/* the readings: the rail stands as tall as the column beside it */}
+              <Board divide={false} className="flex flex-col border">
+                <RailRow label="Status" sub={n.validator.connected ? "reachable by its peers" : "not reachable right now"}>
+                  {n.validator.connected ? <span className="text-emerald-600 dark:text-emerald-400">Connected</span> : <span className="text-zinc-400">Offline</span>}
+                </RailRow>
+                <RailRow label="Uptime" sub={p2p?.uptime?.length ? "peers' median view, last 14 days" : "peers' median view"}>
+                  <span className={n.uptime.currentP50 >= 90 ? undefined : "text-[#E6212F]"}>{n.uptime.currentP50.toFixed(2)}%</span>
+                </RailRow>
+                <RailRow label="Total Stake" sub={stake.sharePct != null ? `${stake.sharePct.toFixed(2)}% of the network` : undefined}>
+                  {avax(n.validator.totalStake)}
+                </RailRow>
+                <RailRow label="Delegation Fee" sub="its cut of delegators' rewards">
+                  {n.validator.delegationFeePercent}%
+                </RailRow>
+                {p2p && (
+                  <RailRow
+                    label="Blocks · 14 days"
+                    sub={
+                      <span className={p2p.missed_14d > 0 ? "text-[#E6212F]" : undefined}>
+                        {formatNumber(p2p.missed_14d)} missed · {p2p.miss_rate_14d.toFixed(1)}%
                       </span>
-                    ) : undefined
-                  }
-                />
-                <Board divide={false} className="flex flex-col gap-5 px-5 py-5 md:px-6">
-                  {/* uptime, hourly */}
-                  {uptimeSeries.length > 1 ? (
-                    <div className="h-24">
+                    }
+                  >
+                    {formatNumber(p2p.proposed_14d)} proposed
+                  </RailRow>
+                )}
+                <RailRow label="Term Ends" sub={`${formatNumber(n.validator.daysLeft)} days left`}>
+                  {dayShort(n.validator.endTimestamp)}
+                </RailRow>
+              </Board>
+            </div>
+          )}
+
+          {/* how it has performed: uptime by the hour, blocks by the day */}
+          {n.hasSnapshot && (uptimeSeries.length > 1 || blocksSeries.length > 1) && (
+            <section className="flex flex-col gap-4">
+              <SectionHeader label="Performance · last 14 days" />
+              <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+                {uptimeSeries.length > 1 && (
+                  <Board divide={false} className="flex flex-col gap-3 px-5 py-5 md:px-6">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Uptime</span>
+                    <p className="font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                      {n.uptime.max - n.uptime.min < 0.1 ? (
+                        <>
+                          Steady at <span className="text-zinc-900 dark:text-zinc-50">{n.uptime.avg.toFixed(2)}%</span>: the lowest hour was{" "}
+                          {n.uptime.min.toFixed(2)}%. Rewards need 90%.
+                        </>
+                      ) : (
+                        <>
+                          Between <span className="text-zinc-900 dark:text-zinc-50">{n.uptime.min.toFixed(1)}%</span> and{" "}
+                          <span className="text-zinc-900 dark:text-zinc-50">{n.uptime.max.toFixed(1)}%</span>, {n.uptime.avg.toFixed(1)}% on average. Rewards need 90%.
+                        </>
+                      )}
+                    </p>
+                    <div className="h-36">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={uptimeSeries} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                          <YAxis hide domain={["dataMin", 100]} />
+                        <AreaChart data={uptimeSeries} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                          <CartesianGrid vertical={false} stroke="rgba(161,161,170,0.18)" />
+                          <XAxis dataKey="t" tickLine={false} axisLine={false} tick={AXIS_TICK} minTickGap={56} interval="preserveStartEnd" tickFormatter={(t: string) => (/^\d{4}-/.test(t) ? dayShort(t) : "")} />
+                          <YAxis orientation="right" width={48} tickLine={false} axisLine={false} tick={AXIS_TICK} tickCount={3} domain={[(min: number) => Math.max(0, Math.floor(min * 10) / 10 - 0.1), 100]} tickFormatter={(v: number) => `${v.toFixed(1)}%`} />
                           <RechartsTooltip
                             cursor={{ stroke: "rgba(161,161,170,0.3)" }}
                             content={({ active, payload }) => {
                               if (!active || !payload?.[0]) return null;
                               const d = payload[0].payload as { t: string; v: number };
                               return (
-                                <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                                  <p className="text-[10px] text-zinc-500">{d.t}</p>
-                                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                    {d.v.toFixed(2)}% uptime
-                                  </p>
-                                </div>
+                                <TipPlate>
+                                  <p className="text-[10px] text-zinc-500">{/^\d{4}-/.test(d.t) ? hourLong(d.t.slice(0, 16)) : "snapshot"}</p>
+                                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{d.v.toFixed(2)}% uptime</p>
+                                </TipPlate>
                               );
                             }}
                           />
-                          <Area
-                            dataKey="v"
-                            type="monotone"
-                            stroke="#E6212F"
-                            strokeWidth={1.5}
-                            fill="#E6212F"
-                            fillOpacity={0.08}
-                          />
+                          <Area dataKey="v" type="monotone" stroke="#059669" strokeWidth={1.5} fill="#059669" fillOpacity={0.08} isAnimationActive={false} />
                         </AreaChart>
                       </ResponsiveContainer>
                     </div>
-                  ) : (
-                    <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">Not enough samples</p>
-                  )}
-                  {/* A five-across MIN/AVG/P50/P95/MAX strip is five copies of
-                      the same number on any healthy validator. Show the spread
-                      only when there is one; otherwise one figure says it. */}
-                  {n.uptime.sampleCount > 0 &&
-                    (n.uptime.max - n.uptime.min < 0.1 ? (
-                      <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                        <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                          {n.uptime.avg.toFixed(1)}%
-                        </span>{" "}
-                        flat across {formatNumber(n.uptime.sampleCount)} samples
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-4 gap-4">
-                        {[
-                          { l: "MIN", v: n.uptime.min },
-                          { l: "AVG", v: n.uptime.avg },
-                          { l: "P95", v: n.uptime.p95 },
-                          { l: "MAX", v: n.uptime.max },
-                        ].map((s) => (
-                          <div key={s.l} className="flex flex-col gap-1">
-                            <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                              {s.l}
-                            </span>
-                            <span className="font-mono text-[13px] font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
-                              {s.v.toFixed(1)}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-
-                  {/* block production, proposed vs missed */}
-                  {blocksSeries.length > 1 && (
-                    <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          Block production
-                        </span>
-                        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                          <span className="text-zinc-900 dark:text-zinc-100">{formatNumber(p2p?.proposed_14d ?? 0)}</span>{" "}
-                          proposed ·{" "}
-                          <span className={p2p && p2p.missed_14d > 0 ? "text-[#E6212F]" : ""}>
-                            {formatNumber(p2p?.missed_14d ?? 0)} missed
-                          </span>
-                        </span>
-                      </div>
-                      <div className="h-16">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={blocksSeries} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
-                            <YAxis hide domain={[0, "dataMax"]} />
-                            <RechartsTooltip
-                              cursor={{ stroke: "rgba(161,161,170,0.3)" }}
-                              content={({ active, payload }) => {
-                                if (!active || !payload?.[0]) return null;
-                                const d = payload[0].payload as { t: string; proposed: number; missed: number };
-                                return (
-                                  <div className="border border-zinc-200 bg-white px-2.5 py-1.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-800">
-                                    <p className="text-[10px] text-zinc-500">{d.t}</p>
-                                    <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                                      {d.proposed} proposed
-                                    </p>
-                                    {d.missed > 0 && (
-                                      <p className="text-xs tabular-nums text-[#E6212F]">{d.missed} missed</p>
-                                    )}
-                                  </div>
-                                );
-                              }}
-                            />
-                            <Line dataKey="proposed" type="monotone" stroke="#A2AFB2" strokeWidth={1.5} dot={false} />
-                            <Line dataKey="missed" type="monotone" stroke="#E6212F" strokeWidth={1.5} dot={false} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
+                  </Board>
+                )}
+                {blocksSeries.length > 1 && p2p && (
+                  <Board divide={false} className="flex flex-col gap-3 px-5 py-5 md:px-6">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Blocks proposed</span>
+                    <p className="font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                      Proposed <span className="text-zinc-900 dark:text-zinc-50">{formatNumber(p2p.proposed_14d)}</span> blocks and missed{" "}
+                      <span className={p2p.missed_14d > 0 ? "text-[#E6212F]" : "text-zinc-900 dark:text-zinc-50"}>{formatNumber(p2p.missed_14d)}</span>
+                      {slots ? `; ${((slots.slot0 / slots.total) * 100).toFixed(1)}% landed on the first try` : ""}.
+                    </p>
+                    <div className="h-36">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={blocksSeries} barCategoryGap="22%" margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+                          <CartesianGrid vertical={false} stroke="rgba(161,161,170,0.18)" />
+                          <XAxis dataKey="t" tickLine={false} axisLine={false} tick={AXIS_TICK} minTickGap={40} interval="preserveStartEnd" tickFormatter={(t: string) => dayShort(t.slice(0, 10))} />
+                          <YAxis orientation="right" width={40} tickLine={false} axisLine={false} tick={AXIS_TICK} tickCount={3} domain={[0, "dataMax"]} tickFormatter={(v: number) => formatNumber(v)} />
+                          <RechartsTooltip
+                            cursor={{ fill: "rgba(161,161,170,0.08)" }}
+                            content={({ active, payload }) => {
+                              if (!active || !payload?.[0]) return null;
+                              const d = payload[0].payload as { t: string; proposed: number; missed: number };
+                              return (
+                                <TipPlate>
+                                  <p className="text-[10px] text-zinc-500">{dayLong(d.t.slice(0, 10))}</p>
+                                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{formatNumber(d.proposed)} proposed</p>
+                                  <p className={cn("text-[10px] tabular-nums", d.missed > 0 ? "text-[#E6212F]" : "text-zinc-500")}>{formatNumber(d.missed)} missed</p>
+                                </TipPlate>
+                              );
+                            }}
+                          />
+                          <Bar dataKey="proposed" stackId="b" fill="#A2AFB2" isAnimationActive={false} />
+                          <Bar dataKey="missed" stackId="b" fill="#E6212F" isAnimationActive={false} />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                  )}
-
-                  {/* Proposal timing. A three-segment bar is worth drawing only
-                      when the node actually misses its first slot; at 99.9%
-                      slot 0 it is a solid block with a legend under it, so the
-                      healthy case gets one line instead. */}
-                  {slots && (
-                    <div className="flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                          Proposal timing
-                        </span>
-                        <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                          slot 0{" "}
-                          <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                            {((slots.slot0 / slots.total) * 100).toFixed(1)}%
-                          </span>
-                        </span>
-                      </div>
-                      {slots.slot0 / slots.total < 0.95 ? (
-                        <>
-                          <div className="flex h-2 w-full overflow-hidden">
-                            <div
-                              className="bg-zinc-900 dark:bg-zinc-100"
-                              style={{ width: `${(slots.slot0 / slots.total) * 100}%` }}
-                              title={`Slot 0 · ${formatNumber(slots.slot0)}`}
-                            />
-                            <div
-                              className="bg-[#A2AFB2]"
-                              style={{ width: `${(slots.slot1 / slots.total) * 100}%` }}
-                              title={`Slot 1 · ${formatNumber(slots.slot1)}`}
-                            />
-                            <div
-                              className="bg-[#E6212F]"
-                              style={{ width: `${(slots.slot2plus / slots.total) * 100}%` }}
-                              title={`Slot 2+ · ${formatNumber(slots.slot2plus)}`}
-                            />
-                          </div>
-                          <div className="flex gap-4 font-mono text-[9px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                            <span>■ slot 0 first try</span>
-                            <span>slot 1</span>
-                            <span className="text-[#E6212F]">slot 2+</span>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-                          lands its first slot on {formatNumber(slots.slot0)} of{" "}
-                          {formatNumber(slots.total)} proposals
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </Board>
-              </section>
-            </div>
+                  </Board>
+                )}
+              </div>
+            </section>
           )}
 
-          {/* one validation is already the plate's Subnet row — this strip
+          {/* the track record: every closed term and what it actually paid */}
+          {validations && validations.periods.length > 0 && <ValidationHistory data={validations} base={base} />}
+
+          {/* the identifiers, whole */}
+          {n.hasSnapshot && (
+            <section className="flex flex-col gap-4">
+              <SectionHeader label="Identity" />
+              <Board divide={false} className="px-5 md:px-6">
+                <SpecSheet>
+                  <SpecLine label="Subnet">
+                    {n.validator.subnetId === PRIMARY_SUBNET_ID ? (
+                      <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                        Primary Network
+                        <HashChip value={n.validator.subnetId} len={66} className="text-zinc-400 dark:text-zinc-500" />
+                      </span>
+                    ) : (
+                      <HashChip value={n.validator.subnetId} len={66} />
+                    )}
+                  </SpecLine>
+                  {n.validator.validationId && (
+                    <SpecLine label="Validation ID">
+                      <HashChip value={n.validator.validationId} len={66} />
+                    </SpecLine>
+                  )}
+                  {n.validator.txId && (
+                    <SpecLine label="Staking Tx">
+                      <HashChip value={n.validator.txId} href={`${base}/tx/${n.validator.txId}`} len={66} />
+                    </SpecLine>
+                  )}
+                  {/* where the money lands, live from the P-Chain, since the
+                      indexer doesn't mirror reward owners */}
+                  {validationPayout?.addresses?.[0] && (
+                    <SpecLine label={delegationPayout?.addresses?.[0] && delegationPayout.addresses[0] !== validationPayout.addresses[0] ? "Payout · Validation" : "Payout"}>
+                      <HashChip value={validationPayout.addresses[0]} href={`${base}/address/${validationPayout.addresses[0]}`} len={66} />
+                    </SpecLine>
+                  )}
+                  {delegationPayout?.addresses?.[0] && delegationPayout.addresses[0] !== validationPayout?.addresses?.[0] && (
+                    <SpecLine label="Payout · Delegation">
+                      <HashChip value={delegationPayout.addresses[0]} href={`${base}/address/${delegationPayout.addresses[0]}`} len={66} />
+                    </SpecLine>
+                  )}
+                  {identity?.signer?.publicKey && (
+                    <SpecLine label="BLS Public Key" align="start">
+                      <HashChip value={identity.signer.publicKey} len={200} />
+                    </SpecLine>
+                  )}
+                </SpecSheet>
+              </Board>
+            </section>
+          )}
+
+          {/* one validation is already the plate's Subnet row: this strip
               only earns space when the node validates several networks */}
           {n.validations.length > 1 && (
             <section className="flex flex-col gap-4">
@@ -729,13 +633,18 @@ export function PchainNode({
             </section>
           )}
 
-          {/* split view: money | record — two symmetric lists, same cap,
+          {/* split view: money | record: two symmetric lists, same cap,
               same rhythm, so the rails end together */}
-          <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
             {n.delegators.length > 0 && (
               <section className="flex min-w-0 flex-col gap-4">
                 <SectionHeader
-                  label={`Delegators · ${n.delegators.length}`}
+                  label={
+                    // the feed lists at most 500; say so rather than contradict the count
+                    n.validator && n.validator.delegatorCount > n.delegators.length
+                      ? `Delegators · top ${formatNumber(n.delegators.length)} of ${formatNumber(n.validator.delegatorCount)}`
+                      : `Delegators · ${formatNumber(n.delegators.length)}`
+                  }
                   action={
                     <div className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
                       {(["stake", "recent"] as const).map((k) => (
@@ -754,7 +663,7 @@ export function PchainNode({
                       <span>
                         Σ reward{" "}
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                          {formatAvax(n.delegatorsPotentialReward, { compact: true })}
+                          {avax(n.delegatorsPotentialReward)}
                         </span>
                       </span>
                     </div>
@@ -772,27 +681,27 @@ export function PchainNode({
                         className="flex flex-col gap-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
                       >
                         <div className="flex items-center justify-between gap-4">
-                          <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 16)}</span>
+                          <span className={`font-mono text-[12px] ${idInk}`}>{truncate(d.txId, 20)}</span>
                           <div className="flex items-center gap-5 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                             <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                              {formatAvax(d.stakeAmount, { compact: true })}
+                              {avax(d.stakeAmount)}
                             </span>
                             <span
                               className="text-emerald-600 dark:text-emerald-400"
                               title="delegator's reward net of the validator's fee"
                             >
-                              +{formatAvax(net, { compact: true })}
+                              +{avax(net)}
                             </span>
                             {feeCut > 0 && (
                               <span title={`validator's ${feePct}% fee cut`}>
-                                fee {formatAvax(feeCut, { compact: true })}
+                                fee {avax(feeCut)}
                               </span>
                             )}
                           </div>
                         </div>
                         <div className="flex flex-wrap justify-between gap-x-4 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                          <span>started {timeAgo(d.startTimestamp)}</span>
-                          {d.endTimestamp > 0 && <span>ends {formatTime(d.endTimestamp)}</span>}
+                          <span title={formatTime(d.startTimestamp)}>started {timeAgo(d.startTimestamp)}</span>
+                          {d.endTimestamp > 0 && <span>ends {dayLong(d.endTimestamp)}</span>}
                         </div>
                       </Link>
                     );
@@ -823,17 +732,17 @@ export function PchainNode({
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span className={`truncate font-mono text-[12px] ${idInk}`}>
-                          {truncate(h.txHash, 16)}
+                          {truncate(h.txHash, 20)}
                         </span>
                         <TxTypePill type={h.txType} label={txTypeLabel(h.txType)} />
                       </div>
                       <div className="flex shrink-0 items-center gap-4 font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
                         {(h.weight ?? 0) > 0 && (
                           <span className="font-bold text-zinc-900 dark:text-zinc-100">
-                            {formatAvax(h.weight!, { compact: true })}
+                            {avax(h.weight!)}
                           </span>
                         )}
-                        <span>{timeAgo(h.blockTimestamp)}</span>
+                        <span title={formatTime(h.blockTimestamp)}>{timeAgo(h.blockTimestamp)}</span>
                       </div>
                     </Link>
                   ))}
@@ -846,13 +755,7 @@ export function PchainNode({
                   )}
                 </Board>
                 {showAllHistory && !historyDone && (
-                  <button
-                    onClick={loadOlderHistory}
-                    disabled={loadingOlder}
-                    className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-                  >
-                    {loadingOlder ? "Loading…" : "Load older activity"}
-                  </button>
+                  <LoadMore onClick={loadOlderHistory} disabled={loadingOlder} label="Load older activity" />
                 )}
               </section>
             )}
@@ -906,7 +809,7 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
         <div className="grid grid-cols-1 divide-y divide-zinc-200 sm:grid-cols-2 sm:divide-y-0 sm:divide-x dark:divide-zinc-800">
           <Tile
             label="Validating since"
-            value={totals.firstStart ? formatTime(totals.firstStart).slice(0, 10) : "—"}
+            value={totals.firstStart ? dayShort(totals.firstStart) + ", " + new Date(totals.firstStart * 1000).getUTCFullYear() : "—"}
             sub={
               totals.firstStart
                 ? `${formatNumber(Math.floor((Date.now() / 1000 - totals.firstStart) / 86400))} days on record`
@@ -915,7 +818,7 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
           />
           <Tile
             label="Rewards earned"
-            value={formatAvax(lifetimeReward.toString(), { compact: true })}
+            value={avax(lifetimeReward.toString())}
             strong
             tone="good"
             sub="own stake plus fee take, across every term"
@@ -935,11 +838,11 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
             return (
               <div
                 key={p.txHash}
-                className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr] md:items-center md:px-6"
+                className={cn(ROW, "md:grid-cols-[1.5fr_0.6fr_1fr_0.8fr_1fr]")}
               >
                 <div className="flex min-w-0 flex-col gap-0.5">
                   <span className="font-mono text-[11.5px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {formatTime(p.startTimestamp).slice(0, 10)} → {formatTime(p.endTimestamp).slice(0, 10)}
+                    {dayShort(p.startTimestamp)} → {dayLong(p.endTimestamp).replace(/^\w+, /, "")}
                   </span>
                   <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
                     ended {timeAgo(p.endTimestamp)}
@@ -951,7 +854,7 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
                 </div>
                 <div className="font-mono text-[11px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-100">
                   <CellLabel>Stake</CellLabel>
-                  {formatAvax(p.amountStaked, { compact: true })}
+                  {avax(p.amountStaked)}
                 </div>
                 <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                   <CellLabel>Delegators</CellLabel>
@@ -966,11 +869,11 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
                         href={`${base}/tx/${p.rewardTxHash}`}
                         className="text-emerald-600 hover:underline dark:text-emerald-400"
                       >
-                        +{formatAvax(paid.toString(), { compact: true })}
+                        +{avax(paid.toString())}
                       </Link>
                     ) : (
                       <span className="text-emerald-600 dark:text-emerald-400">
-                        +{formatAvax(paid.toString(), { compact: true })}
+                        +{avax(paid.toString())}
                       </span>
                     )
                   ) : (
@@ -994,7 +897,7 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
 }
 
 /* The L1 validator's live record, straight from the P-Chain. Slimmer than
-   the indexer view (no uptime history or delegators — L1 validators have
+   the indexer view (no uptime history or delegators: L1 validators have
    neither on the Primary Network), but authoritative. */
 function L1ValidatorView({
   nodeId,
@@ -1024,7 +927,7 @@ function L1ValidatorView({
         <SubjectHeadline value={nodeId} copyLabel="Copy NodeID" />
       </section>
 
-      <div className="grid items-start gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
         <section className="flex flex-col gap-4">
           <SectionHeader label="L1 Validation" />
           <Board divide={false} className="px-5 py-4 md:px-6">
@@ -1085,7 +988,7 @@ function Tile({
   /** the figures eyes should land on first */
   strong?: boolean;
   tone?: "good" | "warn" | "bad";
-  /** muted qualifier under the figure — a share, a cap, a count */
+  /** muted qualifier under the figure: a share, a cap, a count */
   sub?: string;
 }) {
   const toneCls =

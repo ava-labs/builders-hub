@@ -149,13 +149,17 @@ export const PILLARS: Pillar[] = [
     metaDescription:
       "Avalanche finality is irreversible with no reorgs: under a second on the C-Chain, under 100 milliseconds on dedicated L1s.",
     intro:
-      "Finality on Avalanche is irreversible: no reorgs, no settlement window. The shared C-Chain settles in under a second; a dedicated L1 can push it below 100 milliseconds.",
+      "Finality on Avalanche is irreversible: no reorgs, no settlement window. The shared C-Chain settles in under a second; a dedicated L1 can push it below 100 milliseconds. Both run the EVM by default, so Solidity contracts and existing tooling carry over unchanged.",
     proofs: [
       { label: "C-CHAIN FINALITY", value: "<1S" },
       { label: "DEDICATED L1 FINALITY", value: "<100MS" },
       { label: "CHAIN REORGS", value: "NONE, BY DESIGN" },
     ],
     capabilities: [
+      {
+        title: "High-performance EVM",
+        body: "The C-Chain and every L1 run the EVM by default: Solidity, Foundry, and the wallets your users already have work unchanged.",
+      },
       {
         title: "Irreversible settlement",
         body: "Snowman consensus accepts each block exactly once. No confirmation counting, no reorg window, no clawback of settled value.",
@@ -177,6 +181,8 @@ export const PILLARS: Pillar[] = [
           { text: "Continuous execution", href: "/docs/primary-network/continuous-execution" },
           { text: "The Primary Network", href: "/docs/primary-network" },
           { text: "Customize your EVM", href: "/docs/avalanche-l1s/evm-configuration/customize-avalanche-l1" },
+          { text: "Custom precompiles", href: "/docs/avalanche-l1s/custom-precompiles" },
+          { text: "Build a custom VM", href: "/docs/avalanche-l1s/virtual-machines-index" },
         ],
       },
       {
@@ -287,24 +293,24 @@ export const PILLARS: Pillar[] = [
     label: "COMPLIANCE",
     title: "Policy enforced by the protocol",
     tagline:
-      "Allowlist validators, deployers, and transactors at the chain level. The rules live in precompiles, not policy documents.",
+      "Decide who can validate, deploy, and transact on your L1. The rules are built into the chain's virtual machine, not written in policy documents.",
     metaDescription:
-      "Avalanche L1s enforce permissioning at the protocol level: allowlist precompiles for deployers and transactions, and permissioned validator sets.",
+      "Avalanche L1s build compliance into the chain itself: control who deploys contracts, who transacts, and who validates, enforced by the virtual machine at execution.",
     intro:
-      "On an Avalanche L1, permissioning is a protocol primitive: precompiles gate who deploys and who transacts, and the validator set itself can be permissioned. The rules are enforced by the chain and auditable on it, and the chain stays fully EVM-compatible.",
+      "On an Avalanche L1, compliance is built into the chain: the virtual machine checks who may deploy and who may transact before anything executes, and you choose who validates. The rules are enforced by the chain, auditable on it, and the chain stays fully EVM-compatible.",
     proofs: [
-      { label: "CONTRACT DEPLOYMENT", value: "ALLOWLIST PRECOMPILE" },
-      { label: "TRANSACTION ACCESS", value: "ALLOWLIST PRECOMPILE" },
+      { label: "CONTRACT DEPLOYMENT", value: "APPROVED DEPLOYERS ONLY" },
+      { label: "TRANSACTION ACCESS", value: "APPROVED WALLETS ONLY" },
       { label: "VALIDATOR SET", value: "PERMISSIONED OPTION" },
     ],
     capabilities: [
       {
-        title: "Deployer allowlists",
-        body: "The ContractDeployerAllowList precompile restricts deployment to addresses you approve, enforced at execution rather than by convention.",
+        title: "Approved deployers",
+        body: "Only addresses you approve can deploy contracts. The EVM enforces it at execution, not by convention.",
       },
       {
         title: "Transaction gating",
-        body: "The TxAllowList precompile controls who can transact at all: approved wallets in, everyone else out.",
+        body: "Only approved wallets can transact at all. The chain rejects anyone else's transaction before it executes.",
       },
       {
         title: "Permissioned validator set",
@@ -472,16 +478,44 @@ export const USE_CASES: UseCase[] = [
     label: "PERMISSIONED VENUE",
     title: "Markets where every wallet is known",
     tagline:
-      "The transaction allowlist is protocol code: a wallet that is not approved cannot transact at all.",
+      "Access control is built into the chain: a wallet that is not approved cannot transact at all.",
     summary:
       "A regulated venue must know every participant, but on a public chain any address can call any contract. Policy that lives in a compliance manual cannot stop a transaction; policy that lives in the protocol can.",
-    stack: "TxAllowList precompile · Permissioned validators · EVM",
+    stack: "Built-in access control · Permissioned validators · EVM",
     guarantees: [
-      { label: "ACCESS", value: "ALLOWLIST-GATED" },
+      { label: "ACCESS", value: "APPROVED WALLETS ONLY" },
       { label: "ENFORCEMENT", value: "AT EXECUTION" },
       { label: "AUDIT TRAIL", value: "ON-CHAIN" },
     ],
     pillar: "compliance",
     diagram: "permissioned-venue",
   },
+];
+
+/**
+ * Where to build: the shared C-Chain against a dedicated L1, one row per
+ * decision, grouped by pillar. Every cell restates behavior the pillar copy
+ * above already claims; add no row the protocol does not ship.
+ */
+export interface ComparisonRow {
+  pillar: PillarSlug;
+  label: string;
+  cChain: string;
+  l1: string;
+}
+
+export const COMPARISON: ComparisonRow[] = [
+  { pillar: "performance", label: "Virtual machine", cChain: "High-performance EVM", l1: "The same EVM, a customized EVM, or any VM you build" },
+  { pillar: "performance", label: "Chain-level features", cChain: "Fixed by the network", l1: "Extend the EVM with your own" },
+  { pillar: "performance", label: "Finality", cChain: "Under a second", l1: "Under 100 milliseconds" },
+  { pillar: "performance", label: "Reorgs", cChain: "None", l1: "None" },
+  { pillar: "performance", label: "Blockspace", cChain: "Shared with every application", l1: "Dedicated, with its own fee market" },
+  { pillar: "performance", label: "Gas token", cChain: "AVAX", l1: "A token you choose" },
+  { pillar: "interoperability", label: "Interchain Messaging", cChain: "Native", l1: "Native" },
+  { pillar: "interoperability", label: "Token transfer (ICTT)", cChain: "Native", l1: "Native" },
+  { pillar: "privacy", label: "Network access", cChain: "Public", l1: "Public, or validator-only" },
+  { pillar: "privacy", label: "Data residency", cChain: "Primary Network validators", l1: "Wherever you place validators" },
+  { pillar: "compliance", label: "Validators", cChain: "Primary Network validators", l1: "Operators you admit" },
+  { pillar: "compliance", label: "Contract deployment", cChain: "Anyone", l1: "Approved deployers only" },
+  { pillar: "compliance", label: "Transactions", cChain: "Anyone", l1: "Approved wallets only" },
 ];

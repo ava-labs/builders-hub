@@ -5,25 +5,20 @@ import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { Rise } from "@/components/explorer-v2/ui";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
-/* The network-scope shell — the widest lens in the explorer. Same chrome
+/* The network-scope shell: the widest lens in the explorer. Same chrome
    grammar as ExplorerShell (sheet column, subnav spine, rising header,
    universal search), but no chain in the switcher: every facet under it
    (chains, ICM, validators, apps, the token) describes the whole network.
-   Mainnet only — the aggregate data sources don't cover Fuji. */
+   Mainnet only: the aggregate data sources don't cover Fuji. */
 export function NetworkShell({
-  title,
-  eyebrow = "Avalanche Network",
-  intro,
-  aside,
+  network = "mainnet",
+  search = true,
   children,
 }: {
-  /** page display title, rendered with the trailing red period */
-  title: string;
-  eyebrow?: string;
-  /** optional one-liner under the title row */
-  intro?: string;
-  /** optional right-hand companion for the title row (e.g. a live figure) */
-  aside?: React.ReactNode;
+  /** Defaults to mainnet */
+  network?: string;
+  /** Set false where the page has its own input, such as Query's prompt box */
+  search?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -31,34 +26,16 @@ export function NetworkShell({
       <SheetBackdrop snowOnly />
       <div className="relative mx-auto min-h-screen w-full max-w-[90rem] border-x border-transparent bg-white px-5 pb-24 pt-10 md:px-6 min-[90rem]:border-zinc-200/90 dark:bg-zinc-950 dark:min-[90rem]:border-zinc-800/90">
         {/* no chainSlug = the subnav's network scope: All Networks switcher
-            row, ecosystem facet tabs, static Mainnet label */}
-        <ExplorerSubnav network="mainnet" className="mb-8" />
-        <Rise delay={0.05}>
-          <header className="flex flex-col gap-6 pb-10">
-            {/* pl-0!/pr-0!: overrides the global `header > div` navbar
-                padding hack (global.css) that would indent this by 3rem */}
-            <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pl-0! pr-0!">
-              <div className="flex flex-col gap-2.5">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-zinc-400">
-                  {eyebrow}
-                </p>
-                <h1 className="v2-display -ml-[0.055em] text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
-                  {title}
-                  <span className="text-[#E6212F]">.</span>
-                </h1>
-                {intro && (
-                  <p className="max-w-2xl text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-                    {intro}
-                  </p>
-                )}
-              </div>
-              {aside}
-            </div>
-            {/* the universal search — chain="p-chain" routes every shape of
-                identifier to whichever chain it belongs to */}
-            <SearchBox chain="p-chain" network="mainnet" />
-          </header>
-        </Rise>
+            row, ecosystem facet tabs, static network label. The facet tabs stay
+            pinned to mainnet on purpose: those aggregates exist there only. */}
+        <ExplorerSubnav network={network} className="mb-6" />
+        {/* the C-Chain's grammar: no display title, no explainer. The
+            subnav names the page; the search leads, the figures follow */}
+        {search && (
+          <div className="pb-8">
+            <SearchBox chain="p-chain" network={network} askAt={`/explorer/${network}/query`} />
+          </div>
+        )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
     </main>

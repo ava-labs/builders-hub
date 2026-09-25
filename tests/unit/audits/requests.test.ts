@@ -1,0 +1,292 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+
+const {
+  updateManyMock,
+  deleteManyMock,
+  requestFindFirstMock,
+  delMock,
+  eventCreateMock,
+  txRequestFindFirstMock,
+  txRequestUpdateMock,
+  txEventCountMock,
+  txEventCreateMock,
+  txAuditorFindManyMock,
+  txAuditorCountMock,
+  txDeliveryCreateManyMock,
+  deliverFanoutEmailsMock,
+} = vi.hoisted(() => ({
+  updateManyMock: vi.fn(),
+  deleteManyMock: vi.fn(),
+  requestFindFirstMock: vi.fn(),
+  delMock: vi.fn(),
+  eventCreateMock: vi.fn(),
+  txRequestFindFirstMock: vi.fn(),
+  txRequestUpdateMock: vi.fn(),
+  txEventCountMock: vi.fn(),
+  txEventCreateMock: vi.fn(),
+  txAuditorFindManyMock: vi.fn(),
+  txAuditorCountMock: vi.fn(),
+  txDeliveryCreateManyMock: vi.fn(),
+  deliverFanoutEmailsMock: vi.fn(),
+}));
+
+const tx = {
+  auditRequest: { findFirst: txRequestFindFirstMock, update: txRequestUpdateMock },
+  auditEventLog: { count: txEventCountMock, create: txEventCreateMock },
+  auditor: { findMany: txAuditorFindManyMock, count: txAuditorCountMock },
+  auditFanoutDelivery: { createMany: txDeliveryCreateManyMock },
+};
+
+vi.mock("@vercel/blob", () => ({ del: delMock }));
+
+vi.mock("@/prisma/prisma", () => ({
+  prisma: {
+    auditRequest: {
+      updateMany: updateManyMock,
+      deleteMany: deleteManyMock,
+      findFirst: requestFindFirstMock,
+    },
+    auditEventLog: { create: eventCreateMock },
+    $transaction: vi.fn(async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx)),
+  },
+}));
+
+// Only the send is mocked; toFanoutRequest is a pure mapper and the reopen
+// path depends on its real output shape.
+vi.mock("@/server/services/audits/fanout", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/services/audits/fanout")>()),
+  deliverFanoutEmails: deliverFanoutEmailsMock,
+}));
+
+import { patchDraft, deleteDraft, reopen, withdraw } from "@/server/services/audits/requests";
+
+const OWNER = "user-owner";
+
+const HOST = "qizat5l3bwvomkny.public.blob.vercel-storage.com";
+const storeUrl = (name: string, req = "req-1") => `https://${HOST}/audits/${req}/${name}`;
+const attachment = (name: string) => ({ name, url: storeUrl(name), size: 10 });
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  process.env.BLOB_READ_WRITE_TOKEN = "test-token";
+  updateManyMock.mockResolvedValue({ count: 1 });
+  deleteManyMock.mockResolvedValue({ count: 1 });
+  requestFindFirstMock.mockResolvedValue({ attachments: [] });
+  eventCreateMock.mockResolvedValue({});
+  delMock.mockResolvedValue(undefined);
+});
+
+describe("patchDraft", () => {
+  it("only ever updates the caller's own draft", async () => {
+    await patchDraft(OWNER, "req-1", { project_name: "Glacierswap" });
+
+    expect(updateManyMock.mock.calls[0][0].where).toMatchObject({
+      id: "req-1",
+      user_id: OWNER,
+      status: "draft",
+    });
+  });
+
+  it("reports not_found when nothing matched (submitted or foreign request)", async () => {
+    updateManyMock.mockResolvedValue({ count: 0 });
+
+    const result = await patchDraft(OWNER, "req-1", { project_name: "X" });
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+  });
+
+  it("passes shortlist_auditor_ids straight through patchDraft to updateMany data", async () => {
+    await patchDraft(OWNER, "req-1", { shortlist_auditor_ids: ["aud-1"] });
+    expect(updateManyMock.mock.calls[0][0].data).toMatchObject({ shortlist_auditor_ids: ["aud-1"] });
+  });
+
+  it("never reads the row when the save carries no attachments key", async () => {
+    await patchDraft(OWNER, "req-1", { project_name: "X" });
+    expect(requestFindFirstMock).not.toHaveBeenCalled();
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("unpublishes the objects the owner dropped, keeping the ones still listed", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      attachments: [attachment("kept.pdf"), attachment("dropped.pdf")],
+    });
+
+    await patchDraft(OWNER, "req-1", { attachments: [attachment("kept.pdf")] });
+
+    expect(delMock).toHaveBeenCalledWith([storeUrl("dropped.pdf")], { token: "test-token" });
+  });
+
+  it("reads the previous list under the owner + draft guard", async () => {
+    requestFindFirstMock.mockResolvedValue({ attachments: [] });
+    await patchDraft(OWNER, "req-1", { attachments: [] });
+    expect(requestFindFirstMock.mock.calls[0][0].where).toMatchObject({
+      id: "req-1",
+      user_id: OWNER,
+      status: "draft",
+    });
+  });
+
+  it("leaves a URL that is not on our store alone", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      attachments: [{ name: "x", url: "https://attacker.example/x.pdf", size: 1 }],
+    });
+
+    await patchDraft(OWNER, "req-1", { attachments: [] });
+
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("does not unpublish anything when the write matched no row", async () => {
+    updateManyMock.mockResolvedValue({ count: 0 });
+    requestFindFirstMock.mockResolvedValue({ attachments: [attachment("a.pdf")] });
+
+    const result = await patchDraft(OWNER, "req-1", { attachments: [] });
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(delMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteDraft", () => {
+  it("pins owner and draft status on delete", async () => {
+    await deleteDraft(OWNER, "req-1");
+
+    expect(deleteManyMock.mock.calls[0][0].where).toMatchObject({
+      id: "req-1",
+      user_id: OWNER,
+      status: "draft",
+    });
+  });
+
+  it("unpublishes every attachment the deleted draft held", async () => {
+    requestFindFirstMock.mockResolvedValue({
+      attachments: [attachment("a.pdf"), attachment("b.pdf")],
+    });
+
+    await deleteDraft(OWNER, "req-1");
+
+    expect(delMock).toHaveBeenCalledWith([storeUrl("a.pdf"), storeUrl("b.pdf")], {
+      token: "test-token",
+    });
+  });
+
+  it("unpublishes nothing when the delete matched no row", async () => {
+    deleteManyMock.mockResolvedValue({ count: 0 });
+    requestFindFirstMock.mockResolvedValue({ attachments: [attachment("a.pdf")] });
+
+    const result = await deleteDraft(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(delMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("withdraw", () => {
+  it("withdraws only a collecting request and logs the event", async () => {
+    const result = await withdraw(OWNER, "req-1");
+
+    expect(updateManyMock.mock.calls[0][0].where).toMatchObject({
+      id: "req-1",
+      user_id: OWNER,
+      status: "collecting",
+    });
+    expect(updateManyMock.mock.calls[0][0].data).toMatchObject({ status: "withdrawn" });
+    expect(result).toEqual({ success: true });
+    expect(eventCreateMock.mock.calls[0][0].data).toMatchObject({
+      request_id: "req-1",
+      action: "request_withdrawn",
+      actor_type: "project_user",
+      actor_id: OWNER,
+    });
+  });
+
+  it("does not log an event when nothing was withdrawn", async () => {
+    updateManyMock.mockResolvedValue({ count: 0 });
+
+    const result = await withdraw(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "not_found" });
+    expect(eventCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("reopen", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const expiredRow = {
+    id: "req-1",
+    project_name: "Glacierswap",
+    services: [],
+    nsloc: 4200,
+    status: "collecting",
+    quote_deadline: new Date(Date.now() - 2 * DAY),
+    shortlist_auditor_ids: [],
+    _count: { quotes: 0 },
+  };
+
+  beforeEach(() => {
+    txRequestFindFirstMock.mockResolvedValue(expiredRow);
+    txEventCountMock.mockResolvedValue(0);
+    txAuditorCountMock.mockResolvedValue(15);
+    txRequestUpdateMock.mockResolvedValue({});
+    txAuditorFindManyMock.mockResolvedValue([
+      {
+        id: "aud-1",
+        firm_name: "Nordlicht Security",
+        quote_email: "quotes@nordlicht.example",
+        members: [],
+      },
+    ]);
+    txDeliveryCreateManyMock.mockResolvedValue({ count: 1 });
+    txEventCreateMock.mockResolvedValue({});
+    deliverFanoutEmailsMock.mockResolvedValue({ emailFailures: 0 });
+  });
+
+  it("gives an expired request a fresh +10d deadline and re-fans out, history intact", async () => {
+    const result = await reopen(OWNER, "req-1");
+
+    expect(result).toMatchObject({ success: true, auditorCount: 1 });
+    const deadline = txRequestUpdateMock.mock.calls[0][0].data.quote_deadline as Date;
+    expect(Math.abs(deadline.getTime() - (Date.now() + 10 * DAY))).toBeLessThan(60_000);
+    expect(txDeliveryCreateManyMock.mock.calls[0][0].skipDuplicates).toBe(true);
+    expect(txEventCreateMock.mock.calls[0][0].data).toMatchObject({
+      action: "request_reopened",
+    });
+    expect(deliverFanoutEmailsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses anything that is not derived-expired (quotes exist)", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...expiredRow, _count: { quotes: 2 } });
+
+    const result = await reopen(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "not_reopenable" });
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("allows exactly one extra round", async () => {
+    txEventCountMock.mockResolvedValue(1);
+
+    const result = await reopen(OWNER, "req-1");
+
+    expect(result).toEqual({ success: false, code: "already_reopened" });
+    expect(txRequestUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("reopens to a stored shortlist with an exact where clause (S-20)", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...expiredRow, shortlist_auditor_ids: ["aud-1"] });
+    await reopen(OWNER, "req-1");
+    expect(txAuditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true, id: { in: ["aud-1"] } });
+  });
+
+  it("reopens to every active firm for an empty shortlist (S-20)", async () => {
+    await reopen(OWNER, "req-1");
+    expect(txAuditorFindManyMock.mock.calls[0][0].where).toEqual({ active: true });
+  });
+
+  it("records the three counts on request_reopened", async () => {
+    txRequestFindFirstMock.mockResolvedValue({ ...expiredRow, shortlist_auditor_ids: ["aud-1"] });
+    txAuditorCountMock.mockResolvedValueOnce(1).mockResolvedValueOnce(15);
+    await reopen(OWNER, "req-1");
+    expect(txEventCreateMock.mock.calls[0][0].data.meta).toMatchObject({ auditor_count: 1, shortlist_count: 1, whitelist_count: 15 });
+  });
+});

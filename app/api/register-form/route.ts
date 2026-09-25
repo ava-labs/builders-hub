@@ -5,6 +5,7 @@ import { withAuth } from "@/lib/protectedRoute";
 import { prisma } from "@/prisma/prisma";
 import { syncUserDataToHubSpot } from "@/server/services/hubspotUserData";
 import { isTeam1Event } from "@/lib/events/team1";
+import { normalizeEmail } from "@/lib/utils";
 
 type UserConsentsInput = {
   notifications?: unknown;
@@ -140,15 +141,17 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
       return NextResponse.json({ error: "Email required" }, { status: 400 });
     }
 
-    // Verify that email matches the authenticated session user's email
-    if (email !== session.user.email) {
+    // Verify that email matches the authenticated session user's email.
+    // Session email is normalized; normalize the param so a client passing the
+    // originally-typed casing doesn't get a spurious 403.
+    if (normalizeEmail(email) !== session.user.email) {
       return NextResponse.json(
         { error: "Forbidden: You can only access your own registration forms" },
         { status: 403 }
       );
     }
 
-    const registerFormLoaded = await getRegisterForm(email, id);
+    const registerFormLoaded = await getRegisterForm(session.user.email, id);
 
     return NextResponse.json(registerFormLoaded);
   } catch (error) {

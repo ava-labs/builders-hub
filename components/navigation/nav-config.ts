@@ -12,6 +12,8 @@
 export interface NavItem {
   text: string;
   href: string;
+  /** Small "New" style pill next to the label (drop after launch month). */
+  badge?: string;
   external?: boolean;
 }
 
@@ -63,13 +65,12 @@ export const menuSections: NavSection[] = [
   },
   {
     title: 'Explorer',
-    href: '/explorer',
+    href: '/explorer/mainnet',
     items: [
-      { text: 'Block Explorer', href: '/explorer' },
-      { text: 'Playground', href: '/stats/playground' },
-      { text: 'All Networks', href: '/explorer/mainnet' },
+      { text: 'Block Explorer', href: '/explorer/mainnet' },
+      { text: 'Query', href: '/explorer/mainnet/query' },
       { text: 'C-Chain Explorer', href: '/explorer/mainnet/c-chain' },
-      { text: 'Validators', href: '/explorer/mainnet/validators' },
+      { text: 'Validators', href: '/explorer/mainnet/p-chain/validators' },
       { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },
@@ -82,6 +83,7 @@ export const menuSections: NavSection[] = [
       { text: 'Community Driven Events', href: 'https://lu.ma/Team1?utm_source=builder_hub', external: true },
       { text: 'Campus Connect', href: '/university' },
       { text: 'Grants & Funding', href: '/grants' },
+      { text: 'Security Audits', href: '/audits', badge: 'New' },
     ],
   },
 ];

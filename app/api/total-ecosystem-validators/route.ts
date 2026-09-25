@@ -1,23 +1,18 @@
 import { NextResponse } from 'next/server';
 import l1ChainsData from "@/constants/l1-chains.json";
-import {
-  TimeSeriesDataPoint,
-  TimeSeriesMetric,
-  STATS_CONFIG,
-  getTimestampsFromTimeRange,
-  createTimeSeriesMetric,
-} from "@/types/stats";
+import { TimeSeriesDataPoint, TimeSeriesMetric, STATS_CONFIG, getTimestampsFromTimeRange, createTimeSeriesMetric } from "@/types/stats";
+import { DEDICATED_STATS_BASE_URL } from '@/lib/dedicated-stats';
 
 export const dynamic = 'force-dynamic';
 
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const MAX_CONCURRENT_REQUESTS = 10;
 const REQUEST_TIMEOUT_MS = 15000;
-const METRICS_API_BASE_URL = process.env.METRICS_API_URL || 'https://metrics.avax.network';
+// Our stats API serves /v2/networks/{network}/metrics/validatorCount with the
+// same shape metrics.avax.network did, so this is a base URL swap
+const METRICS_API_BASE_URL = DEDICATED_STATS_BASE_URL;
 
 const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
-
-const getRlToken = () => process.env.METRICS_BYPASS_TOKEN || '';
 
 interface L1ChainRecord {
   subnetId?: string;
@@ -85,7 +80,6 @@ async function fetchValidatorCountSeries(
   fetchAllPages: boolean,
 ): Promise<TimeSeriesDataPoint[] | null> {
   try {
-    const rlToken = getRlToken();
     const all: MetricsValidatorCountPoint[] = [];
     let nextPageToken: string | undefined;
 
@@ -96,12 +90,11 @@ async function fetchValidatorCountSeries(
       url.searchParams.set('pageSize', String(pageSize));
       if (subnetId) url.searchParams.set('subnetId', subnetId);
       if (nextPageToken) url.searchParams.set('pageToken', nextPageToken);
-      if (rlToken) url.searchParams.set('rltoken', rlToken);
 
       const response = await fetchWithTimeout(url.toString());
       if (!response.ok) {
         console.warn(
-          `[total-ecosystem-validators] Metrics API returned ${response.status} for subnet ${subnetId ?? 'primary'}.`,
+          `[total-ecosystem-validators] stats-api returned ${response.status} for subnet ${subnetId ?? 'primary'}.`,
         );
         return null;
       }

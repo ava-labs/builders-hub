@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { type EventsLang } from "@/lib/events/i18n";
 import { buildInviteLink } from "@/lib/invitations/inviteLink";
 import { MemberStatus } from "@/types/project";
+import { normalizeEmail } from "@/lib/utils";
 
 interface InvitationResult {
   Success: boolean;
@@ -31,8 +32,9 @@ export async function generateInvitation(
     throw new Error("Hackathon ID is required");
   }
 
-  // Remove duplicate emails to prevent multiple invitations to the same user
-  const uniqueEmails = [...new Set(emails)];
+  // Normalize first (emails are stored lowercased in the DB — see normalizeEmail),
+  // then dedupe so case variants of the same address collapse into one invite.
+  const uniqueEmails = [...new Set(emails.map(normalizeEmail))];
 
   // Use existing project if provided, otherwise create a new one
   let project;

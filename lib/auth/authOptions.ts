@@ -10,6 +10,7 @@ import { upsertUser } from '@/server/services/auth';
 import { badgeAssignmentService } from '@/server/services/badgeAssignmentService';
 import { BadgeCategory } from '@/server/services/badge';
 import type { User as PrismaUser } from '@prisma/client';
+import { normalizeEmail } from '@/lib/utils';
 
 
 declare module 'next-auth' {
@@ -111,7 +112,7 @@ export const AuthOptions: NextAuthOptions = {
         if (!email) throw new Error('Missing email');
         if (!otp) throw new Error('Missing otp');
 
-        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedEmail = normalizeEmail(email);
         const result = await verifyOTP(normalizedEmail, otp);
 
         if (!result.isValid) {
@@ -133,7 +134,7 @@ export const AuthOptions: NextAuthOptions = {
         });
         if (!user) {
           user = {
-            email, notification_email: email, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
+            email: normalizedEmail, notification_email: normalizedEmail, name: '', image: '', last_login: new Date(), authentication_mode: '', bio: '',
             custom_attributes: [], id: '', integration: '', notifications: null, profile_privacy: null,
             additional_social_accounts: [], telegram_account: '', github_account: null, x_account: null, linkedin_account: null,
             user_name: '', created_at: new Date(),
@@ -157,7 +158,7 @@ export const AuthOptions: NextAuthOptions = {
         if (account?.provider === 'credentials') {
           // Check if user already exists in the database
           const existingUser = await prisma.user.findUnique({
-            where: { email: user.email! },
+            where: { email: normalizeEmail(user.email!) },
             select: { id: true },
           });
 
@@ -195,7 +196,8 @@ export const AuthOptions: NextAuthOptions = {
       }
     },
     async jwt({ token, user }: { token: JWT; user?: User }): Promise<JWT> {
-      const email = user?.email ?? token?.email;
+      const rawEmail = user?.email ?? token?.email;
+      const email = rawEmail ? normalizeEmail(rawEmail) : rawEmail;
       const dbUser = email
         ? await prisma.user.findUnique({
             where: { email },
@@ -213,10 +215,10 @@ export const AuthOptions: NextAuthOptions = {
         token.is_new_user = dbUser.notifications == null ? true : false;
         token.authentication_mode = dbUser.authentication_mode ?? '';
         token.team_id = dbUser.team_id ?? null;
-      } else if (user?.email || token?.email) {
+      } else if (email) {
         // New user who hasn't accepted terms yet - no DB record exists
         // Mark as pending_user so the frontend knows to show terms modal
-        token.email = user?.email || token.email;
+        token.email = email;
         token.name = user?.name ?? token.name ?? '';
         token.is_new_user = true;
         token.custom_attributes = [];

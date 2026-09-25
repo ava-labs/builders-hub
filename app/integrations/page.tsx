@@ -27,5 +27,7 @@ export const metadata: Metadata = createMetadata({
 
 export default function Page(): React.ReactElement {
     const list = [...integration.getPages()];
-    return <IntegrationsClient list={JSON.parse(JSON.stringify(list))} />;
+    return (
+        <IntegrationsClient list={JSON.parse(JSON.stringify(list))} />
+    );
 }

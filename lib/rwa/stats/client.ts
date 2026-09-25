@@ -1,6 +1,6 @@
 // Server-only: internal Stats API client for the RWA dashboard.
-// The box is plain HTTP (see DEDICATED_STATS_BASE_URL), so this must only be
-// called from server-side route handlers — never from client components.
+// Called only from server-side route handlers, so the upstream host and any
+// future auth on it stay out of the browser.
 // Upstream contract is pinned in
 // docs/superpowers/specs/2026-08-12-rwa-stats-api-migration-design.md.
 

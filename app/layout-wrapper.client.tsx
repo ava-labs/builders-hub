@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { useSession } from 'next-auth/react';
 import { ActiveNavHighlighter } from '@/components/navigation/active-nav-highlighter';
-import { CustomCountdownBanner } from '@/components/ui/custom-countdown-banner';
+// import { CustomCountdownBanner } from '@/components/ui/custom-countdown-banner';
 import { hasTeam1AcademyAccess } from '@/lib/auth/roles';
 
 interface LayoutWrapperProps {

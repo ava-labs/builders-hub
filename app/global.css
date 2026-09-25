@@ -311,6 +311,14 @@ svg.lucide.lucide-folder-open {
   100% { transform: translateX(0); }
 }
 
+/* Explorer: the state-root mark breathing while a block's root is still
+   to be committed. Opacity only; script pins every instance's start time
+   to the document timeline origin so they breathe together. */
+@keyframes root-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 /* Blinking cursor animation for typewriter effect */
 @keyframes blink {
   0%, 100% {
@@ -773,6 +781,17 @@ html {
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Audit marketplace brand tokens (Foundations.dc.html @theme block).
+     #E6212F is the current guideline red the legacy #e84142 consolidates to. */
+  --color-brand: #e6212f;
+  --color-brand-deep: #b20f2a;
+  --color-brand-soft: #ff7f7b;
+  --color-info: #0061e2;
+  --color-info-soft: #749dd3;
+  --color-bar: #3176d3;
+  --color-surface-dark: #121212;
+  --color-card-dark: #1f1f1f;
+  --color-ink-soft-dark: #a2afb2;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -1781,6 +1800,54 @@ html.embed-mode #nd-toc {
   }
 }
 
+/* Explorer instruments. A solid rises from its base, a plot wipes in
+   from the left, a mark fades up, and a burn ember climbs the distance
+   its element sets in --climb, then a slab flashes where it lands. The
+   reduced-motion rule above ends each one on its last frame. */
+@keyframes bh-rise {
+  from { transform: scaleY(0.001); }
+  to { transform: scaleY(1); }
+}
+@keyframes bh-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes bh-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes bh-climb {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateY(var(--climb, -120px)); opacity: 0; }
+}
+@keyframes bh-flash {
+  from { opacity: 0.85; }
+  to { opacity: 0; }
+}
+/* a ripple on the ground: a ring that widens from its origin and fades */
+@keyframes bh-ripple {
+  0% { transform: scale(0.12); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+/* a tile that settles into its place */
+@keyframes bh-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* a comet down a path drawn with pathLength=1 and a 0.22 dash: head first, gone at the end */
+@keyframes bh-comet {
+  from { stroke-dashoffset: 0.22; }
+  to { stroke-dashoffset: -1.02; }
+}
+/* a place that waits for what lands in it */
+@keyframes bh-breathe {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.3; }
+}
+
 /* Subtle 1px highlight at the top of every shadcn Card in dark mode.
    Differentiates cards from the page background (both are near-black
    zinc shades with only ~10 steps between them) by suggesting the card
@@ -2019,4 +2086,71 @@ html.embed-mode #nd-toc {
   font-weight: 800 900;
   font-style: normal;
   font-display: swap;
+}
+
+/* Audit marketplace: red-CTA hover sweep (house BrandButton pattern, mockup
+   board section 07). The light plane sweeps in behind the label; the label
+   flips to ink. Flattened by the prefers-reduced-motion reducer above. */
+.audits-sweep {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.audits-sweep::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: #ebf0fa;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease-out;
+}
+.audits-sweep:hover::before {
+  transform: scaleX(1);
+}
+.audits-sweep:hover {
+  color: #1f1f1f;
+}
+
+/* The hero display word rests as INK (a fully red line over the red CTA
+   was too much red); the brand arrives as motion instead: a slow red
+   sheen sweeps through the letters left to right (~1.8s), then the word
+   rests ~4s before the next pass. Both loop endpoints show plain ink so
+   the restart is invisible. Reduced motion collapses to static ink (the
+   global reducer above); browsers without text clipping keep ink too.
+   The red full stop next to it is plain markup and stays in both cases. */
+.audits-word-fill {
+  --audits-ink: #09090b;
+}
+.dark .audits-word-fill {
+  --audits-ink: #fafafa;
+}
+@supports (-webkit-background-clip: text) {
+  .audits-word-fill {
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    background-image: linear-gradient(
+      100deg,
+      var(--audits-ink) 0%,
+      var(--audits-ink) 45%,
+      #e6212f 50%,
+      var(--audits-ink) 55%,
+      var(--audits-ink) 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 250% 100%;
+    background-position: 0% 0;
+    animation: audits-ink-sheen 6s ease-in-out infinite;
+  }
+  @keyframes audits-ink-sheen {
+    0% {
+      background-position: 100% 0;
+    }
+    30%,
+    100% {
+      background-position: 0% 0;
+    }
+  }
 }

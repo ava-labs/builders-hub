@@ -113,7 +113,7 @@ export default function ConsoleHistoryPage() {
     if (!tx.txHash) return null;
     if (tx.type === 'pchain') return `/explorer/${tx.network}/p-chain/tx/${tx.txHash}`;
     if (tx.chainId === 43114) return `/explorer/mainnet/c-chain/tx/${tx.txHash}`;
-    // Fuji C-Chain and custom L1s aren't fully served by our explorer yet.
+    if (tx.chainId === 43113) return `/explorer/fuji/c-chain/tx/${tx.txHash}`;
     const base = tx.network === 'mainnet' ? 'https://explorer.avax.network' : 'https://explorer-test.avax.network';
     return `${base}/c-chain/tx/${tx.txHash}`;
   };

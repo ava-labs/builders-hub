@@ -8,6 +8,7 @@ import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { toClientEvmSigner } from "@x402/evm";
+import { statsApi } from "@/lib/stats-api";
 
 type L1ChainEntry = {
   chainId: string;
@@ -165,11 +166,15 @@ for (const c of l1ChainsData) {
   });
 }
 
-function lookupChain(chainIdNum: number): ChainInfo | undefined {
-  return chainMap.get(String(chainIdNum));
+function lookupChain(chainId: number | string): ChainInfo | undefined {
+  return chainMap.get(String(chainId));
 }
 
-const blockchainHexToChainId: Map<string, number> = new Map();
+// Keyed to the catalog's chainId as written. Most EVM chains carry their
+// numeric EVM chain id, but chains the explorer does not index carry their
+// CB58 blockchain id instead (omnicoin, 2026-09: ~258K messages a month to
+// the C-Chain); a Number() cast turned those into NaN and dropped them.
+const blockchainHexToChainId: Map<string, string> = new Map();
 for (const c of l1ChainsData) {
   const typed = c as L1ChainEntry;
   if (!typed.blockchainId) continue;
@@ -177,7 +182,7 @@ for (const c of l1ChainsData) {
     const hex = typed.blockchainId.startsWith("0x")
       ? typed.blockchainId.slice(2).toUpperCase()
       : CB58ToHex(typed.blockchainId).slice(2).toUpperCase();
-    blockchainHexToChainId.set(hex, Number(typed.chainId));
+    blockchainHexToChainId.set(hex, String(typed.chainId));
   } catch {
     // Skip entries with unparseable blockchainId
   }
@@ -202,7 +207,8 @@ interface RawCrossChainFlow {
 }
 
 interface CrossChainFlow {
-  source_chain_id: number;
+  /** the catalog's chainId: numeric EVM id, or CB58 for unindexed chains */
+  source_chain_id: string;
   dest_chain_id: number;
   msg_count: number;
 }
@@ -335,10 +341,18 @@ function sqlContractFees(days?: number): string {
 }
 
 async function refreshCache(): Promise<ICMCacheData> {
-  const [dailyIncoming, dailyOutgoing] = await Promise.all([
-    queryClickHouse<DailyIncoming>(sqlDailyIncoming()),
-    queryClickHouse<DailyOutgoing>(sqlDailyOutgoing()),
-  ]);
+  // One endpoint returns both directions; splitting them back out keeps the
+  // shapes the rest of this module already works with.
+  const body = await statsApi<{
+    days?: { chainId: number; day: string; incoming: number; outgoing: number }[];
+  }>("/icm-api/daily", QUERY_TIMEOUT_MS);
+  const rows = body?.days ?? [];
+  const dailyIncoming: DailyIncoming[] = rows
+    .filter((r) => r.incoming > 0)
+    .map((r) => ({ chain_id: r.chainId, day: r.day, incoming_count: r.incoming }));
+  const dailyOutgoing: DailyOutgoing[] = rows
+    .filter((r) => r.outgoing > 0)
+    .map((r) => ({ chain_id: r.chainId, day: r.day, outgoing_count: r.outgoing }));
 
   return {
     dailyIncoming,
@@ -350,7 +364,14 @@ async function refreshCache(): Promise<ICMCacheData> {
 }
 
 async function fetchCrossChainFlows(days: number): Promise<CrossChainFlow[]> {
-  const rawFlows = await queryClickHouse<RawCrossChainFlow>(sqlCrossChainFlows(days));
+  const flowsBody = await statsApi<{
+    flows?: { destChainId: number; sourceBlockchainHex: string; messageCount: number }[];
+  }>(`/icm-api/flows?days=${days}`, QUERY_TIMEOUT_MS);
+  const rawFlows: RawCrossChainFlow[] = (flowsBody?.flows ?? []).map((f) => ({
+    dest_chain_id: f.destChainId,
+    source_blockchain_hex: f.sourceBlockchainHex,
+    msg_count: f.messageCount,
+  }));
 
   const crossChainFlows: CrossChainFlow[] = [];
   for (const row of rawFlows) {
@@ -405,11 +426,15 @@ async function getICMCacheData(): Promise<ICMCacheData> {
 }
 
 async function refreshContractFeesCache(days?: number): Promise<ContractFeesCacheData> {
-  const contractFees = await queryClickHouseDirect<ContractFee>(
-    sqlContractFees(days),
-    CONTRACT_FEES_QUERY_TIMEOUT_MS
+  const feesBody = await statsApi<{ fees?: { day: string; feesPaid: string; txCount: number }[] }>(
+    days && days > 0 ? `/icm-api/contract-fees?days=${Math.ceil(days)}` : "/icm-api/contract-fees",
+    CONTRACT_FEES_QUERY_TIMEOUT_MS,
   );
-
+  const contractFees: ContractFee[] = (feesBody?.fees ?? []).map((f) => ({
+    day: f.day,
+    fees_paid: f.feesPaid,
+    tx_count: f.txCount,
+  }));
   return {
     contractFees,
     fetchedAt: Date.now(),

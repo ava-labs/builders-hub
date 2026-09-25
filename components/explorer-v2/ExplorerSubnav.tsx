@@ -6,11 +6,14 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronsUpDown, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { toStatsChainId } from "@/lib/dedicated-stats";
 import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
-import { useLiveValidatorCounts } from "@/components/explorer-v2/validator-stats";
-import { isUnindexedChain } from "@/lib/explorer-catalog";
+import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
+import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
 import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
+import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
+import { queryTarget } from "@/lib/explorer-query/board";
 import {
   NETWORK_LABEL,
   getExplorerChain,
@@ -81,6 +84,7 @@ function ChainSwitcher({
 
   // validate lazily, on first open (the shared feed dedupes the request)
   const { live: liveValidators, failed: feedFailed } = useLiveValidatorCounts("mainnet", open);
+  const indexedChainIds = useIndexedChainIds(open);
 
   // close on outside click or Escape
   useEffect(() => {
@@ -108,23 +112,43 @@ function ChainSwitcher({
     },
     {
       slug: "c-chain",
-      name: "Contract Chain",
+      name: "C-Chain",
       logo: cChain?.chainLogoURI,
       href: "/explorer/mainnet/c-chain",
     },
-    { slug: "p-chain", name: "Platform Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
+    { slug: "p-chain", name: "P-Chain", logo: PCHAIN_LOGO, href: `/explorer/${pchainNetwork}/p-chain` },
     {
       slug: "x-chain",
-      name: "Exchange Chain",
+      name: "X-Chain",
       logo: XCHAIN_LOGO,
       href: `/explorer/${pchainNetwork}/x-chain`,
     },
   ];
 
   const l1s = useMemo<SwitcherEntry[] | null>(() => {
-    const all = (l1ChainsData as L1Chain[]).filter(
-      (c) => c.isTestnet !== true && c.rpcUrl && hasRealChainLogo(c.chainLogoURI) && c.slug !== "c-chain",
+    const mainnet = (l1ChainsData as L1Chain[]).filter(
+      (c) => c.isTestnet !== true && c.slug !== "c-chain",
     );
+
+    if (indexedChainIds) {
+      const picked = mainnet
+        .filter((c) => indexedChainIds.has(toStatsChainId(String(c.chainId))))
+        .sort(
+          (a, b) =>
+            ((a.subnetId && liveValidators?.get(a.subnetId)) ?? 0) <
+            ((b.subnetId && liveValidators?.get(b.subnetId)) ?? 0)
+              ? 1
+              : -1,
+        );
+      return picked.map((c) => ({
+        slug: c.slug,
+        name: c.chainName,
+        logo: c.chainLogoURI,
+        href: `/explorer/mainnet/${c.slug}`,
+      }));
+    }
+
+    const all = mainnet.filter((c) => c.rpcUrl && hasRealChainLogo(c.chainLogoURI));
     let picked: L1Chain[];
     if (liveValidators) {
       picked = all
@@ -141,7 +165,7 @@ function ChainSwitcher({
       logo: c.chainLogoURI,
       href: `/explorer/mainnet/${c.slug}`,
     }));
-  }, [liveValidators, feedFailed]);
+  }, [liveValidators, feedFailed, indexedChainIds]);
 
   const q = filter.trim().toLowerCase();
   const matches = (e: SwitcherEntry) => !q || e.name.toLowerCase().includes(q) || e.slug.includes(q);
@@ -270,55 +294,47 @@ function ChainSwitcher({
   );
 }
 
-type Tab = { label: string; href: string; isActive: (path: string) => boolean };
+/** query: the tab opens into recent questions and boards on hover */
+type Tab = { label: string; href: string; isActive: (path: string) => boolean; query?: boolean };
+
+/* ask the chain a question, get a chart with its SQL; boards live under it */
+function queryTab(network: string, chainSlug: string): Tab[] {
+  if (!queryTarget(network, chainSlug)) return [];
+  const base = `/explorer/${network}/${chainSlug}/query`;
+  return [{ label: "Query", href: base, isActive: (p) => p.startsWith(base), query: true }];
+}
 
 /* Section tabs per chain kind. Detail pages light up their list's tab
    (a block detail is still "Blocks"); on EVM chains the stats surfaces
    are first-class sections of the same chain, so they ride here too.
    No chain at all is the widest lens — the network scope, where every
-   ecosystem-wide facet (chains, ICM, validators, apps, the token) lives. */
+   ecosystem-wide facet (chains, ICM, validators, the token) lives. */
 function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   if (!chainSlug) {
     return [
       {
         label: "Overview",
         href: NETWORK_HOME,
-        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview"),
+        // the network stats live on the overview now
+        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
       },
       {
         label: "Chains",
         href: `${NETWORK_HOME}/chains`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains"),
+        // the network map, ICM and validator versions live on the chains tab; message pages light it too
+        isActive: (p) =>
+          p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
       },
       {
-        label: "Stats",
-        href: "/stats/network-metrics",
-        isActive: (p) => p.startsWith("/stats/network-metrics"),
-      },
-      {
-        label: "ICM",
-        href: `${NETWORK_HOME}/icm`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/icm`),
-      },
-      {
-        label: "Validators",
-        href: `${NETWORK_HOME}/validators`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/validators`),
-      },
-      {
-        label: "Apps",
-        href: `${NETWORK_HOME}/apps`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/apps`) || p.startsWith("/stats/dapps"),
-      },
-      {
-        label: "Stablecoins",
-        href: `${NETWORK_HOME}/stablecoins`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/stablecoins`),
-      },
-      {
-        label: "Token",
+        label: "AVAX",
         href: `${NETWORK_HOME}/token`,
         isActive: (p) => p.startsWith(`${NETWORK_HOME}/token`),
+      },
+      {
+        // Query at the network scope: a picker on the page names the chain it asks
+        label: "Query",
+        href: `${NETWORK_HOME}/query`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/query`),
       },
     ];
   }
@@ -358,6 +374,7 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       href: `${base}/validators`,
       isActive: (p) => p.startsWith(`${base}/validators`) || p.startsWith(`${base}/node`),
     });
+    tabs.push(...queryTab(network, chainSlug));
     return tabs;
   }
 
@@ -377,20 +394,22 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       // list tabs mirror the P-Chain's; detail pages light their list
       tabs.push(
         { label: "Blocks", href: `${base}/blocks`, isActive: (p) => p.startsWith(`${base}/block`) },
-        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) && !p.startsWith(`${base}/atomic`) },
+        // the tab's views: EVM txs, the C-Chain's atomic imports and exports
+        // (txs/atomic), ICM messages (txs/icm); atomic detail pages light it too
+        { label: "Transactions", href: `${base}/txs`, isActive: (p) => p.startsWith(`${base}/tx`) || p.startsWith(`${base}/atomic-tx`) },
         // the gas market: live half is pure RPC, so any chain with an RPC
         // earns the tab; history fills in where ClickHouse ingests the chain
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
+        ...queryTab(network, chainSlug),
       );
-      // cross-chain (shared-memory) txs exist only on the C-Chain — they ride
-      // in blockExtraData, invisible to eth_*, hence their own tab
-      if (chainSlug === "c-chain") {
-        tabs.push({
-          label: "Atomic",
-          href: `${base}/atomic`,
-          isActive: (p) => p.startsWith(`${base}/atomic`),
-        });
-      }
+    }
+    if (network === "mainnet" && chainSlug === "c-chain") {
+      // protocols and stablecoins: one tab, a switch on the page picks the view
+      tabs.push({
+        label: "DeFi",
+        href: `${base}/defi`,
+        isActive: (p) => p.startsWith(`${base}/defi`) || p.startsWith("/stats/dapps"),
+      });
     }
     // who's on the chain: population charts for every catalog chain,
     // leaderboards where ClickHouse ingests it
@@ -399,23 +418,9 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       href: `${base}/accounts`,
       isActive: (p) => p.startsWith(`${base}/accounts`),
     });
-    if (catalogChain.blockchainId) {
-      tabs.push({
-        label: "Details",
-        href: `${base}/details`,
-        isActive: (p) => p.startsWith(`${base}/details`),
-      });
-    }
     if (catalogChain.isTestnet !== true) {
-      // the C-Chain's validators ARE the Primary Network's, so it alone
-      // also carries the staking-economics instrument as a sibling tab
-      if (chainSlug === "c-chain") {
-        tabs.push({
-          label: "Staking",
-          href: `${base}/staking`,
-          isActive: (p) => p.startsWith(`${base}/staking`),
-        });
-      }
+      // the C-Chain's validators ARE the Primary Network's, so on mainnet
+      // the tab also carries their staking economy (validators/staking)
       tabs.push({
         label: "Validators",
         // every chain's set lives in its own chrome — the C-Chain mounts
@@ -424,49 +429,22 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         isActive: (p) => p.startsWith(`${base}/validators`),
       });
     }
-    // ICM activity needs an RPC to derive cross-chain txs from
-    if (catalogChain.rpcUrl) {
-      tabs.push({
-        label: "ICM",
-        href: `${base}/icm`,
-        isActive: (p) => p.startsWith(`${base}/icm`),
-      });
-    }
   }
   return tabs;
 }
-
-/* Verified mainnet ↔ Fuji counterparts (paired by EVM chain ID; the catalog's
-   testnet slugs are too inconsistent to derive). Chains without a pair keep
-   the static network label. */
-const TESTNET_COUNTERPART: Record<string, string> = {
-  // Intentionally empty: every previous pair pointed at a chain the explorer
-  // doesn't index, so the toggle only led to empty pages. (Fuji P-chain is
-  // unaffected — the P-chain switcher is a separate code path.) Re-add pairs
-  // here as their testnet indexing comes online:
-  //   "c-chain": "avalanche-c-chain", // 43114 ↔ 43113 — Fuji EVM indexer stopped
-  //   beam: "beam-l1",                // 4337 ↔ 13337 — Fuji side not indexed
-  //   dexalot: "dexalot-l1",          // 432204 ↔ 432201 — neither side indexed
-};
-const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
-  Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
-);
 
 /* Counterparts that exist but aren't explorable yet: the toggle stays
    visible so the network is discoverable, but the segment is disabled and
    says why. Move an entry up into TESTNET_COUNTERPART when its indexing
    comes online. */
-const UNAVAILABLE_TESTNET: Record<string, string> = {
-  "c-chain":
-    "We're having trouble indexing the Fuji C-Chain right now — it'll be available later.",
-};
+const UNAVAILABLE_TESTNET: Record<string, string> = {};
 
 /* Crossing networks keeps the section when the counterpart has it: an
    accounts page lands on the counterpart's accounts, everything else
    lands on its explorer overview. */
-function counterpartTarget(slug: string, pathname: string): string {
-  if (pathname.endsWith("/accounts")) return `/explorer/mainnet/${slug}/accounts`;
-  return `/explorer/mainnet/${slug}`;
+function counterpartTarget(network: string, slug: string, pathname: string): string {
+  const base = `/explorer/${network}/${slug}`;
+  return pathname.endsWith("/accounts") ? `${base}/accounts` : base;
 }
 
 /* Switching P-Chain networks keeps the section you're on. Entity pages
@@ -523,30 +501,34 @@ function NetworkControl({
     );
   }
   if (!chainSlug) {
-    // the network scope aggregates mainnet only — a static label, no toggle
+    // A label, not a toggle: the network-scope aggregates are mainnet-only, so
+    // there is nowhere to switch to. It still has to name the network actually
+    // being viewed — a single message is network-agnostic and can be a Fuji one.
     return (
       <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
-        Mainnet
+        {NETWORK_LABEL[network as PchainNetwork] ?? network}
       </span>
     );
   }
 
-  // EVM chain with a verified Fuji counterpart: a real toggle
-  const isTestnetChain = chainSlug in MAINNET_COUNTERPART;
+  // EVM chain with a verified Fuji counterpart: a real toggle.
+  // Which network we are on comes from the route, not the slug: a pair shares
+  // one slug, so `chainSlug in MAINNET_COUNTERPART` is true on both sides.
+  const isTestnetChain = wantsTestnet(network);
   const other = TESTNET_COUNTERPART[chainSlug] ?? MAINNET_COUNTERPART[chainSlug];
   if (other) {
     const mainnetSlug = isTestnetChain ? other : chainSlug;
     const testnetSlug = isTestnetChain ? chainSlug : other;
     const segments = [
-      { label: "Mainnet", slug: mainnetSlug, active: !isTestnetChain },
-      { label: "Fuji", slug: testnetSlug, active: isTestnetChain },
+      { label: "Mainnet", network: "mainnet", slug: mainnetSlug, active: !isTestnetChain },
+      { label: "Fuji", network: "fuji", slug: testnetSlug, active: isTestnetChain },
     ];
     return (
       <div className="inline-flex self-center border border-zinc-200 dark:border-zinc-800">
         {segments.map((seg) => (
           <Link
             key={seg.label}
-            href={counterpartTarget(seg.slug, pathname)}
+            href={counterpartTarget(seg.network, seg.slug, pathname)}
             className={cn(
               "px-2 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-colors sm:px-2.5",
               seg.active
@@ -681,6 +663,21 @@ export function ExplorerSubnav({
                   >
                     {tab.label}
                   </span>
+                );
+              }
+
+              if (tab.query && chainSlug) {
+                return (
+                  <QueryTab
+                    key={tab.label}
+                    network={network}
+                    chainSlug={chainSlug}
+                    href={tab.href}
+                    label={tab.label}
+                    className={cls}
+                    bar={bar}
+                    active={active}
+                  />
                 );
               }
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
-import { isValidRpcUrl } from "@/lib/rpcUrlValidator";
+import { assertPublicRpcTarget } from "@/lib/rpcUrlValidator";
 
 interface Block {
   number: string;
@@ -800,10 +800,8 @@ async function checkGlacierSupport(_chainId: string): Promise<boolean> {
 // which is our signal that the chain is not indexed yet. Chains served by the dedicated
 // metrics source are probed there (with their remapped id) instead of the shared API.
 async function checkChainIndexed(chainId: string): Promise<boolean> {
-  const dedicatedEvmChainId = resolveDedicatedMetricsChain(chainId);
-  const baseUrl = dedicatedEvmChainId ? DEDICATED_STATS_BASE_URL : process.env.METRICS_API_URL;
-  const resolvedChainId = dedicatedEvmChainId ?? chainId;
-  if (!baseUrl) return false;
+  const baseUrl = DEDICATED_STATS_BASE_URL;
+  const resolvedChainId = resolveDedicatedMetricsChain(chainId) ?? chainId;
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
     const startTimestamp = endTimestamp - 30 * 24 * 60 * 60;
@@ -872,7 +870,7 @@ export async function GET(
     }
 
     // Validate custom RPC URL: must be https and must not point to private/loopback addresses.
-    if (customRpcUrl && !isValidRpcUrl(customRpcUrl)) {
+    if (customRpcUrl && !(await assertPublicRpcTarget(customRpcUrl))) {
       return NextResponse.json(
         { error: "Invalid rpcUrl: must use https and must not target private or loopback addresses." },
         { status: 400 }

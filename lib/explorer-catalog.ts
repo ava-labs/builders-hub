@@ -12,6 +12,17 @@ export function wantsTestnet(network: string): boolean {
   return network === "fuji" || network === "testnet";
 }
 
+export const TESTNET_COUNTERPART: Record<string, string> = {
+  "c-chain": "c-chain", // 43114 ↔ 43113
+  // Add pairs here as their testnet indexing comes online:
+  //   beam: "beam-l1",        // 4337 ↔ 13337
+  //   dexalot: "dexalot-l1",  // 432204 ↔ 432201
+};
+
+export const MAINNET_COUNTERPART: Record<string, string> = Object.fromEntries(
+  Object.entries(TESTNET_COUNTERPART).map(([m, t]) => [t, m]),
+);
+
 /** The catalog entry a URL addresses, if any. */
 export function resolveCatalogChain(network: string, slug: string | undefined): L1Chain | undefined {
   if (!slug) return undefined;
@@ -35,4 +46,20 @@ export function findAliasClaimants(network: string, slug: string | undefined): L
       !c.aliasVerified &&
       isBareAliasOf(slug, c.chainName),
   );
+}
+
+/**
+ * The chains worth listing: those whose validator set is still active.
+ *
+ * `isActive` is written by scripts/enrich-chains.ts --prune from the P-Chain's
+ * own view (getAllValidatorsAt at the proposed height), so it counts legacy
+ * Subnet validators as well as ACP-77 L1 seats. 68 of the 357 catalog entries
+ * are active on mainnet as of the last enrichment.
+ */
+export function activeChains(opts?: { testnet?: boolean }): L1Chain[] {
+  return CATALOG.filter((c) => {
+    if (c.isActive === false) return false;
+    if (opts?.testnet === undefined) return true;
+    return (c.isTestnet === true) === opts.testnet;
+  });
 }

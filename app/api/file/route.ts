@@ -1,9 +1,11 @@
 
 import { withAuth } from '@/lib/protectedRoute';
-import { del, put } from '@vercel/blob';
+import { BlobNotFoundError, del, head, put } from '@vercel/blob';
 import { NextResponse, NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 import {
+  blobKeyFromIdentifier,
+  isSafeBlobKey,
   canUserDeleteFile,
   canUserUploadFile,
   isValidFileSize,
@@ -11,6 +13,23 @@ import {
   doesExtensionMatchMimeType
 } from '@/server/services/fileValidation';
 
+
+/**
+ * The blob URL to hand to `head`/`del`. A caller-supplied Vercel Blob URL is
+ * used as-is (minus any query string), since it is exactly what `put`
+ * returned. Only a bare legacy key needs `BLOB_BASE_URL` to become a URL.
+ */
+function blobUrlFor(fileIdentifier: string, key: string): string {
+  try {
+    const url = new URL(fileIdentifier);
+    if (url.protocol === 'https:' && url.hostname.endsWith('.blob.vercel-storage.com')) {
+      return `${url.origin}${url.pathname}`;
+    }
+  } catch {
+    // not a URL: a bare key
+  }
+  return `${(process.env.BLOB_BASE_URL ?? '').replace(/\/+$/, '')}/${key}`;
+}
 
 export const POST = withAuth(async (request: Request, context: any, session: any) => {
   try {
@@ -110,6 +129,14 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
   // Use fileName if available, otherwise use url
   const fileIdentifier = fileName || url!;
 
+  // Refuse a key that could address a different object, before any permission
+  // question is asked: an admin passes the permission check on anything, so
+  // without this a traversal key reaches del() on the strength of the role
+  // alone. Legacy keys of any depth still pass here and stay admin-only.
+  if (!isSafeBlobKey(blobKeyFromIdentifier(fileIdentifier))) {
+    return NextResponse.json({ error: 'Invalid file key' }, { status: 400 });
+  }
+
   try {
     // Validate permissions before deleting
     const customAttributes = (session?.user?.custom_attributes as string[]) || [];
@@ -136,34 +163,30 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
       );
     }
 
-    // Extract the file name to verify existence and deletion
-    let actualFileName = fileIdentifier;
-    if (fileIdentifier.includes('/')) {
-      try {
-        const urlObj = new URL(fileIdentifier);
-        actualFileName = urlObj.pathname.split('/').pop() || fileIdentifier;
-      } catch {
-        // If it's not a valid URL, use the identifier as is
-        actualFileName = fileIdentifier.split('/').pop() || fileIdentifier;
+    // Keep the whole storage key, prefix included. Uploads are written as
+    // `<uploaderUserId>/<uuid><ext>`, so reducing this to the last path
+    // segment addresses a different object: the existence probe 404s and the
+    // delete quietly removes nothing.
+    const actualFileName = blobKeyFromIdentifier(fileIdentifier);
+    const blobUrl = blobUrlFor(fileIdentifier, actualFileName);
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+
+    // Ask the store the token writes to, not `BLOB_BASE_URL`: when that names
+    // a different store, a plain HEAD against it 404s for every real upload
+    // and the route reports "already deleted" without deleting anything.
+    try {
+      await head(blobUrl, { token });
+    } catch (error) {
+      if (error instanceof BlobNotFoundError) {
+        return NextResponse.json(
+          { message: 'The file does not exist or has already been deleted' },
+          { status: 201 }
+        );
       }
+      throw error;
     }
 
-    // Check if the file exists
-    const blobExists = await fetch(`${process.env.BLOB_BASE_URL}/${actualFileName}`, {
-      method: 'HEAD',
-    }).then(res => res.ok).catch(() => false);
-
-    if (!blobExists) {
-      return NextResponse.json(
-        { message: 'The file does not exist or has already been deleted' },
-        { status: 201 }
-      );
-    }
-
-    // Delete the file
-    await del(actualFileName, {
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+    await del(blobUrl, { token });
 
     return NextResponse.json({ message: 'File deleted successfully' });
   } catch (error) {

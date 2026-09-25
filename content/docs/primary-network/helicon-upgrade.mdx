@@ -12,11 +12,13 @@ Helicon is a Primary Network upgrade that activates six Avalanche Community Prop
 | Network | Activation | Status |
 |---------|------------|--------|
 | **Fuji** | July 28, 2026 at 15:00 UTC | Active |
-| **Mainnet** | Not yet scheduled | Pending |
+| **Mainnet** | September 22, 2026 at 15:00 UTC (11:00 AM ET) | Scheduled |
 | Local and custom networks | Active from genesis | Active by default |
 
-<Callout type="warn" title="Fuji nodes must run a Helicon-capable release">
-Helicon activation on Fuji shipped in [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji). That release is Fuji-only and refuses to start against a Mainnet configuration. It also does not support C-Chain state sync once Helicon is active; a release that does is expected before Mainnet activation is scheduled.
+<Callout type="warn" title="Nodes must run a Helicon-capable release">
+Mainnet activation ships in [AvalancheGo v1.15.0](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0). Mainnet nodes must be running it before September 22, 2026 at 15:00 UTC.
+
+Fuji activation shipped earlier in [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji). That release is Fuji-only, refuses to start against a Mainnet configuration, and does not support C-Chain state sync once Helicon is active.
 </Callout>
 
 ## What Changes
@@ -34,9 +36,15 @@ Helicon activation on Fuji shipped in [AvalancheGo v1.15.0-fuji](https://github.
 
 ### Auto-Renewed Staking (ACP-236)
 
-A validator can now specify a cycle duration and an auto-compound percentage instead of a fixed end time. At each cycle boundary the P-Chain settles rewards and starts the next cycle automatically. Three transactions are involved: `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx`, and `RewardAutoRenewedValidatorTx`, the last of which is issued by block builders rather than by you.
+A validator can now specify a cycle duration (`period`, in seconds) and an auto-compound percentage instead of a fixed end time. At each cycle boundary the P-Chain settles rewards and starts the next cycle automatically. Three transactions are involved: `AddAutoRenewedValidatorTx`, `SetAutoRenewedValidatorConfigTx`, and `RewardAutoRenewedValidatorTx`, the last of which is issued by block builders rather than by you. Their binary layouts are in the [P-Chain transaction format](/docs/rpcs/p-chain/txn-format#unsigned-add-auto-renewed-validator-tx).
+
+`autoCompoundRewardShares` is expressed in millionths, in the range `[0, 1000000]`: `0` restakes the principal only and pays out every reward, `500000` splits rewards evenly between restaking and payout, and `1000000` restakes everything. Whatever is restaked is added to the validator's **weight**, capped at `MaxValidatorStake`; anything above the cap is paid out instead.
 
 Renewal is conditional on reward eligibility, so a cycle that misses the uptime requirement ends the validation rather than renewing it. Delegation is unchanged and cannot auto-renew: a delegation must still fit inside the validator's current cycle.
+
+**How to stop an auto-renewed validator.** There is no dedicated exit transaction. You issue a `SetAutoRenewedValidatorConfigTx` with `period` set to `0`, signed by the `validatorAuthority` owner you nominated when the validator was added. The validation then stops at the end of the current cycle and the stake unlocks, rather than renewing.
+
+**What this looks like over the API.** An auto-renewed validator is reported by [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators) with three extra fields: `validatorAuthority`, `nextPeriod` and `autoCompoundRewardShares`. Its `endTime` is the end of the current cycle, not the end of the validation, and on each renewal `startTime` and `endTime` roll forward while `txID` stays the same. Tooling that infers "this validator is leaving" from a near `endTime`, or that treats a moving `endTime` as a new validation, needs updating.
 
 See [AVAX Staking for Professionals](/docs/primary-network/validate/staking-for-finance-professionals) for the operational detail.
 
@@ -55,7 +63,13 @@ The reward model is unchanged in every other respect. It remains all or nothing,
 
 The minimum duration for a **Primary Network validator** drops from two weeks to 48 hours on Mainnet, and from 24 hours to 12 hours on Fuji. Custom networks default to one hour.
 
-Delegators are not affected and keep the existing minimum. The maximum staking duration is unchanged at one year.
+Delegators are not affected and keep the existing minimum, which is still two weeks on Mainnet. ACP-273 raised reducing the delegation minimum as an open question and it was not adopted, so the reduction applies to validators only: internally `HeliconMinStakeDuration` is consulted when building validator rules but not delegator rules. The maximum staking duration is unchanged at one year.
+
+<Callout type="warn" title="A short validation cannot be delegated to">
+Because the two minimums now differ, a delegation has to satisfy two conditions at once: it must last **at least two weeks**, and it must fit **entirely inside the validator's staking window**. A validator that stakes for only 48 hours satisfies neither for any possible delegation, so it cannot receive delegations at all. A delegator targeting it is rejected with `ErrStakeTooShort` or `ErrPeriodMismatch`.
+
+The same applies per cycle to auto-renewed validators: the relevant window is the **current cycle**, not the lifetime of the validation. A validator that wants delegations needs a `period` of at least two weeks, plus enough room left in the current cycle for the delegation to fit.
+</Callout>
 
 ### Minimum Consumption Rate (ACP-285)
 
@@ -65,10 +79,10 @@ Delegators are not affected and keep the existing minimum. The maximum staking d
 
 ## What You Need to Do
 
-**Validators on Fuji.** Upgrade to a Helicon-capable release. Then check that your node clears 90% uptime rather than 80%, since any validation you start now is judged against the higher threshold. Call [`info.uptime`](/docs/rpcs/other/info-rpc#infouptime) on your own node and cross-check against the [validator health dashboard](https://stats.avax.network/dashboard/validator-health-check/), because a single node's view of its own uptime can be misleading.
+**Validators on Fuji.** Upgrade to [AvalancheGo v1.15.0-fuji](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji) or later. Then check that your node clears 90% uptime rather than 80%, since any validation you start now is judged against the higher threshold. Call [`info.uptime`](/docs/rpcs/other/info-rpc#infouptime) on your own node and cross-check against the [validator health dashboard](https://stats.avax.network/dashboard/validator-health-check/), because a single node's view of its own uptime can be misleading.
 
-**Validators on Mainnet.** Nothing is required yet. Mainnet activation is not scheduled, so plan for the uptime threshold to rise when it is.
+**Validators on Mainnet.** Upgrade to [AvalancheGo v1.15.0](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0) before September 22, 2026 at 15:00 UTC. A node still on an older release when Helicon activates will not follow the upgraded chain. Plan for the uptime threshold as well: any validation you start on or after activation is judged against 90% rather than 80%, and validations already running keep the 80% requirement.
 
-**C-Chain developers.** ACP-194 changes when state is available relative to block acceptance, and several C-Chain RPC namespaces are deprecated alongside it. Read [Streaming Asynchronous Execution](/docs/primary-network/streaming-async-execution) and the [v1.15.0-fuji release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0-fuji) before assuming existing behavior holds.
+**C-Chain developers.** ACP-194 changes when state is available relative to block acceptance, and several C-Chain RPC namespaces are deprecated alongside it. Read [Continuous Execution](/docs/primary-network/continuous-execution) and the [v1.15.0 release notes](https://github.com/ava-labs/avalanchego/releases/tag/v1.15.0) before assuming existing behavior holds.
 
-**Exchanges and custodians.** The staking minimums and the uptime threshold both move. If you quote a two-week minimum staking period to users, that number becomes 48 hours on Mainnet at activation.
+**Exchanges and custodians.** The staking minimums and the uptime threshold both move. If you quote a two-week minimum staking period to users, that number becomes 48 hours on Mainnet on September 22, 2026.

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { minorVersionLine } from "@/lib/node-version";
 import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import {
   FUJI_VALIDATOR_DISCOVERY_URL,
@@ -168,7 +169,7 @@ function calculateVersionBreakdown(validators: ValidatorData[]) {
   let totalStake = 0n;
 
   for (const validator of validators) {
-    const version = validator.version || "Unknown";
+    const version = minorVersionLine(validator.version) || "Unknown";
     const stake = BigInt(validator.amountStaked || validator.weight || 0);
     
     if (!breakdown[version]) {

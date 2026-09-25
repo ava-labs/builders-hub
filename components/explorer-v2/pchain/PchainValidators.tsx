@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { PrimaryStakingContent } from "@/components/explorer-v2/staking/PrimaryStaking";
 import { PrimaryValidatorsContent } from "@/components/explorer-v2/staking/PrimaryValidators";
-import { Board, CellLabel, SectionHeader, TypeFilterRail } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, TypeFilterRail, HEAD, LoadMore } from "@/components/explorer-v2/ui";
 import { formatAvax, formatNumber, timeAgo } from "@/components/explorer-v2/format";
 import {
   VersionBarChart,
@@ -14,6 +14,7 @@ import {
   calculateVersionStats,
   compareVersions,
   type VersionBreakdownData,
+  defaultVersionTarget,
 } from "@/components/stats/VersionBreakdown";
 import { usePchainData } from "./hooks";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
@@ -37,42 +38,39 @@ function NetworkHealth({ network }: { network: string }) {
       : null;
   }, [subnets]);
 
-  const latest = versions
-    ? Object.keys(versions.byClientVersion).sort((a, b) => compareVersions(b, a))[0]
-    : null;
+  // newest version with real adoption, not the highest one present
+  const latest = versions ? defaultVersionTarget(versions.byClientVersion) || null : null;
   const stats = versions && latest ? calculateVersionStats(versions, latest) : null;
-  const totalNodes = versions
-    ? Object.values(versions.byClientVersion).reduce((sum, v) => sum + v.nodes, 0)
-    : 0;
+  const totalNodes = versions ? Object.values(versions.byClientVersion).reduce((sum, v) => sum + v.nodes, 0) : 0;
 
   if (!versions || !latest || !stats) return null;
 
   return (
     <Board divide={false}>
-          <div className="flex h-full flex-col gap-4 px-5 py-5 md:px-6">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                Client versions · Primary Network
-              </span>
-              <span className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                {stats.nodesPercentAbove.toFixed(1)}% of nodes on {latest}
-              </span>
-            </div>
-            <VersionBarChart versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
-            <VersionLabels versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
-            <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
-              {stats.stakePercentAbove.toFixed(1)}% of stake runs the latest client
-            </p>
-            {network === "mainnet" && (
-              <Link
-                href="/explorer/mainnet/c-chain/validators"
-                className="group mt-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-              >
-                Full staking dashboard
-                <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
-              </Link>
-            )}
-          </div>
+      <div className="flex h-full flex-col gap-4 px-5 py-5 md:px-6">
+        <div className="flex items-baseline justify-between gap-4">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
+            Client versions · Primary Network
+          </span>
+          <span className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+            {stats.nodesPercentAbove.toFixed(1)}% of nodes on {latest}
+          </span>
+        </div>
+        <VersionBarChart versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
+        <VersionLabels versionBreakdown={versions} minVersion={latest} totalNodes={totalNodes} />
+        <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+          {stats.stakePercentAbove.toFixed(1)}% of stake runs the latest client
+        </p>
+        {network === 'mainnet' && (
+          <Link
+            href="/explorer/mainnet/c-chain/validators"
+            className="group mt-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+          >
+            Full staking dashboard
+            <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+          </Link>
+        )}
+      </div>
     </Board>
   );
 }
@@ -204,7 +202,7 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
         {data && (
           <>
             <Board>
-              <div className="hidden grid-cols-[minmax(19rem,1.6fr)_1fr_0.7fr_0.6fr_0.7fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+              <div className={cn(HEAD, "grid-cols-[minmax(19rem,1.6fr)_1fr_0.7fr_0.6fr_0.7fr_0.7fr]")}>
                 <span>Node</span>
                 <SortHeader label="Total Stake" k="totalStake" />
                 <SortHeader label="Delegators" k="delegatorCount" />
@@ -265,12 +263,7 @@ export function ValidatorsContent({ network, base }: { network: string; base: st
               )}
             </Board>
             {shown < rows.length && (
-              <button
-                onClick={() => setShown((s) => s + 50)}
-                className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-              >
-                Load more
-              </button>
+              <LoadMore onClick={() => setShown((s) => s + 50)} />
             )}
           </>
         )}

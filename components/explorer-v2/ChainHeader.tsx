@@ -37,7 +37,7 @@ interface ChainHeaderProps {
    naming the network over the proper chain name — no "Avalanche" prefix,
    no logo bubble. Catalog data (and wallet metadata) keep the full name. */
 const PRIMARY_NETWORK_DISPLAY: Record<string, { title: string; eyebrow: string }> = {
-  "Avalanche C-Chain": { title: "Contract Chain", eyebrow: "Avalanche Primary Network" },
+  "Avalanche C-Chain": { title: "C-Chain", eyebrow: "Avalanche Primary Network" },
 };
 
 export function ChainHeader({

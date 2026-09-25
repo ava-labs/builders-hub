@@ -7,10 +7,6 @@ export const dynamic = 'force-dynamic';
 
 const REQUEST_TIMEOUT_MS = 8000;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
-const METRICS_API_URL = process.env.METRICS_API_URL;
-if (!METRICS_API_URL) {
-  console.warn('METRICS_API_URL is not set — chain-stats endpoint will fail');
-}
 
 interface ChainMetrics {
   activeAddresses: {
@@ -107,19 +103,7 @@ async function fetchMetricsApi(
     return allResults;
   };
 
-  const results = await fetchPages(dedicatedEvmChainId ? DEDICATED_STATS_BASE_URL : METRICS_API_URL!);
-  // the dedicated source doesn't compute every metric (cumulativeAddresses
-  // comes back as `results: null` for the C-Chain) — fall back to the shared
-  // gateway rather than losing the chart. Chains the gateway doesn't know
-  // simply return empty again, which is where we already were.
-  if (results.length === 0 && dedicatedEvmChainId && METRICS_API_URL) {
-    try {
-      return await fetchPages(METRICS_API_URL);
-    } catch {
-      return results;
-    }
-  }
-  return results;
+  return fetchPages(DEDICATED_STATS_BASE_URL);
 }
 
 async function getTimeSeriesData(

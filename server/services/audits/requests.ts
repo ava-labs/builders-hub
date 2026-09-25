@@ -1,0 +1,273 @@
+import type { Prisma } from "@prisma/client";
+import { del } from "@vercel/blob";
+import { prisma } from "@/prisma/prisma";
+import { isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
+import { parseStoredAttachments } from "@/lib/audits/attachments";
+import { deriveRequestStatus } from "@/lib/audits/status";
+import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
+import { logAuditEvent } from "@/server/services/audits/events";
+import {
+  deliverFanoutEmails,
+  fanoutFirmsWhere,
+  FANOUT_FIRM_SELECT,
+  toFanoutRequest,
+  type FanoutFirm,
+} from "@/server/services/audits/fanout";
+import type { FanoutRequest } from "@/server/services/audits/emails/sendFanoutNotification";
+import type { AuditDraftInput } from "@/types/audits";
+
+const DAY = 24 * 60 * 60 * 1000;
+
+export type MutationResult =
+  | { success: true }
+  | { success: false; code: "not_found" }
+  | { success: false; code: "foreign_attachment" };
+
+/**
+ * Unpublish objects the owner just dropped. "Remove" has to mean removed:
+ * a blob URL is readable by anyone still holding it, so unlinking the row
+ * alone would leave the file up for good. Best effort and always AFTER the
+ * row is written (the portal logo route's rule), and only for keys our own
+ * attachment route could have minted.
+ */
+async function unpublishAttachments(requestId: string, urls: string[]): Promise<void> {
+  // Bound to THIS request, not merely "on our store": the caller chose these
+  // strings, so a store-only check would delete any object they can name.
+  // Legacy keys carry no request id and are never deleted.
+  const ours = urls.filter((url) => isRequestAttachmentSrc(url, requestId));
+  if (ours.length === 0) return;
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    console.error("[Audits] BLOB_READ_WRITE_TOKEN is not set; dropped attachments kept.");
+    return;
+  }
+  try {
+    await del(ours, { token });
+  } catch (err) {
+    console.error("[Audits] attachment blob delete failed:", err);
+  }
+}
+
+/**
+ * A save may keep what the request already holds, and may add only keys minted
+ * for this request. That second half is the whole fix: without it a caller can
+ * paste another project's attachment URL onto their own draft, which both
+ * reads the file back through the proxy and marks it for deletion on the next
+ * save. Keeping the first half leaves drafts written before the key carried a
+ * request id editable.
+ */
+export function rejectedAttachmentUrls(
+  requestId: string,
+  stored: unknown,
+  incoming: AuditDraftInput["attachments"],
+): string[] {
+  const alreadyHere = new Set(parseStoredAttachments(stored).map((a) => a.url));
+  return (incoming ?? [])
+    .map((a) => a.url)
+    .filter((url) => !isRequestAttachmentSrc(url, requestId) && !alreadyHere.has(url));
+}
+
+/** URLs present before but absent after, for an attachment-carrying write. */
+function droppedUrls(before: unknown, after: AuditDraftInput["attachments"]): string[] {
+  const kept = new Set((after ?? []).map((attachment) => attachment.url));
+  return parseStoredAttachments(before)
+    .map((attachment) => attachment.url)
+    .filter((url) => !kept.has(url));
+}
+
+// The two Json columns need an explicit InputJsonValue cast; everything else
+// in AuditDraftInput maps 1:1 onto AuditRequest columns. undefined keys are
+// skipped by Prisma, so a partial autosave only touches what it carries.
+function toDraftData(input: AuditDraftInput) {
+  const { repos, attachments, ...rest } = input;
+  return {
+    ...rest,
+    ...(repos !== undefined ? { repos: repos as unknown as Prisma.InputJsonValue } : {}),
+    ...(attachments !== undefined
+      ? { attachments: attachments as unknown as Prisma.InputJsonValue }
+      : {}),
+  };
+}
+
+export async function createDraft(
+  userId: string,
+  input: AuditDraftInput,
+): Promise<{ id: string }> {
+  // The id does not exist yet, so no attachment key can be bound to it. The
+  // wizard creates the draft before its first upload for exactly this reason
+  // (AttachmentUploader -> ensureDraftId), so dropping any attachments that
+  // arrive here costs nothing and closes the unbindable path.
+  const { attachments: _ignored, ...rest } = input;
+  return prisma.auditRequest.create({
+    data: { user_id: userId, ...toDraftData(rest) },
+    select: { id: true },
+  });
+}
+
+/**
+ * Autosave. updateMany with the owner + draft status pinned in the where
+ * clause is the whole authorization story: a submitted or foreign request
+ * matches nothing and reports not_found instead of leaking anything.
+ */
+export async function patchDraft(
+  userId: string,
+  requestId: string,
+  input: AuditDraftInput,
+): Promise<MutationResult> {
+  // Only an attachment-carrying save pays for the extra read; autosave fires
+  // on every typing pause and usually carries no attachments key at all.
+  const previous =
+    input.attachments !== undefined
+      ? await prisma.auditRequest.findFirst({
+          where: { id: requestId, user_id: userId, status: "draft" },
+          select: { attachments: true },
+        })
+      : null;
+
+  if (previous) {
+    const foreign = rejectedAttachmentUrls(requestId, previous.attachments, input.attachments);
+    if (foreign.length > 0) {
+      console.error("[Audits] refused attachment URL(s) not minted for this request.");
+      return { success: false, code: "foreign_attachment" };
+    }
+  }
+
+  const result = await prisma.auditRequest.updateMany({
+    where: { id: requestId, user_id: userId, status: "draft" },
+    data: toDraftData(input),
+  });
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  if (previous) {
+    await unpublishAttachments(requestId, droppedUrls(previous.attachments, input.attachments));
+  }
+  return { success: true };
+}
+
+export async function deleteDraft(userId: string, requestId: string): Promise<MutationResult> {
+  // Read the list before the row goes: after the delete there is nothing left
+  // pointing at the objects, and they would stay readable for good.
+  const row = await prisma.auditRequest.findFirst({
+    where: { id: requestId, user_id: userId, status: "draft" },
+    select: { attachments: true },
+  });
+  const result = await prisma.auditRequest.deleteMany({
+    where: { id: requestId, user_id: userId, status: "draft" },
+  });
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  await unpublishAttachments(requestId, droppedUrls(row?.attachments, []));
+  return { success: true };
+}
+
+/**
+ * Pull a request back out of the review queue. Nothing has been sent to any
+ * firm at this point, so the safe and useful move is not deletion but a
+ * return to draft: the project fixes whatever was wrong and resubmits, or
+ * deletes the draft outright with the affordance that already exists there.
+ */
+export async function returnToDraft(
+  userId: string,
+  requestId: string,
+): Promise<MutationResult> {
+  const result = await prisma.auditRequest.updateMany({
+    where: { id: requestId, user_id: userId, status: "pending_review" },
+    data: { status: "draft", submitted_at: null },
+  });
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  await logAuditEvent(prisma, {
+    request_id: requestId,
+    actor_type: "project_user",
+    actor_id: userId,
+    action: "request_returned_to_draft",
+  });
+  return { success: true };
+}
+
+export type ReopenResult =
+  | { success: true; auditorCount: number; emailFailures: number }
+  | { success: false; code: "not_found" | "not_reopenable" | "already_reopened" };
+
+type ReopenTxOutcome =
+  | { kind: "not_found" | "not_reopenable" | "already_reopened" }
+  | {
+      kind: "ok";
+      auditors: FanoutFirm[];
+      request: FanoutRequest;
+    };
+
+/**
+ * One more round for a derived-expired request (deadline passed, zero
+ * quotes): fresh +10d deadline, re-fanout to every active firm. Deliveries
+ * upsert via skipDuplicates so history stays intact, and exactly ONE reopen
+ * is allowed, enforced by counting request_reopened events.
+ */
+export async function reopen(userId: string, requestId: string): Promise<ReopenResult> {
+  const outcome = await prisma.$transaction(async (tx): Promise<ReopenTxOutcome> => {
+    const row = await tx.auditRequest.findFirst({
+      where: { id: requestId, user_id: userId },
+      include: { _count: { select: { quotes: true } } },
+    });
+    if (!row) return { kind: "not_found" };
+    if (deriveRequestStatus(row, row._count.quotes) !== "expired") {
+      return { kind: "not_reopenable" };
+    }
+    const priorReopens = await tx.auditEventLog.count({
+      where: { request_id: requestId, action: "request_reopened" },
+    });
+    if (priorReopens >= 1) return { kind: "already_reopened" };
+
+    const quote_deadline = new Date(Date.now() + QUOTE_DEADLINE_DEFAULT_DAYS * DAY);
+    await tx.auditRequest.update({ where: { id: row.id }, data: { quote_deadline } });
+
+    const shortlistIds = row.shortlist_auditor_ids;
+    const auditors = await tx.auditor.findMany({
+      where: fanoutFirmsWhere(shortlistIds),
+      select: FANOUT_FIRM_SELECT,
+    });
+    if (auditors.length > 0) {
+      await tx.auditFanoutDelivery.createMany({
+        data: auditors.map((auditor) => ({ request_id: row.id, auditor_id: auditor.id })),
+        skipDuplicates: true,
+      });
+    }
+    const shortlist_count =
+      shortlistIds.length > 0
+        ? await tx.auditor.count({ where: { id: { in: shortlistIds } } })
+        : 0;
+    const whitelist_count = await tx.auditor.count({ where: { active: true } });
+    await tx.auditEventLog.create({
+      data: {
+        request_id: row.id,
+        actor_type: "project_user",
+        actor_id: userId,
+        action: "request_reopened",
+        meta: { auditor_count: auditors.length, shortlist_count, whitelist_count },
+      },
+    });
+
+    return { kind: "ok", auditors, request: toFanoutRequest({ ...row, quote_deadline }) };
+  });
+
+  if (outcome.kind !== "ok") return { success: false, code: outcome.kind };
+
+  const { emailFailures } = await deliverFanoutEmails(requestId, outcome.auditors, outcome.request);
+  return { success: true, auditorCount: outcome.auditors.length, emailFailures };
+}
+
+export async function withdraw(userId: string, requestId: string): Promise<MutationResult> {
+  const result = await prisma.auditRequest.updateMany({
+    where: { id: requestId, user_id: userId, status: "collecting" },
+    data: { status: "withdrawn", closed_at: new Date() },
+  });
+  if (result.count === 0) return { success: false, code: "not_found" };
+
+  await logAuditEvent(prisma, {
+    request_id: requestId,
+    actor_type: "project_user",
+    actor_id: userId,
+    action: "request_withdrawn",
+  });
+  return { success: true };
+}

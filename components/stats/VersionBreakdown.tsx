@@ -19,9 +19,11 @@ export function compareVersions(v1: string, v2: string): number {
   if (v2 === "Unknown") return 1;
 
   const extractNumbers = (v: string) => {
-    const match = v.match(/(\d+)\.(\d+)\.(\d+)/);
+    // Patch is optional: breakdowns are bucketed to the minor line ("1.15"),
+    // while an individual node still reports a full "1.15.1".
+    const match = v.match(/(\d+)\.(\d+)(?:\.(\d+))?/);
     if (!match) return [0, 0, 0];
-    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+    return [parseInt(match[1]), parseInt(match[2]), match[3] ? parseInt(match[3]) : 0];
   };
 
   const [major1, minor1, patch1] = extractNumbers(v1);
@@ -33,6 +35,31 @@ export function compareVersions(v1: string, v2: string): number {
 }
 
 // Calculate version stats
+/** Versions present, newest first. Numeric, so 1.15.1 outranks 1.9.0 — a
+ *  plain .sort() compares as text and gets that backwards. */
+export function sortVersionsDesc(versions: string[]): string[] {
+  return versions.filter((v) => v !== "Unknown").sort((a, b) => compareVersions(b, a));
+}
+
+/**
+ * Default "up to date" target: the newest version with real adoption.
+ *
+ * Taking the highest version present makes a single canary node the bar the
+ * whole network is measured against. One node on a pre-release drops
+ * "up to date" to ~0% while nothing has actually changed.
+ */
+export function defaultVersionTarget(
+  byClientVersion: Record<string, VersionData>,
+  minShare = 0.01,
+): string {
+  const entries = Object.entries(byClientVersion).filter(([v]) => v !== "Unknown");
+  if (entries.length === 0) return "";
+  const total = entries.reduce((sum, [, d]) => sum + d.nodes, 0);
+  const ranked = entries.sort((a, b) => compareVersions(b[0], a[0]));
+  const adopted = total > 0 ? ranked.find(([, d]) => d.nodes / total >= minShare) : undefined;
+  return (adopted ?? ranked[0])[0];
+}
+
 export function calculateVersionStats(
   versionBreakdown: VersionBreakdownData | null,
   minVersion: string

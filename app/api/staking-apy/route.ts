@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { heliconActive, minConsumptionRateAt, minStakingDaysAt } from '@/constants/helicon';
 import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
 export const dynamic = 'force-dynamic';
@@ -14,11 +15,12 @@ const CONFIG = {
   network: {
     genesisSupply: 360_000_000, // 360M AVAX unlocked at genesis
     maxSupply: 720_000_000, // 720M AVAX maximum supply cap
-    minConsumptionRate: 0.10, // 10% for minimum staking duration
     maxConsumptionRate: 0.12, // 12% for maximum staking duration
     mintingPeriodDays: 365, // 1 year
-    minStakingDays: 14, // 2 weeks
     maxStakingDays: 365, // 1 year
+    // The Helicon-sensitive floor and minimum duration live in
+    // constants/helicon.ts, since this route plots a multi-year series and each
+    // point must use the parameters in effect on its own date.
   },
 
 } as const;
@@ -59,14 +61,14 @@ async function fetchWithTimeout(
 
 /**
  * Calculate Effective Consumption Rate based on staking duration.
- * The rate interpolates linearly between min and max based on how long you stake:
- * - 2 weeks (min): ~10.08% effective rate
+ * The rate interpolates linearly between the floor in effect at `at` and max:
+ * - minimum duration: ~= the floor
  * - 1 year (max): 12.00% effective rate
  */
-function getEffectiveConsumptionRate(stakingDays: number): number {
-  const { minConsumptionRate, maxConsumptionRate, mintingPeriodDays } = CONFIG.network;
+function getEffectiveConsumptionRate(stakingDays: number, at: number): number {
+  const { maxConsumptionRate, mintingPeriodDays } = CONFIG.network;
   const t = Math.min(1, Math.max(0, stakingDays / mintingPeriodDays));
-  return minConsumptionRate * (1 - t) + maxConsumptionRate * t;
+  return minConsumptionRateAt(at) * (1 - t) + maxConsumptionRate * t;
 }
 
 /**
@@ -74,11 +76,11 @@ function getEffectiveConsumptionRate(stakingDays: number): number {
  * Reward = (MaxSupply - Supply) × (Stake/Supply) × (StakingPeriod/MintingPeriod) × ECR
  * APY = (MaxSupply - Supply) / Supply × ECR × 100
  */
-function calculateAPY(supply: number, stakingDays: number): number {
+function calculateAPY(supply: number, stakingDays: number, at: number): number {
   if (supply <= 0 || supply >= CONFIG.network.maxSupply) return 0;
-  
+
   const remainingToMint = CONFIG.network.maxSupply - supply;
-  const effectiveRate = getEffectiveConsumptionRate(stakingDays);
+  const effectiveRate = getEffectiveConsumptionRate(stakingDays, at);
   const apy = (remainingToMint / supply) * effectiveRate * 100;
   
   return Math.max(0, Number(apy.toFixed(2)));
@@ -144,14 +146,15 @@ export async function GET() {
     }
 
     const currentSupply = pChainSupply ?? CONFIG.network.genesisSupply;
+    const nowMs = Date.now();
     const current: CurrentData = {
       supply: currentSupply,
       // Total-burned came from Glacier (data-api /v1/avax/supply), now removed.
       // Not currently served by our own data; 0 until we surface it (display-only,
       // not used in the APY calculation).
       totalBurned: 0,
-      maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays),
-      minAPY: calculateAPY(currentSupply, CONFIG.network.minStakingDays),
+      maxAPY: calculateAPY(currentSupply, CONFIG.network.maxStakingDays, nowMs),
+      minAPY: calculateAPY(currentSupply, minStakingDaysAt(nowMs), nowMs),
     };
 
     let apyHistory: APYDataPoint[] = [];
@@ -162,12 +165,14 @@ export async function GET() {
       const alignmentOffset = pChainSupply - seriesLatestSupply;
       apyHistory = historicalData.map((row) => {
         const supply = CONFIG.network.genesisSupply + row.cumulativeEmissions + alignmentOffset;
+        // Each point is priced with the parameters in effect on its own date.
+        const at = new Date(row.date).getTime();
         return {
           date: row.date,
-          timestamp: Math.floor(new Date(row.date).getTime() / 1000),
+          timestamp: Math.floor(at / 1000),
           supply,
-          maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays),
-          minAPY: calculateAPY(supply, CONFIG.network.minStakingDays),
+          maxAPY: calculateAPY(supply, CONFIG.network.maxStakingDays, at),
+          minAPY: calculateAPY(supply, minStakingDaysAt(at), at),
         };
       });
 
@@ -195,9 +200,10 @@ export async function GET() {
       constants: {
         genesisSupply: CONFIG.network.genesisSupply,
         maxSupply: CONFIG.network.maxSupply,
-        minConsumptionRate: CONFIG.network.minConsumptionRate,
+        // What applies right now, not the pre-Helicon baseline.
+        minConsumptionRate: minConsumptionRateAt(nowMs),
         maxConsumptionRate: CONFIG.network.maxConsumptionRate,
-        minStakingDuration: '2 weeks',
+        minStakingDuration: heliconActive(nowMs) ? '48 hours' : '2 weeks',
         maxStakingDuration: '1 year',
       },
     };

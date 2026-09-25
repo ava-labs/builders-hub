@@ -1308,12 +1308,14 @@ function AvalancheGoDockerPrimaryNetworkInner() {
             lang="bash"
             code={
               isRPC
-                ? `# Open P2P and RPC ports
+                ? `# Open SSH, P2P, and RPC ports
+sudo ufw allow OpenSSH
 sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
 sudo ufw allow 9650/tcp comment 'AvalancheGo RPC'
 sudo ufw --force enable
 sudo ufw status`
-                : `# Open P2P port only (validators don't expose RPC)
+                : `# Open SSH and P2P ports (validators don't expose RPC)
+sudo ufw allow OpenSSH
 sudo ufw allow 9651/tcp comment 'AvalancheGo P2P'
 sudo ufw --force enable
 sudo ufw status`

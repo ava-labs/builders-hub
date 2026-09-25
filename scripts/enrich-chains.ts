@@ -14,7 +14,7 @@
  * - Adds new chains discovered in Glacier (only if their subnetID is active on P-Chain)
  * - Does NOT remove stale local entries
  *
- * Optional prune mode (explicit; non-destructive):
+ * Optional prune mode (explicit; entries are moved, never destroyed):
  * - `--prune` flags local entries based on their current P-Chain activity by
  *   writing `isActive: true` / `isActive: false`. No entry is ever deleted, so
  *   curated metadata (descriptions, socials, logos, coingeckoId, brand colors)
@@ -659,6 +659,7 @@ async function main() {
 
   // Read existing l1-chains.json
   const chainsFilePath = path.join(process.cwd(), 'constants', 'l1-chains.json');
+  const inactiveFilePath = path.join(process.cwd(), 'constants', 'l1-chains-inactive.json');
 
   if (!fs.existsSync(chainsFilePath)) {
     console.error('l1-chains.json not found at:', chainsFilePath);
@@ -941,6 +942,23 @@ async function main() {
     console.log(`Entries flagged isActive=false: ${flaggedInactive.length} (metadata preserved)`);
   }
 
+  // Split inactive entries out of the catalog.
+  const shouldSplit = options.prune && activeSubnets.ok;
+  const keptChains = shouldSplit
+    ? finalChains.filter((c) => c.isActive !== false)
+    : finalChains;
+  const parkedChains = shouldSplit
+    ? finalChains.filter((c) => c.isActive === false)
+    : [];
+
+  if (shouldSplit) {
+    const mainnetKept = keptChains.filter((c) => c.isTestnet !== true).length;
+    console.log(
+      `Catalog: ${keptChains.length} active (${mainnetKept} mainnet), ` +
+        `${parkedChains.length} moved to ${path.basename(inactiveFilePath)}`,
+    );
+  }
+
   if (options.dryRun) {
     console.log(`\n⚠ Dry-run mode: no file changes written.`);
     return;
@@ -949,9 +967,40 @@ async function main() {
   // Write updated chains back to file
   fs.writeFileSync(
     chainsFilePath,
-    JSON.stringify(finalChains, null, 2) + '\n',
+    JSON.stringify(keptChains, null, 2) + '\n',
     'utf-8'
   );
+
+  if (shouldSplit) {
+    let previouslyParked: L1Chain[] = [];
+    if (fs.existsSync(inactiveFilePath)) {
+      try {
+        previouslyParked = JSON.parse(fs.readFileSync(inactiveFilePath, 'utf-8')) as L1Chain[];
+      } catch {
+        throw new Error(`${inactiveFilePath} exists but is not readable JSON; refusing to overwrite it`);
+      }
+    }
+    const keptIds = new Set(keptChains.map((c) => String(c.chainId)));
+    const merged = new Map<string, L1Chain>();
+    for (const c of [...previouslyParked, ...parkedChains]) {
+      const id = String(c.chainId);
+      if (keptIds.has(id)) continue; // it is active again
+      merged.set(id, c);
+    }
+    const parkedOut = [...merged.values()].sort((a, b) =>
+      a.isTestnet !== b.isTestnet
+        ? a.isTestnet
+          ? 1
+          : -1
+        : a.chainName.localeCompare(b.chainName),
+    );
+    fs.writeFileSync(
+      inactiveFilePath,
+      JSON.stringify(parkedOut, null, 2) + '\n',
+      'utf-8'
+    );
+    console.log(`Parked file: ${parkedOut.length} entries (${parkedChains.length} added this run)`);
+  }
 
   console.log(`\n✓ l1-chains.json updated successfully!\n`);
 }

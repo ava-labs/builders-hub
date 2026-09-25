@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Box, Hash, Server, Wallet } from "lucide-react";
+import { ArrowLeftRight, ArrowRight, Box, Hash, Server, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import l1ChainsData from "@/constants/l1-chains.json";
+import { ICM_STATUS_LABEL, type IcmMessage } from "@/lib/icm-message";
 import type { L1Chain } from "@/types/stats";
 import { hasRealChainLogo, pchainApiPath, type SearchResult } from "@/lib/pchain-explorer";
 import { lookupTransactionAcrossChains } from "@/lib/cross-chain-lookup";
@@ -38,7 +39,7 @@ export interface ChainMatch {
 export const CHAIN_INDEX: ChainHit[] = [
   {
     slug: "p-chain",
-    name: "Platform Chain",
+    name: "P-Chain",
     logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
     subnetId: "11111111111111111111111111111111LpoYY",
     isTestnet: false,
@@ -46,7 +47,7 @@ export const CHAIN_INDEX: ChainHit[] = [
     href: "/explorer/mainnet/p-chain",
     aliases: ["p-chain", "pchain", "platform chain", "platform", "primary network"],
   },
-  ...(l1ChainsData as L1Chain[]).map((c) => {
+  ...(l1ChainsData as L1Chain[]).filter((c) => c.isActive !== false).map((c) => {
     // No testnet EVM chain is indexed right now (Fuji C-Chain indexing is
     // down; the other fuji deployments were never indexed), so an rpcUrl
     // alone doesn't make a testnet entry explorable — matchChains then drops
@@ -57,7 +58,8 @@ export const CHAIN_INDEX: ChainHit[] = [
     const net = c.isTestnet === true ? "fuji" : "mainnet";
     return {
       slug: c.slug,
-      name: c.chainName || c.slug,
+      // the Primary Network chain goes by its short name everywhere in the explorer
+      name: c.slug === "c-chain" ? "C-Chain" : c.chainName || c.slug,
       logo: hasRealChainLogo(c.chainLogoURI) ? c.chainLogoURI : undefined,
       subnetId: c.subnetId || undefined,
       blockchainId: c.blockchainId || undefined,
@@ -174,8 +176,18 @@ function ChainLogo({ uri, name }: { uri?: string; name: string }) {
 /* costs one lookup total — the Enter key reuses the same cache.       */
 /* ------------------------------------------------------------------ */
 
+/* How a P-Chain search result renders. "chain" comes from a CreateChainTx
+   id, whose page is the L1's own detail view rather than the creating tx. */
+const PCHAIN_HIT: Record<string, { icon: EntityHit["icon"]; label: string }> = {
+  block: { icon: "block", label: "Block" },
+  chain: { icon: "block", label: "Blockchain" },
+  node: { icon: "node", label: "Validator node" },
+  address: { icon: "address", label: "Address" },
+  tx: { icon: "tx", label: "Transaction" },
+};
+
 export interface EntityHit {
-  icon: "tx" | "block" | "address" | "node";
+  icon: "tx" | "block" | "address" | "node" | "icm";
   label: string;
   id: string;
   /** null while searching or when nothing claimed the identifier */
@@ -208,6 +220,23 @@ function pchainSearchCached(network: string, q: string): Promise<SearchResult> {
       .then((res) => (res.ok ? res.json() : { type: "none", id: q }))
       .catch(() => ({ type: "none" as const, id: q }));
     pchainSearchCache.set(key, p);
+  }
+  return p;
+}
+
+const icmLookupCache = new Map<string, Promise<IcmMessage | null>>();
+/** One lookup per message ID per session. Only ever reached after both the EVM
+ *  race and the P-Chain search came back empty, so the ordinary path, a hash
+ *  that is a transaction, never pays for it. */
+function icmLookupCached(hash: string): Promise<IcmMessage | null> {
+  const key = hash.toLowerCase();
+  let p = icmLookupCache.get(key);
+  if (!p) {
+    p = fetch(`/api/icm/message/${key}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => (body && !body.error ? (body as IcmMessage) : null))
+      .catch(() => null);
+    icmLookupCache.set(key, p);
   }
   return p;
 }
@@ -258,10 +287,20 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         // no EVM chain claimed it — a hex P-Chain tx id is still possible
         const r = await pchainSearchCached(targets.network, q);
         if (cancelled) return;
+        if (r.type !== "none") {
+          setResolved({
+            q,
+            hit: { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" },
+          });
+          return;
+        }
+
+        const icm = await icmLookupCached(q);
+        if (cancelled) return;
         setResolved({
           q,
-          hit: r.type !== "none"
-            ? { icon: "tx", label: r.type === "block" ? "Block" : "Transaction", id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
+          hit: icm
+            ? { icon: "icm", label: "Interchain message", id: q, href: `/explorer/${targets.network}/icm/${icm.messageId}`, detail: ICM_STATUS_LABEL[icm.status] ?? "Interchain message", status: "ready" }
             : { icon: "tx", label: "Transaction", id: q, href: null, detail: "No chain claims this hash", status: "notfound" },
         });
       } else {
@@ -270,7 +309,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
         setResolved({
           q,
           hit: r.type !== "none"
-            ? { icon: r.type === "block" ? "block" : "tx", label: r.type === "block" ? "Block" : r.type === "tx" ? "Transaction" : r.type, id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
+            ? { ...(PCHAIN_HIT[r.type] ?? PCHAIN_HIT.tx), id: q, href: `/explorer/${targets.network}/p-chain/${r.type}/${r.id}`, detail: "P-Chain", status: "ready" }
             : { icon: "tx", label: "P-Chain ID", id: q, href: null, detail: "Nothing matched", status: "notfound" },
         });
       }
@@ -312,7 +351,7 @@ export function useSearchEntity(query: string, targets: EntityTargets): EntityHi
   return null;
 }
 
-const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server } as const;
+const ENTITY_ICONS = { tx: Hash, block: Box, address: Wallet, node: Server, icm: ArrowLeftRight } as const;
 
 /** The entity row: what the identifier in the box resolves to, and where
  *  Enter (or a click) lands. Sits above the chain suggestions. */
