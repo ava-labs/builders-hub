@@ -22,11 +22,13 @@ export function Rise({
 }) {
   const reducedMotion = useReducedMotion();
   return (
+    // the same first frame on the server and the client, so hydration
+    // matches; a reader who asked for less motion gets no transition
     <motion.div
       className={className}
-      initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
     </motion.div>
