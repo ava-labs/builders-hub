@@ -5,6 +5,7 @@ import { NextResponse, NextRequest } from 'next/server';
 import { randomUUID } from 'crypto';
 import {
   blobKeyFromIdentifier,
+  isSafeBlobKey,
   canUserDeleteFile,
   canUserUploadFile,
   isValidFileSize,
@@ -127,6 +128,14 @@ export const DELETE = withAuth(async (request: NextRequest, context: any, sessio
 
   // Use fileName if available, otherwise use url
   const fileIdentifier = fileName || url!;
+
+  // Refuse a key that could address a different object, before any permission
+  // question is asked: an admin passes the permission check on anything, so
+  // without this a traversal key reaches del() on the strength of the role
+  // alone. Legacy keys of any depth still pass here and stay admin-only.
+  if (!isSafeBlobKey(blobKeyFromIdentifier(fileIdentifier))) {
+    return NextResponse.json({ error: 'Invalid file key' }, { status: 400 });
+  }
 
   try {
     // Validate permissions before deleting

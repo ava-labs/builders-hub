@@ -57,13 +57,47 @@ export function doesExtensionMatchMimeType(file: File): boolean {
  */
 export function uploaderIdFromBlobKey(fileNameOrUrl: string): string | null {
   const key = blobKeyFromIdentifier(fileNameOrUrl);
-  const slash = key.indexOf('/');
-  if (slash <= 0) return null;
+  if (!isWellFormedBlobKey(key)) return null;
+  return key.slice(0, key.indexOf('/'));
+}
 
-  const prefix = key.slice(0, slash);
-  // Keys are `<userId>/<uuid><ext>`. User ids are Prisma cuids (lowercase
-  // alphanumeric), so the prefix is not hex-only; anything else is not ours.
-  return /^[0-9a-z-]{16,64}$/i.test(prefix) ? prefix : null;
+/**
+ * Exactly `<userId>/<name>`: two non-empty segments, nothing else.
+ *
+ * The shape is the whole security property, so it is checked rather than
+ * guessed at. A third segment, a traversal segment, or an empty one all mean
+ * the key is not one this service minted, and a key that is not ours must
+ * never resolve to an owner — `uploaderIdFromBlobKey` returning a prefix is
+ * what grants the delete.
+ *
+ * Legacy keys are deliberately NOT this shape, so they resolve to no owner
+ * and stay admin-only. Use isSafeBlobKey for the separate question of whether
+ * a key is safe to address at all.
+ */
+export function isWellFormedBlobKey(key: string): boolean {
+  const parts = key.split('/');
+  if (parts.length !== 2) return false;
+  return parts.every((part) => isSafeSegment(part));
+}
+
+function isSafeSegment(part: string): boolean {
+  return part.length > 0 && part !== '.' && part !== '..';
+}
+
+/**
+ * Addressable at all: no empty, `.` or `..` segment anywhere.
+ *
+ * This is the traversal guard, separate from ownership. Legacy keys of any
+ * depth pass it and remain admin-only, while a key that could resolve to a
+ * different object is refused before any permission question is asked.
+ *
+ * `..` matters because `blobKeyFromIdentifier` percent-decodes AFTER the URL
+ * parser has normalised dot segments, so `%2F..%2F` arrives here as real
+ * separators the parser never got to collapse.
+ */
+export function isSafeBlobKey(key: string): boolean {
+  if (key.length === 0) return false;
+  return key.split('/').every((part) => isSafeSegment(part));
 }
 
 /**
