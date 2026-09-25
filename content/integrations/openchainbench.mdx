@@ -1,0 +1,45 @@
+---
+title: OpenChainBench
+category: Analytics & Data
+available: ["C-Chain"]
+description: "OpenChainBench delivers live RPC latency benchmarks (p50/p90/p99), gas oracle accuracy, and finality tracking across 22+ chains including Avalanche C-Chain, probed every minute from 3 global regions."
+logo: /images/openchainbench.png
+developer: OpenChainBench
+website: https://openchainbench.com/
+documentation: https://openchainbench.com/
+---
+
+## Overview
+
+OpenChainBench is an open-source benchmarking platform that continuously measures real-world RPC performance across 22+ blockchain networks. Avalanche C-Chain is one of the actively monitored chains, giving builders an objective view of RPC provider quality before committing to one in production.
+
+Probes run every minute from three geographic regions, surfacing p50, p90, and p99 latency percentiles alongside gas oracle accuracy and finality timing.
+
+## Features
+
+- **Latency Percentiles**: Live p50/p90/p99 measurements per RPC provider and region.
+- **Gas Oracle Accuracy**: Compares oracle-predicted gas prices against on-chain basefee.
+- **Finality Tracking**: Measures time-to-finality across supported chains including C-Chain.
+- **Multi-Region Probing**: Data collected from 3 global probe regions every minute.
+- **22+ Chains**: Cross-chain view for direct comparisons — Avalanche, Ethereum, Solana, and more.
+- **Open Source Harnesses**: All probe code is public under CC BY 4.0.
+- **Historical Data**: Trend graphs over configurable time windows (24h / 7d / 30d).
+
+## Getting Started
+
+1. **Explore the dashboard**: Visit [openchainbench.com](https://openchainbench.com) — no account required.
+2. **Filter by chain**: Select Avalanche C-Chain from the chain selector to see provider-level latency rankings.
+3. **Compare providers**: Use the p50/p90/p99 breakdown to choose the best RPC endpoint for your use case.
+4. **Track over time**: Switch between 24h, 7d, and 30d windows to spot regressions or improvements.
+
+## Documentation
+
+Source code and methodology are available at [github.com/ChainBench/OpenChainBench](https://github.com/ChainBench/OpenChainBench).
+
+## Use Cases
+
+- **RPC Provider Selection**: Pick the fastest provider for C-Chain based on real latency data, not marketing claims.
+- **SLA Monitoring**: Track whether a provider's p99 latency stays within acceptable bounds.
+- **Incident Investigation**: Pinpoint regional outages or degraded endpoints using historical probe data.
+- **Gas Strategy**: Validate gas oracle accuracy before relying on it for time-sensitive transactions.
+- **Benchmarking Research**: Use the open harnesses to run private benchmarks against internal or custom RPC endpoints.
