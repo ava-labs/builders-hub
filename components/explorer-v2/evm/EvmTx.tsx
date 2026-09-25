@@ -5,18 +5,7 @@ import Link from "next/link";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import {
-  Board,
-  CellLabel,
-  DetailSkeleton,
-  HashChip,
-  SectionHeader,
-  SpecLine,
-  SpecSheet,
-  StatCell,
-  StatStrip,
-  SubjectHeadline,
-} from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, LiveDot } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown } from "./bits";
@@ -25,14 +14,19 @@ import { useEvmData, usePrice, usdOfWei } from "./hooks";
 import { PhaseTrack } from "./LiveBoards";
 import { useBlockLifecycle } from "./useBlockLifecycle";
 import { useRpcTx } from "./useRpcTx";
+import { EvmTrace, useTrace } from "./EvmTrace";
 import { CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
 import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { getEventByTopic, getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { balanceChanges, flatten } from "@/lib/trace";
+import { storyOf } from "@/lib/tx-story";
+import { EvmTxStory } from "./EvmTxStory";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { knownAddress, type TxDetail } from "@/lib/evm-explorer";
-import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount } from "@/lib/token-list";
+import { useTokenList, decodeErc20Call, decodeTransferLogs, formatTokenAmount, useSignatures } from "@/lib/token-list";
 import { TokenLogo, TokenMark } from "./TokenMark";
 import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessage } from "@/lib/icm-message";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* One transaction, in the block page's grammar: status in the section
    header, the hash as the subject with its time beside it, the readings
@@ -40,8 +34,6 @@ import { ICM_EVENT_BY_TOPIC, ICM_STATUS_LABEL, TELEPORTER_ADDRESS, type IcmMessa
    which block, where that block stands in Continuous Execution), the
    identifiers in a compact sheet, then the tx's own sections. */
 
-const FIG = "font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50";
-const UNIT = "text-sm font-normal text-zinc-400 dark:text-zinc-500";
 
 const TX_TYPES: Record<number, string> = {
   0: "Legacy",
@@ -193,6 +185,40 @@ function Party({
   );
 }
 
+/** one reading in the tx page's rail: label, figure, qualifier */
+export function RailRow({
+  label,
+  children,
+  sub,
+  href,
+  live = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  sub?: React.ReactNode;
+  href?: string;
+  live?: boolean;
+}) {
+  const inner = (
+    <>
+      <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
+        {live && <LiveDot />}
+        {label}
+      </span>
+      <span className="font-mono text-[17px] tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">{children}</span>
+      {sub != null && <span className="font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500">{sub}</span>}
+    </>
+  );
+  const cls = "flex flex-1 flex-col justify-center gap-1 border-b border-zinc-200 px-5 py-3.5 last:border-b-0 dark:border-zinc-800";
+  return href ? (
+    <Link href={href} className={cn(cls, "transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900")}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
+}
+
 export function EvmTx({ network, txHash }: { network: string; txHash: string }) {
   const c = useChainContext();
   const base = `/explorer/${network}/${c.chainSlug}`;
@@ -201,7 +227,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
 
   // C-Chain: the RPC answers the second the tx executes; the indexer copy
   // replaces it when it lands, bringing the internal calls with it.
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const fromRpc = useRpcTx(liveRpc, txHash);
   const t = indexed.data ?? fromRpc.data;
   const loading = !t && (indexed.loading || fromRpc.loading);
@@ -210,6 +236,12 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
 
   const icmFallback = useIcmFallback(txHash, error === "not found" && !t);
   const icmMessages = t ? icmMessagesInLogs(t.logs) : [];
+
+  // the execution trace, from the debug node; when it is here it carries
+  // the internal calls, token movements and events, so the flat sections
+  // for those step aside
+  const { trace, state: traceState } = useTrace(c.chainId, txHash, !!liveRpc);
+  const traced = traceState === "ready";
 
   // where the tx's block stands in Continuous Execution
   const life = useBlockLifecycle(liveRpc, t?.blockNumber ?? null);
@@ -233,9 +265,52 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   const call = t && toToken ? decodeErc20Call(t.input) : null;
   const transfers = t ? decodeTransferLogs(t.logs) : [];
 
-  const feeWei = t ? BigInt(t.gasUsed) * BigInt(t.gasPrice || "0") : 0n;
+  // the price actually paid: the RPC copy carries the receipt's effective
+  // gas price; the indexer copy carries the tx's own field, which since
+  // ACP-176 can sit a little above what the block charged
+  const gasPriceWei = fromRpc.data?.gasPrice ?? t?.gasPrice ?? "0";
+  const feeWei = t ? BigInt(t.gasUsed) * BigInt(gasPriceWei || "0") : 0n;
   const gasPct = t && t.gasLimit > 0 ? (t.gasUsed / t.gasLimit) * 100 : 0;
   const value = t ? Number(t.value) : 0;
+
+  // the glance layer: the events' names (registry first, then the
+  // signature database), the sender's native net, and the story they make
+  const topics = t ? [...new Set(t.logs.map((l) => (l.topics[0] ?? "").toLowerCase()).filter(Boolean))] : [];
+  const unnamedTopics = topics.filter((tp) => !getEventByTopic(tp, 1));
+  const sigs = useSignatures(selector && !methodName ? [selector] : [], unnamedTopics);
+  // unnamed, the selector itself is the honest word for what was called
+  const storyMethod = methodName ?? sigs.fn.get(selector)?.name.split("(")[0] ?? (selector || null);
+  const eventNames = t
+    ? t.logs
+        .map((l) => {
+          const tp = (l.topics[0] ?? "").toLowerCase();
+          return getEventByTopic(tp, l.topics.length)?.name ?? sigs.ev.get(tp)?.name.split("(")[0] ?? null;
+        })
+        .filter((n): n is string => !!n)
+    : [];
+  const nativeNet = (() => {
+    if (!t) return 0n;
+    if (trace) {
+      const mine = balanceChanges(trace).find((ch) => ch.token === null && ch.address === t.from.toLowerCase());
+      return (mine?.delta ?? 0n) + feeWei;
+    }
+    const refunds = t.internalTxns.filter((it) => it.to?.toLowerCase() === t.from.toLowerCase()).reduce((acc, it) => acc + BigInt(it.value || "0"), 0n);
+    return refunds - BigInt(t.value || "0");
+  })();
+  const story = t
+    ? storyOf({
+        actor: t.from,
+        to: t.to,
+        contractAddress: t.contractAddress,
+        success: t.success,
+        nativeNet,
+        transfers,
+        eventNames,
+        targetIsToken: !!toToken,
+        methodName: storyMethod,
+        revertReason: trace?.call.revertReason ?? trace?.call.error ?? null,
+      })
+    : null;
 
   return (
     <EvmShell network={network}>
@@ -262,134 +337,162 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
               </span>
             </div>
 
-            {/* the readings */}
-            <StatStrip cols={5}>
-              <StatCell label="Value" sub={value > 0 ? usdOfWei(t.value, usd) : undefined}>
-                <span className={cn(FIG, value === 0 && "text-zinc-400 dark:text-zinc-600")}>
-                  {value > 0 ? formatEther(t.value, { decimals: value / 1e18 >= 1 ? 4 : 6 }) : "0"}{" "}
-                  <span className={UNIT}>{sym}</span>
-                </span>
-              </StatCell>
-              <StatCell
-                label="Fee"
-                href={`${base}/gas`}
-                sub={
-                  <>
-                    {usdOfWei(feeWei, usd)}
-                    {usdOfWei(feeWei, usd) ? " · " : ""}
-                    {formatNano(t.gasPrice, sym)}
-                  </>
-                }
-              >
-                <span className={FIG}>
-                  {formatEther(feeWei.toString(), { decimals: 6 })} <span className={UNIT}>{sym}</span>
-                </span>
-              </StatCell>
-              <StatCell
-                label="Gas Used"
-                sub={
-                  <span className="flex items-center gap-2">
-                    <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
-                      <span
-                        className={cn("block h-full", gasPct >= 95 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
-                        style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
-                      />
-                    </span>
-                    {gasPct.toFixed(0)}% of {formatNumber(t.gasLimit)}
-                  </span>
-                }
-              >
-                <span className={FIG}>{formatNumber(t.gasUsed)}</span>
-              </StatCell>
-              <StatCell label="Block" href={`${base}/block/${t.blockNumber}`} sub={`position ${t.txIndex}`}>
-                <span className={FIG}>#{formatNumber(t.blockNumber)}</span>
-              </StatCell>
-              {showLife ? (
-                <StatCell
-                  label="Finality"
-                  live={life.phase !== "settled"}
-                  href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}
-                  sub={
-                    life.ready ? (
-                      <span className="flex items-center gap-2">
-                        <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `state root committed in #${formatNumber(life.settledBy)}` : "executing"}
+            {/* the split: what happened and who, on the left; the readings a
+                tx is judged by, stacked in a rail on the right */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
+              <div className="flex min-w-0 flex-col gap-6">
+                {/* what happened, for anyone */}
+                {story && (
+                  <EvmTxStory
+                    story={story}
+                    actor={t.from}
+                    chainId={c.chainId}
+                    base={base}
+                    symbol={sym}
+                    tokens={tokens}
+                    usd={usd}
+                    counts={{ transfers: transfers.length, events: t.logs.length, calls: trace ? flatten(trace.call).length : null }}
+                  />
+                )}
+
+                {/* the parties and the call */}
+                <Board divide={false} className="px-5 md:px-6">
+                <SpecSheet>
+                  <SpecLine label="From">
+                    <Party addr={t.from} href={`${base}/address/${t.from}`} chainId={c.chainId} token={tokens.get(t.from.toLowerCase())} />
+                  </SpecLine>
+                  {t.to ? (
+                    <SpecLine label="To">
+                      <Party addr={t.to} name={toContract?.name} href={`${base}/address/${t.to}`} chainId={c.chainId} token={toToken} />
+                    </SpecLine>
+                  ) : t.contractAddress ? (
+                    <SpecLine label="Contract Created">
+                      <HashChip value={t.contractAddress} href={`${base}/address/${t.contractAddress}`} len={66} />
+                    </SpecLine>
+                  ) : (
+                    <SpecLine label="To">Contract creation</SpecLine>
+                  )}
+                  {selector && (
+                    <SpecLine label="Method">
+                      <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                        {methodName ? (
+                          <>
+                            <span className="font-mono">{methodName}</span>
+                            {call && toToken && (
+                              <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
+                                {formatTokenAmount(call.amount, toToken.decimals)}
+                                <TokenMark address={t.to} chainId={c.chainId} token={toToken} size={14} />
+                                <span className="text-zinc-400 dark:text-zinc-500">
+                                  {call.from ? `from ${truncate(call.from, 8)} ` : ""}to {truncate(call.to, 8)}
+                                </span>
+                              </span>
+                            )}
+                            <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">{selector}</span>
+                          </>
+                        ) : (
+                          <span className="font-mono text-zinc-500 dark:text-zinc-400">{selector}</span>
+                        )}
                       </span>
-                    ) : undefined
+                    </SpecLine>
+                  )}
+                  <SpecLine label="Block">
+                    <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                      <Link href={`${base}/block/${t.blockNumber}`} className="font-mono text-[#0061E2] hover:text-[#E6212F] dark:text-[#5f9dff]">
+                        #{formatNumber(t.blockNumber)}
+                      </Link>
+                      <span className="font-mono text-[12px] font-normal text-zinc-400 dark:text-zinc-500">position {t.txIndex}</span>
+                    </span>
+                  </SpecLine>
+                  <SpecLine label="Nonce">{formatNumber(t.nonce)}</SpecLine>
+                  <SpecLine label="Type">{TX_TYPES[t.type] ?? `Type ${t.type}`}</SpecLine>
+                  {t.input && t.input !== "0x" && (
+                    <SpecLine label="Input" align="start">
+                      <span className="inline-flex max-w-full items-center gap-2">
+                        <span className="block max-w-full break-all font-mono text-[12px] text-zinc-600 dark:text-zinc-400">
+                          {truncate(t.input, 96)}
+                        </span>
+                        <CopyButton text={t.input} />
+                      </span>
+                    </SpecLine>
+                  )}
+                </SpecSheet>
+                </Board>
+              </div>
+
+              {/* the readings: the rail stands as tall as the column beside
+                  it, its rows sharing the height, so both end on one line */}
+              <Board divide={false} className="flex flex-col border">
+                {/* finality: the tx is final the moment its block is accepted */}
+                <RailRow label="Status">
+                  {t.success ? "Final" : <span className="text-[#E6212F]">Reverted</span>}
+                </RailRow>
+                {/* the state root is bookkeeping a later block does, not finality */}
+                {showLife && (
+                  <RailRow
+                    label="State Root"
+                    href={life.settledBy ? `${base}/block/${life.settledBy}` : undefined}
+                  >
+                    {life.ready ? (
+                      <span className="flex items-center gap-2.5">
+                        <PhaseTrack phase={life.phase} label={false} />
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">pending</span>}
+                      </span>
+                    ) : (
+                      "…"
+                    )}
+                  </RailRow>
+                )}
+                <RailRow label="Value" sub={value > 0 ? usdOfWei(t.value, usd) : undefined}>
+                  <span className={cn(value === 0 && "text-zinc-400 dark:text-zinc-600")}>
+                    {value > 0 ? formatEther(t.value, { decimals: value / 1e18 >= 1 ? 4 : 6 }) : "0"} <span className={UNIT}>{sym}</span>
+                  </span>
+                </RailRow>
+                <RailRow
+                  label="Fee"
+                  href={`${base}/gas`}
+                  sub={
+                    <>
+                      {usdOfWei(feeWei, usd)}
+                      {usdOfWei(feeWei, usd) ? " · " : ""}
+                      {formatNano(gasPriceWei, sym)}
+                    </>
                   }
                 >
-                  <span className={FIG}>Final</span>
-                </StatCell>
-              ) : (
-                <StatCell label="Type">
-                  <span className="flex h-7 items-center font-mono text-[13px] text-zinc-900 sm:h-8 dark:text-zinc-50">
-                    {TX_TYPES[t.type] ?? `Type ${t.type}`}
-                  </span>
-                </StatCell>
-              )}
-            </StatStrip>
-
-            {/* the identifiers */}
-            <Board divide={false} className="px-5 md:px-6">
-              <SpecSheet>
-                <SpecLine label="From">
-                  <Party addr={t.from} href={`${base}/address/${t.from}`} chainId={c.chainId} token={tokens.get(t.from.toLowerCase())} />
-                </SpecLine>
-                {t.to ? (
-                  <SpecLine label="To">
-                    <Party addr={t.to} name={toContract?.name} href={`${base}/address/${t.to}`} chainId={c.chainId} token={toToken} />
-                  </SpecLine>
-                ) : t.contractAddress ? (
-                  <SpecLine label="Contract Created">
-                    <HashChip value={t.contractAddress} href={`${base}/address/${t.contractAddress}`} len={66} />
-                  </SpecLine>
-                ) : (
-                  <SpecLine label="To">Contract creation</SpecLine>
-                )}
-                {selector && (
-                  <SpecLine label="Method">
-                    <span className="inline-flex flex-wrap items-baseline gap-x-3">
-                      {methodName ? (
-                        <>
-                          <span className="font-mono">{methodName}</span>
-                          {call && toToken && (
-                            <span className="inline-flex items-center gap-1.5 font-mono tabular-nums">
-                              {formatTokenAmount(call.amount, toToken.decimals)}
-                              <TokenMark address={t.to} chainId={c.chainId} token={toToken} size={14} />
-                              <span className="text-zinc-400 dark:text-zinc-500">
-                                {call.from ? `from ${truncate(call.from, 8)} ` : ""}to {truncate(call.to, 8)}
-                              </span>
-                            </span>
-                          )}
-                          <span className="font-mono text-[12px] text-zinc-400 dark:text-zinc-500">{selector}</span>
-                        </>
-                      ) : (
-                        <span className="font-mono text-zinc-500 dark:text-zinc-400">{selector}</span>
-                      )}
-                    </span>
-                  </SpecLine>
-                )}
-                <SpecLine label="Nonce">{formatNumber(t.nonce)}</SpecLine>
-                {showLife && <SpecLine label="Type">{TX_TYPES[t.type] ?? `Type ${t.type}`}</SpecLine>}
-                {t.input && t.input !== "0x" && (
-                  <SpecLine label="Input" align="start">
-                    <span className="inline-flex max-w-full items-center gap-2">
-                      <span className="block max-w-full break-all font-mono text-[12px] text-zinc-600 dark:text-zinc-400">
-                        {truncate(t.input, 96)}
+                  <span className="text-red-700 dark:text-red-300">{formatEther(feeWei.toString(), { decimals: 6 })}</span> <span className={UNIT}>{sym}</span>
+                </RailRow>
+                {/* ACP-194: the receipt charges max(used, limit / 2), and the fee
+                    is paid on that; what execution actually used comes from
+                    the trace's struct log */}
+                <RailRow
+                  label="Gas Charged"
+                  sub={
+                    <span className="flex flex-col gap-1.5">
+                      <span className="flex items-center gap-2">
+                        <span className="h-1 w-24 bg-zinc-100 dark:bg-zinc-900">
+                          <span
+                            className={cn("block h-full", gasPct >= 95 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+                            style={{ width: `${Math.max(gasPct > 0 ? 1.5 : 0, Math.min(100, gasPct)).toFixed(1)}%` }}
+                          />
+                        </span>
+                        {gasPct.toFixed(0)}% of the {formatNumber(t.gasLimit)} limit
                       </span>
-                      <CopyButton text={t.input} />
+                      {trace?.gas && trace.gas.used !== t.gasUsed && <span>{formatNumber(trace.gas.used)} used by execution</span>}
                     </span>
-                  </SpecLine>
-                )}
-              </SpecSheet>
-            </Board>
+                  }
+                >
+                  {formatNumber(t.gasUsed)}
+                </RailRow>
+              </Board>
+            </div>
           </section>
 
-          {transfers.length > 0 && (
+          {liveRpc && <EvmTrace trace={trace} state={traceState} chainId={c.chainId} base={base} sender={t.from} symbol={sym} charged={t.gasUsed} />}
+
+          {!traced && transfers.length > 0 && (
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Token Transfers · ${transfers.length}`} />
               <Board>
-                <div className="hidden grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]")}>
                   <span>Token</span>
                   <span>From</span>
                   <span>To</span>
@@ -400,7 +503,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                   return (
                     <div
                       key={x.logIndex}
-                      className="grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 md:h-11 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:py-0 md:px-6"
+                      className={cn(ROW, "md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]")}
                     >
                       <span className="flex min-w-0 items-center gap-2 font-mono text-[12.5px]">
                         <TokenLogo address={x.token} chainId={c.chainId} token={tok} size={18} />
@@ -438,11 +541,11 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </section>
           )}
 
-          {t.internalTxns.length > 0 && (
+          {!traced && t.internalTxns.length > 0 && (
             <section className="flex flex-col gap-4">
               <SectionHeader label={`Internal Transactions · ${t.internalTxns.length}`} />
               <Board>
-                <div className="hidden grid-cols-[1fr_1fr_0.8fr_0.6fr] gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+                <div className={cn(HEAD, "grid-cols-[1fr_1fr_0.8fr_0.6fr]")}>
                   <span>From</span>
                   <span>To</span>
                   <span className="text-right">Value</span>
@@ -451,7 +554,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
                 {t.internalTxns.map((it, i) => (
                   <div
                     key={i}
-                    className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 md:grid-cols-[1fr_1fr_0.8fr_0.6fr] md:items-center md:px-6"
+                    className={cn(ROW, "md:grid-cols-[1fr_1fr_0.8fr_0.6fr]")}
                   >
                     <span className="min-w-0">
                       <CellLabel>From</CellLabel>
@@ -500,6 +603,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
             </section>
           )}
 
+          {!traced && (
           <section className="flex flex-col gap-4">
             <SectionHeader label={`Event Logs · ${t.logs.length}`} />
             <Board>
@@ -531,6 +635,7 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
               ))}
             </Board>
           </section>
+          )}
         </div>
       )}
     </EvmShell>

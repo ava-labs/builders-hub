@@ -52,13 +52,28 @@ export function classifyEvmLocally(
 const WELL_KNOWN_ADDRESSES: Record<string, { label: string; note: string }> = {
   "0x0100000000000000000000000000000000000000": {
     label: "Burn Address",
-    note: "Blackhole coinbase carried by every Avalanche EVM block — burned base fees accumulate here, they are not paid out.",
+    note: "The blackhole coinbase every Avalanche EVM block names. Fees sent here are burned: no key controls this address, so nothing is paid out.",
   },
   "0x0000000000000000000000000000000000000000": {
     label: "Null Address",
-    note: "The zero address — counterparty for token mints and burns, and an unrecoverable sink for anything sent to it.",
+    note: "The zero address: the counterparty for token mints and burns, and an unrecoverable sink for anything sent to it.",
   },
 };
+
+/* code the C-Chain genesis itself allocates (mainnet and Fuji), verified
+   against avalanchego genesis/genesis_{mainnet,fuji}.json on 2026-09-24:
+   the blackhole address carries a 305-byte Solidity library (solc 0.6.10)
+   from launch. No transaction deployed it, so there is no creator and no
+   source to verify. */
+const GENESIS_CODE: Record<string, Set<string>> = {
+  "43114": new Set(["0x0100000000000000000000000000000000000000"]),
+  "43113": new Set(["0x0100000000000000000000000000000000000000"]),
+};
+
+/** true when the chain's genesis, not a transaction, put this code here */
+export function isGenesisCode(chainId: string | number, addr?: string): boolean {
+  return !!addr && !!GENESIS_CODE[String(chainId)]?.has(addr.toLowerCase());
+}
 
 /** name for a protocol-fixture address */
 export function knownAddress(

@@ -13,6 +13,10 @@ vi.mock('@/prisma/prisma', () => ({
   prisma: {
     $transaction: async (fn: (tx: unknown) => unknown) =>
       fn({
+        // The reservation takes a transaction-scoped advisory lock before
+        // reading counts, so the double needs $executeRaw. No assertion here
+        // changes — only the mock gained the method the code now calls.
+        $executeRaw: async () => 1,
         faucetClaim: {
           count: txMocks.count,
           findFirst: txMocks.findFirst,

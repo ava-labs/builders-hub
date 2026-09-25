@@ -212,3 +212,41 @@ export function useTokenBalances(
   }, [rpcUrl, address, key]);
   return { balances: state.key === key ? state.balances : new Map(), ready: state.key === key && key !== "" };
 }
+
+/** symbol and decimals for tokens the list does not carry, one batch per
+ *  new set; a token that does not answer both stays out of the map */
+export function useUnlistedTokenMeta(rpcUrl: string | undefined, addrs: string[]): Map<string, { symbol: string; decimals: number }> {
+  const [meta, setMeta] = useState<Map<string, { symbol: string; decimals: number }>>(new Map());
+  const key = [...new Set(addrs.map((a) => a.toLowerCase()))].sort().join(",");
+  useEffect(() => {
+    if (!rpcUrl || !key) return;
+    const todo = key.split(",").filter((a) => !meta.has(a));
+    if (!todo.length) return;
+    const controller = new AbortController();
+    const calls = todo.flatMap((to) => [
+      { method: "eth_call", params: [{ to, data: SEL.symbol }, "latest"] },
+      { method: "eth_call", params: [{ to, data: SEL.decimals }, "latest"] },
+    ]);
+    // the public RPC refuses big batches, so ask twenty calls at a time
+    const chunks: (typeof calls)[] = [];
+    for (let i = 0; i < calls.length; i += 20) chunks.push(calls.slice(i, i + 20));
+    Promise.all(chunks.map((ch) => rpcBatch<string>(rpcUrl, ch, controller.signal)))
+      .then((parts) => parts.flat())
+      .then((out) => {
+        if (controller.signal.aborted) return;
+        setMeta((m) => {
+          const next = new Map(m);
+          todo.forEach((a, i) => {
+            const symbol = decodeString(out[2 * i]);
+            const dec = decodeUint(out[2 * i + 1]);
+            if (symbol && dec !== null && dec <= 36n) next.set(a, { symbol, decimals: Number(dec) });
+          });
+          return next;
+        });
+      })
+      .catch(() => {});
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rpcUrl, key]);
+  return meta;
+}

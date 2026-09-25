@@ -71,7 +71,7 @@ export const EXPLORER_CHAINS: Record<string, ExplorerChain> = {
   "p-chain": {
     slug: "p-chain",
     name: "P-Chain",
-    title: "Platform Chain",
+    title: "P-Chain",
     kind: "pchain",
     networks: PCHAIN_NETWORKS,
     defaultNetwork: "mainnet",
@@ -79,7 +79,7 @@ export const EXPLORER_CHAINS: Record<string, ExplorerChain> = {
   "x-chain": {
     slug: "x-chain",
     name: "X-Chain",
-    title: "Exchange Chain",
+    title: "X-Chain",
     kind: "pchain",
     networks: PCHAIN_NETWORKS,
     defaultNetwork: "mainnet",
