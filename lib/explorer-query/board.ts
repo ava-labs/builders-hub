@@ -10,6 +10,8 @@ import type { ColumnMeta } from "./clickhouse";
 import type { Names, QueryAnswer } from "./types";
 import type { Panel, VisualSpec } from "./visual";
 import { useBoardSync } from "./board-sync";
+// the gate lives with the targets, so a server page can read it too
+export { queryTarget } from "./target";
 
 const KEY = "explorer-query-boards:v1";
 /** deleted board ids and when, per scope, until the account has the delete */
@@ -73,13 +75,6 @@ export interface Board {
 /** which boards a page sees: a board's SQL is bound to one chain on one network */
 export function boardScope(network: string, chainSlug: string): string {
   return `${network}:${chainSlug}`;
-}
-
-/** the chains the Query page can ask, and the chain_id their rows carry */
-export function queryTarget(network: string, chainSlug: string | undefined): { chainId: number; kind: "evm" | "pchain" } | null {
-  if (chainSlug === "p-chain" && (network === "mainnet" || network === "fuji")) return { chainId: network === "fuji" ? 5 : 1, kind: "pchain" };
-  if (chainSlug === "c-chain") return { chainId: network === "fuji" || network === "testnet" ? 43113 : 43114, kind: "evm" };
-  return null;
 }
 
 export function boardsHref(network: string, chainSlug: string): string {

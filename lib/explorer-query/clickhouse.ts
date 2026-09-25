@@ -260,27 +260,47 @@ export interface Coverage {
   blocks: number;
 }
 
-const coverageCache = new Map<number, { at: number; value: Coverage }>();
+const coverageCache = new Map<number, { at: number; value: Coverage | null }>();
 const COVERAGE_TTL_MS = 10 * 60_000;
+/** a chain with no rows is asked again after an hour, not every ten minutes */
+const EMPTY_TTL_MS = 60 * 60_000;
+
+/** the window of this chain the database holds; null when it holds no rows. Throws when the database cannot be read. */
+async function readCoverage(chainId: number): Promise<Coverage | null> {
+  const hit = coverageCache.get(chainId);
+  if (hit && Date.now() - hit.at < (hit.value ? COVERAGE_TTL_MS : EMPTY_TTL_MS)) return hit.value;
+  const r = await runQuery(
+    targetOf(chainId).kind === "pchain"
+      ? `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_height) AS lo, max(block_height) AS hi, count() AS blocks FROM raw_p_blocks WHERE chain_id = ${chainId}`
+      : `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
+  );
+  const row = r.rows[0];
+  const value: Coverage | null =
+    row && row.blocks
+      ? { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) }
+      : null;
+  coverageCache.set(chainId, { at: Date.now(), value });
+  return value;
+}
 
 /** what window of this chain the database holds */
 export async function coverage(chainId: number): Promise<Coverage | null> {
-  const hit = coverageCache.get(chainId);
-  if (hit && Date.now() - hit.at < COVERAGE_TTL_MS) return hit.value;
   try {
-    const r = await runQuery(
-      targetOf(chainId).kind === "pchain"
-        ? `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_height) AS lo, max(block_height) AS hi, count() AS blocks FROM raw_p_blocks WHERE chain_id = ${chainId}`
-        : `SELECT toString(min(block_time), 'UTC') AS since, toString(max(block_time), 'UTC') AS until, toUnixTimestamp(max(block_time)) AS until_unix, min(block_number) AS lo, max(block_number) AS hi, count() AS blocks FROM raw_blocks WHERE chain_id = ${chainId}`,
-    );
-    const row = r.rows[0];
-    if (!row || !row.blocks) return null;
-    const value: Coverage = { since: String(row.since), until: String(row.until), untilUnix: Number(row.until_unix), lo: Number(row.lo), hi: Number(row.hi), blocks: Number(row.blocks) };
-    coverageCache.set(chainId, { at: Date.now(), value });
-    return value;
+    return await readCoverage(chainId);
   } catch {
     return null;
   }
+}
+
+/** for the page: the chain's window, "empty" when nothing is indexed, or
+    null when the database did not answer in time (the page then says nothing) */
+export async function indexState(chainId: number, timeoutMs = 4000): Promise<Coverage | "empty" | null> {
+  const read = readCoverage(chainId).then(
+    (c) => c ?? ("empty" as const),
+    () => null,
+  );
+  const late = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+  return Promise.race([read, late]);
 }
 
 export function coverageText(chainId: number, c: Coverage): string {

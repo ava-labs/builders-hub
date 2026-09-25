@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
-import { runQuery, anchored, type ColumnMeta } from "@/lib/explorer-query/clickhouse";
+import { runQuery, anchored, indexState, type ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
@@ -83,7 +83,8 @@ export async function POST(req: Request) {
   // is stored for every reader never depends on what one reader sent
   if (typeof body.key === "string" && /^[0-9a-f]{32}$/.test(body.key) && !body.prompt) {
     const recipe = await getRecipe(body.key);
-    if (!recipe) return NextResponse.json({ error: "unknown answer" }, { status: 404 });
+    // a kept answer's SQL names one chain; it never lays out for another
+    if (!recipe || !guardSql(recipe.sql, chainId).ok) return NextResponse.json({ error: "unknown answer" }, { status: 404 });
     // a kept layout: only its reading is written again, from fresh rows
     if (recipe.visual && body.reading) {
       const t0 = Date.now();
@@ -126,6 +127,9 @@ export async function POST(req: Request) {
 
   const prompt = String(body.prompt ?? "").trim().slice(0, 1500);
   if (!prompt) return NextResponse.json({ error: "empty prompt" }, { status: 400 });
+
+  // a chain with no indexed rows has nothing to read; no model is asked
+  if ((await indexState(chainId)) === "empty") return NextResponse.json({ error: `${chain.chainName}'s history is not indexed yet, so Query has nothing to read.` }, { status: 404 });
 
   // the same budget as the chat: model calls are the cost here
   const session = await getAuthSession();

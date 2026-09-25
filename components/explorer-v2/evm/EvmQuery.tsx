@@ -12,7 +12,7 @@ import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.
 import { setSelection as setDigSelection, askAbout } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
-import type { QueryResult } from "@/lib/explorer-query/clickhouse";
+import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
@@ -22,9 +22,10 @@ import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { AvalancheLoader } from "./AvalancheLoader";
-import { EXAMPLES, PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
+import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
+import { askHref } from "@/lib/explorer-query/board";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -96,14 +97,21 @@ interface QueryChain {
   kind: "evm" | "pchain";
 }
 
+/** what the database holds of a chain: its window, nothing, or unknown (null) */
+export type IndexState = Coverage | "empty" | null;
+
+/** a window that ends more than a day ago is named on the page */
+const STALE_S = 24 * 3600;
+
 /** an EVM chain's Query page, inside the chain's own layout and shell */
-export function EvmQuery({ network }: { network: string }) {
+export function EvmQuery({ network, index = null }: { network: string; index?: IndexState }) {
   const c = useChainContext();
   return (
     <QueryPage
       network={network}
       c={{ chainId: c.chainId, chainSlug: c.chainSlug, chainName: c.chainName, nativeToken: c.nativeToken, kind: "evm" }}
-      examples={EXAMPLES}
+      examples={examplesFor(c.chainId)}
+      index={index}
     />
   );
 }
@@ -135,7 +143,7 @@ function QueryShell({ kind, network, children }: { kind: QueryChain["kind"]; net
   );
 }
 
-function QueryPage({ network, c, examples }: { network: string; c: QueryChain; examples: typeof EXAMPLES }) {
+function QueryPage({ network, c, examples, index = null }: { network: string; c: QueryChain; examples: typeof EXAMPLES; index?: IndexState }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
 
@@ -421,6 +429,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   const cov = answer?.coverage;
   const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
   const busy = phase !== "idle";
+  const stale = index && index !== "empty" && Date.now() / 1000 - index.untilUnix > STALE_S ? index : null;
   const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
   const shareUrl = typeof window !== "undefined" && history[0] ? `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(history[0].prompt)}` : "";
 
@@ -559,6 +568,14 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   return (
     // the prompt box below is this page's search bar; the shell's would repeat it
     <QueryShell kind={c.kind} network={network}>
+      {index === "empty" ? (
+        <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          {c.chainName}&rsquo;s history is not indexed yet, so Query has nothing to read.{" "}
+          <Link href={askHref(network, "c-chain")} className="text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-[#E6212F] dark:text-zinc-50 dark:decoration-zinc-700">
+            Ask the C-Chain instead
+          </Link>
+        </p>
+      ) : (
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
@@ -600,6 +617,11 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
             )}
           </AnimatePresence>
           {input}
+          {stale && (
+            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+              Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
+            </p>
+          )}
           {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
@@ -880,6 +902,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
           </section>
         )}
       </div>
+      )}
 
       {answer && (
         <QueryInspector
