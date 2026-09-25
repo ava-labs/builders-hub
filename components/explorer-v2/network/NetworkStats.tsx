@@ -161,7 +161,7 @@ export function NetworkStatsBody() {
             unit={picked.unit}
             headline={picked.mode}
             overlay={picked.overlay}
-            href={picked.key === "icm" ? "/explorer/mainnet/icm" : undefined}
+            href={picked.key === "icm" ? "/explorer/mainnet/chains" : undefined}
           />
         ) : metrics ? (
           <Board divide={false} className="border">

@@ -312,7 +312,7 @@ export function EvmStats({
           {/* cross-chain traffic — the whole card doors into the observatory */}
           <ChartSection
             label={`Interchain Messages${weekFloor(range)}`}
-            href="/explorer/mainnet/icm"
+            href="/explorer/mainnet/chains"
             action={
               <span className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400 dark:text-zinc-500">
                 <span className="flex items-center gap-1.5">

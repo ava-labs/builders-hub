@@ -321,17 +321,9 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       {
         label: "Chains",
         href: `${NETWORK_HOME}/chains`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains"),
-      },
-      {
-        label: "ICM",
-        href: `${NETWORK_HOME}/icm`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/icm`),
-      },
-      {
-        label: "Validators",
-        href: `${NETWORK_HOME}/validators`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/validators`),
+        // the network map, ICM and validator versions live on the chains tab; message pages light it too
+        isActive: (p) =>
+          p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
       },
       {
         // protocols and stablecoins: one tab, a switch on the page picks the view

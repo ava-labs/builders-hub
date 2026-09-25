@@ -958,7 +958,7 @@ You are the quick-help bubble on the Builders Hub. Your job is to help users FIN
 - [C-Chain Gas Market](/explorer/mainnet/c-chain/gas): live fees, fee history, gas usage by protocol
 - [Interchain Messaging](/explorer/mainnet/icm): ICM stats
 - [Chain List](/explorer/mainnet/chains): all Avalanche L1 chains
-- [Validators](/explorer/mainnet/validators): validator dashboard
+- [Validators](/explorer/mainnet/p-chain/validators): Primary Network validators; every L1's validator count and client versions are on [Chains](/explorer/mainnet/chains)
 - Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
 
 ## URL Rules

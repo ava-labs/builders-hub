@@ -219,7 +219,7 @@ function LedgerStrip({
             <LedgerDash />
           )}
         </LedgerCell>
-        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/explorer/mainnet/icm">
+        <LedgerCell label="CROSS-CHAIN MSGS · 30D" live href="/explorer/mainnet/chains">
           {icmTotal30d > 0 ? (
             <LedgerFigure value={icmTotal30d} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
           ) : (
@@ -229,7 +229,7 @@ function LedgerStrip({
         <LedgerCell label="ACTIVE L1S" href="/explorer/mainnet/chains">
           {l1Count !== null ? <LedgerFigure value={l1Count} animateIn={animateIn} /> : <LedgerDash />}
         </LedgerCell>
-        <LedgerCell label="VALIDATORS" href="/explorer/mainnet/validators">
+        <LedgerCell label="VALIDATORS" href="/explorer/mainnet/chains">
           {agg ? <LedgerFigure value={agg.totalValidators} animateIn={animateIn} /> : <LedgerDash />}
         </LedgerCell>
       </div>
@@ -494,7 +494,7 @@ function StatsChapter({
             content insets to the 7xl measure inside. */}
         <motion.div variants={ROW_VARIANTS}>
           <Link
-            href="/explorer/mainnet/validators"
+            href="/explorer/mainnet/p-chain/validators"
             className="mx-auto flex w-full max-w-7xl flex-col justify-center gap-4 px-5 py-10 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900 lg:py-12"
           >
             <span className="font-mono text-[10px] font-bold tracking-[0.18em] text-zinc-500 dark:text-zinc-400">

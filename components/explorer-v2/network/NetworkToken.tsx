@@ -293,7 +293,7 @@ export function NetworkToken() {
             <Readout label="L1 Validator Fees" href="/explorer/mainnet/p-chain/l1s" value={fig(n(data?.l1ValidatorFees))} unit="AVAX" sub={data ? "paid, all time" : undefined} />
             <Readout
               label="ICM Fees"
-              href="/explorer/mainnet/icm"
+              href="/explorer/mainnet/chains"
               value={data ? avax(icmTotal) : loading ? null : "—"}
               unit="AVAX"
               sub={clock === "all" ? "1 year" : RANGE_LABEL[clock]}

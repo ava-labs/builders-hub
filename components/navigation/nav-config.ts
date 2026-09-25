@@ -70,7 +70,7 @@ export const menuSections: NavSection[] = [
       { text: 'Block Explorer', href: '/explorer/mainnet' },
       { text: 'Query', href: '/explorer/mainnet/c-chain/query' },
       { text: 'C-Chain Explorer', href: '/explorer/mainnet/c-chain' },
-      { text: 'Validators', href: '/explorer/mainnet/validators' },
+      { text: 'Validators', href: '/explorer/mainnet/p-chain/validators' },
       { text: 'Validator Alerts', href: '/validator-alerts' },
     ],
   },

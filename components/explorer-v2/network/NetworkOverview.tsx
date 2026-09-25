@@ -222,7 +222,7 @@ export function NetworkOverview() {
           />
           <Readout
             label="Staked"
-            href="/explorer/mainnet/validators"
+            href="/explorer/mainnet/p-chain/validators"
             value={supply ? (staked ? fmtCompact(staked) : "—") : null}
             unit="AVAX"
             sub={staked && circulating ? `${((staked / circulating) * 100).toFixed(1)}% of supply` : undefined}

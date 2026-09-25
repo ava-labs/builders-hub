@@ -2,7 +2,7 @@
 
 import BubbleNavigation from "@/components/navigation/BubbleNavigation";
 import type { BubbleNavigationConfig } from "@/components/navigation/bubble-navigation.types";
-import { Globe, List, ChartArea, Command, MessageCircleMore, AppWindow, LayoutGrid } from "lucide-react";
+import { Globe, List, ChartArea, Command, AppWindow, LayoutGrid } from "lucide-react";
 
 export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
@@ -12,7 +12,6 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     { id: "gas-stats", label: "Gas Stats", href: "/explorer/mainnet/c-chain/gas", icon: LayoutGrid },
     { id: "stats", label: "Stats", href: "/explorer/mainnet", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
-    { id: "icm", label: "ICM", href: "/explorer/mainnet/icm", icon: MessageCircleMore },
   ],
   activeColor: "bg-red-100 dark:bg-red-500/20",
   darkActiveColor: "",
@@ -38,7 +37,7 @@ const getActiveItem = (
   } else if (pathname.startsWith("/stats/network-metrics")) {
     return "stats"; // All chains stats page
   } else if (pathname.startsWith("/explorer/mainnet/icm")) {
-    return "icm";
+    return "chain-list";
   } else if (pathname.startsWith("/stats/playground")) {
     return "playground";
   }
