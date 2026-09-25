@@ -136,6 +136,32 @@ export function blobKeyFromIdentifier(fileNameOrUrl: string): string {
 export const ALLOW_LEGACY_UNPREFIXED_DELETES: boolean = false;
 
 /**
+ * First bytes every real file of that type starts with. The declared MIME
+ * type and the extension both come from the client, so on their own they say
+ * nothing about the content; this reads the file itself.
+ */
+const IMAGE_SIGNATURES: Record<string, number[][]> = {
+  'image/png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  'image/jpeg': [[0xff, 0xd8, 0xff]],
+};
+
+/**
+ * True when the file's own bytes match its declared image type. Unknown types
+ * return false: a caller reaches this only after an allowlist, so an entry
+ * missing here is a signature that still needs writing, not a pass.
+ */
+export async function hasMatchingImageSignature(file: File): Promise<boolean> {
+  const signatures = IMAGE_SIGNATURES[file.type];
+  if (!signatures) return false;
+  const longest = Math.max(...signatures.map((signature) => signature.length));
+  const head = new Uint8Array(await file.slice(0, longest).arrayBuffer());
+  return signatures.some(
+    (signature) =>
+      head.length >= signature.length && signature.every((byte, i) => head[i] === byte),
+  );
+}
+
+/**
  * Validates if a user has permissions to delete a file
  * 
  * Validation rules:
