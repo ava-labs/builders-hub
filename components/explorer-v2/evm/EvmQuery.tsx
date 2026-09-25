@@ -104,12 +104,6 @@ export type IndexState = Coverage | "empty" | null;
 const STALE_S = 24 * 3600;
 
 /** an EVM chain's Query page, inside the chain's own layout and shell */
-
-/* errors that mean "busy, try again soon": the data service's slots and an
-   overloaded model. The per-minute quota is waited out on the server, per
-   SQL call, so the page does not ask the whole question again for it */
-const BUSY = /too many|in flight|retry shortly|overloaded|busy|HTTP (429|503|529)/i;
-
 export function EvmQuery({ network, index = null }: { network: string; index?: IndexState }) {
   const c = useChainContext();
   return (
@@ -158,8 +152,6 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
   const [designing, setDesigning] = useState(false);
   // what the model has done so far on this question
   const [events, setEvents] = useState<QueryEvent[]>([]);
-  // set while a busy data service makes the page wait and ask again
-  const [retrying, setRetrying] = useState(false);
   // a kept answer's reading, being written again
   const [reading, setReading] = useState(false);
   // the SQL the model handed back, so an edit is not laid out as if it were kept
@@ -231,26 +223,6 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
     }
   };
 
-  /** the question again, twice at most, when the data service is only busy.
-      A user's own rate limit is not retried: waiting seconds will not lift it. */
-  const streamRetry = async (body: object, my: number): Promise<QueryAnswer> => {
-    for (let attempt = 0; ; attempt += 1) {
-      try {
-        return await stream(body, my);
-      } catch (e) {
-        const why = e instanceof Error ? e.message : "";
-        const busy = BUSY.test(why) && !/rate limit reached/i.test(why);
-        if (!busy || attempt >= 2 || my !== token.current) throw e;
-        setRetrying(true);
-        setEvents([]);
-        await new Promise((r) => setTimeout(r, attempt === 0 ? 4_000 : 10_000));
-        if (my !== token.current) throw e;
-      } finally {
-        if (my === token.current) setRetrying(false);
-      }
-    }
-  };
-
   /** a kept layout's sentences, written again from the rows just fetched */
   const reread = async (a: QueryAnswer) => {
     const my = token.current;
@@ -311,7 +283,7 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
       setSqlOpen(false);
       const hist = refine ? history : [];
       try {
-        const a = await streamRetry({ prompt: text, history: hist }, my);
+        const a = await stream({ prompt: text, history: hist }, my);
         if (my !== token.current) return;
         // a question about the other chain's data is asked on that chain's page
         if (a.route && a.route !== c.chainSlug) {
@@ -650,7 +622,7 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
               Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
             </p>
           )}
-          {busy && <AvalancheLoader status={`${retrying ? "The data service is busy. Asking again" : phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
+          {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
           {!answer && !busy && (
             <div className="flex flex-col gap-6 pt-3">
