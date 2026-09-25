@@ -1832,6 +1832,21 @@ html.embed-mode #nd-toc {
   10% { opacity: 0.9; }
   100% { transform: scale(1); opacity: 0; }
 }
+/* a tile that settles into its place */
+@keyframes bh-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* a comet down a path drawn with pathLength=1 and a 0.22 dash: head first, gone at the end */
+@keyframes bh-comet {
+  from { stroke-dashoffset: 0.22; }
+  to { stroke-dashoffset: -1.02; }
+}
+/* a place that waits for what lands in it */
+@keyframes bh-breathe {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.3; }
+}
 
 /* Subtle 1px highlight at the top of every shadcn Card in dark mode.
    Differentiates cards from the page background (both are near-black

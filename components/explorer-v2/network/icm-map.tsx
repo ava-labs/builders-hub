@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, EmptyRow, SectionHeader, TxTypePill, pillTone } from "@/components/explorer-v2/ui";
-import { ageShort } from "@/components/explorer-v2/format";
+import { Board, EmptyRow, SectionHeader } from "@/components/explorer-v2/ui";
+import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { txTypeLabel } from "@/lib/pchain-explorer";
-import { usePchainPulse, type PchainPulse } from "@/components/explorer-v2/network/pchain-pulse";
+import { LEDGER, usePchainPulse, type PchainPulse, type PulseTx } from "@/components/explorer-v2/network/pchain-pulse";
+import { EASE_CSS, useStill } from "@/components/explorer-v2/motion";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { BLOCK_GRAY, PICK_BLUE, ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
@@ -25,11 +26,13 @@ import type { L1Chain } from "@/types/stats";
    arc through the air between tower tops, packets riding them from
    sender to receiver. Hover a tower to light its routes; click it and the
    page's tables are cut to it. Phones get the traffic as a ranked list.
-   The plate is the P-Chain, the chain every validator set registers on:
-   it wears the P-Chain's violet, carries its tip on the rim, ripples with
-   each of its transactions in the P-Chain explorer's tx tones, and opens
-   that explorer on a click. It fetches its own data, so the page only
-   mounts it. */
+   The plate is the P-Chain, the chain every validator set registers on.
+   It wears the P-Chain's violet, and its ledger rings the rim: the last
+   96 txs as tiles, newest at the front, shaded by family. Each tx that
+   lands turns the ring one place, and a comet runs on the ground to the
+   set it touched: stake into the Primary Network's set, a reward out of
+   it. A click on the ground opens the P-Chain explorer, a click on a tile
+   opens its tx. It fetches its own data, so the page only mounts it. */
 
 interface MapChain {
   chainId: string;
@@ -143,30 +146,63 @@ function onRing(i: number, n: number, r: number, turn = 0): [number, number] {
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const pts = (p: [number, number][]) => p.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 
-/* the ground's ripples, one per P-Chain tx, in the P-Chain explorer's
-   tx tones: stake green, reward gold, L1 blue, cross-chain teal */
-const RIPPLE: Record<ReturnType<typeof pillTone>, string> = {
-  stake: "stroke-[#3f7d43] dark:stroke-[#77c47b]",
-  reward: "stroke-[#9c7112] dark:stroke-[#e2b953]",
-  subnet: "stroke-[#0052bd] dark:stroke-[#5f9dff]",
-  crosschain: "stroke-[#0c7590] dark:stroke-[#3fc1dc]",
-  danger: "stroke-[#c11824] dark:stroke-[#ff6b73]",
-  neutral: "stroke-[#5400FF] dark:stroke-[#8B6CFF]",
-};
 /* the P-Chain's own violet, from its mark */
 const P_INK = "text-[#5400FF] dark:text-[#8B6CFF]";
 
-/* the reader's motion setting: no rise, packets or draw-in when reduced */
-function useStill() {
-  const [still, setStill] = useState(false);
-  useEffect(() => {
-    const q = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setStill(q.matches);
-    const on = () => setStill(q.matches);
-    q.addEventListener("change", on);
-    return () => q.removeEventListener("change", on);
-  }, []);
-  return still;
+/* the ledger's tiles by tx family, all in the P-Chain's violet, so the
+   towers' version colors keep their one meaning */
+type Fam = "stake" | "reward" | "move" | "l1" | "other";
+const FAM_ORDER: Fam[] = ["stake", "reward", "move", "l1", "other"];
+const FAM: Record<Fam, { label: string; top: string; lip: string; bg: string }> = {
+  stake: { label: "Staking", top: "fill-[#8C73FF] dark:fill-[#8B6CFF]", lip: "fill-[#5400FF] dark:fill-[#5B3FD6]", bg: "bg-[#8C73FF] dark:bg-[#8B6CFF]" },
+  reward: { label: "Rewards", top: "fill-[#C6B9FF] dark:fill-[#5C48BD]", lip: "fill-[#9A86F7] dark:fill-[#3E3088]", bg: "bg-[#C6B9FF] dark:bg-[#5C48BD]" },
+  move: { label: "Cross-chain", top: "fill-[#E7E1FF] dark:fill-[#3A2F73]", lip: "fill-[#C3B7F5] dark:fill-[#272051]", bg: "bg-[#E7E1FF] dark:bg-[#3A2F73]" },
+  l1: { label: "L1", top: "fill-[#22106E] dark:fill-[#F2EEFF]", lip: "fill-[#12063F] dark:fill-[#C2B7F2]", bg: "bg-[#22106E] dark:bg-[#F2EEFF]" },
+  other: { label: "Other", top: "fill-[#F0ECFB] dark:fill-[#2A2446]", lip: "fill-[#D5CDEB] dark:fill-[#1C1832]", bg: "bg-[#F0ECFB] dark:bg-[#2A2446]" },
+};
+
+/* an L1 op names an L1, a chain or their validators; the other staking txs are the Primary Network's */
+function famOf(type: string): Fam {
+  const t = type.toLowerCase();
+  if (t.includes("l1") || t.includes("subnet") || t.includes("chain") || t.includes("convert")) return "l1";
+  if (t.includes("reward")) return "reward";
+  if (t.includes("import") || t.includes("export")) return "move";
+  if (t.includes("validator") || t.includes("delegator")) return "stake";
+  return "other";
+}
+
+/* which way a tx's AVAX runs between the ledger and the Primary Network's
+   set: stake locks into it, a reward pays out of it, an export leaves the
+   P-Chain for the set's C- or X-Chain, an import arrives from one */
+function flowOf(type: string): "in" | "out" | null {
+  const f = famOf(type);
+  if (f === "stake" || type === "ExportTx") return "in";
+  if (f === "reward" || type === "ImportTx") return "out";
+  return null;
+}
+
+/* the ring holds LEDGER tiles in RING_SLOTS places: the one open place at the seam is where the next tx lands */
+const RING_SLOTS = LEDGER + 1;
+const SLOT = 360 / RING_SLOTS;
+const RING_IN = PLATE - 32;
+const RING_OUT = PLATE - 12;
+/** how far a tile's face stands above the plate */
+const RING_LIFT = 3;
+const TURN_MS = 900;
+
+/* a flat annular sector in plan: angles in degrees, clockwise on screen */
+function sector(a0: number, a1: number, r0: number, r1: number): string {
+  const at = (r: number, a: number) => {
+    const t = (a * Math.PI) / 180;
+    return `${(r * Math.cos(t)).toFixed(2)},${(r * Math.sin(t)).toFixed(2)}`;
+  };
+  return `M${at(r1, a0)} A${r1},${r1} 0 0 1 ${at(r1, a1)} L${at(r0, a1)} A${r0},${r0} 0 0 0 ${at(r0, a0)} Z`;
+}
+
+/* the screen point of the tile k places older than the newest, at radius r on the plate */
+function slotAt(k: number, r: number): [number, number] {
+  const t = ((90 + k * SLOT) * Math.PI) / 180;
+  return [CX + r * Math.cos(t), CY + r * TILT * Math.sin(t)];
 }
 
 /* one tower: a square footprint turned to the plate, extruded h; its
@@ -289,46 +325,244 @@ function pctInk(mix: VersionMix | null | undefined, pct: number | null): string 
   return mix.stale > 0 ? "text-[#E6212F]" : "text-amber-600 dark:text-amber-400";
 }
 
-/* the ground's own line under the model: the P-Chain's tip, its latest txs
-   in their family tones, and the door to its explorer */
-function GroundStrip({ pulse }: { pulse: PchainPulse }) {
+/* the ledger on the rim: the newest tile at the front, older ones round
+   the plate clockwise. Each tx turns the ring one place: the new tile
+   comes out of the seam's open place as the oldest fades into it. Two
+   layers make the tiles solid: the lip at plate level, the face
+   RING_LIFT above it. */
+const LedgerRing = memo(function LedgerRing({
+  txs,
+  outgoing,
+  epoch,
+  still,
+  hovered,
+  onHover,
+  onOpen,
+}: {
+  txs: PulseTx[];
+  outgoing: PulseTx | null;
+  epoch: number;
+  still: boolean;
+  hovered: string | null;
+  onHover: (hash: string | null) => void;
+  onOpen: (hash: string) => void;
+}) {
+  // the newest at load: the sweep draws the ring back from it, and a tile that lands later just fades in
+  const base = useRef<{ epoch: number; seq: number } | null>(null);
+  if (txs.length && base.current?.epoch !== epoch) base.current = { epoch, seq: txs[0].seq };
+  if (!txs.length) return null;
+  const turn: CSSProperties = {
+    transformBox: "fill-box",
+    transformOrigin: "50% 50%",
+    transform: `rotate(${90 + txs[0].seq * SLOT}deg)`,
+    transition: still ? undefined : `transform ${TURN_MS}ms ${EASE_CSS}`,
+  };
+  const half = SLOT * 0.45;
+  const layer = (lip: boolean) => (
+    <g transform={`translate(${CX} ${CY - (lip ? 0 : RING_LIFT)}) scale(1 ${TILT})`}>
+      <g style={turn}>
+        {/* a clear disc centres the ring's box on the plate, so the ring turns on the plate's axis */}
+        <circle r={RING_OUT} fill="none" />
+        {(outgoing ? [...txs, outgoing] : txs).map((t) => {
+          const a = -t.seq * SLOT;
+          const age0 = base.current ? base.current.seq - t.seq : 0;
+          const on = hovered === t.hash;
+          const gone = t === outgoing;
+          const f = FAM[famOf(t.type)];
+          return (
+            <path
+              key={t.hash}
+              d={sector(a - half, a + half, RING_IN, RING_OUT)}
+              className={on ? (lip ? "fill-[#3600A6] dark:fill-[#B9A8FF]" : "fill-white stroke-[#5400FF] dark:stroke-[#8B6CFF]") : lip ? f.lip : f.top}
+              strokeWidth={on && !lip ? 1.25 : undefined}
+              vectorEffect="non-scaling-stroke"
+              // the entry only runs before and during its fade, so the outgoing tile's opacity can take over
+              style={{
+                opacity: gone ? 0 : 1,
+                pointerEvents: gone ? "none" : undefined,
+                ...(still
+                  ? {}
+                  : {
+                      transition: "opacity 600ms ease-in",
+                      animation: age0 >= 0 ? `bh-fade 420ms ease-out ${500 + age0 * 9}ms backwards` : "bh-fade 520ms ease-out 180ms backwards",
+                    }),
+              }}
+              {...(lip ? {} : { onMouseEnter: () => onHover(t.hash), onMouseLeave: () => onHover(null), onClick: () => onOpen(t.hash) })}
+            />
+          );
+        })}
+      </g>
+    </g>
+  );
+  return (
+    <g key={epoch} className="cursor-pointer">
+      <g className="pointer-events-none">{layer(true)}</g>
+      {layer(false)}
+    </g>
+  );
+});
+
+/* the rim under the seam: the P-Chain's newest block and its age, ticking;
+   on a hover of the ground, the door to its explorer. The open place at
+   the seam breathes while it waits for the next tx. */
+function RimCaption({ uid, tip, ground, still }: { uid: string; tip: PulseTx | null; ground: boolean; still: boolean }) {
   const [, tick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 1000);
     return () => clearInterval(id);
   }, []);
-  const s = pulse.stats;
+  const edge = CY + PLATE * TILT;
+  const age = (ts: number) => {
+    const sec = Math.max(0, Math.floor(Date.now() / 1000 - ts));
+    return sec < 60 ? `${sec} sec` : sec < 3600 ? `${Math.floor(sec / 60)} min` : `${Math.floor(sec / 3600)} h`;
+  };
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[#5400FF]/15 bg-[#5400FF]/[0.025] px-5 py-2.5 md:px-6 dark:border-[#8B6CFF]/20 dark:bg-[#8B6CFF]/[0.04]">
-      <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px]">
-        <span className={cn("flex items-center gap-1.5 font-bold uppercase tracking-[0.14em]", P_INK)}>
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5400FF] opacity-50 dark:bg-[#8B6CFF]" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5400FF] dark:bg-[#8B6CFF]" />
+    <g className="pointer-events-none select-none">
+      {tip && !still && (
+        <g transform={`translate(${CX} ${CY - RING_LIFT}) scale(1 ${TILT})`}>
+          <path
+            d={sector(90 - SLOT * 1.45, 90 - SLOT * 0.55, RING_IN, RING_OUT)}
+            className="fill-[#5400FF] dark:fill-[#8B6CFF]"
+            // faint at rest, so a place whose animation never runs stays quiet
+            style={{ opacity: 0.08, animation: "bh-breathe 2400ms ease-in-out infinite" }}
+          />
+        </g>
+      )}
+      {/* the seam's mark, under the newest tile */}
+      <path d={`M${CX - 5},${edge + 2} L${CX},${edge - 4} L${CX + 5},${edge + 2} Z`} className="fill-[#5400FF] dark:fill-[#8B6CFF]" />
+      <text className={cn("fill-current font-mono text-[9px] font-bold uppercase tracking-[0.3em]", P_INK)}>
+        <textPath href={`#${uid}-rim`} startOffset="50%" textAnchor="middle" dominantBaseline="central">
+          {ground ? "Open the P-Chain explorer →" : tip ? `P-Chain · block ${tip.height.toLocaleString("en-US")} · ${age(tip.ts)} ago` : "P-Chain"}
+        </textPath>
+      </text>
+    </g>
+  );
+}
+
+/* what each landed tx touched: a comet on the ground between its tile and
+   the Primary Network's set, the way its AVAX ran, and a pulse at the
+   set's foot; an L1 op spreads over the L1s' rings */
+function Signals({ txs }: { txs: PulseTx[] }) {
+  if (!txs.length) return null;
+  const head = txs[0].seq;
+  const comet = (delay: number): CSSProperties => ({ animation: `bh-comet 1300ms cubic-bezier(0.45,0,0.25,1) ${delay}ms both` });
+  const ring = (delay: number, ms: number): CSSProperties => ({
+    transformBox: "fill-box",
+    transformOrigin: "50% 50%",
+    animation: `bh-ripple ${ms}ms cubic-bezier(0.2,0.6,0.2,1) ${delay}ms both`,
+  });
+  const flash = (delay: number): CSSProperties => ({ opacity: 0, animation: `bh-flash 800ms ease-out ${delay}ms forwards` });
+  return (
+    <g className="pointer-events-none" fill="none">
+      {txs
+        .filter((t) => t.fresh)
+        .slice(0, 8)
+        .map((t) => {
+          const k = head - t.seq;
+          const flow = flowOf(t.type);
+          const at = (t.replay ? 1900 : TURN_MS) + t.lane * 700;
+          const [rx, ry] = slotAt(k, RING_IN - 6);
+          const [fx, fy] = slotAt(k, 58);
+          const d = flow === "out" ? `M${fx.toFixed(1)},${fy.toFixed(1)} L${rx.toFixed(1)},${ry.toFixed(1)}` : `M${rx.toFixed(1)},${ry.toFixed(1)} L${fx.toFixed(1)},${fy.toFixed(1)}`;
+          const a = 90 + k * SLOT;
+          return (
+            <g key={t.hash}>
+              {/* the tile lights as it lands, or as a payout reaches it */}
+              <g transform={`translate(${CX} ${CY - RING_LIFT}) scale(1 ${TILT})`}>
+                <path d={sector(a - SLOT * 0.45, a + SLOT * 0.45, RING_IN, RING_OUT)} className="fill-white" style={flash(flow === "out" ? at + 1300 : at)} />
+              </g>
+              {flow && (
+                <>
+                  {/* a soft tail, and a bright head at its front */}
+                  <path d={d} pathLength={1} strokeDasharray="0.22 2" strokeWidth={11} className="stroke-[#5400FF]/20 dark:stroke-[#8B6CFF]/35" style={comet(at + 100)} />
+                  <path d={d} pathLength={1} strokeDasharray="0 0.1 0.12 2" strokeWidth={5} className="stroke-[#5400FF]/35 dark:stroke-[#A48CFF]/60" style={comet(at + 100)} />
+                  <path d={d} pathLength={1} strokeDasharray="0 0.16 0.06 2" strokeWidth={3} className="stroke-[#5400FF] dark:stroke-[#F1EDFF]" style={comet(at + 100)} />
+                  {/* the set's foot rings twice: as stake arrives, or as a payout leaves */}
+                  {[0, 1].map((n) => (
+                    <ellipse
+                      key={n}
+                      cx={CX}
+                      cy={CY}
+                      rx={n ? 150 : 128}
+                      ry={(n ? 150 : 128) * TILT}
+                      strokeWidth={n ? 1 : 2}
+                      vectorEffect="non-scaling-stroke"
+                      className="stroke-[#5400FF] dark:stroke-[#A48CFF]"
+                      style={ring((flow === "in" ? at + 1250 : at) + n * 220, 1200)}
+                    />
+                  ))}
+                </>
+              )}
+              {famOf(t.type) === "l1" && (
+                <ellipse
+                  cx={CX}
+                  cy={CY}
+                  rx={OUTER + 30}
+                  ry={(OUTER + 30) * TILT}
+                  strokeWidth={1.75}
+                  vectorEffect="non-scaling-stroke"
+                  className="stroke-[#5400FF]/80 dark:stroke-[#A48CFF]/85"
+                  style={ring(at + 100, 3400)}
+                />
+              )}
+            </g>
+          );
+        })}
+    </g>
+  );
+}
+
+/* the ground's key under the model: the ledger's span, its tiles by
+   family, and the door to the P-Chain explorer. Phones, without the
+   model, get the ledger as a flat tape, newest at the right. */
+function GroundKey({ pulse }: { pulse: PchainPulse }) {
+  const { txs, stats } = pulse;
+  const counts = new Map<Fam, number>();
+  for (const t of txs) counts.set(famOf(t.type), (counts.get(famOf(t.type)) ?? 0) + 1);
+  const span = txs.length > 1 ? txs[0].ts - txs[txs.length - 1].ts : 0;
+  const spanLabel = span < 5400 ? `${Math.max(1, Math.round(span / 60))} min` : `${(span / 3600).toFixed(1)} h`;
+  return (
+    <div className="border-t border-[#5400FF]/15 bg-[#5400FF]/[0.025] px-5 py-2.5 md:px-6 dark:border-[#8B6CFF]/20 dark:bg-[#8B6CFF]/[0.04]">
+      {txs.length > 0 && (
+        <div className="mb-2.5 flex h-3 gap-px lg:hidden" aria-hidden>
+          {[...txs].reverse().map((t) => (
+            <span key={t.hash} className={cn("flex-1", FAM[famOf(t.type)].bg)} />
+          ))}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px]">
+          <span className={cn("flex items-center gap-1.5 font-bold uppercase tracking-[0.14em]", P_INK)}>
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5400FF] opacity-50 dark:bg-[#8B6CFF]" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5400FF] dark:bg-[#8B6CFF]" />
+            </span>
+            The ground · P-Chain
           </span>
-          The ground · P-Chain
+          {txs.length > 0 && (
+            <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
+              last {txs.length} txs · {spanLabel}
+              {stats ? ` · ${stats.txCount24h.toLocaleString("en-US")} in 24h` : ""}
+            </span>
+          )}
         </span>
-        {s && (
-          <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
-            block {s.tipHeight.toLocaleString("en-US")} · {ageShort(s.tipTimestamp)} ago · {s.txCount24h.toLocaleString("en-US")} txs 24h
-          </span>
-        )}
-      </span>
-      <span className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
-        {pulse.txs.slice(0, 4).map((t) => (
-          <Link key={t.hash} href={`/explorer/mainnet/p-chain/tx/${t.hash}`} className="group/gtx flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-            <TxTypePill type={t.type} label={txTypeLabel(t.type)} className="transition-opacity group-hover/gtx:opacity-70" />
-            {ageShort(t.ts)}
+        <span className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+          {FAM_ORDER.filter((f) => counts.get(f)).map((f) => (
+            <span key={f} className="flex items-center gap-1.5">
+              <span className={cn("h-2.5 w-1.5", FAM[f].bg)} />
+              {FAM[f].label}
+              <span className="tabular-nums text-zinc-900 dark:text-zinc-100">{counts.get(f)}</span>
+            </span>
+          ))}
+          <Link
+            href="/explorer/mainnet/p-chain"
+            className={cn("inline-flex shrink-0 items-center gap-1 font-bold tracking-[0.14em] transition-opacity hover:opacity-70", P_INK)}
+          >
+            P-Chain explorer
+            <ArrowRight className="h-3 w-3" />
           </Link>
-        ))}
-        <Link
-          href="/explorer/mainnet/p-chain"
-          className={cn("inline-flex shrink-0 items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-opacity hover:opacity-70", P_INK)}
-        >
-          P-Chain explorer
-          <ArrowRight className="h-3 w-3" />
-        </Link>
-      </span>
+        </span>
+      </div>
     </div>
   );
 }
@@ -394,6 +628,9 @@ export function IcmNetworkMap({
   // the ground: the P-Chain's latest txs and tip
   const pulse = usePchainPulse("mainnet");
   const [ground, setGround] = useState(false);
+  // a ledger tile under the cursor, by tx hash
+  const [hoverTx, setHoverTx] = useState<string | null>(null);
+  const openTx = useCallback((hash: string) => router.push(`/explorer/mainnet/p-chain/tx/${hash}`), [router]);
   // phones read the map as two lists: the chains, and the routes between them
   const [phoneView, setPhoneView] = useState<"chains" | "routes">("chains");
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -547,6 +784,7 @@ export function IcmNetworkMap({
   const drawOrder = useMemo(() => [...nodes].sort((a, b) => a.y - b.y), [nodes]);
 
   const tipNode = hover ? byId.get(hover) : null;
+  const tipTx = hoverTx ? pulse.txs.find((t) => t.hash === hoverTx) ?? null : null;
   const tipRoute = !tipNode && hoverRoute ? routes.find((r) => r.key === hoverRoute) : null;
   const topPartner = (id: string) =>
     [
@@ -734,7 +972,11 @@ export function IcmNetworkMap({
         arc · messages
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="h-2 w-3.5 rounded-[50%] border border-[#5400FF]/70 dark:border-[#8B6CFF]/70" />
+        <span className="flex gap-px">
+          {(["stake", "reward", "move"] as const).map((f) => (
+            <span key={f} className={cn("h-2.5 w-1", FAM[f].bg)} />
+          ))}
+        </span>
         ground · P-Chain
       </span>
     </span>
@@ -880,7 +1122,7 @@ export function IcmNetworkMap({
             </defs>
 
             {/* the ground is the P-Chain: a slab in its violet, a lattice and the two rings
-                cut into it, its tip on the rim, rippling with each of its txs; a click opens it */}
+                cut into it; a click opens its explorer. Its ledger rings the rim, over it */}
             <g
               role="link"
               tabIndex={0}
@@ -923,48 +1165,23 @@ export function IcmNetworkMap({
                 <ellipse cx={CX} cy={CY} rx={INNER} ry={INNER * TILT} />
                 <ellipse cx={CX} cy={CY} rx={OUTER} ry={OUTER * TILT} />
               </g>
-              {/* each P-Chain tx ripples out of the Primary Network's set; an L1 op reaches the L1s' ring */}
-              {!still && (
-                <g className="pointer-events-none" clipPath={`url(#${uid}-plate)`}>
-                  {pulse.txs
-                    .filter((t) => t.fresh)
-                    .slice(0, 8)
-                    .map((t) => {
-                      const fam = pillTone(t.type);
-                      const reach = fam === "subnet" ? OUTER + 30 : INNER * 1.3;
-                      const delay = (t.replay ? 1900 : 0) + t.lane * 700;
-                      return (
-                        <g key={t.hash}>
-                          {[0, 1].map((k) => (
-                            <ellipse
-                              key={k}
-                              cx={CX}
-                              cy={CY}
-                              rx={reach}
-                              ry={reach * TILT}
-                              fill="none"
-                              vectorEffect="non-scaling-stroke"
-                              strokeWidth={k ? 1 : 2.25}
-                              className={RIPPLE[fam]}
-                              style={{ transformBox: "fill-box", transformOrigin: "50% 50%", animation: `bh-ripple ${fam === "subnet" ? 3600 : 3000}ms cubic-bezier(0.2,0.6,0.2,1) ${delay + k * 280}ms both` }}
-                            />
-                          ))}
-                        </g>
-                      );
-                    })}
-                </g>
-              )}
-              {/* the rim names the ground and carries its tip; on a hover it offers the door */}
-              <text className={cn("pointer-events-none select-none fill-current font-mono text-[9px] font-bold uppercase tracking-[0.3em]", P_INK)}>
-                <textPath href={`#${uid}-rim`} startOffset="50%" textAnchor="middle" dominantBaseline="central">
-                  {ground
-                    ? "Open the P-Chain explorer →"
-                    : pulse.stats
-                      ? `P-Chain · block ${pulse.stats.tipHeight.toLocaleString("en-US")} · ${pulse.stats.txCount24h.toLocaleString("en-US")} txs 24h · ${pulse.stats.validatorCount} primary validators · ${pulse.stats.l1ValidatorCount} L1 validators`
-                      : "P-Chain"}
-                </textPath>
-              </text>
             </g>
+
+            <RimCaption uid={uid} tip={pulse.txs[0] ?? null} ground={ground} still={still} />
+            <LedgerRing txs={pulse.txs} outgoing={pulse.outgoing} epoch={pulse.epoch} still={still} hovered={hoverTx} onHover={setHoverTx} onOpen={openTx} />
+            {!still && <Signals txs={pulse.txs} />}
+            {/* a hovered tile's line to the set it touched */}
+            {tipTx && flowOf(tipTx.type) && (() => {
+              const k = (pulse.txs[0]?.seq ?? 0) - tipTx.seq;
+              const [rx, ry] = slotAt(k, RING_IN - 6);
+              const [fx, fy] = slotAt(k, 58);
+              return (
+                <g className="pointer-events-none" fill="none" strokeWidth={1.25}>
+                  <line x1={rx} y1={ry} x2={fx} y2={fy} strokeDasharray="3 4" className="stroke-[#5400FF]/70 dark:stroke-[#8B6CFF]/70" />
+                  <ellipse cx={CX} cy={CY} rx={62} ry={62 * TILT} className="stroke-[#5400FF]/70 dark:stroke-[#8B6CFF]/70" />
+                </g>
+              );
+            })()}
 
             {/* the routes' clear, wide strokes catch the cursor and carry the packets;
                 they sit under the towers, so a tower always wins its own ground */}
@@ -1001,7 +1218,7 @@ export function IcmNetworkMap({
                   style={{ opacity: dim ? 0.25 : 1, transform: up ? "translateY(-4px)" : undefined }}
                 >
                   {/* a footprint shadow grounds the tower on the plate */}
-                  <ellipse cx={n.x + n.w * 0.35} cy={n.y + n.w * TILT * 0.4} rx={n.w * 1.25} ry={n.w * TILT * 1.1} className="fill-zinc-900/[0.07] dark:fill-black/40" />
+                  <ellipse cx={n.x + n.w * 0.35} cy={n.y + n.w * TILT * 0.4} rx={n.w * 1.25} ry={n.w * TILT * 1.1} className="fill-[#1E0B5C]/[0.09] dark:fill-black/40" />
                   <g
                     style={
                       still
@@ -1159,6 +1376,42 @@ export function IcmNetworkMap({
               </TipPlate>
             </span>
           )}
+          {tipTx && (() => {
+            const k = (pulse.txs[0]?.seq ?? 0) - tipTx.seq;
+            const [x, y] = slotAt(k, RING_OUT);
+            const f = famOf(tipTx.type);
+            const what =
+              f === "stake"
+                ? "Stake joins the Primary Network"
+                : f === "reward"
+                  ? "The Primary Network pays out"
+                  : tipTx.type === "ExportTx"
+                    ? "AVAX leaves for the C- or X-Chain"
+                    : tipTx.type === "ImportTx"
+                      ? "AVAX arrives from the C- or X-Chain"
+                      : f === "l1"
+                        ? "Acts on an L1"
+                        : null;
+            return (
+              <span
+                className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-[calc(100%+12px)]"
+                style={{ left: `${(x / W) * 100}%`, top: `${((y - RING_LIFT) / H) * 100}%` }}
+              >
+                <TipPlate>
+                  <p className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-zinc-900 dark:text-zinc-100">
+                    <span className={cn("h-2.5 w-1.5 shrink-0", FAM[f].bg)} />
+                    {txTypeLabel(tipTx.type)}
+                  </p>
+                  {what && <p className="mb-1 font-mono text-[10px] text-zinc-500">{what}</p>}
+                  <TipRow label="Block" value={tipTx.height.toLocaleString("en-US")} />
+                  <TipRow label="Age" value={`${ageShort(tipTx.ts)} ago`} />
+                  {tipTx.nodeId && <TipRow label="Node" value={truncate(tipTx.nodeId, 12)} />}
+                  {tipTx.period && <TipRow label="Period" value={tipTx.period} />}
+                  <p className="mt-1 font-mono text-[10px] text-zinc-400">Click to open the tx</p>
+                </TipPlate>
+              </span>
+            );
+          })()}
         </div>
 
         {/* phones and tablets: the model as two lists, the chains and the routes */}
@@ -1245,7 +1498,7 @@ export function IcmNetworkMap({
           )}
         </div>
 
-        <GroundStrip pulse={pulse} />
+        <GroundKey pulse={pulse} />
 
         {skyline}
 
