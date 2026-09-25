@@ -332,7 +332,7 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         isActive: (p) => p.startsWith(`${NETWORK_HOME}/apps`) || p.startsWith(`${NETWORK_HOME}/stablecoins`) || p.startsWith("/stats/dapps"),
       },
       {
-        label: "Token",
+        label: "AVAX",
         href: `${NETWORK_HOME}/token`,
         isActive: (p) => p.startsWith(`${NETWORK_HOME}/token`),
       },
