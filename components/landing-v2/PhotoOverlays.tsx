@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useId, useRef } from "react";
-import { useReducedMotion } from "framer-motion";
+import React, { useEffect, useId, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { PillarSlug } from "@/components/landing-v2/pillars";
 
 /* ------------------------------------------------------------------ */
@@ -191,144 +191,260 @@ function Tag({
   );
 }
 
-/* ---- interoperability: three chains on one braided river ---------- */
+/* ---- interoperability: three districts on one frozen delta -------- */
 
-// Each hop is the brightest route through the water between two nodes
-// (least-cost path over the photo's luminance), so the light only ever
-// runs in the channels. Traced offline; literal waypoints here.
-const PUBLIC: Pt = [252, 204];
-const PERMISSIONED: Pt = [1108, 348];
-const PRIVATE: Pt = [780, 1428];
-const JUNCTION: Pt = [1092, 604];
-const HOP_1 = smooth([PUBLIC, [308, 252], [580, 260], [724, 372], [716, 428], [772, 500], [924, 556], [1004, 556], [1068, 596], [1092, 596], [1172, 508], [1172, 468], [1100, 396], PERMISSIONED]);
-const HOP_2 = smooth([PERMISSIONED, [1100, 396], [1172, 468], [1172, 508], [1100, 604], [1100, 636], [1076, 684], [972, 780], [796, 868], [748, 932], [756, 1132], [780, 1164], [812, 1276], [812, 1388], PRIVATE]);
-const HOP_3 = smooth([PRIVATE, [812, 1388], [812, 1260], [796, 1244], [780, 1164], [756, 1132], [748, 932], [796, 868], [988, 772], [1092, 652], [1092, 612], [1028, 564], [924, 556], [772, 500], [716, 428], [724, 372], [580, 260], [348, 260], [308, 252], PUBLIC]);
+// Three chains as three districts: the sprawling north island (public),
+// the orderly south bank (permissioned), the enclosed east quarter
+// (private). Messages cross on the real bridge and over the ice; the
+// junction on the bridge is where ICM verifies them.
+const PUBLIC: Pt = [800, 560];
+const PERMISSIONED: Pt = [840, 1560];
+const PRIVATE: Pt = [1380, 1020];
+const JUNCTION: Pt = [828, 1080];
+const NORTH_SPAN: Pt[] = [PUBLIC, [818, 690], [828, 780], [828, 940], JUNCTION];
+const SOUTH_SPAN: Pt[] = [JUNCTION, [828, 1250], [828, 1420], PERMISSIONED];
+const EAST_LEG: Pt[] = [JUNCTION, [930, 1070], [1110, 1050], [1290, 1030], PRIVATE];
+const HOP_1 = smooth([...NORTH_SPAN, ...SOUTH_SPAN.slice(1)]);
+const HOP_2 = smooth([...rev(SOUTH_SPAN), ...EAST_LEG.slice(1)]);
+const HOP_3 = smooth([...rev(EAST_LEG), ...rev(NORTH_SPAN).slice(1)]);
 
 function InteropOverlay() {
   return (
-    <Frame label="Messages travelling between a public, a permissioned, and a private chain along the channels of a river">
-      <Route d={HOP_1} />
-      <Route d={HOP_2} />
+    <Frame label="Messages crossing between three districts, public, permissioned, and private, over a bridge on a frozen river">
+      <Route d={smooth([...NORTH_SPAN, ...SOUTH_SPAN.slice(1)])} />
+      <Route d={smooth(EAST_LEG)} dashed />
       {/* one relay loop, three hops, each leaving as the last arrives */}
       <Comet d={HOP_1} dur={6} begin={0} />
       <Comet d={HOP_2} dur={6} begin={2} />
       <Comet d={HOP_3} dur={6} begin={4} />
-      <circle cx={JUNCTION[0]} cy={JUNCTION[1]} r={5} fill="white" fillOpacity={0.8} />
-      <Tag from={JUNCTION} to={[1230, 700]} text="ICM" sub="VERIFIED ON P-CHAIN" />
+      <circle cx={JUNCTION[0]} cy={JUNCTION[1]} r={6} fill="white" fillOpacity={0.85} />
+      <Tag from={[814, 1080]} to={[560, 1190]} text="ICM" sub="VERIFIED ON P-CHAIN" anchor="end" />
       <Node x={PUBLIC[0]} y={PUBLIC[1]} boundary="open" />
       <Node x={PERMISSIONED[0]} y={PERMISSIONED[1]} boundary="dashed" />
       <Node x={PRIVATE[0]} y={PRIVATE[1]} boundary="sealed" />
-      <Tag from={[280, 224]} to={[330, 330]} text="PUBLIC" />
-      <Tag from={[1158, 330]} to={[1240, 220]} text="PERMISSIONED" />
-      <Tag from={[836, 1440]} to={[930, 1540]} text="PRIVATE" />
+      <Tag from={[826, 540]} to={[960, 430]} text="PUBLIC" />
+      <Tag from={[880, 1540]} to={[1000, 1450]} text="PERMISSIONED" />
+      <Tag from={[1350, 966]} to={[1290, 880]} text="PRIVATE" anchor="end" />
     </Frame>
   );
 }
 
-/* ---- performance: transactions falling into place, frozen at the base */
+/* ---- performance: race telemetry over the car ---------------------- */
 
-// the ice column, lip to base, traced from the photograph
-const LIP: Pt = [860, 470];
-const BASE: Pt = [812, 1440];
-const FALL = smooth([LIP, [846, 700], [826, 1000], [818, 1250], BASE]);
-// a time ruler on the rock beside the column: T+0 at the lip, final at the base
-const RULER_X = 1010;
-const TICKS = Array.from({ length: 11 }, (_, k) => Math.round(LIP[1] + ((BASE[1] - LIP[1]) * k) / 10));
+// The video's camera moves, so nothing here is traced onto the frame: the
+// readout is a timing screen pinned to the plate's corner, the way race
+// telemetry sits over footage. It reads the loop's own playhead, so it
+// cannot drift from the picture. The loop holds two passes; each one
+// launches (SETTLING, counting real milliseconds) and turns FINAL at its
+// decisive frame, holding until the next launch.
+const PASSES = [
+  { submit: 1.5, final: 2.3 }, // bursts through the wall of spray
+  { submit: 7.5, final: 8.3 }, // the wheel fills the frame
+];
+const READY_FOR = 0.9; // s of READY before each launch
 
-function PerformanceOverlay() {
+type Phase = "ready" | "settling" | "final";
+
+// the two chains on the timing tower: both launch with the car; each
+// locks at its own finality (illustrative, inside the stated bounds:
+// C-Chain under a second, a dedicated L1 under 100 milliseconds)
+const LANES = [
+  { name: "Your L1", finalMs: 80 },
+  { name: "C-Chain", finalMs: 800 },
+];
+
+/* A broadcast timing tower, lower-left over the snow: it slides in as a
+   car launches, runs both clocks, locks each lane as it goes final, and
+   slides out before the next launch. Without the video (reduced motion,
+   or still loading) it rests on both final times. */
+function FinalityHud() {
+  const reducedMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState<{ phase: Phase; ms: number }>({ phase: "final", ms: 800 });
+
+  useEffect(() => {
+    const video = ref.current?.closest("[data-plate]")?.querySelector("video");
+    if (!video) return;
+    let raf = 0;
+    const tick = () => {
+      if (!video.paused && video.readyState >= 2) {
+        const t = video.currentTime;
+        // READY for a beat before each launch; otherwise the latest pass
+        // that has launched decides (before the first, the last pass of
+        // the previous loop still holds FINAL)
+        const count = (p: (typeof PASSES)[number]) => Math.round((p.final - p.submit) * 1000);
+        const pass = [...PASSES].reverse().find((p) => t >= p.submit);
+        const arming = PASSES.some((p) => t >= p.submit - READY_FOR && t < p.submit);
+        if (arming) setState({ phase: "ready", ms: 0 });
+        else if (!pass) setState({ phase: "final", ms: count(PASSES[PASSES.length - 1]) });
+        else if (t < pass.final) setState({ phase: "settling", ms: Math.round((t - pass.submit) * 1000) });
+        else setState({ phase: "final", ms: count(pass) });
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const { phase, ms } = state;
+  const elapsed = phase === "ready" ? 0 : ms;
+
   return (
-    <Frame label="A stream of transactions falling down a frozen waterfall and locking in place at its base, final in under a second">
-      <Route d={FALL} />
-      {/* not one transaction, a pipeline: evenly staggered, each final on arrival */}
-      {[0, 0.3, 0.6, 0.9, 1.2, 1.5].map((b) => (
-        <Comet key={b} d={FALL} dur={1.8} begin={b} travel={0.9} length={80} width={6} />
-      ))}
-      {/* the ruler */}
-      <line x1={RULER_X} y1={LIP[1]} x2={RULER_X} y2={BASE[1]} stroke="white" strokeOpacity={0.5} strokeWidth={1} vectorEffect="non-scaling-stroke" />
-      {TICKS.map((y, k) => (
-        <line
-          key={y}
-          x1={RULER_X}
-          y1={y}
-          x2={RULER_X + (k % 5 === 0 ? 34 : 16)}
-          y2={y}
-          stroke="white"
-          strokeOpacity={k % 5 === 0 ? 0.7 : 0.4}
-          strokeWidth={1}
-          vectorEffect="non-scaling-stroke"
-        />
-      ))}
-      <line x1={LIP[0] + 30} y1={LIP[1]} x2={RULER_X} y2={LIP[1]} stroke="white" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 6" vectorEffect="non-scaling-stroke" />
-      <line x1={BASE[0] + 60} y1={BASE[1]} x2={RULER_X} y2={BASE[1]} stroke="white" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 6" vectorEffect="non-scaling-stroke" />
-      <text x={RULER_X + 52} y={LIP[1] + 9} fontSize={26} fill="white" fillOpacity={0.85} style={LABEL}>
-        SUBMITTED
-      </text>
-      <text x={RULER_X + 52} y={LIP[1] + 46} fontSize={21} fill="white" fillOpacity={0.5} style={LABEL}>
-        T+0
-      </text>
-      <text x={RULER_X + 52} y={BASE[1] + 9} fontSize={26} fill="white" fillOpacity={0.85} style={LABEL}>
-        FINAL
-      </text>
-      <text x={RULER_X + 52} y={BASE[1] + 46} fontSize={21} fill="white" fillOpacity={0.5} style={LABEL}>
-        UNDER ONE SECOND
-      </text>
-      <Node x={BASE[0]} y={BASE[1]} boundary="sealed" />
-    </Frame>
+    <div ref={ref} className="absolute bottom-[9%] left-[6%]">
+      {/* the board never leaves: it wipes in once, then resets in place */}
+      <motion.div
+        role="img"
+        aria-label="Time to finality: under 100 milliseconds on your own L1, under one second on the C-Chain"
+        initial={reducedMotion ? false : { clipPath: "inset(0 100% 0 0)" }}
+        whileInView={{ clipPath: "inset(0 0% 0 0)" }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="w-[17rem] overflow-hidden border border-white/10 bg-zinc-950/55 text-white backdrop-blur-md"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-4 py-2 text-[11px] text-white/60">
+          <span>Time to finality</span>
+          <span className="tabular-nums">1.000 s</span>
+        </div>
+        {LANES.map((lane, k) => {
+          const done = elapsed >= lane.finalMs;
+          const t = Math.min(elapsed, lane.finalMs);
+          const resetting = phase === "ready";
+          // lanes clear top to bottom, a beat apart, like a board resetting
+          const delay = resetting ? `${k * 90}ms` : "0ms";
+          return (
+            <div key={lane.name} className={`relative px-4 py-2.5 ${k > 0 ? "border-t border-white/10" : ""}`}>
+              {/* the lane's accent: white while its clock runs, red once final */}
+              <span
+                aria-hidden
+                className={`absolute inset-y-0 left-0 w-[3px] transition-colors duration-300 ${done ? "bg-[#E6212F]" : "bg-white/60"}`}
+                style={{ transitionDelay: delay }}
+              />
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[13px] font-medium text-white/85">{lane.name}</span>
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`v2-heading text-[1.35rem] leading-none tabular-nums tracking-[-0.01em] transition-opacity duration-300 ${
+                      resetting ? "opacity-50" : "opacity-100"
+                    }`}
+                    style={{ transitionDelay: delay }}
+                  >
+                    {(t / 1000).toFixed(3)}
+                    <span className="ml-0.5 text-[11px] text-white/50">s</span>
+                  </span>
+                  {/* the tag flips over, the way a board card turns */}
+                  <span className="relative h-[1.2rem] w-[3.1rem] [perspective:200px]">
+                    <motion.span
+                      key={done ? "final" : "wait"}
+                      initial={{ rotateX: -90, opacity: 0 }}
+                      animate={{ rotateX: 0, opacity: 1 }}
+                      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], delay: resetting ? k * 0.09 : 0 }}
+                      className={`absolute inset-0 flex items-center justify-center text-[9px] font-semibold tracking-[0.14em] [transform-origin:50%_0%] ${
+                        done ? "bg-[#E6212F] text-white" : "bg-white/10 text-white/40"
+                      }`}
+                    >
+                      {done ? "FINAL" : "···"}
+                    </motion.span>
+                  </span>
+                </span>
+              </div>
+              {/* the lane's share of the second; it only animates when it
+                  retracts, so the running clock stays exact */}
+              <span className="relative mt-2 block h-[2px] bg-white/10">
+                <span
+                  className={`absolute inset-y-0 left-0 ${done ? "bg-[#E6212F]" : "bg-white"} ${
+                    resetting ? "transition-[width,background-color] duration-500 ease-out" : ""
+                  }`}
+                  style={{ width: `${(t / 1000) * 100}%`, transitionDelay: delay }}
+                />
+              </span>
+            </div>
+          );
+        })}
+      </motion.div>
+    </div>
   );
 }
 
-/* ---- privacy: validators above the fog, observers below the line --- */
+/* ---- privacy: participants inside the room, fog outside ----------- */
 
-const PEAKS: Pt[] = [
-  [240, 484],
-  [300, 650],
-  [560, 692],
-  [1300, 700],
-  [1480, 462],
-  [1360, 1512],
+// The validator-only network is the lit room: its participants see one
+// another across the table; the perimeter is the glass. Outside views
+// drift in through the fog and are lost at the glass, a ripple where each
+// one touches it.
+const ROOM = { x: 760, y: 925, w: 730, h: 395 };
+const SEATS: Pt[] = [
+  [875, 1150],
+  [960, 1146],
+  [1075, 1138],
+  [1140, 1150],
+  [1205, 1142],
 ];
-const LINKS: [number, number][] = [
-  [0, 2],
-  [1, 2],
-  [2, 3],
-  [3, 4],
-  [3, 5],
+const TABLE_LINK = smooth(SEATS);
+const TABLE_LINK_BACK = smooth(rev(SEATS));
+const OBSERVERS = [
+  { y: 1000, begin: 0 },
+  { y: 1130, begin: 1.9 },
+  { y: 1260, begin: 3.8 },
 ];
-const FOG_LINE = 390;
-const PROBES = [520, 900, 1180];
+const OBSERVE_DUR = 5.7;
+const GLASS_X = ROOM.x - 16;
 
 function PrivacyOverlay() {
+  const glow = useGlow();
   return (
-    <Frame label="Validators on ridgetops above the fog exchanging private messages while outside observers stop at the fog line">
-      {LINKS.map(([a, b], i) => {
-        const d = smooth([PEAKS[a], PEAKS[b]]);
+    <Frame label="Participants inside a lit glass room share a private link, while outside views vanish at the glass in the fog">
+      {/* the perimeter: the glass itself */}
+      <rect
+        x={ROOM.x - 16}
+        y={ROOM.y - 16}
+        width={ROOM.w + 32}
+        height={ROOM.h + 32}
+        fill="none"
+        stroke="white"
+        strokeOpacity={0.55}
+        strokeWidth={1}
+        strokeDasharray="6 6"
+        vectorEffect="non-scaling-stroke"
+      />
+      {/* the participants and the link between them */}
+      <path d={TABLE_LINK} fill="none" stroke="white" strokeOpacity={0.4} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      <Comet d={TABLE_LINK} dur={5} begin={0} travel={0.45} length={70} width={5} />
+      <Comet d={TABLE_LINK_BACK} dur={5} begin={2.5} travel={0.45} length={70} width={5} />
+      {SEATS.map(([x, y], i) => (
+        <g key={x}>
+          <circle cx={x} cy={y - 70} r={6} fill={RED} />
+          <circle cx={x} cy={y - 70} r={9} fill={RED} filter={glow} opacity={0.7}>
+            <animate attributeName="opacity" values="0.35;0.85;0.35" dur="3.6s" begin={`${i * 0.7}s`} repeatCount="indefinite" />
+          </circle>
+          <line x1={x} y1={y - 62} x2={x} y2={y - 8} stroke="white" strokeOpacity={0.3} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        </g>
+      ))}
+
+      {/* outside views: faint points drifting in through the fog, lost at the glass */}
+      {OBSERVERS.map(({ y, begin }) => {
+        const t = `${begin}s`;
         return (
-          <g key={`${a}-${b}`}>
-            <Route d={d} dashed />
-            <Comet d={d} dur={3.6} begin={i * 0.7} travel={0.6} length={90} width={6} />
+          <g key={y}>
+            <circle cx={120} cy={y} r={5} fill="white" opacity={0}>
+              <animate attributeName="cx" values={`120;${GLASS_X};${GLASS_X}`} keyTimes="0;0.55;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0.7;0.7;0;0" keyTimes="0;0.12;0.5;0.56;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+            </circle>
+            <ellipse cx={GLASS_X} cy={y} rx={0} ry={0} fill="none" stroke="white" strokeWidth={1} vectorEffect="non-scaling-stroke" opacity={0}>
+              <animate attributeName="rx" values="0;0;12;12" keyTimes="0;0.55;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+              <animate attributeName="ry" values="0;0;60;60" keyTimes="0;0.55;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="0;0;0.55;0;0" keyTimes="0;0.55;0.6;0.8;1" dur={`${OBSERVE_DUR}s`} begin={t} repeatCount="indefinite" />
+            </ellipse>
           </g>
         );
       })}
-      {PEAKS.map(([x, y]) => (
-        <Node key={`${x}-${y}`} x={x} y={y} />
-      ))}
-      {/* observers descend from outside and dissolve at the fog line */}
-      {PROBES.map((x, i) => (
-        <g key={x}>
-          <line x1={x} y1={60} x2={x} y2={FOG_LINE} stroke="white" strokeOpacity={0.3} strokeWidth={1} strokeDasharray="2 6" vectorEffect="non-scaling-stroke" />
-          <circle cx={x} cy={60} r={7} fill="white" opacity={0}>
-            <animate attributeName="cy" values={`60;${FOG_LINE};${FOG_LINE}`} keyTimes="0;0.7;1" dur="4.2s" begin={`${i * 1.4}s`} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0;0.9;0.9;0;0" keyTimes="0;0.1;0.62;0.72;1" dur="4.2s" begin={`${i * 1.4}s`} repeatCount="indefinite" />
-          </circle>
-          <g opacity={0}>
-            <animate attributeName="opacity" values="0;0;1;0" keyTimes="0;0.66;0.74;1" dur="4.2s" begin={`${i * 1.4}s`} repeatCount="indefinite" />
-            <line x1={x - 12} y1={FOG_LINE - 12} x2={x + 12} y2={FOG_LINE + 12} stroke="white" strokeWidth={1.25} vectorEffect="non-scaling-stroke" />
-            <line x1={x + 12} y1={FOG_LINE - 12} x2={x - 12} y2={FOG_LINE + 12} stroke="white" strokeWidth={1.25} vectorEffect="non-scaling-stroke" />
-          </g>
-        </g>
-      ))}
-      <Tag from={[PROBES[0], 60]} to={[PROBES[0] - 60, 60]} text="OUTSIDE" sub="NO VISIBILITY" anchor="end" />
-      <Tag from={[586, 700]} to={[700, 820]} text="VALIDATOR-ONLY" />
+
+      <text x={120} y={1420} fontSize={24} fill="white" fillOpacity={0.8} style={LABEL}>
+        OUTSIDE
+      </text>
+      <text x={120} y={1456} fontSize={20} fill="white" fillOpacity={0.45} style={LABEL}>
+        NO VISIBILITY
+      </text>
+      <Tag from={[900, ROOM.y - 16]} to={[840, 790]} text="VALIDATOR-ONLY NETWORK" anchor="end" />
     </Frame>
   );
 }
@@ -400,7 +516,7 @@ function ComplianceOverlay() {
 
 const OVERLAYS: Partial<Record<PillarSlug, () => React.JSX.Element>> = {
   interoperability: InteropOverlay,
-  performance: PerformanceOverlay,
+  performance: FinalityHud,
   privacy: PrivacyOverlay,
   compliance: ComplianceOverlay,
 };
