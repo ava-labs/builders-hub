@@ -1800,6 +1800,54 @@ html.embed-mode #nd-toc {
   }
 }
 
+/* Explorer instruments. A solid rises from its base, a plot wipes in
+   from the left, a mark fades up, and a burn ember climbs the distance
+   its element sets in --climb, then a slab flashes where it lands. The
+   reduced-motion rule above ends each one on its last frame. */
+@keyframes bh-rise {
+  from { transform: scaleY(0.001); }
+  to { transform: scaleY(1); }
+}
+@keyframes bh-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@keyframes bh-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes bh-climb {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { transform: translateY(var(--climb, -120px)); opacity: 0; }
+}
+@keyframes bh-flash {
+  from { opacity: 0.85; }
+  to { opacity: 0; }
+}
+/* a ripple on the ground: a ring that widens from its origin and fades */
+@keyframes bh-ripple {
+  0% { transform: scale(0.12); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: scale(1); opacity: 0; }
+}
+/* a tile that settles into its place */
+@keyframes bh-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* a comet down a path drawn with pathLength=1 and a 0.22 dash: head first, gone at the end */
+@keyframes bh-comet {
+  from { stroke-dashoffset: 0.22; }
+  to { stroke-dashoffset: -1.02; }
+}
+/* a place that waits for what lands in it */
+@keyframes bh-breathe {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.3; }
+}
+
 /* Subtle 1px highlight at the top of every shadcn Card in dark mode.
    Differentiates cards from the page background (both are near-black
    zinc shades with only ~10 steps between them) by suggesting the card

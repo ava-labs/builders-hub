@@ -104,8 +104,9 @@ export function VersionFleet({
   reporting,
   picked,
   onPick,
-  grain,
+  grain = "minor",
   onGrain,
+  stakeLabel = "Stake",
 }: {
   fleet: FleetVersion[];
   target: string;
@@ -120,8 +121,11 @@ export function VersionFleet({
   picked: string | null;
   onPick: (v: string | null) => void;
   /** count by minor line (1.15) or by release (1.15.1) */
-  grain: FleetGrain;
-  onGrain: (g: FleetGrain) => void;
+  grain?: FleetGrain;
+  /** omit where the feed has minor lines only: the switch hides */
+  onGrain?: (g: FleetGrain) => void;
+  /** names the stake side, e.g. "Stake · per set" where stake units differ between sets */
+  stakeLabel?: string;
 }) {
   const [hover, setHover] = useState<string | null>(null);
   const [view, setView] = useState<FleetView>("bars");
@@ -166,7 +170,7 @@ export function VersionFleet({
         {/* the reading: what share of the network is on the target */}
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-1.5">
-            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">Stake on {target}+</span>
+            <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{stakeLabel} on {target}+</span>
             <span className="font-mono text-[40px] leading-none tabular-nums tracking-tight text-zinc-900 dark:text-zinc-50">
               {(stake ?? stakePct).toFixed(1)}
               <span className="ml-1 text-[18px] text-zinc-400 dark:text-zinc-500">%</span>
@@ -190,15 +194,17 @@ export function VersionFleet({
         {/* the distribution, drawn the way the reader asks */}
         <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Switch
-              id="fleet-grain"
-              value={grain}
-              onChange={onGrain}
-              options={[
-                { v: "minor", label: "Minor" },
-                { v: "patch", label: "Patch" },
-              ]}
-            />
+            {onGrain && (
+              <Switch
+                id="fleet-grain"
+                value={grain}
+                onChange={onGrain}
+                options={[
+                  { v: "minor", label: "Minor" },
+                  { v: "patch", label: "Patch" },
+                ]}
+              />
+            )}
             <Switch
               id="fleet-view"
               value={view}
@@ -212,12 +218,12 @@ export function VersionFleet({
           {view === "bars" ? (
             <div className="flex min-w-0 flex-col gap-7" onMouseLeave={() => setHover(null)}>
               <Solid label="Nodes" fleet={fleet} share={(f) => f.nodePct} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
-              <Solid label="Stake" fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+              <Solid label={stakeLabel} fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4" onMouseLeave={() => setHover(null)}>
               <Donut label="Nodes" fleet={fleet} share={(f) => f.nodePct} count={(f) => `${f.nodes.toLocaleString("en-US")} nodes`} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
-              <Donut label="Stake" fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
+              <Donut label={stakeLabel} fleet={fleet} share={(f) => f.stakePct ?? 0} lit={lit} onHover={setHover} onPick={(v) => onPick(picked === v ? null : v)} />
             </div>
           )}
         </div>

@@ -1,6 +1,8 @@
 /* The suggested questions on the Query page. The warm job answers
    these ahead of time, so a first click only runs the SQL. */
 
+import { isCChain } from "./target";
+
 /** the shape of chart a suggestion's answer draws, previewed on its card */
 export type Glyph = "stack" | "hbar" | "area" | "limit" | "donut" | "line" | "scatter" | "bars";
 
@@ -75,5 +77,46 @@ export const PCHAIN_EXAMPLES: typeof EXAMPLES = [
   },
 ];
 
+/** an L1's suggested questions: nothing that names a C-Chain token, so they work on any EVM chain */
+export const L1_EXAMPLES: typeof EXAMPLES = [
+  {
+    group: "Activity",
+    hue: "#E6212F",
+    items: [
+      { q: "Daily transactions over the last 30 days, with reverts", hint: "Throughput and failure, per day", glyph: "stack" },
+      { q: "Daily active addresses over the last 30 days", hint: "Distinct senders per day", glyph: "line" },
+    ],
+  },
+  {
+    group: "Contracts",
+    hue: "#0061E2",
+    items: [
+      { q: "Top contracts by calls this week", hint: "Who the chain works for", glyph: "hbar" },
+      { q: "New contracts deployed per day this month", hint: "What is being built", glyph: "bars" },
+    ],
+  },
+  {
+    group: "Gas and time",
+    hue: "#d97706",
+    items: [
+      { q: "Gas used per day over the last 30 days", hint: "How much work the chain does", glyph: "area" },
+      { q: "Busiest hours of the day this week", hint: "Transactions by hour, UTC", glyph: "bars" },
+    ],
+  },
+  {
+    group: "Tokens and senders",
+    hue: "#0d9488",
+    items: [
+      { q: "Token contracts by transfers this week", hint: "Which tokens move", glyph: "donut" },
+      { q: "Busiest senders this week", hint: "Who is sending the most", glyph: "hbar" },
+    ],
+  },
+];
+
 /** every suggested question, in order */
 export const EXAMPLE_PROMPTS = EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
+
+/** an EVM chain's suggestions: the C-Chain's own, or the generic set */
+export function examplesFor(chainId: number | string): typeof EXAMPLES {
+  return isCChain(chainId) ? EXAMPLES : L1_EXAMPLES;
+}

@@ -75,7 +75,7 @@ interface Day {
 /** An SVG path through points as a monotone cubic (Fritsch-Carlson):
  *  the curve bends between samples but never rises above or dips below
  *  the neighbouring values, so a smooth line still tells the truth. */
-function monotonePath(p: readonly (readonly [number, number])[]): string {
+export function monotonePath(p: readonly (readonly [number, number])[]): string {
   const n = p.length;
   if (n === 0) return "";
   const f = (v: number) => v.toFixed(1);

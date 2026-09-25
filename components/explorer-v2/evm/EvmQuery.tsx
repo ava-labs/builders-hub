@@ -4,15 +4,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, Check, ChevronRight, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, ChevronsUpDown, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
+import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection as setDigSelection, askAbout } from "@/components/explorer-v2/dig/selection";
 import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
-import type { QueryResult } from "@/lib/explorer-query/clickhouse";
+import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
@@ -22,9 +24,11 @@ import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { AvalancheLoader } from "./AvalancheLoader";
-import { EXAMPLES, PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
+import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
+import { askHref } from "@/lib/explorer-query/board";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -70,6 +74,13 @@ function reads(callouts: string[]): string {
 }
 
 /** under every answer: the figures rest on SQL a model wrote */
+/** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
+class QueryError extends Error {
+  constructor(message: string, readonly signIn = false) {
+    super(message);
+  }
+}
+
 const SQL_CAVEAT = "The SQL behind this answer is written by an AI model and may not be 100% accurate. Check it before you rely on a figure.";
 
 /* the loader's line: what is happening, never which model does it */
@@ -96,14 +107,21 @@ interface QueryChain {
   kind: "evm" | "pchain";
 }
 
+/** what the database holds of a chain: its window, nothing, or unknown (null) */
+export type IndexState = Coverage | "empty" | null;
+
+/** a window that ends more than a day ago is named on the page */
+const STALE_S = 24 * 3600;
+
 /** an EVM chain's Query page, inside the chain's own layout and shell */
-export function EvmQuery({ network }: { network: string }) {
+export function EvmQuery({ network, index = null }: { network: string; index?: IndexState }) {
   const c = useChainContext();
   return (
     <QueryPage
       network={network}
       c={{ chainId: c.chainId, chainSlug: c.chainSlug, chainName: c.chainName, nativeToken: c.nativeToken, kind: "evm" }}
-      examples={EXAMPLES}
+      examples={examplesFor(c.chainId)}
+      index={index}
     />
   );
 }
@@ -119,9 +137,133 @@ export function PchainQuery({ network }: { network: string }) {
   );
 }
 
+/** one chain the network-scope Query page can ask */
+export interface NetworkQueryChain extends QueryChain {
+  chainSlug: string;
+  /** how the picker names the chain */
+  label: string;
+  logo?: string;
+  index: IndexState;
+}
+
+/* which chain a question names, by its name or slug as a whole word; the
+   longest name wins, so "Dexalot Subnet" beats "Dexalot". Names shorter
+   than three letters never match. Nothing named: null, and the question
+   stays on the chain in view (the C-Chain, unless the reader changed it). */
+function chainNamed(q: string, chains: NetworkQueryChain[]): string | null {
+  const text = ` ${q.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  const norm = (s: string) => s.toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]+/g, " ").trim();
+  let best: { slug: string; len: number } | null = null;
+  for (const c of chains) {
+    for (const name of new Set([norm(c.label), norm(c.chainSlug), norm(c.chainSlug.replace(/-/g, ""))])) {
+      if (name.length < 3) continue;
+      if (text.includes(` ${name} `) && (!best || name.length > best.len)) best = { slug: c.chainSlug, len: name.length };
+    }
+  }
+  return best?.slug ?? null;
+}
+
+/* the network page's suggestions: the C-Chain's, then one for the P-Chain
+   and one naming an L1, so a reader sees a question can name its chain */
+function networkExamples(chains: NetworkQueryChain[]): typeof EXAMPLES {
+  const l1 = chains.find((c) => c.kind === "evm" && c.chainSlug !== "c-chain");
+  return [
+    ...EXAMPLES,
+    {
+      group: "Other chains",
+      hue: "#71717a",
+      items: [
+        { q: PCHAIN_EXAMPLES[0].items[0].q, hint: "Asked of the P-Chain", glyph: PCHAIN_EXAMPLES[0].items[0].glyph },
+        ...(l1 ? [{ q: `Daily transactions on ${l1.label} over the last 30 days`, hint: `Asked of ${l1.label}`, glyph: "bars" as const }] : []),
+      ],
+    },
+  ];
+}
+
+/* Query at the network scope: the All Networks chrome. A question goes to
+   the chain it names, to the P-Chain when it is about staking (the model
+   routes those), and to the C-Chain otherwise; the chip shows which chain
+   answers and can change the default. The page remounts on a new chain,
+   so no answer carries across. */
+export function NetworkQuery({ network, chains }: { network: string; chains: NetworkQueryChain[] }) {
+  const params = useSearchParams();
+  const router = useRouter();
+  const [slug, setSlug] = useState(() => {
+    const asked = params.get("chain");
+    return chains.some((c) => c.chainSlug === asked) ? asked! : "c-chain";
+  });
+  const c = chains.find((x) => x.chainSlug === slug) ?? chains[0];
+
+  // the pick rides in the URL, so a shared question lands on its chain
+  const pick = (next: string, q?: string, from?: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("chain", next);
+    url.searchParams.delete("from");
+    if (q) url.searchParams.set("q", q);
+    else url.searchParams.delete("q");
+    if (from) url.searchParams.set("from", from);
+    window.history.replaceState(null, "", url.toString());
+    setSlug(next);
+  };
+
+  const picker = (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        title="Name a chain in the question to ask it; this sets the chain for questions that name none"
+        className="group flex w-fit items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+      >
+        <span>Answering from</span>
+        {c.logo && <img src={c.logo} alt="" className="h-4 w-4 shrink-0 rounded-full object-contain" />}
+        <span className="font-bold text-zinc-900 dark:text-zinc-100">{c.label}</span>
+        <span className="text-zinc-300 dark:text-zinc-600">· any chain you name</span>
+        <ChevronsUpDown className="h-3 w-3 shrink-0" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-80 w-64 overflow-y-auto">
+        {chains.map((x) => (
+          <DropdownMenuItem key={x.chainSlug} onSelect={() => x.chainSlug !== slug && pick(x.chainSlug)} className="gap-3">
+            {x.logo ? (
+              <img src={x.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
+            ) : (
+              <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
+            )}
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{x.label}</span>
+            {x.chainSlug === slug && <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[#E6212F]" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  return (
+    <QueryPage
+      key={c.chainSlug}
+      scope="network"
+      network={network}
+      c={c}
+      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : c.chainSlug === "c-chain" ? networkExamples(chains) : examplesFor(c.chainId)}
+      index={c.index}
+      picker={picker}
+      resolve={(q) => chainNamed(q, chains)}
+      // a question about another chain's data moves the picker, not the page
+      // no "asked on" note here: the chip already says which chain answers
+      onRoute={(route, q) =>
+        chains.some((x) => x.chainSlug === route)
+          ? pick(route, q)
+          : router.push(`/explorer/${network}/${route}/query?q=${encodeURIComponent(q)}&from=${c.chainSlug}`)
+      }
+    />
+  );
+}
+
 /* each chain family's own chrome; stable components, so a re-render of
    the wrapper never remounts the page and loses its answer */
-function QueryShell({ kind, network, children }: { kind: QueryChain["kind"]; network: string; children: React.ReactNode }) {
+function QueryShell({ kind, scope, network, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; children: React.ReactNode }) {
+  if (scope === "network")
+    return (
+      <NetworkShell network={network} search={false}>
+        {children}
+      </NetworkShell>
+    );
   if (kind === "pchain")
     return (
       <ExplorerShell chain="p-chain" network={network} hideHeader>
@@ -135,7 +277,29 @@ function QueryShell({ kind, network, children }: { kind: QueryChain["kind"]; net
   );
 }
 
-function QueryPage({ network, c, examples }: { network: string; c: QueryChain; examples: typeof EXAMPLES }) {
+function QueryPage({
+  network,
+  c,
+  examples,
+  index = null,
+  scope,
+  picker,
+  onRoute,
+  resolve,
+}: {
+  network: string;
+  c: QueryChain;
+  examples: typeof EXAMPLES;
+  index?: IndexState;
+  /** "network": the All Networks chrome in place of the chain's */
+  scope?: "network";
+  /** the network scope's chain picker, above the question */
+  picker?: React.ReactNode;
+  /** where a question about another chain goes; the default navigates to that chain's page */
+  onRoute?: (route: string, q: string) => void;
+  /** the chain a new question names, read before it is asked */
+  resolve?: (q: string) => string | null;
+}) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
 
@@ -149,6 +313,9 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   // the SQL the model handed back, so an edit is not laid out as if it were kept
   const answerSql = useRef("");
   const [error, setError] = useState<string | null>(null);
+  // the anonymous limit was hit: the error offers sign-in, which lifts it
+  const [gated, setGated] = useState(false);
+  const { openLoginModal } = useLoginModalTrigger();
   const [answer, setAnswer] = useState<QueryAnswer | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
   const [sqlOpen, setSqlOpen] = useState(false);
@@ -192,8 +359,8 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   const stream = async (body: object, my: number): Promise<QueryAnswer> => {
     const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
     if (!res.ok || !res.body) {
-      const out = (await res.json().catch(() => ({}))) as { error?: string };
-      throw new Error(out.error ?? `HTTP ${res.status}`);
+      const out = (await res.json().catch(() => ({}))) as { error?: string; signIn?: boolean };
+      throw new QueryError(out.error ?? `HTTP ${res.status}`, !!out.signIn);
     }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -260,12 +427,16 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
     async (q: string, refine: boolean) => {
       const text = q.trim();
       if (!text) return;
+      // a new question that names another chain is asked there; a follow-up stays on this chain
+      const named = !refine && resolve && onRoute ? resolve(text) : null;
+      if (named && named !== c.chainSlug) return onRoute!(named, text);
       const my = ++token.current;
       setEvents([]);
       setReading(false);
       setPhase("query");
       setStarted(Date.now());
       setError(null);
+      setGated(false);
       setRange(null);
       setDrill(null);
       setSel([]);
@@ -279,6 +450,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
         if (my !== token.current) return;
         // a question about the other chain's data is asked on that chain's page
         if (a.route && a.route !== c.chainSlug) {
+          if (onRoute) return onRoute(a.route, text);
           router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
           return;
         }
@@ -300,18 +472,27 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
         else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
       } catch (e) {
         setError(e instanceof Error ? e.message : "The query failed.");
+        if (e instanceof QueryError && e.signIn) {
+          // after sign-in the page reloads on ?q and asks again
+          asked.current = text;
+          const url = new URL(window.location.href);
+          url.searchParams.set("q", text);
+          window.history.replaceState(null, "", url.toString());
+          setGated(true);
+        }
         setPhase("idle");
         setStarted(null);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [c.chainId, c.chainSlug, network, router, history, design],
+    [c.chainId, c.chainSlug, network, router, history, design, onRoute],
   );
 
   /** the reader's own SQL, run through the same guard */
   const runSql = useCallback(async () => {
     setPhase("running");
     setError(null);
+    setGated(false);
     setRange(null);
     setDrill(null);
     setSel([]);
@@ -393,6 +574,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
     setAnswer(null);
     setHistory([]);
     setError(null);
+    setGated(false);
     setPrompt("");
     setRange(null);
     setDrill(null);
@@ -421,6 +603,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
   const cov = answer?.coverage;
   const covSecs = cov ? toUnix(cov.until) - toUnix(cov.since) : 0;
   const busy = phase !== "idle";
+  const stale = index && index !== "empty" && Date.now() / 1000 - index.untilUnix > STALE_S ? index : null;
   const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
   const shareUrl = typeof window !== "undefined" && history[0] ? `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(history[0].prompt)}` : "";
 
@@ -558,7 +741,16 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
 
   return (
     // the prompt box below is this page's search bar; the shell's would repeat it
-    <QueryShell kind={c.kind} network={network}>
+    <QueryShell kind={c.kind} scope={scope} network={network}>
+      {picker && <div className="mb-6">{picker}</div>}
+      {index === "empty" ? (
+        <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          {c.chainName}&rsquo;s history is not indexed yet, so Query has nothing to read.{" "}
+          <Link href={askHref(network, "c-chain")} className="text-zinc-900 underline decoration-zinc-300 underline-offset-4 transition-colors hover:text-[#E6212F] dark:text-zinc-50 dark:decoration-zinc-700">
+            Ask the C-Chain instead
+          </Link>
+        </p>
+      ) : (
       <div className="flex flex-col gap-8">
         {/* the question */}
         <section className="flex flex-col gap-3">
@@ -600,8 +792,26 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
             )}
           </AnimatePresence>
           {input}
+          {stale && (
+            <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
+              Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
+            </p>
+          )}
           {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
-          {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
+          {error && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-[#E6212F] pl-3">
+              <p className="font-mono text-[12px] text-[#E6212F]">{error}</p>
+              {gated && (
+                <button
+                  type="button"
+                  onClick={() => openLoginModal()}
+                  className="border border-zinc-900 bg-zinc-900 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
+          )}
           {!answer && !busy && (
             <div className="flex flex-col gap-6 pt-3">
               <QueryHome chain={c.chainSlug ?? String(c.chainId)} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />
@@ -880,6 +1090,7 @@ function QueryPage({ network, c, examples }: { network: string; c: QueryChain; e
           </section>
         )}
       </div>
+      )}
 
       {answer && (
         <QueryInspector
