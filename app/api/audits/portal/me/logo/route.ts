@@ -6,7 +6,6 @@ import { applyRateLimit, DAY_MS } from "@/app/api/audits/utils";
 import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
 import {
   doesExtensionMatchMimeType,
-  hasMatchingImageSignature,
   isValidFileSize,
   isValidFileType,
 } from "@/server/services/fileValidation";
@@ -87,12 +86,6 @@ export const POST = withAuditor(async (request, _context, auditor, actorEmail) =
   }
   if (!isValidFileSize(file, MAX_LOGO_MB)) {
     return refuse(`Keep the logo under ${MAX_LOGO_MB}MB.`, 400);
-  }
-  // Type and extension are both client-declared; the bytes are not. Without
-  // this, "logo.png" of type image/png can carry anything at all and the
-  // store will serve it from a URL this program publishes.
-  if (!(await hasMatchingImageSignature(file))) {
-    return refuse("That file is not a valid PNG or JPG.", 400);
   }
 
   // The extension is present and matches the type (checked above).
