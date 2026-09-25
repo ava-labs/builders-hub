@@ -116,14 +116,15 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
 
   // what the block cost, in the token and in dollars. Receipts give the
   // exact sum (RPC path); the indexer path only knows gas × base fee,
-  // which on the C-Chain is the burn floor, so it is marked as such.
+  // which on the C-Chain is the burn floor, so it is marked as such. Since
+  // Helicon the header's gasUsed is gas reserved, so use charged gas.
   const { price } = usePrice(c.chainId);
   const usd = price?.price ?? null;
   const exactFees = b && b.transactions.length > 0 && b.transactions.every((t) => t.feeWei);
   const feesWei = b
     ? exactFees
       ? b.transactions.reduce((acc, t) => acc + BigInt(t.feeWei!), 0n)
-      : BigInt(b.gasUsed) * BigInt(b.baseFeePerGas || "0")
+      : BigInt(chargedGas) * BigInt(b.baseFeePerGas || "0")
     : 0n;
 
   return (
