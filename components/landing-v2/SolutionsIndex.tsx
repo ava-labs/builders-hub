@@ -83,11 +83,12 @@ export default function SolutionsIndex() {
   );
 }
 
-/* The hero: the ridge photograph full-bleed across the sheet, the four
-   words stacked in the fog on its left. On desktop the band holds the
-   photograph's own aspect, so nothing crops and the summit beacon's glow
-   can be pinned to the pixel; the band zooms toward the beacon as the
-   page scrolls away. Phones get a taller crop anchored on the summit. */
+/* The hero: an exchange hall in ice, full-bleed across the sheet, the four
+   words stacked over the colonnade on its left. On desktop the band holds
+   the photograph's own aspect, so nothing crops and the glow of the red
+   light at the end of the hall can be pinned to the pixel; the band zooms
+   down the hall toward it as the page scrolls away. Phones get a taller
+   crop anchored on the centre aisle. */
 function Hero({ active }: { active: number }) {
   const reducedMotion = useReducedMotion();
   const ref = useRef<HTMLElement>(null);
@@ -97,26 +98,26 @@ function Hero({ active }: { active: number }) {
   return (
     <section ref={ref} className="relative -mx-5 -mt-6 overflow-hidden bg-zinc-950 md:-mx-6">
       <div className="relative aspect-[4/5] sm:aspect-[16/10] lg:aspect-[2880/1258]">
-        {/* zoom origin sits on the beacon, so the beacon holds still */}
-        <motion.div className="absolute inset-0 origin-[72%_11%]" style={reducedMotion ? undefined : { scale }}>
+        {/* zoom origin sits on the red light, so it holds still */}
+        <motion.div className="absolute inset-0 origin-[49%_69%]" style={reducedMotion ? undefined : { scale }}>
           <motion.div
-            className="absolute inset-0 origin-[72%_11%]"
+            className="absolute inset-0 origin-[49%_69%]"
             initial={reducedMotion ? false : { scale: 1.08, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 2.4, ease: EASE }}
           >
             <Image
-              src="/images/solutions/hero.jpg"
-              alt="Two climbers on a snow ridge above a sea of fog, heading for a red beacon on the summit"
+              src="/images/solutions/exchange-hall.jpg"
+              alt="A monumental exchange hall of ice columns, snow falling through the skylight, a red light at the end of the hall"
               fill
               priority
               sizes="100vw"
-              className="object-cover object-[70%_50%]"
+              className="object-cover object-[50%_60%]"
             />
-            {/* the beacon breathes: red is the thing that is alive */}
+            {/* the light breathes: red is the thing that is alive */}
             <motion.span
               aria-hidden
-              className="absolute left-[72.2%] top-[10.8%] hidden h-24 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E6212F] blur-2xl lg:block"
+              className="absolute left-[49.1%] top-[68.9%] hidden h-10 w-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E6212F] blur-2xl lg:block"
               initial={{ opacity: 0.15 }}
               animate={reducedMotion ? undefined : { opacity: [0.15, 0.45, 0.15] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
@@ -154,9 +155,9 @@ function Hero({ active }: { active: number }) {
               );
             })}
           </h1>
-          {/* the dek settles in the bottom-left corner, over the dark
-              shoulder of the hill and short of the climbers: it arrives
-              once the words have landed, sharpening out of the fog */}
+          {/* the dek settles in the bottom-left corner, over the floor of
+              the hall: it arrives once the words have landed, sharpening
+              out of the falling snow */}
           <motion.p
             className="mt-auto max-w-[19rem] text-[15px] leading-relaxed text-white/80 md:text-base"
             initial={reducedMotion ? false : { opacity: 0, filter: "blur(10px)", y: 8 }}

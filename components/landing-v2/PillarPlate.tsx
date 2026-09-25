@@ -7,6 +7,7 @@ import PillarDiagram from "@/components/landing-v2/PillarDiagrams";
 import { PILLARS, type PillarSlug } from "@/components/landing-v2/pillars";
 import { pad2 } from "@/components/landing-v2/SpecKit";
 import { photoOverlay } from "@/components/landing-v2/PhotoOverlays";
+import PlateVideo, { type PlateVideoSpec } from "@/components/landing-v2/PlateVideo";
 
 /* ------------------------------------------------------------------ */
 /* Plates: a photograph (or graphite ground) with a drawing laid on top */
@@ -17,27 +18,39 @@ import { photoOverlay } from "@/components/landing-v2/PhotoOverlays";
 /* ------------------------------------------------------------------ */
 
 const PHOTOS: Partial<Record<PillarSlug, string>> = {
-  interoperability: "/images/solutions/braided-river.jpg",
-  performance: "/images/solutions/frozen-falls.jpg",
-  privacy: "/images/solutions/fog-valley.jpg",
+  interoperability: "/images/solutions/delta-districts.jpg",
+  performance: "/images/solutions/f1-finality.jpg",
+  privacy: "/images/solutions/glass-boardroom.jpg",
   compliance: "/images/solutions/marker-line.jpg",
+};
+
+// pillars whose plate is a silent loop; the photo above is its poster
+const VIDEOS: Partial<Record<PillarSlug, PlateVideoSpec>> = {
+  performance: {
+    mp4: "/videos/solutions/f1-finality.mp4",
+    webm: "/videos/solutions/f1-finality.webm",
+    poster: "/images/solutions/f1-finality.jpg",
+  },
 };
 
 /** What a plate is made of, for callers that layer the parts themselves. */
 export interface PlateSpec {
   photo?: string;
+  video?: PlateVideoSpec;
   drawing: React.ReactNode;
   caption: [string, string];
 }
 
 export function Plate({
   photo,
+  video,
   caption,
   priority = false,
   className,
   children,
 }: {
   photo?: string;
+  video?: PlateVideoSpec;
   caption?: [string, string];
   priority?: boolean;
   className?: string;
@@ -49,11 +62,15 @@ export function Plate({
       {/* photo, scrim, and drawing drift as one, so a drawing traced onto
           its photo never slides off its features */}
       <motion.div
+        data-plate
         className="absolute inset-0"
-        animate={reducedMotion ? undefined : { scale: [1, 1.05] }}
+        // footage already moves; only stills get the slow drift
+        animate={reducedMotion || video ? undefined : { scale: [1, 1.05] }}
         transition={{ duration: 22, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }}
       >
-        {photo ? (
+        {video ? (
+          <PlateVideo video={video} priority={priority} />
+        ) : photo ? (
           <Image
             src={photo}
             alt=""
@@ -94,6 +111,7 @@ export function pillarPlate(slug: PillarSlug): PlateSpec {
   const label = PILLARS[index].label;
   return {
     photo: PHOTOS[slug],
+    video: VIDEOS[slug],
     // a photographed pillar gets its drawing surveyed onto the photo;
     // one still waiting for its photo keeps the schematic drawing
     drawing: PHOTOS[slug] ? photoOverlay(slug) : <PillarDiagram slug={slug} />,
@@ -111,9 +129,9 @@ export default function PillarPlate({
   priority?: boolean;
   className?: string;
 }) {
-  const { photo, drawing, caption } = pillarPlate(slug);
+  const { photo, video, drawing, caption } = pillarPlate(slug);
   return (
-    <Plate photo={photo} caption={caption} priority={priority} className={className}>
+    <Plate photo={photo} video={video} caption={caption} priority={priority} className={className}>
       {drawing}
     </Plate>
   );

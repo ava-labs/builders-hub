@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "framer-motion";
 import { Plate, type PlateSpec } from "@/components/landing-v2/PillarPlate";
+import PlateVideo from "@/components/landing-v2/PlateVideo";
 
 /* ------------------------------------------------------------------ */
 /* Sticky stage: a split screen, text scrolling left, plates held right */
@@ -73,8 +74,10 @@ function StepLayer({
   const drawing = useTransform(pos, input, output);
   return (
     <>
-      <motion.div className="absolute inset-0" style={{ opacity, scale: still ? 1 : scale }}>
-        {plate.photo ? (
+      <motion.div data-plate className="absolute inset-0" style={{ opacity, scale: still ? 1 : scale }}>
+        {plate.video ? (
+          <PlateVideo video={plate.video} />
+        ) : plate.photo ? (
           <Image src={plate.photo} alt="" fill sizes="50vw" className="object-cover" />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,#2a2d33_0%,#101113_70%)]" />
@@ -143,7 +146,7 @@ export default function StickyStage({ steps, className = "" }: { steps: StageSte
               i === active ? "lg:opacity-100" : "lg:opacity-30"
             }`}
           >
-            <Plate photo={step.plate.photo} caption={step.plate.caption} className="mb-10 lg:hidden">
+            <Plate photo={step.plate.photo} video={step.plate.video} caption={step.plate.caption} className="mb-10 lg:hidden">
               {step.plate.drawing}
             </Plate>
             <div className="px-5 md:px-6 lg:px-0">{step.content}</div>
