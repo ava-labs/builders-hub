@@ -308,7 +308,7 @@ function queryTab(network: string, chainSlug: string): Tab[] {
    (a block detail is still "Blocks"); on EVM chains the stats surfaces
    are first-class sections of the same chain, so they ride here too.
    No chain at all is the widest lens — the network scope, where every
-   ecosystem-wide facet (chains, ICM, validators, apps, the token) lives. */
+   ecosystem-wide facet (chains, ICM, validators, the token) lives. */
 function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   if (!chainSlug) {
     return [
@@ -326,15 +326,15 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
           p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
       },
       {
-        // protocols and stablecoins: one tab, a switch on the page picks the view
-        label: "DeFi",
-        href: `${NETWORK_HOME}/apps`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/apps`) || p.startsWith(`${NETWORK_HOME}/stablecoins`) || p.startsWith("/stats/dapps"),
-      },
-      {
         label: "AVAX",
         href: `${NETWORK_HOME}/token`,
         isActive: (p) => p.startsWith(`${NETWORK_HOME}/token`),
+      },
+      {
+        // Query at the network scope: a picker on the page names the chain it asks
+        label: "Query",
+        href: `${NETWORK_HOME}/query`,
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/query`),
       },
     ];
   }
@@ -402,6 +402,14 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         { label: "Gas", href: `${base}/gas`, isActive: (p) => p.startsWith(`${base}/gas`) },
         ...queryTab(network, chainSlug),
       );
+    }
+    if (network === "mainnet" && chainSlug === "c-chain") {
+      // protocols and stablecoins: one tab, a switch on the page picks the view
+      tabs.push({
+        label: "DeFi",
+        href: `${base}/defi`,
+        isActive: (p) => p.startsWith(`${base}/defi`) || p.startsWith("/stats/dapps"),
+      });
     }
     // who's on the chain: population charts for every catalog chain,
     // leaderboards where ClickHouse ingests it

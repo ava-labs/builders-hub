@@ -520,7 +520,7 @@ function StatsChapter({
         <motion.div variants={ROW_VARIANTS}>
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 divide-y divide-zinc-200 dark:divide-zinc-800 lg:grid-cols-3 lg:divide-x lg:divide-y-0 lg:divide-zinc-200 dark:lg:divide-zinc-800">
           <Link
-            href="/explorer/mainnet/apps"
+            href="/explorer/mainnet/c-chain/defi/stablecoins"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -534,7 +534,7 @@ function StatsChapter({
             </span>
           </Link>
           <Link
-            href="/explorer/mainnet/apps"
+            href="/explorer/mainnet/c-chain/defi"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">
@@ -548,7 +548,7 @@ function StatsChapter({
             </span>
           </Link>
           <Link
-            href="/explorer/mainnet/apps"
+            href="/explorer/mainnet/c-chain/defi"
             className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
           >
             <span className="flex items-center justify-between">

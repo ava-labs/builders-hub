@@ -6,7 +6,7 @@ import { ExternalLink, Search, X } from "lucide-react";
 import { ResponsiveContainer, Tooltip as RechartsTooltip, Treemap } from "recharts";
 import { cn } from "@/lib/utils";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
-import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Board, ChartBoard, EmptyRow, HEAD, INK, MUTED, ROW, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
@@ -777,11 +777,11 @@ export function NetworkStablecoins() {
   }
 
   return (
-    <NetworkShell>
+    <EvmShell network="mainnet">
       <div className="mb-8">
         <DefiSwitch on="stablecoins" />
       </div>
       {body}
-    </NetworkShell>
+    </EvmShell>
   );
 }

@@ -2013,7 +2013,7 @@ const config = {
       },
       {
         source: "/stats/dapps",
-        destination: "/explorer/mainnet/apps",
+        destination: "/explorer/mainnet/c-chain/defi",
         permanent: true,
       },
       {

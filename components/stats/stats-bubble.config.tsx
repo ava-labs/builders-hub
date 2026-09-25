@@ -8,7 +8,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
   items: [
     { id: "overview", label: "Overview", href: "/explorer/mainnet", icon: Globe },
     { id: "chain-list", label: "Chain List", href: "/explorer/mainnet/chains", icon: List },
-    { id: "dapps", label: "DApps", href: "/explorer/mainnet/apps", icon: AppWindow },
+    { id: "dapps", label: "DApps", href: "/explorer/mainnet/c-chain/defi", icon: AppWindow },
     { id: "gas-stats", label: "Gas Stats", href: "/explorer/mainnet/c-chain/gas", icon: LayoutGrid },
     { id: "stats", label: "Stats", href: "/explorer/mainnet", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
@@ -32,7 +32,7 @@ const getActiveItem = (
     return "chain-list";
   } else if (pathname.startsWith("/explorer/mainnet/c-chain/gas")) {
     return "gas-stats";
-  } else if (pathname.startsWith("/explorer/mainnet/apps")) {
+  } else if (pathname.startsWith("/explorer/mainnet/c-chain/defi")) {
     return "dapps";
   } else if (pathname.startsWith("/stats/network-metrics")) {
     return "stats"; // All chains stats page

@@ -12,10 +12,13 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
    Mainnet only: the aggregate data sources don't cover Fuji. */
 export function NetworkShell({
   network = "mainnet",
+  search = true,
   children,
 }: {
   /** Defaults to mainnet */
   network?: string;
+  /** Set false where the page has its own input, such as Query's prompt box */
+  search?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -28,9 +31,11 @@ export function NetworkShell({
         <ExplorerSubnav network={network} className="mb-6" />
         {/* the C-Chain's grammar: no display title, no explainer. The
             subnav names the page; the search leads, the figures follow */}
-        <div className="pb-8">
-          <SearchBox chain="p-chain" network={network} />
-        </div>
+        {search && (
+          <div className="pb-8">
+            <SearchBox chain="p-chain" network={network} />
+          </div>
+        )}
         <Rise delay={0.14}>{children}</Rise>
       </div>
     </main>

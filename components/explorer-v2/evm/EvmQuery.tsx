@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, Check, ChevronRight, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, ChevronsUpDown, Copy, Download, MessageSquarePlus, Rows3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
+import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection as setDigSelection, askAbout } from "@/components/explorer-v2/dig/selection";
@@ -127,9 +129,90 @@ export function PchainQuery({ network }: { network: string }) {
   );
 }
 
+/** one chain the network-scope Query page can ask */
+export interface NetworkQueryChain extends QueryChain {
+  chainSlug: string;
+  /** how the picker names the chain */
+  label: string;
+  logo?: string;
+  index: IndexState;
+}
+
+/* Query at the network scope: the All Networks chrome, and a picker for
+   the chain the question is asked of. A pick swaps the target in place;
+   the page remounts on the new chain, so no answer carries across. */
+export function NetworkQuery({ network, chains }: { network: string; chains: NetworkQueryChain[] }) {
+  const params = useSearchParams();
+  const router = useRouter();
+  const [slug, setSlug] = useState(() => {
+    const asked = params.get("chain");
+    return chains.some((c) => c.chainSlug === asked) ? asked! : "c-chain";
+  });
+  const c = chains.find((x) => x.chainSlug === slug) ?? chains[0];
+
+  // the pick rides in the URL, so a shared question lands on its chain
+  const pick = (next: string, q?: string, from?: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("chain", next);
+    url.searchParams.delete("from");
+    if (q) url.searchParams.set("q", q);
+    else url.searchParams.delete("q");
+    if (from) url.searchParams.set("from", from);
+    window.history.replaceState(null, "", url.toString());
+    setSlug(next);
+  };
+
+  const picker = (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="group flex w-fit items-center gap-2.5 text-left">
+        {c.logo && <img src={c.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />}
+        <span className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 dark:text-zinc-100">Ask {c.label}</span>
+        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="max-h-80 w-64 overflow-y-auto">
+        {chains.map((x) => (
+          <DropdownMenuItem key={x.chainSlug} onSelect={() => x.chainSlug !== slug && pick(x.chainSlug)} className="gap-3">
+            {x.logo ? (
+              <img src={x.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
+            ) : (
+              <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
+            )}
+            <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{x.label}</span>
+            {x.chainSlug === slug && <span aria-label="Current chain" className="h-1.5 w-1.5 shrink-0 bg-[#E6212F]" />}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  return (
+    <QueryPage
+      key={c.chainSlug}
+      scope="network"
+      network={network}
+      c={c}
+      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : examplesFor(c.chainId)}
+      index={c.index}
+      picker={picker}
+      // a question about another chain's data moves the picker, not the page
+      onRoute={(route, q) =>
+        chains.some((x) => x.chainSlug === route)
+          ? pick(route, q, c.chainSlug)
+          : router.push(`/explorer/${network}/${route}/query?q=${encodeURIComponent(q)}&from=${c.chainSlug}`)
+      }
+    />
+  );
+}
+
 /* each chain family's own chrome; stable components, so a re-render of
    the wrapper never remounts the page and loses its answer */
-function QueryShell({ kind, network, children }: { kind: QueryChain["kind"]; network: string; children: React.ReactNode }) {
+function QueryShell({ kind, scope, network, children }: { kind: QueryChain["kind"]; scope?: "network"; network: string; children: React.ReactNode }) {
+  if (scope === "network")
+    return (
+      <NetworkShell network={network} search={false}>
+        {children}
+      </NetworkShell>
+    );
   if (kind === "pchain")
     return (
       <ExplorerShell chain="p-chain" network={network} hideHeader>
@@ -143,7 +226,26 @@ function QueryShell({ kind, network, children }: { kind: QueryChain["kind"]; net
   );
 }
 
-function QueryPage({ network, c, examples, index = null }: { network: string; c: QueryChain; examples: typeof EXAMPLES; index?: IndexState }) {
+function QueryPage({
+  network,
+  c,
+  examples,
+  index = null,
+  scope,
+  picker,
+  onRoute,
+}: {
+  network: string;
+  c: QueryChain;
+  examples: typeof EXAMPLES;
+  index?: IndexState;
+  /** "network": the All Networks chrome in place of the chain's */
+  scope?: "network";
+  /** the network scope's chain picker, above the question */
+  picker?: React.ReactNode;
+  /** where a question about another chain goes; the default navigates to that chain's page */
+  onRoute?: (route: string, q: string) => void;
+}) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
 
@@ -287,6 +389,7 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
         if (my !== token.current) return;
         // a question about the other chain's data is asked on that chain's page
         if (a.route && a.route !== c.chainSlug) {
+          if (onRoute) return onRoute(a.route, text);
           router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
           return;
         }
@@ -313,7 +416,7 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [c.chainId, c.chainSlug, network, router, history, design],
+    [c.chainId, c.chainSlug, network, router, history, design, onRoute],
   );
 
   /** the reader's own SQL, run through the same guard */
@@ -567,7 +670,8 @@ function QueryPage({ network, c, examples, index = null }: { network: string; c:
 
   return (
     // the prompt box below is this page's search bar; the shell's would repeat it
-    <QueryShell kind={c.kind} network={network}>
+    <QueryShell kind={c.kind} scope={scope} network={network}>
+      {picker && <div className="mb-6">{picker}</div>}
       {index === "empty" ? (
         <p className="rounded-2xl border border-dashed border-zinc-200 px-4 py-6 text-[13.5px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           {c.chainName}&rsquo;s history is not indexed yet, so Query has nothing to read.{" "}

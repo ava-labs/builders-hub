@@ -1,16 +1,17 @@
 "use client";
 
-import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { EvmShell } from "@/components/explorer-v2/EvmShell";
 import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
 import { useDappsTable } from "@/app/(home)/stats/dapps/_hooks/useDappsTable";
 import { CategorySplit, Leaderboard, ProtocolTreemap, useCategoryShares, usd } from "./apps-parts";
 
-/* The network scope's Apps facet: the applications driving activity
+/* The C-Chain DeFi tab's protocols view: the applications driving activity
    across Avalanche (formerly /stats/dapps). The figures lead, then the
    TVL split by category and the biggest protocols to scale; a category
-   picked there cuts the leaderboard below. Mainnet-only. */
+   picked there cuts the leaderboard below. Mainnet-only. It renders
+   inside the chain layout, so the C-Chain's shell wraps it. */
 export function NetworkApps() {
   const { dapps, metrics, loading, error } = useDapps();
   const table = useDappsTable(dapps);
@@ -22,7 +23,7 @@ export function NetworkApps() {
   const onChain = dapps.filter((d) => !d.tvl).length;
 
   return (
-    <NetworkShell>
+    <EvmShell network="mainnet">
       <div className="mb-8">
         <DefiSwitch on="apps" />
       </div>
@@ -64,7 +65,7 @@ export function NetworkApps() {
           )}
         </div>
       )}
-    </NetworkShell>
+    </EvmShell>
   );
 }
 

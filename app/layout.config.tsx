@@ -171,7 +171,7 @@ export const explorerMenu: LinkItemType = {
     {
       icon: <DraftingCompass />,
       text: "Query",
-      url: "/explorer/mainnet/c-chain/query",
+      url: "/explorer/mainnet/query",
       description:
       "Ask a chain a question in plain words and get a chart with its SQL.",
     },
