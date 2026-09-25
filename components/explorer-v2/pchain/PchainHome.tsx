@@ -7,7 +7,7 @@ import { Bar, BarChart, ResponsiveContainer, Tooltip as RechartsTooltip, YAxis }
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explorer-v2/BlockTape";
-import { Board, BoardHeader, ChartBoard, SectionHeader, StatCell, StatDash, StatFigure, TxTypePill, idInk, txToneText, HEAD, RowSkeleton, ROW, LIVE_DOT } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, SectionHeader, StatCell, StatDash, StatFigure, TxTypePill, idInk, txToneText, HEAD, RowSkeleton, ROW } from "@/components/explorer-v2/ui";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   usePrimaryMetrics,
@@ -60,16 +60,6 @@ const fmtAvaxShort = (n: number) =>
    implementation detail; Commit/Proposal/Standard is what the reader needs. */
 function blockKind(blockType: string): string {
   return blockType.replace(/^Banff/, "").replace(/Block$/, "");
-}
-
-function LiveDot({ onRed = false, className }: { onRed?: boolean; className?: string }) {
-  const tone = onRed ? "bg-white" : LIVE_DOT;
-  return (
-    <span className={cn("relative flex h-1.5 w-1.5", className)}>
-      <span className={cn("absolute inline-flex h-full w-full animate-ping rounded-full opacity-60", tone)} />
-      <span className={cn("relative inline-flex h-1.5 w-1.5 rounded-full", tone)} />
-    </span>
-  );
 }
 
 
@@ -316,24 +306,7 @@ export function PchainHome({ chain, network }: { chain: string; network: string 
   const noData = !stats.loading && (stats.error === "not found" || (s && s.tipHeight === 0));
 
   return (
-    <ExplorerShell
-      chain={chain}
-      network={network}
-      aside={
-        s && !noData ? (
-          <Link href={`${base}/blocks`} className="group flex flex-col items-end gap-1.5">
-            <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-              <LiveDot />
-              Chain Height
-            </span>
-            <StatFigure
-              value={s.tipHeight}
-              className="text-3xl transition-colors group-hover:text-[#E6212F] md:text-[2.5rem]"
-            />
-          </Link>
-        ) : undefined
-      }
-    >
+    <ExplorerShell chain={chain} network={network}>
       {noData ? (
         <Board divide={false} className="px-6 py-16 text-center">
           <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-zinc-400 dark:text-zinc-500">

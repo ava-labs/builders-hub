@@ -14,17 +14,20 @@ export const POST = withAuditor(async (request, _context, auditor, actorEmail) =
   if (request.headers.get("content-type")?.split(";")[0].trim() !== "application/json") {
     return NextResponse.json({ success: false, message: "Send JSON." }, { status: 415 });
   }
-  const limited = applyRateLimit("firm-member-add", auditor.quote_email, {
-    windowMs: DAY_MS,
-    maxRequests: 10,
-  });
-  if (limited) return limited;
+  // Authorize BEFORE counting: the budget is keyed on the acting address, so
+  // a teammate's refused calls cannot spend the owner's daily allowance and
+  // lock the owner out of managing the team (S-16).
   if (!isFirmOwner(auditor, actorEmail)) {
     return NextResponse.json(
       { success: false, message: "Only the firm's quote email can manage teammates." },
       { status: 403 },
     );
   }
+  const limited = applyRateLimit("firm-member-add", actorEmail, {
+    windowMs: DAY_MS,
+    maxRequests: 10,
+  });
+  if (limited) return limited;
 
   let body: unknown;
   try {

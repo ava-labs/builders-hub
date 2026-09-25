@@ -46,6 +46,122 @@ export function doesExtensionMatchMimeType(file: File): boolean {
 }
 
 /**
+ * Uploads are stored under a server-generated key of the form
+ * `<uploaderUserId>/<uuid><ext>`, so the key itself records who owns the file.
+ * That makes ownership checkable without consulting any table a caller can
+ * write to — which is the whole problem with deriving it from project rows:
+ * anyone can create a project whose logo_url points at someone else's blob and
+ * make the lookup "confirm" their ownership.
+ *
+ * Returns null for legacy keys written before the prefix existed.
+ */
+export function uploaderIdFromBlobKey(fileNameOrUrl: string): string | null {
+  const key = blobKeyFromIdentifier(fileNameOrUrl);
+  if (!isWellFormedBlobKey(key)) return null;
+  return key.slice(0, key.indexOf('/'));
+}
+
+/**
+ * Exactly `<userId>/<name>`: two non-empty segments, nothing else.
+ *
+ * The shape is the whole security property, so it is checked rather than
+ * guessed at. A third segment, a traversal segment, or an empty one all mean
+ * the key is not one this service minted, and a key that is not ours must
+ * never resolve to an owner — `uploaderIdFromBlobKey` returning a prefix is
+ * what grants the delete.
+ *
+ * Legacy keys are deliberately NOT this shape, so they resolve to no owner
+ * and stay admin-only. Use isSafeBlobKey for the separate question of whether
+ * a key is safe to address at all.
+ */
+export function isWellFormedBlobKey(key: string): boolean {
+  const parts = key.split('/');
+  if (parts.length !== 2) return false;
+  return parts.every((part) => isSafeSegment(part));
+}
+
+function isSafeSegment(part: string): boolean {
+  return part.length > 0 && part !== '.' && part !== '..';
+}
+
+/**
+ * Addressable at all: no empty, `.` or `..` segment anywhere.
+ *
+ * This is the traversal guard, separate from ownership. Legacy keys of any
+ * depth pass it and remain admin-only, while a key that could resolve to a
+ * different object is refused before any permission question is asked.
+ *
+ * `..` matters because `blobKeyFromIdentifier` percent-decodes AFTER the URL
+ * parser has normalised dot segments, so `%2F..%2F` arrives here as real
+ * separators the parser never got to collapse.
+ */
+export function isSafeBlobKey(key: string): boolean {
+  if (key.length === 0) return false;
+  return key.split('/').every((part) => isSafeSegment(part));
+}
+
+/**
+ * The storage key for a blob, preserving any directory prefix.
+ *
+ * Taking only the last path segment (as this used to) turns
+ * `user-123/abc.png` into `abc.png`, which is a different object — the delete
+ * then silently addresses nothing.
+ */
+export function blobKeyFromIdentifier(fileNameOrUrl: string): string {
+  try {
+    const url = new URL(fileNameOrUrl);
+    return decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+  } catch {
+    return fileNameOrUrl.replace(/^\/+/, '');
+  }
+}
+
+/**
+ * Legacy blobs — those written before the key carried an uploader prefix —
+ * have no trustworthy owner record anywhere. The only evidence of ownership is
+ * the project/profile tables, and any caller can write a row into those that
+ * points at someone else's blob, which is precisely the attack this file now
+ * closes. So legacy keys are admin-only: there is no way to tell a legitimate
+ * owner from a spoofer, and guessing wrong deletes a stranger's file.
+ *
+ * The practical cost is that replacing an image uploaded before the prefix
+ * existed leaves the old blob orphaned in storage instead of deleting it. That
+ * is a storage cost, not a broken flow — the replacement still uploads and the
+ * new URL is still saved.
+ *
+ * Set this to true only as a temporary escape hatch, knowing it restores a
+ * spoofable path. Typed as `boolean` rather than inferred as `false` so the
+ * fallback below stays reachable code.
+ */
+export const ALLOW_LEGACY_UNPREFIXED_DELETES: boolean = false;
+
+/**
+ * First bytes every real file of that type starts with. The declared MIME
+ * type and the extension both come from the client, so on their own they say
+ * nothing about the content; this reads the file itself.
+ */
+const IMAGE_SIGNATURES: Record<string, number[][]> = {
+  'image/png': [[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+  'image/jpeg': [[0xff, 0xd8, 0xff]],
+};
+
+/**
+ * True when the file's own bytes match its declared image type. Unknown types
+ * return false: a caller reaches this only after an allowlist, so an entry
+ * missing here is a signature that still needs writing, not a pass.
+ */
+export async function hasMatchingImageSignature(file: File): Promise<boolean> {
+  const signatures = IMAGE_SIGNATURES[file.type];
+  if (!signatures) return false;
+  const longest = Math.max(...signatures.map((signature) => signature.length));
+  const head = new Uint8Array(await file.slice(0, longest).arrayBuffer());
+  return signatures.some(
+    (signature) =>
+      head.length >= signature.length && signature.every((byte, i) => head[i] === byte),
+  );
+}
+
+/**
  * Validates if a user has permissions to delete a file
  * 
  * Validation rules:
@@ -67,6 +183,21 @@ export async function canUserDeleteFile(
   customAttributes: string[] = [],
   hackathonId?: string
 ): Promise<boolean> {
+  // Authoritative check first: if the key carries an uploader id, that is the
+  // owner, full stop. No table consulted, so nothing a caller can write to can
+  // influence the answer.
+  const uploaderId = uploaderIdFromBlobKey(fileName);
+  if (uploaderId !== null) {
+    if (uploaderId === userId) return true;
+    return customAttributes.includes("admin");
+  }
+
+  // Legacy key with no uploader prefix — falls through to the weaker
+  // project/profile matching below.
+  if (!ALLOW_LEGACY_UNPREFIXED_DELETES) {
+    return customAttributes.includes("admin");
+  }
+
   // Check if user is admin
   if (customAttributes.includes("admin")) {
     return true;
