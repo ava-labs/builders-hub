@@ -5,25 +5,27 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, SectionHeader, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
-import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
+import { RANGE_DAYS, RANGE_LABEL } from "@/components/explorer-v2/time-range";
 import { truncate } from "@/components/explorer-v2/format";
 import { useEvmData, LIVE_REFRESH_MS, usePrice, usdOfWei } from "./hooks";
 import { useHeadStream, CONTINUOUS_EXECUTION_CHAINS } from "./useHeadStream";
-import { Belt, MotionRow, Party, RowSkeleton, ageShort, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
-import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, weekFloor, useChainMetrics } from "./metric-charts";
-import { useVerifiedContracts, functionNameFromAbi, prewarmContractNames } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { Belt, MotionRow, Party, RowSkeleton, ageShort, fmtAmount, useDrip, HEAD, ROW, INK, MUTED, type TxRow } from "./LiveBoards";
+import { ChartSection, DualChart, OverlayKey, fmtCompact, metricSeries, useChainMetrics } from "./metric-charts";
+import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
+import { useMethodNames } from "./bits";
 import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-list";
+import { TxsViewSwitch } from "./views";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import type { TxListResponse } from "@/lib/evm-explorer";
+import { readRpc } from "@/lib/explorer-rpc";
 
 /* The Transactions tab: the receipts stream as a full-width ledger.
    On the C-Chain rows enter as the executor writes them (one at a time,
    the home board's belt at 25 rows), each with what it did, who to, what
    moved, what it cost, and how old it is. Other chains keep the indexer
-   list. The charts beneath give the feed its shape on the page clock. */
+   list. The charts beneath give the feed its shape over the last month. */
 
 const LIVE_ROWS = 25;
 const PAGE = 25;
@@ -36,7 +38,7 @@ export function EvmTxsList({ network }: { network: string }) {
   const sym = c.nativeToken ?? "AVAX";
   const [limit, setLimit] = useState(PAGE);
 
-  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? c.rpcUrl : undefined;
+  const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const head = useHeadStream(liveRpc, { keep: 40, seed: 8, keepTxs: 160 });
   const streaming = head.streamTxs.length > 0;
 
@@ -74,32 +76,36 @@ export function EvmTxsList({ network }: { network: string }) {
         timestamp: t.timestamp,
       }));
 
-  const rows = useDrip(source, streaming ? LIVE_ROWS + 1 : limit, streaming, (fresh) => {
-    void prewarmContractNames(c.chainId, fresh.map((t) => t.to));
-  });
+  const [hover, setHover] = useState(false);
+  const rows = useDrip(
+    source,
+    streaming ? LIVE_ROWS + 1 : limit,
+    streaming,
+    (fresh) => {
+      void prewarmContractNames(c.chainId, fresh.map((t) => t.to));
+    },
+    hover,
+  );
   const contracts = useVerifiedContracts(c.chainId, rows.map((t) => t.to));
+  const method = useMethodNames(c.chainId, rows);
 
-  const method = (t: TxRow): { label: string; named: boolean } => {
-    const sel = t.methodId?.toLowerCase() ?? "";
-    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
-    const fromAbi = functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel);
-    const name = fromAbi ?? getFunctionBySelector(sel)?.name ?? null;
-    return name ? { label: name, named: true } : { label: sel, named: false };
-  };
-
-  const clock = useExplorerTimeRange();
-  const range = RANGE_DAYS[clock];
+  // a fixed month, off the page clock: a list page carries no range
+  // control, so its two charts say their window in the title
+  const range = RANGE_DAYS.month;
   const { metrics, failed } = useChainMetrics(c.chainId, range, METRICS);
   const m = metrics ?? {};
 
-  const cols = "md:grid-cols-[0.75rem_7.5rem_minmax(0,10rem)_minmax(0,1fr)_minmax(0,11rem)_8rem_3.5rem]";
+  // the parties take what the fixed columns leave: at 1400px and up that is
+  // room for two whole addresses
+  const cols = "md:grid-cols-[0.75rem_8rem_minmax(0,10rem)_minmax(0,1fr)_minmax(0,9rem)_7.5rem_3.5rem]";
   const loading = streaming ? rows.length === 0 : indexed.loading && rows.length === 0;
 
   return (
     <EvmShell network={network}>
       <section className="flex flex-col gap-4">
-        <SectionHeader label="Transactions" />
-        <Board divide={false}>
+        {/* the C-Chain's shared-memory transfers are this tab's second view */}
+        <SectionHeader label="Transactions" action={<TxsViewSwitch base={base} slug={c.chainSlug} view="evm" />} />
+        <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
           <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
             <span />
             <span>Hash</span>
@@ -120,24 +126,26 @@ export function EvmTxsList({ network }: { network: string }) {
               const tok = t.to ? tokens.get(t.to.toLowerCase()) : undefined;
               return (
                 <MotionRow key={t.hash} animateIn={streaming} overflow={i >= LIVE_ROWS}>
-                  <Link href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+                  <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
                     <span className="flex h-3 w-3 items-center justify-center">
                       {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
                     </span>
-                    <span className={cn(INK, "truncate")}>{truncate(t.hash, 6)}</span>
+                    <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                      {truncate(t.hash, 8)}
+                    </Link>
                     <span
-                      className={cn("truncate font-mono text-[12px]", mth.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")}
+                      className={cn("truncate font-mono text-[12px]", mth.named ? fnInk : "text-zinc-400 dark:text-zinc-500")}
                       title={t.methodId || undefined}
                     >
                       <CellLabel>Method</CellLabel>
                       {mth.label}
                     </span>
-                    <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+                    <span className="col-span-2 flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 md:col-span-1 dark:text-zinc-400">
                       <CellLabel>From → To</CellLabel>
-                      <Party addr={t.from} name={null} />
+                      <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} full />
                       <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                       {t.to ? (
-                        <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} />
+                        <Party addr={t.to} name={contracts.get(t.to.toLowerCase())?.name} token={tok} chainId={c.chainId} href={`${base}/address/${t.to}`} full />
                       ) : (
                         <span className="truncate">contract creation</span>
                       )}
@@ -146,9 +154,11 @@ export function EvmTxsList({ network }: { network: string }) {
                       <CellLabel>Value</CellLabel>
                       {value > 0 ? (
                         <span className="text-zinc-900 dark:text-zinc-50">
-                          {(value / 1e18).toLocaleString("en-US", { maximumFractionDigits: value / 1e18 >= 1 ? 2 : 4 })}{" "}
+                          {fmtAmount(value / 1e18)}{" "}
                           <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{sym}</span>
-                          {usdOfWei(t.value, usd) && <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>}
+                          {usdOfWei(t.value, usd) && !usdOfWei(t.value, usd)!.startsWith("<") && (
+                            <span className="ml-2 text-[11px] text-zinc-400 dark:text-zinc-500">{usdOfWei(t.value, usd)}</span>
+                          )}
                         </span>
                       ) : t.tokenAmount ? (
                         <span className="text-zinc-900 dark:text-zinc-50" title={t.tokenAmount}>
@@ -158,7 +168,7 @@ export function EvmTxsList({ network }: { network: string }) {
                         <span className="text-zinc-300 dark:text-zinc-700">—</span>
                       )}
                     </span>
-                    <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+                    <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", feeInk)}>
                       <CellLabel>Fee</CellLabel>
                       {t.feeWei !== null ? (
                         <>
@@ -172,7 +182,7 @@ export function EvmTxsList({ network }: { network: string }) {
                       <CellLabel>Age</CellLabel>
                       {t.timestamp ? ageShort(t.timestamp) : ""}
                     </span>
-                  </Link>
+                  </RowDoor>
                 </MotionRow>
               );
             })}
@@ -195,7 +205,7 @@ export function EvmTxsList({ network }: { network: string }) {
 
       {/* the shape of the feed over time */}
       <div className="mt-10 grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartSection label={`Transactions${weekFloor(range)}`} action={<OverlayKey label="avg tps" dashed />}>
+        <ChartSection label={`Transactions · ${RANGE_LABEL.month}`} action={<OverlayKey label="avg tps" dashed />}>
           {metricSeries(m, range, "txCount", "avgTps").length ? (
             <DualChart
               data={metricSeries(m, range, "txCount", "avgTps")}
@@ -211,7 +221,7 @@ export function EvmTxsList({ network }: { network: string }) {
           )}
         </ChartSection>
 
-        <ChartSection label={`Total Transactions${weekFloor(range)}`}>
+        <ChartSection label={`Total Transactions · ${RANGE_LABEL.month}`}>
           {metricSeries(m, range, "cumulativeTxCount").length ? (
             <DualChart data={metricSeries(m, range, "cumulativeTxCount")} kind="area" fmt={fmtCompact} aLabel="txs all-time" />
           ) : (

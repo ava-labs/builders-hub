@@ -2806,7 +2806,7 @@ Let's make a rewards owner:
 
 ### What Unsigned Convert Subnet To L1 TX Contains
 
-An unsigned convert subnet to L1 TX contains a `BaseTx`, `Subnet`, `ChainID`, `Address`, `Validators`, and `SubnetAuth`. The `TypeID` for this type is `0x00000030`.
+An unsigned convert subnet to L1 TX contains a `BaseTx`, `Subnet`, `ChainID`, `Address`, `Validators`, and `SubnetAuth`. The `TypeID` for this type is `0x00000023`.
 
 - **`BaseTx`**
 - **`Subnet`** ID of the Subnet to transform into an L1. Must not be the Primary Network ID.
@@ -2852,7 +2852,7 @@ message ConvertSubnetToL1Tx {
 
 ### What Unsigned Register L1 Validator TX Contains
 
-An unsigned register L1 validator TX contains a `BaseTx`, `Balance`, `Signer` and `Message`. The `TypeID` for this type is `0x00000031`.
+An unsigned register L1 validator TX contains a `BaseTx`, `Balance`, `Signer` and `Message`. The `TypeID` for this type is `0x00000024`.
 
 - **`BaseTx`**
 - **`Balance`** is the amount of AVAX being provided for fees, where `Balance <= sum($AVAX inputs) - sum($AVAX outputs) - TxFee`.
@@ -2890,7 +2890,7 @@ message RegisterL1ValidatorTx {
 
 ### What Unsigned Set L1 Validator Weight TX Contains
 
-An unsigned set L1 validator weight TX contains a `BaseTx` and `Message`. The `TypeID` for this type is `0x00000032`.
+An unsigned set L1 validator weight TX contains a `BaseTx` and `Message`. The `TypeID` for this type is `0x00000025`.
 
 - **`BaseTx`**
 - **`Message`** An L1ValidatorWeightMessage payload delivered as a Warp Message. Contains the validationID, nonce, and new weight for a validator.
@@ -2920,7 +2920,7 @@ message SetL1ValidatorWeightTx {
 
 ### What Unsigned Disable L1 Validator TX Contains
 
-An unsigned disable L1 validator TX contains a `BaseTx`, `ValidationID` and `DisableAuth`. The `TypeID` for this type is `0x00000033`.
+An unsigned disable L1 validator TX contains a `BaseTx`, `ValidationID` and `DisableAuth`. The `TypeID` for this type is `0x00000027`.
 
 - **`BaseTx`**
 - **`ValidationID`** ID corresponding to the validator to be disabled.
@@ -2954,7 +2954,7 @@ message DisableL1ValidatorTx {
 
 ### What Unsigned Increase L1 Validator Balance TX Contains
 
-An unsigned increase L1 validator balance TX contains a `BaseTx`, `ValidationID` and `Balance`. The `TypeID` for this type is `0x00000034`.
+An unsigned increase L1 validator balance TX contains a `BaseTx`, `ValidationID` and `Balance`. The `TypeID` for this type is `0x00000026`.
 
 - **`BaseTx`**
 - **`ValidationID`** ID corresponding to the validator.
@@ -2981,5 +2981,147 @@ message IncreaseL1ValidatorBalanceTx {
     BaseTx base_tx = 1;       // size(base_tx)
     bytes validation_id = 2;  // 32 bytes
     uint64 balance = 3;       // 8 bytes
+}
+```
+
+## Unsigned Add Auto-Renewed Validator TX
+
+Added by the [Helicon](/docs/primary-network/helicon-upgrade) upgrade ([ACP-236](/docs/acps/236-auto-renewed-staking)). Unlike `AddPermissionlessValidatorTx`, this transaction has no `Start`/`End` time. It specifies a `Period` instead, and the validation renews itself for another `Period` at every cycle boundary for as long as it stays reward-eligible.
+
+### What Unsigned Add Auto-Renewed Validator TX Contains
+
+An unsigned add auto-renewed validator TX contains a `BaseTx`, `NodeID`, `Signer`, `StakeOuts`, `ValidatorRewardsOwner`, `DelegatorRewardsOwner`, `ValidatorAuthority`, `DelegationShares`, `AutoCompoundRewardShares` and `Period`. The `TypeID` for this type is `0x00000028`.
+
+- **`BaseTx`**
+- **`NodeID`** is a length-prefixed byte slice holding the node ID of the validator. It must not be the empty node ID.
+- **`Signer`** is the BLS key for this validator. It must be a [Proof of Possession](#proof-of-possession) (type id `0x0000001c`); `signer.Empty` is not accepted, so every auto-renewed validator has a BLS key.
+- **`StakeOuts`** are the outputs that hold the staked tokens. Every output must be denominated in AVAX, and they must be sorted.
+- **`ValidatorRewardsOwner`** is an `OutputOwners` that receives the validation rewards.
+- **`DelegatorRewardsOwner`** is an `OutputOwners` that receives the delegation fees.
+- **`ValidatorAuthority`** is an `OutputOwners` authorized to change this validator's configuration later with an [Unsigned Set Auto-Renewed Validator Config TX](#unsigned-set-auto-renewed-validator-config-tx).
+- **`DelegationShares`** is the fee this validator charges delegators, as a percentage times 10,000. `300000` means 30%.
+- **`AutoCompoundRewardShares`** is the percentage of rewards restaked at the end of each cycle, expressed in millionths and bounded by `[0, 1000000]`. `0` restakes the principal only and pays out 100% of the rewards; `1000000` restakes everything.
+- **`Period`** is the validation cycle duration in seconds. It must be non-zero and must sit between the network's minimum and maximum staking duration.
+
+### Gantt Unsigned Add Auto-Renewed Validator TX Specification
+
+```text
++------------------------------+------------------+-----------------------------------------------+
+| base_tx                      : BaseTx           |                           size(base_tx) bytes |
++------------------------------+------------------+-----------------------------------------------+
+| node_id                      : []byte           |                       4 + len(node_id) bytes  |
++------------------------------+------------------+-----------------------------------------------+
+| signer                       : Signer           |                            size(signer) bytes |
++------------------------------+------------------+-----------------------------------------------+
+| stake_outs                   : []TransferableOut|                        size(stake_outs) bytes |
++------------------------------+------------------+-----------------------------------------------+
+| validator_rewards_owner      : Owner            |          size(validator_rewards_owner) bytes  |
++------------------------------+------------------+-----------------------------------------------+
+| delegator_rewards_owner      : Owner            |          size(delegator_rewards_owner) bytes  |
++------------------------------+------------------+-----------------------------------------------+
+| validator_authority          : Owner            |              size(validator_authority) bytes  |
++------------------------------+------------------+-----------------------------------------------+
+| delegation_shares            : uint32           |                                       4 bytes |
++------------------------------+------------------+-----------------------------------------------+
+| auto_compound_reward_shares  : uint32           |                                       4 bytes |
++------------------------------+------------------+-----------------------------------------------+
+| period                       : uint64           |                                       8 bytes |
++------------------------------+------------------+-----------------------------------------------+
+| 16 + 4 + len(node_id) + size(base_tx) + size(signer) + size(stake_outs)                          |
+|    + size(validator_rewards_owner) + size(delegator_rewards_owner)                               |
+|    + size(validator_authority) bytes                                                             |
++--------------------------------------------------------------------------------------------------+
+```
+
+### Proto Unsigned Add Auto-Renewed Validator TX Specification
+
+```text
+message AddAutoRenewedValidatorTx {
+    BaseTx base_tx = 1;                            // size(base_tx)
+    bytes node_id = 2;                             // 4 + len(node_id) bytes
+    Signer signer = 3;                             // size(signer)
+    repeated TransferableOutput stake_outs = 4;    // size(stake_outs)
+    Owner validator_rewards_owner = 5;             // size(validator_rewards_owner)
+    Owner delegator_rewards_owner = 6;             // size(delegator_rewards_owner)
+    Owner validator_authority = 7;                 // size(validator_authority)
+    uint32 delegation_shares = 8;                  // 4 bytes
+    uint32 auto_compound_reward_shares = 9;        // 4 bytes
+    uint64 period = 10;                            // 8 bytes
+}
+```
+
+## Unsigned Set Auto-Renewed Validator Config TX
+
+Added by the [Helicon](/docs/primary-network/helicon-upgrade) upgrade ([ACP-236](/docs/acps/236-auto-renewed-staking)). Changes apply at the next cycle boundary, not immediately.
+
+### What Unsigned Set Auto-Renewed Validator Config TX Contains
+
+An unsigned set auto-renewed validator config TX contains a `BaseTx`, `TxID`, `Auth`, `AutoCompoundRewardShares` and `Period`. The `TypeID` for this type is `0x00000029`.
+
+- **`BaseTx`**
+- **`TxID`** is the ID of the transaction that created the auto-renewed validator. Cycle renewals keep this ID, but if a node exited and was staked again with the same node ID, this must be the **latest** `AddAutoRenewedValidatorTx` for that node, which you can read from the `txID` field of [`platform.getCurrentValidators`](/docs/rpcs/p-chain#platformgetcurrentvalidators).
+- **`Auth`** authorizes the change. It must be signed by the `ValidatorAuthority` set when the validator was added.
+- **`AutoCompoundRewardShares`** is the new auto-compound percentage in millionths, bounded by `[0, 1000000]`.
+- **`Period`** is the duration of the next cycle in seconds. **A `Period` of `0` is the exit path**: the validation stops at the end of the current cycle and the funds unlock instead of renewing.
+
+### Gantt Unsigned Set Auto-Renewed Validator Config TX Specification
+
+```text
++------------------------------+------------------+--------------------------------------+
+| base_tx                      : BaseTx           |                  size(base_tx) bytes |
++------------------------------+------------------+--------------------------------------+
+| tx_id                        : [32]byte         |                             32 bytes |
++------------------------------+------------------+--------------------------------------+
+| auth                         : Verifiable       |                     size(auth) bytes |
++------------------------------+------------------+--------------------------------------+
+| auto_compound_reward_shares  : uint32           |                              4 bytes |
++------------------------------+------------------+--------------------------------------+
+| period                       : uint64           |                              8 bytes |
++------------------------------+------------------+--------------------------------------+
+| 44 + size(base_tx) + size(auth) bytes                                                   |
++-----------------------------------------------------------------------------------------+
+```
+
+### Proto Unsigned Set Auto-Renewed Validator Config TX Specification
+
+```text
+message SetAutoRenewedValidatorConfigTx {
+    BaseTx base_tx = 1;                      // size(base_tx)
+    bytes tx_id = 2;                         // 32 bytes
+    Verifiable auth = 3;                     // size(auth)
+    uint32 auto_compound_reward_shares = 4;  // 4 bytes
+    uint64 period = 5;                       // 8 bytes
+}
+```
+
+## Unsigned Reward Auto-Renewed Validator TX
+
+Added by the [Helicon](/docs/primary-network/helicon-upgrade) upgrade ([ACP-236](/docs/acps/236-auto-renewed-staking)). This transaction is built by block builders at a cycle boundary, not issued by wallets, and it carries no `BaseTx`, inputs, outputs or credentials. It settles the cycle's rewards and either starts the next cycle or, if the validator was configured to exit or missed the uptime requirement, removes the validator from the set.
+
+### What Unsigned Reward Auto-Renewed Validator TX Contains
+
+An unsigned reward auto-renewed validator TX contains a `TxID` and a `Timestamp`. The `TypeID` for this type is `0x0000002a`.
+
+- **`TxID`** is the ID of the transaction that created the validator being rewarded. Must be non-empty.
+- **`Timestamp`** is the end time of the validation cycle. It is included so that reward transactions for different cycles of the same auto-renewed validator hash to different IDs. Must be non-zero.
+
+### Gantt Unsigned Reward Auto-Renewed Validator TX Specification
+
+```text
++-----------+------------+--------------+
+| tx_id     : [32]byte   |     32 bytes |
++-----------+------------+--------------+
+| timestamp : uint64     |      8 bytes |
++-----------+------------+--------------+
+| 40 bytes                              |
++---------------------------------------+
+```
+
+### Proto Unsigned Reward Auto-Renewed Validator TX Specification
+
+```text
+message RewardAutoRenewedValidatorTx {
+    bytes tx_id = 1;      // 32 bytes
+    uint64 timestamp = 2; // 8 bytes
 }
 ```

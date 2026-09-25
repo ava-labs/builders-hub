@@ -476,17 +476,17 @@ export function NetworkToken() {
           </div>
           <section className="flex flex-col gap-4">
             <SectionHeader label="Supply, Staking & Burn" />
-            <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="h-28 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
               ))}
             </div>
           </section>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="h-[480px] animate-pulse bg-zinc-100 lg:col-span-2 dark:bg-zinc-900" />
             <div className="h-[480px] animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="h-64 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
             <div className="h-64 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
           </div>
@@ -543,7 +543,7 @@ export function NetworkToken() {
           <section className="flex flex-col gap-4">
             <SectionHeader label="Supply, Staking & Burn" />
             <TooltipProvider>
-              <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {metrics.map((metric) => {
                   const Icon = metric.icon;
                   return (
@@ -605,7 +605,7 @@ export function NetworkToken() {
           </section>
 
           {/* Row 1: Chart (2/3) + Live Burns (1/3) */}
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <Card className="border-gray-200 dark:border-gray-700 rounded-md">
                 <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -749,7 +749,7 @@ export function NetworkToken() {
           </div>
 
           {/* Row 2: Burn breakdown + Fee metrics */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="border-gray-200 dark:border-gray-700 rounded-md">
               <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-medium text-black dark:text-white">Fees Burned by Chain</h2>

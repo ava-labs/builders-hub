@@ -5,14 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
-import { formatNumber, truncate } from "@/components/explorer-v2/format";
-import { useVerifiedContracts, functionNameFromAbi, prewarmContractNames } from "@/lib/sourcify-client";
-import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { Board, SectionHeader, HEAD, ROW, INK, MUTED, RowSkeleton, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
+import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/format";
+import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
+import { useMethodNames } from "./bits";
 import { knownAddress } from "@/lib/evm-explorer";
 import { useTokenList, formatTokenAmount, type TokenInfo } from "@/lib/token-list";
 import { TokenMark } from "./TokenMark";
-import type { Head } from "./useHeadStream";
+import { CONTINUOUS_EXECUTION_CHAINS, type Head } from "./useHeadStream";
 
 /* The home page's two live boards, in the ledger's own grammar: one line
    per row, a header naming every column, ink for identity, one
@@ -27,53 +27,31 @@ import type { Head } from "./useHeadStream";
    root catching up is bookkeeping, not finality, and a reader should
    leave thinking the chain is fast, because it is. */
 
-export const HEAD =
-  "hidden gap-4 px-5 py-2 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500";
-export const ROW =
-  "grid grid-cols-2 items-center gap-x-4 gap-y-1 px-5 py-2.5 transition-colors hover:bg-zinc-50 md:h-11 md:py-0 md:px-6 dark:hover:bg-zinc-900";
-export const INK = "font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50";
-export const MUTED = "font-mono text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500";
+export { HEAD, ROW, INK, MUTED, RowSkeleton, ageShort };
 
 /** a transferred amount beside its method: two places when it is money,
  *  four when it is small, a floor when it is dust */
-function fmtAmount(v: number): string {
+export function fmtAmount(v: number): string {
   if (v >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
   if (v >= 1) return v.toFixed(2);
   if (v >= 0.0001) return v.toFixed(4);
   return "<0.0001";
 }
 
-/** "5s", "2m", "1h": the age without its "ago", the column header says it */
-export function ageShort(unixSecs: number): string {
-  const s = Math.max(0, Math.floor(Date.now() / 1000 - unixSecs));
-  if (s < 60) return `${s}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86400)}d`;
+/** A height, every digit in the same ink: the belt's motion already
+ *  says which row is new, so the number itself stays quiet and even. */
+export function Height({ value }: { value: number }) {
+  return <span className={INK}>{formatNumber(value)}</span>;
 }
 
-/** A height against a neighbour: the digits they share go quiet, the
- *  digits that changed carry the ink. The stream reads at a glance. */
-export function Height({ value, against }: { value: number; against: number | undefined }) {
-  const a = formatNumber(value);
-  const b = against !== undefined ? formatNumber(against) : "";
-  let i = 0;
-  if (a.length === b.length) while (i < a.length - 1 && a[i] === b[i]) i++;
-  return (
-    <span className={INK}>
-      <span className="text-zinc-400 dark:text-zinc-600">{a.slice(0, i)}</span>
-      {a.slice(i)}
-    </span>
-  );
-}
-
-/** Gas as the row's one bar: fills the column, no percent beside it */
+/** Gas as the row's one bar: fills the column, no percent beside it. A full
+ *  block is demand, not a fault: it goes to ink, never to the alarm red */
 export function GasBar({ used, limit }: { used: number; limit: number }) {
   const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
   return (
     <span className="block h-1.5 w-full bg-zinc-100 dark:bg-zinc-900" title={`${pct.toFixed(1)}% of gas limit`}>
       <span
-        className={cn("block h-full", pct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+        className={cn("block h-full", pct >= 90 ? "bg-zinc-800 dark:bg-zinc-300" : "bg-[#A2AFB2] dark:bg-zinc-600")}
         style={{ width: `${Math.max(pct > 0 ? 1.5 : 0, pct).toFixed(1)}%` }}
       />
     </span>
@@ -89,56 +67,76 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
 }
 
 const PHASE_TITLE: Record<Phase, string> = {
-  accepted: "final: accepted by consensus, executing",
-  executed: "final: executing; the state root is committed by a later block",
+  accepted: "final: accepted by consensus; state root pending",
+  executed: "final: state root pending, committed by a later block",
   settled: "final: state root committed",
 };
 
-/** final → executed → state root as three stops. Filled stops are
- *  attested by the RPC; the next one pulses while the chain works. The
- *  optional label names only the state root, the one thing still moving. */
+/** The state root as one mark and one word. Pending: a light gray dot
+ *  that breathes, every dot on the page in the same phase, because they
+ *  are all the same wait. Committed: the dot settles solid and darker and
+ *  the word turns over. No bar, no fill: the commit lands whenever the
+ *  next header after the τ floor does, and a categorical state deserves a
+ *  categorical mark. Gray, not green: a pending root is bookkeeping, not
+ *  a live signal. A batch of commits cascades on `delayMs`. */
 export function PhaseTrack({
   phase,
   label = true,
   rootBlock,
+  delayMs = 0,
 }: {
   phase: Phase;
   label?: boolean;
   /** the block that committed the root, named when known */
   rootBlock?: number | null;
+  /** how long to hold before showing a commit, so a batch reads as a cascade */
+  delayMs?: number;
 }) {
-  const reached = phase === "settled" ? 3 : phase === "executed" ? 2 : 1;
+  const committed = phase === "settled";
+  // phase-lock the breathing: every dot's animation starts at the
+  // document timeline's origin, so dots mounted seconds apart rise and
+  // fall together
+  const dot = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    if (committed) return;
+    let raf = 0;
+    const lock = () => {
+      const anims = dot.current?.getAnimations() ?? [];
+      if (!anims.length) {
+        raf = requestAnimationFrame(lock);
+        return;
+      }
+      for (const a of anims) a.startTime = 0;
+    };
+    lock();
+    return () => cancelAnimationFrame(raf);
+  }, [committed]);
   return (
     <span
       className="flex items-center gap-2"
-      title={phase === "settled" && rootBlock ? `${PHASE_TITLE[phase]} in #${rootBlock.toLocaleString("en-US")}` : PHASE_TITLE[phase]}
+      title={committed && rootBlock ? `${PHASE_TITLE[phase]} in #${rootBlock.toLocaleString("en-US")}` : PHASE_TITLE[phase]}
     >
-      <span className="flex items-center gap-1.5">
-        {[1, 2, 3].map((i) => {
-          const on = i <= reached;
-          const next = i === reached + 1;
-          return (
-            <span key={i} className="relative flex h-1.5 w-1.5 shrink-0">
-              {next && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-50" />}
-              <span
-                className={cn(
-                  "relative inline-flex h-1.5 w-1.5 rounded-full",
-                  on ? "bg-zinc-900 dark:bg-zinc-50" : next ? "border border-[#E6212F]" : "border border-zinc-300 dark:border-zinc-700",
-                )}
-              />
-            </span>
-          );
-        })}
-      </span>
+      <motion.span
+        ref={dot}
+        className={cn("block h-1.5 w-1.5 shrink-0 rounded-full", committed ? "bg-zinc-500 dark:bg-zinc-400" : "animate-[root-breathe_2.4s_ease-in-out_infinite] bg-zinc-300 dark:bg-zinc-600")}
+        initial={false}
+        animate={{ scale: committed ? [1, 1.8, 1] : 1 }}
+        transition={{ duration: 0.5, delay: committed ? delayMs / 1000 : 0, ease: "easeOut" }}
+        style={{ transition: `background-color 300ms ease ${delayMs}ms` }}
+      />
       {label && (
-        <span
+        <motion.span
+          key={committed ? "committed" : "pending"}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
           className={cn(
             "font-mono text-[10px] uppercase tracking-[0.12em]",
-            phase === "settled" ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
+            committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
           )}
         >
-          {phase === "settled" ? "committed" : "executing"}
-        </span>
+          {committed ? "committed" : "pending"}
+        </motion.span>
       )}
     </span>
   );
@@ -200,9 +198,14 @@ export function useDrip<T extends { hash: string }>(
   visibleMax: number,
   enabled: boolean,
   onEnqueue?: (items: T[]) => void,
+  /** hold the belt still (the pointer is over it); newcomers queue up and
+   *  catch up, skipping ahead if needed, once released */
+  paused = false,
 ): T[] {
   const [visible, setVisible] = useState<T[]>([]);
   const queue = useRef<T[]>([]);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   const seen = useRef(new Set<string>());
   const painted = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -231,7 +234,7 @@ export function useDrip<T extends { hash: string }>(
     const tick = () => {
       if (cancelled) return;
       const q = queue.current;
-      if (q.length) {
+      if (q.length && !pausedRef.current) {
         // far behind: skip to the newest window rather than replaying
         // history. The ticker stays calm and near-real-time; the tab
         // behind "View all" has every transaction.
@@ -253,18 +256,33 @@ export function useDrip<T extends { hash: string }>(
   return enabled ? visible : incoming.slice(0, visibleMax);
 }
 
+/** the last value seen before `frozen` went true, until it goes false */
+export function useFreeze<T>(value: T, frozen: boolean): T {
+  const held = useRef(value);
+  if (!frozen) held.current = value;
+  return frozen ? held.current : value;
+}
+
 /* ------------------------------------------------------------------ */
 
 export interface BlockRow {
   number: number;
   timestamp: number;
+  /** millisecond time when the feed has it (ACP-226 headers) */
+  timestampMs?: number;
   txCount: number;
   gasUsed: number;
   gasLimit: number;
 }
 
+/** most of the newest blocks are at 90% of the gas limit or more */
+function busy(rows: BlockRow[]): boolean {
+  const recent = rows.slice(0, 8).filter((b) => b.gasLimit > 0);
+  return recent.length >= 4 && recent.filter((b) => b.gasUsed / b.gasLimit >= 0.9).length * 2 > recent.length;
+}
+
 export function LatestBlocksBoard({
-  rows,
+  rows: incomingRows,
   tip,
   executedHeight,
   rootBlockFor,
@@ -284,10 +302,27 @@ export function LatestBlocksBoard({
   const cols = showSettlement
     ? "md:grid-cols-[7.5rem_3rem_minmax(0,1fr)_8.5rem_3rem]"
     : "md:grid-cols-[7.5rem_3rem_minmax(0,1fr)_3rem]";
+  // the belt holds still under the pointer so a row can be clicked
+  const [hover, setHover] = useState(false);
+  const shown = useFreeze({ rows: incomingRows, tip, executedHeight }, hover);
+  const rows = shown.rows;
   return (
     <section className="flex flex-col gap-4">
-      <SectionHeader label="Latest Blocks" action={<ViewAll href={`${base}/blocks`} />} />
-      <Board divide={false}>
+      <SectionHeader
+        label="Latest Blocks"
+        action={
+          <span className="flex shrink-0 items-center gap-4">
+            {/* a run of full blocks says why ages stretch: the chain is busy, not behind */}
+            {busy(rows) && (
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400" title="Most recent blocks use 90% or more of the gas limit. Blocks are full because demand is high.">
+                Blocks full · high demand
+              </span>
+            )}
+            <ViewAll href={`${base}/blocks`} />
+          </span>
+        }
+      />
+      <Board divide={false} className="group/belt" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span>Height</span>
           <span className="text-right">Txs</span>
@@ -304,13 +339,17 @@ export function LatestBlocksBoard({
           {rows.map((b, i) => (
             <MotionRow key={b.number} animateIn overflow={i >= ROWS}>
               <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
-                <Height value={b.number} against={rows[i === 0 ? 1 : 0]?.number} />
+                <Height value={b.number} />
                 <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
                 <span className="col-span-2 md:col-span-1">
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>
                 {showSettlement && (
-                  <PhaseTrack phase={phaseOf(b.number, executedHeight, settledHeight)} rootBlock={rootBlockFor?.(b.number)} />
+                  <PhaseTrack
+                    phase={phaseOf(b.number, shown.executedHeight, shown.tip?.settledHeight ?? null)}
+                    rootBlock={rootBlockFor?.(b.number)}
+                    delayMs={(ROWS - i) * 60}
+                  />
                 )}
                 <span className={cn(MUTED, "text-right")}>{ageShort(b.timestamp)}</span>
               </Link>
@@ -352,22 +391,45 @@ export function Party({
   name,
   token,
   chainId,
+  href,
+  len = 6,
+  full = false,
 }: {
   addr: string;
   name: string | null | undefined;
   token?: TokenInfo | null;
   chainId?: string;
+  /** the party's page; with it the mark is a link inside the row's door */
+  href?: string;
+  len?: number;
+  /** the whole address where the column has room (the list page); the
+   *  row's own grid decides, so nothing is cut that did not have to be */
+  full?: boolean;
 }) {
-  if (token && chainId) return <TokenMark address={addr} chainId={chainId} token={token} size={14} />;
   const fixture = knownAddress(addr);
   const label = name ?? fixture?.label;
-  return label ? (
-    <span className="truncate font-medium text-zinc-900 dark:text-zinc-50" title={addr}>
-      {label}
-    </span>
+  const inner =
+    token && chainId ? (
+      <TokenMark address={addr} chainId={chainId} token={token} size={14} />
+    ) : label ? (
+      <span className="truncate font-medium text-zinc-900 dark:text-zinc-50">{label}</span>
+    ) : full ? (
+      // the whole address once the sheet is wide enough for two of them
+      // side by side; below that, the middle goes, never the ends
+      <>
+        <span className={cn("truncate min-[1400px]:hidden", idInk)}>{truncate(addr, 10)}</span>
+        <span className={cn("hidden truncate min-[1400px]:inline", idInk)}>{addr}</span>
+      </>
+    ) : (
+      <span className={cn("truncate", idInk)}>{truncate(addr, len)}</span>
+    );
+  return href ? (
+    <Link href={href} title={addr} className="flex min-w-0 items-center hover:text-[#E6212F] [&>*]:hover:text-[#E6212F]" onClick={(e) => e.stopPropagation()}>
+      {inner}
+    </Link>
   ) : (
-    <span className="truncate" title={addr}>
-      {truncate(addr, 6)}
+    <span className="flex min-w-0 items-center" title={addr}>
+      {inner}
     </span>
   );
 }
@@ -389,38 +451,41 @@ export function LatestTxsBoard({
   /** rows arrive from the receipts stream; enter with motion */
   streaming: boolean;
 }) {
-  // the ticker: one row at a time, names warmed before a row is released
-  const rows = useDrip(txs, ROWS + 1, streaming, (fresh) => {
-    void prewarmContractNames(chainId, fresh.map((t) => t.to));
-  });
-  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
+  // the ticker: one row at a time, names warmed before a row is released;
+  // it holds still while the pointer is over it so a row can be clicked
+  const [hover, setHover] = useState(false);
+  const rows = useDrip(
+    txs,
+    ROWS + 1,
+    streaming,
+    (fresh) => {
+      void prewarmContractNames(chainId, fresh.map((t) => t.to));
+    },
+    hover,
+  );
   const tokens = useTokenList(chainId);
-
-  // what the tx did: the verified ABI of the called contract names the
-  // selector first, then the generated registry, then the bare selector
-  const method = (t: TxRow): { label: string; named: boolean } => {
-    const sel = t.methodId?.toLowerCase() ?? "";
-    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
-    const fromAbi = functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel);
-    const name = fromAbi ?? getFunctionBySelector(sel)?.name ?? null;
-    return name ? { label: name, named: true } : { label: sel, named: false };
-  };
+  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
+  const method = useMethodNames(chainId, rows);
 
   // no lifecycle column here: rows live a few seconds and settlement
   // takes five or more, so it would never be seen to turn. The blocks
   // board, where rows live ten seconds, carries the track.
-  const cols = "md:grid-cols-[0.75rem_6.5rem_minmax(0,7rem)_minmax(0,1fr)_minmax(0,8rem)_7rem]";
+  const cols = "md:grid-cols-[0.75rem_6.5rem_minmax(0,7rem)_minmax(0,1fr)_minmax(0,9rem)_7rem]";
   return (
     <section className="flex flex-col gap-4">
       <SectionHeader label="Latest Transactions" action={<ViewAll href={`${base}/txs`} />} />
-      <Board divide={false}>
+      <Board divide={false} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+        {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+        <div className="overflow-x-auto">
+        <div className="md:min-w-[46rem] xl:min-w-0">
         <div className={cn(HEAD, cols, "border-b border-zinc-200 dark:border-zinc-800")}>
           <span />
           <span>Hash</span>
           <span>Method</span>
           <span>From → To</span>
           <span className="text-right">Value</span>
-          <span className="text-right">Fee</span>
+          {/* the C-Chain burns every fee; a sovereign L1 chooses its own destination */}
+          <span className="text-right">{CONTINUOUS_EXECUTION_CHAINS.has(String(chainId)) ? "Burn" : "Fee"}</span>
         </div>
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
         <Belt>
@@ -429,17 +494,19 @@ export function LatestTxsBoard({
           const value = Number(t.value);
           return (
             <MotionRow key={t.hash} animateIn={streaming} overflow={i >= ROWS}>
-            <Link href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
+            <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
               {/* status: a red X only when it reverted, the row stays quiet otherwise */}
               <span className="flex h-3 w-3 items-center justify-center">
                 {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
               </span>
-              <span className={cn(INK, "truncate")}>{truncate(t.hash, 6)}</span>
-              <span className={cn("truncate font-mono text-[12px]", m.named ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
+              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                {truncate(t.hash, 6)}
+              </Link>
+              <span className={cn("truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
                 {m.label}
               </span>
               <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                <Party addr={t.from} name={null} />
+                <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
                 <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                 {t.to ? (
                   <Party
@@ -447,6 +514,7 @@ export function LatestTxsBoard({
                     name={contracts.get(t.to.toLowerCase())?.name}
                     token={tokens.get(t.to.toLowerCase())}
                     chainId={chainId}
+                    href={`${base}/address/${t.to}`}
                   />
                 ) : (
                   <span className="truncate">contract creation</span>
@@ -466,20 +534,22 @@ export function LatestTxsBoard({
                   <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-              <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
+              <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", feeInk)}>
                 {t.feeWei !== null ? (
                   <>
                     {(t.feeWei / 1e18).toFixed(6)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>
                   </>
                 ) : (
-                  <span className="text-zinc-300 dark:text-zinc-700">…</span>
+                  <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-            </Link>
+            </RowDoor>
             </MotionRow>
           );
         })}
         </Belt>
+        </div>
+        </div>
       </Board>
     </section>
   );
@@ -498,15 +568,3 @@ function ViewAll({ href }: { href: string }) {
   );
 }
 
-export function RowSkeleton({ n }: { n: number }) {
-  return (
-    <>
-      {Array.from({ length: n }).map((_, i) => (
-        <div key={i} className="flex h-11 items-center justify-between px-5 md:px-6">
-          <div className="h-3 w-40 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-          <div className="h-3 w-12 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-        </div>
-      ))}
-    </>
-  );
-}

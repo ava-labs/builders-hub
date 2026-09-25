@@ -39,7 +39,7 @@ export interface ChainMatch {
 export const CHAIN_INDEX: ChainHit[] = [
   {
     slug: "p-chain",
-    name: "Platform Chain",
+    name: "P-Chain",
     logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
     subnetId: "11111111111111111111111111111111LpoYY",
     isTestnet: false,
@@ -58,7 +58,8 @@ export const CHAIN_INDEX: ChainHit[] = [
     const net = c.isTestnet === true ? "fuji" : "mainnet";
     return {
       slug: c.slug,
-      name: c.chainName || c.slug,
+      // the Primary Network chain goes by its short name everywhere in the explorer
+      name: c.slug === "c-chain" ? "C-Chain" : c.chainName || c.slug,
       logo: hasRealChainLogo(c.chainLogoURI) ? c.chainLogoURI : undefined,
       subnetId: c.subnetId || undefined,
       blockchainId: c.blockchainId || undefined,

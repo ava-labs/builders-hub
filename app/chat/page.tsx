@@ -37,6 +37,7 @@ import { MessageFeedback } from '@/components/ai/feedback';
 import InlineChatComponent from '@/components/chat/inline-component';
 import Link from 'fumadocs-core/link';
 import { type UIMessage, useChat, type UseChatHelpers } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
 // In v6, UIMessage has 'parts' array instead of 'content'
 // Create a compatible Message type for our app
@@ -1154,8 +1155,17 @@ function ChatPageInner() {
 
   const currentConversation = conversations.find(c => c.id === currentConversationId);
 
+  // The page a conversation started on (handed over by the chat bubble),
+  // sent with every request so the assistant keeps explaining that page.
+  const pageRef = useRef<{ path: string } | null>(null);
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: '/api/chat', body: () => ({ page: pageRef.current }) }),
+    [],
+  );
+
   const chat = useChat({
     id: currentConversationId || 'new',
+    transport,
     onError(error) {
       console.error('Chat error:', error.message, error);
       // Error is automatically exposed via chat.error and displayed in ChatInput
@@ -1224,9 +1234,12 @@ function ChatPageInner() {
         const bubbleMessages = JSON.parse(stored);
         if (Array.isArray(bubbleMessages) && bubbleMessages.length > 0) {
           chat.setMessages(bubbleMessages);
+          const page = JSON.parse(sessionStorage.getItem('chat-bubble-page') ?? 'null');
+          pageRef.current = page && typeof page.path === 'string' ? { path: page.path } : null;
         }
       } catch { /* ignore malformed data */ }
       sessionStorage.removeItem('chat-bubble-messages');
+      sessionStorage.removeItem('chat-bubble-page');
     }
   }, []);
 
@@ -1244,6 +1257,7 @@ function ChatPageInner() {
       is_authenticated: !!session?.user,
       entry_point: 'new_chat_button',
     });
+    pageRef.current = null;
     setCurrentConversationId(null);
     setMessages([]);
   };

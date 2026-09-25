@@ -37,42 +37,89 @@ Avalanche does not take away any portion of a validator's already staked tokens 
 validators who attempt to do harm to the network would expend their node's computing resources
 for no reward.
 
-AVAX is minted according to the following formula, where $R_j$ is the total number of tokens at 
-year $j$, with $R_1 = 360M$, and $R_l$ representing the last year that the values of
-$\gamma,\lambda \in \R$ were changed; $c_j$ is the yet un-minted supply of coins to reach $720M$ at
-year $j$ such that $c_j \leq 360M$; $u$ represents a staker, with $u.s_{amount}$ representing the
-total amount of stake that $u$ possesses, and $u.s_{time}$ the length of staking for $u$.
+AVAX is minted as a staking reward when a validation period ends successfully. The amount is
+computed by [`reward.Calculator`](https://github.com/ava-labs/avalanchego/blob/master/vms/platformvm/reward/calculator.go)
+from four network parameters and three properties of the validation.
 
-AVAX is minted according to the following formula, where $R_j$ is the total number of tokens at:
+The minting rate scales linearly with how much of the minting period the validation covered:
 
 $$
-R_j = R_l + \sum_{\forall u} \rho(u.s_{amount}, u.s_{time}) \times \frac{c_j}{L} \times \left( \sum_{i=0}^{j}\frac{1}{\left(\gamma + \frac{1}{1 + i^\lambda}\right)^i} \right)
+\text{MintingRate} = \text{MinConsumptionRate} + \left(\text{MaxConsumptionRate} - \text{MinConsumptionRate}\right) \times \frac{\text{StakingDuration}}{\text{MintingPeriod}}
 $$
 
-where,
+That rate is then applied to the staker's share of the remaining un-minted supply:
 
 $$
-L = \left(\sum_{i=0}^{\infty} \frac{1}{\left(\gamma + \frac{1}{1 + i^\lambda} \right)^i} \right)
+\text{Reward} = \left(\text{SupplyCap} - \text{CurrentSupply}\right) \times \frac{\text{StakedAmount}}{\text{CurrentSupply}} \times \text{MintingRate} \times \frac{\text{StakingDuration}}{\text{MintingPeriod}}
 $$
 
-At genesis, $c_1 = 360M$. The values of $\gamma$ and $\lambda$ are governable, and if changed,
-the function is recomputed with the new value of $c_*$. We have that $\sum_{*}\rho(*) \le 1$.
-$\rho(*)$ is a linear function that can be computed as follows ($u.s_{time}$ is measured in weeks,
-and $u.s_{amount}$ is measured in AVAX tokens):
+The result is capped at $\text{SupplyCap} - \text{CurrentSupply}$. That cap, together with the
+$\left(\text{SupplyCap} - \text{CurrentSupply}\right)$ factor shrinking as supply grows, is what
+guarantees AVAX never exceeds $720M$ tokens.
+
+### Mainnet Parameters
+
+Set in [`genesis/genesis_mainnet.go`](https://github.com/ava-labs/avalanchego/blob/master/genesis/genesis_mainnet.go):
+
+| Parameter | Value | Raw |
+|---|---|---|
+| `MaxConsumptionRate` | 12% | `120000` |
+| `MinConsumptionRate` | 10%, dropping to 7.5% (see below) | `100000` → `75000` |
+| `MintingPeriod` | 365 days | `8760h` |
+| `SupplyCap` | 720M AVAX | `720000000000000000` nAVAX |
+
+Consumption rates are stored in millionths (`PercentDenominator` is `1000000`), so `120000` means
+12%. All internal arithmetic is integer arithmetic on `big.Int`, with truncating division, so a
+floating-point reimplementation can differ by a few nAVAX.
+
+<Callout type="info" title="Why market trackers show a cap below 720M">
+`SupplyCap` bounds what the P-Chain will ever **mint**. Its `CurrentSupply` counter tracks minted
+rewards only: a staker's potential reward is added optimistically when the staker is added, and
+deducted again if the reward turns out not to be earned. Nothing in that counter accounts for AVAX
+burned as transaction fees, which is destroyed at the UTXO and account level without the counter
+knowing about it. So the maximum supply that can ever circulate is 720M minus everything burned to
+date, which is why exchanges and market trackers publish a figure below 720M and revise it downward
+over time. Query the protocol's own number with
+[`platform.getCurrentSupply`](/docs/rpcs/p-chain#platformgetcurrentsupply).
+</Callout>
+
+### Why Longer Staking Earns More
+
+A validation covering the full minting period earns `MaxConsumptionRate`. A very short one earns
+close to `MinConsumptionRate`:
+
+| Staking duration | Minting rate before Helicon | Minting rate once ACP-285 is fully phased in |
+|---|---|---|
+| 48 hours (validator minimum) | 10.011% | 7.525% |
+| 2 weeks (delegator minimum) | 10.077% | 7.673% |
+| 1 year (maximum) | 12% | 12% |
+
+So a one-year validation earned about 19.9% more per token than a 48-hour one before Helicon, rising
+to about 59.5% once ACP-285 is fully phased in. This is what incentivizes stakers to commit for
+longer periods. During the 90-day ramp the effective rate sits between the two columns.
+
+<Callout type="info" title="ACP-285 lowers the minimum consumption rate">
+[ACP-285](/docs/acps/285-reduce-minimum-consumption-rate), part of the
+[Helicon](/docs/primary-network/helicon-upgrade) upgrade, reduces `MinConsumptionRate` from 10% to
+7.5%. The reduction is not immediate: it ramps linearly over the 90 days following Helicon
+activation, and the rate that applies to a given validation is selected from its **start time**.
+`MaxConsumptionRate` is unchanged, so a full one-year validation is unaffected.
+</Callout>
+
+### Worked Example
+
+A 2,000 AVAX validation, with a current supply of 460M AVAX, running for 48 hours:
 
 $$
-\rho(u.s_{amount}, u.s_{time}) = (0.002 \times u.s_{time} + 0.896) \times \frac{u.s_{amount}}{R_j}
+\text{MintingRate} = 0.10 + \left(0.12 - 0.10\right) \times \frac{48}{8760} = 0.1001096
 $$
 
-If the entire supply of tokens at year $j$ is staked for the maximum amount of staking time (one
-year, or 52 weeks), then $\sum_{\forall u}\rho(u.s_{amount}, u.s_{time}) = 1$. If, instead,
-every token is staked continuously for the minimal stake duration of two weeks, then
-$\sum_{\forall u}\rho(u.s_{amount}, u.s_{time}) = 0.9$. Therefore, staking for the maximum
-amount of time incurs an additional 11.11% of tokens minted, incentivizing stakers to stake
-for longer periods.
+$$
+\text{Reward} = \left(720M - 460M\right) \times \frac{2{,}000}{460M} \times 0.1001096 \times \frac{48}{8760} \approx 0.62\ \text{AVAX}
+$$
 
-Due to the capped-supply, the above function guarantees that
-AVAX will never exceed a total of $720M$ tokens, or $\lim_{j \to \infty} R(j) = 720M$.
+Running the same inputs through the node's calculator returns `620095131` nAVAX. After the ACP-285
+ramp completes, the same validation returns `466089567` nAVAX.
 
 
 
