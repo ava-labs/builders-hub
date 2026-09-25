@@ -18,7 +18,7 @@ import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
-import { type Row, doorFor, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
+import { type Row, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
@@ -609,6 +609,14 @@ function QueryPage({
 
   // every surface below the chart reads the rows through the selection
   const picked = useMemo(() => applySelection(allRows, sel), [allRows, sel]);
+
+  /** a row opens what it is about: its transaction, the thing its axis names, else its records */
+  const openRow = (r: Row) => {
+    const door = rowDoor(r, answer?.result?.columns ?? [], visual, base);
+    if (door) return router.push(door);
+    const i = allRows.indexOf(r);
+    if (i >= 0) void openDrill(r, i);
+  };
   const drilled = drill?.answer?.result ?? null;
   // what the inspector lists: the drilled records, else the picked rows
   const level = drill
@@ -890,15 +898,9 @@ function QueryPage({
                     names={names}
                     sym={sym}
                     canDrill={canDrill || recordRows}
-                    onPick={(r) => {
-                      if (recordRows && r.tx_hash) return router.push(`${base}/tx/${String(r.tx_hash)}`);
-                      // a mark that is one thing on the chain (a contract, a
-                      // validator, a block) opens that thing's own page
-                      const door = visual?.panels.map((p) => p.x && doorFor(p.x, r[p.x], base)).find(Boolean);
-                      if (door) return router.push(door);
-                      const i = allRows.indexOf(r);
-                      if (i >= 0) void openDrill(r, i);
-                    }}
+                    // a mark that is one thing on the chain (a transaction, a
+                    // contract, a validator, a block) opens that thing's own page
+                    onPick={openRow}
                     hoverKey={hoverKey}
                     onHoverKey={setHoverKey}
                     range={range}
@@ -907,6 +909,20 @@ function QueryPage({
                     selection={sel}
                     onSelection={setSel}
                     panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} question={history.at(-1)?.prompt} /> : undefined}
+                    // the designer's tables: the rows in its columns, each row a door
+                    renderTable={(p) => (
+                      <PanelRows
+                        panel={p}
+                        columns={answer.result?.columns ?? []}
+                        rows={picked}
+                        names={names}
+                        visual={visual}
+                        base={base}
+                        sym={sym}
+                        onPick={canDrill || recordRows ? openRow : undefined}
+                        onAll={() => setInspect(true)}
+                      />
+                    )}
                   />
                 ) : allRows.length === 1 ? (
                   // one row is a set of figures: each column on its own card
