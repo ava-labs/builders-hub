@@ -14,7 +14,7 @@ import {
   SHORTLIST_LIMIT,
 } from "@/lib/audits/constants";
 import { SUBSIDY_MAX_PCT } from "@/lib/audits/subsidy";
-import { isAllowedLogoSrc } from "@/lib/audits/logoSrc";
+import { isAllowedAttachmentSrc, isAllowedLogoSrc } from "@/lib/audits/blobSrc";
 
 const MAX_NAME = 200;
 const MAX_URL = 2048;
@@ -81,9 +81,17 @@ const repoDraftSchema = z.strictObject({
   ref: trimmed(MAX_NAME).optional().default(""),
 });
 
+/**
+ * An uploaded spec or scoping doc. `url` must be a key our own attachment
+ * route minted: the list is rendered to every firm the request reaches, so an
+ * arbitrary URL here is a link the program would publish on the requester's
+ * behalf. The draft schema is otherwise deliberately permissive, but this one
+ * is not a half-typed value a user is still editing, it is a value only our
+ * upload can produce.
+ */
 const attachmentSchema = z.strictObject({
   name: trimmed(300).min(1),
-  url: trimmed(MAX_URL).min(1),
+  url: trimmed(MAX_URL).min(1).refine(isAllowedAttachmentSrc, "Unsupported attachment URL"),
   size: z.number().int().min(0).max(MAX_ATTACHMENT_BYTES),
 });
 export type AuditAttachment = z.infer<typeof attachmentSchema>;
@@ -147,6 +155,10 @@ export const auditSubmitSchema = z.object({
     .optional()
     .default([]),
   doc_links: z.array(httpsUrl).max(20).optional().default([]),
+  // Re-checked against the STORED row at submit, like every other link:
+  // without this the draft-time refinement is the only gate and a row written
+  // before it existed would fan out unchecked.
+  attachments: z.array(attachmentSchema).max(10).optional().default([]),
   needed_by: requiredDate("Pick the latest completion date"),
   quote_deadline: z.coerce.date().nullable().optional(),
   contact_name: trimmed(MAX_NAME).min(1, "Contact name is required"),
