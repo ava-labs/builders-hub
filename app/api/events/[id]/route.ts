@@ -5,6 +5,60 @@ import { withAuth } from "@/lib/protectedRoute";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canEditEvent, canViewPrivateEvent } from "@/lib/auth/permissions";
 
+/**
+ * What a signed-in participant needs from a private event, and nothing else.
+ *
+ * An allowlist rather than a blacklist: signup is open, so "logged in" is a
+ * weak gate on an unpublished event, and a blacklist ships every field nobody
+ * thought to name. Adding a field to the model must not silently widen this.
+ *
+ * The two flows that read this endpoint are the registration form (team size)
+ * and project submission (submission deadline), plus the event heading they
+ * both render.
+ */
+const PARTICIPANT_FIELDS = [
+  "id",
+  "title",
+  "description",
+  "location",
+  "start_date",
+  "end_date",
+  "timezone",
+  "banner",
+  "icon",
+  "small_banner",
+  "tags",
+  "event",
+  "custom_link",
+  "is_public",
+] as const;
+
+/** `content` is a free-form Json blob, so it is passed key by key too. */
+const PARTICIPANT_CONTENT_FIELDS = [
+  "team_size_min",
+  "team_size_max",
+  "submission_deadline",
+] as const;
+
+function participantView(hackathon: unknown) {
+  if (!hackathon || typeof hackathon !== "object") return hackathon;
+  const row = hackathon as Record<string, unknown>;
+  const view: Record<string, unknown> = {};
+  for (const field of PARTICIPANT_FIELDS) {
+    if (field in row) view[field] = row[field];
+  }
+  const content = row.content;
+  if (content && typeof content === "object") {
+    const src = content as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const field of PARTICIPANT_CONTENT_FIELDS) {
+      if (field in src) out[field] = src[field];
+    }
+    view.content = out;
+  }
+  return view;
+}
+
 export async function GET(req: NextRequest, context: any) {
 
   try {
@@ -16,12 +70,21 @@ export async function GET(req: NextRequest, context: any) {
 
     const hackathon = await getHackathon(id)
 
-    // Private events follow the same visibility rule as the listing endpoint
-    // (app/api/events/route.ts): devrel and team1-admin see any private event,
-    // and a hackathon's own creator or cohost sees theirs. 
     if (hackathon?.is_public !== true) {
-      if (!(await canViewPrivateEvent(await getAuthSession(), hackathon))) {
+      const session = await getAuthSession();
+
+      // Anonymous callers learn nothing about a private event: that is the
+      // disclosure this endpoint closes.
+      if (!session?.user?.id) {
         return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+      }
+
+      // A signed-in participant still has to register for a private event and
+      // submit a project, and both flows read this endpoint. Gating the whole
+      // record on the organizer rule broke them, so the record is returned
+      // without the organizer-only fields instead.
+      if (!(await canViewPrivateEvent(session, hackathon))) {
+        return NextResponse.json(participantView(hackathon));
       }
     }
 
