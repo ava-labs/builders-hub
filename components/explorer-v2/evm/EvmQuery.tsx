@@ -138,9 +138,45 @@ export interface NetworkQueryChain extends QueryChain {
   index: IndexState;
 }
 
-/* Query at the network scope: the All Networks chrome, and a picker for
-   the chain the question is asked of. A pick swaps the target in place;
-   the page remounts on the new chain, so no answer carries across. */
+/* which chain a question names, by its name or slug as a whole word; the
+   longest name wins, so "Dexalot Subnet" beats "Dexalot". Names shorter
+   than three letters never match. Nothing named: null, and the question
+   stays on the chain in view (the C-Chain, unless the reader changed it). */
+function chainNamed(q: string, chains: NetworkQueryChain[]): string | null {
+  const text = ` ${q.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  const norm = (s: string) => s.toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]+/g, " ").trim();
+  let best: { slug: string; len: number } | null = null;
+  for (const c of chains) {
+    for (const name of new Set([norm(c.label), norm(c.chainSlug), norm(c.chainSlug.replace(/-/g, ""))])) {
+      if (name.length < 3) continue;
+      if (text.includes(` ${name} `) && (!best || name.length > best.len)) best = { slug: c.chainSlug, len: name.length };
+    }
+  }
+  return best?.slug ?? null;
+}
+
+/* the network page's suggestions: the C-Chain's, then one for the P-Chain
+   and one naming an L1, so a reader sees a question can name its chain */
+function networkExamples(chains: NetworkQueryChain[]): typeof EXAMPLES {
+  const l1 = chains.find((c) => c.kind === "evm" && c.chainSlug !== "c-chain");
+  return [
+    ...EXAMPLES,
+    {
+      group: "Other chains",
+      hue: "#71717a",
+      items: [
+        { q: PCHAIN_EXAMPLES[0].items[0].q, hint: "Asked of the P-Chain", glyph: PCHAIN_EXAMPLES[0].items[0].glyph },
+        ...(l1 ? [{ q: `Daily transactions on ${l1.label} over the last 30 days`, hint: `Asked of ${l1.label}`, glyph: "bars" as const }] : []),
+      ],
+    },
+  ];
+}
+
+/* Query at the network scope: the All Networks chrome. A question goes to
+   the chain it names, to the P-Chain when it is about staking (the model
+   routes those), and to the C-Chain otherwise; the chip shows which chain
+   answers and can change the default. The page remounts on a new chain,
+   so no answer carries across. */
 export function NetworkQuery({ network, chains }: { network: string; chains: NetworkQueryChain[] }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -164,10 +200,15 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
 
   const picker = (
     <DropdownMenu>
-      <DropdownMenuTrigger className="group flex w-fit items-center gap-2.5 text-left">
-        {c.logo && <img src={c.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />}
-        <span className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 dark:text-zinc-100">Ask {c.label}</span>
-        <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
+      <DropdownMenuTrigger
+        title="Name a chain in the question to ask it; this sets the chain for questions that name none"
+        className="group flex w-fit items-center gap-2 text-left font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+      >
+        <span>Answering from</span>
+        {c.logo && <img src={c.logo} alt="" className="h-4 w-4 shrink-0 rounded-full object-contain" />}
+        <span className="font-bold text-zinc-900 dark:text-zinc-100">{c.label}</span>
+        <span className="text-zinc-300 dark:text-zinc-600">· any chain you name</span>
+        <ChevronsUpDown className="h-3 w-3 shrink-0" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="max-h-80 w-64 overflow-y-auto">
         {chains.map((x) => (
@@ -191,13 +232,15 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
       scope="network"
       network={network}
       c={c}
-      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : examplesFor(c.chainId)}
+      examples={c.kind === "pchain" ? PCHAIN_EXAMPLES : c.chainSlug === "c-chain" ? networkExamples(chains) : examplesFor(c.chainId)}
       index={c.index}
       picker={picker}
+      resolve={(q) => chainNamed(q, chains)}
       // a question about another chain's data moves the picker, not the page
+      // no "asked on" note here: the chip already says which chain answers
       onRoute={(route, q) =>
         chains.some((x) => x.chainSlug === route)
-          ? pick(route, q, c.chainSlug)
+          ? pick(route, q)
           : router.push(`/explorer/${network}/${route}/query?q=${encodeURIComponent(q)}&from=${c.chainSlug}`)
       }
     />
@@ -234,6 +277,7 @@ function QueryPage({
   scope,
   picker,
   onRoute,
+  resolve,
 }: {
   network: string;
   c: QueryChain;
@@ -245,6 +289,8 @@ function QueryPage({
   picker?: React.ReactNode;
   /** where a question about another chain goes; the default navigates to that chain's page */
   onRoute?: (route: string, q: string) => void;
+  /** the chain a new question names, read before it is asked */
+  resolve?: (q: string) => string | null;
 }) {
   const base = `/explorer/${network}/${c.chainSlug}`;
   const sym = c.nativeToken ?? "AVAX";
@@ -370,6 +416,9 @@ function QueryPage({
     async (q: string, refine: boolean) => {
       const text = q.trim();
       if (!text) return;
+      // a new question that names another chain is asked there; a follow-up stays on this chain
+      const named = !refine && resolve && onRoute ? resolve(text) : null;
+      if (named && named !== c.chainSlug) return onRoute!(named, text);
       const my = ++token.current;
       setEvents([]);
       setReading(false);
