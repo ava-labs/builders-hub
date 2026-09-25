@@ -167,6 +167,26 @@ function mixOf(byVersion: Record<string, { nodes: number }>, target: string): Ve
   return m;
 }
 
+/* the version share on a phone row: the bar and the figure, inline */
+function PhoneVersion({ mix, target }: { mix: VersionMix | null; target: string }) {
+  const total = mix ? mix.on + mix.near + mix.stale + mix.unknown : 0;
+  if (!mix || !target || total === 0 || mix.unknown === total) return null;
+  const pct = Math.round((mix.on / total) * 100);
+  const ink = pct >= 80 ? "text-emerald-600 dark:text-emerald-400" : mix.stale > 0 ? "text-[#E6212F]" : "text-amber-600 dark:text-amber-400";
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="flex h-1.5 w-10 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+        {(Object.keys(BAND_PAINT) as (keyof VersionMix)[]).map((b) =>
+          mix[b] > 0 ? <span key={b} className="h-full" style={{ width: `${(mix[b] / total) * 100}%`, background: BAND_PAINT[b] }} /> : null,
+        )}
+      </span>
+      <span className={cn("tabular-nums", ink)}>
+        {pct}% on {target}
+      </span>
+    </span>
+  );
+}
+
 /* the share of a chain's nodes on the target, with the split as a thin stacked bar */
 function VersionCell({ mix }: { mix: VersionMix | null }) {
   const total = mix ? mix.on + mix.near + mix.stale + mix.unknown : 0;
@@ -579,12 +599,15 @@ export function NetworkChains({
                                 {c.category}
                               </span>
                             )}
-                            {/* phones: the columns md shows, as one line */}
-                            <span className={cn(MUTED, "truncate text-[11px] md:hidden")}>
-                              <ChainIdText id={String(c.chainId)} />
-                              {c.networkToken?.symbol ? ` · ${c.networkToken.symbol}` : ""}
-                              {tx ? ` · ${fmtCompact(tx)} tx` : ""}
-                              {msgs ? ` · ${fmtCompact(msgs)} ICM` : ""}
+                            {/* phones: the columns md shows, wrapped rather than cut */}
+                            <span className={cn(MUTED, "flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] md:hidden")}>
+                              <span className="truncate">
+                                <ChainIdText id={String(c.chainId)} />
+                                {c.networkToken?.symbol ? ` · ${c.networkToken.symbol}` : ""}
+                              </span>
+                              {tx ? <span className="tabular-nums">{fmtCompact(tx)} tx</span> : null}
+                              {msgs ? <span className="tabular-nums">{fmtCompact(msgs)} ICM</span> : null}
+                              <PhoneVersion mix={mainnet ? mixOfChain(c) : null} target={target} />
                             </span>
                           </span>
                         </span>

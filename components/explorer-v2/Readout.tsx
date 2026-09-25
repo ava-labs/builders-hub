@@ -50,7 +50,8 @@ export function Readout({ label, value, unit, sub, delta = null, spark, live, hr
           {value !== null && unit && <span className={FIG_UNIT}>{unit}</span>}
         </span>
         {(sub != null || delta !== null) && (
-          <span className={cn(SUB, "truncate")}>
+          // two readouts share a phone's width: the line wraps there instead of losing its end
+          <span className={cn(SUB, "line-clamp-2 sm:line-clamp-none sm:truncate")}>
             {sub}
             {sub != null && delta !== null ? " · " : null}
             <InkDelta value={delta} />

@@ -247,6 +247,24 @@ function TipRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+/* a set's version split as a thin stacked bar, for the phone lists */
+function MixBar({ mix, className }: { mix: VersionMix; className?: string }) {
+  const total = mixTotal(mix);
+  if (!total) return null;
+  return (
+    <span className={cn("flex h-1.5 overflow-hidden bg-zinc-100 dark:bg-zinc-900", className)}>
+      {BAND_ORDER.map((b) => (mix[b] > 0 ? <span key={b} className="h-full" style={{ width: `${(mix[b] / total) * 100}%`, background: TONE[b].left }} /> : null))}
+    </span>
+  );
+}
+
+/* the share on target in the fleet's ink: green from 80%, red with any older node, amber else */
+function pctInk(mix: VersionMix | null | undefined, pct: number | null): string {
+  if (pct === null || !mix) return "text-zinc-400 dark:text-zinc-500";
+  if (pct >= 80) return "text-emerald-600 dark:text-emerald-400";
+  return mix.stale > 0 ? "text-[#E6212F]" : "text-amber-600 dark:text-amber-400";
+}
+
 export interface IcmSummary {
   /** 30-day messages each chain sent plus got, by EVM chain ID */
   byChain: Map<string, number>;
@@ -298,6 +316,8 @@ export function IcmNetworkMap({
   const [hover, setHover] = useState<string | null>(null);
   const [hoverRoute, setHoverRoute] = useState<string | null>(null);
   const still = useStill();
+  // phones read the map as two lists: the chains, and the routes between them
+  const [phoneView, setPhoneView] = useState<"chains" | "routes">("chains");
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
 
   useEffect(() => {
@@ -728,7 +748,13 @@ export function IcmNetworkMap({
               )}
             >
               <span className="truncate uppercase tracking-[0.04em]">{n.name}</span>
-              <span className="tabular-nums text-zinc-400 dark:text-zinc-500">{n.validators}</span>
+              <span className="flex shrink-0 items-baseline gap-1.5 tabular-nums">
+                <span className="text-zinc-400 dark:text-zinc-500">{n.validators}</span>
+                {versions && target && (() => {
+                  const pct = onPct(n.id);
+                  return <span className={cn("w-8 text-right text-[10px]", pctInk(versions.get(n.id), pct))}>{pct === null ? "—" : `${pct}%`}</span>;
+                })()}
+              </span>
             </button>
           </li>
         ))}
@@ -978,33 +1004,89 @@ export function IcmNetworkMap({
           )}
         </div>
 
-        {/* phones and tablets: the same traffic, ranked */}
-        <ul className="lg:hidden">
-          {talking.map((n, i) => {
-            const on = pickedId === n.id;
-            const total = n.out + n.in;
-            return (
-              <li key={n.id} className={cn("border-b border-zinc-100 last:border-b-0 dark:border-zinc-900", on && "bg-[#0061E2]/[0.06] dark:bg-[#5b9bff]/10")}>
-                <button type="button" onClick={() => pick(n)} aria-pressed={on} className="grid w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-5 py-2.5 text-left">
-                  <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">{i + 1}</span>
-                  <span className="flex min-w-0 flex-col gap-1.5">
-                    <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
-                      <Logo uri={n.logo} name={n.name} />
-                      <span className="truncate">{n.name}</span>
-                      <span className="shrink-0 font-mono text-[10px] font-normal text-zinc-400 dark:text-zinc-500">{n.validators} val</span>
-                    </span>
-                    <span className="block h-1.5 max-w-full" style={{ width: `${Math.max(2, (total / maxTalk) * 100)}%`, background: on ? PICK_BLUE : BLOCK_GRAY }} />
-                  </span>
-                  <span className="text-right font-mono text-[11px] tabular-nums leading-tight text-zinc-900 dark:text-zinc-50">
-                    {fmtCompact(n.out)} <span className="text-zinc-400 dark:text-zinc-500">out</span>
-                    <br />
-                    {fmtCompact(n.in)} <span className="text-zinc-400 dark:text-zinc-500">in</span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        {/* phones and tablets: the model as two lists, the chains and the routes */}
+        <div className="lg:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-5 py-2.5 dark:border-zinc-900">
+            <ViewSwitch
+              id="icm-map-phone"
+              value={phoneView}
+              onChange={setPhoneView}
+              options={[
+                { v: "chains", label: `Chains · ${talking.length}` },
+                { v: "routes", label: `Routes · ${routes.length}` },
+              ]}
+            />
+            {versions && onTarget && targets.length > 1 && (
+              <ViewSwitch id="icm-map-phone-target" value={target} onChange={onTarget} options={targets.slice(0, 3).map((t) => ({ v: t, label: t }))} />
+            )}
+          </div>
+          {phoneView === "chains" ? (
+            <ul>
+              {talking.map((n, i) => {
+                const on = pickedId === n.id;
+                const total = n.out + n.in;
+                const mix = versions?.get(n.id);
+                const pct = onPct(n.id);
+                return (
+                  <li key={n.id} className={cn("border-b border-zinc-100 last:border-b-0 dark:border-zinc-900", on && "bg-[#0061E2]/[0.06] dark:bg-[#5b9bff]/10")}>
+                    <button type="button" onClick={() => pick(n)} aria-pressed={on} className="grid w-full grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-3 px-5 py-2.5 text-left">
+                      <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">{i + 1}</span>
+                      <span className="flex min-w-0 flex-col gap-1.5">
+                        <span className="flex min-w-0 items-center gap-2 text-[13px] font-medium text-zinc-900 dark:text-zinc-100">
+                          <Logo uri={n.logo} name={n.name} />
+                          <span className="truncate">{n.name}</span>
+                          <span className="shrink-0 font-mono text-[10px] font-normal text-zinc-400 dark:text-zinc-500">{n.validators} val</span>
+                        </span>
+                        <span className="block h-1.5 max-w-full" style={{ width: `${Math.max(2, (total / maxTalk) * 100)}%`, background: on ? PICK_BLUE : BLOCK_GRAY }} />
+                        {mix && target && (
+                          <span className="flex items-center gap-2">
+                            <MixBar mix={mix} className="w-24 shrink-0" />
+                            <span className={cn("font-mono text-[10px] tabular-nums", pctInk(mix, pct))}>{pct === null ? "not reported" : `${pct}% on ${target}`}</span>
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-right font-mono text-[11px] tabular-nums leading-tight text-zinc-900 dark:text-zinc-50">
+                        {fmtCompact(n.out)} <span className="text-zinc-400 dark:text-zinc-500">out</span>
+                        <br />
+                        {fmtCompact(n.in)} <span className="text-zinc-400 dark:text-zinc-500">in</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <ul>
+              {[...routes]
+                .sort((a, b) => b.messages - a.messages)
+                .map((r) => {
+                  const a = byId.get(r.from);
+                  const b = byId.get(r.to);
+                  if (!a || !b) return null;
+                  const top = Math.max(1, ...routes.map((x) => x.messages));
+                  const on = !!pickedId && (r.from === pickedId || r.to === pickedId);
+                  return (
+                    <li key={r.key} className={cn("border-b border-zinc-100 px-5 py-2.5 last:border-b-0 dark:border-zinc-900", on && "bg-[#0061E2]/[0.06] dark:bg-[#5b9bff]/10")}>
+                      <span className="flex min-w-0 items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] text-zinc-900 dark:text-zinc-100">
+                          <Logo uri={a.logo} name={a.name} />
+                          <span className="truncate">{a.ring === "hub" ? "C-Chain" : a.name}</span>
+                          <ArrowRight className="h-3 w-3 shrink-0 text-zinc-300 dark:text-zinc-600" />
+                          <Logo uri={b.logo} name={b.name} />
+                          <span className="truncate">{b.ring === "hub" ? "C-Chain" : b.name}</span>
+                        </span>
+                        <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmtCompact(r.messages)}</span>
+                      </span>
+                      <span
+                        className="mt-1.5 block h-1.5 max-w-full"
+                        style={{ width: `${Math.max(1.5, Math.sqrt(r.messages / top) * 100)}%`, background: on ? PICK_BLUE : BLOCK_GRAY }}
+                      />
+                    </li>
+                  );
+                })}
+            </ul>
+          )}
+        </div>
 
         {skyline}
 
