@@ -5,16 +5,20 @@ import { cn } from "@/lib/utils";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { FIGURE, FIG_UNIT, LABEL, ReadoutBlock, SUB } from "@/components/explorer-v2/evm/EvmOverviewStats";
 import { monotonePath } from "@/components/explorer-v2/evm/EvmActivity";
+import { fadeUpStyle, riseStyle, useReveal, wipeStyle } from "@/components/explorer-v2/motion";
 
 /* The gas instruments, in the C-Chain home's grammar: every chart is an
  * extruded block like the Network Activity block. A header carries the
  * window's reading; the plot runs edge to edge at the block's foot; the
  * right face carries the latest value at the same scale, so the series
  * reads as a solid passing through the box. Bars are drawn as cuboids,
- * a block's fullness as a vessel, and the week's fee as a terrain. */
+ * a block's fullness as a vessel, and the week's fee as a terrain. Each
+ * plot moves once, the first time it comes into view: columns rise from
+ * their base, a trace wipes in from the left, the week's cells fade up
+ * in a wave. */
 
 /* the x-axis strip under every plot */
-const AX = 24;
+export const AX = 24;
 /* the path space of the stretched plots */
 const W = 1000;
 
@@ -76,7 +80,7 @@ export function Instrument({
 }
 
 /** the block's content width in CSS px, kept current */
-function useWidth<T extends HTMLElement>() {
+export function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -91,7 +95,7 @@ function useWidth<T extends HTMLElement>() {
 
 /** the top of a scale that one spike cannot flatten: past three times the
  *  90th percentile the scale stops, and what rises above it is marked */
-function robustTop(vals: number[]): { top: number; clipped: boolean } {
+export function robustTop(vals: number[]): { top: number; clipped: boolean } {
   const s = vals.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
   const max = s[s.length - 1] ?? 0;
   if (s.length < 5) return { top: max, clipped: false };
@@ -100,7 +104,7 @@ function robustTop(vals: number[]): { top: number; clipped: boolean } {
 }
 
 /** up to `max` evenly spaced indices, both ends included */
-function tickIndices(n: number, max = 6): number[] {
+export function tickIndices(n: number, max = 6): number[] {
   if (n <= 0) return [];
   if (n <= max) return Array.from({ length: n }, (_, i) => i);
   const out = new Set<number>();
@@ -109,14 +113,16 @@ function tickIndices(n: number, max = 6): number[] {
 }
 
 /** the axis strip: labels at their x, the ends held inside the block */
-function XTicks({ items }: { items: { at: number; label: string }[] }) {
+export function XTicks({ items }: { items: { at: number; label: string }[] }) {
+  // a phone keeps three labels: the ends and the middle
+  const n = items.length;
+  const keep = (i: number) => i === 0 || i === n - 1 || i === Math.floor((n - 1) / 2);
   return (
     <div className="relative" style={{ height: AX }}>
       {items.map((t, i) => (
         <span
           key={`${t.label}-${i}`}
-          // a phone keeps every other label: the ends and the ones between them
-          className={cn("absolute top-1.5 whitespace-nowrap font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500", items.length > 4 && i % 2 === 1 && i !== items.length - 1 && "hidden sm:block")}
+          className={cn("absolute top-1.5 whitespace-nowrap font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500", n > 4 && !keep(i) && "hidden sm:block")}
           style={{
             left: `${t.at * 100}%`,
             transform: i === 0 && t.at < 0.08 ? "translateX(12px)" : i === items.length - 1 && t.at > 0.92 ? "translateX(calc(-100% - 12px))" : "translateX(-50%)",
@@ -130,7 +136,7 @@ function XTicks({ items }: { items: { at: number; label: string }[] }) {
 }
 
 /** the hover plate, on the side of the hairline with room */
-function Tip({ at, children }: { at: number; children: ReactNode }) {
+export function Tip({ at, children }: { at: number; children: ReactNode }) {
   return (
     <span
       className="pointer-events-none absolute top-2 z-20"
@@ -142,11 +148,12 @@ function Tip({ at, children }: { at: number; children: ReactNode }) {
 }
 
 /** a labeled level across the plot: the scale said where it matters */
-function Level({ top, label, tone = "quiet", dashed = true, below = false }: { top: number; label: string; tone?: "quiet" | "ink"; dashed?: boolean; below?: boolean }) {
+export function Level({ top, label, tone = "quiet", dashed = true, below = false }: { top: number; label: string; tone?: "quiet" | "ink"; dashed?: boolean; below?: boolean }) {
   return (
     <span
       className={cn(
-        "pointer-events-none absolute inset-x-0 border-t",
+        // above the plot: a solid that reaches its level must not cover its name
+        "pointer-events-none absolute inset-x-0 z-10 border-t",
         dashed && "border-dashed",
         tone === "ink" ? "border-zinc-400 dark:border-zinc-500" : "border-zinc-200 dark:border-zinc-800",
       )}
@@ -191,6 +198,7 @@ export function TraceBlock({
 }) {
   const [hover, setHover] = useState<number | null>(null);
   const plot = useRef<HTMLDivElement>(null);
+  const [seen, shown] = useReveal<HTMLDivElement>();
   const n = rows.length;
   const last = n - 1;
 
@@ -251,6 +259,7 @@ export function TraceBlock({
 
   return (
     <Instrument {...head} side={side}>
+      <div ref={seen}>
       <div ref={plot} className="relative" style={{ height }} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         {n > 0 && (
           <>
@@ -266,7 +275,7 @@ export function TraceBlock({
             {band && loIdx !== hiIdx && <Level top={y(rows[loIdx].mid)} label={`low ${fmt(rows[loIdx].mid)} · ${rows[loIdx].tick}`} below />}
           </>
         )}
-        <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" aria-hidden>
+        <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="absolute inset-0 h-full w-full" style={wipeStyle(shown)} aria-hidden>
           <path d={fill} className={band ? "fill-[#A2AFB2]/30 dark:fill-[#A2AFB2]/20" : "fill-[#A2AFB2]/40 dark:fill-[#A2AFB2]/30"} />
           <path d={midLine} fill="none" strokeWidth={band ? 1.75 : 1.25} vectorEffect="non-scaling-stroke" strokeLinejoin="round" className="stroke-zinc-800 dark:stroke-zinc-200" />
         </svg>
@@ -280,6 +289,7 @@ export function TraceBlock({
             <Tip at={at(hover)}>{tip(hr)}</Tip>
           </>
         )}
+      </div>
       </div>
       <XTicks items={tickIndices(n).map((i) => ({ at: at(i), label: rows[i].tick }))} />
     </Instrument>
@@ -298,7 +308,7 @@ export interface Col {
 }
 
 /* the block tape's faces: lit top, front, shaded side */
-const FACE = {
+export const FACE = {
   quiet: ["fill-[#A2AFB2]/60 dark:fill-[#A2AFB2]/45", "fill-[#c9d1d3] dark:fill-[#5d6669]", "fill-[#86959a] dark:fill-[#3f4649]"],
   focus: ["fill-zinc-800 dark:fill-zinc-200", "fill-zinc-500 dark:fill-zinc-400", "fill-zinc-950 dark:fill-zinc-500"],
   live: ["fill-[#E6212F]", "fill-[#FF394A]", "fill-[#B20F2A]"],
@@ -334,6 +344,7 @@ export function ColumnsBlock({
   ticks?: number[];
 }) {
   const [ref, w] = useWidth<HTMLDivElement>();
+  const [seen, shown] = useReveal<HTMLDivElement>();
   const [hover, setHover] = useState<number | null>(null);
   const n = cols.length;
   const robust = robustTop(cols.map((c) => c.v));
@@ -347,11 +358,13 @@ export function ColumnsBlock({
   const x0 = (i: number) => i * slot + gap / 2;
   const at = (i: number) => (n ? (i + 0.5) / n : 0.5);
 
-  const cuboid = (x: number, h: number, faces: readonly string[], key: string) => {
+  // the columns rise left to right, the wave no longer than a beat
+  const delay = (i: number) => Math.min(i * (n > 30 ? 12 : 36), 640);
+  const cuboid = (x: number, h: number, faces: readonly string[], key: string, i: number) => {
     const yb = height;
     const yt = yb - h;
     return (
-      <g key={key}>
+      <g key={key} style={riseStyle(shown, delay(i))}>
         <rect x={x} y={yt} width={fw} height={h} className={faces[0]} />
         <polygon points={`${x},${yt} ${x + d},${yt - d} ${x + fw + d},${yt - d} ${x + fw},${yt}`} className={faces[1]} />
         <polygon points={`${x + fw},${yt} ${x + fw + d},${yt - d} ${x + fw + d},${yb - d} ${x + fw},${yb}`} className={faces[2]} />
@@ -380,6 +393,7 @@ export function ColumnsBlock({
 
   return (
     <Instrument {...head} side={side}>
+      <div ref={seen}>
       <div ref={ref} className="relative" style={{ height }} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         {max === undefined && n > 0 && <Level top={height - room} label={robust.clipped ? `scale to ${fmt(top)} · red lids run past it` : `top ${fmt(top)}`} />}
         {max !== undefined && <Level top={height - room} label={fmt(max)} />}
@@ -388,8 +402,8 @@ export function ColumnsBlock({
             {cols.map((c, i) => {
               const faces = hover === i ? FACE.focus : live && i === n - 1 ? FACE.live : FACE.quiet;
               // a column past the scale is cut at the lid and capped in red
-              if (!vessel && c.v > top) return cuboid(x0(i), hOf(c.v), [faces[0], FACE.live[1], faces[2]], c.key);
-              if (!vessel) return cuboid(x0(i), hOf(c.v), faces, c.key);
+              if (!vessel && c.v > top) return cuboid(x0(i), hOf(c.v), [faces[0], FACE.live[1], faces[2]], c.key, i);
+              if (!vessel) return cuboid(x0(i), hOf(c.v), faces, c.key, i);
               // the glass: the full scale, drawn as an outline, the value poured in
               const x = x0(i);
               const yt = height - room;
@@ -399,7 +413,7 @@ export function ColumnsBlock({
                     points={`${x},${height} ${x},${yt} ${x + d},${yt - d} ${x + fw + d},${yt - d} ${x + fw + d},${height - d} ${x + fw},${height}`}
                     className="fill-zinc-100/70 dark:fill-zinc-900/70"
                   />
-                  {cuboid(x, hOf(c.v), faces, `${c.key}-v`)}
+                  {cuboid(x, hOf(c.v), faces, `${c.key}-v`, i)}
                 </g>
               );
             })}
@@ -412,6 +426,177 @@ export function ColumnsBlock({
         )}
         {avg && <Level top={height - hOf(avg.v)} label={avg.label} tone="ink" />}
         {hc && hover !== null && <Tip at={at(hover)}>{tip(hc, hover)}</Tip>}
+      </div>
+      </div>
+      <XTicks items={(ticks ?? tickIndices(n)).map((i) => ({ at: at(i), label: cols[i]?.tick ?? "" }))} />
+    </Instrument>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Stacks: each bucket as one cuboid cut into layers, floor up          */
+/* ------------------------------------------------------------------ */
+
+export interface StackLayer {
+  key: string;
+  label: string;
+  /** what the layer counts, for the key's title */
+  what?: string;
+  /** front, top, side: full static class strings so Tailwind keeps them */
+  faces: readonly [string, string, string];
+  /** the key's swatch and the right face's fill */
+  swatch: string;
+}
+
+export interface StackCol {
+  key: string;
+  long: string;
+  tick: string;
+  parts: Record<string, number>;
+}
+
+export function StackBlock({
+  cols,
+  layers,
+  fmt,
+  marker,
+  height = 200,
+  tip,
+  ticks,
+  legend,
+  ...head
+}: Head & {
+  cols: StackCol[];
+  /** floor up */
+  layers: StackLayer[];
+  fmt: (v: number) => string;
+  /** a dated event: a dashed rule before the column with this key */
+  marker?: { key: string; label: string };
+  height?: number;
+  tip: (c: StackCol, i: number) => ReactNode;
+  ticks?: number[];
+}) {
+  const [ref, w] = useWidth<HTMLDivElement>();
+  const [seen, shown] = useReveal<HTMLDivElement>();
+  const [hover, setHover] = useState<number | null>(null);
+  const [focus, setFocus] = useState<string | null>(null);
+  const n = cols.length;
+  const sums = useMemo(() => Object.fromEntries(layers.map((l) => [l.key, cols.reduce((s, c) => s + (c.parts[l.key] ?? 0), 0)])), [cols, layers]);
+  // a layer with nothing in the window stays out of the key and the solid
+  const shownLayers = layers.filter((l) => sums[l.key] > 0);
+  const all = shownLayers.reduce((s, l) => s + sums[l.key], 0);
+  const totals = cols.map((c) => shownLayers.reduce((s, l) => s + (c.parts[l.key] ?? 0), 0));
+  const robust = robustTop(totals);
+  const top = robust.top * 1.12 || 1;
+  const slot = n ? w / n : 0;
+  const gap = n > 40 ? Math.max(1.5, slot * 0.22) : slot * 0.28;
+  const d = Math.min(8, Math.max(2, slot * 0.3));
+  const fw = Math.max(1, slot - gap - d);
+  const room = height - d - 1;
+  const yOf = (v: number) => height - (Math.min(v, top) / top) * room;
+  const x0 = (i: number) => i * slot + gap / 2;
+  const at = (i: number) => (n ? (i + 0.5) / n : 0.5);
+  const delay = (i: number) => Math.min(i * (n > 30 ? 12 : 36), 640);
+  const dim = (key: string) => (focus !== null && focus !== key ? 0.18 : 1);
+
+  const onMove = (e: React.MouseEvent) => {
+    if (!slot) return;
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setHover(Math.min(n - 1, Math.max(0, Math.floor((e.clientX - r.left) / slot))));
+  };
+
+  // the right face carries the last bucket's layers at the same scale
+  const last = cols[n - 1];
+  const side = last ? (
+    <span className="absolute inset-x-0 flex flex-col-reverse" style={{ bottom: AX, height }}>
+      {shownLayers.map((l, li) => (
+        <span
+          key={l.key}
+          className={cn("w-full shrink-0 transition-opacity", l.swatch, li === shownLayers.length - 1 && "border-t border-zinc-700/60 dark:border-zinc-300/60")}
+          style={{ height: height - yOf(last.parts[l.key] ?? 0), opacity: dim(l.key) }}
+        />
+      ))}
+    </span>
+  ) : null;
+
+  const key =
+    legend ??
+    (shownLayers.length > 1 ? (
+      <span className="flex flex-wrap items-center gap-x-5 gap-y-1 pt-0.5 font-mono text-[10px] uppercase tracking-[0.12em]" onMouseLeave={() => setFocus(null)}>
+        {shownLayers.map((l) => (
+          <button
+            key={l.key}
+            type="button"
+            title={l.what}
+            onMouseEnter={() => setFocus(l.key)}
+            onFocus={() => setFocus(l.key)}
+            onBlur={() => setFocus(null)}
+            onClick={(e) => e.preventDefault()}
+            className={cn("flex items-center gap-1.5 transition-opacity", focus && focus !== l.key ? "opacity-40" : "opacity-100")}
+          >
+            <span className={cn("h-2 w-2", l.swatch)} />
+            <span className="text-zinc-500 dark:text-zinc-400">{l.label}</span>
+            <span className="tabular-nums text-zinc-900 dark:text-zinc-50">{all > 0 ? `${((sums[l.key] / all) * 100).toFixed(0)}%` : ""}</span>
+          </button>
+        ))}
+      </span>
+    ) : undefined);
+
+  const mIdx = marker ? cols.findIndex((c) => c.key === marker.key) : -1;
+  const hc = hover !== null ? cols[hover] : null;
+
+  return (
+    <Instrument {...head} legend={key} side={side}>
+      <div ref={seen}>
+        <div ref={ref} className="relative" style={{ height }} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+          {n > 0 && <Level top={height - room} label={robust.clipped ? `scale to ${fmt(top)} · red lids run past it` : `top ${fmt(top)}`} />}
+          {w > 0 && (
+            <svg width={w} height={height} viewBox={`0 0 ${w} ${height}`} className="absolute inset-0 overflow-visible" aria-hidden>
+              {cols.map((c, i) => {
+                const x = x0(i);
+                let acc = 0;
+                const segs = shownLayers.map((l) => {
+                  const lo = acc;
+                  acc += c.parts[l.key] ?? 0;
+                  return { l, lo, hi: acc };
+                });
+                const topSeg = [...segs].reverse().find((sg) => sg.hi > sg.lo);
+                const over = acc > top;
+                return (
+                  <g key={c.key} style={riseStyle(shown, delay(i))}>
+                    <g className="transition-opacity duration-150" style={{ opacity: hover !== null && hover !== i ? 0.35 : 1 }}>
+                      {segs.map(({ l, lo, hi }) => {
+                        if (hi <= lo) return null;
+                        const yl = yOf(lo);
+                        const yh = Math.min(yOf(hi), yl - 1);
+                        return (
+                          <g key={l.key} className="transition-opacity duration-200" style={{ opacity: dim(l.key) }}>
+                            <rect x={x} y={yh} width={fw} height={yl - yh} className={l.faces[0]} />
+                            <polygon points={`${x + fw},${yh} ${x + fw + d},${yh - d} ${x + fw + d},${yl - d} ${x + fw},${yl}`} className={l.faces[2]} />
+                          </g>
+                        );
+                      })}
+                      {topSeg && (
+                        <polygon
+                          points={`${x},${yOf(topSeg.hi)} ${x + d},${yOf(topSeg.hi) - d} ${x + fw + d},${yOf(topSeg.hi) - d} ${x + fw},${yOf(topSeg.hi)}`}
+                          className={over ? FACE.live[1] : topSeg.l.faces[1]}
+                          style={{ opacity: dim(topSeg.l.key) }}
+                        />
+                      )}
+                    </g>
+                  </g>
+                );
+              })}
+            </svg>
+          )}
+          {mIdx > 0 && (
+            <span className="pointer-events-none absolute inset-y-0 border-l border-dashed border-zinc-500/70 dark:border-zinc-400/70" style={{ left: mIdx * slot }}>
+              {/* the name sits on the side of the rule with room */}
+              <span className={cn("absolute top-5 whitespace-nowrap bg-white/85 px-1 font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-500 dark:bg-zinc-950/85 dark:text-zinc-400", mIdx / n > 0.6 ? "right-1.5" : "left-1.5")}>{marker!.label}</span>
+            </span>
+          )}
+          {hc && hover !== null && <Tip at={at(hover)}>{tip(hc, hover)}</Tip>}
+        </div>
       </div>
       <XTicks items={(ticks ?? tickIndices(n)).map((i) => ({ at: at(i), label: cols[i]?.tick ?? "" }))} />
     </Instrument>
@@ -496,10 +681,11 @@ function StepKey({ lo, hi, unit }: { lo: string; hi: string; unit: string }) {
 export function WeekGrid({ cells, feeUnit: unit, fmt, ...head }: Head & { cells: HeatCell[]; feeUnit: string; fmt: (v: number) => string }) {
   const r = useRanks(cells);
   const [hover, setHover] = useState<HeatCell | null>(null);
+  const [seen, shown] = useReveal<HTMLDivElement>();
   const mark = (c: HeatCell) => (r.cheapest && c.dow === r.cheapest.dow && c.hour === r.cheapest.hour ? "cheap" : r.priciest && c.dow === r.priciest.dow && c.hour === r.priciest.hour ? "dear" : null);
   return (
     <Instrument {...head} bodyClass="px-5 pb-4 md:px-6" legend={r.sorted.length ? <StepKey lo={fmt(r.sorted[0])} hi={fmt(r.sorted[r.sorted.length - 1])} unit={unit} /> : undefined}>
-      <div className="grid grid-cols-[2.25rem_repeat(24,minmax(0,1fr))] gap-[3px]" onMouseLeave={() => setHover(null)}>
+      <div ref={seen} className="grid grid-cols-[2.25rem_repeat(24,minmax(0,1fr))] gap-[3px]" onMouseLeave={() => setHover(null)}>
         <span />
         {Array.from({ length: 24 }, (_, h) => (
           <span key={`h-${h}`} className="whitespace-nowrap pb-1 font-mono text-[9px] tabular-nums text-zinc-400 dark:text-zinc-500">
@@ -522,7 +708,8 @@ export function WeekGrid({ cells, feeUnit: unit, fmt, ...head }: Head & { cells:
                     on && "ring-2 ring-zinc-900 ring-offset-1 ring-offset-white dark:ring-zinc-100 dark:ring-offset-zinc-950",
                     !on && m === "cheap" && "ring-2 ring-zinc-900 dark:ring-zinc-100",
                   )}
-                  style={{ background: v === undefined || v <= 0 ? "rgba(161,161,170,0.1)" : `rgba(230,33,47,${STEPS[r.step(v)]})` }}
+                  // the week fades up in a wave, from Monday midnight to Sunday night
+                  style={{ ...fadeUpStyle(shown, h * 16 + i * 44, 420), background: v === undefined || v <= 0 ? "rgba(161,161,170,0.1)" : `rgba(230,33,47,${STEPS[r.step(v)]})` }}
                 />
               );
             })}
@@ -552,6 +739,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function WeekTerrain({ cells, feeUnit: unit, fmt, ...head }: Head & { cells: HeatCell[]; feeUnit: string; fmt: (v: number) => string }) {
   const r = useRanks(cells);
   const [ref, w] = useWidth<HTMLDivElement>();
+  const [seen, shown] = useReveal<HTMLDivElement>();
   const [hover, setHover] = useState<HeatCell | null>(null);
   const cap = r.sorted.length ? r.sorted[Math.floor(r.sorted.length * 0.95)] || r.sorted[r.sorted.length - 1] : 1;
 
@@ -578,6 +766,7 @@ export function WeekTerrain({ cells, feeUnit: unit, fmt, ...head }: Head & { cel
 
   return (
     <Instrument {...head} bodyClass="px-5 pb-4 md:px-6" legend={r.sorted.length ? <StepKey lo={fmt(r.sorted[0])} hi={fmt(r.sorted[r.sorted.length - 1])} unit={unit} /> : undefined}>
+      <div ref={seen}>
       <div ref={ref} className="relative" style={{ height: H }} onMouseLeave={() => setHover(null)}>
         {w > 0 && (
           <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} className="absolute inset-0 overflow-visible [--tb:#f4f4f5] dark:[--tb:#27272a]" aria-hidden>
@@ -601,7 +790,8 @@ export function WeekTerrain({ cells, feeUnit: unit, fmt, ...head }: Head & { cel
               const front = `color-mix(in srgb, #E6212F ${mix}%, var(--tb))`;
               const on = hover?.dow === cell.dow && hover?.hour === cell.hour;
               return (
-                <g key={`${cell.dow}-${cell.hour}`} onMouseEnter={() => setHover(cell)} className="cursor-crosshair">
+                // the terrain rises in a wave, back row first, hour by hour
+                <g key={`${cell.dow}-${cell.hour}`} onMouseEnter={() => setHover(cell)} className="cursor-crosshair" style={riseStyle(shown, row * 90 + c * 14, 640)}>
                   <rect x={gx} y={yt} width={fw} height={h} style={{ fill: front }} className={cn(on && "stroke-zinc-900 dark:stroke-zinc-100")} strokeWidth={on ? 1.25 : 0} />
                   <polygon
                     points={`${gx},${yt} ${gx + dx},${yt - dy} ${gx + fw + dx},${yt - dy} ${gx + fw},${yt}`}
@@ -621,6 +811,7 @@ export function WeekTerrain({ cells, feeUnit: unit, fmt, ...head }: Head & { cel
             ))}
           </svg>
         )}
+      </div>
       </div>
       <div className="mt-2 flex min-h-5 flex-wrap items-center justify-between gap-x-4 font-mono text-[11px] tabular-nums">
         <WeekReader cell={hover} median={r.median} fmt={fmt} unit={unit} capped={!!hover && hover.p50 > cap} />
