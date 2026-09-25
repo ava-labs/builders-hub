@@ -10,7 +10,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     { id: "chain-list", label: "Chain List", href: "/explorer/mainnet/chains", icon: List },
     { id: "dapps", label: "DApps", href: "/explorer/mainnet/apps", icon: AppWindow },
     { id: "gas-stats", label: "Gas Stats", href: "/explorer/mainnet/c-chain/gas", icon: LayoutGrid },
-    { id: "stats", label: "Stats", href: "/stats/network-metrics", icon: ChartArea },
+    { id: "stats", label: "Stats", href: "/explorer/mainnet", icon: ChartArea },
     { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
     { id: "icm", label: "ICM", href: "/explorer/mainnet/icm", icon: MessageCircleMore },
   ],

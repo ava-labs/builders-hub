@@ -1,26 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight } from "lucide-react";
-import type { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
-import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { SectionHeader } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { NetworkStatsBody } from "@/components/explorer-v2/network/NetworkStats";
 import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { OverviewLiveBoards, type LiveChain } from "./overview-live";
 import {
   SPARK_MIN_DAYS,
-  flowWindow,
   fmtCompact,
   levelWindow,
   useBurnHistory,
   useNetworkSeries,
   usePriceHistory,
-  useSeatHistory,
   useStakeHistory,
 } from "./overview-series";
 
@@ -102,39 +97,6 @@ function useOverviewStats(timeRange: ExplorerRange) {
   return { data, fetchedAt, refreshing };
 }
 
-/* the cosmos map: a 1.6k-line canvas, so it only loads on the client
-   and never blocks the splash's first paint */
-const NetworkDiagram = dynamic(() => import("@/components/stats/NetworkDiagram"), {
-  ssr: false,
-  loading: () => <div className="h-full w-full animate-pulse bg-zinc-900 dark:bg-black" />,
-});
-
-/* 30-day ICM flows drawn as arcs between chains. Failure is non-fatal:
-   the diagram still renders its nodes, just without traffic. */
-function useIcmFlowRoutes() {
-  const [flows, setFlows] = useState<ICMFlowRoute[]>([]);
-  const [failedChainIds, setFailedChainIds] = useState<string[]>([]);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/icm-flow?days=30", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: { flows?: ICMFlowRoute[]; failedChainIds?: string[] }) => {
-        if (Array.isArray(d.flows)) setFlows(d.flows);
-        if (Array.isArray(d.failedChainIds)) setFailedChainIds(d.failedChainIds);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, []);
-  return { flows, failedChainIds };
-}
-
-/* deterministic fallback tint for catalog chains without a brand color */
-function colorFromName(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return `hsl(${hash % 360}, 70%, 50%)`;
-}
-
 function useAvaxSupply() {
   const [data, setData] = useState<SupplyData | null>(null);
   useEffect(() => {
@@ -152,17 +114,6 @@ function useAvaxSupply() {
 const catalogByChainId = new Map(
   (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]),
 );
-function BoardLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className="group inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-    >
-      {children}
-      <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-    </Link>
-  );
-}
 
 const num = (v: string | undefined) => {
   const n = v ? parseFloat(v) : NaN;
@@ -175,36 +126,21 @@ export function NetworkOverview() {
   const range = useExplorerTimeRange();
   const clamped = overviewWindow(range);
   const days = RANGE_DAYS[clamped];
-  const { data, fetchedAt, refreshing } = useOverviewStats(clamped);
+  const { data } = useOverviewStats(clamped);
   const supply = useAvaxSupply();
 
   // the figures' pasts: sparks and moves against the previous window
   const series = useNetworkSeries(days);
   const prices = usePriceHistory(days);
-  const seats = useSeatHistory();
   const stake = useStakeHistory();
   const burn = useBurnHistory();
 
   const agg = data?.aggregated;
 
-  /* the tx counter runs forward from its fetch anchor at the window's own
-     rate: the count IS rising at ~tps/s, the API just snapshots it. A 2s
-     tick re-renders so the figure keeps counting. */
-  const [, tick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => tick((t) => t + 1), 2_000);
-    return () => clearInterval(id);
-  }, []);
-  const liveTxCount =
-    agg && fetchedAt
-      ? Math.round(agg.totalTxCount + (agg.totalTps * (Date.now() - fetchedAt)) / 1000)
-      : null;
-
   /* real throughput measured off the live block feed: moves as the
      network does, instead of a window average sitting still */
   const [liveTps, setLiveTps] = useState<number | null>(null);
 
-  const { flows, failedChainIds } = useIcmFlowRoutes();
 
   /* the live boards' roster: the busiest RPC-backed chains, latched to the
      first load so flipping the range doesn't reset a live feed */
@@ -232,32 +168,6 @@ export function NetworkOverview() {
     return roster;
   }, [data]);
 
-  /* the diagram's node list: validator-backed chains only (zero-validator
-     chains render as orphan dots), largest sets first to anchor the layout */
-  const cosmos = useMemo<ChainCosmosData[]>(() => {
-    return (data?.chains ?? [])
-      .map((c) => {
-        const validatorCount = typeof c.validatorCount === "number" ? c.validatorCount : 0;
-        if (validatorCount === 0) return null;
-        const catalog = catalogByChainId.get(String(c.chainId));
-        return {
-          id: catalog?.subnetId || c.chainId,
-          chainId: c.chainId,
-          name: c.chainName,
-          logo: c.chainLogoURI,
-          color: catalog?.color || colorFromName(c.chainName),
-          validatorCount,
-          subnetId: catalog?.subnetId,
-          activeAddresses: (c.activeAddresses ?? 0) > 0 ? c.activeAddresses! : undefined,
-          txCount: (c.txCount ?? 0) > 0 ? Math.round(c.txCount!) : undefined,
-          icmMessages: (c.icmMessages ?? 0) > 0 ? Math.round(c.icmMessages!) : undefined,
-          tps: (c.tps ?? 0) > 0 ? parseFloat(c.tps!.toFixed(2)) : undefined,
-          category: catalog?.category || "General",
-        } as ChainCosmosData;
-      })
-      .filter((c): c is ChainCosmosData => c !== null)
-      .sort((a, b) => b.validatorCount - a.validatorCount);
-  }, [data]);
 
   const staked = num(supply?.totalStaked);
   const circulating = num(supply?.circulatingSupply);
@@ -265,10 +175,6 @@ export function NetworkOverview() {
     ? (num(supply.totalCBurned) ?? 0) + (num(supply.totalPBurned) ?? 0) + (num(supply.totalXBurned) ?? 0) || null
     : null;
 
-  const txWin = flowWindow(series?.txCount, days);
-  const addrWin = flowWindow(series?.activeAddresses, days);
-  const icmWin = flowWindow(series?.icmMessages, days);
-  const seatWin = levelWindow(seats, days);
   const stakeWin = levelWindow(stake, days);
   const burnWin = levelWindow(burn, days);
   // throughput by day: each day's transactions over its seconds
@@ -284,8 +190,6 @@ export function NetworkOverview() {
     data?.coverage && data.coverage.indexed < data.coverage.total
       ? `activity from ${data.coverage.indexed} of ${data.coverage.total} chains`
       : undefined;
-  const aggValue = (v: number | undefined, contributors: number | undefined) =>
-    agg === undefined || v === undefined ? null : contributors === 0 ? "—" : fmtCompact(v);
   const tps = liveTps ?? (agg && agg.contributors?.txCount !== 0 ? agg.totalTps : null);
 
   return (
@@ -351,64 +255,8 @@ export function NetworkOverview() {
               </span>
             }
           />
-          <div className={refreshing && data ? "opacity-60 transition-opacity" : "transition-opacity"}>
-            <ReadoutRow cols={5}>
-              <Readout
-                label="Transactions"
-                live
-                href="/stats/network-metrics"
-                value={liveTxCount !== null ? aggValue(liveTxCount, agg?.contributors?.txCount) : null}
-                delta={txWin.delta}
-                spark={txWin.spark}
-              />
-              <Readout
-                label="Active Addresses"
-                href="/stats/network-metrics"
-                value={aggValue(agg?.totalActiveAddresses, agg?.contributors?.activeAddresses)}
-                delta={addrWin.delta}
-                spark={addrWin.spark}
-              />
-              <Readout
-                label="ICM Messages"
-                href="/explorer/mainnet/icm"
-                value={aggValue(agg?.totalICMMessages, agg?.contributors?.icmMessages)}
-                delta={icmWin.delta}
-                spark={icmWin.spark}
-              />
-              <Readout
-                label="Validators"
-                href="/explorer/mainnet/validators"
-                value={agg ? agg.totalValidators.toLocaleString("en-US") : null}
-                sub="Primary and L1 seats"
-                delta={seatWin.delta}
-                spark={seatWin.spark}
-              />
-              <Readout
-                label="Active L1s"
-                href="/explorer/mainnet/chains"
-                value={agg ? String(agg.activeL1Count) : null}
-                sub="per the P-Chain"
-              />
-            </ReadoutRow>
-          </div>
-        </section>
-
-        {/* the network as a cosmos: every validator set a body, ICM traffic
-            as arcs between them. The one dark surface on the sheet */}
-        <section className="flex flex-col gap-4">
-          <SectionHeader
-            label="Network map"
-            action={<BoardLink href="/explorer/mainnet/icm">ICM flows</BoardLink>}
-          />
-          <Board divide={false} className="overflow-hidden bg-zinc-900 p-0 dark:bg-black">
-            <div className="h-[400px] sm:h-[500px] md:h-[560px]">
-              {cosmos.length > 0 ? (
-                <NetworkDiagram data={cosmos} icmFlows={flows} failedChainIds={failedChainIds} />
-              ) : (
-                <div className="h-full w-full animate-pulse bg-zinc-900 dark:bg-black" />
-              )}
-            </div>
-          </Board>
+          {/* the Stats tab folded in: each reading picks the chart below it */}
+          <NetworkStatsBody />
         </section>
       </div>
     </NetworkShell>

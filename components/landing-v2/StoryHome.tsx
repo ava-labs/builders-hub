@@ -212,7 +212,7 @@ function LedgerStrip({
     // chrome (border/background) is owned by the parent board
     <div className="w-full">
       <div className="mx-auto grid max-w-7xl grid-cols-2 lg:grid-cols-4 divide-x divide-zinc-200 dark:divide-zinc-800">
-        <LedgerCell label="TRANSACTIONS · 30D" live href="/stats/network-metrics">
+        <LedgerCell label="TRANSACTIONS · 30D" live href="/explorer/mainnet">
           {agg ? (
             <LedgerFigure value={agg.totalTxCount} animateIn={animateIn} tickPeriod={MONTH_SECONDS} />
           ) : (

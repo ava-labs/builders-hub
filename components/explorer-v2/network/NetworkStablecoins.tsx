@@ -7,6 +7,7 @@ import { ResponsiveContainer, Tooltip as RechartsTooltip, Treemap } from "rechar
 import { cn } from "@/lib/utils";
 import { RANGE_DAYS, rangeWindowLabel, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Board, ChartBoard, EmptyRow, HEAD, INK, MUTED, ROW, SectionHeader, idInk } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { ChartEmpty } from "@/components/explorer-v2/staking/bits";
@@ -775,5 +776,12 @@ export function NetworkStablecoins() {
     );
   }
 
-  return <NetworkShell>{body}</NetworkShell>;
+  return (
+    <NetworkShell>
+      <div className="mb-8">
+        <DefiSwitch on="stablecoins" />
+      </div>
+      {body}
+    </NetworkShell>
+  );
 }

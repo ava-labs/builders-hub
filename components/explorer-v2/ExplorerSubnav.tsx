@@ -315,17 +315,13 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
       {
         label: "Overview",
         href: NETWORK_HOME,
-        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview"),
+        // the network stats live on the overview now
+        isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
       },
       {
         label: "Chains",
         href: `${NETWORK_HOME}/chains`,
         isActive: (p) => p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains"),
-      },
-      {
-        label: "Stats",
-        href: "/stats/network-metrics",
-        isActive: (p) => p.startsWith("/stats/network-metrics"),
       },
       {
         label: "ICM",
@@ -338,14 +334,10 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         isActive: (p) => p.startsWith(`${NETWORK_HOME}/validators`),
       },
       {
-        label: "Apps",
+        // protocols and stablecoins: one tab, a switch on the page picks the view
+        label: "DeFi",
         href: `${NETWORK_HOME}/apps`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/apps`) || p.startsWith("/stats/dapps"),
-      },
-      {
-        label: "Stablecoins",
-        href: `${NETWORK_HOME}/stablecoins`,
-        isActive: (p) => p.startsWith(`${NETWORK_HOME}/stablecoins`),
+        isActive: (p) => p.startsWith(`${NETWORK_HOME}/apps`) || p.startsWith(`${NETWORK_HOME}/stablecoins`) || p.startsWith("/stats/dapps"),
       },
       {
         label: "Token",

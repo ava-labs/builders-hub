@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { rangeWindowLabel, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { IcmNetworkMap } from "@/components/explorer-v2/network/icm-map";
 import { Board, EmptyRow, HEAD, HashChip, INK, LoadMore, MUTED, ROW, RowSkeleton, SectionHeader } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { thin } from "@/components/explorer-v2/staking/data";
@@ -322,6 +323,9 @@ export function NetworkIcm() {
             <EmptyRow>No ICM activity in this window</EmptyRow>
           </Board>
         )}
+
+        {/* the same traffic as a map: chains as bodies, messages as arcs */}
+        <IcmNetworkMap />
 
         {/* who talks, and to whom; each cut filters the transfers below */}
         <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">

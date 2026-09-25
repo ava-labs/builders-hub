@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { Board, EmptyRow } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { thin, windowSeries } from "@/components/explorer-v2/staking/data";
@@ -70,7 +69,8 @@ const ICM_LAYERS: BlockLayer[] = [
   { key: "out", label: "Sent", tone: "#71717A" },
 ];
 
-export function NetworkStats() {
+/** the network's windowed readings and the chart they pick, without the shell */
+export function NetworkStatsBody() {
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
   // fetch double the window so every reading can face its previous window
@@ -174,5 +174,5 @@ export function NetworkStats() {
     );
   }
 
-  return <NetworkShell>{body}</NetworkShell>;
+  return body;
 }

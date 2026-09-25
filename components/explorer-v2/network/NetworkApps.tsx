@@ -1,6 +1,7 @@
 "use client";
 
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
+import { DefiSwitch } from "@/components/explorer-v2/network/defi-switch";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
 import { useDappsTable } from "@/app/(home)/stats/dapps/_hooks/useDappsTable";
@@ -22,6 +23,9 @@ export function NetworkApps() {
 
   return (
     <NetworkShell>
+      <div className="mb-8">
+        <DefiSwitch on="apps" />
+      </div>
       {error ? (
         <p className="py-24 text-center font-mono text-[11px] font-bold uppercase tracking-[0.22em] text-[#E6212F]">{error}</p>
       ) : (
