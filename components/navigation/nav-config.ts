@@ -65,9 +65,9 @@ export const menuSections: NavSection[] = [
   },
   {
     title: 'Explorer',
-    href: '/explorer',
+    href: '/explorer/mainnet',
     items: [
-      { text: 'Block Explorer', href: '/explorer' },
+      { text: 'Block Explorer', href: '/explorer/mainnet' },
       { text: 'Playground', href: '/stats/playground' },
       { text: 'All Networks', href: '/explorer/mainnet' },
       { text: 'C-Chain Explorer', href: '/explorer/mainnet/c-chain' },

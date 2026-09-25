@@ -153,7 +153,7 @@ export const ecosystemMenu: LinkItemType = {
 export const explorerMenu: LinkItemType = {
   type: "menu",
   text: "Explorer",
-  url: "/explorer",
+  url: "/explorer/mainnet",
   items: [
     {
       icon: <Search />,

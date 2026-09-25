@@ -11,8 +11,6 @@ import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
-import { OverviewChains, type OverviewChain } from "./overview-chains";
-import { OverviewApps } from "./overview-apps";
 import { OverviewLiveBoards, type LiveChain } from "./overview-live";
 import {
   SPARK_MIN_DAYS,
@@ -28,11 +26,20 @@ import {
 
 /* The All Networks overview, in the C-Chain home's grammar: the pulse as
    a row of readouts, the latest blocks and transactions merged across
-   chains, the window's figures with their moves, the network map, then
-   the chains and apps as ranked lists the strips above them can cut. The page-level time range
-   comes from the explorer's shared clock, picked in the subnav. */
+   chains, the window's figures with their moves, and the network map.
+   The page-level time range comes from the explorer's shared clock,
+   picked in the subnav. */
 
-interface ChainRow extends OverviewChain {
+/* one chain's row in the overview feed: it drives the live boards and the map */
+interface ChainRow {
+  chainId: string;
+  chainName: string;
+  chainLogoURI: string;
+  txCount: number | null;
+  activeAddresses: number | null;
+  icmMessages: number | null;
+  validatorCount: number | string;
+  metricsOk?: boolean;
   tps: number | null;
 }
 
@@ -403,12 +410,6 @@ export function NetworkOverview() {
             </div>
           </Board>
         </section>
-
-        {/* the chains and the apps, each a ranked list its strip can cut */}
-        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-12 lg:grid-cols-2">
-          <OverviewChains chains={data?.chains ?? null} windowLabel={overviewWindowLabel(range)} />
-          <OverviewApps />
-        </div>
       </div>
     </NetworkShell>
   );
