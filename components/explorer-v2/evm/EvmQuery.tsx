@@ -28,6 +28,7 @@ import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/exa
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { askHref } from "@/lib/explorer-query/board";
+import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 
 /* A question about the chain, answered as a sheet in the explorer's
    own grammar. The query stage returns rows first and the page draws
@@ -73,6 +74,13 @@ function reads(callouts: string[]): string {
 }
 
 /** under every answer: the figures rest on SQL a model wrote */
+/** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
+class QueryError extends Error {
+  constructor(message: string, readonly signIn = false) {
+    super(message);
+  }
+}
+
 const SQL_CAVEAT = "The SQL behind this answer is written by an AI model and may not be 100% accurate. Check it before you rely on a figure.";
 
 /* the loader's line: what is happening, never which model does it */
@@ -305,6 +313,9 @@ function QueryPage({
   // the SQL the model handed back, so an edit is not laid out as if it were kept
   const answerSql = useRef("");
   const [error, setError] = useState<string | null>(null);
+  // the anonymous limit was hit: the error offers sign-in, which lifts it
+  const [gated, setGated] = useState(false);
+  const { openLoginModal } = useLoginModalTrigger();
   const [answer, setAnswer] = useState<QueryAnswer | null>(null);
   const [history, setHistory] = useState<Turn[]>([]);
   const [sqlOpen, setSqlOpen] = useState(false);
@@ -348,8 +359,8 @@ function QueryPage({
   const stream = async (body: object, my: number): Promise<QueryAnswer> => {
     const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
     if (!res.ok || !res.body) {
-      const out = (await res.json().catch(() => ({}))) as { error?: string };
-      throw new Error(out.error ?? `HTTP ${res.status}`);
+      const out = (await res.json().catch(() => ({}))) as { error?: string; signIn?: boolean };
+      throw new QueryError(out.error ?? `HTTP ${res.status}`, !!out.signIn);
     }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -425,6 +436,7 @@ function QueryPage({
       setPhase("query");
       setStarted(Date.now());
       setError(null);
+      setGated(false);
       setRange(null);
       setDrill(null);
       setSel([]);
@@ -460,6 +472,14 @@ function QueryPage({
         else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
       } catch (e) {
         setError(e instanceof Error ? e.message : "The query failed.");
+        if (e instanceof QueryError && e.signIn) {
+          // after sign-in the page reloads on ?q and asks again
+          asked.current = text;
+          const url = new URL(window.location.href);
+          url.searchParams.set("q", text);
+          window.history.replaceState(null, "", url.toString());
+          setGated(true);
+        }
         setPhase("idle");
         setStarted(null);
       }
@@ -472,6 +492,7 @@ function QueryPage({
   const runSql = useCallback(async () => {
     setPhase("running");
     setError(null);
+    setGated(false);
     setRange(null);
     setDrill(null);
     setSel([]);
@@ -553,6 +574,7 @@ function QueryPage({
     setAnswer(null);
     setHistory([]);
     setError(null);
+    setGated(false);
     setPrompt("");
     setRange(null);
     setDrill(null);
@@ -776,7 +798,20 @@ function QueryPage({
             </p>
           )}
           {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
-          {error && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">{error}</p>}
+          {error && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-[#E6212F] pl-3">
+              <p className="font-mono text-[12px] text-[#E6212F]">{error}</p>
+              {gated && (
+                <button
+                  type="button"
+                  onClick={() => openLoginModal()}
+                  className="border border-zinc-900 bg-zinc-900 px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
+          )}
           {!answer && !busy && (
             <div className="flex flex-col gap-6 pt-3">
               <QueryHome chain={c.chainSlug ?? String(c.chainId)} network={network} examples={examples} onAsk={(q) => void ask(q, false)} />

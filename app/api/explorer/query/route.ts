@@ -10,7 +10,7 @@ import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { targetOf } from "@/lib/explorer-query/target";
-import { checkChatRateLimit, getClientIP } from "@/lib/chat/rateLimit";
+import { checkChatRateLimit, formatResetTime, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
 
 /* A question in, a chart out. POST { chainId, prompt, history? } streams
@@ -135,7 +135,16 @@ export async function POST(req: Request) {
   const session = await getAuthSession();
   const isAuthenticated = !!session?.user?.id;
   const limit = checkChatRateLimit(isAuthenticated ? session!.user!.id! : getClientIP(req), isAuthenticated);
-  if (!limit.allowed) return NextResponse.json({ error: "rate limit reached; try again later" }, { status: 429 });
+  if (!limit.allowed) {
+    // signed out, the reader can lift the limit now: the page offers sign-in
+    const when = formatResetTime(limit.resetTime);
+    return NextResponse.json(
+      isAuthenticated
+        ? { error: `Question limit reached. Try again ${when}.` }
+        : { error: `You have asked ${limit.limit} questions this hour. Sign in to keep asking, or try again ${when}.`, signIn: true },
+      { status: 429 },
+    );
+  }
 
   const history = Array.isArray(body.history) ? body.history.slice(-4) : [];
 
