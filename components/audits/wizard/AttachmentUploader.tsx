@@ -54,7 +54,7 @@ export function AttachmentUploader() {
           toast.error(`${file.name}: only pdf, text, png, jpg, gif and webp files are accepted.`);
           continue;
         }
-        const blob = await upload(`audits/${file.name}`, file, {
+        const blob = await upload(`audits/${requestId}/${file.name}`, file, {
           access: "public",
           handleUploadUrl: "/api/audits/attachments/upload",
           clientPayload: JSON.stringify({ requestId }),

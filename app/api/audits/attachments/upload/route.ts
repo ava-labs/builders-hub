@@ -51,9 +51,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        if (!/^audits\/[^/]{1,300}$/.test(pathname)) {
-          throw new Error("Attachments must upload under the audits/ prefix.");
-        }
         let requestId: unknown;
         try {
           requestId = JSON.parse(clientPayload ?? "{}")?.requestId;
@@ -70,6 +67,13 @@ export async function POST(request: Request): Promise<NextResponse> {
           select: { id: true },
         });
         if (!draft) throw new Error("Draft not found or no longer editable.");
+
+        // The key carries the request, so the URL alone proves what it belongs
+        // to. Checked AFTER the draft is verified, against the id the server
+        // just confirmed the caller owns, never against the payload's copy.
+        if (!new RegExp(`^audits/${draft.id}/[^/]{1,300}$`).test(pathname)) {
+          throw new Error("Attachments must upload under audits/<requestId>/.");
+        }
 
         return {
           allowedContentTypes: ALLOWED_CONTENT_TYPES,

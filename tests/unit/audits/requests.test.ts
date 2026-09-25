@@ -63,7 +63,7 @@ import { patchDraft, deleteDraft, reopen, withdraw } from "@/server/services/aud
 const OWNER = "user-owner";
 
 const HOST = "qizat5l3bwvomkny.public.blob.vercel-storage.com";
-const storeUrl = (name: string) => `https://${HOST}/audits/${name}`;
+const storeUrl = (name: string, req = "req-1") => `https://${HOST}/audits/${req}/${name}`;
 const attachment = (name: string) => ({ name, url: storeUrl(name), size: 10 });
 
 beforeEach(() => {

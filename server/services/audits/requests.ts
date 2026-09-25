@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { del } from "@vercel/blob";
 import { prisma } from "@/prisma/prisma";
-import { isAllowedAttachmentSrc } from "@/lib/audits/blobSrc";
+import { isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
 import { parseStoredAttachments } from "@/lib/audits/attachments";
 import { deriveRequestStatus } from "@/lib/audits/status";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
@@ -18,7 +18,10 @@ import type { AuditDraftInput } from "@/types/audits";
 
 const DAY = 24 * 60 * 60 * 1000;
 
-export type MutationResult = { success: true } | { success: false; code: "not_found" };
+export type MutationResult =
+  | { success: true }
+  | { success: false; code: "not_found" }
+  | { success: false; code: "foreign_attachment" };
 
 /**
  * Unpublish objects the owner just dropped. "Remove" has to mean removed:
@@ -27,8 +30,11 @@ export type MutationResult = { success: true } | { success: false; code: "not_fo
  * row is written (the portal logo route's rule), and only for keys our own
  * attachment route could have minted.
  */
-async function unpublishAttachments(urls: string[]): Promise<void> {
-  const ours = urls.filter(isAllowedAttachmentSrc);
+async function unpublishAttachments(requestId: string, urls: string[]): Promise<void> {
+  // Bound to THIS request, not merely "on our store": the caller chose these
+  // strings, so a store-only check would delete any object they can name.
+  // Legacy keys carry no request id and are never deleted.
+  const ours = urls.filter((url) => isRequestAttachmentSrc(url, requestId));
   if (ours.length === 0) return;
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
@@ -40,6 +46,25 @@ async function unpublishAttachments(urls: string[]): Promise<void> {
   } catch (err) {
     console.error("[Audits] attachment blob delete failed:", err);
   }
+}
+
+/**
+ * A save may keep what the request already holds, and may add only keys minted
+ * for this request. That second half is the whole fix: without it a caller can
+ * paste another project's attachment URL onto their own draft, which both
+ * reads the file back through the proxy and marks it for deletion on the next
+ * save. Keeping the first half leaves drafts written before the key carried a
+ * request id editable.
+ */
+export function rejectedAttachmentUrls(
+  requestId: string,
+  stored: unknown,
+  incoming: AuditDraftInput["attachments"],
+): string[] {
+  const alreadyHere = new Set(parseStoredAttachments(stored).map((a) => a.url));
+  return (incoming ?? [])
+    .map((a) => a.url)
+    .filter((url) => !isRequestAttachmentSrc(url, requestId) && !alreadyHere.has(url));
 }
 
 /** URLs present before but absent after, for an attachment-carrying write. */
@@ -68,8 +93,13 @@ export async function createDraft(
   userId: string,
   input: AuditDraftInput,
 ): Promise<{ id: string }> {
+  // The id does not exist yet, so no attachment key can be bound to it. The
+  // wizard creates the draft before its first upload for exactly this reason
+  // (AttachmentUploader -> ensureDraftId), so dropping any attachments that
+  // arrive here costs nothing and closes the unbindable path.
+  const { attachments: _ignored, ...rest } = input;
   return prisma.auditRequest.create({
-    data: { user_id: userId, ...toDraftData(input) },
+    data: { user_id: userId, ...toDraftData(rest) },
     select: { id: true },
   });
 }
@@ -94,13 +124,23 @@ export async function patchDraft(
         })
       : null;
 
+  if (previous) {
+    const foreign = rejectedAttachmentUrls(requestId, previous.attachments, input.attachments);
+    if (foreign.length > 0) {
+      console.error("[Audits] refused attachment URL(s) not minted for this request.");
+      return { success: false, code: "foreign_attachment" };
+    }
+  }
+
   const result = await prisma.auditRequest.updateMany({
     where: { id: requestId, user_id: userId, status: "draft" },
     data: toDraftData(input),
   });
   if (result.count === 0) return { success: false, code: "not_found" };
 
-  if (previous) await unpublishAttachments(droppedUrls(previous.attachments, input.attachments));
+  if (previous) {
+    await unpublishAttachments(requestId, droppedUrls(previous.attachments, input.attachments));
+  }
   return { success: true };
 }
 
@@ -116,7 +156,7 @@ export async function deleteDraft(userId: string, requestId: string): Promise<Mu
   });
   if (result.count === 0) return { success: false, code: "not_found" };
 
-  await unpublishAttachments(droppedUrls(row?.attachments, []));
+  await unpublishAttachments(requestId, droppedUrls(row?.attachments, []));
   return { success: true };
 }
 

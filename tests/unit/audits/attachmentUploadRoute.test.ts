@@ -22,7 +22,7 @@ const PAYLOAD = JSON.stringify({ requestId: REQUEST_ID });
 
 // No default on clientPayload: a test needs to send genuinely nothing, and a
 // default would swallow an explicit undefined.
-const post = (clientPayload: string | undefined, pathname = "audits/scope.pdf") => {
+const post = (clientPayload: string | undefined, pathname = `audits/${REQUEST_ID}/scope.pdf`) => {
   handleUploadMock.mockImplementation(async ({ onBeforeGenerateToken }) =>
     onBeforeGenerateToken(pathname, clientPayload),
   );
@@ -70,8 +70,13 @@ describe("POST /api/audits/attachments/upload", () => {
     expect(requestFindFirstMock).not.toHaveBeenCalled();
   });
 
-  it("keeps the key inside audits/ with no nesting", async () => {
+  it("pins the key to the verified draft, not to the payload's copy", async () => {
+    // Someone else's request id, a firm logo folder, an unprefixed key, and
+    // an extra path segment are all refused.
+    expect((await post(PAYLOAD, "audits/some-other-request/f.pdf")).status).toBe(400);
     expect((await post(PAYLOAD, "audits/firms/aud-1/logo.png")).status).toBe(400);
+    expect((await post(PAYLOAD, "audits/scope.pdf")).status).toBe(400);
+    expect((await post(PAYLOAD, `audits/${REQUEST_ID}/sub/f.pdf`)).status).toBe(400);
     expect((await post(PAYLOAD, "other/x.pdf")).status).toBe(400);
   });
 

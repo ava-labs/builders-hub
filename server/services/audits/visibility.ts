@@ -5,6 +5,7 @@ import {
   toAttachmentLinks,
   type StoredAttachment,
 } from "@/lib/audits/attachments";
+import { isLegacyAttachmentSrc, isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
 import { findAuditorByEmail } from "@/server/services/audits/auditors";
 import { firmContact, recipientsOf } from "@/server/services/audits/emails/recipients";
 import {
@@ -471,7 +472,21 @@ export async function readableAttachment(
   }
   if (!isOwner && !asAdmin && !invited) return null;
 
-  return parseStoredAttachments(row.attachments)[index] ?? null;
+  const attachment = parseStoredAttachments(row.attachments)[index];
+  if (!attachment) return null;
+
+  // Authorizing the REQUEST is not enough: the row holds a URL, and a URL is
+  // a bearer string the owner typed in. Serve it only when the key belongs to
+  // this request, or is a legacy key that requests.ts no longer lets anyone
+  // add to a row they do not already hold.
+  if (
+    !isRequestAttachmentSrc(attachment.url, requestId) &&
+    !isLegacyAttachmentSrc(attachment.url)
+  ) {
+    console.error("[Audits] stored attachment URL is not bound to its request; refusing.");
+    return null;
+  }
+  return attachment;
 }
 
 // ── Admin scope ─────────────────────────────────────────────────────────────
