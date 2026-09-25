@@ -1956,7 +1956,7 @@ const config = {
       },
       {
         source: "/stats/primary-network/validators",
-        destination: "/explorer/mainnet/validators",
+        destination: "/explorer/mainnet/p-chain/validators",
         permanent: true,
       },
       // the stats section's network-scope pages moved into the explorer's
@@ -1983,13 +1983,14 @@ const config = {
         permanent: true,
       },
       {
+        // ICM and the network's validator sets live on the Chains tab now
         source: "/stats/interchain-messaging",
-        destination: "/explorer/mainnet/icm",
+        destination: "/explorer/mainnet/chains",
         permanent: true,
       },
       {
         source: "/stats/validators",
-        destination: "/explorer/mainnet/validators",
+        destination: "/explorer/mainnet/chains",
         permanent: true,
       },
       {

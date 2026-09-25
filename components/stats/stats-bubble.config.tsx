@@ -11,7 +11,7 @@ export const statsBubbleConfig: BubbleNavigationConfig = {
     { id: "dapps", label: "DApps", href: "/explorer/mainnet/c-chain/defi", icon: AppWindow },
     { id: "gas-stats", label: "Gas Stats", href: "/explorer/mainnet/c-chain/gas", icon: LayoutGrid },
     { id: "stats", label: "Stats", href: "/explorer/mainnet", icon: ChartArea },
-    { id: "playground", label: "Playground", href: "/stats/playground", icon: Command },
+    { id: "query", label: "Query", href: "/explorer/mainnet/query", icon: Command },
   ],
   activeColor: "bg-red-100 dark:bg-red-500/20",
   darkActiveColor: "",
@@ -39,7 +39,7 @@ const getActiveItem = (
   } else if (pathname.startsWith("/explorer/mainnet/icm")) {
     return "chain-list";
   } else if (pathname.startsWith("/stats/playground")) {
-    return "playground";
+    return "query";
   }
   return "overview";
 };
