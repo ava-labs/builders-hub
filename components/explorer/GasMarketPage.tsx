@@ -742,10 +742,10 @@ function protocolLabel(p: GasProtocol, names: Map<string, string>): string {
   return names.get(p.address.toLowerCase()) ?? shortAddr(p.address);
 }
 
+/* a protocol opens on its busiest contract in the window */
 function protocolHref(p: GasProtocol, base: string): string | null {
-  if (p.slug) return `/stats/dapps/${p.slug}`;
-  if (p.address) return `${base}/address/${p.address}`;
-  return null;
+  const a = p.address ?? p.topContract;
+  return a ? `${base}/address/${a}` : null;
 }
 
 export function ProtocolsTreemap({

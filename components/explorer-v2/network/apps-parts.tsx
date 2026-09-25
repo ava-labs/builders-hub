@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -25,8 +27,29 @@ export function categoryName(key: string): string {
   return DAPP_CATEGORIES[key as keyof typeof DAPP_CATEGORIES]?.name ?? key.charAt(0).toUpperCase() + key.slice(1);
 }
 
-/** a protocol's detail page (kept under /stats/dapps) */
-export const appHref = (slug: string) => `/stats/dapps/${slug}`;
+/** where a protocol opens: its main C-Chain contract in the explorer when
+    one is known, else its own site in a new tab, else nowhere */
+export function appLink(d: { address?: string; url?: string }): { href: string; external: boolean } | null {
+  if (d.address) return { href: `/explorer/mainnet/c-chain/address/${d.address}`, external: false };
+  if (d.url) return { href: d.url, external: true };
+  return null;
+}
+/* a protocol's tile or row: a link where it can open, a plain block where it cannot */
+function AppAnchor({ d, children, ...rest }: { d: { address?: string; url?: string; name: string }; children: React.ReactNode } & React.HTMLAttributes<HTMLElement>) {
+  const l = appLink(d);
+  if (!l) return <div {...(rest as React.HTMLAttributes<HTMLDivElement>)}>{children}</div>;
+  if (l.external)
+    return (
+      <a href={l.href} target="_blank" rel="noopener noreferrer" title={`${d.name}: no C-Chain contract listed, opens its site`} {...rest}>
+        {children}
+      </a>
+    );
+  return (
+    <Link href={l.href} title={`${d.name}: its main C-Chain contract`} {...rest}>
+      {children}
+    </Link>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* TVL by category: one bar split by share, the legend under it        */
@@ -252,9 +275,9 @@ export function ProtocolTreemap({ dapps, category }: { dapps: DAppStats[]; categ
           const on = hover === d.id;
           const roomy = t.w > 76 && t.h > 38;
           return (
-            <Link
+            <AppAnchor
               key={d.id}
-              href={appHref(d.slug)}
+              d={d}
               onMouseEnter={() => setHover(d.id)}
               onFocus={() => setHover(d.id)}
               onBlur={() => setHover(null)}
@@ -271,7 +294,7 @@ export function ProtocolTreemap({ dapps, category }: { dapps: DAppStats[]; categ
                   <span className={cn("font-mono text-[10px] tabular-nums", on ? "opacity-70" : "text-zinc-500 dark:text-zinc-400")}>{usd(d.tvl)}</span>
                 </span>
               )}
-            </Link>
+            </AppAnchor>
           );
         })}
         {hd && (
@@ -437,7 +460,7 @@ export function Leaderboard({ table, total }: { table: Table; total: number }) {
             </div>
             {visibleData.map((d, i) => {
               return (
-                <Link key={d.id} href={appHref(d.slug)} className={cn(ROW, COLS, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
+                <AppAnchor key={d.id} d={d} className={cn(ROW, COLS, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
                   <span className={cn(MUTED, "max-md:hidden")}>{i + 1}</span>
                   <span className="flex min-w-0 items-center gap-2.5">
                     <Logo dapp={d} />
@@ -455,7 +478,7 @@ export function Leaderboard({ table, total }: { table: Table; total: number }) {
                   </span>
                   <span className={cn(MUTED, "text-right max-md:hidden")}>{d.volume24h ? usd(d.volume24h) : "—"}</span>
                   <span className={cn(MUTED, "text-right max-md:hidden")}>{d.mcap ? usd(d.mcap) : "—"}</span>
-                </Link>
+                </AppAnchor>
               );
             })}
             {sortedData.length === 0 && <EmptyRow>no protocols match</EmptyRow>}
