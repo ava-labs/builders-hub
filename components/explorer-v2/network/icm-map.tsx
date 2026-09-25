@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -10,6 +10,7 @@ import { ageShort, truncate } from "@/components/explorer-v2/format";
 import { txTypeLabel } from "@/lib/pchain-explorer";
 import { LEDGER, usePchainPulse, type PchainPulse, type PulseTx } from "@/components/explorer-v2/network/pchain-pulse";
 import { EASE_CSS, useStill } from "@/components/explorer-v2/motion";
+import { NEW_DAYS, useNewcomers, type Newcomer } from "@/components/explorer-v2/network/newcomers";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { BLOCK_GRAY, PICK_BLUE, ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
@@ -32,7 +33,10 @@ import type { L1Chain } from "@/types/stats";
    lands turns the ring one place, and a comet runs on the ground to the
    set it touched: stake into the Primary Network's set, a reward out of
    it. A click on the ground opens the P-Chain explorer, a click on a tile
-   opens its tx. It fetches its own data, so the page only mounts it. */
+   opens its tx. The week's new L1s stand at the front of the outer ring in
+   the P-Chain's violet, flagged NEW, even before the catalog knows them;
+   one that joins while the page is open rises there as the ring makes
+   room. It fetches its own data, so the page only mounts it. */
 
 interface MapChain {
   chainId: string;
@@ -65,6 +69,12 @@ interface Node {
   h: number;
   ring: "hub" | "inner" | "outer";
   order: number;
+  /** joined the P-Chain within NEW_DAYS, unix seconds */
+  newAt: number | null;
+  /** stood up from the P-Chain's registry, not the catalog: its door is its P-Chain page */
+  guest: boolean;
+  /** its place among the new L1s, 0 the newest */
+  newRank: number;
 }
 interface Route {
   key: string;
@@ -124,10 +134,16 @@ export const TONE = {
   near: { top: "#FCD34D", left: "#f59e0b", right: "#BF7A07", edge: "#7C4F04" },
   stale: { top: "#FCA5A5", left: "#E6212F", right: "#A5141F", edge: "#7A0E17" },
   unknown: { top: "#E4E4E7", left: "#a1a1aa", right: "#7C7C85", edge: "#55555C" },
+  // a new L1 wears the P-Chain's violet for its first week
+  fresh: { top: "#D9D0FF", left: "#8C73FF", right: "#5400FF", edge: "#3600A6" },
 };
 
 const catalogByChainId = new Map(
   (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]),
+);
+
+const catalogBySubnet = new Map(
+  (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [String(c.subnetId), c]),
 );
 
 /* the chain's ICM feed when it has an RPC, else its accounts */
@@ -203,6 +219,42 @@ function sector(a0: number, a1: number, r0: number, r1: number): string {
 function slotAt(k: number, r: number): [number, number] {
   const t = ((90 + k * SLOT) * Math.PI) / 180;
   return [CX + r * Math.cos(t), CY + r * TILT * Math.sin(t)];
+}
+
+/* towers that change places glide there instead of jumping: each starts
+   at its old place and eases to its new one (FLIP). Only the outer ring
+   moves so, as its sets carry no routes to leave behind. */
+function useGlide(nodes: Node[], still: boolean): Map<string, [number, number]> | null {
+  const last = useRef(new Map<string, [number, number]>());
+  const [from, setFrom] = useState<Map<string, [number, number]> | null>(null);
+  useLayoutEffect(() => {
+    const moved = new Map<string, [number, number]>();
+    for (const n of nodes) {
+      const p = last.current.get(n.id);
+      if (p && n.ring === "outer" && Math.hypot(p[0] - n.x, p[1] - n.y) > 0.5) moved.set(n.id, [p[0] - n.x, p[1] - n.y]);
+    }
+    last.current = new Map(nodes.map((n) => [n.id, [n.x, n.y]]));
+    if (still || !moved.size) {
+      setFrom(null);
+      return;
+    }
+    setFrom(moved);
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setFrom(null));
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [nodes, still]);
+  return from;
+}
+
+/* a new L1 rises last on a load; one that joined in the last minutes, just after the ring makes room */
+function riseDelay(n: Node): number {
+  if (n.newAt !== null) return Date.now() / 1000 - n.newAt < 600 ? 900 : 2400 + n.newRank * 320;
+  return n.ring === "hub" ? 0 : n.ring === "inner" ? 120 + n.order * 45 : 300 + n.order * 12;
 }
 
 /* one tower: a square footprint turned to the plate, extruded h; its
@@ -441,8 +493,9 @@ function RimCaption({ uid, tip, ground, still }: { uid: string; tip: PulseTx | n
 
 /* what each landed tx touched: a comet on the ground between its tile and
    the Primary Network's set, the way its AVAX ran, and a pulse at the
-   set's foot; an L1 op spreads over the L1s' rings */
-function Signals({ txs }: { txs: PulseTx[] }) {
+   set's foot; an L1 op spreads over the L1s' rings, and a conversion runs
+   on to the tower of the L1 it made, once the map stands it */
+function Signals({ txs, joins }: { txs: PulseTx[]; joins: Map<string, [number, number]> }) {
   if (!txs.length) return null;
   const head = txs[0].seq;
   const comet = (delay: number): CSSProperties => ({ animation: `bh-comet 1300ms cubic-bezier(0.45,0,0.25,1) ${delay}ms both` });
@@ -493,6 +546,18 @@ function Signals({ txs }: { txs: PulseTx[] }) {
                   ))}
                 </>
               )}
+              {joins.has(t.hash) &&
+                (() => {
+                  const [jx, jy] = joins.get(t.hash)!;
+                  const jd = `M${rx.toFixed(1)},${ry.toFixed(1)} L${jx.toFixed(1)},${(jy + 4).toFixed(1)}`;
+                  // mounted when the new tower stands, so it runs as the ring makes room
+                  return (
+                    <g key="join">
+                      <path d={jd} pathLength={1} strokeDasharray="0.22 2" strokeWidth={11} className="stroke-[#5400FF]/20 dark:stroke-[#8B6CFF]/35" style={comet(150)} />
+                      <path d={jd} pathLength={1} strokeDasharray="0 0.16 0.06 2" strokeWidth={3} className="stroke-[#5400FF] dark:stroke-[#F1EDFF]" style={comet(150)} />
+                    </g>
+                  );
+                })()}
               {famOf(t.type) === "l1" && (
                 <ellipse
                   cx={CX}
@@ -515,7 +580,7 @@ function Signals({ txs }: { txs: PulseTx[] }) {
 /* the ground's key under the model: the ledger's span, its tiles by
    family, and the door to the P-Chain explorer. Phones, without the
    model, get the ledger as a flat tape, newest at the right. */
-function GroundKey({ pulse }: { pulse: PchainPulse }) {
+function GroundKey({ pulse, arrivals }: { pulse: PchainPulse; arrivals: Newcomer[] }) {
   const { txs, stats } = pulse;
   const counts = new Map<Fam, number>();
   for (const t of txs) counts.set(famOf(t.type), (counts.get(famOf(t.type)) ?? 0) + 1);
@@ -563,6 +628,29 @@ function GroundKey({ pulse }: { pulse: PchainPulse }) {
           </Link>
         </span>
       </div>
+      {arrivals.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px]">
+          <span className={cn("flex items-center gap-1.5 font-bold uppercase tracking-[0.14em]", P_INK)}>
+            <span className="bg-[#5400FF] px-1 py-px text-[8px] text-white dark:bg-[#8B6CFF]">NEW</span>
+            L1s · last {NEW_DAYS} days
+          </span>
+          {arrivals.map((a) => {
+            const href = a.blockchainId ? `/explorer/mainnet/p-chain/chain/${a.blockchainId}` : a.tx ? `/explorer/mainnet/p-chain/tx/${a.tx}` : null;
+            const body = (
+              <>
+                <span className="text-zinc-900 dark:text-zinc-100">{a.name}</span> <span className="tabular-nums text-zinc-400 dark:text-zinc-500">{ageShort(a.joinedAt)}</span>
+              </>
+            );
+            return href ? (
+              <Link key={a.subnetId} href={href} className="transition-opacity hover:opacity-70">
+                {body}
+              </Link>
+            ) : (
+              <span key={a.subnetId}>{body}</span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -627,6 +715,8 @@ export function IcmNetworkMap({
   const router = useRouter();
   // the ground: the P-Chain's latest txs and tip
   const pulse = usePchainPulse("mainnet");
+  // the week's new L1s, from the P-Chain
+  const newcomers = useNewcomers(pulse.txs);
   const [ground, setGround] = useState(false);
   // a ledger tile under the cursor, by tx hash
   const [hoverTx, setHoverTx] = useState<string | null>(null);
@@ -679,7 +769,7 @@ export function IcmNetworkMap({
       inn.set(r.to, (inn.get(r.to) ?? 0) + r.messages);
     }
 
-    const base = [...known.values()]
+    const listed = [...known.values()]
       .map((c) => {
         const id = String(c.chainId);
         return {
@@ -692,9 +782,38 @@ export function IcmNetworkMap({
           in: inn.get(id) ?? 0,
           href: chainHref(id),
           color: id === HUB_ID ? "#E6212F" : catalogByChainId.get(id)?.color ?? null,
+          newAt: null as number | null,
+          guest: false,
         };
       })
       .filter((c) => c.validators > 0 || c.out + c.in > 0);
+    // the week's new L1s: one the map already stands wears the mark on its
+    // own tower; the rest stand as guests, from what the P-Chain knows
+    const listedIds = new Set(listed.map((c) => c.id));
+    const freshAt = new Map<string, number>();
+    const guests: typeof listed = [];
+    for (const nc of newcomers) {
+      const cat = catalogBySubnet.get(nc.subnetId);
+      const id = cat ? String(cat.chainId) : null;
+      if (id && listedIds.has(id)) {
+        freshAt.set(id, nc.joinedAt);
+        continue;
+      }
+      guests.push({
+        id: `p:${nc.subnetId}`,
+        name: nc.name,
+        logo: cat?.chainLogoURI ?? "",
+        // a join seen live stands on its first validator until the registry counts it
+        validators: nc.validators ?? 1,
+        out: 0,
+        in: 0,
+        href: nc.blockchainId ? `/explorer/mainnet/p-chain/chain/${nc.blockchainId}` : nc.tx ? `/explorer/mainnet/p-chain/tx/${nc.tx}` : null,
+        color: null,
+        newAt: nc.joinedAt,
+        guest: true,
+      });
+    }
+    const base = [...listed.map((c) => (freshAt.has(c.id) ? { ...c, newAt: freshAt.get(c.id)! } : c)), ...guests];
 
     const metric = (c: (typeof base)[number]) => (sizeBy === "messages" ? c.out + c.in : c.validators);
     const top = Math.max(1, ...base.map(metric));
@@ -705,17 +824,33 @@ export function IcmNetworkMap({
     const quiet = base.filter((c) => c.id !== HUB_ID && c.out + c.in === 0).sort((a, b) => b.validators - a.validators || a.name.localeCompare(b.name));
 
     const placed: Node[] = [];
-    if (hub) placed.push({ ...hub, x: CX, y: CY, w: 44, h: height(hub), ring: "hub", order: 0 });
+    if (hub) placed.push({ ...hub, x: CX, y: CY, w: 44, h: height(hub), ring: "hub", order: 0, newRank: 0 });
     // a quarter step round keeps any talker off the hub's back (behind its roof) and front (on its name)
     talking.forEach((c, i) => {
       const [x, y] = onRing(i, talking.length, INNER, Math.PI / (2 * Math.max(1, talking.length)));
-      placed.push({ ...c, x, y, w: 17, h: height(c), ring: "inner", order: i });
+      placed.push({ ...c, x, y, w: 17, h: height(c), ring: "inner", order: i, newRank: 0 });
     });
-    // the outer ring starts back left, so its tallest set does not stand behind the hub
-    quiet.forEach((c, i) => {
+    // the outer ring starts back left, so its tallest set does not stand behind the hub;
+    // the week's arrivals take its front places, the newest at the centre, by the ledger's seam
+    const arrivals = quiet.filter((c) => c.newAt !== null).sort((a, b) => b.newAt! - a.newAt!);
+    const rest = quiet.filter((c) => c.newAt === null);
+    const offFront = (i: number) => {
+      const a = -0.42 + (i / Math.max(1, quiet.length)) * Math.PI * 2 - Math.PI;
+      return Math.abs(Math.atan2(Math.sin(a), Math.cos(a)));
+    };
+    const front = new Map(
+      [...Array(quiet.length).keys()]
+        .sort((a, b) => offFront(a) - offFront(b))
+        .slice(0, arrivals.length)
+        .map((slot, k) => [slot, k]),
+    );
+    let next = 0;
+    for (let i = 0; i < quiet.length; i++) {
+      const k = front.get(i);
+      const c = k !== undefined ? arrivals[k] : rest[next++];
       const [x, y] = onRing(i, quiet.length, OUTER, -0.42);
-      placed.push({ ...c, x, y, w: 9, h: height(c), ring: "outer", order: i });
-    });
+      placed.push({ ...c, x, y, w: 9, h: height(c), ring: "outer", order: i, newRank: k ?? 0 });
+    }
 
     const at = new Map(placed.map((n) => [n.id, n]));
     const maxMsgs = Math.max(1, ...[...merged.values()].map((r) => r.messages));
@@ -753,7 +888,7 @@ export function IcmNetworkMap({
         };
       });
     return { nodes: placed, routes: drawn, byName: new Map(placed.map((n) => [n.name, n])) };
-  }, [chains, flows, sizeBy]);
+  }, [chains, flows, sizeBy, newcomers]);
 
   useEffect(() => {
     if (!onSummary || !chains) return;
@@ -782,6 +917,23 @@ export function IcmNetworkMap({
   }, [hover]);
   // painter's order: back of the plate first
   const drawOrder = useMemo(() => [...nodes].sort((a, b) => a.y - b.y), [nodes]);
+  const glide = useGlide(nodes, still);
+  // a conversion seen live, by tx, to the foot of the tower it made
+  const joins = useMemo(() => {
+    const m = new Map<string, [number, number]>();
+    for (const nc of newcomers) {
+      if (!nc.tx) continue;
+      const cat = catalogBySubnet.get(nc.subnetId);
+      const n = byId.get(`p:${nc.subnetId}`) ?? (cat ? byId.get(String(cat.chainId)) : undefined);
+      if (n) m.set(nc.tx, [n.x, n.y]);
+    }
+    return m;
+  }, [newcomers, byId]);
+  const glideStyle = (id: string): CSSProperties | undefined => {
+    if (still) return undefined;
+    const o = glide?.get(id);
+    return o ? { transform: `translate(${o[0]}px, ${o[1]}px)` } : { transform: "translate(0px, 0px)", transition: `transform 900ms ${EASE_CSS}` };
+  };
 
   const tipNode = hover ? byId.get(hover) : null;
   const tipTx = hoverTx ? pulse.txs.find((t) => t.hash === hoverTx) ?? null : null;
@@ -798,14 +950,15 @@ export function IcmNetworkMap({
         .entries(),
     ].sort((a, b) => b[1] - a[1])[0];
 
-  const pick = (n: Node) => onPick?.(n.name);
+  // a guest is not in the tables to cut, so its click opens its P-Chain page
+  const pick = (n: Node) => (n.guest ? n.href && router.push(n.href) : onPick?.(n.name));
   const pickedNode = pickedId ? byId.get(pickedId) : null;
   const talking = nodes.filter((n) => n.ring !== "outer").sort((a, b) => b.out + b.in - (a.out + a.in));
   const quiet = nodes.filter((n) => n.ring === "outer");
   const maxTalk = Math.max(1, ...talking.map((n) => n.out + n.in));
   const maxQuiet = Math.max(1, ...quiet.map((n) => n.validators));
 
-  const tone = (n: Node): keyof typeof TONE => (pickedId === n.id ? "blue" : n.ring === "hub" ? "red" : n.ring === "outer" ? "pale" : "gray");
+  const tone = (n: Node): keyof typeof TONE => (pickedId === n.id ? "blue" : n.ring === "hub" ? "red" : n.newAt !== null ? "fresh" : n.ring === "outer" ? "pale" : "gray");
   const halo = "pointer-events-none select-none stroke-white [paint-order:stroke] [stroke-width:4px] dark:stroke-zinc-950";
 
   /* where a talker's flag stands: over the roof at the back of the plate,
@@ -873,8 +1026,8 @@ export function IcmNetworkMap({
     const on = pickedId === n.id;
     const ink = on ? "fill-[#0061E2] dark:fill-[#5f9dff]" : "fill-zinc-800 dark:fill-zinc-100";
     if (n.ring === "outer") {
-      // quiet sets are named in the roster; the plate flags only the big ones
-      if (n.validators < 20) return null;
+      // quiet sets are named in the roster; the plate flags only the big ones, and a new L1 has its chip
+      if (n.validators < 20 || n.newAt !== null) return null;
       return (
         <text x={n.x} y={roof - 8} textAnchor="middle" className={cn(halo, "font-mono text-[10px] uppercase tracking-[0.06em]", on ? ink : "fill-zinc-500 dark:fill-zinc-400")}>
           {clip(n.name, 14)}
@@ -988,6 +1141,8 @@ export function IcmNetworkMap({
   const SKY_W = 1200;
   const SKY_H = 214;
   const LEDGE_Y = 104;
+  // the roster reads tallest first, whatever places the ring gave its arrivals
+  const roster = [...quiet].sort((a, b) => b.validators - a.validators || a.name.localeCompare(b.name));
   const skyStep = quiet.length ? Math.min(34, (SKY_W - 80) / quiet.length) : 0;
   const skyX0 = (SKY_W - skyStep * (quiet.length - 1)) / 2;
   const skyW = Math.max(3, Math.min(8, skyStep * 0.3));
@@ -1010,7 +1165,7 @@ export function IcmNetworkMap({
           strokeWidth={1}
         />
         <rect x={34} y={LEDGE_Y + 10} width={SKY_W - 68} height={6} className="fill-zinc-200 stroke-zinc-300 dark:fill-zinc-800 dark:stroke-zinc-700" strokeWidth={1} />
-        {quiet.map((n, i) => {
+        {roster.map((n, i) => {
           const x = skyX0 + i * skyStep;
           const ground = LEDGE_Y + 6;
           const h = 4 + 78 * Math.pow(n.validators / maxQuiet, 0.5);
@@ -1040,7 +1195,7 @@ export function IcmNetworkMap({
             >
               <rect x={x - skyStep / 2} y={0} width={skyStep} height={SKY_H} fill="transparent" />
               <g style={still ? undefined : { transformOrigin: `${x}px ${ground}px`, animation: `${uid}rise 800ms cubic-bezier(0.32,0.72,0,1) ${400 + i * 14}ms both` }}>
-                <Tower x={x} y={ground} w={skyW} h={h} tone={on ? "blue" : "pale"} mix={on ? null : mixOf(n.id)} />
+                <Tower x={x} y={ground} w={skyW} h={h} tone={on ? "blue" : n.newAt !== null ? "fresh" : "pale"} mix={on ? null : mixOf(n.id)} />
               </g>
               <text
                 x={x}
@@ -1057,7 +1212,13 @@ export function IcmNetworkMap({
                 transform={`rotate(-40 ${x.toFixed(1)} ${ly})`}
                 className={cn(
                   "pointer-events-none select-none font-mono text-[10px] uppercase tracking-[0.04em] transition-colors",
-                  on ? "fill-[#0061E2] dark:fill-[#5f9dff]" : hover === n.id ? "fill-zinc-900 dark:fill-zinc-50" : "fill-zinc-600 dark:fill-zinc-400",
+                  on
+                    ? "fill-[#0061E2] dark:fill-[#5f9dff]"
+                    : hover === n.id
+                      ? "fill-zinc-900 dark:fill-zinc-50"
+                      : n.newAt !== null
+                        ? "fill-[#5400FF] dark:fill-[#A48CFF]"
+                        : "fill-zinc-600 dark:fill-zinc-400",
                 )}
               >
                 {clip(n.name, 16)}
@@ -1068,7 +1229,7 @@ export function IcmNetworkMap({
       </svg>
       {/* phones and tablets: the same sets, as a list */}
       <ul className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1 pb-2 sm:grid-cols-3 lg:hidden">
-        {quiet.map((n) => (
+        {roster.map((n) => (
           <li key={n.id}>
             <button
               type="button"
@@ -1076,7 +1237,7 @@ export function IcmNetworkMap({
               aria-pressed={pickedId === n.id}
               className={cn(
                 "flex w-full items-center justify-between gap-2 py-0.5 text-left font-mono text-[11px]",
-                pickedId === n.id ? "text-[#0061E2] dark:text-[#5f9dff]" : "text-zinc-600 dark:text-zinc-400",
+                pickedId === n.id ? "text-[#0061E2] dark:text-[#5f9dff]" : n.newAt !== null ? "text-[#5400FF] dark:text-[#A48CFF]" : "text-zinc-600 dark:text-zinc-400",
               )}
             >
               <span className="truncate uppercase tracking-[0.04em]">{n.name}</span>
@@ -1169,7 +1330,7 @@ export function IcmNetworkMap({
 
             <RimCaption uid={uid} tip={pulse.txs[0] ?? null} ground={ground} still={still} />
             <LedgerRing txs={pulse.txs} outgoing={pulse.outgoing} epoch={pulse.epoch} still={still} hovered={hoverTx} onHover={setHoverTx} onOpen={openTx} />
-            {!still && <Signals txs={pulse.txs} />}
+            {!still && <Signals txs={pulse.txs} joins={joins} />}
             {/* a hovered tile's line to the set it touched */}
             {tipTx && flowOf(tipTx.type) && (() => {
               const k = (pulse.txs[0]?.seq ?? 0) - tipTx.seq;
@@ -1195,10 +1356,10 @@ export function IcmNetworkMap({
             {drawOrder.map((n) => {
               const dim = near !== null && !near.has(n.id);
               const up = hover === n.id;
-              const delay = n.ring === "hub" ? 0 : n.ring === "inner" ? 120 + n.order * 45 : 300 + n.order * 12;
+              const delay = riseDelay(n);
               return (
+                <g key={n.id} style={glideStyle(n.id)}>
                 <g
-                  key={n.id}
                   role="button"
                   tabIndex={0}
                   aria-label={`${n.name}: ${n.validators} validators, ${n.out} messages out, ${n.in} in`}
@@ -1219,6 +1380,20 @@ export function IcmNetworkMap({
                 >
                   {/* a footprint shadow grounds the tower on the plate */}
                   <ellipse cx={n.x + n.w * 0.35} cy={n.y + n.w * TILT * 0.4} rx={n.w * 1.25} ry={n.w * TILT * 1.1} className="fill-[#1E0B5C]/[0.09] dark:fill-black/40" />
+                  {/* a new L1 comes up out of the P-Chain: the ground rings where it rises */}
+                  {n.newAt !== null && !still && (
+                    <ellipse
+                      cx={n.x}
+                      cy={n.y}
+                      rx={n.w * 6}
+                      ry={n.w * 6 * TILT}
+                      fill="none"
+                      strokeWidth={1.5}
+                      vectorEffect="non-scaling-stroke"
+                      className="pointer-events-none stroke-[#5400FF] dark:stroke-[#A48CFF]"
+                      style={{ transformBox: "fill-box", transformOrigin: "50% 50%", animation: `bh-ripple 1400ms cubic-bezier(0.2,0.6,0.2,1) ${delay}ms both` }}
+                    />
+                  )}
                   <g
                     style={
                       still
@@ -1230,6 +1405,7 @@ export function IcmNetworkMap({
                     <rect x={n.x - Math.max(12, n.w)} y={n.y - n.h - n.w * TILT - 6} width={Math.max(24, n.w * 2)} height={n.h + n.w * TILT * 2 + 12} fill="transparent" />
                     <Tower x={n.x} y={n.y} w={n.w} h={n.h} tone={tone(n)} mix={pickedId === n.id ? null : mixOf(n.id)} roof={!painted && n.ring === "inner" && pickedId !== n.id ? n.color : null} />
                   </g>
+                </g>
                 </g>
               );
             })}
@@ -1321,8 +1497,23 @@ export function IcmNetworkMap({
 
             {/* flags last, so no roof or arc covers a name */}
             {drawOrder.map((n) => (
-              <g key={n.id} className="transition-opacity duration-200" style={{ opacity: near !== null && !near.has(n.id) ? 0.2 : 1 }}>
-                {flag(n)}
+              <g key={n.id} style={glideStyle(n.id)}>
+                <g className="transition-opacity duration-200" style={{ opacity: near !== null && !near.has(n.id) ? 0.2 : 1 }}>
+                  {flag(n)}
+                  {/* the NEW plate lies on the ground at the tower's foot, clear of the flags above */}
+                  {n.newAt !== null &&
+                    (() => {
+                      const foot = n.y + n.w * TILT + 2;
+                      return (
+                        <g className="pointer-events-none" style={still ? undefined : { animation: `bh-fade 500ms ease-out ${riseDelay(n) + 700}ms backwards` }}>
+                          <rect x={n.x - 12} y={foot} width={24} height={10} className="fill-[#5400FF] dark:fill-[#8B6CFF]" />
+                          <text x={n.x} y={foot + 5} textAnchor="middle" dominantBaseline="central" className="fill-white font-mono text-[7.5px] font-bold tracking-[0.1em]">
+                            NEW
+                          </text>
+                        </g>
+                      );
+                    })()}
+                </g>
               </g>
             ))}
           </svg>
@@ -1341,6 +1532,7 @@ export function IcmNetworkMap({
                   <Logo uri={tipNode.logo} name={tipNode.name} />
                   {tipNode.name}
                 </p>
+                {tipNode.newAt !== null && <TipRow label="Joined the P-Chain" value={`${ageShort(tipNode.newAt)} ago`} />}
                 <TipRow label="Validators" value={tipNode.validators.toLocaleString("en-US")} />
                 {(() => {
                   const m = versions?.get(tipNode.id);
@@ -1353,13 +1545,21 @@ export function IcmNetworkMap({
                     </>
                   );
                 })()}
-                <TipRow label="Messages out" value={fmtCompact(tipNode.out)} />
-                <TipRow label="Messages in" value={fmtCompact(tipNode.in)} />
+                {!tipNode.guest && (
+                  <>
+                    <TipRow label="Messages out" value={fmtCompact(tipNode.out)} />
+                    <TipRow label="Messages in" value={fmtCompact(tipNode.in)} />
+                  </>
+                )}
                 {(() => {
                   const p = topPartner(tipNode.id);
                   return p ? <TipRow label="Most with" value={byId.get(p[0])?.name ?? p[0]} /> : null;
                 })()}
-                {onPick && <p className="mt-1 font-mono text-[10px] text-zinc-400">{pickedId === tipNode.id ? "Click to clear the cut" : "Click to cut the tables"}</p>}
+                {tipNode.guest ? (
+                  <p className="mt-1 font-mono text-[10px] text-zinc-400">Not in the directory yet. Click to open it on the P-Chain</p>
+                ) : (
+                  onPick && <p className="mt-1 font-mono text-[10px] text-zinc-400">{pickedId === tipNode.id ? "Click to clear the cut" : "Click to cut the tables"}</p>
+                )}
               </TipPlate>
             </span>
           )}
@@ -1498,7 +1698,7 @@ export function IcmNetworkMap({
           )}
         </div>
 
-        <GroundKey pulse={pulse} />
+        <GroundKey pulse={pulse} arrivals={newcomers} />
 
         {skyline}
 
