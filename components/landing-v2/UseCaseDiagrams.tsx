@@ -393,7 +393,7 @@ function PermissionedVenue() {
       <text x={56} y={130} fontSize={9} letterSpacing={1.5} className={MONO}>WALLETS</text>
 
       {/* the allowlist gate: two posts with a checked opening */}
-      <text x={210} y={54} textAnchor="middle" fontSize={9} letterSpacing={1.5} className={MONO}>TX ALLOWLIST</text>
+      <text x={210} y={54} textAnchor="middle" fontSize={9} letterSpacing={1.5} className={MONO}>APPROVED ONLY</text>
       <line x1={210} y1={62} x2={210} y2={90} strokeWidth={1.5} className={STRONG} />
       <line x1={210} y1={110} x2={210} y2={138} strokeWidth={1.5} className={STRONG} />
 

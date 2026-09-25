@@ -293,7 +293,7 @@ function PlatformChainBoard() {
   return (
     <ChainBoard
       logo="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
-      title="Platform Chain"
+      title="P-Chain"
       links={[
         { label: "Explore Mainnet", href: "/explorer/mainnet/p-chain", primary: true },
         { label: "FUJI TESTNET", href: "/explorer/fuji/p-chain" },
@@ -307,7 +307,7 @@ function ContractChainBoard() {
   return (
     <ChainBoard
       logo="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
-      title="Contract Chain"
+      title="C-Chain"
       links={[
         { label: "Explore Mainnet", href: "/explorer/mainnet/c-chain", primary: true },
         { label: "FUJI TESTNET", href: "/explorer/fuji/c-chain" },
@@ -605,8 +605,8 @@ function NetworkBoard() {
             <span className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
                 <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#E6212F] opacity-60" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#E6212F]" />
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 dark:bg-emerald-400" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
                 </span>
                 DEX volume · 30d
               </span>
@@ -681,7 +681,7 @@ export default function ExplorerPortal() {
         {/* the Primary Network's two chains, with the network itself
             turning beside them */}
         <Rise delay={0.18}>
-          <section className="grid gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
+          <section className="grid grid-cols-1 gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
             <div className="flex flex-col gap-4">
               <ContractChainBoard />
               <PlatformChainBoard />

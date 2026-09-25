@@ -1,63 +1,52 @@
+"use client";
+
 import UseCaseDiagram from "@/components/landing-v2/UseCaseDiagrams";
 import type { UseCase } from "@/components/landing-v2/pillars";
+import { MaskText, Reveal, sentenceCase } from "@/components/landing-v2/SpecKit";
 
 /* ------------------------------------------------------------------ */
-/* Use-case rows — the institutional patterns, in the spec-plate voice  */
+/* Use-case rows: the institutional patterns, argued in full            */
 /*                                                                      */
-/* Each row is the ARCHITECTURES diptych: the pattern argued in full on  */
-/* the left, and right of a hairline rule its instrument with the        */
-/* guarantees as a spec plate beneath it, the same drawing + title-block */
-/* pairing the pillar hero uses. Shared by every /solutions subpage,     */
-/* each showing the patterns that lean on it.                            */
+/* One pattern per hairline-ruled row: the problem and the shape on the */
+/* left with the guarantees it buys as three figures beneath, its       */
+/* drawing on the right. Shared by every /solutions subpage, each       */
+/* showing the patterns that lean on it; rows are anchored by slug.     */
 /* ------------------------------------------------------------------ */
 
 export function UseCaseRows({ useCases }: { useCases: UseCase[] }) {
   return (
-    <div className="divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
+    <div className="border-b border-zinc-200 dark:border-zinc-800">
       {useCases.map((useCase) => (
-        <div
+        <Reveal
           key={useCase.slug}
-          className="grid gap-10 px-5 py-10 md:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-center lg:gap-14 lg:py-12"
+          id={useCase.slug}
+          className="grid scroll-mt-32 gap-12 border-t border-zinc-200 py-14 lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)] lg:items-center lg:gap-20 lg:py-20 dark:border-zinc-800"
         >
-          {/* the pattern, argued in full */}
           <div>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-              {useCase.label}
-            </p>
-            <h3 className="v2-display mt-3 text-xl text-zinc-900 dark:text-zinc-50 md:text-2xl">
-              {useCase.title}
-            </h3>
-            <p className="mt-2 font-mono text-[10px] tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
-              {useCase.stack}
-            </p>
-            <p className="mt-5 max-w-xl text-sm leading-relaxed text-zinc-600 dark:text-zinc-300">
-              {useCase.summary}
-            </p>
-            <p className="mt-4 max-w-xl text-sm font-medium leading-relaxed text-zinc-900 dark:text-zinc-100">
+            <p className="text-[13px] text-zinc-500 dark:text-zinc-400">{sentenceCase(useCase.label)}</p>
+            <h3 className="v2-heading mt-3 text-2xl text-zinc-900 md:text-3xl dark:text-zinc-50">{useCase.title}.</h3>
+            <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-300">{useCase.summary}</p>
+            <p className="mt-5 max-w-xl text-[15px] font-medium leading-relaxed text-zinc-900 dark:text-zinc-100">
               {useCase.tagline}
             </p>
-          </div>
-
-          {/* the instrument and its title block, one compartment */}
-          <div className="flex flex-col items-center gap-6 lg:border-l lg:border-zinc-200 lg:pl-12 dark:lg:border-zinc-800">
-            {useCase.diagram && <UseCaseDiagram id={useCase.diagram} />}
-            <dl className="w-full max-w-md">
-              {useCase.guarantees.map((g) => (
-                <div
-                  key={g.label}
-                  className="flex items-baseline justify-between gap-6 border-t border-zinc-200 py-2.5 last:border-b dark:border-zinc-800"
-                >
-                  <dt className="font-mono text-[10px] tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-                    {g.label}
-                  </dt>
-                  <dd className="font-mono text-[11px] tracking-[0.08em] text-zinc-900 dark:text-zinc-50">
-                    {g.value}
+            <p className="mt-5 font-mono text-[11px] tracking-[0.08em] text-zinc-400 dark:text-zinc-500">{useCase.stack}</p>
+            <dl className="mt-10 grid grid-cols-3 gap-6 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+              {useCase.guarantees.map((g, i) => (
+                <div key={g.label}>
+                  <dt className="text-[12px] text-zinc-500 dark:text-zinc-400">{sentenceCase(g.label)}</dt>
+                  <dd className="v2-heading mt-2 text-[17px] text-zinc-900 dark:text-zinc-50">
+                    <MaskText delay={0.1 + i * 0.06}>{sentenceCase(g.value)}</MaskText>
                   </dd>
                 </div>
               ))}
             </dl>
           </div>
-        </div>
+          {useCase.diagram && (
+            <div className="flex justify-center">
+              <UseCaseDiagram id={useCase.diagram} />
+            </div>
+          )}
+        </Reveal>
       ))}
     </div>
   );

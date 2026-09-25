@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
-import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk } from "@/components/explorer-v2/ui";
-import { ageOrDate, formatNumber, timeAgo, truncate } from "@/components/explorer-v2/format";
+import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk, HEAD, ROW, LoadMore, RowSkeleton } from "@/components/explorer-v2/ui";
+import { ageOrDate, formatNumber, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { txTypeLabel, type TxSummary } from "@/lib/pchain-explorer";
 
@@ -90,7 +90,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
           }}
         />
         <Board className={cn(loading && txs.length > 0 && "opacity-60 transition-opacity")}>
-          <div className="hidden grid-cols-[2fr_1.2fr_0.8fr_0.7fr] gap-4 px-5 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 md:grid md:px-6 dark:text-zinc-500">
+          <div className={cn(HEAD, "grid-cols-[2fr_1.2fr_0.8fr_0.7fr]")}>
             <span>Hash</span>
             <span>Type</span>
             <span className="text-right">Block</span>
@@ -100,10 +100,10 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
             <Link
               key={t.txHash}
               href={`${base}/tx/${t.txHash}`}
-              className="grid grid-cols-2 gap-x-4 gap-y-1 px-5 py-3 transition-colors hover:bg-zinc-50 md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr] md:items-center md:px-6 dark:hover:bg-zinc-900"
+              className={cn(ROW, "md:grid-cols-[2fr_1.2fr_0.8fr_0.7fr]")}
             >
               <span className={`truncate font-mono text-[12px] ${idInk}`}>
-                {truncate(t.txHash, 16)}
+                {truncate(t.txHash, 6)}
               </span>
               <span className="justify-self-start">
                 <TxTypePill type={t.txType} label={txTypeLabel(t.txType)} />
@@ -114,11 +114,11 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
               </div>
               <div className="font-mono text-[11px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
                 <CellLabel>Age</CellLabel>
-                <span title={ageOrDate(t.blockTimestamp).title}>{ageOrDate(t.blockTimestamp).text}</span>
+                {ageShort(t.blockTimestamp)}
               </div>
             </Link>
           ))}
-          {loading && <div className="px-5 py-4 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">Loading…</div>}
+          {loading && <RowSkeleton n={txs.length ? 3 : 12} />}
           {!loading && txs.length === 0 && (
             <div className="flex items-baseline gap-3 px-5 py-5 font-mono text-[11px] text-zinc-400 md:px-6 dark:text-zinc-500">
               {type ? `No recent ${activeLabel} transactions` : "no transactions"}
@@ -139,13 +139,7 @@ export function PchainTxsList({ chain, network }: { chain: string; network: stri
           )}
         </Board>
         {!loading && txs.length >= limit && !pagedOut && (
-          <button
-            onClick={loadOlder}
-            disabled={loadingMore}
-            className="mx-auto border border-zinc-200 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:border-zinc-900 hover:text-zinc-900 disabled:opacity-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-100 dark:hover:text-zinc-100"
-          >
-            {loadingMore ? "Loading…" : "Load more"}
-          </button>
+          <LoadMore onClick={loadOlder} disabled={loadingMore} />
         )}
       </section>
     </ExplorerShell>

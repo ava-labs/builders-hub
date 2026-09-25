@@ -311,6 +311,14 @@ svg.lucide.lucide-folder-open {
   100% { transform: translateX(0); }
 }
 
+/* Explorer: the state-root mark breathing while a block's root is still
+   to be committed. Opacity only; script pins every instance's start time
+   to the document timeline origin so they breathe together. */
+@keyframes root-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 /* Blinking cursor animation for typewriter effect */
 @keyframes blink {
   0%, 100% {

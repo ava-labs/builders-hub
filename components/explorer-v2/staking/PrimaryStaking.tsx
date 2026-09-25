@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 import {
   Area,
   Bar,
+  CartesianGrid,
   ComposedChart,
   Line,
   ResponsiveContainer,
@@ -15,9 +16,12 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, BoardHeader, ChartBoard, DarkToggle, StatCell, StatDash } from "@/components/explorer-v2/ui";
+import { Board, BoardHeader, ChartBoard, DarkToggle, SectionHeader } from "@/components/explorer-v2/ui";
+import { LiveReadout } from "@/components/explorer-v2/evm/EvmOverviewStats";
+import { ShareMap, PLAIN_TONE, TAIL_TONE, type SharePart } from "@/components/explorer-v2/ShareMap";
+import { dayLong, dayShort, truncate } from "@/components/explorer-v2/format";
 import { useTokenUsd } from "@/components/explorer/GasMarketPage";
-import { ChartEmpty, Stat, TipPlate } from "./bits";
+import { ChartEmpty, TipPlate } from "./bits";
 import { RANGE_DAYS, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import {
   NANO,
@@ -34,17 +38,18 @@ import {
   type RatioPoint,
 } from "./data";
 
-/* The Primary Network's staking economy as one instrument — what secures
+/* The Primary Network's staking economy as one instrument: what secures
    the network and what securing it pays. Split out of the old validators
    observatory: the set itself (nodes, uptime, versions) lives on the
    Validators tab; this page is the capital. Same grammar as the gas
-   market: lead with the answer (a dark statement panel — what staking
+   market: lead with the answer (a dark statement panel: what staking
    pays right now), then the capital strip, then outlined ChartBoards on
    one shared clock. */
 
 const OWN_COLOR = "currentColor";
 const DELEGATED_COLOR = "#E6212F";
 const QUIET_BAR = "#A2AFB2";
+const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
 
 interface StakePoint {
   day: string;
@@ -54,18 +59,50 @@ interface StakePoint {
   delegated: number;
 }
 
-function fmtDay(day: string): string {
-  return day;
+/* the tooltip's day, in words: "Tue, Aug 26, 2026" */
+const fmtDay = dayLong;
+
+/* the trend charts' shared axes, spread onto recharts' own elements
+   (recharts 2 reads its axes as direct children, so no wrappers): days
+   in words along the foot, the scale on the right, a quiet grid */
+const GRID_STROKE = "rgba(161,161,170,0.18)";
+const dayX = (key: string) => ({
+  dataKey: key,
+  tickLine: false,
+  axisLine: false,
+  minTickGap: 48,
+  interval: "preserveStartEnd" as const,
+  tick: AXIS_TICK,
+  tickFormatter: (d: string) => dayShort(d),
+});
+const rightY = (fmt: (v: number) => string, domain: [number | string, number | string] = [0, "dataMax"]) => ({
+  orientation: "right" as const,
+  width: 44,
+  tickCount: 3,
+  domain,
+  tickLine: false,
+  axisLine: false,
+  tick: AXIS_TICK,
+  tickFormatter: fmt,
+});
+const MARGIN = { top: 4, right: 0, left: 0, bottom: 0 };
+
+/* one plain sentence over a chart, the numbers in ink */
+function Caption({ children }: { children: React.ReactNode }) {
+  return <p className="mb-3 font-mono text-[12px] leading-relaxed text-zinc-500 dark:text-zinc-400">{children}</p>;
 }
+const Ink = ({ children }: { children: React.ReactNode }) => <span className="text-zinc-900 dark:text-zinc-50">{children}</span>;
+const pctFmt = (v: number) => `${v.toFixed(v >= 10 ? 0 : 1)}%`;
 
 /* stacked own + delegated stake, the page's centerpiece */
 function TotalStakeChart({ data }: { data: StakePoint[] }) {
   return (
     <div className="h-56 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="day" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
+        <ComposedChart data={data} margin={MARGIN}>
+          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+          <XAxis {...dayX("day")} />
+          <YAxis {...rightY(fmtCompact)} />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -110,7 +147,7 @@ function TotalStakeChart({ data }: { data: StakePoint[] }) {
   );
 }
 
-/* one-series area — delegator count, cumulative rewards */
+/* one-series area: delegator count, cumulative rewards */
 function AreaTrend({
   data,
   format,
@@ -123,9 +160,10 @@ function AreaTrend({
   return (
     <div className="h-40 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="day" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
+        <ComposedChart data={data} margin={MARGIN}>
+          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+          <XAxis {...dayX("day")} />
+          <YAxis {...rightY((v: number) => fmtCompact(v))} />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -167,9 +205,10 @@ function ApyChart({ data }: { data: ApyPoint[] }) {
   return (
     <div className="h-40 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="day" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
+        <ComposedChart data={data} margin={MARGIN}>
+          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+          <XAxis {...dayX("day")} />
+          <YAxis {...rightY(pctFmt)} />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -211,15 +250,16 @@ function ApyChart({ data }: { data: ApyPoint[] }) {
   );
 }
 
-/* staked share of the circulating supply — the auto domain magnifies the
+/* staked share of the circulating supply: the auto domain magnifies the
    drift, which IS the signal here; the tooltip carries the absolutes */
 function RatioChart({ data }: { data: RatioPoint[] }) {
   return (
     <div className="h-40 text-zinc-900 dark:text-zinc-100">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="day" hide />
-          <YAxis hide domain={["auto", "auto"]} />
+        <ComposedChart data={data} margin={MARGIN}>
+          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+          <XAxis {...dayX("day")} />
+          <YAxis {...rightY(pctFmt, ["auto", "auto"])} />
           <RechartsTooltip
             cursor={{ stroke: "rgba(161,161,170,0.35)" }}
             content={({ active, payload }) => {
@@ -265,9 +305,10 @@ function RewardsBars({ data }: { data: RewardPoint[] }) {
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="day" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
+        <ComposedChart data={data} margin={MARGIN}>
+          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+          <XAxis {...dayX("day")} />
+          <YAxis {...rightY(fmtCompact)} />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
@@ -307,15 +348,16 @@ interface FlowDay {
   count: number;
 }
 
-/* one day-bar shape for both money-flow cards — payouts landed (red, stake
+/* one day-bar shape for both money-flow cards: payouts landed (red, stake
    moving) and stake reaching term (block gray, value at rest) */
 function MoneyBars({ data, color, noun }: { data: FlowDay[]; color: string; noun: string }) {
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <XAxis dataKey="date" hide />
-          <YAxis hide domain={[0, "dataMax"]} />
+        <ComposedChart data={data} margin={MARGIN}>
+          <CartesianGrid vertical={false} stroke={GRID_STROKE} />
+          <XAxis {...dayX("date")} />
+          <YAxis {...rightY(fmtCompact)} />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
@@ -348,9 +390,7 @@ export interface ConcentrationPoint {
   cumulativePct: number;
 }
 
-const AXIS_TICK = { fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" } as const;
-
-/* how evenly the stake spreads across the set — per-rank bars against the
+/* how evenly the stake spreads across the set: per-rank bars against the
    right axis, the cumulative share climbing the left one; the two shapes
    read together (steep bars + fast climb = concentrated) */
 export function ConcentrationChart({ data, setSize }: { data: ConcentrationPoint[]; setSize: number }) {
@@ -437,7 +477,7 @@ export interface FeeBucket {
   weight: number;
 }
 
-/* what delegating costs — stake-weighted bars (where the capital sits)
+/* what delegating costs: stake-weighted bars (where the capital sits)
    with the validator count riding the right axis (where the nodes sit) */
 export function FeeChart({ data }: { data: FeeBucket[] }) {
   return (
@@ -513,7 +553,7 @@ export const LENS_LABEL: Record<Lens, string> = {
   delegated: "Delegated",
 };
 
-/* the three old distribution charts folded into one instrument — same
+/* the three old distribution charts folded into one instrument: same
    segmented-control idiom as the range toggle */
 export function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Lens) => void }) {
   return (
@@ -538,14 +578,14 @@ export function LensToggle({ value, onChange }: { value: Lens; onChange: (v: Len
 }
 
 /* ------------------------------------------------------------------ */
-/* The yield calculator — ONE hero rate instead of a strip of cells,
+/* The yield calculator: ONE hero rate instead of a strip of cells,
    and the inputs that make it yours: amount, duration, role. Mirrors
    /api/staking-apy's official formula exactly (same constants):
      reward = amount × (720M − supply)/supply × ECR(d) × d/365
      ECR(d) = 10% → 12%, linear in duration
    Delegators additionally hand the validator its fee cut.             */
 
-const MAX_SUPPLY = 720_000_000; // AVAX supply cap — the emission source
+const MAX_SUPPLY = 720_000_000; // AVAX supply cap: the emission source
 const MIN_CONSUMPTION = 0.1;
 const MAX_CONSUMPTION = 0.12;
 
@@ -592,7 +632,7 @@ function YieldCalculator({
 
   return (
     <div className="flex flex-col gap-8 bg-[#1F1F1F] p-6 md:p-8">
-      {/* headline left, the ONE number right — big enough to read from
+      {/* headline left, the ONE number right: big enough to read from
           across the room. "Minting" is the factual verb: the protocol
           mints rewards on a public schedule; nothing here promises them
           to anyone. */}
@@ -613,7 +653,7 @@ function YieldCalculator({
         </div>
       </div>
 
-      {/* the calculator: make the rate yours — inputs left, the estimate
+      {/* the calculator: make the rate yours: inputs left, the estimate
           answering on the same rule */}
       <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
         <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
@@ -691,9 +731,12 @@ export function PrimaryStakingContent({
   validatorsHref,
   base,
   network = "mainnet",
+  switched = false,
 }: {
   validatorsHref: string;
-  /** the staking tab's own path — every ChartBoard doors into its metric
+  /** the page's view switch already leads to the validator set; drop the header link */
+  switched?: boolean;
+  /** the staking tab's own path: every ChartBoard doors into its metric
    *  sheet under it (base/total-stake, base/apy, …) */
   base?: string;
   /** the staking feeds watch mainnet; both mounts guard the route already */
@@ -704,15 +747,15 @@ export function PrimaryStakingContent({
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: apy, failed: apyFailed } = useStakingApy();
   const { data: sdkValidators } = useSdkValidators();
-  // AVAX's USD price via the C-Chain's cached explorer feed — the staking
+  // AVAX's USD price via the C-Chain's cached explorer feed: the staking
   // feeds are mainnet-only, so the mainnet chain id is a constant here
   const { usd: avaxUsd } = useTokenUsd(43114);
 
-  // the page clock in the subnav — one window for every trend below. The
+  // the page clock in the subnav: one window for every trend below. The
   // subnav states the window once, so chart titles drop the range suffix.
   const clock = useExplorerTimeRange();
   const range = RANGE_DAYS[clock];
-  // the trend charts floor at a week — a one-point day chart renders as
+  // the trend charts floor at a week: a one-point day chart renders as
   // a lone dot (same rule as the sheets); labels state the exception
   const chartDays = Math.max(7, range);
   const weekFloor = range < 7 ? " · 7 days" : "";
@@ -728,14 +771,14 @@ export function PrimaryStakingContent({
   const delegators = num(metrics?.delegator_count?.current_value);
   const cumulativeRewards = num(metrics?.cumulative_rewards?.current_value);
   // the APY feed carries the live circulating supply (AVAX units) and the
-  // all-time burn — the ratio is THE number behind the reward rate
+  // all-time burn: the ratio is THE number behind the reward rate
   const supplyAvax = num(apy?.current?.supply);
   const totalBurned = num(apy?.current?.totalBurned);
   const stakingRatio =
     totalStaked !== null && supplyAvax !== null && supplyAvax > 0
       ? (totalStaked / supplyAvax) * 100
       : null;
-  // today's row is partial — the last full day is the honest daily figure
+  // today's row is partial: the last full day is the honest daily figure
   const dailyRewards = useMemo(() => {
     const series = toSeries(metrics?.daily_rewards);
     return series.length ? series[series.length - 1].value : null;
@@ -763,7 +806,9 @@ export function PrimaryStakingContent({
 
   const apySeries = useMemo<ApyPoint[]>(() => {
     if (!apy?.data) return [];
+    const today = new Date().toISOString().slice(0, 10);
     const sorted = [...apy.data]
+      .filter((p) => p.date !== today)
       .sort((a, b) => a.timestamp - b.timestamp)
       .map((p) => ({ day: p.date, maxAPY: p.maxAPY, minAPY: p.minAPY }));
     return thin(windowSeries(sorted, chartDays));
@@ -782,7 +827,7 @@ export function PrimaryStakingContent({
     return thin(windowSeries(withMa, chartDays), 180);
   }, [metrics, chartDays]);
 
-  // the share of all circulating AVAX that is working — the same join the
+  // the share of all circulating AVAX that is working: the same join the
   // total-stake sheet charts in full
   const ratioSeries = useMemo<RatioPoint[]>(
     () => thin(windowSeries(joinStakingRatio(metrics, apy), chartDays)),
@@ -790,12 +835,16 @@ export function PrimaryStakingContent({
   );
 
   /* -------------------------------------------------------------- */
-  /* the money actually moving — accrual is smooth, cash is lumpy    */
+  /* the money actually moving: accrual is smooth, cash is lumpy    */
   /* -------------------------------------------------------------- */
 
   const { flow, failed: flowFailed, days: flowDays } = useMoneyFlow(network, range);
   const rewardsPaid = useMemo<FlowDay[]>(
-    () => (flow?.rewards ?? []).map((r) => ({ date: r.date, avax: r.avax, count: r.payouts })),
+    () => {
+      // the past side: today's row is still filling, so it would read as a drop
+      const today = new Date().toISOString().slice(0, 10);
+      return (flow?.rewards ?? []).filter((r) => r.date !== today).map((r) => ({ date: r.date, avax: r.avax, count: r.payouts }));
+    },
     [flow],
   );
   const unlocking = useMemo<FlowDay[]>(
@@ -809,13 +858,14 @@ export function PrimaryStakingContent({
   /* the current set, sliced two ways                                */
   /* -------------------------------------------------------------- */
 
-  // the distribution board's headline readings — the full rank-by-rank
+  // the distribution board's headline readings: the full rank-by-rank
   // instrument (and its lens toggle) lives on the distribution sheet
   const setStats = useMemo(() => {
     if (!sdkValidators?.length) return null;
-    const weights = sdkValidators
-      .map((v) => ((num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0)) / NANO)
-      .sort((a, b) => b - a);
+    const ranked = sdkValidators
+      .map((v) => ({ nodeId: v.nodeId, weight: ((num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0)) / NANO }))
+      .sort((a, b) => b.weight - a.weight);
+    const weights = ranked.map((r) => r.weight);
     const total = weights.reduce((s, w) => s + w, 0);
     if (total <= 0) return null;
     let cumulative = 0;
@@ -827,8 +877,57 @@ export function PrimaryStakingContent({
         break;
       }
     }
-    return { halfClub, largestPct: (weights[0] / total) * 100, avgStake: total / weights.length };
+    return { halfClub, largestPct: (weights[0] / total) * 100, avgStake: total / weights.length, ranked, total };
   }, [sdkValidators]);
+
+  // the stake as a share map: the eight biggest by name, the rest of the
+  // validators that together reach half the stake as one part, then
+  // everyone else, so where half the security sits is one boundary
+  const stakeParts = useMemo<SharePart[]>(() => {
+    if (!setStats) return [];
+    const { ranked, halfClub } = setStats;
+    const TOP = 8;
+    const half = Math.max(halfClub ?? TOP, TOP);
+    const nodeHref = (id: string) => `/explorer/${network}/p-chain/node/${encodeURIComponent(id)}`;
+    const top: SharePart[] = ranked.slice(0, TOP).map((r, i) => ({
+      key: r.nodeId,
+      label: `#${i + 1} ${truncate(r.nodeId, 12)}`,
+      value: r.weight,
+      href: nodeHref(r.nodeId),
+      detail: r.nodeId,
+      mono: true,
+    }));
+    const sum = (rows: typeof ranked) => rows.reduce((s, r) => s + r.weight, 0);
+    const mid = ranked.slice(TOP, half);
+    const tail = ranked.slice(half);
+    return [
+      ...top,
+      ...(mid.length ? [{ key: "mid", label: `#${TOP + 1} to #${half}`, value: sum(mid), tone: PLAIN_TONE, sub: `${mid.length} validators` }] : []),
+      ...(tail.length ? [{ key: "tail", label: `The other ${tail.length.toLocaleString("en-US")}`, value: sum(tail), tone: TAIL_TONE, sub: `${tail.length.toLocaleString("en-US")} validators` }] : []),
+    ];
+  }, [setStats, network]);
+
+  // the readings' traces, oldest first, and the window's moves in words
+  const stakeTotals = useMemo(() => stakeSeries.map((p) => p.own + p.delegated), [stakeSeries]);
+  const cumulativeSeries = useMemo(
+    () => thin(windowSeries(toSeries(metrics?.cumulative_rewards), chartDays)).map((p) => p.value),
+    [metrics, chartDays],
+  );
+  const move = (arr: number[]) => (arr.length >= 2 && arr[0] > 0 ? ((arr[arr.length - 1] - arr[0]) / arr[0]) * 100 : null);
+  const stakeMove = move(stakeTotals);
+  const delegatedShare =
+    ownStake !== null && delegatedStake !== null && ownStake + delegatedStake > 0 ? (delegatedStake / (ownStake + delegatedStake)) * 100 : null;
+  const ratioStart = ratioSeries.length ? ratioSeries[0].pct : null;
+  const lastApy = apySeries.length ? apySeries[apySeries.length - 1] : null;
+  const lastMa = dailyRewardSeries.length ? dailyRewardSeries[dailyRewardSeries.length - 1].ma : null;
+  const rewardPeak = dailyRewardSeries.reduce<RewardPoint | null>((m, d) => (!m || d.value > m.value ? d : m), null);
+  const delegatorChange =
+    delegatorSeries.length >= 2 ? delegatorSeries[delegatorSeries.length - 1].value - delegatorSeries[0].value : null;
+  const paidPeak = rewardsPaid.reduce<FlowDay | null>((m, d) => (!m || d.avax > m.avax ? d : m), null);
+  const payouts = rewardsPaid.reduce((s, d) => s + d.count, 0);
+  const unlockPeak = unlocking.reduce<FlowDay | null>((m, d) => (!m || d.avax > m.avax ? d : m), null);
+  const windowWord = range < 7 ? "the last 7 days" : "this window";
+  const signed = (v: number, fmt: (x: number) => string) => `${v >= 0 ? "up " : "down "}${fmt(Math.abs(v))}`;
 
   const medianFee = useMemo(() => {
     if (!sdkValidators?.length) return null;
@@ -841,14 +940,14 @@ export function PrimaryStakingContent({
 
   return (
     <div className="flex flex-col gap-10">
-      {/* the answer first — ONE number and the calculator that makes it
+      {/* the answer first: ONE number and the calculator that makes it
           yours, in the homepage pillar panels' voice (#1F1F1F board,
           EBF0FA lead over the E6212F punch, steel spec labels) */}
       <section className="flex flex-col gap-3">
         <YieldCalculator supply={supplyAvax} medianFee={medianFee} />
         <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
           Estimates only, computed from the protocol&apos;s public emission formula at current
-          network conditions — not a promise of any return and not financial advice. Actual
+          network conditions. They are not a promise of any return and not financial advice. Actual
           rewards change as the staking ratio moves, and are paid only if the validator maintains
           the uptime requirement through the whole term. Rewards are newly minted AVAX.
           Auto-renewed staking (
@@ -858,17 +957,17 @@ export function PrimaryStakingContent({
           >
             ACP-236
           </Link>
-          ) is rolling out: positions will renew and compound automatically.
+          ) is live for validators: a validator can renew at the end of each cycle and restake a
+          share of its rewards it chooses. Delegations still run for one fixed term.
         </p>
       </section>
 
-      {/* the capital securing the network — the lead board */}
+      {/* the capital securing the network, as readout blocks */}
       <section className="flex flex-col gap-4">
-        <Board divide={false} className="border">
-          <BoardHeader
-            label="Primary Network Staking"
-            display
-            action={
+        <SectionHeader
+          label="Primary Network Staking"
+          action={
+            switched ? undefined : (
               <Link
                 href={validatorsHref}
                 className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
@@ -876,12 +975,18 @@ export function PrimaryStakingContent({
                 The validator set
                 <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
               </Link>
-            }
-          />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-            <Stat
-              label="Total Staked"
-              sub={
+            )
+          }
+        />
+        <LiveReadout
+          chainId="43114"
+          cells={[
+            {
+              label: "Total Staked",
+              href: door("total-stake"),
+              value: totalStaked !== null ? fmtCompact(totalStaked) : "—",
+              unit: totalStaked !== null ? "AVAX" : undefined,
+              sub:
                 totalStaked !== null
                   ? [
                       avaxUsd !== null ? `≈ $${fmtCompact(totalStaked * avaxUsd)}` : null,
@@ -889,55 +994,35 @@ export function PrimaryStakingContent({
                     ]
                       .filter(Boolean)
                       .join(" · ") || undefined
-                  : undefined
-              }
-            >
-              {totalStaked !== null ? (
-                <>
-                  {fmtCompact(totalStaked)}
-                  <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </Stat>
-            {/* the count is a door into the set itself */}
-            <StatCell label="Validators" href={validatorsHref} sub="current set">
-              <CellFigure>
-                {sdkValidators?.length ? sdkValidators.length.toLocaleString("en-US") : <StatDash />}
-              </CellFigure>
-            </StatCell>
-            <Stat
-              label="Delegators"
-              sub={
+                  : undefined,
+              values: stakeTotals.length >= 2 ? stakeTotals : undefined,
+            },
+            {
+              label: "Validators",
+              href: validatorsHref,
+              value: sdkValidators?.length ? sdkValidators.length.toLocaleString("en-US") : "—",
+              sub: setStats?.halfClub != null ? `${setStats.halfClub} hold half the stake` : "current set",
+            },
+            {
+              label: "Delegators",
+              href: door("total-stake"),
+              value: delegators !== null ? delegators.toLocaleString("en-US") : "—",
+              sub:
                 delegators !== null && delegatedStake !== null && delegators > 0
                   ? `≈ ${fmtCompact(delegatedStake / NANO / delegators)} AVAX each`
-                  : undefined
-              }
-            >
-              {delegators !== null ? delegators.toLocaleString("en-US") : <StatDash />}
-            </Stat>
-            <Stat
-              label="Rewards · All-Time"
-              sub={
-                dailyRewards !== null
-                  ? totalBurned !== null
-                    ? `≈ ${fmtCompact(dailyRewards)}/day · ${fmtCompact(totalBurned)} burned all-time`
-                    : `≈ ${fmtCompact(dailyRewards)} AVAX/day`
-                  : undefined
-              }
-            >
-              {cumulativeRewards !== null ? (
-                <>
-                  {fmtCompact(cumulativeRewards)}
-                  <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
-                </>
-              ) : (
-                <StatDash />
-              )}
-            </Stat>
-          </div>
-        </Board>
+                  : undefined,
+              values: delegatorSeries.length >= 2 ? delegatorSeries.map((p) => p.value) : undefined,
+            },
+            {
+              label: "Rewards · All-Time",
+              href: door("rewards"),
+              value: cumulativeRewards !== null ? fmtCompact(cumulativeRewards) : "—",
+              unit: cumulativeRewards !== null ? "AVAX" : undefined,
+              sub: dailyRewards !== null ? `≈ ${fmtCompact(dailyRewards)} AVAX minted a day` : undefined,
+              values: cumulativeSeries.length >= 2 ? cumulativeSeries : undefined,
+            },
+          ]}
+        />
       </section>
 
       {/* the centerpiece: how the stake got here */}
@@ -950,6 +1035,16 @@ export function PrimaryStakingContent({
           </span>
         }
       >
+        {totalStaked !== null && stakeMove !== null && (
+          <Caption>
+            <Ink>{fmtCompact(totalStaked)} AVAX</Ink> is staked, {signed(stakeMove, pctFmt)} over {windowWord}.
+            {delegatedShare !== null && (
+              <>
+                {" "}Delegators supply <Ink>{delegatedShare.toFixed(0)}%</Ink> of it; validators the rest.
+              </>
+            )}
+          </Caption>
+        )}
         {stakeSeries.length ? (
           <TotalStakeChart data={stakeSeries} />
         ) : (
@@ -959,7 +1054,7 @@ export function PrimaryStakingContent({
 
       {/* the capital's quality: how much of the supply is working, and
           what working pays */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={`Staking Ratio${weekFloor}`}
           href={door("total-stake")}
@@ -971,6 +1066,11 @@ export function PrimaryStakingContent({
             ) : undefined
           }
         >
+          {stakingRatio !== null && ratioStart !== null && (
+            <Caption>
+              <Ink>{stakingRatio.toFixed(1)}%</Ink> of the circulating supply is staked, against {ratioStart.toFixed(1)}% at the start of {windowWord}.
+            </Caption>
+          )}
           {ratioSeries.length ? (
             <RatioChart data={ratioSeries} />
           ) : (
@@ -979,7 +1079,7 @@ export function PrimaryStakingContent({
         </ChartBoard>
 
         {/* max/min are DURATIONS (1-year vs 2-week terms), not a promise
-            band — the legend says which is which */}
+            band: the legend says which is which */}
         <ChartBoard
           label={`Reward Rate · est${weekFloor}`}
           href={door("apy")}
@@ -994,12 +1094,18 @@ export function PrimaryStakingContent({
             </span>
           }
         >
+          {lastApy && (
+            <Caption>
+              A 1-year term earns about <Ink>{lastApy.maxAPY.toFixed(2)}%</Ink> a year at today&apos;s rate; a 2-week term about{" "}
+              <Ink>{lastApy.minAPY.toFixed(2)}%</Ink>. Estimates, before any validator fee.
+            </Caption>
+          )}
           {apySeries.length ? <ApyChart data={apySeries} /> : <ChartEmpty failed={apyFailed} />}
         </ChartBoard>
       </div>
 
       {/* what securing the network mints, and who shows up to earn it */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={`Daily Rewards${weekFloor}`}
           href={door("rewards")}
@@ -1009,6 +1115,12 @@ export function PrimaryStakingContent({
             </span>
           }
         >
+          {lastMa !== null && rewardPeak && (
+            <Caption>
+              About <Ink>{fmtCompact(lastMa)} AVAX</Ink> is minted a day (30-day average); the most in one day was{" "}
+              <Ink>{fmtCompact(rewardPeak.value)}</Ink> on {dayLong(rewardPeak.day)}.
+            </Caption>
+          )}
           {dailyRewardSeries.length ? (
             <RewardsBars data={dailyRewardSeries} />
           ) : (
@@ -1017,6 +1129,12 @@ export function PrimaryStakingContent({
         </ChartBoard>
 
         <ChartBoard label={`Delegators${weekFloor}`} href={door("total-stake")}>
+          {delegators !== null && delegatorChange !== null && (
+            <Caption>
+              <Ink>{delegators.toLocaleString("en-US")}</Ink> delegators today, {signed(delegatorChange, (v) => Math.round(v).toLocaleString("en-US"))} over{" "}
+              {windowWord}.
+            </Caption>
+          )}
           {delegatorSeries.length ? (
             <AreaTrend
               data={delegatorSeries}
@@ -1030,10 +1148,10 @@ export function PrimaryStakingContent({
       </div>
 
       {/* the cash view: accrual above is smooth, payouts and unlocks are
-          lumpy — what actually landed in wallets behind us, what reaches
+          lumpy: what actually landed in wallets behind us, what reaches
           term ahead. Past | future across one rule, like the P-Chain home,
           but on the page clock (the feed's computed windows) */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={`Rewards Paid · last ${flowDays} days`}
           href={door("rewards")}
@@ -1045,6 +1163,12 @@ export function PrimaryStakingContent({
             ) : undefined
           }
         >
+          {flow && paidPeak && (
+            <Caption>
+              <Ink>{fmtCompact(paidSum)} AVAX</Ink> reached wallets in <Ink>{payouts.toLocaleString("en-US")}</Ink> payouts; the biggest day was{" "}
+              {dayLong(paidPeak.date)} ({fmtCompact(paidPeak.avax)} AVAX).
+            </Caption>
+          )}
           {flow ? (
             <MoneyBars data={rewardsPaid} color={DELEGATED_COLOR} noun="payouts" />
           ) : (
@@ -1063,6 +1187,12 @@ export function PrimaryStakingContent({
             ) : undefined
           }
         >
+          {flow && unlockPeak && (
+            <Caption>
+              <Ink>{fmtCompact(unlockSum)} AVAX</Ink> of stake reaches the end of its term; the heaviest day is {dayLong(unlockPeak.date)} (
+              {fmtCompact(unlockPeak.avax)} AVAX).
+            </Caption>
+          )}
           {flow ? (
             <MoneyBars data={unlocking} color={QUIET_BAR} noun="stake entries end" />
           ) : (
@@ -1071,76 +1201,38 @@ export function PrimaryStakingContent({
         </ChartBoard>
       </div>
 
-      {/* how the stake spreads across the current set — the headline
-          readings only; the rank-by-rank concentration and fee instruments
-          live on the distribution sheet, one door away */}
-      <section className="flex flex-col gap-3">
-        <Board divide={false} className="border">
-          <BoardHeader
-            label="Stake Distribution"
-            display
-            action={
-              door("distribution") ? (
-                <Link
-                  href={door("distribution")!}
-                  className="group flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
-                >
-                  Full breakdown
-                  <ArrowRight className="h-3 w-3 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F]" />
+      {/* how the stake spreads across the current set, as a share map:
+          where half the network's security sits is one boundary on it.
+          The rank-by-rank curve and the fee market live on the sheet. */}
+      {stakeParts.length > 0 && setStats && (
+        <ShareMap
+          label="Stake Distribution"
+          summary={`${fmtCompact(setStats.total)} AVAX across ${setStats.ranked.length.toLocaleString("en-US")} validators`}
+          parts={stakeParts}
+          fmt={(v) => `${fmtCompact(v)} AVAX`}
+          legend={stakeParts.length}
+          note={
+            <>
+              {setStats.halfClub != null && (
+                <>
+                  The biggest <span className="text-zinc-900 dark:text-zinc-50">{setStats.halfClub}</span> validators hold half of all stake; the largest alone holds{" "}
+                  {setStats.largestPct.toFixed(1)}%.{" "}
+                </>
+              )}
+              The average validator carries {fmtCompact(setStats.avgStake)} AVAX
+              {medianFee !== null ? `, and the median one keeps ${medianFee.toFixed(0)}% of its delegators' rewards` : ""}.{" "}
+              {door("distribution") && (
+                <Link href={door("distribution")!} className="underline decoration-dotted underline-offset-4 hover:text-[#E6212F]">
+                  The full breakdown
                 </Link>
-              ) : undefined
-            }
-          />
-          <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 max-lg:[&>*:nth-child(odd)]:border-l-0 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-            <StatCell
-              label="Half the Stake"
-              href={door("distribution")}
-              sub="smallest club controlling 50%"
-            >
-              <CellFigure>
-                {setStats?.halfClub != null ? `top ${setStats.halfClub}` : <StatDash />}
-              </CellFigure>
-            </StatCell>
-            <StatCell label="Largest Validator" href={door("distribution")} sub="of total weight">
-              <CellFigure>
-                {setStats ? `${setStats.largestPct.toFixed(1)}%` : <StatDash />}
-              </CellFigure>
-            </StatCell>
-            <StatCell
-              label="Median Fee"
-              href={door("distribution")}
-              sub="the cut on delegation rewards"
-            >
-              <CellFigure>
-                {medianFee !== null ? `${medianFee.toFixed(0)}%` : <StatDash />}
-              </CellFigure>
-            </StatCell>
-            <StatCell
-              label="Avg per Validator"
-              href={door("distribution")}
-              sub="mean weight across the set"
-            >
-              <CellFigure>
-                {setStats ? (
-                  <>
-                    {fmtCompact(setStats.avgStake)}
-                    <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">AVAX</span>
-                  </>
-                ) : (
-                  <StatDash />
-                )}
-              </CellFigure>
-            </StatCell>
-          </div>
-        </Board>
-        <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          The current set, read for decentralization: the fewer validators it takes to reach half
-          the stake, the more concentrated the network&apos;s security. The full rank-by-rank
-          concentration curve and the delegation-fee market live in the breakdown.
-        </p>
-      </section>
+              )}{" "}
+              has the rank-by-rank curve and the fee market.
+            </>
+          }
+        />
+      )}
 
-      {/* the protocol's fixed terms — the orientation plate for anyone the
+      {/* the protocol's fixed terms: the orientation plate for anyone the
           numbers above just convinced */}
       <section className="flex flex-col gap-4">
         <Board divide={false} className="border">
@@ -1172,17 +1264,7 @@ export function PrimaryStakingContent({
   );
 }
 
-/* the stat strips' figure voice, for StatCell children (Stat styles its
-   own; StatCell leaves the figure to the caller) */
-function CellFigure({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="min-w-0 truncate font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-      {children}
-    </span>
-  );
-}
-
-/* a quiet rules cell — smaller voice than the stat strips: these are
+/* a quiet rules cell: smaller voice than the stat strips: these are
    constants, not readings */
 function ParamCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
