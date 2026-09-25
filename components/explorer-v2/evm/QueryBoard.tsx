@@ -3,9 +3,13 @@
 /* Boards: a canvas of answers. Tiles sit on a 12-column grid (one
    column on a phone), drag by their grip to reorder, and take one of
    four widths. A chart tile draws at once from the rows it kept, then
-   runs its SQL again behind the reader, two at a time. Notes carry the
-   headings a dashboard needs. The board index, the canvas and the pin
-   button all live here; the store is lib/explorer-query/board.ts. */
+   runs its SQL again behind the reader, two at a time. Every mark and
+   row opens what it is about (a transaction, a contract, the records
+   behind a bar), and a tile's rows open in a sheet. Notes carry the
+   headings a dashboard needs. A board the account keeps opens for anyone
+   with its link: drawn and refreshed, not edited, with a way to keep a
+   copy. The board index, the canvas and the pin button all live here;
+   the store is lib/explorer-query/board.ts. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -29,6 +33,7 @@ import {
   ArrowUpRight,
   Check,
   Copy,
+  CopyPlus,
   CornerDownRight,
   GripVertical,
   LayoutGrid,
@@ -37,6 +42,7 @@ import {
   Pin,
   Plus,
   RotateCw,
+  Rows3,
   StickyNote,
   Trash2,
 } from "lucide-react";
@@ -54,6 +60,7 @@ import {
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 import type { SyncState } from "@/lib/explorer-query/board-sync";
+import type { SharedBoard } from "@/lib/explorer-query/board-wire";
 import {
   SIZE_LABEL,
   TILE_SIZES,
@@ -61,11 +68,12 @@ import {
   boardHref,
   boardScope,
   boardsHref,
-  encodeBoard,
-  importBoard,
+  decodeBoard,
+  movedBoard,
   nextSize,
   noteTile,
   pinAnswer,
+  sharedTiles,
   snapshotOf,
   sortedTiles,
   useBoards,
@@ -76,9 +84,13 @@ import {
   type Tile,
   type TileSize,
 } from "@/lib/explorer-query/board";
-import type { QueryAnswer } from "@/lib/explorer-query/types";
+import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
+import type { DrillAnswer, Names, QueryAnswer } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
-import { QueryVisual, fmt, nameFor } from "./QueryVisual";
+import { formatNumber } from "@/components/explorer-v2/format";
+import { QueryVisual } from "./QueryVisual";
+import { PanelRows, doorFor, fillTitle, isTxList, rowDoor } from "./QueryRows";
+import { QueryInspector, RowsBody } from "./QueryInspector";
 import { BoardThumb, Label, NoteBody, QueryPageShell, ago, runTileSql, useNow } from "./query-board-bits";
 
 type Row = Record<string, unknown>;
@@ -110,48 +122,35 @@ function tileVisual(t: ChartTile): VisualSpec {
   return { stats: [], callouts: [], panels: [{ ...p, width: "full", kind: t.view ?? p.kind }] };
 }
 
-const cell = (v: unknown, col: string, names: Record<string, Record<string, string>>, sym: string): string => {
-  const name = nameFor(names, col, v);
-  if (name) return name;
-  if (typeof v === "number") return fmt(v, "number", sym);
-  if (typeof v === "string" && /^0x[0-9a-fA-F]{40,}$/.test(v)) return `${v.slice(0, 8)}…${v.slice(-4)}`;
-  return v === null || v === undefined ? "" : String(v);
-};
-
-function MiniTable({ columns, rows, names, sym }: { columns: { name: string }[]; rows: Row[]; names: Record<string, Record<string, string>>; sym: string }) {
-  if (!rows.length) return <p className="py-6 text-center font-mono text-[12px] text-zinc-400">No rows</p>;
-  return (
-    <div className="max-h-80 overflow-auto rounded-lg border border-zinc-100 dark:border-zinc-900">
-      <table className="w-full border-collapse text-left font-mono text-[11.5px] tabular-nums">
-        <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900">
-          <tr>
-            {columns.map((c) => (
-              <th key={c.name} className="whitespace-nowrap px-2.5 py-1.5 text-[9.5px] font-bold uppercase tracking-[0.14em] text-zinc-500">
-                {c.name.replace(/_/g, " ")}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.slice(0, 60).map((r, i) => (
-            <tr key={i} className="border-t border-zinc-100 dark:border-zinc-900">
-              {columns.map((c) => (
-                <td key={c.name} className="max-w-[16rem] truncate whitespace-nowrap px-2.5 py-1.5 text-zinc-700 dark:text-zinc-300">
-                  {cell(r[c.name], c.name, names, sym)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+/** whether a tile's marks open anything: a transaction, a thing's own page, or records */
+function opens(tile: ChartTile, base: string): boolean {
+  const snap = tile.snapshot;
+  if (!snap) return false;
+  if (tile.drill || isTxList(snap.columns)) return true;
+  return tile.visual.panels.some((p) => !!p.x && snap.rows.slice(0, 50).some((r) => doorFor(p.x!, r[p.x!], base)));
 }
 
-/** the tile's rows drawn with the page's own charts; read-only */
-export function TileChart({ tile, sym }: { tile: ChartTile; sym: string }) {
-  const [range, setRange] = useState<[number, number] | null>(null);
+/** the tile's rows drawn with the page's own charts; every mark opens what it is about */
+function TileChart({
+  tile,
+  sym,
+  base,
+  onMark,
+  onDrill,
+  onRows,
+}: {
+  tile: ChartTile;
+  sym: string;
+  base: string;
+  /** a mark or a row of the tile */
+  onMark?: (row: Row) => void;
+  /** a row of a list, into its records */
+  onDrill?: (row: Row) => void;
+  /** every row, in the sheet */
+  onRows?: () => void;
+}) {
   const visual = useMemo(() => tileVisual(tile), [tile]);
+  const open = useMemo(() => opens(tile, base), [tile, base]);
   const snap = tile.snapshot;
   if (!snap) {
     return (
@@ -166,20 +165,26 @@ export function TileChart({ tile, sym }: { tile: ChartTile; sym: string }) {
     );
   }
   const charts = visual.panels.filter((p) => p.kind !== "table" && p.x && p.series.length > 0);
-  if (charts.length === 0) return <MiniTable columns={snap.columns} rows={snap.rows} names={snap.names} sym={sym} />;
+  // no chart to index the rows: the rows, by their shape, are the tile
+  if (charts.length === 0)
+    return (
+      <div className="-mx-3 max-h-[26rem] overflow-y-auto overscroll-contain">
+        <RowsBody columns={snap.columns} rows={snap.rows} names={snap.names} visual={visual} base={base} sym={sym} onOpen={tile.drill ? onDrill : undefined} />
+      </div>
+    );
   return (
     <QueryVisual
       visual={visual}
       rows={snap.rows}
       names={snap.names}
       sym={sym}
-      canDrill={false}
-      onPick={() => {}}
-      range={range}
-      onRange={setRange}
-      onZoom={() => {}}
+      canDrill={open && !!onMark}
+      onPick={onMark ?? (() => {})}
       titles={visual.panels.length > 1}
       cards={false}
+      renderTable={(p) => (
+        <PanelRows panel={p} columns={snap.columns} rows={snap.rows} names={snap.names} visual={visual} base={base} sym={sym} onPick={open ? onMark : undefined} onAll={onRows} limit={8} />
+      )}
     />
   );
 }
@@ -215,6 +220,9 @@ function InlineName({ value, onSave, className, placeholder }: { value: string; 
 /* ------------------------------------------------------------------ */
 /* one tile                                                            */
 
+/** what a canvas can do to its board; a board the reader does not own only keeps its rows */
+type BoardApi = Pick<ReturnType<typeof useBoards>, "rename" | "remove" | "addTile" | "updateTile" | "removeTile" | "duplicateTile" | "reorder">;
+
 interface TileCtx {
   scope: string;
   boardId: string;
@@ -222,8 +230,21 @@ interface TileCtx {
   network: string;
   chainSlug: string;
   sym: string;
-  api: ReturnType<typeof useBoards>;
+  /** the chain's explorer pages, where a row opens */
+  base: string;
+  api: BoardApi;
+  /** a board the reader does not own: it draws and refreshes, nothing else */
+  readOnly: boolean;
+  /** a tile's rows, in the sheet */
+  onRows: (tile: ChartTile) => void;
+  /** a mark or a row: the page of the thing it names, else its records */
+  onMark: (tile: ChartTile, row: Row) => void;
+  /** a row of a list: its records */
+  onDrill: (tile: ChartTile, row: Row) => void;
 }
+
+/** the question and its follow-ups, as the tile's title tip reads them */
+const threadOf = (t: ChartTile) => [t.question, ...(t.then ?? [])].map((q) => q.split("\n\n")[0]).join(" / ");
 
 interface Handle {
   ref?: (el: HTMLElement | null) => void;
@@ -256,7 +277,7 @@ function TileMenu({ tile, ctx, onRename, onEdit }: { tile: Tile; ctx: TileCtx; o
       <DropdownMenuContent align="end" className="w-48 font-mono text-[12px]">
         {tile.kind === "chart" && (
           <DropdownMenuItem asChild>
-            <Link href={askHref(ctx.network, ctx.chainSlug, tile.question)}>
+            <Link href={askHref(ctx.network, ctx.chainSlug, tile.question, tile.then)}>
               <ArrowUpRight className="h-3.5 w-3.5" /> Open in Query
             </Link>
           </DropdownMenuItem>
@@ -303,7 +324,8 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
   const now = useNow();
-  const { scope, boardId, chainId, api } = ctx;
+  const { scope, boardId, chainId, api, readOnly } = ctx;
+  const rows = tile.snapshot?.rows.length ?? 0;
 
   const refresh = useCallback(async () => {
     setBusy(true);
@@ -336,7 +358,7 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
   return (
     <>
       <div className="flex items-center gap-1.5">
-        <Grip handle={handle} />
+        {!readOnly && <Grip handle={handle} />}
         {renaming ? (
           <InlineName
             value={tile.title}
@@ -349,20 +371,32 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
           />
         ) : (
           <h3
-            onDoubleClick={() => setRenaming(true)}
-            title={tile.question}
+            onDoubleClick={readOnly ? undefined : () => setRenaming(true)}
+            title={threadOf(tile)}
             className="min-w-0 flex-1 truncate text-[14.5px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50"
           >
             {tile.title || tile.question}
           </h3>
         )}
+        {rows > 0 && (
+          <button type="button" onClick={() => ctx.onRows(tile)} className={iconBtn} aria-label={`Rows (${rows})`} title={`Rows (${formatNumber(rows)})`}>
+            <Rows3 className="h-3.5 w-3.5" />
+          </button>
+        )}
         <button type="button" onClick={() => void refresh()} disabled={busy} className={iconBtn} aria-label="Refresh">
           <RotateCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
         </button>
-        <TileMenu tile={tile} ctx={ctx} onRename={() => setRenaming(true)} />
+        {!readOnly && <TileMenu tile={tile} ctx={ctx} onRename={() => setRenaming(true)} />}
       </div>
       <div className={cn("min-w-0 transition-opacity duration-300", busy && tile.snapshot && "opacity-60")}>
-        <TileChart tile={tile} sym={ctx.sym} />
+        <TileChart
+          tile={tile}
+          sym={ctx.sym}
+          base={ctx.base}
+          onMark={overlay ? undefined : (r) => ctx.onMark(tile, r)}
+          onDrill={overlay ? undefined : (r) => ctx.onDrill(tile, r)}
+          onRows={() => ctx.onRows(tile)}
+        />
       </div>
       <footer className="flex items-center justify-between gap-3 pr-6 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
         {error ? (
@@ -373,7 +407,7 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
           <span>{busy ? "Refreshing" : tile.snapshot ? `Refreshed ${ago(tile.snapshot.at, now)}` : "Waiting to run"}</span>
         )}
         <Link
-          href={askHref(ctx.network, ctx.chainSlug, tile.question)}
+          href={askHref(ctx.network, ctx.chainSlug, tile.question, tile.then)}
           className="flex shrink-0 items-center gap-1 uppercase tracking-[0.14em] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
         >
           Open <ArrowUpRight className="h-3 w-3" />
@@ -404,9 +438,9 @@ function NoteTileCard({ tile, ctx, handle, editing, onEditing }: { tile: NoteTil
   };
   return (
     <div className="flex items-start gap-1.5">
-      <Grip handle={handle} />
+      {!ctx.readOnly && <Grip handle={handle} />}
       <div className="min-w-0 flex-1 py-0.5">
-        {editing ? (
+        {editing && !ctx.readOnly ? (
           <>
             <textarea
               ref={ref}
@@ -426,12 +460,12 @@ function NoteTileCard({ tile, ctx, handle, editing, onEditing }: { tile: NoteTil
             <p className="mt-1.5 font-mono text-[10px] text-zinc-400 dark:text-zinc-500"># heading, ## subheading, - list, **bold**, `code`. Cmd+Enter to save.</p>
           </>
         ) : (
-          <div onDoubleClick={() => onEditing(true)} className="cursor-text">
-            {tile.text.trim() ? <NoteBody text={tile.text} /> : <p className="text-[14px] text-zinc-400">Empty note. Double-click to write.</p>}
+          <div onDoubleClick={ctx.readOnly ? undefined : () => onEditing(true)} className={ctx.readOnly ? undefined : "cursor-text"}>
+            {tile.text.trim() ? <NoteBody text={tile.text} /> : !ctx.readOnly && <p className="text-[14px] text-zinc-400">Empty note. Double-click to write.</p>}
           </div>
         )}
       </div>
-      <TileMenu tile={tile} ctx={ctx} onEdit={() => onEditing(true)} />
+      {!ctx.readOnly && <TileMenu tile={tile} ctx={ctx} onEdit={() => onEditing(true)} />}
     </div>
   );
 }
@@ -471,7 +505,7 @@ function TileFrame({
       ) : (
         <NoteTileCard tile={tile} ctx={ctx} handle={handle} editing={editing && !overlay} onEditing={onEditing} />
       )}
-      {!overlay && <SizeHandle size={tile.size} onSize={(s) => ctx.api.updateTile(ctx.boardId, tile.id, { size: s })} />}
+      {!overlay && !ctx.readOnly && <SizeHandle size={tile.size} onSize={(s) => ctx.api.updateTile(ctx.boardId, tile.id, { size: s })} />}
     </motion.div>
   );
 }
@@ -513,11 +547,38 @@ function useCopied(): [boolean, (text: string) => void] {
   ];
 }
 
-function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) {
+/** one level of the board's sheet: a tile's rows, or the records behind one of them */
+interface SheetLevel {
+  title: string;
+  sub?: string;
+  columns: ColumnMeta[];
+  rows: Row[];
+  names: Names;
+  visual: VisualSpec | null;
+  busy?: boolean;
+  error?: string | null;
+  /** a row opens its records */
+  onOpen?: (row: Row) => void;
+  /** the query the rows came from */
+  sql?: string;
+}
+
+/** a board the reader does not own: where its link is, and how to keep a copy */
+interface Guest {
+  /** the board's own page, or null for a link that carried the board itself */
+  link: string | null;
+  onSave: () => void;
+}
+
+const primary =
+  "inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-3.5 py-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-zinc-50 transition-opacity hover:opacity-85 dark:bg-zinc-50 dark:text-zinc-900";
+
+function BoardCanvas({ board, props, api, sync, guest }: { board: Board; props: BoardPageProps; api: BoardApi; sync: SyncState; guest?: Guest }) {
   const scope = boardScope(props.network, props.chainSlug);
-  const api = useBoards(scope);
   const router = useRouter();
   const now = useNow();
+  const readOnly = !!guest;
+  const base = `/explorer/${props.network}/${props.chainSlug}`;
   const tiles = sortedTiles(board);
   const ids = tiles.map((t) => t.id);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -525,7 +586,63 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [copied, copy] = useCopied();
-  const ctx: TileCtx = { scope, boardId: board.id, chainId: props.chainId, network: props.network, chainSlug: props.chainSlug, sym: props.sym, api };
+
+  // the sheet: a tile's rows, and the records one of them opens into;
+  // closed, it keeps its last level so it slides away drawn
+  const [sheet, setSheet] = useState<SheetLevel[]>([]);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const drillRun = useRef(0);
+  const level = sheet[sheet.length - 1];
+
+  const drill = async (t: ChartTile, row: Row, stacked: boolean) => {
+    const snap = t.snapshot;
+    if (!t.drill || !snap) return;
+    const my = ++drillRun.current;
+    const next: SheetLevel = { title: t.title || t.question, sub: fillTitle(t.drill.title, row, snap.names), columns: [], rows: [], names: {}, visual: null, busy: true };
+    setSheet((s) => (stacked ? [...s, next] : [next]));
+    setSheetOpen(true);
+    const land = (patch: Partial<SheetLevel>) => {
+      if (my === drillRun.current) setSheet((s) => s.map((l, i) => (i === s.length - 1 ? { ...l, ...patch, busy: false } : l)));
+    };
+    try {
+      const res = await fetch("/api/explorer/query", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ chainId: props.chainId, drill: { sql: t.drill.sql, row } }),
+      });
+      const out = (await res.json().catch(() => ({}))) as Partial<DrillAnswer> & { error?: string };
+      if (!res.ok || out.error || !out.result) throw new Error(out.error ?? `HTTP ${res.status}`);
+      land({ columns: out.result.columns, rows: out.result.rows, names: out.names ?? {}, sql: out.sql });
+    } catch (e) {
+      land({ error: e instanceof Error ? e.message : "The records did not load." });
+    }
+  };
+
+  const ctx: TileCtx = {
+    scope,
+    boardId: board.id,
+    chainId: props.chainId,
+    network: props.network,
+    chainSlug: props.chainSlug,
+    sym: props.sym,
+    base,
+    api,
+    readOnly,
+    onRows: (t) => {
+      const snap = t.snapshot;
+      if (!snap) return;
+      drillRun.current++;
+      setSheet([{ title: t.title || t.question, columns: snap.columns, rows: snap.rows, names: snap.names, visual: tileVisual(t), sql: t.sql, onOpen: t.drill && !isTxList(snap.columns) ? (r) => void drill(t, r, true) : undefined }]);
+      setSheetOpen(true);
+    },
+    onMark: (t, row) => {
+      const snap = t.snapshot;
+      const door = snap ? rowDoor(row, snap.columns, tileVisual(t), base) : null;
+      if (door) router.push(door);
+      else void drill(t, row, false);
+    },
+    onDrill: (t, row) => void drill(t, row, false),
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -546,8 +663,8 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
     const t = api.addTile(board.id, noteTile());
     setEditing(t.id);
   };
-  const share = () => copy(`${window.location.origin}${boardsHref(props.network, props.chainSlug)}?board=${encodeBoard(board)}`);
   const charts = tiles.filter((t) => t.kind === "chart").length;
+  const frame = (t: Tile) => <TileFrame tile={t} ctx={ctx} editing={false} onEditing={() => {}} refreshSignal={refreshSignal} />;
 
   return (
     <div className="flex flex-col gap-8 pt-4">
@@ -564,32 +681,47 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
         </nav>
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-            <InlineName
-              value={board.name}
-              placeholder="Board name"
-              onSave={(v) => api.rename(board.id, v)}
-              className="-ml-2 w-full max-w-2xl px-2 py-0.5 text-[28px] font-semibold tracking-tight text-zinc-900 sm:text-[32px] dark:text-zinc-50"
-            />
+            {readOnly ? (
+              <h1 className="max-w-2xl truncate py-0.5 text-[28px] font-semibold tracking-tight text-zinc-900 sm:text-[32px] dark:text-zinc-50">{board.name}</h1>
+            ) : (
+              <InlineName
+                value={board.name}
+                placeholder="Board name"
+                onSave={(v) => api.rename(board.id, v)}
+                className="-ml-2 w-full max-w-2xl px-2 py-0.5 text-[28px] font-semibold tracking-tight text-zinc-900 sm:text-[32px] dark:text-zinc-50"
+              />
+            )}
             <p className="font-mono text-[11px] text-zinc-400 dark:text-zinc-500">
-              {tiles.length} {tiles.length === 1 ? "tile" : "tiles"} · updated {ago(board.updatedAt, now)} · <SyncNote sync={api.sync} />
+              {tiles.length} {tiles.length === 1 ? "tile" : "tiles"}
+              {board.updatedAt > 0 && ` · updated ${ago(board.updatedAt, now)}`} · {readOnly ? "view only" : <SyncNote sync={sync} />}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={addNote} className={btn}>
-              <StickyNote className="h-3.5 w-3.5" /> Note
-            </button>
+            {!readOnly && (
+              <button type="button" onClick={addNote} className={btn}>
+                <StickyNote className="h-3.5 w-3.5" /> Note
+              </button>
+            )}
             <button type="button" onClick={() => setRefreshSignal((n) => n + 1)} disabled={charts === 0} className={btn}>
               <RotateCw className="h-3.5 w-3.5" /> Refresh all
             </button>
-            <button type="button" onClick={share} disabled={tiles.length === 0} className={btn}>
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Link2 className="h-3.5 w-3.5" />} {copied ? "Link copied" : "Share"}
-            </button>
-            <Link
-              href={askHref(props.network, props.chainSlug)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-3.5 py-1.5 font-mono text-[10.5px] font-bold uppercase tracking-[0.12em] text-zinc-50 transition-opacity hover:opacity-85 dark:bg-zinc-50 dark:text-zinc-900"
-            >
-              <Plus className="h-3.5 w-3.5" /> Ask
-            </Link>
+            {guest ? (
+              <>
+                <button type="button" onClick={() => copy(guest.link ? `${window.location.origin}${guest.link}` : window.location.href)} className={btn}>
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Link2 className="h-3.5 w-3.5" />} {copied ? "Link copied" : "Copy link"}
+                </button>
+                <button type="button" onClick={guest.onSave} className={primary}>
+                  <CopyPlus className="h-3.5 w-3.5" /> Save a copy
+                </button>
+              </>
+            ) : (
+              <>
+                <ShareBoard link={boardHref(props.network, props.chainSlug, board.id)} sync={sync} disabled={tiles.length === 0} />
+                <Link href={askHref(props.network, props.chainSlug)} className={primary}>
+                  <Plus className="h-3.5 w-3.5" /> Ask
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -601,21 +733,35 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
               <span key={i} className={cn("h-5 rounded-[5px] border border-zinc-200 dark:border-zinc-800", i === 0 ? "col-span-2" : i === 3 ? "col-span-3" : "col-span-1")} />
             ))}
           </div>
-          <div className="flex flex-col gap-1.5">
+          {readOnly ? (
             <p className="text-[18px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50">This board is empty</p>
-            <p className="max-w-sm text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">Ask a question, then pin its chart here. Add a note for a heading or a line of context.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href={askHref(props.network, props.chainSlug)}
-              className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-50 transition-opacity hover:opacity-85 dark:bg-zinc-50 dark:text-zinc-900"
-            >
-              Ask a question <ArrowUpRight className="h-3.5 w-3.5" />
-            </Link>
-            <button type="button" onClick={addNote} className={btn}>
-              <StickyNote className="h-3.5 w-3.5" /> Add a note
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-[18px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50">This board is empty</p>
+                <p className="max-w-sm text-[14px] leading-relaxed text-zinc-500 dark:text-zinc-400">Ask a question, then pin its chart here. Add a note for a heading or a line of context.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={askHref(props.network, props.chainSlug)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-900 px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-zinc-50 transition-opacity hover:opacity-85 dark:bg-zinc-50 dark:text-zinc-900"
+                >
+                  Ask a question <ArrowUpRight className="h-3.5 w-3.5" />
+                </Link>
+                <button type="button" onClick={addNote} className={btn}>
+                  <StickyNote className="h-3.5 w-3.5" /> Add a note
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      ) : readOnly ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          {tiles.map((t) => (
+            <div key={t.id} className={cn("col-span-1 min-w-0", SPAN[t.size])}>
+              {frame(t)}
+            </div>
+          ))}
         </div>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveId(null)}>
@@ -639,7 +785,7 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
       {/* the quiet end of the board */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-900">
         <p className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">Tiles run SQL written by an AI model; it may not be 100% accurate.</p>
-        {confirmDelete ? (
+        {readOnly ? null : confirmDelete ? (
           <span className="flex items-center gap-3 font-mono text-[11px]">
             <span className="text-zinc-500">Delete this board?</span>
             <button
@@ -666,7 +812,76 @@ function BoardCanvas({ board, props }: { board: Board; props: BoardPageProps }) 
           </button>
         )}
       </div>
+
+      <QueryInspector
+        open={sheetOpen}
+        onClose={() => {
+          drillRun.current++;
+          setSheetOpen(false);
+        }}
+        title={level?.title ?? ""}
+        sub={level?.sub}
+        columns={level?.columns ?? []}
+        rows={level?.rows ?? []}
+        total={level?.rows.length ?? 0}
+        names={level?.names ?? {}}
+        visual={level?.visual ?? null}
+        base={base}
+        sym={props.sym}
+        onOpen={level?.onOpen}
+        busy={!!level?.busy}
+        error={level?.error ?? null}
+        sql={level?.busy ? undefined : level?.sql}
+        onBack={
+          sheet.length > 1
+            ? () => {
+                drillRun.current++;
+                setSheet((s) => s.slice(0, -1));
+              }
+            : undefined
+        }
+        hint="Esc closes"
+      />
     </div>
+  );
+}
+
+/** a board's link, for anyone; signed out, the way to an account that keeps it */
+function ShareBoard({ link, sync, disabled }: { link: string; sync: SyncState; disabled: boolean }) {
+  const [copied, copy] = useCopied();
+  const [open, setOpen] = useState(false);
+  const { openLoginModal } = useLoginModalTrigger();
+  if (sync !== "off")
+    return (
+      <button type="button" onClick={() => copy(`${window.location.origin}${link}`)} disabled={disabled} title="Anyone with the link can view this board" className={btn}>
+        {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Link2 className="h-3.5 w-3.5" />} {copied ? "Link copied" : "Share"}
+      </button>
+    );
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger disabled={disabled} className={btn}>
+        <Link2 className="h-3.5 w-3.5" /> Share
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content
+          align="end"
+          sideOffset={6}
+          className="z-50 flex w-64 flex-col gap-3 rounded-2xl border border-zinc-200 bg-white/95 p-3.5 shadow-[0_24px_48px_-20px_rgba(24,24,27,0.4)] backdrop-blur-xl data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 dark:border-zinc-800 dark:bg-zinc-950/95"
+        >
+          <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-300">Sign in to share this board by its link.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              openLoginModal(window.location.href);
+            }}
+            className={cn(primary, "justify-center py-2")}
+          >
+            Sign in
+          </button>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
 
@@ -683,7 +898,7 @@ function SyncNote({ sync, long = false }: { sync: SyncState; long?: boolean }) {
   }
   if (sync === "loading") return <span>{long ? "Syncing with your account." : "syncing"}</span>;
   if (sync === "error") return <span className="text-amber-600 dark:text-amber-500">{long ? "Could not reach your account; changes stay in this browser and sync when it is back." : "not synced, kept here"}</span>;
-  return <span>{long ? "Synced to your Builder Hub account." : "synced to your account"}</span>;
+  return <span>{long ? "Synced to your Builder Hub account. Anyone with a board's link can view it." : "synced to your account"}</span>;
 }
 
 function SignInToSync({ inline = false, label = "Sign in to sync boards" }: { inline?: boolean; label?: string }) {
@@ -699,28 +914,69 @@ function SignInToSync({ inline = false, label = "Sign in to sync boards" }: { in
   );
 }
 
-/** one board's canvas, from this device's store */
-export function QueryBoardPage({ boardId, ...props }: BoardPageProps & { boardId: string }) {
+/** a board another reader keeps, or a link that carried one: drawn and refreshed here, kept nowhere until the reader saves a copy */
+function GuestBoard({ shared, props }: { shared: { id: string | null; name: string; tiles: Tile[]; updatedAt: number; link: string | null }; props: BoardPageProps }) {
+  const router = useRouter();
+  const { create, sync } = useBoards(boardScope(props.network, props.chainSlug));
+  const [board, setBoard] = useState<Board>(() => ({ id: shared.id ?? "shared", name: shared.name, createdAt: shared.updatedAt, updatedAt: shared.updatedAt, tiles: shared.tiles }));
+  // the rows each tile reads stay on this page; nothing else here is the reader's to change
+  const api = useMemo<BoardApi>(
+    () => ({
+      rename: () => {},
+      remove: () => {},
+      addTile: (_id, t) => t,
+      updateTile: (_id, tileId, patch) => setBoard((b) => ({ ...b, tiles: b.tiles.map((t) => (t.id === tileId ? ({ ...t, ...patch, id: t.id, kind: t.kind } as Tile) : t)) })),
+      removeTile: () => {},
+      duplicateTile: () => {},
+      reorder: () => {},
+    }),
+    [],
+  );
+  // the copy keeps the rows this page read, so it opens drawn
+  const save = () => router.push(boardHref(props.network, props.chainSlug, create(board.name, sortedTiles(board)).id));
+  return <BoardCanvas board={board} props={props} api={api} sync={sync} guest={{ link: shared.link, onSave: save }} />;
+}
+
+function Missing({ sync, network, chainSlug }: { sync: SyncState; network: string; chainSlug: string }) {
+  return (
+    <div className="flex flex-col items-start gap-3 pt-10">
+      <p className="text-[18px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50">No board at this link</p>
+      <p className="max-w-md text-[14px] text-zinc-500 dark:text-zinc-400">
+        {sync === "off" ? "It may be kept on one device only. If it is yours, sign in to see the boards your account keeps." : "It was deleted, or no account keeps it."}
+      </p>
+      {sync === "off" && <SignInToSync />}
+      <Link href={boardsHref(network, chainSlug)} className={btn}>
+        <LayoutGrid className="h-3.5 w-3.5" /> All boards
+      </Link>
+    </div>
+  );
+}
+
+/** one board: the reader's own, from this device's store; else the board its link opens */
+export function QueryBoardPage({ boardId, shared, ...props }: BoardPageProps & { boardId: string; shared: SharedBoard | null }) {
   const hydrated = useHydrated();
-  const { boards, sync } = useBoards(boardScope(props.network, props.chainSlug));
-  const board = boards.find((b) => b.id === boardId);
+  const router = useRouter();
+  const api = useBoards(boardScope(props.network, props.chainSlug));
+  const board = api.boards.find((b) => b.id === boardId);
+  // a board whose id had to change: its page follows it
+  const moved = hydrated && !board ? movedBoard(boardId) : undefined;
+  useEffect(() => {
+    if (moved) router.replace(boardHref(props.network, props.chainSlug, moved));
+  }, [moved, router, props.network, props.chainSlug]);
+  const guest = useMemo(
+    () => (shared ? { id: shared.id, name: shared.name, tiles: sharedTiles(shared.tiles), updatedAt: shared.updatedAt, link: boardHref(props.network, props.chainSlug, shared.id) } : null),
+    [shared, props.network, props.chainSlug],
+  );
   return (
     <QueryPageShell kind={props.kind} network={props.network}>
-      {!hydrated || (!board && sync === "loading") ? (
+      {!hydrated || moved || (!board && !guest && api.sync === "loading") ? (
         <div className="h-96" aria-busy="true" />
       ) : board ? (
-        <BoardCanvas board={board} props={props} />
+        <BoardCanvas board={board} props={props} api={api} sync={api.sync} />
+      ) : guest ? (
+        <GuestBoard key={guest.id} shared={guest} props={props} />
       ) : (
-        <div className="flex flex-col items-start gap-3 pt-10">
-          <p className="text-[18px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50">{sync === "off" ? "This board is not on this device" : "This board is not in your account"}</p>
-          <p className="max-w-md text-[14px] text-zinc-500 dark:text-zinc-400">
-            {sync === "off" ? "Sign in to see the boards you keep on your other devices, or open a shared link to this board." : "It may have been deleted on another device. A shared link to it still opens a copy."}
-          </p>
-          {sync === "off" && <SignInToSync />}
-          <Link href={boardsHref(props.network, props.chainSlug)} className={btn}>
-            <LayoutGrid className="h-3.5 w-3.5" /> All boards
-          </Link>
-        </div>
+        <Missing sync={api.sync} network={props.network} chainSlug={props.chainSlug} />
       )}
     </QueryPageShell>
   );
@@ -771,23 +1027,20 @@ export function NewBoardCard({ network, chainSlug, className }: { network: strin
   );
 }
 
-/** every board on this chain; a ?board= link is kept as a new one and opened */
-export function QueryBoardsPage({ network, chainSlug, kind }: { network: string; chainSlug: string; kind: Kind }) {
+/** every board on this chain; a link that carries a whole board opens it here, to view or keep */
+export function QueryBoardsPage(props: BoardPageProps) {
+  const { network, chainSlug, kind } = props;
   const hydrated = useHydrated();
-  const scope = boardScope(network, chainSlug);
-  const { boards, sync } = useBoards(scope);
+  const { boards, sync } = useBoards(boardScope(network, chainSlug));
   const now = useNow();
-  const router = useRouter();
-  const shared = useSearchParams().get("board");
-  const [bad, setBad] = useState(false);
-  const imported = useRef(false);
-  useEffect(() => {
-    if (!shared || imported.current) return;
-    imported.current = true;
-    const b = importBoard(scope, shared);
-    if (b) router.replace(boardHref(network, chainSlug, b.id));
-    else setBad(true);
-  }, [shared, scope, network, chainSlug, router]);
+  const link = useSearchParams().get("board");
+  const carried = useMemo(() => (link ? decodeBoard(link) : null), [link]);
+  if (link && carried)
+    return (
+      <QueryPageShell kind={kind} network={network}>
+        {hydrated ? <GuestBoard shared={{ id: null, name: carried.name, tiles: carried.tiles, updatedAt: 0, link: null }} props={props} /> : <div className="h-96" aria-busy="true" />}
+      </QueryPageShell>
+    );
 
   return (
     <QueryPageShell kind={kind} network={network}>
@@ -807,7 +1060,7 @@ export function QueryBoardsPage({ network, chainSlug, kind }: { network: string;
               <SyncNote sync={sync} long />
             </p>
           </div>
-          {bad && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">That board link could not be read.</p>}
+          {link && <p className="border-l-2 border-[#E6212F] pl-3 font-mono text-[12px] text-[#E6212F]">That board link could not be read.</p>}
         </div>
         {hydrated && (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -827,20 +1080,20 @@ export function QueryBoardsPage({ network, chainSlug, kind }: { network: string;
 
 export function EvmQueryBoards({ network }: { network: string }) {
   const c = useChainContext();
-  return <QueryBoardsPage network={network} chainSlug={c.chainSlug} kind="evm" />;
+  return <QueryBoardsPage network={network} chainSlug={c.chainSlug} chainId={c.chainId} kind="evm" sym={c.nativeToken ?? "AVAX"} />;
 }
 
-export function EvmQueryBoard({ network, id }: { network: string; id: string }) {
+export function EvmQueryBoard({ network, id, shared }: { network: string; id: string; shared: SharedBoard | null }) {
   const c = useChainContext();
-  return <QueryBoardPage network={network} chainSlug={c.chainSlug} chainId={c.chainId} kind="evm" sym={c.nativeToken ?? "AVAX"} boardId={id} />;
+  return <QueryBoardPage network={network} chainSlug={c.chainSlug} chainId={c.chainId} kind="evm" sym={c.nativeToken ?? "AVAX"} boardId={id} shared={shared} />;
 }
 
 export function PchainQueryBoards({ network }: { network: string }) {
-  return <QueryBoardsPage network={network} chainSlug="p-chain" kind="pchain" />;
+  return <QueryBoardsPage network={network} chainSlug="p-chain" chainId={network === "fuji" ? 5 : 1} kind="pchain" sym="AVAX" />;
 }
 
-export function PchainQueryBoard({ network, id }: { network: string; id: string }) {
-  return <QueryBoardPage network={network} chainSlug="p-chain" chainId={network === "fuji" ? 5 : 1} kind="pchain" sym="AVAX" boardId={id} />;
+export function PchainQueryBoard({ network, id, shared }: { network: string; id: string; shared: SharedBoard | null }) {
+  return <QueryBoardPage network={network} chainSlug="p-chain" chainId={network === "fuji" ? 5 : 1} kind="pchain" sym="AVAX" boardId={id} shared={shared} />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -852,7 +1105,7 @@ export function PinToBoard({
   network,
   answer,
   panelIndex,
-  question,
+  thread,
   className,
 }: {
   /** the chain slug: "c-chain", "p-chain" */
@@ -861,8 +1114,8 @@ export function PinToBoard({
   answer: QueryAnswer;
   /** one panel of the answer; omit to pin the whole answer with its figures */
   panelIndex?: number;
-  /** the question as asked, so Open asks it again; defaults to the title */
-  question?: string;
+  /** the question and its follow-ups as asked, so Open asks the same thread; defaults to the title */
+  thread?: string[];
   className?: string;
 }) {
   const { boards, create, addTile } = useBoards(boardScope(network, chain));
@@ -870,7 +1123,9 @@ export function PinToBoard({
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState("");
   const [done, setDone] = useState<{ id: string; name: string } | null>(null);
-  const tile = useMemo(() => pinAnswer(answer, { panelIndex, question }), [answer, panelIndex, question]);
+  const key = thread?.join("\n");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const tile = useMemo(() => pinAnswer(answer, { panelIndex, thread }), [answer, panelIndex, key]);
 
   const pinTo = (b: Board) => {
     if (!tile) return;
