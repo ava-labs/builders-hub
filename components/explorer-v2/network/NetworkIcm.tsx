@@ -143,8 +143,11 @@ export function NetworkIcm() {
   }, [metrics]);
 
   const totalICM = useMemo(() => metrics?.aggregatedData?.reduce((s, p) => s + p.totalMessageCount, 0) ?? 0, [metrics]);
-  const latestDay = metrics?.aggregatedData?.[0]?.totalMessageCount ?? 0;
-  const priorDay = metrics?.aggregatedData?.[1]?.totalMessageCount;
+  // complete UTC days only: today's partial count would read as a collapse
+  const today = new Date().toISOString().slice(0, 10);
+  const whole = (metrics?.aggregatedData ?? []).filter((p) => String(p.date).slice(0, 10) < today);
+  const latestDay = whole[0]?.totalMessageCount ?? 0;
+  const priorDay = whole[1]?.totalMessageCount;
   const dayDelta = priorDay ? ((latestDay - priorDay) / priorDay) * 100 : null;
   // divide by the days the feed returned, not the clock's nominal span
   const avgDaily = totalICM / Math.max(1, metrics?.aggregatedData?.length ?? 1);
@@ -324,8 +327,8 @@ export function NetworkIcm() {
           </Board>
         )}
 
-        {/* the same traffic as a map: chains as bodies, messages as arcs */}
-        <IcmNetworkMap />
+        {/* the same traffic as a map; a chain pick cuts like Top Chains */}
+        <IcmNetworkMap picked={cut.chain ?? null} onPick={(k) => cutBy("chain", k)} />
 
         {/* who talks, and to whom; each cut filters the transfers below */}
         <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
