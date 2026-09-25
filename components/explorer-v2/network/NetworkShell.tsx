@@ -33,7 +33,7 @@ export function NetworkShell({
             subnav names the page; the search leads, the figures follow */}
         {search && (
           <div className="pb-8">
-            <SearchBox chain="p-chain" network={network} />
+            <SearchBox chain="p-chain" network={network} askAt={`/explorer/${network}/query`} />
           </div>
         )}
         <Rise delay={0.14}>{children}</Rise>

@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ArrowUpRight, Clock, History, Search, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUp, ArrowUpRight, Clock, History, Search, Sparkles, X } from "lucide-react";
 import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
-import { PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
+import { EXAMPLES, PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
 import { recentQuestions } from "@/lib/explorer-query/recent";
 import { cn } from "@/lib/utils";
 import {
@@ -64,7 +64,19 @@ function truncateId(id: string, max = 34) {
    Exported for the network-scope shell: with chain="p-chain" it already
    routes every identifier to the right chain (P-Chain entities home, EVM
    addresses to the C-Chain, tx hashes raced across every indexed chain). */
-export function SearchBox({ chain, network, ask = false }: { chain: string; network: string; /** questions open the P-Chain's Query page */ ask?: boolean }) {
+export function SearchBox({
+  chain,
+  network,
+  ask = false,
+  askAt,
+}: {
+  chain: string;
+  network: string;
+  /** questions open the P-Chain's Query page */
+  ask?: boolean;
+  /** questions open this Query page instead: the network's, which answers from the chain a question names */
+  askAt?: string;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
@@ -76,7 +88,10 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
 
   const base = `/explorer/${network}/${chain}`;
   // the P-Chain's tables cover mainnet and Fuji
-  const askable = ask && (network === "mainnet" || network === "fuji");
+  const askable = (ask || !!askAt) && (network === "mainnet" || network === "fuji");
+  const queryPage = askAt ?? `${base}/query`;
+  // the network box asks about any chain: both indexes' recents and starters
+  const starters = (askAt ? [...EXAMPLES.slice(0, 1), ...PCHAIN_EXAMPLES.slice(0, 1)] : PCHAIN_EXAMPLES).flatMap((g) => g.items.map((i) => i.q));
   const [recentAsked, setRecentAsked] = useState<string[]>([]);
 
   useEffect(() => {
@@ -160,6 +175,11 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
       go(local.type, local.id);
       return;
     }
+    // a phrase that is no identifier and no chain is asked, as on the C-Chain
+    if (canAsk && !looksLikeIdentifier(query)) {
+      goToHref(askHref);
+      return;
+    }
 
     setBusy(true);
     try {
@@ -195,7 +215,7 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
   const identifier = looksLikeIdentifier(q.trim()) || !!classifyLocally(q.trim());
   const question = askable && !entity && looksLikeQuestion(q, { identifier, chainHit: hits.length > 0 });
   const canAsk = askable && !entity && canAskPhrase(q, identifier);
-  const askHref = `${base}/query?q=${encodeURIComponent(q.trim())}`;
+  const askHref = `${queryPage}?q=${encodeURIComponent(q.trim())}`;
   const showRecents = focused && !q && (recents.length > 0 || askable);
   const showHits = focused && !!q.trim() && (hits.length > 0 || entity !== null || canAsk);
 
@@ -217,10 +237,16 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
     // pl-0!/pr-0!: this div is a direct child of <header>, so the global
     // `header > div` navbar padding hack (global.css) would indent it by 3rem
     <div className="relative w-full pl-0! pr-0!">
-      <form onSubmit={submit} className="relative">
-        {/* z-10: the input's backdrop-blur forms a stacking context that
-            otherwise paints over this icon, leaving a blurred smudge */}
-        <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
+      {/* the C-Chain's box: one input for finding and for asking, sent with the arrow */}
+      <form
+        onSubmit={submit}
+        className={cn(
+          "flex items-center gap-3 rounded-2xl border bg-white py-2.5 pl-4 pr-2.5 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] transition-colors focus-within:border-zinc-900 dark:bg-zinc-950 dark:focus-within:border-zinc-100",
+          notFound ? "border-[#E6212F]" : "border-zinc-300 dark:border-zinc-700",
+          busy && "opacity-60",
+        )}
+      >
+        <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
         <input
           ref={inputRef}
           value={q}
@@ -231,26 +257,16 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
           }}
           onFocus={() => {
             setFocused(true);
-            if (askable) setRecentAsked(recentQuestions(chain).slice(0, 3));
+            if (askable) setRecentAsked((askAt ? [...recentQuestions("c-chain"), ...recentQuestions("p-chain")] : recentQuestions(chain)).slice(0, 3));
           }}
           onBlur={() => setFocused(false)}
           onKeyDown={onKeyDown}
-          placeholder={askable ? "Search a chain, block, tx, NodeID or address, or ask a question…" : "Search chains by name or ID, block height, tx hash, NodeID, or any address"}
+          placeholder={askable ? "Search an address, tx, block, NodeID or chain, or ask a question…" : "Search chains by name or ID, block height, tx hash, NodeID, or any address"}
+          aria-label={askable ? "Search or ask a question" : "Search"}
           spellCheck={false}
-          className={cn(
-            // the Query page's prompt box: one input for finding and for asking
-            "w-full rounded-2xl border bg-white py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
-            notFound ? "border-[#E6212F]" : "border-zinc-300 dark:border-zinc-700",
-            busy && "opacity-60",
-          )}
+          className="min-h-[1.75rem] min-w-0 flex-1 bg-transparent py-1 font-mono text-[13px] leading-relaxed text-zinc-900 placeholder:text-zinc-400 focus:outline-none dark:text-zinc-50 dark:placeholder:text-zinc-600"
         />
-        {/* the "/" affordance parks at the right edge until the field is live */}
-        {!focused && !q && (
-          <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-md border border-zinc-200 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 md:block dark:border-zinc-800 dark:text-zinc-500">
-            /
-          </kbd>
-        )}
-        {q && (
+        {q ? (
           <button
             type="button"
             aria-label="Clear search"
@@ -260,11 +276,21 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
               setNotFound(false);
               inputRef.current?.focus();
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+            className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
           >
             <X className="h-4 w-4" />
           </button>
+        ) : (
+          <kbd className="hidden shrink-0 rounded-md border border-zinc-200 px-1.5 font-mono text-[10px] leading-[18px] text-zinc-400 sm:inline-block dark:border-zinc-800 dark:text-zinc-500">/</kbd>
         )}
+        <button
+          type="submit"
+          disabled={!q.trim() || busy}
+          aria-label={question ? "Ask" : "Search"}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white transition-opacity disabled:opacity-25 dark:bg-zinc-100 dark:text-zinc-900"
+        >
+          <ArrowUp className="h-4 w-4" strokeWidth={2.25} />
+        </button>
       </form>
 
       {/* live suggestions: the entity the identifier resolves to, then the
@@ -314,7 +340,7 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
           {askable &&
             [
               { label: "Recent questions", icon: History, items: recentAsked },
-              { label: "Ask", icon: Sparkles, items: PCHAIN_EXAMPLES.flatMap((g) => g.items.map((i) => i.q)).filter((x) => !recentAsked.includes(x)).slice(0, recentAsked.length ? 2 : 4) },
+              { label: "Ask", icon: Sparkles, items: starters.filter((x) => !recentAsked.includes(x)).slice(0, recentAsked.length ? 2 : 4) },
             ]
               .filter((g) => g.items.length)
               .map((g) => (
@@ -326,7 +352,7 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
                       type="button"
                       onMouseDown={(e) => {
                         e.preventDefault();
-                        goToHref(`${base}/query?q=${encodeURIComponent(item)}`);
+                        goToHref(`${queryPage}?q=${encodeURIComponent(item)}`);
                       }}
                       className="group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900"
                     >
@@ -342,7 +368,7 @@ export function SearchBox({ chain, network, ask = false }: { chain: string; netw
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault();
-                goToHref(`${base}/query`);
+                goToHref(queryPage);
               }}
               className="group flex w-full items-center justify-between border-b border-zinc-100 px-4 py-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
             >
