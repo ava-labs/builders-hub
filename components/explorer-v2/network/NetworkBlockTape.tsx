@@ -5,20 +5,20 @@ import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explo
 import { timeAgo } from "@/components/explorer-v2/format";
 
 /* The splash's tape: the same extruded blocks every chain page runs, but
-   merged across the ecosystem's busiest chains — each block wears the logo
+   merged across the ecosystem's busiest chains: each block wears the logo
    and name of the chain that sealed it.
 
    Feel: sweeps poll every chain on a short cadence through the API's
-   blocksOnly diet (headers only — no receipts, no ICM scan), but arrivals
+   blocksOnly diet (headers only: no receipts, no ICM scan), but arrivals
    don't land as a batch. New blocks queue up and a metronome releases ONE
-   per beat, oldest-first — an ambient instrument, not a firehose. When the
+   per beat, oldest-first: an ambient instrument, not a firehose. When the
    network outruns the beat the backlog is quietly sampled: oldest pending
    blocks are let go, since the retention cap would displace them in
    seconds anyway. A chain that fails three sweeps drops out of the
    rotation silently. */
 
 export interface TapeFeedChain {
-  /** EVM chain id — the /api/explorer route key */
+  /** EVM chain id, the /api/explorer route key */
   chainId: string;
   slug: string;
   name: string;
@@ -41,17 +41,17 @@ interface FeedBlock {
   height: number;
   txCount: number;
   fill?: number;
-  /** epoch ms — the merge order across chains */
+  /** epoch ms, the merge order across chains */
   at: number;
 }
 
 const POLL_MS = 5_000;
-/* the beat: a release every second — a few blocks may land together when
+/* the beat: a release every second. A few blocks may land together when
    the network runs hot, which is its own kind of honest */
 const BEAT_MS = 1_000;
 /* safety trim for pathological bursts (a chain catching up after a stall) */
 const PENDING_MAX = 24;
-/* each chain keeps only its newest few — without this the fastest chain
+/* each chain keeps only its newest few. Without this the fastest chain
    (C-Chain at ~2s blocks) floods the window and the tape stops being a
    cross-chain instrument within a minute */
 const PER_CHAIN = 5;
@@ -89,7 +89,7 @@ function retain(merged: FeedBlock[]): FeedBlock[] {
   });
 }
 
-/* the name is the block's headline at 96px — drop the redundant network
+/* the name is the block's headline at 96px: drop the redundant network
    prefix so "Avalanche C-Chain" reads "C-Chain" */
 function displayName(name: string): string {
   return name.replace(/^Avalanche\s+/i, "");
@@ -104,7 +104,7 @@ export function NetworkBlockTape({
   onTps,
 }: {
   chains: TapeFeedChain[];
-  /** live tx/s measured from the blocks streaming through the tape —
+  /** live tx/s measured from the blocks streaming through the tape,
    *  reported after each sweep; null until the window has enough span */
   onTps?: (tps: number | null) => void;
 }) {
@@ -118,7 +118,7 @@ export function NetworkBlockTape({
     const lastSeen = new Map<string, number>();
     const failures = new Map<string, number>();
     const queued = new Set<string>(); // every key ever queued or shown
-    const pending: FeedBlock[] = []; // ascending by time — released oldest-first
+    const pending: FeedBlock[] = []; // ascending by time, released oldest-first
     let shown: FeedBlock[] = [];
     // every fresh block (pre-retention) feeds the pulse window, so the
     // reading reflects real throughput, not what the tape chooses to show
@@ -141,7 +141,7 @@ export function NetworkBlockTape({
     };
 
     async function sweep(first: boolean) {
-      if (sweeping) return; // a slow round still in flight — let it finish
+      if (sweeping) return; // a slow round still in flight: let it finish
       sweeping = true;
       const results = await Promise.all(
         chains.map(async (chain) => {
@@ -185,7 +185,7 @@ export function NetworkBlockTape({
       }
     }
 
-    /* the metronome: each beat releases the queue's share for this beat —
+    /* the metronome: each beat releases the queue's share for this beat:
        usually one block, sometimes a few together. If a release would be
        invisible (the retention cap already displaced it), try the next so
        the beat never lands on silence while blocks wait. */
@@ -214,7 +214,7 @@ export function NetworkBlockTape({
   }, [chains, onTps]);
 
   if (blocks.length === 0) {
-    // roster still resolving or first sweep in flight — hold the row height;
+    // roster still resolving or first sweep in flight: hold the row height;
     // if every chain failed, the tape bows out rather than sit empty
     return settled && chains.length > 0 ? null : <BlockTapeSkeleton />;
   }

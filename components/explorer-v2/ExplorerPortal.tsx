@@ -19,18 +19,28 @@ import {
   useSearchEntity,
   type ChainHit,
 } from "@/components/explorer-v2/chain-search";
-import { Board, Rise, SectionHeader, StatCell, StatDash, StatFigure } from "@/components/explorer-v2/ui";
+import { Rise, SectionHeader } from "@/components/explorer-v2/ui";
+import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
+import {
+  complete,
+  flowWindow,
+  fmtCompact,
+  fmtUsdCompact,
+  levelWindow,
+  useNetworkSeries,
+  useSeatHistory,
+  useStakeHistory,
+  type DayPoint,
+} from "@/components/explorer-v2/network/overview-series";
 import {
   PRIMARY_NETWORK_ID,
   fetchValidatorStats,
   useLiveValidatorCounts,
 } from "@/components/explorer-v2/validator-stats";
-import { BrandButton } from "@/components/landing-v2/BrandButton";
-import NetworkGlobe from "@/components/landing-v2/NetworkGlobe";
 import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
 
 /* ------------------------------------------------------------------ */
-/* /explorer — the portal: one search that takes any identifier, the   */
+/* /explorer, the portal: one search that takes any identifier, the   */
 /* Primary Network's two chains as featured instruments, and a door    */
 /* into every L1's own explorer. The front page of one cohesive app.   */
 /* ------------------------------------------------------------------ */
@@ -39,8 +49,8 @@ import SheetBackdrop from "@/components/landing-v2/SheetBackdrop";
    logos in that format are served as-is. Raster sources keep the optimizer. */
 const isSvgSource = (src: string) => /\.svg(?:[?#]|$)/i.test(src);
 
-/* One bar, anything: chains suggest live as you type — by name, chain ID,
-   subnet ID, or blockchain ID (the shared chain-search engine) — P-Chain
+/* One bar, anything: chains suggest live as you type (by name, chain ID,
+   subnet ID, or blockchain ID, via the shared chain-search engine), P-Chain
    shapes route locally, 0x hashes race every EVM chain's RPC, ambiguous
    CB58 hashes ask the search API. */
 function UniversalSearch() {
@@ -70,7 +80,7 @@ function UniversalSearch() {
 
   const hits = useMemo(() => matchChains(q, liveValidators), [q, liveValidators]);
 
-  // what the identifier in the box resolves to — tx hashes race every
+  // what the identifier in the box resolves to: tx hashes race every
   // chain live, so the dropdown names the chain before Enter is pressed
   const entity = useSearchEntity(q, {
     network: "mainnet",
@@ -97,7 +107,7 @@ function UniversalSearch() {
     setError(null);
 
     // a highlighted chain wins the Enter key; a name-like query's top hit
-    // wins too — but identifier shapes (heights, hashes, IDs) keep their
+    // wins too, but identifier shapes (heights, hashes, IDs) keep their
     // plain-Enter search even while chain rows are on offer
     if (hits.length > 0 && (sel >= 0 || !looksLikeIdentifier(query))) {
       goToChain(hits[Math.max(0, sel)].chain);
@@ -156,7 +166,9 @@ function UniversalSearch() {
   return (
     <div className="relative w-full">
       <form onSubmit={submit} className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
+        {/* z-10: the input's backdrop forms a stacking context that would
+            otherwise paint over the icon */}
+        <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-[18px] w-[18px] -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
         <input
           ref={inputRef}
           autoFocus
@@ -165,7 +177,7 @@ function UniversalSearch() {
             setQ(e.target.value);
             setError(null);
             setSel(-1);
-            // typing IS focus — the autoFocus mount lands before React's
+            // typing IS focus: the autoFocus mount lands before React's
             // onFocus listener attaches, so the event alone can't be trusted
             setFocused(true);
           }}
@@ -175,38 +187,28 @@ function UniversalSearch() {
           placeholder="Search any chain, block, transaction, address, or node across Avalanche"
           spellCheck={false}
           className={cn(
-            "w-full border bg-zinc-50/80 py-4 pl-12 pr-32 font-mono text-[13px] text-zinc-900 outline-none backdrop-blur-sm transition-colors placeholder:text-zinc-400 focus:border-zinc-900 focus:bg-white md:py-5 md:pr-36 md:text-sm dark:bg-zinc-900/60 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-zinc-100 dark:focus:bg-zinc-950",
+            // the explorer's one search box, as every chain page wears it
+            "w-full rounded-2xl border bg-white py-3 pl-11 pr-12 font-mono text-[13px] text-zinc-900 shadow-[0_8px_24px_-16px_rgba(24,24,27,0.3)] outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-900 md:py-3.5 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-100",
             error ? "border-[#E6212F]" : "border-zinc-300 dark:border-zinc-700",
+            busy && "opacity-60",
           )}
         />
-        {/* the brand CTA makes it unmistakably a search bar */}
-        {/* the BrandButton sweep, in form-submit clothing */}
-        <button
-          type="submit"
-          disabled={busy}
-          className="group/search absolute right-2 top-1/2 -translate-y-1/2 overflow-hidden bg-[#E6212F] px-4 py-2.5 disabled:opacity-70 md:px-6 md:py-3"
-        >
-          <span
-            aria-hidden
-            className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover/search:scale-x-100"
-          />
-          <span className="relative z-10 flex items-center gap-2 text-sm font-semibold text-white transition-colors duration-300 group-hover/search:text-[#1F1F1F]">
-            {busy ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            ) : (
-              <>
-                Search
-                <ArrowRight className="h-4 w-4 text-[#1F1F1F] transition-colors duration-300 group-hover/search:text-[#E6212F]" />
-              </>
-            )}
-          </span>
-        </button>
+        {busy ? (
+          <span className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
+        ) : (
+          !focused &&
+          !q && (
+            <kbd className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-md border border-zinc-200 px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 md:block dark:border-zinc-800 dark:text-zinc-500">
+              /
+            </kbd>
+          )
+        )}
       </form>
 
       {/* live suggestions: the entity the identifier resolves to, then the
           shared chain rows every explorer search uses */}
       {showHits && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-1 border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
           {entity && <EntityHitRow hit={entity} onSelect={goToHref} />}
           {hits.map((hit, i) => (
             <ChainHitRow
@@ -222,7 +224,7 @@ function UniversalSearch() {
       )}
 
       {error && (
-        <p className="mt-2.5 text-center font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">
+        <p className="mt-2.5 px-1 font-mono text-[10px] uppercase tracking-[0.14em] text-[#E6212F]">
           {error}
         </p>
       )}
@@ -230,93 +232,52 @@ function UniversalSearch() {
   );
 }
 
-/* Shared frame for the Primary Network's two featured chains: the argument
-   on top, the live plate holding the floor, links out to each network. */
-function ChainBoard({
-  logo,
-  title,
-  links,
-}: {
-  logo: string;
-  title: string;
-  /** disabledNote renders the link grayed-out with the note as its tooltip */
-  links: { label: string; href: string; primary?: boolean; disabledNote?: string }[];
-}) {
+/* The Primary Network's two chains as the first doors: mainnet on the
+   tile, the testnet beside it. */
+const PRIMARY = [
+  {
+    slug: "c-chain",
+    name: "C-Chain",
+    role: "EVM · contracts",
+    logo: "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
+  },
+  {
+    slug: "p-chain",
+    name: "P-Chain",
+    role: "Validators · L1s",
+    logo: "https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg",
+  },
+];
+
+function PrimaryDoors() {
   return (
-    <Board divide={false} className="h-full">
-      <div className="px-5 py-8 md:px-6 lg:py-9">
-        <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
-          <div className="flex items-center gap-3.5">
-            <Image src={logo} alt="" width={36} height={36} unoptimized={isSvgSource(logo)} className="rounded-full object-contain" />
-            <h2 className="v2-display text-2xl text-zinc-900 dark:text-zinc-50 md:text-3xl">
-              {title}
-              <span className="text-[#E6212F]">.</span>
-            </h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-x-10 gap-y-4 py-2">
-            {links.map((link) =>
-              link.disabledNote ? (
-                <span
-                  key={link.href}
-                  role="link"
-                  aria-disabled="true"
-                  title={link.disabledNote}
-                  className="inline-flex cursor-not-allowed items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-300 dark:text-zinc-600"
-                >
-                  {link.label}
-                  <span className="font-medium normal-case tracking-normal text-zinc-400 dark:text-zinc-500">soon</span>
-                </span>
-              ) : link.primary ? (
-                <BrandButton key={link.href} href={link.href}>
-                  {link.label}
-                </BrandButton>
-              ) : (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="group inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                >
-                  {link.label}
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                </Link>
-              ),
-            )}
-          </div>
+    <div className="grid grid-cols-1 gap-px border border-zinc-200 bg-zinc-200 sm:grid-cols-2 dark:border-zinc-800 dark:bg-zinc-800">
+      {PRIMARY.map((c) => (
+        <div key={c.slug} className="flex items-stretch bg-white dark:bg-zinc-950">
+          <Link
+            href={`/explorer/mainnet/${c.slug}`}
+            className="group flex min-w-0 flex-1 items-center gap-3.5 px-5 py-5 transition-colors hover:bg-zinc-50 md:px-6 dark:hover:bg-zinc-900"
+          >
+            <Image src={c.logo} alt="" width={32} height={32} unoptimized={isSvgSource(c.logo)} className="shrink-0 rounded-full object-contain" />
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
+              <span className="truncate text-[15px] font-semibold leading-none text-zinc-900 dark:text-zinc-50">{c.name}</span>
+              <span className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{c.role}</span>
+            </span>
+            <ArrowRight className="h-4 w-4 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:text-zinc-600 dark:group-hover:text-zinc-100" />
+          </Link>
+          <Link
+            href={`/explorer/fuji/${c.slug}`}
+            className="flex shrink-0 items-center border-l border-zinc-200 px-4 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:bg-zinc-50 hover:text-zinc-900 md:px-5 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          >
+            Fuji
+          </Link>
         </div>
-      </div>
-    </Board>
+      ))}
+    </div>
   );
 }
 
-/* The coordination layer: the chain the network itself runs on. */
-function PlatformChainBoard() {
-  return (
-    <ChainBoard
-      logo="https://images.ctfassets.net/gcj8jwzm6086/42aMwoCLblHOklt6Msi6tm/1e64aa637a8cead39b2db96fe3225c18/pchain-square.svg"
-      title="P-Chain"
-      links={[
-        { label: "Explore Mainnet", href: "/explorer/mainnet/p-chain", primary: true },
-        { label: "FUJI TESTNET", href: "/explorer/fuji/p-chain" },
-      ]}
-    />
-  );
-}
-
-/* The execution layer: the shared EVM where most building starts. */
-function ContractChainBoard() {
-  return (
-    <ChainBoard
-      logo="https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg"
-      title="C-Chain"
-      links={[
-        { label: "Explore Mainnet", href: "/explorer/mainnet/c-chain", primary: true },
-        { label: "FUJI TESTNET", href: "/explorer/fuji/c-chain" },
-      ]}
-    />
-  );
-}
-
-/* Doors into every EVM chain's own explorer — validated against the P-Chain:
+/* Doors into every EVM chain's own explorer, validated against the P-Chain:
    a chain earns a door only if its subnet has stake-backed validators right
    now, and the doors rank by validator count. If the feed fails, fall back
    to the unvalidated catalog rather than an empty grid. */
@@ -370,7 +331,7 @@ function ChainDoors() {
                   <span className="ml-1 hidden xl:inline">VALIDATORS</span>
                 </span>
               )}
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] dark:text-zinc-600" />
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:text-zinc-600 dark:group-hover:text-zinc-100" />
             </Link>
           ))}
       {/* the directory holds the long tail */}
@@ -381,21 +342,19 @@ function ChainDoors() {
         <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-zinc-500 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
           All chains
         </span>
-        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] dark:text-zinc-600" />
+        <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-900 dark:text-zinc-600 dark:group-hover:text-zinc-100" />
       </Link>
     </div>
   );
 }
 
-/* The network at a glance — the same figures the homepage ledger and
-   /stats/overview report, read from the same feed (/api/overview-stats,
-   60s repoll), so the portal can never disagree with the front door.
-   The stake headline follows the homepage recipe exactly: Primary Network
-   stake from validator-stats, spot price for USD, supply for the share. */
-
-// money is set to the cent, always — a ledger doesn't round its own entries
-const fmtUsd = (n: number) =>
-  `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/* The network at a glance: the same figures the homepage ledger and the
+   All Networks overview report, read from the same feed
+   (/api/overview-stats, 60s repoll), so the portal can never disagree
+   with the front door. The stake headline follows the homepage recipe:
+   Primary Network stake from validator-stats, spot price for USD, supply
+   for the share. Each figure carries its last 30 days as a spark and its
+   move against the 30 days before. */
 
 interface OverviewAggregate {
   totalTxCount: number;
@@ -404,32 +363,20 @@ interface OverviewAggregate {
   activeL1Count: number;
 }
 
-function TokenStack({ srcs }: { srcs: string[] }) {
-  return (
-    <span className="flex -space-x-1.5">
-      {srcs.map((src) => (
-        <img
-          key={src}
-          src={src}
-          alt=""
-          className="h-5 w-5 rounded-full bg-white object-contain p-px ring-2 ring-white dark:ring-zinc-950"
-          loading="lazy"
-        />
-      ))}
-    </span>
-  );
-}
+/* the portal's fixed window: it has no clock of its own */
+const DAYS = 30;
+
+type Llama = { value: number | null; history: DayPoint[] | null };
 
 function NetworkBoard() {
   const [agg, setAgg] = useState<OverviewAggregate | null>(null);
   const [stakeAvax, setStakeAvax] = useState<number | null>(null);
   const [avaxUsd, setAvaxUsd] = useState<number | null>(null);
   const [supply, setSupply] = useState<number | null>(null);
-  const [defi, setDefi] = useState<{
-    tvlUsd: number | null;
-    stablesUsd: number | null;
-    dexVolume30dUsd: number | null;
-  }>({ tvlUsd: null, stablesUsd: null, dexVolume30dUsd: null });
+  const [defi, setDefi] = useState<{ tvl: Llama; stables: Llama; dex: Llama } | null>(null);
+  const series = useNetworkSeries(DAYS);
+  const seats = useSeatHistory();
+  const stake = useStakeHistory();
 
   // the shared overview feed, repolled like the homepage board
   useEffect(() => {
@@ -442,7 +389,7 @@ function NetworkBoard() {
         const res = await fetch("/api/overview-stats?timeRange=month", { cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json();
-        // an all-zero aggregate means the upstream cache is warming — keep
+        // an all-zero aggregate means the upstream cache is warming: keep
         // dashes; a partial one still carries real figures (each cell gates
         // on its own value below)
         const a = data?.aggregated;
@@ -461,7 +408,7 @@ function NetworkBoard() {
 
   // stake headline: each source degrades independently (AVAX-only if the
   // price is missing, no share line if supply is), and each retries on the
-  // board's 60s clock until it lands — a tab opened during an API hiccup
+  // board's 60s clock until it lands: a tab opened during an API hiccup
   // heals itself instead of holding the dash until a reload
   useEffect(() => {
     let cancelled = false;
@@ -509,37 +456,50 @@ function NetworkBoard() {
     };
   }, []);
 
-  // on-chain capital — the homepage's exact llama.fi recipe, run client-side
+  // on-chain capital: the homepage's llama.fi recipe, run client-side,
+  // with each figure's daily history for its spark
   useEffect(() => {
     let cancelled = false;
+    const day = (t: number | string) => Math.floor(Number(t) / 86_400) * 86_400;
+    const get = (url: string) =>
+      fetch(url)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
     (async () => {
       const [tvl, stables, dex] = await Promise.all([
-        fetch("https://api.llama.fi/v2/chains")
-          .then((r) => (r.ok ? r.json() : null))
-          .then((rows) => rows?.find((c: { name: string; tvl?: number }) => c.name === "Avalanche")?.tvl ?? null)
-          .catch(() => null),
-        fetch("https://stablecoins.llama.fi/stablecoinchains")
-          .then((r) => (r.ok ? r.json() : null))
-          .then((rows) => {
-            // sum every peg (USD, EUR, JPY, SGD, ...) — values are USD-denominated
-            const pegs = rows?.find((c: { name: string }) => c.name === "Avalanche")?.totalCirculatingUSD;
-            if (!pegs) return null;
-            return Object.values(pegs).reduce(
-              (sum: number, v) => sum + (typeof v === "number" && Number.isFinite(v) ? v : 0),
-              0,
-            );
-          })
-          .catch(() => null),
-        fetch(
-          "https://api.llama.fi/overview/dexs/avalanche?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
-        )
-          .then((r) => (r.ok ? r.json() : null))
-          .then((d) => d?.total30d ?? null)
-          .catch(() => null),
+        get("https://api.llama.fi/v2/historicalChainTvl/Avalanche").then((rows: { date: number; tvl: number }[] | null) =>
+          Array.isArray(rows) ? rows.map((r) => ({ t: day(r.date), v: r.tvl })) : null,
+        ),
+        get("https://stablecoins.llama.fi/stablecoincharts/Avalanche").then(
+          (rows: { date: string; totalCirculatingUSD?: Record<string, number> }[] | null) =>
+            Array.isArray(rows)
+              ? rows.map((r) => ({
+                  t: day(r.date),
+                  // sum every peg (USD, EUR, JPY, SGD, ...); values are USD-denominated
+                  v: Object.values(r.totalCirculatingUSD ?? {}).reduce(
+                    (sum: number, v) => sum + (typeof v === "number" && Number.isFinite(v) ? v : 0),
+                    0,
+                  ),
+                }))
+              : null,
+        ),
+        get("https://api.llama.fi/overview/dexs/avalanche?excludeTotalDataChartBreakdown=true").then(
+          (d: { total30d?: number; totalDataChart?: [number, number][] } | null) => d,
+        ),
       ]);
       if (cancelled) return;
-      const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null);
-      setDefi({ tvlUsd: num(tvl), stablesUsd: num(stables), dexVolume30dUsd: num(dex) });
+      const pos = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : null);
+      // a level feed's figure is its latest day
+      const level = (h: DayPoint[] | null): Llama => ({ value: pos(h?.[h.length - 1]?.v), history: h });
+      setDefi({
+        tvl: level(tvl),
+        stables: level(stables),
+        dex: {
+          value: pos(dex?.total30d),
+          // complete days only: today's partial day would read as a collapse
+          history: Array.isArray(dex?.totalDataChart) ? complete(dex.totalDataChart.map(([t, v]) => ({ t: day(t), v }))) : null,
+        },
+      });
     })();
     return () => {
       cancelled = true;
@@ -548,113 +508,102 @@ function NetworkBoard() {
 
   const stakeUsd = stakeAvax !== null && avaxUsd !== null ? stakeAvax * avaxUsd : null;
   const stakedPct = stakeAvax !== null && supply !== null ? (stakeAvax / supply) * 100 : null;
+  // "—" once a feed has answered without the figure, "…" while it is out
+  const fig = (v: number | null | undefined, landed: boolean, fmt = fmtCompact) =>
+    typeof v === "number" && v > 0 ? fmt(v) : landed ? "—" : null;
+
+  const txWin = flowWindow(series?.txCount, DAYS);
+  const icmWin = flowWindow(series?.icmMessages, DAYS);
+  const seatWin = levelWindow(seats, DAYS);
+  const stakeWin = levelWindow(stake, DAYS);
+  const tvlWin = levelWindow(defi?.tvl.history, DAYS);
+  const stablesWin = levelWindow(defi?.stables.history, DAYS);
+  const dexWin = flowWindow(defi?.dex.history, DAYS);
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="divide-y divide-zinc-200 border border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
-        {/* the homepage ledger strip: same labels, same destinations */}
-        <div className="grid grid-cols-2 divide-x divide-zinc-200 lg:grid-cols-4 dark:divide-zinc-800">
-          <StatCell label="Transactions · 30d" live href="/stats/network-metrics">
-            {agg && agg.totalTxCount > 0 ? <StatFigure value={agg.totalTxCount} /> : <StatDash />}
-          </StatCell>
-          <StatCell label="Cross-chain msgs · 30d" live href="/explorer/mainnet/icm">
-            {agg && agg.totalICMMessages > 0 ? <StatFigure value={agg.totalICMMessages} /> : <StatDash />}
-          </StatCell>
-          <StatCell label="Active L1s" href="/explorer/mainnet/chains">
-            {agg && agg.activeL1Count > 0 ? <StatFigure value={agg.activeL1Count} /> : <StatDash />}
-          </StatCell>
-          <StatCell label="Validators" href="/explorer/mainnet/validators">
-            {agg && agg.totalValidators > 0 ? <StatFigure value={agg.totalValidators} /> : <StatDash />}
-          </StatCell>
-        </div>
-
-        {/* on-chain capital, as on the homepage board */}
-        <div className="grid grid-cols-1 divide-y divide-zinc-200 lg:grid-cols-3 lg:divide-x lg:divide-y-0 dark:divide-zinc-800">
+      <SectionHeader
+        label="Network · 30 days"
+        action={
           <Link
-            href="/explorer/mainnet/apps"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
+            href="/explorer/mainnet"
+            className="group inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
           >
-            <span className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                Stablecoins on-chain
-              </span>
-              <TokenStack srcs={["/logos/tokens/usdc.png", "/logos/tokens/usdt.png", "/logos/tokens/eurc.png", "/logos/tokens/jpyc.png", "/logos/tokens/xsgd.png"]} />
-            </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
-              {defi.stablesUsd !== null ? fmtUsd(defi.stablesUsd) : "—"}
-            </span>
+            All networks
+            <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
           </Link>
-          <Link
-            href="/explorer/mainnet/apps"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
-          >
-            <span className="flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                DeFi TVL
-              </span>
-              <TokenStack srcs={["/logos/tokens/aave.png", "/logos/tokens/benqi.png", "/logos/tokens/gmx.png"]} />
-            </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
-              {defi.tvlUsd !== null ? fmtUsd(defi.tvlUsd) : "—"}
-            </span>
-          </Link>
-          <Link
-            href="/explorer/mainnet/apps"
-            className="flex flex-col gap-1.5 px-5 py-6 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
-          >
-            <span className="flex items-center justify-between">
-              <span className="flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60 dark:bg-emerald-400" />
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400" />
-                </span>
-                DEX volume · 30d
-              </span>
-              <TokenStack srcs={["/logos/tokens/uniswap.png", "/logos/tokens/lfj.png", "/logos/tokens/pharaoh.png"]} />
-            </span>
-            <span className="font-mono text-2xl tabular-nums tracking-tight text-zinc-900 md:text-[1.75rem] dark:text-zinc-50">
-              {defi.dexVolume30dUsd !== null ? fmtUsd(defi.dexVolume30dUsd) : "—"}
-            </span>
-          </Link>
-        </div>
-
-        {/* the economic security headline, as on the homepage board */}
-        <Link
-          href="/explorer/mainnet/validators"
-          className="flex flex-col justify-center gap-3 px-5 py-8 transition-colors hover:bg-zinc-100 md:px-6 dark:hover:bg-zinc-900"
-        >
-          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-            Stake securing the network
-          </span>
-          <span className="font-mono text-3xl tabular-nums tracking-tight text-zinc-900 sm:text-4xl md:text-5xl dark:text-zinc-50">
-            {stakeUsd !== null
-              ? fmtUsd(stakeUsd)
-              : stakeAvax !== null
-                ? `${stakeAvax.toLocaleString("en-US")} AVAX`
-                : "—"}
-          </span>
-          {stakeUsd !== null && stakeAvax !== null && (
-            <span className="font-mono text-xs tracking-[0.16em] text-zinc-600 dark:text-zinc-300">
-              {stakeAvax.toLocaleString("en-US")} AVAX
-              {stakedPct !== null && ` · ${stakedPct.toFixed(1)}% OF CIRCULATING SUPPLY`}
-            </span>
-          )}
-        </Link>
-
-        {/* board footer: the full instrument lives at /stats */}
-        <Link
-          href="/explorer/mainnet"
-          className="group relative flex items-center justify-between overflow-hidden bg-[#E6212F] px-5 py-4 md:px-6"
-        >
-          <span
-            aria-hidden
-            className="absolute inset-0 origin-left scale-x-0 bg-[#EBF0FA] transition-transform duration-300 ease-out group-hover:scale-x-100"
+        }
+      />
+      <div className="flex flex-col gap-5">
+        <ReadoutRow>
+          <Readout
+            label="Transactions"
+            live
+            href="/stats/network-metrics"
+            value={fig(agg?.totalTxCount, agg !== null)}
+            delta={txWin.delta}
+            spark={txWin.spark}
           />
-          <span className="relative z-10 text-sm font-medium text-white transition-colors duration-300 group-hover:text-[#1F1F1F]">
-            Explore all network stats
-          </span>
-          <ArrowRight className="relative z-10 h-4 w-4 text-white transition-colors duration-300 group-hover:text-[#E6212F]" />
-        </Link>
+          <Readout
+            label="ICM Messages"
+            live
+            href="/explorer/mainnet/icm"
+            value={fig(agg?.totalICMMessages, agg !== null)}
+            delta={icmWin.delta}
+            spark={icmWin.spark}
+          />
+          <Readout
+            label="Validators"
+            href="/explorer/mainnet/validators"
+            value={fig(agg?.totalValidators, agg !== null, (v) => v.toLocaleString("en-US"))}
+            sub="Primary and L1 seats"
+            delta={seatWin.delta}
+            spark={seatWin.spark}
+          />
+          <Readout
+            label="Active L1s"
+            href="/explorer/mainnet/chains"
+            value={fig(agg?.activeL1Count, agg !== null, String)}
+            sub="per the P-Chain"
+          />
+        </ReadoutRow>
+        <ReadoutRow>
+          <Readout
+            label="Staked"
+            href="/explorer/mainnet/validators"
+            value={stakeUsd !== null ? fmtUsdCompact(stakeUsd) : stakeAvax !== null ? fmtCompact(stakeAvax) : null}
+            unit={stakeUsd === null && stakeAvax !== null ? "AVAX" : undefined}
+            sub={
+              stakeUsd !== null && stakeAvax !== null
+                ? `${fmtCompact(stakeAvax)} AVAX${stakedPct !== null ? ` · ${stakedPct.toFixed(1)}%` : ""}`
+                : undefined
+            }
+            delta={stakeWin.delta}
+            spark={stakeWin.spark}
+          />
+          <Readout
+            label="Stablecoins"
+            href="/explorer/mainnet/stablecoins"
+            value={fig(defi?.stables.value, defi !== null, fmtUsdCompact)}
+            delta={stablesWin.delta}
+            spark={stablesWin.spark}
+          />
+          <Readout
+            label="DeFi TVL"
+            href="/explorer/mainnet/apps"
+            value={fig(defi?.tvl.value, defi !== null, fmtUsdCompact)}
+            delta={tvlWin.delta}
+            spark={tvlWin.spark}
+          />
+          <Readout
+            label="DEX Volume"
+            live
+            href="/explorer/mainnet/apps"
+            value={fig(defi?.dex.value, defi !== null, fmtUsdCompact)}
+            delta={dexWin.delta}
+            spark={dexWin.spark}
+          />
+        </ReadoutRow>
       </div>
     </section>
   );
@@ -663,44 +612,28 @@ function NetworkBoard() {
 export default function ExplorerPortal() {
   return (
     <main className="relative min-h-screen overflow-x-clip bg-white dark:bg-zinc-950">
-      {/* the drafting-sheet triangle lattice, snowfall only — as on /solutions */}
+      {/* the drafting-sheet triangle lattice, snowfall only, as on /solutions */}
       <SheetBackdrop snowOnly />
-      <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-24 pt-14 md:px-6">
-        {/* top-to-bottom load sequence, as on the homepage and /solutions */}
-        <header className="flex flex-col gap-9 pb-16 md:gap-10 md:pb-20">
-          <Rise delay={0.05}>
-            <h1 className="v2-display mt-4 text-center text-[clamp(1.85rem,4.5vw,3.25rem)] leading-[0.95] text-zinc-900 dark:text-zinc-50">
-              Every chain, observed<span className="text-[#E6212F]">.</span>
-            </h1>
-          </Rise>
-          <Rise delay={0.12} className="mx-auto w-full max-w-5xl">
-            <UniversalSearch />
-          </Rise>
-        </header>
-
-        {/* the Primary Network's two chains, with the network itself
-            turning beside them */}
-        <Rise delay={0.18}>
-          <section className="grid grid-cols-1 gap-4 pb-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-10">
-            <div className="flex flex-col gap-4">
-              <ContractChainBoard />
-              <PlatformChainBoard />
-            </div>
-            <NetworkGlobe
-              extended
-              className="pointer-events-none hidden items-center justify-center lg:flex"
-              sizeClassName="h-60 w-auto xl:h-72"
-            />
-          </section>
+      <div className="relative mx-auto w-full max-w-[90rem] px-5 pb-24 pt-10 md:px-6">
+        {/* the C-Chain home's order: the search leads, the figures follow,
+            then the chains. No title: the search says what the page is */}
+        <Rise delay={0.05} className="pb-10">
+          <UniversalSearch />
         </Rise>
 
-        {/* the same numbers the homepage and /stats/overview report */}
-        <Rise delay={0.26}>
+        <Rise delay={0.12}>
           <NetworkBoard />
         </Rise>
 
-        <Rise delay={0.32}>
-          <section className="mt-14 flex flex-col gap-4">
+        <Rise delay={0.2}>
+          <section className="mt-12 flex flex-col gap-4">
+            <SectionHeader label="Primary Network" />
+            <PrimaryDoors />
+          </section>
+        </Rise>
+
+        <Rise delay={0.26}>
+          <section className="mt-12 flex flex-col gap-4">
             <SectionHeader label="L1 Explorers" />
             <ChainDoors />
           </section>

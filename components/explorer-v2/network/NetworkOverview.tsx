@@ -4,90 +4,39 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDiagram";
-import {
-  Board,
-  SectionHeader,
-  StatCell,
-  StatDash,
-  StatFigure,
-} from "@/components/explorer-v2/ui";
+import { Board, SectionHeader } from "@/components/explorer-v2/ui";
+import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { NetworkBlockTape, type TapeFeedChain } from "@/components/explorer-v2/network/NetworkBlockTape";
-import { useExplorerTimeRange, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
+import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
+import { OverviewChains, type OverviewChain } from "./overview-chains";
+import { OverviewApps } from "./overview-apps";
+import {
+  SPARK_MIN_DAYS,
+  flowWindow,
+  fmtCompact,
+  levelWindow,
+  useBurnHistory,
+  useNetworkSeries,
+  usePriceHistory,
+  useSeatHistory,
+  useStakeHistory,
+} from "./overview-series";
 
-/* The All Networks overview — the explorer's widest lens. One ledger strip
-   of ecosystem aggregates, the chains ranked by live activity, and the two
-   network-level instruments (staking, the token) as teaser boards that
-   link into their own facets. The page-level time range comes from the
-   explorer's shared clock — picked in the subnav, not on this sheet. */
+/* The All Networks overview, in the C-Chain home's grammar: the pulse as
+   a row of readouts, the live tape merged across chains, the window's
+   figures with their moves, the network map, then the chains and apps as
+   ranked lists the strips above them can cut. The page-level time range
+   comes from the explorer's shared clock, picked in the subnav. */
 
-interface ChainRow {
-  chainId: string;
-  chainName: string;
-  chainLogoURI: string;
-  txCount: number | null;
+interface ChainRow extends OverviewChain {
   tps: number | null;
-  activeAddresses: number | null;
-  icmMessages: number | null;
-  validatorCount: number | string;
-  metricsOk?: boolean;
-}
-
-/* A figure we do not have is never 0. "Not indexed" says the source tracks
-   nothing for this chain; the dash is for when we could not ask, which is a
-   different claim and must not be dressed up as the first. */
-function fmtMetric(v: number | null | undefined, metricsOk?: boolean) {
-  if (typeof v === "number") return compact.format(v);
-  return metricsOk === false ? "—" : "Not indexed";
 }
 
 const metricDesc = (a: number | null, b: number | null) => (b ?? -1) - (a ?? -1);
-
-const validatorDesc = (a: number | string, b: number | string) =>
-  (typeof b === "number" ? b : -1) - (typeof a === "number" ? a : -1);
-
-function aggFigure(value: number, contributors: number | undefined) {
-  if (contributors === 0) return <StatDash />;
-  return <StatFigure value={value} />;
-}
-
-/* compact dollar figures: $2.8B, $78.4M */
-function fmtUsd(v: number | null | undefined): string {
-  return typeof v === "number" && v > 0 ? `$${compact.format(v)}` : "—";
-}
-
-interface AppRow {
-  slug: string;
-  name: string;
-  logo: string | null;
-  tvl: number | null;
-  change_1d: number | null;
-}
-
-/* the ecosystem's biggest apps by TVL — the same DefiLlama feed the Apps
-   facet runs on, sliced to a leaderboard */
-function useTopApps(limit: number) {
-  const [apps, setApps] = useState<AppRow[] | null>(null);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch("/api/dapps", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: { dapps?: AppRow[] }) => {
-        const top = (d.dapps ?? [])
-          .filter((a) => typeof a.tvl === "number" && a.tvl > 0)
-          .sort((a, b) => (b.tvl ?? 0) - (a.tvl ?? 0))
-          .slice(0, limit);
-        setApps(top);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [limit]);
-  return apps;
-}
 
 interface OverviewData {
   chains: ChainRow[];
@@ -125,7 +74,7 @@ function overviewWindowLabel(range: ExplorerRange): string {
 
 function useOverviewStats(timeRange: ExplorerRange) {
   const [data, setData] = useState<OverviewData | null>(null);
-  // when the figures landed — the anchor the live tx counter counts from
+  // when the figures landed: the anchor the live tx counter counts from
   const [fetchedAt, setFetchedAt] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
@@ -146,7 +95,7 @@ function useOverviewStats(timeRange: ExplorerRange) {
   return { data, fetchedAt, refreshing };
 }
 
-/* the cosmos map — a 1.6k-line canvas, so it only loads on the client
+/* the cosmos map: a 1.6k-line canvas, so it only loads on the client
    and never blocks the splash's first paint */
 const NetworkDiagram = dynamic(() => import("@/components/stats/NetworkDiagram"), {
   ssr: false,
@@ -192,28 +141,15 @@ function useAvaxSupply() {
   return data;
 }
 
-/* compact figures for table cells and AVAX quantities: 1.24M, 254.9M */
-const compact = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
-function fmtAvax(v: string | undefined): string | null {
-  const n = v ? parseFloat(v) : NaN;
-  return Number.isFinite(n) && n > 0 ? `${compact.format(n)} AVAX` : null;
-}
-
 /* catalog lookups so activity rows link into each chain's own explorer */
 const catalogByChainId = new Map(
   (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c]),
 );
-function chainHref(chainId: string): string | null {
-  const c = catalogByChainId.get(String(chainId));
-  if (!c) return null;
-  return c.rpcUrl ? `/explorer/mainnet/${c.slug}` : `/explorer/mainnet/${c.slug}/accounts`;
-}
-
 function BoardLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="group inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+      className="group inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
     >
       {children}
       <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
@@ -221,68 +157,32 @@ function BoardLink({ href, children }: { href: string; children: React.ReactNode
   );
 }
 
-/* a facet door in the homepage pillar panels' color scheme: brand-dark
-   #1F1F1F board, EBF0FA lead over the #E6212F punch, steel spec rows,
-   red arrow chip. The figure IS the headline. */
-function DoorPanel({
-  href,
-  lead,
-  punch,
-  specs,
-}: {
-  href: string;
-  lead: string | null;
-  punch: string;
-  specs: { label: string; value: string | null }[];
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex flex-1 flex-col justify-between gap-10 bg-[#1F1F1F] p-6 transition-colors hover:bg-[#262626] md:p-8"
-    >
-      <div className="flex items-start justify-between gap-6">
-        <h3 className="v2-display text-3xl leading-[1.02] md:text-4xl">
-          {lead ? (
-            <span className="block text-[#EBF0FA]">{lead}</span>
-          ) : (
-            <span className="block h-8 w-48 animate-pulse bg-white/10 md:h-9" />
-          )}
-          <span className="block text-[#E6212F]">{punch}</span>
-        </h3>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E6212F] transition-transform group-hover:translate-x-0.5">
-          <ArrowRight className="h-4 w-4 text-white" />
-        </span>
-      </div>
-      <dl className="divide-y divide-white/10 border-t border-white/10">
-        {specs.map((s) => (
-          <div key={s.label} className="flex items-baseline justify-between gap-4 py-2.5">
-            <dt className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-[#A2AFB2]">
-              {s.label}
-            </dt>
-            <dd className="font-mono text-sm tabular-nums text-[#EBF0FA]">{s.value ?? "—"}</dd>
-          </div>
-        ))}
-      </dl>
-    </Link>
-  );
-}
-
-const TH = "px-5 py-3 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500 md:px-6";
-const TD = "px-5 py-3 text-[13px] leading-5 tabular-nums md:px-6";
+const num = (v: string | undefined) => {
+  const n = v ? parseFloat(v) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
 
 export function NetworkOverview() {
   // the shared clock: registers this page as a consumer, so the subnav
   // surfaces its range control and every reading below tracks the one pick
   const range = useExplorerTimeRange();
-  const { data, fetchedAt, refreshing } = useOverviewStats(overviewWindow(range));
+  const clamped = overviewWindow(range);
+  const days = RANGE_DAYS[clamped];
+  const { data, fetchedAt, refreshing } = useOverviewStats(clamped);
   const supply = useAvaxSupply();
+
+  // the figures' pasts: sparks and moves against the previous window
+  const series = useNetworkSeries(days);
+  const prices = usePriceHistory(days);
+  const seats = useSeatHistory();
+  const stake = useStakeHistory();
+  const burn = useBurnHistory();
 
   const agg = data?.aggregated;
 
   /* the tx counter runs forward from its fetch anchor at the window's own
-     rate — the count IS rising at ~tps/s, the API just snapshots it. A 2s
-     tick re-renders; StatFigure tweens each step, so it reads as a
-     continuous count-up. */
+     rate: the count IS rising at ~tps/s, the API just snapshots it. A 2s
+     tick re-renders so the figure keeps counting. */
   const [, tick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => tick((t) => t + 1), 2_000);
@@ -293,15 +193,9 @@ export function NetworkOverview() {
       ? Math.round(agg.totalTxCount + (agg.totalTps * (Date.now() - fetchedAt)) / 1000)
       : null;
 
-  /* real throughput measured off the block tape's stream — moves as the
-     network does, instead of a 24h average sitting still */
+  /* real throughput measured off the block tape's stream: moves as the
+     network does, instead of a window average sitting still */
   const [liveTps, setLiveTps] = useState<number | null>(null);
-
-  const topApps = useTopApps(10);
-  const rows = useMemo(
-    () => (data?.chains ?? []).slice().sort((a, b) => validatorDesc(a.validatorCount, b.validatorCount)).slice(0, 10),
-    [data],
-  );
 
   const { flows, failedChainIds } = useIcmFlowRoutes();
 
@@ -357,135 +251,143 @@ export function NetworkOverview() {
       .sort((a, b) => b.validatorCount - a.validatorCount);
   }, [data]);
 
-  const stakingRatio = useMemo(() => {
-    const staked = parseFloat(supply?.totalStaked ?? "");
-    const circ = parseFloat(supply?.circulatingSupply ?? "");
-    return Number.isFinite(staked) && Number.isFinite(circ) && circ > 0
-      ? `${((staked / circ) * 100).toFixed(1)}%`
-      : null;
-  }, [supply]);
+  const staked = num(supply?.totalStaked);
+  const circulating = num(supply?.circulatingSupply);
+  const burned = supply
+    ? (num(supply.totalCBurned) ?? 0) + (num(supply.totalPBurned) ?? 0) + (num(supply.totalXBurned) ?? 0) || null
+    : null;
 
-  const feesBurned = useMemo(() => {
-    if (!supply) return null;
-    const total =
-      parseFloat(supply.totalCBurned || "0") +
-      parseFloat(supply.totalPBurned || "0") +
-      parseFloat(supply.totalXBurned || "0");
-    return Number.isFinite(total) && total > 0 ? total : null;
-  }, [supply]);
+  const txWin = flowWindow(series?.txCount, days);
+  const addrWin = flowWindow(series?.activeAddresses, days);
+  const icmWin = flowWindow(series?.icmMessages, days);
+  const seatWin = levelWindow(seats, days);
+  const stakeWin = levelWindow(stake, days);
+  const burnWin = levelWindow(burn, days);
+  // throughput by day: each day's transactions over its seconds
+  const tpsSpark = series && days >= SPARK_MIN_DAYS ? series.txCount.slice(-days).map((p) => p.v / 86_400) : undefined;
+  const priceSpark = prices ? prices.slice(-Math.max(days, SPARK_MIN_DAYS)) : undefined;
+  const priceMove =
+    days <= 1
+      ? supply && Number.isFinite(supply.priceChange24h) ? supply.priceChange24h : null
+      : supply?.price && priceSpark && priceSpark[0] > 0 ? (supply.price / priceSpark[0] - 1) * 100 : null;
 
-  const priceAside = supply?.price ? (
-    <div className="flex flex-col items-end gap-1">
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-        AVAX
-      </span>
-      <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl dark:text-zinc-50">
-        ${supply.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-        {Number.isFinite(supply.priceChange24h) && (
-          <span
-            className={cn(
-              "ml-2 text-sm",
-              supply.priceChange24h >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#E6212F]",
-            )}
-          >
-            {supply.priceChange24h >= 0 ? "+" : ""}
-            {supply.priceChange24h.toFixed(2)}%
-          </span>
-        )}
-      </span>
-    </div>
-  ) : undefined;
+  // coverage, stated once above the figures it limits
+  const coverage =
+    data?.coverage && data.coverage.indexed < data.coverage.total
+      ? `activity from ${data.coverage.indexed} of ${data.coverage.total} chains`
+      : undefined;
+  const aggValue = (v: number | undefined, contributors: number | undefined) =>
+    agg === undefined || v === undefined ? null : contributors === 0 ? "—" : fmtCompact(v);
+  const tps = liveTps ?? (agg && agg.contributors?.txCount !== 0 ? agg.totalTps : null);
 
   return (
-    <NetworkShell
-      eyebrow="Avalanche Ecosystem · Mainnet"
-      title="All Networks"
-      intro="Every Avalanche chain on one sheet: live activity, interchain traffic, validators, and the token that secures it all."
-      aside={priceAside}
-    >
-      <div className="flex flex-col gap-10">
-        {/* the live tape — the same instrument every chain page runs, here
+    <NetworkShell>
+      <div className="flex flex-col gap-12">
+        {/* the pulse: what is true this second */}
+        <ReadoutRow>
+          <Readout
+            label="Throughput"
+            live
+            value={tps !== null ? (tps >= 100 ? Math.round(tps).toLocaleString("en-US") : tps.toFixed(1)) : agg ? "—" : null}
+            unit="TPS"
+            // live against the window: a quiet minute next to a busy month reads as normal
+            sub={
+              liveTps !== null && tpsSpark?.length
+                ? `now · ${(tpsSpark.reduce((a, v) => a + v, 0) / tpsSpark.length).toFixed(1)} avg over ${tpsSpark.length}d`
+                : agg
+                  ? "window average"
+                  : undefined
+            }
+            spark={tpsSpark}
+          />
+          <Readout
+            label="AVAX Price"
+            live
+            href="/explorer/mainnet/token"
+            value={supply ? (supply.price ? `$${supply.price.toFixed(2)}` : "—") : null}
+            delta={priceMove}
+            spark={priceSpark}
+          />
+          <Readout
+            label="Staked"
+            href="/explorer/mainnet/validators"
+            value={supply ? (staked ? fmtCompact(staked) : "—") : null}
+            unit="AVAX"
+            sub={staked && circulating ? `${((staked / circulating) * 100).toFixed(1)}% of supply` : undefined}
+            delta={stakeWin.delta}
+            spark={stakeWin.spark}
+          />
+          <Readout
+            label="Burned"
+            href="/explorer/mainnet/token"
+            value={supply ? (burned ? fmtCompact(burned) : "—") : null}
+            unit="AVAX"
+            sub="all chains, to date"
+            delta={burnWin.delta}
+            spark={burnWin.spark}
+          />
+        </ReadoutRow>
+
+        {/* the live tape: the same instrument every chain page runs, here
             merged across the busiest chains, each block wearing the logo of
             the chain that sealed it */}
         <NetworkBlockTape chains={tapeChains} onTps={setLiveTps} />
 
-        {/* the ecosystem's ledger strip */}
+        {/* the window's figures, each with its move against the window before */}
         <section className="flex flex-col gap-4">
-          <SectionHeader label={`Network pulse · ${overviewWindowLabel(range)}`} />
-          {data?.coverage && data.coverage.indexed < data.coverage.total && (
-            <p className="-mt-2 text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Transaction and address figures cover the{" "}
-              <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                {data.coverage.indexed} of {data.coverage.total} chains we index
+          <SectionHeader
+            label="Network Stats"
+            action={
+              <span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                {overviewWindowLabel(range)}
+                {coverage && <span className="hidden font-normal tracking-[0.08em] sm:inline"> · {coverage}</span>}
               </span>
-              , so they understate the ecosystem. Chain and validator counts are from the P-Chain and
-              cover every L1.
-            </p>
-          )}
-          <Board
-            divide={false}
-            className={cn("overflow-hidden transition-opacity", refreshing && data && "opacity-60")}
-          >
-            {/* -ml/-mt swallow the leading hairlines so every cell can carry
-                border-l/border-t and the grid stays clean at any column count */}
-            <div className="-ml-px -mt-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 [&>div]:border-l [&>div]:border-t [&>div]:border-zinc-200 dark:[&>div]:border-zinc-800">
-              <div>
-                <StatCell label="Transactions" live>
-                  {liveTxCount !== null ? (
-                    aggFigure(liveTxCount, agg?.contributors?.txCount)
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-              </div>
-              <div>
-                <StatCell label={liveTps !== null ? "TPS" : "Avg TPS"} live={liveTps !== null}>
-                  {liveTps !== null || (agg && agg.contributors?.txCount !== 0) ? (
-                    <span className="font-mono text-xl tabular-nums tracking-tight text-zinc-900 sm:text-2xl md:text-[1.75rem] dark:text-zinc-50">
-                      {(() => {
-                        const tps = liveTps ?? agg!.totalTps;
-                        return tps >= 100 ? Math.round(tps).toLocaleString("en-US") : tps.toFixed(1);
-                      })()}
-                    </span>
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-              </div>
-              <div>
-                <StatCell label="Active addresses">
-                  {agg ? (
-                    aggFigure(agg.totalActiveAddresses, agg.contributors?.activeAddresses)
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-              </div>
-              <div>
-                <StatCell label="ICM messages" href="/explorer/mainnet/icm">
-                  {agg ? (
-                    aggFigure(agg.totalICMMessages, agg.contributors?.icmMessages)
-                  ) : (
-                    <StatDash />
-                  )}
-                </StatCell>
-              </div>
-              <div>
-                <StatCell label="Validators" href="/explorer/mainnet/validators">
-                  {agg ? <StatFigure value={agg.totalValidators} /> : <StatDash />}
-                </StatCell>
-              </div>
-              <div>
-                <StatCell label="Active L1s" href="/explorer/mainnet/chains">
-                  {agg ? <StatFigure value={agg.activeL1Count} /> : <StatDash />}
-                </StatCell>
-              </div>
-            </div>
-          </Board>
+            }
+          />
+          <div className={refreshing && data ? "opacity-60 transition-opacity" : "transition-opacity"}>
+            <ReadoutRow cols={5}>
+              <Readout
+                label="Transactions"
+                live
+                href="/stats/network-metrics"
+                value={liveTxCount !== null ? aggValue(liveTxCount, agg?.contributors?.txCount) : null}
+                delta={txWin.delta}
+                spark={txWin.spark}
+              />
+              <Readout
+                label="Active Addresses"
+                href="/stats/network-metrics"
+                value={aggValue(agg?.totalActiveAddresses, agg?.contributors?.activeAddresses)}
+                delta={addrWin.delta}
+                spark={addrWin.spark}
+              />
+              <Readout
+                label="ICM Messages"
+                href="/explorer/mainnet/icm"
+                value={aggValue(agg?.totalICMMessages, agg?.contributors?.icmMessages)}
+                delta={icmWin.delta}
+                spark={icmWin.spark}
+              />
+              <Readout
+                label="Validators"
+                href="/explorer/mainnet/validators"
+                value={agg ? agg.totalValidators.toLocaleString("en-US") : null}
+                sub="Primary and L1 seats"
+                delta={seatWin.delta}
+                spark={seatWin.spark}
+              />
+              <Readout
+                label="Active L1s"
+                href="/explorer/mainnet/chains"
+                value={agg ? String(agg.activeL1Count) : null}
+                sub="per the P-Chain"
+              />
+            </ReadoutRow>
+          </div>
         </section>
 
         {/* the network as a cosmos: every validator set a body, ICM traffic
-            as arcs between them — the one dark surface on the sheet */}
+            as arcs between them. The one dark surface on the sheet */}
         <section className="flex flex-col gap-4">
           <SectionHeader
             label="Network map"
@@ -502,203 +404,10 @@ export function NetworkOverview() {
           </Board>
         </section>
 
-        {/* the chains, ranked by who's actually being used — with the
-            ecosystem's biggest apps standing beside them */}
-        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
-        <section className="flex min-w-0 flex-col gap-4">
-          <SectionHeader
-            label={`Top chains · ${overviewWindowLabel(range)}`}
-            action={<BoardLink href="/explorer/mainnet/chains">All chains</BoardLink>}
-          />
-          <Board divide={false} className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
-                  <th className={TH}>Chain</th>
-                  <th className={cn(TH, "text-right")}>Active addresses</th>
-                  <th className={cn(TH, "text-right")}>Transactions</th>
-                  <th className={cn(TH, "text-right")}>Validators</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                {rows.length === 0 &&
-                  Array.from({ length: 8 }, (_, i) => (
-                    <tr key={i}>
-                      <td className={TD} colSpan={4}>
-                        <span className="block h-4 w-2/5 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                      </td>
-                    </tr>
-                  ))}
-                {rows.map((c) => {
-                  const href = chainHref(c.chainId);
-                  const name = (
-                    <span className="flex items-center gap-2.5">
-                      {c.chainLogoURI ? (
-                        <img src={c.chainLogoURI} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
-                      ) : (
-                        <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
-                      )}
-                      <span
-                        className={cn(
-                          "truncate text-[13px] font-medium",
-                          href
-                            ? "text-[#0061E2] group-hover:underline dark:text-[#5f9dff]"
-                            : "text-zinc-900 dark:text-zinc-100",
-                        )}
-                      >
-                        {c.chainName}
-                      </span>
-                    </span>
-                  );
-                  return (
-                    <tr
-                      key={c.chainId}
-                      className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                    >
-                      <td className={cn(TD, "max-w-64")}>
-                        {href ? (
-                          <Link href={href} className="group block">
-                            {name}
-                          </Link>
-                        ) : (
-                          name
-                        )}
-                      </td>
-                      <td
-                        className={cn(
-                          TD,
-                          "text-right font-mono",
-                          typeof c.activeAddresses === "number"
-                            ? "text-zinc-900 dark:text-zinc-100"
-                            : "text-[11px] tracking-wide text-zinc-400 dark:text-zinc-500",
-                        )}
-                      >
-                        {fmtMetric(c.activeAddresses, c.metricsOk)}
-                      </td>
-                      <td
-                        className={cn(
-                          TD,
-                          "text-right font-mono",
-                          typeof c.txCount === "number"
-                            ? "text-zinc-700 dark:text-zinc-300"
-                            : "text-[11px] tracking-wide text-zinc-400 dark:text-zinc-500",
-                        )}
-                      >
-                        {fmtMetric(c.txCount, c.metricsOk)}
-                      </td>
-                      <td className={cn(TD, "text-right font-mono text-zinc-700 dark:text-zinc-300")}>
-                        {typeof c.validatorCount === "number" ? c.validatorCount.toLocaleString("en-US") : c.validatorCount}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </Board>
-        </section>
-
-        {/* the app leaderboard: DefiLlama TVL, same feed as the Apps facet */}
-        <section className="flex min-w-0 flex-col gap-4">
-          <SectionHeader
-            label="Top apps · TVL"
-            action={<BoardLink href="/explorer/mainnet/apps">Apps</BoardLink>}
-          />
-          <Board divide={false}>
-            <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              {/* header strip matching the table's thead metrics, so the two
-                  boards' hairlines register row for row */}
-              <div className="flex items-center gap-3 px-5 py-3">
-                <span className="min-w-0 flex-1 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                  App
-                </span>
-                <span className="w-12 text-right font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                  24h
-                </span>
-                <span className="w-16 text-right font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
-                  TVL
-                </span>
-              </div>
-              {topApps === null &&
-                Array.from({ length: 12 }, (_, i) => (
-                  <div key={i} className="flex items-center px-5 py-3">
-                    <span className="block h-5 w-3/4 animate-pulse bg-zinc-100 dark:bg-zinc-900" />
-                  </div>
-                ))}
-              {topApps?.map((a, i) => (
-                <Link
-                  key={a.slug}
-                  href={`/stats/dapps/${a.slug}`}
-                  className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
-                >
-                  <span className="w-5 shrink-0 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  {a.logo ? (
-                    <img src={a.logo} alt="" className="h-5 w-5 shrink-0 rounded-full object-contain" />
-                  ) : (
-                    <span className="h-5 w-5 shrink-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
-                  )}
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 text-[#0061E2] group-hover:underline dark:text-[#5f9dff]">
-                    {a.name}
-                  </span>
-                  <span
-                    className={cn(
-                      "w-12 shrink-0 text-right font-mono text-[11px] tabular-nums",
-                      typeof a.change_1d !== "number"
-                        ? "text-zinc-400 dark:text-zinc-600"
-                        : a.change_1d >= 0
-                          ? "text-emerald-600 dark:text-emerald-400"
-                          : "text-[#E6212F]",
-                    )}
-                  >
-                    {typeof a.change_1d === "number"
-                      ? `${a.change_1d >= 0 ? "+" : ""}${a.change_1d.toFixed(1)}%`
-                      : "—"}
-                  </span>
-                  <span className="w-16 shrink-0 text-right font-mono text-[12px] tabular-nums text-zinc-700 dark:text-zinc-300">
-                    {fmtUsd(a.tvl)}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          </Board>
-        </section>
-        </div>
-
-        {/* the two network-level instruments as doors into their facets —
-            brand-dark panels in the homepage pillars' grammar: steel
-            eyebrow, EBF0FA lead with the red punch, red arrow chip */}
-        <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 lg:grid-cols-2">
-          <section className="flex flex-col">
-            <DoorPanel
-              href="/explorer/mainnet/validators"
-              lead={fmtAvax(supply?.totalStaked)}
-              punch="at stake."
-              specs={[
-                {
-                  label: "Validators",
-                  value: agg ? agg.totalValidators.toLocaleString("en-US") : null,
-                },
-                { label: "Staked · of circulating", value: stakingRatio },
-              ]}
-            />
-          </section>
-          <section className="flex flex-col">
-            <DoorPanel
-              href="/explorer/mainnet/token"
-              lead={feesBurned ? `${compact.format(feesBurned)} AVAX` : null}
-              punch="burned forever."
-              specs={[
-                { label: "Circulating supply", value: fmtAvax(supply?.circulatingSupply) },
-                {
-                  label: "Price",
-                  value: supply?.price
-                    ? `$${supply.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : null,
-                },
-              ]}
-            />
-          </section>
+        {/* the chains and the apps, each a ranked list its strip can cut */}
+        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-12 lg:grid-cols-2">
+          <OverviewChains chains={data?.chains ?? null} windowLabel={overviewWindowLabel(range)} />
+          <OverviewApps />
         </div>
       </div>
     </NetworkShell>
