@@ -76,7 +76,7 @@ export const menuSections: NavSection[] = [
   },
   {
     title: 'Ecosystem',
-    href: '/events',
+    href: '/ecosystem',
     items: [
       { text: 'Hackathons & Events', href: '/events' },
       { text: 'Avalanche Summit', href: 'https://www.avalanchesummit.com', external: true },
