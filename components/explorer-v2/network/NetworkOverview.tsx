@@ -8,12 +8,12 @@ import type { ChainCosmosData, ICMFlowRoute } from "@/components/stats/NetworkDi
 import { Board, SectionHeader } from "@/components/explorer-v2/ui";
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
-import { NetworkBlockTape, type TapeFeedChain } from "@/components/explorer-v2/network/NetworkBlockTape";
 import { useExplorerTimeRange, RANGE_DAYS, RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { OverviewChains, type OverviewChain } from "./overview-chains";
 import { OverviewApps } from "./overview-apps";
+import { OverviewLiveBoards, type LiveChain } from "./overview-live";
 import {
   SPARK_MIN_DAYS,
   flowWindow,
@@ -27,9 +27,9 @@ import {
 } from "./overview-series";
 
 /* The All Networks overview, in the C-Chain home's grammar: the pulse as
-   a row of readouts, the live tape merged across chains, the window's
-   figures with their moves, the network map, then the chains and apps as
-   ranked lists the strips above them can cut. The page-level time range
+   a row of readouts, the latest blocks and transactions merged across
+   chains, the window's figures with their moves, the network map, then
+   the chains and apps as ranked lists the strips above them can cut. The page-level time range
    comes from the explorer's shared clock, picked in the subnav. */
 
 interface ChainRow extends OverviewChain {
@@ -193,17 +193,17 @@ export function NetworkOverview() {
       ? Math.round(agg.totalTxCount + (agg.totalTps * (Date.now() - fetchedAt)) / 1000)
       : null;
 
-  /* real throughput measured off the block tape's stream: moves as the
+  /* real throughput measured off the live block feed: moves as the
      network does, instead of a window average sitting still */
   const [liveTps, setLiveTps] = useState<number | null>(null);
 
   const { flows, failedChainIds } = useIcmFlowRoutes();
 
-  /* the tape's roster: the busiest RPC-backed chains, latched to the first
-     load so flipping the range doesn't reset a live feed */
-  const tapeChainsRef = useRef<TapeFeedChain[]>([]);
-  const tapeChains = useMemo<TapeFeedChain[]>(() => {
-    if (tapeChainsRef.current.length > 0) return tapeChainsRef.current;
+  /* the live boards' roster: the busiest RPC-backed chains, latched to the
+     first load so flipping the range doesn't reset a live feed */
+  const liveChainsRef = useRef<LiveChain[]>([]);
+  const liveChains = useMemo<LiveChain[]>(() => {
+    if (liveChainsRef.current.length > 0) return liveChainsRef.current;
     const roster = (data?.chains ?? [])
       .slice()
       .sort((a, b) => metricDesc(a.txCount, b.txCount))
@@ -216,11 +216,12 @@ export function NetworkOverview() {
             slug: catalog.slug,
             name: c.chainName,
             logo: c.chainLogoURI || catalog.chainLogoURI || "",
+            symbol: catalog.networkToken?.symbol || "",
           },
         ];
       })
       .slice(0, 8);
-    if (roster.length > 0) tapeChainsRef.current = roster;
+    if (roster.length > 0) liveChainsRef.current = roster;
     return roster;
   }, [data]);
 
@@ -328,10 +329,9 @@ export function NetworkOverview() {
           />
         </ReadoutRow>
 
-        {/* the live tape: the same instrument every chain page runs, here
-            merged across the busiest chains, each block wearing the logo of
-            the chain that sealed it */}
-        <NetworkBlockTape chains={tapeChains} onTps={setLiveTps} />
+        {/* the C-Chain home's live boards, merged across the busiest
+            chains: each row wears the logo of the chain it came from */}
+        <OverviewLiveBoards chains={liveChains} onTps={setLiveTps} />
 
         {/* the window's figures, each with its move against the window before */}
         <section className="flex flex-col gap-4">
