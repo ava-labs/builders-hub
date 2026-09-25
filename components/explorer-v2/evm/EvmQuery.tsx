@@ -105,9 +105,10 @@ const STALE_S = 24 * 3600;
 
 /** an EVM chain's Query page, inside the chain's own layout and shell */
 
-/* errors that mean "busy, try again soon": the data service's slot and
-   quota limits, and an overloaded model */
-const BUSY = /too many|in flight|retry shortly|quota|overloaded|busy|HTTP (429|503|529)/i;
+/* errors that mean "busy, try again soon": the data service's slots and an
+   overloaded model. The per-minute quota is waited out on the server, per
+   SQL call, so the page does not ask the whole question again for it */
+const BUSY = /too many|in flight|retry shortly|overloaded|busy|HTTP (429|503|529)/i;
 
 export function EvmQuery({ network, index = null }: { network: string; index?: IndexState }) {
   const c = useChainContext();

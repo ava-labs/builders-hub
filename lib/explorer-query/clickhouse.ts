@@ -121,10 +121,15 @@ async function postStats(sql: string): Promise<RawJson> {
     });
     res = got.r;
     text = got.t;
-    if (res.status !== 429 && res.status !== 503) break;
-    const after = Number(res.headers.get("retry-after"));
+    // ClickHouse's per-minute quota on the shared stats-api user comes back
+    // as an error body: every visitor's queries count against one window,
+    // so only a wait of a good part of that minute clears it
+    const quota = /QUOTA_EXCEEDED/.test(text);
+    if (!quota && res.status !== 429 && res.status !== 503) break;
     if (attempt === 3) break;
-    await new Promise((r) => setTimeout(r, Math.min(8, Number.isFinite(after) && after > 0 ? after : 1 + attempt) * 1000));
+    const after = Number(res.headers.get("retry-after"));
+    const waitS = quota ? 15 : Math.min(8, Number.isFinite(after) && after > 0 ? after : 1 + attempt);
+    await new Promise((r) => setTimeout(r, waitS * 1000));
   }
   if (!res) throw new Error("stats-api did not answer");
   let body: StatsQueryJson;
