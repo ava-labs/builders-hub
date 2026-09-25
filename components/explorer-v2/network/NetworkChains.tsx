@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Check, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Board, EmptyRow, HEAD, INK, LoadMore, MUTED, ROW, RowSkeleton, SectionHeader } from "@/components/explorer-v2/ui";
@@ -10,7 +11,8 @@ import { PRIMARY_NETWORK_ID, useLiveValidatorCounts, useValidatorStats } from "@
 import { compareVersions, defaultVersionTarget, sortVersionsDesc } from "@/components/stats/VersionBreakdown";
 import { NetworkShell } from "@/components/explorer-v2/network/NetworkShell";
 import { CutChip, FigureToggle, FilterInput } from "@/components/explorer-v2/network/chains-bucket-bars";
-import { IcmNetworkMap, type IcmSummary, type VersionMix } from "@/components/explorer-v2/network/icm-map";
+import { IcmNetworkMap, Tower, type IcmSummary, type VersionMix } from "@/components/explorer-v2/network/icm-map";
+import { riseStyle, useReveal } from "@/components/explorer-v2/motion";
 import { flowWindow, levelWindow, useNetworkSeries, useSeatHistory } from "@/components/explorer-v2/network/overview-series";
 import { EXPLORER_RANGES, RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import { fmtCompact } from "@/components/explorer-v2/staking/data";
@@ -23,8 +25,10 @@ import type { L1Chain } from "@/types/stats";
 /* The chains tab: the figures, the network map, and the directory. The map
    draws every validator set and the window's ICM between them; the directory
    carries what a builder needs from a list like this: where the explorer
-   is, what the RPC is, and one click into a wallet. A figure, a tower or a
-   category cuts the list, and the cut shows as chips over it. */
+   is, what the RPC is, and one click into a wallet. Each row leads with its
+   tower from the map, to the same scale and painted the same way, and a
+   row and its tower light together. A figure, a tower or a category cuts
+   the list, and the cut shows as chips over it. */
 
 const REQUEST_INDEXING_FORM_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 const PAGE = 25;
@@ -174,13 +178,13 @@ function PhoneVersion({ mix, target }: { mix: VersionMix | null; target: string 
   const pct = Math.round((mix.on / total) * 100);
   const ink = pct >= 80 ? "text-emerald-600 dark:text-emerald-400" : mix.stale > 0 ? "text-[#E6212F]" : "text-amber-600 dark:text-amber-400";
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <span className="inline-flex shrink-0 items-center gap-1.5">
       <span className="flex h-1.5 w-10 overflow-hidden bg-zinc-100 dark:bg-zinc-900">
         {(Object.keys(BAND_PAINT) as (keyof VersionMix)[]).map((b) =>
           mix[b] > 0 ? <span key={b} className="h-full" style={{ width: `${(mix[b] / total) * 100}%`, background: BAND_PAINT[b] }} /> : null,
         )}
       </span>
-      <span className={cn("tabular-nums", ink)}>
+      <span className={cn("whitespace-nowrap tabular-nums", ink)}>
         {pct}% on {target}
       </span>
     </span>
@@ -207,6 +211,25 @@ function VersionCell({ mix }: { mix: VersionMix | null }) {
   );
 }
 
+/* a row's tower: the map's tower in miniature, as tall as its validator
+   set on the map's scale and painted by client version */
+function MiniTower({ validators, max, mix, hub, shown, delay, lifted }: { validators: number; max: number; mix: VersionMix | null; hub: boolean; shown: boolean; delay: number; lifted: boolean }) {
+  const w = 7;
+  const box = 32;
+  const d = w * 0.42;
+  const h = validators > 0 ? 3 + 21 * Math.pow(validators / Math.max(1, max), 0.4) : 2;
+  const y = box - d - 1;
+  return (
+    <svg width={18} height={box} viewBox={`0 0 18 ${box}`} className="shrink-0 overflow-visible" aria-hidden>
+      <g style={{ transform: lifted ? "translateY(-3px)" : "translateY(0)", transition: "transform 220ms cubic-bezier(0.32,0.72,0,1)" }}>
+        <g style={riseStyle(shown, delay, 680)}>
+          <Tower x={9} y={y} w={w} h={h} tone={hub ? "red" : "gray"} mix={mix && mix.on + mix.near + mix.stale > 0 ? mix : null} />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
 export function NetworkChains({
   indexedChainIds = null,
 }: {
@@ -220,6 +243,13 @@ export function NetworkChains({
   const [shown, setShown] = useState(PAGE);
   const [icm, setIcm] = useState<IcmSummary | null>(null);
   const listRef = useRef<HTMLElement>(null);
+  // a row and its tower light together, whichever the cursor is on
+  const [rowHover, setRowHover] = useState<string | null>(null);
+  const [mapHover, setMapHover] = useState<string | null>(null);
+  // the rows' towers rise in a wave the first time the list comes into view
+  const [dirRef, dirShown] = useReveal<HTMLDivElement>();
+  // a new sort or cut glides the rows to their places, unless the reader asked for less motion
+  const reduced = useReducedMotion();
   // the liveness gate, same rule (and same request) as the chain switcher:
   // a mainnet chain earns a default row only if its subnet has stake-backed
   // validators right now. The feed failing open beats an empty directory.
@@ -341,6 +371,9 @@ export function NetworkChains({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listed, activity.byId, indexedSet]);
 
+  // the rows' towers share the map's scale: the biggest set in the list
+  const maxValidators = useMemo(() => Math.max(1, ...listed.map(validatorsOf)), [listed, live]);
+
   /* the category rail over the list; the catch-all goes last, whatever its size */
   const categories = useMemo(() => {
     const m = new Map<string, number>();
@@ -456,6 +489,8 @@ export function NetworkChains({
             target={target}
             targets={targets}
             onTarget={setTarget}
+            hoveredName={rowHover}
+            onHoverName={setMapHover}
           />
         )}
 
@@ -554,6 +589,7 @@ export function NetworkChains({
             </div>
           )}
 
+          <div ref={dirRef}>
           <Board divide={false} className="border">
             {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
             <div className="overflow-x-auto">
@@ -572,19 +608,38 @@ export function NetworkChains({
                     flash of dead chains that then snap away */}
                 {!settled && <RowSkeleton n={10} />}
                 {settled &&
-                  rows.slice(0, shown).map((c) => {
+                  rows.slice(0, shown).map((c, i) => {
                     const n = validatorsOf(c);
+                    const lit = rowHover === c.chainName || mapHover === c.chainName;
                     const tx = txOf(c);
                     const msgs = mainnet ? msgsOf(c) : null;
                     const net = c.isTestnet ? "fuji" : "mainnet";
                     // link only where the explorer has something to show
                     const explorerHref = isIndexedByUs(c) ? `/explorer/${net}/${c.slug}` : null;
                     return (
-                      <div
+                      <motion.div
                         key={`${c.slug}-${c.chainId}`}
-                        className={cn(ROW, GRID, "grid-cols-[minmax(0,1fr)_auto] border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}
+                        layout={reduced ? false : "position"}
+                        transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+                        onMouseEnter={() => setRowHover(c.chainName)}
+                        onMouseLeave={() => setRowHover(null)}
+                        className={cn(
+                          ROW,
+                          GRID,
+                          "grid-cols-[minmax(0,1fr)_auto] border-b border-zinc-100 transition-colors last:border-b-0 dark:border-zinc-900",
+                          lit && "bg-[#0061E2]/[0.04] dark:bg-[#5b9bff]/[0.06]",
+                        )}
                       >
                         <span className="flex min-w-0 items-center gap-2.5">
+                          <MiniTower
+                            validators={n}
+                            max={maxValidators}
+                            mix={mainnet ? mixOfChain(c) : null}
+                            hub={String(c.chainId) === "43114"}
+                            shown={dirShown}
+                            delay={Math.min(i * 28, 900)}
+                            lifted={lit}
+                          />
                           <ChainLogo uri={c.chainLogoURI} name={c.chainName} />
                           <span className="flex min-w-0 flex-col md:flex-row md:items-center md:gap-2">
                             {explorerHref ? (
@@ -649,13 +704,14 @@ export function NetworkChains({
                             <span className="hidden md:block" />
                           )}
                         </span>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 {settled && rows.length === 0 && <EmptyRow>{query || cutting ? "no chains match" : "no chains found"}</EmptyRow>}
               </div>
             </div>
           </Board>
+          </div>
           {settled && shown < rows.length && (
             <LoadMore onClick={() => setShown((s) => s + PAGE)} label={`Load more · ${rows.length - shown} remaining`} />
           )}
