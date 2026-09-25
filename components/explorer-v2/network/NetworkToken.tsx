@@ -6,16 +6,18 @@ import { Board, HashChip, SectionHeader, SpecLine, SpecSheet } from "@/component
 import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
 import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange } from "@/components/explorer-v2/time-range";
 import { parseDateString } from "@/components/stats/chart-axis-utils";
-import { FeeBlock, LiveBurnsBoard, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
+import { BurnHistory, TOKEN_CAP, avax, usdOf, usePriceHistory } from "./token-parts";
 import { SupplyModel } from "./token-model";
+import { LiveBurnPanel, useLiveBurns } from "./token-live";
 import { levelWindow, useBurnHistory, useStakeHistory } from "./overview-series";
 import { HoldersSection } from "./token-holders";
 
 /* The network scope's AVAX tab: the token across the P-, C-, and X-Chains
    (formerly /stats/avax-token). Four figures lead; then the 720M cap as
-   one solid, the fees burned on the page clock beside the live burn, the
-   institutions holding AVAX, and the token's record at the foot, which
-   carries every other figure. Mainnet-only. */
+   one solid beside what was issued, with each new block's burn rising
+   into it; the fees burned on the page clock beside the burn this
+   second; the institutions holding AVAX; and the token's record at the
+   foot, which carries every other figure. Mainnet-only. */
 
 const AVAX_ASSET_ID = "FvwEAhmxKfeiG8SnEvq42hc6whRyY3EFYAvebMqDNDGCgxN5Z";
 const WAVAX = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
@@ -75,6 +77,8 @@ export function NetworkToken() {
   const prices = usePriceHistory(RANGE_DAYS[clock]);
   const stakeWin = levelWindow(useStakeHistory(), RANGE_DAYS[clock]);
   const burnWin = levelWindow(useBurnHistory(), Math.min(365, RANGE_DAYS[clock]));
+  // one live feed for the page: the embers on the solid and the burn panel
+  const live = useLiveBurns();
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -241,6 +245,14 @@ export function NetworkToken() {
     });
   };
 
+  // the axis form of a bucket: a month for monthly buckets, else a day
+  const formatTick = (value: string) => {
+    const date = parseDateString(value);
+    return period === "M"
+      ? date.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+      : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   // the clock's window of the ICM series, for its readout
   const icmWindow = useMemo(() => icmFees.slice(-Math.min(365, RANGE_DAYS[clock])), [icmFees, clock]);
   const icmTotal = icmWindow.reduce((sum, item) => sum + item.value, 0);
@@ -309,7 +321,10 @@ export function NetworkToken() {
               locked={n(data.totalLocked)}
               burned={burned}
               burnedBy={{ c: n(data.totalCBurned), p: n(data.totalPBurned), x: n(data.totalXBurned) }}
+              genesis={n(data.genesisUnlock)}
+              rewards={n(data.totalRewards)}
               price={price}
+              live={live}
             />
           ) : (
             <div className="h-72 animate-pulse bg-zinc-100 lg:h-[34rem] dark:bg-zinc-900" />
@@ -320,18 +335,19 @@ export function NetworkToken() {
             <section className="flex min-w-0 flex-col gap-4">
               <SectionHeader label="Fees Burned" />
               {aggregatedFeeData.length ? (
-                <FeeBlock
+                <BurnHistory
                   buckets={aggregatedFeeData}
                   label="C-Chain Fees Burned"
                   note={windowNote}
                   dateLabel={formatTooltipDate}
+                  tickLabel={formatTick}
                   price={price}
                 />
               ) : (
                 <div className="h-[22rem] animate-pulse bg-zinc-100 dark:bg-zinc-900" />
               )}
             </section>
-            <LiveBurnsBoard />
+            <LiveBurnPanel live={live} price={price} />
           </div>
 
           <HoldersSection circulating={circulating} />
@@ -365,9 +381,12 @@ export function NetworkToken() {
                     <SpecLine label="L1 Validator Fees">
                       {avax(n(data.l1ValidatorFees))} AVAX <span className="text-zinc-400 dark:text-zinc-500">· paid, all time</span>
                     </SpecLine>
-                    <SpecLine label="ICM Fees">
-                      {avax(icmTotal)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {clock === "all" ? "1 year" : RANGE_LABEL[clock]}</span>
-                    </SpecLine>
+                    {/* the ICM fee feed can come back empty; no data is not zero fees */}
+                    {icmFees.length > 0 && (
+                      <SpecLine label="ICM Fees">
+                        {avax(icmTotal)} AVAX <span className="text-zinc-400 dark:text-zinc-500">· {clock === "all" ? "1 year" : RANGE_LABEL[clock]}</span>
+                      </SpecLine>
+                    )}
                   </>
                 )}
                 <SpecLine label="Denomination">9 decimals on the P- and X-Chains, 18 on the C-Chain</SpecLine>
