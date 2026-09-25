@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { PILLARS } from "@/components/landing-v2/pillars";
@@ -13,53 +12,6 @@ import { track } from "@/components/landing-v2/track";
 /* ------------------------------------------------------------------ */
 /* Why Avalanche — brand accordion: four numbered panels, one expanded  */
 /* ------------------------------------------------------------------ */
-
-// Board-row listing of the pillars, used by the /solutions index (the
-// homepage chapter below cycles them on one stage instead). Each row is
-// a hard vertical split in the brand's diptych grammar: statement on the
-// left, the pillar's live instrument right of a hairline rule.
-export function PillarRows({ reducedMotion }: { reducedMotion: boolean }) {
-  return (
-    <div className="divide-y divide-zinc-200 border-y border-zinc-200 bg-white/80 backdrop-blur-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-950/80">
-      {PILLARS.map((pillar, i) => (
-        <motion.div
-          key={pillar.slug}
-          initial={reducedMotion ? false : { opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.55, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <Link
-            href={`/solutions/${pillar.slug}`}
-            className="group relative grid grid-cols-1 items-center gap-x-10 gap-y-3 px-5 py-9 transition-colors hover:bg-zinc-50 md:px-6 lg:grid-cols-[2.5rem_10rem_minmax(0,1fr)_minmax(0,20rem)_auto] lg:py-6 dark:hover:bg-zinc-900/60"
-          >
-            <span className="absolute bottom-0 left-0 top-0 w-px bg-transparent transition-colors duration-300 group-hover:bg-[#E6212F]" />
-            <span className="hidden font-mono text-[10px] tracking-[0.18em] text-zinc-400 lg:block dark:text-zinc-500">
-              {`0${i + 1}`}
-            </span>
-            <span className="font-mono text-[10px] tracking-[0.18em] text-zinc-500 dark:text-zinc-400">
-              {pillar.label}
-            </span>
-            <span>
-              <span className="block text-2xl font-light leading-snug tracking-[-0.02em] text-zinc-900 dark:text-zinc-50 md:text-[2rem]">
-                {pillar.title}.
-              </span>
-              <span className="mt-2 block max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-                {pillar.tagline}
-              </span>
-            </span>
-            <span className="hidden h-44 items-center justify-center border-l border-zinc-200 pl-10 lg:flex dark:border-zinc-800">
-              <PillarDiagram slug={pillar.slug} />
-            </span>
-            <span className="flex items-center justify-self-start lg:justify-self-end">
-              <ArrowRight className="h-5 w-5 text-zinc-400 transition-transform group-hover:translate-x-1 group-hover:text-zinc-900 dark:group-hover:text-zinc-50" />
-            </span>
-          </Link>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
 
 type PillarSlug = (typeof PILLARS)[number]["slug"];
 

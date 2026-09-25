@@ -82,9 +82,9 @@ Here, choose 'Validate' from the menu.
 
 Fill out the staking parameters. They are explained in more detail in [this doc](/docs/primary-network/validate/how-to-stake). When you've
 filled in all the staking parameters and double-checked them, click `Submit Validation`. Make sure the staking period is at
-least 2 weeks, the delegation fee rate is at least 2%, and you're staking at
+least 48 hours (2 weeks before the [Helicon](/docs/primary-network/helicon-upgrade) upgrade), the delegation fee rate is at least 2%, and you're staking at
 least 2,000 AVAX on Mainnet (1 AVAX on Fuji Testnet). A full guide about this can be found
-[here](https://support.avax.network/en/articles/8117267-core-web-how-do-i-validate-in-core-stake).
+[here](https://support.core.app/en/articles/8117267-core-web-how-do-i-validate-in-core-stake).
 
 You should see a success message, and your balance should be updated.
 
@@ -204,7 +204,7 @@ platform-cli validator add-permissionless \
 |------|-------------|
 | `--node-id` | Your node's NodeID (from `info.getNodeID`) |
 | `--stake` | Amount in AVAX (min 1 on Fuji, 2000 on Mainnet) |
-| `--duration` | Validation duration (min `336h` = 14 days) |
+| `--duration` | Validation duration (min `48h` post-[Helicon](/docs/primary-network/helicon-upgrade); `336h` = 14 days before it) |
 | `--delegation-fee` | Percentage retained by validator (min `0.02` = 2%) |
 | `--bls-public-key` | BLS public key from node |
 | `--bls-pop` | BLS proof of possession from node |

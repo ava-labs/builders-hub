@@ -504,7 +504,7 @@ export function NetworkOverview() {
 
         {/* the chains, ranked by who's actually being used — with the
             ecosystem's biggest apps standing beside them */}
-        <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
+        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,27rem)]">
         <section className="flex min-w-0 flex-col gap-4">
           <SectionHeader
             label={`Top chains · ${overviewWindowLabel(range)}`}
@@ -668,7 +668,7 @@ export function NetworkOverview() {
         {/* the two network-level instruments as doors into their facets —
             brand-dark panels in the homepage pillars' grammar: steel
             eyebrow, EBF0FA lead with the red punch, red arrow chip */}
-        <div className="grid items-stretch gap-x-8 gap-y-10 lg:grid-cols-2">
+        <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-10 lg:grid-cols-2">
           <section className="flex flex-col">
             <DoorPanel
               href="/explorer/mainnet/validators"

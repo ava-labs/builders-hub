@@ -226,3 +226,56 @@ export function formatPriceUsd(p: number | undefined): string {
   if (p >= 0.0001) return `$${p.toFixed(6)}`;
   return "<$0.0001";
 }
+
+/* ------------------------------------------------------------------ */
+/* Signatures: names for selectors and topics with no ABI behind them   */
+
+export interface SignatureHit {
+  name: string;
+  verified: boolean;
+}
+
+const sigCache = new Map<string, SignatureHit | null>();
+
+/** batched lookup of unknown 4-byte selectors and event topics against
+ *  the Sourcify signature database, by way of /api/signatures */
+export function useSignatures(selectors: string[], topics: string[]): { fn: Map<string, SignatureHit>; ev: Map<string, SignatureHit> } {
+  const wantF = [...new Set(selectors.map((s) => s.toLowerCase()).filter((s) => /^0x[0-9a-f]{8}$/.test(s)))].sort();
+  const wantE = [...new Set(topics.map((s) => s.toLowerCase()).filter((s) => /^0x[0-9a-f]{64}$/.test(s)))].sort();
+  const key = `${wantF.join(",")}|${wantE.join(",")}`;
+  const [, setTick] = useState(0);
+
+  useEffect(() => {
+    const needF = wantF.filter((s) => !sigCache.has(`f:${s}`));
+    const needE = wantE.filter((s) => !sigCache.has(`e:${s}`));
+    if (!needF.length && !needE.length) return;
+    let live = true;
+    const qs = new URLSearchParams();
+    if (needF.length) qs.set("function", needF.join(","));
+    if (needE.length) qs.set("event", needE.join(","));
+    fetch(`/api/signatures?${qs}`)
+      .then((r) => (r.ok ? r.json() : { function: {}, event: {} }))
+      .then((body: { function: Record<string, SignatureHit | null>; event: Record<string, SignatureHit | null> }) => {
+        for (const s of needF) sigCache.set(`f:${s}`, body.function?.[s] ?? null);
+        for (const s of needE) sigCache.set(`e:${s}`, body.event?.[s] ?? null);
+        if (live) setTick((t) => t + 1);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  const fn = new Map<string, SignatureHit>();
+  const ev = new Map<string, SignatureHit>();
+  for (const s of wantF) {
+    const h = sigCache.get(`f:${s}`);
+    if (h) fn.set(s, h);
+  }
+  for (const s of wantE) {
+    const h = sigCache.get(`e:${s}`);
+    if (h) ev.set(s, h);
+  }
+  return { fn, ev };
+}
