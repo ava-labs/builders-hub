@@ -2,9 +2,13 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Board, EmptyRow, SectionHeader } from "@/components/explorer-v2/ui";
+import { Board, EmptyRow, SectionHeader, TxTypePill, pillTone } from "@/components/explorer-v2/ui";
+import { ageShort } from "@/components/explorer-v2/format";
+import { txTypeLabel } from "@/lib/pchain-explorer";
+import { usePchainPulse, type PchainPulse } from "@/components/explorer-v2/network/pchain-pulse";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { BLOCK_GRAY, PICK_BLUE, ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
@@ -21,7 +25,11 @@ import type { L1Chain } from "@/types/stats";
    arc through the air between tower tops, packets riding them from
    sender to receiver. Hover a tower to light its routes; click it and the
    page's tables are cut to it. Phones get the traffic as a ranked list.
-   It fetches its own data, so the page only mounts it. */
+   The plate is the P-Chain, the chain every validator set registers on:
+   it wears the P-Chain's violet, carries its tip on the rim, ripples with
+   each of its transactions in the P-Chain explorer's tx tones, and opens
+   that explorer on a click. It fetches its own data, so the page only
+   mounts it. */
 
 interface MapChain {
   chainId: string;
@@ -43,6 +51,8 @@ interface Node {
   out: number;
   in: number;
   href: string | null;
+  /** the chain's brand color, from the catalog */
+  color: string | null;
   /** ground point on the plate */
   x: number;
   y: number;
@@ -100,7 +110,7 @@ const H_MAX = 150;
 const H_POW = 0.4;
 const HUB_ID = "43114";
 
-const TONE = {
+export const TONE = {
   gray: { top: "#DCE1E2", left: BLOCK_GRAY, right: "#7E8C8F", edge: "#5E6B6E" },
   // quiet sets recede a step, so the chains that talk stand out of the ring
   pale: { top: "#EEF1F1", left: "#CBD2D4", right: "#AEB9BB", edge: "#8E9A9D" },
@@ -133,6 +143,19 @@ function onRing(i: number, n: number, r: number, turn = 0): [number, number] {
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const pts = (p: [number, number][]) => p.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
 
+/* the ground's ripples, one per P-Chain tx, in the P-Chain explorer's
+   tx tones: stake green, reward gold, L1 blue, cross-chain teal */
+const RIPPLE: Record<ReturnType<typeof pillTone>, string> = {
+  stake: "stroke-[#3f7d43] dark:stroke-[#77c47b]",
+  reward: "stroke-[#9c7112] dark:stroke-[#e2b953]",
+  subnet: "stroke-[#0052bd] dark:stroke-[#5f9dff]",
+  crosschain: "stroke-[#0c7590] dark:stroke-[#3fc1dc]",
+  danger: "stroke-[#c11824] dark:stroke-[#ff6b73]",
+  neutral: "stroke-[#5400FF] dark:stroke-[#8B6CFF]",
+};
+/* the P-Chain's own violet, from its mark */
+const P_INK = "text-[#5400FF] dark:text-[#8B6CFF]";
+
 /* the reader's motion setting: no rise, packets or draw-in when reduced */
 function useStill() {
   const [still, setStill] = useState(false);
@@ -148,7 +171,7 @@ function useStill() {
 
 /* one tower: a square footprint turned to the plate, extruded h; its
    faces carry floor courses so height reads as stacked blocks */
-function Tower({ x, y, w, h, tone, mix }: { x: number; y: number; w: number; h: number; tone: keyof typeof TONE; mix?: VersionMix | null }) {
+export function Tower({ x, y, w, h, tone, mix, roof }: { x: number; y: number; w: number; h: number; tone: keyof typeof TONE; mix?: VersionMix | null; roof?: string | null }) {
   const d = w * TILT;
   const t = y - h;
   const courses = h > 14 ? Math.min(40, Math.floor(h / 8)) : 0;
@@ -198,7 +221,8 @@ function Tower({ x, y, w, h, tone, mix }: { x: number; y: number; w: number; h: 
           strokeWidth={0.75}
         />
       )}
-      <polygon points={pts([[x, t - d], [x + w, t], [x, t + d], [x - w, t]])} fill={c.top} stroke={c.edge} strokeOpacity={0.55} strokeWidth={0.75} />
+      {/* a talker's roof wears its brand, a cap of color over the gray */}
+      <polygon points={pts([[x, t - d], [x + w, t], [x, t + d], [x - w, t]])} fill={!bands.length && roof ? roof : c.top} stroke={c.edge} strokeOpacity={0.55} strokeWidth={0.75} />
     </g>
   );
 }
@@ -265,6 +289,50 @@ function pctInk(mix: VersionMix | null | undefined, pct: number | null): string 
   return mix.stale > 0 ? "text-[#E6212F]" : "text-amber-600 dark:text-amber-400";
 }
 
+/* the ground's own line under the model: the P-Chain's tip, its latest txs
+   in their family tones, and the door to its explorer */
+function GroundStrip({ pulse }: { pulse: PchainPulse }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const s = pulse.stats;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-[#5400FF]/15 bg-[#5400FF]/[0.025] px-5 py-2.5 md:px-6 dark:border-[#8B6CFF]/20 dark:bg-[#8B6CFF]/[0.04]">
+      <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px]">
+        <span className={cn("flex items-center gap-1.5 font-bold uppercase tracking-[0.14em]", P_INK)}>
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#5400FF] opacity-50 dark:bg-[#8B6CFF]" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#5400FF] dark:bg-[#8B6CFF]" />
+          </span>
+          The ground · P-Chain
+        </span>
+        {s && (
+          <span className="tabular-nums text-zinc-500 dark:text-zinc-400">
+            block {s.tipHeight.toLocaleString("en-US")} · {ageShort(s.tipTimestamp)} ago · {s.txCount24h.toLocaleString("en-US")} txs 24h
+          </span>
+        )}
+      </span>
+      <span className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+        {pulse.txs.slice(0, 4).map((t) => (
+          <Link key={t.hash} href={`/explorer/mainnet/p-chain/tx/${t.hash}`} className="group/gtx flex items-center gap-1.5 font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
+            <TxTypePill type={t.type} label={txTypeLabel(t.type)} className="transition-opacity group-hover/gtx:opacity-70" />
+            {ageShort(t.ts)}
+          </Link>
+        ))}
+        <Link
+          href="/explorer/mainnet/p-chain"
+          className={cn("inline-flex shrink-0 items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] transition-opacity hover:opacity-70", P_INK)}
+        >
+          P-Chain explorer
+          <ArrowRight className="h-3 w-3" />
+        </Link>
+      </span>
+    </div>
+  );
+}
+
 export interface IcmSummary {
   /** 30-day messages each chain sent plus got, by EVM chain ID */
   byChain: Map<string, number>;
@@ -284,7 +352,13 @@ export function IcmNetworkMap({
   target = "",
   targets = [],
   onTarget,
+  hoveredName = null,
+  onHoverName,
 }: {
+  /** a chain the page is pointing at, by name: its tower lights as if hovered */
+  hoveredName?: string | null;
+  /** the tower under the cursor, by name, for the page's other views */
+  onHoverName?: (name: string | null) => void;
   /** each chain's nodes by client version, by EVM chain ID; turns on the Versions view */
   versions?: Map<string, VersionMix> | null;
   /** the version the mix is measured against, and the choices for it */
@@ -316,6 +390,10 @@ export function IcmNetworkMap({
   const [hover, setHover] = useState<string | null>(null);
   const [hoverRoute, setHoverRoute] = useState<string | null>(null);
   const still = useStill();
+  const router = useRouter();
+  // the ground: the P-Chain's latest txs and tip
+  const pulse = usePchainPulse("mainnet");
+  const [ground, setGround] = useState(false);
   // phones read the map as two lists: the chains, and the routes between them
   const [phoneView, setPhoneView] = useState<"chains" | "routes">("chains");
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -376,6 +454,7 @@ export function IcmNetworkMap({
           out: out.get(id) ?? 0,
           in: inn.get(id) ?? 0,
           href: chainHref(id),
+          color: id === HUB_ID ? "#E6212F" : catalogByChainId.get(id)?.color ?? null,
         };
       })
       .filter((c) => c.validators > 0 || c.out + c.in > 0);
@@ -449,7 +528,8 @@ export function IcmNetworkMap({
 
   // hover leads; a pick holds the light when the cursor leaves
   const pickedId = picked ? byName.get(picked)?.id ?? null : null;
-  const lit = hover ?? pickedId;
+  const pointed = hoveredName ? byName.get(hoveredName)?.id ?? null : null;
+  const lit = hover ?? pointed ?? pickedId;
   const near = useMemo(() => {
     if (!lit) return null;
     const s = new Set([lit]);
@@ -457,6 +537,12 @@ export function IcmNetworkMap({
     return s;
   }, [lit, routes]);
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
+  // the page's other views follow the cursor over the towers
+  useEffect(() => {
+    onHoverName?.(hover ? byId.get(hover)?.name ?? null : null);
+    // the parent's callback identity does not matter, only the tower
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hover]);
   // painter's order: back of the plate first
   const drawOrder = useMemo(() => [...nodes].sort((a, b) => a.y - b.y), [nodes]);
 
@@ -647,6 +733,10 @@ export function IcmNetworkMap({
         <span className="w-4 border-t-2 border-zinc-900/60 dark:border-zinc-100/60" />
         arc · messages
       </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2 w-3.5 rounded-[50%] border border-[#5400FF]/70 dark:border-[#8B6CFF]/70" />
+        ground · P-Chain
+      </span>
     </span>
   );
 
@@ -785,16 +875,39 @@ export function IcmNetworkMap({
               <clipPath id={`${uid}-plate`}>
                 <ellipse cx={CX} cy={CY} rx={PLATE} ry={PLATE * TILT} />
               </clipPath>
+              {/* the rim's front arc, for the P-Chain's label */}
+              <path id={`${uid}-rim`} d={`M${CX - PLATE},${CY + PLATE_T * 0.55} A${PLATE},${PLATE * TILT} 0 0 0 ${CX + PLATE},${CY + PLATE_T * 0.55}`} fill="none" />
             </defs>
 
-            {/* the plate: a slab with a lit top, a lattice and the two rings cut into it */}
-            <g>
-              <ellipse cx={CX} cy={CY + PLATE_T} rx={PLATE} ry={PLATE * TILT} className="fill-zinc-200 stroke-zinc-300 dark:fill-zinc-800 dark:stroke-zinc-700" strokeWidth={1} />
-              <rect x={CX - PLATE} y={CY} width={PLATE * 2} height={PLATE_T} className="fill-zinc-200 dark:fill-zinc-800" />
-              <line x1={CX - PLATE} x2={CX - PLATE} y1={CY} y2={CY + PLATE_T} className="stroke-zinc-300 dark:stroke-zinc-700" strokeWidth={1} />
-              <line x1={CX + PLATE} x2={CX + PLATE} y1={CY} y2={CY + PLATE_T} className="stroke-zinc-300 dark:stroke-zinc-700" strokeWidth={1} />
-              <ellipse cx={CX} cy={CY} rx={PLATE} ry={PLATE * TILT} className="fill-zinc-50 stroke-zinc-300 dark:fill-zinc-900 dark:stroke-zinc-700" strokeWidth={1} />
-              <g clipPath={`url(#${uid}-plate)`} className="stroke-zinc-200 dark:stroke-zinc-800" strokeWidth={0.75}>
+            {/* the ground is the P-Chain: a slab in its violet, a lattice and the two rings
+                cut into it, its tip on the rim, rippling with each of its txs; a click opens it */}
+            <g
+              role="link"
+              tabIndex={0}
+              aria-label="The ground is the P-Chain. Open the P-Chain explorer"
+              onMouseEnter={() => setGround(true)}
+              onMouseLeave={() => setGround(false)}
+              onFocus={() => setGround(true)}
+              onBlur={() => setGround(false)}
+              onClick={() => router.push("/explorer/mainnet/p-chain")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") router.push("/explorer/mainnet/p-chain");
+              }}
+              className="cursor-pointer outline-none"
+            >
+              <ellipse cx={CX} cy={CY + PLATE_T} rx={PLATE} ry={PLATE * TILT} className="fill-[#E7E2FA] stroke-[#D4CCF4] dark:fill-[#1C1731] dark:stroke-[#2F2752]" strokeWidth={1} />
+              <rect x={CX - PLATE} y={CY} width={PLATE * 2} height={PLATE_T} className="fill-[#E7E2FA] dark:fill-[#1C1731]" />
+              <line x1={CX - PLATE} x2={CX - PLATE} y1={CY} y2={CY + PLATE_T} className="stroke-[#D4CCF4] dark:stroke-[#2F2752]" strokeWidth={1} />
+              <line x1={CX + PLATE} x2={CX + PLATE} y1={CY} y2={CY + PLATE_T} className="stroke-[#D4CCF4] dark:stroke-[#2F2752]" strokeWidth={1} />
+              <ellipse
+                cx={CX}
+                cy={CY}
+                rx={PLATE}
+                ry={PLATE * TILT}
+                className={cn("stroke-[#D4CCF4] transition-[fill] duration-300 dark:stroke-[#2F2752]", ground ? "fill-[#F1EDFF] dark:fill-[#17122E]" : "fill-[#F8F6FF] dark:fill-[#110E1F]")}
+                strokeWidth={1}
+              />
+              <g clipPath={`url(#${uid}-plate)`} className={cn("transition-[stroke] duration-300", ground ? "stroke-[#5400FF]/[0.15] dark:stroke-[#8B6CFF]/[0.20]" : "stroke-[#5400FF]/[0.09] dark:stroke-[#8B6CFF]/[0.12]")} strokeWidth={0.75}>
                 {Array.from({ length: 36 }, (_, k) => {
                   const x0 = CX - PLATE * 1.8 + k * 64;
                   const run = PLATE * 1.2;
@@ -806,10 +919,51 @@ export function IcmNetworkMap({
                   );
                 })}
               </g>
-              <g fill="none" strokeWidth={1} strokeDasharray="3 5" className="stroke-zinc-300 dark:stroke-zinc-700">
+              <g fill="none" strokeWidth={1} strokeDasharray="3 5" className="stroke-[#5400FF]/25 dark:stroke-[#8B6CFF]/30">
                 <ellipse cx={CX} cy={CY} rx={INNER} ry={INNER * TILT} />
                 <ellipse cx={CX} cy={CY} rx={OUTER} ry={OUTER * TILT} />
               </g>
+              {/* each P-Chain tx ripples out of the Primary Network's set; an L1 op reaches the L1s' ring */}
+              {!still && (
+                <g className="pointer-events-none" clipPath={`url(#${uid}-plate)`}>
+                  {pulse.txs
+                    .filter((t) => t.fresh)
+                    .slice(0, 8)
+                    .map((t) => {
+                      const fam = pillTone(t.type);
+                      const reach = fam === "subnet" ? OUTER + 30 : INNER * 1.3;
+                      const delay = (t.replay ? 1900 : 0) + t.lane * 700;
+                      return (
+                        <g key={t.hash}>
+                          {[0, 1].map((k) => (
+                            <ellipse
+                              key={k}
+                              cx={CX}
+                              cy={CY}
+                              rx={reach}
+                              ry={reach * TILT}
+                              fill="none"
+                              vectorEffect="non-scaling-stroke"
+                              strokeWidth={k ? 1 : 2.25}
+                              className={RIPPLE[fam]}
+                              style={{ transformBox: "fill-box", transformOrigin: "50% 50%", animation: `bh-ripple ${fam === "subnet" ? 3600 : 3000}ms cubic-bezier(0.2,0.6,0.2,1) ${delay + k * 280}ms both` }}
+                            />
+                          ))}
+                        </g>
+                      );
+                    })}
+                </g>
+              )}
+              {/* the rim names the ground and carries its tip; on a hover it offers the door */}
+              <text className={cn("pointer-events-none select-none fill-current font-mono text-[9px] font-bold uppercase tracking-[0.3em]", P_INK)}>
+                <textPath href={`#${uid}-rim`} startOffset="50%" textAnchor="middle" dominantBaseline="central">
+                  {ground
+                    ? "Open the P-Chain explorer →"
+                    : pulse.stats
+                      ? `P-Chain · block ${pulse.stats.tipHeight.toLocaleString("en-US")} · ${pulse.stats.txCount24h.toLocaleString("en-US")} txs 24h · ${pulse.stats.validatorCount} primary validators · ${pulse.stats.l1ValidatorCount} L1 validators`
+                      : "P-Chain"}
+                </textPath>
+              </text>
             </g>
 
             {/* the routes' clear, wide strokes catch the cursor and carry the packets;
@@ -857,7 +1011,7 @@ export function IcmNetworkMap({
                   >
                     {/* a clear pad so short towers are easy to catch */}
                     <rect x={n.x - Math.max(12, n.w)} y={n.y - n.h - n.w * TILT - 6} width={Math.max(24, n.w * 2)} height={n.h + n.w * TILT * 2 + 12} fill="transparent" />
-                    <Tower x={n.x} y={n.y} w={n.w} h={n.h} tone={tone(n)} mix={pickedId === n.id ? null : mixOf(n.id)} />
+                    <Tower x={n.x} y={n.y} w={n.w} h={n.h} tone={tone(n)} mix={pickedId === n.id ? null : mixOf(n.id)} roof={!painted && n.ring === "inner" && pickedId !== n.id ? n.color : null} />
                   </g>
                 </g>
               );
@@ -895,6 +1049,8 @@ export function IcmNetworkMap({
                   const on = !lit || r.from === lit || r.to === lit;
                   const blue = !!pickedId && (r.from === pickedId || r.to === pickedId);
                   const count = 1 + Math.round(r.heat * 5);
+                  // a packet carries its sender's color
+                  const ink = blue ? null : byId.get(r.from)?.color ?? null;
                   const dur = 6.5 - 3 * r.heat;
                   const size = 3.5 + 2 * r.heat;
                   return (
@@ -910,6 +1066,7 @@ export function IcmNetworkMap({
                             height={size}
                             opacity={0}
                             className={cn("stroke-white dark:stroke-zinc-950", blue ? "fill-[#0061E2] dark:fill-[#5f9dff]" : "fill-zinc-900 dark:fill-zinc-100")}
+                            style={ink ? { fill: ink } : undefined}
                             strokeWidth={1}
                           >
                             <animateMotion dur={`${dur}s`} begin={begin} repeatCount="indefinite" rotate="auto">
@@ -1087,6 +1244,8 @@ export function IcmNetworkMap({
             </ul>
           )}
         </div>
+
+        <GroundStrip pulse={pulse} />
 
         {skyline}
 

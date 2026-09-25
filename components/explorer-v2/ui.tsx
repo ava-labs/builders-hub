@@ -700,7 +700,7 @@ const PILL_TONES = {
     "border-zinc-300 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
 } as const;
 
-function pillTone(type: string): keyof typeof PILL_TONES {
+export function pillTone(type: string): keyof typeof PILL_TONES {
   const t = type.toLowerCase();
   if (t.includes("abort") || t.includes("disable") || t.includes("remove")) return "danger";
   if (t.includes("reward")) return "reward";
