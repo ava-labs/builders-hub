@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Search, X } from "lucide-react";
+import { Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useSearchParams } from "next/navigation";
+import { Check, Copy, Download, Link2, Search, SlidersHorizontal, X } from "lucide-react";
 import {
   Area,
   Bar,
@@ -17,16 +18,45 @@ import {
   YAxis,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { Board, ChartBoard, LoadMore, SectionHeader, HEAD, ROW, EmptyRow, RowSkeleton, idInk } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, ChartBoard, LoadMore, SectionHeader, HEAD, ROW, EmptyRow, RowSkeleton, idInk } from "@/components/explorer-v2/ui";
 import { StatSlab } from "@/components/explorer-v2/StatSlab";
-import { VersionFleet, fleetOf, type FleetGrain } from "./VersionFleet";
+import { uptimeRequirementAt } from "@/constants/helicon";
 import {
-  calculateVersionStats,
-  compareVersions,
-  type VersionBreakdownData,
-  defaultVersionTarget,
-} from "@/components/stats/VersionBreakdown";
-import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
+  CRAWLER_FACETS,
+  ENDS_OPTIONS,
+  MISS_OPTIONS,
+  NO_VERSION,
+  PRESETS,
+  applyFilter,
+  buildRows,
+  cutTo,
+  defaultTarget,
+  facetCounts,
+  facetsFor,
+  isFiltering,
+  linkable,
+  missingIds,
+  parseQuery,
+  presetActive,
+  readState,
+  requiredRelease,
+  sortRows,
+  summarize,
+  targetOptions,
+  toCsv,
+  toggleOption,
+  withStatus,
+  writeState,
+  type FacetKey,
+  type FacetOption,
+  type Preset,
+  type Selection,
+  type Sort,
+  type SortKey,
+  type StatusRow,
+} from "@/lib/validator-triage";
+import { BEHIND_SWATCH, UpgradeReadiness, releaseShares } from "./UpgradeReadiness";
+import { ActiveChips, FacetRail, PresetRow, type Pending } from "./TriageFilters";
 import { ChartEmpty, TipPlate } from "./bits";
 import {
   NANO,
@@ -34,72 +64,35 @@ import {
   num,
   thin,
   toSeries,
+  useAvalancheGoReleases,
   usePrimaryMetrics,
   useP2pValidators,
   useSdkValidators,
   useTotalSeats,
-  type P2pValidator,
-  type SdkValidator,
 } from "./data";
 
-/* The Primary Network's validator set, list first — the roster the old
-   observatory buried under five chart sections. The economics (stake
-   trends, rewards, APY, distribution) moved to the Staking tab; what
-   stays here is the machines: who validates, on what version, with what
-   uptime, and for how much longer.
+/* The Primary Network's validator set, built for the question it is asked
+   most: who has not upgraded yet. The readiness board measures the set
+   against a target release (by default the newest one its notes call
+   mandatory) and draws every validator; the roster below cuts the set by
+   any mix of version, connection, stake, uptime, miss rate, time left and
+   delegators, and hands the cut on as a link, a NodeID list or a CSV. The
+   whole filter rides in the URL, so a triage view can be shared as is.
 
-   Same stats grammar as the gas market — outlined ChartBoards, mono titles
-   fused into the border, legends/toggles in the action slot — but
-   deliberately OFF the page clock: this is a roster plus all-time context,
-   not a windowed trend. So there is no range chip; each card states its own
-   basis instead (· current set, · 14d, · all-time). */
-
+   Same stats grammar as the gas market: outlined ChartBoards, mono titles
+   fused into the border, legends and toggles in the action slot. It stays
+   off the page clock: this is a roster plus all-time context, not a
+   windowed trend, so each card states its own basis (· 14d, · all-time). */
 
 const QUIET_BAR = "#A2AFB2";
 const SEATS_COLOR = "#0061E2";
 const ETNA_DAY = "2024-12-16";
+const PAGE = 50;
+const GRID = "md:grid-cols-[2.5rem_minmax(0,1fr)_6.5rem_7rem_5rem_3.5rem_5rem_5rem_5rem]";
 
-interface MergedValidator extends SdkValidator {
-  p2p?: P2pValidator;
-}
-
-/* p2p crawler reports "" (not null) for nodes it never completed a handshake.
-   empty strings fall through; a true unknown remains undefined. */
-function resolveVersion(p2p: P2pValidator | undefined, sdk: SdkValidator): string | undefined {
-  return p2p?.version || sdk.version || undefined;
-}
-
-type SortKey = "version" | "stake" | "delegators" | "fee" | "uptime" | "daysLeft" | "missRate";
-
-/* Release order, not lexical */
-function versionRank(v?: string): number {
-  const m = /(\d+)\.(\d+)\.(\d+)/.exec(v ?? "");
-  if (!m) return -1;
-  return Number(m[1]) * 1_000_000 + Number(m[2]) * 1_000 + Number(m[3]);
-}
-
-function sortValue(v: MergedValidator, key: SortKey): number {
-  switch (key) {
-    case "version":
-      return versionRank(v.version);
-    case "stake":
-      return v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
-    case "delegators":
-      return v.delegatorCount ?? 0;
-    case "fee":
-      return num(v.delegationFee) ?? 0;
-    case "uptime":
-      return v.p2p?.p50_uptime ?? -1;
-    case "daysLeft":
-      return v.p2p?.days_left ?? Number.MAX_SAFE_INTEGER;
-    case "missRate":
-      return v.p2p?.miss_rate_14d ?? -1;
-  }
-}
-
-function uptimeTone(pct: number): string {
+function uptimeTone(pct: number, need: number): string {
   if (pct >= 99) return "text-zinc-700 dark:text-zinc-300";
-  if (pct >= 90) return "text-amber-600 dark:text-amber-400";
+  if (pct >= need) return "text-amber-600 dark:text-amber-400";
   return "text-[#E6212F]";
 }
 
@@ -115,57 +108,13 @@ function missRateTone(pct: number): string {
   return "text-[#E6212F]";
 }
 
-/* the health charts' buckets, shared by the charts and the roster filter */
-const MISS_EDGES = [
-  { label: "0%", min: 0, max: 0 },
-  { label: "0–1%", min: 0.001, max: 1 },
-  { label: "1–5%", min: 1, max: 5 },
-  { label: "5–10%", min: 5, max: 10 },
-  { label: "10–25%", min: 10, max: 25 },
-  { label: "25–50%", min: 25, max: 50 },
-  { label: "50%+", min: 50, max: Infinity },
-];
-const DAYS_EDGES = [
-  { label: "< 7d", min: 0, max: 7 },
-  { label: "7–30d", min: 7, max: 30 },
-  { label: "30–90d", min: 30, max: 90 },
-  { label: "90–180d", min: 90, max: 180 },
-  { label: "180–365d", min: 180, max: 365 },
-  { label: "365d+", min: 365, max: Infinity },
-];
-function missBucket(rate: number): string {
-  if (rate === 0) return MISS_EDGES[0].label;
-  return MISS_EDGES.slice(1).find((e) => rate > e.min && rate <= e.max)?.label ?? MISS_EDGES[MISS_EDGES.length - 1].label;
-}
-function daysBucket(days: number): string {
-  return DAYS_EDGES.find((e) => days >= e.min && days < e.max)?.label ?? DAYS_EDGES[DAYS_EDGES.length - 1].label;
-}
-/** a node's minor line ("1.15"), the grain the version breakdown is cut at */
-function minorOf(v?: string): string {
-  const m = /(\d+)\.(\d+)/.exec(v ?? "");
-  return m ? `${m[1]}.${m[2]}` : "Unknown";
-}
-/** a node's release ("1.15.1") */
-function patchOf(v?: string): string {
-  const m = /(\d+)\.(\d+)\.(\d+)/.exec(v ?? "");
-  return m ? `${m[1]}.${m[2]}.${m[3]}` : minorOf(v);
-}
-/** the key a version pick matches on: a release pick has three parts */
-function versionKey(v: string | undefined, pick: string): string {
-  return pick.split(".").length === 3 ? patchOf(v) : minorOf(v);
-}
+const STATUS_INK = {
+  current: "text-zinc-700 dark:text-zinc-300",
+  behind: "text-[#E6212F]",
+  unknown: "text-zinc-400 dark:text-zinc-500",
+} as const;
 
-/* what the roster is cut to: every figure and chart above it can set one
-   part; the parts AND together, and each shows as a chip over the list */
-interface Cut {
-  version?: string;
-  behind?: boolean;
-  expiring?: boolean;
-  miss?: string;
-  days?: string;
-  /** under the 80% uptime a validator needs to earn its reward */
-  lowUptime?: boolean;
-}
+const NA = <span className="text-zinc-300 dark:text-zinc-700">n/a</span>;
 
 /* simple bucket bars shared by the two health charts */
 function BucketBars({
@@ -174,36 +123,31 @@ function BucketBars({
   picked,
   onPick,
 }: {
-  data: { label: string; count: number }[];
+  data: { id: string; label: string; count: number }[];
   /** per-bucket bar color; defaults to the quiet steel */
-  tint?: (bucket: { label: string; count: number }, index: number) => string;
+  tint?: (bucket: { id: string }) => string;
   /** the bucket the roster is cut to */
   picked?: string;
-  onPick?: (label: string) => void;
+  onPick?: (id: string) => void;
 }) {
   return (
     <div className="h-40">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} barCategoryGap="18%">
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={false}
-            tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }}
-          />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#a1a1aa", fontFamily: "monospace" }} />
           <YAxis hide domain={[0, "dataMax"]} />
           <RechartsTooltip
             cursor={{ fill: "rgba(161,161,170,0.08)" }}
             content={({ active, payload }) => {
               if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { label: string; count: number };
+              const d = payload[0].payload as { id: string; label: string; count: number };
               return (
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{d.label}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
                     {d.count.toLocaleString()} validator{d.count === 1 ? "" : "s"}
                   </p>
-                  {onPick && d.count > 0 && <p className="text-[10px] text-zinc-400">{picked === d.label ? "Click to show all" : "Click to list them"}</p>}
+                  {onPick && d.count > 0 && <p className="text-[10px] text-zinc-400">{picked === d.id ? "Click to show all" : "Click to list them"}</p>}
                 </TipPlate>
               );
             }}
@@ -214,13 +158,13 @@ function BucketBars({
             isAnimationActive={false}
             radius={[2, 2, 0, 0]}
             className={onPick ? "cursor-pointer" : undefined}
-            onClick={(d: { payload?: { label: string; count: number } }) => d.payload && d.payload.count > 0 && onPick?.(d.payload.label)}
+            onClick={(d: { payload?: { id: string; count: number } }) => d.payload && d.payload.count > 0 && onPick?.(d.payload.id)}
           >
-            {data.map((bucket, i) => (
+            {data.map((bucket) => (
               <Cell
-                key={bucket.label}
-                fill={tint ? tint(bucket, i) : QUIET_BAR}
-                fillOpacity={picked && picked !== bucket.label ? 0.25 : 1}
+                key={bucket.id}
+                fill={tint ? tint(bucket) : QUIET_BAR}
+                fillOpacity={picked && picked !== bucket.id ? 0.25 : 1}
                 style={{ transition: "fill-opacity 250ms cubic-bezier(0.32,0.72,0,1)" }}
               />
             ))}
@@ -257,43 +201,19 @@ function CountChart({ data }: { data: CountPoint[] }) {
                     {Math.round(d.count).toLocaleString()} Primary Network validators
                   </p>
                   {d.seats !== undefined && (
-                    <p className="text-[10px] tabular-nums text-zinc-500">
-                      {Math.round(d.seats).toLocaleString()} seats incl. L1s
-                    </p>
+                    <p className="text-[10px] tabular-nums text-zinc-500">{Math.round(d.seats).toLocaleString()} seats incl. L1s</p>
                   )}
                 </TipPlate>
               );
             }}
           />
-          <Area
-            type="monotone"
-            dataKey="count"
-            stroke="currentColor"
-            strokeWidth={1.5}
-            fill="currentColor"
-            fillOpacity={0.1}
-            isAnimationActive={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="seats"
-            stroke={SEATS_COLOR}
-            strokeWidth={1.5}
-            dot={false}
-            connectNulls={false}
-            isAnimationActive={false}
-          />
+          <Area type="monotone" dataKey="count" stroke="currentColor" strokeWidth={1.5} fill="currentColor" fillOpacity={0.1} isAnimationActive={false} />
+          <Line type="monotone" dataKey="seats" stroke={SEATS_COLOR} strokeWidth={1.5} dot={false} connectNulls={false} isAnimationActive={false} />
           <ReferenceLine
             x={ETNA_DAY}
             stroke="#E6212F"
             strokeDasharray="4 3"
-            label={{
-              value: "ACP-77",
-              position: "insideTopRight",
-              fontSize: 10,
-              fontFamily: "monospace",
-              fill: "#E6212F",
-            }}
+            label={{ value: "ACP-77", position: "insideTopRight", fontSize: 10, fontFamily: "monospace", fill: "#E6212F" }}
           />
         </ComposedChart>
       </ResponsiveContainer>
@@ -301,126 +221,200 @@ function CountChart({ data }: { data: CountPoint[] }) {
   );
 }
 
-export function PrimaryValidatorsContent({ stakingHref, switched = false }: { stakingHref: string; switched?: boolean }) {
+/** a toolbar action in the ledger voice */
+function ToolButton({
+  icon: Icon,
+  onClick,
+  disabled,
+  title,
+  children,
+}: {
+  icon: typeof Copy;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="inline-flex shrink-0 items-center gap-1.5 border border-zinc-200 bg-white/80 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-600 transition-colors enabled:hover:border-zinc-900 enabled:hover:text-zinc-900 disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950/80 dark:text-zinc-300 dark:enabled:hover:border-zinc-100 dark:enabled:hover:text-zinc-100"
+    >
+      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+      {children}
+    </button>
+  );
+}
+
+function OnlineDot({ online }: { online: boolean | null }) {
+  if (online === null) return <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700" title="Connection not reported" />;
+  return online ? (
+    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400" title="Online" />
+  ) : (
+    <span className="h-2 w-2 shrink-0 rounded-full ring-[1.5px] ring-inset ring-[#E6212F]" title="Offline" />
+  );
+}
+
+export function PrimaryValidatorsContent(props: { stakingHref: string; switched?: boolean }) {
+  return (
+    // the roster's filter rides in the URL, so the view renders under a Suspense boundary
+    <Suspense
+      fallback={
+        <Board divide={false} className="border">
+          <RowSkeleton n={8} />
+        </Board>
+      }
+    >
+      <PrimaryValidatorsView {...props} />
+    </Suspense>
+  );
+}
+
+function PrimaryValidatorsView({ stakingHref, switched = false }: { stakingHref: string; switched?: boolean }) {
+  const params = useSearchParams();
+  const [initial] = useState(() => readState(new URLSearchParams(params.toString())));
+  const [targetPick, setTargetPick] = useState<string | null>(initial.target);
+  const [query, setQuery] = useState(initial.q);
+  const [selection, setSelection] = useState<Selection>(initial.selection);
+  const [sort, setSort] = useState<Sort>(initial.sort);
+  const [shown, setShown] = useState(PAGE);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const rosterRef = useRef<HTMLElement>(null);
+
   const { data: metrics, failed: metricsFailed } = usePrimaryMetrics();
   const { data: sdkValidators, failed: sdkFailed } = useSdkValidators();
-  const { data: p2p } = useP2pValidators();
+  const { data: p2p, failed: p2pFailed } = useP2pValidators();
   const { data: totalSeats } = useTotalSeats();
-  const { subnets } = useValidatorStats("mainnet");
-
-  const [query, setQuery] = useState("");
-  const [shown, setShown] = useState(50);
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "stake", dir: -1 });
-  const [minVersion, setMinVersion] = useState("");
-  const [grain, setGrain] = useState<FleetGrain>("minor");
+  const { data: releases } = useAvalancheGoReleases();
 
   /* ---------------------------------------------------------------- */
-  /* versions — the Primary Network's slice of the shared stats feed   */
+  /* the set, measured against the target                             */
   /* ---------------------------------------------------------------- */
 
-  const merged = useMemo<MergedValidator[]>(
-    () =>
-      (sdkValidators ?? []).map((v) => {
-        const row = p2p?.get(v.nodeId);
-        return { ...v, version: resolveVersion(row, v), p2p: row };
-      }),
-    [sdkValidators, p2p],
+  const base = useMemo(() => (sdkValidators ? buildRows(sdkValidators, p2p) : null), [sdkValidators, p2p]);
+  const required = useMemo(() => requiredRelease(releases), [releases]);
+  const latest = releases?.[0] ?? null;
+  const target = targetPick ?? (base ? defaultTarget(base, releases) : null);
+  // no target only when no node reports a version and GitHub is unreachable: the roster still lists
+  const rows = useMemo(() => (base ? withStatus(base, target ?? "0.0.0") : null), [base, target]);
+  const targets = useMemo(() => (base ? targetOptions(base, releases, target) : []), [base, releases, target]);
+  const shares = useMemo(() => (rows && target ? releaseShares(rows, target) : []), [rows, target]);
+
+  /* ---------------------------------------------------------------- */
+  /* the roster's filter                                              */
+  /* ---------------------------------------------------------------- */
+
+  const facets = useMemo(() => facetsFor(rows ?? []), [rows]);
+  const q = useMemo(() => parseQuery(query), [query]);
+  const filtering = isFiltering(selection, q);
+  const filtered = useMemo(() => (rows ? sortRows(applyFilter(rows, facets, selection, q), sort) : []), [rows, facets, selection, q, sort]);
+  const counts = useMemo(() => (rows ? facetCounts(rows, facets, selection, q) : null), [rows, facets, selection, q]);
+  const visible = useMemo(() => (filtering ? new Set(filtered.map((r) => r.nodeId)) : null), [filtering, filtered]);
+  const missing = useMemo(() => (rows ? missingIds(rows, q) : []), [rows, q]);
+  // a preset counts inside the search, so a pasted list reads its own triage
+  const presetCounts = useMemo(
+    () => Object.fromEntries(PRESETS.map((p) => [p.id, rows ? applyFilter(rows, facets, p.selection, q).length : 0])),
+    [rows, facets, q],
   );
+  const activeFacets = Object.values(selection).filter((v) => v?.length).length;
+  const canLink = linkable(query);
 
-  /* versions: counted from the roster itself once it loads, so the
-     breakdown, the headline figures and the table's Version column read
-     one source, and picking a version never lists zero rows. The shared
-     stats feed (a different crawler) stands in until the roster arrives. */
-  const versions = useMemo<VersionBreakdownData | null>(() => {
-    if (merged.length > 0 && p2p) {
-      const by: Record<string, { nodes: number; stake: number }> = {};
-      let total = 0;
-      for (const v of merged) {
-        const k = grain === "patch" ? patchOf(v.version) : minorOf(v.version);
-        const stake = v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
-        by[k] = { nodes: (by[k]?.nodes ?? 0) + 1, stake: (by[k]?.stake ?? 0) + stake };
-        total += stake;
-      }
-      return {
-        byClientVersion: Object.fromEntries(
-          Object.entries(by).map(([k, d]) => [k, { nodes: d.nodes, stakeString: BigInt(Math.round(d.stake)).toString() }]),
-        ),
-        totalStakeString: BigInt(Math.round(total)).toString(),
-      } as VersionBreakdownData;
-    }
-    const primary = subnets?.find((s) => s.id === PRIMARY_NETWORK_ID);
-    return primary?.byClientVersion
-      ? { byClientVersion: primary.byClientVersion, totalStakeString: primary.totalStakeString }
-      : null;
-  }, [merged, p2p, subnets, grain]);
+  /* uptime, miss rate and time left come from the crawler alone: until it
+     answers, those counts read as waiting, not as zero */
+  const pending: Pending | null = p2p
+    ? null
+    : p2pFailed
+      ? { keys: CRAWLER_FACETS, label: "n/a", title: "The crawler feed is unavailable, so uptime, miss rate and time left cannot filter" }
+      : { keys: CRAWLER_FACETS, label: "…", title: "Waiting for the crawler feed" };
+  const waitingOnCrawler = !!pending && CRAWLER_FACETS.some((k) => !!selection[k]?.length);
 
-  const availableVersions = useMemo(
-    () =>
-      // targets stay minor lines whatever grain the breakdown is cut at
-      versions
-        ? [...new Set(Object.keys(versions.byClientVersion).filter((v) => v !== "Unknown").map((v) => minorOf(v)))].sort((a, b) =>
-            compareVersions(b, a),
-          )
-        : [],
-    [versions],
-  );
-
-  // default the target to the newest release with max adoption
-  useEffect(() => {
-    if (!minVersion && versions) {
-      const target = defaultVersionTarget(versions.byClientVersion);
-      if (target) setMinVersion(minorOf(target));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableVersions]);
-
-  const versionStats =
-    versions && minVersion ? calculateVersionStats(versions, minVersion) : null;
-  const totalNodes = versions
-    ? Object.values(versions.byClientVersion).reduce((sum, v) => sum + v.nodes, 0)
-    : 0;
-
-  /* ---------------------------------------------------------------- */
-  /* the roster                                                        */
-  /* ---------------------------------------------------------------- */
-
-  const q = query.trim().toLowerCase();
-  const [cut, setCut] = useState<Cut>({});
-  const rosterRef = useRef<HTMLElement>(null);
-  const cutting = Object.values(cut).some(Boolean);
-  const rows = useMemo(() => {
-    const filtered = merged.filter((v) => {
-      if (q && !v.nodeId.toLowerCase().includes(q) && !(v.version ?? "").toLowerCase().includes(q)) return false;
-      if (cut.version && versionKey(v.version, cut.version) !== cut.version) return false;
-      if (cut.behind && (minorOf(v.version) === "Unknown" || compareVersions(minorOf(v.version), minVersion) >= 0)) return false;
-      if (cut.expiring && !(v.p2p && v.p2p.days_left < 30)) return false;
-      if (cut.lowUptime && !(v.p2p && v.p2p.p50_uptime < 80)) return false;
-      if (cut.miss && !(v.p2p && missBucket(v.p2p.miss_rate_14d) === cut.miss)) return false;
-      if (cut.days && !(v.p2p && daysBucket(v.p2p.days_left) === cut.days)) return false;
-      return true;
-    });
-    return filtered.sort((a, b) => (sortValue(a, sort.key) - sortValue(b, sort.key)) * sort.dir);
-  }, [merged, q, sort, cut, minVersion]);
-
-  /** set or clear one part of the cut; a part turned on brings the roster into view */
-  const cutBy = <K extends keyof Cut>(key: K, value: Cut[K]) => {
-    const on = value !== undefined && value !== false && cut[key] !== value;
-    setCut((c) => ({ ...c, [key]: on ? value : undefined }));
-    setShown(50);
-    if (on) requestAnimationFrame(() => rosterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  /* The filter rides in the URL, so a triage view can be shared as a link.
+     The write waits for typing to pause: Safari refuses more than 100
+     history updates in 10 seconds, and Next adds one of its own to each. */
+  const viewUrl = () => {
+    const url = new URL(window.location.href);
+    const next = writeState(url.searchParams, { target: targetPick, q: query, selection, sort }).toString();
+    return `${url.pathname}${next ? `?${next}` : ""}${url.hash}`;
   };
-  const chips: { key: keyof Cut; label: string }[] = [
-    cut.version ? { key: "version" as const, label: `on ${cut.version}` } : null,
-    cut.behind ? { key: "behind" as const, label: `behind ${minVersion}` } : null,
-    cut.expiring ? { key: "expiring" as const, label: "ends inside 30 days" } : null,
-    cut.lowUptime ? { key: "lowUptime" as const, label: "uptime under 80%" } : null,
-    cut.miss ? { key: "miss" as const, label: `miss rate ${cut.miss}` } : null,
-    cut.days ? { key: "days" as const, label: `${cut.days} left` } : null,
-  ].filter((c): c is { key: keyof Cut; label: string } => c !== null);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = viewUrl();
+      if (next === `${window.location.pathname}${window.location.search}${window.location.hash}`) return;
+      try {
+        window.history.replaceState(null, "", next);
+      } catch {
+        /* a browser that refuses the update keeps the old URL; the view is unaffected */
+      }
+    }, 300);
+    return () => clearTimeout(t);
+    // viewUrl reads the same four values
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetPick, query, selection, sort]);
 
+  const reveal = () => requestAnimationFrame(() => rosterRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  const onToggle = (key: FacetKey, id: string) => {
+    setSelection((s) => toggleOption(s, key, id));
+    setShown(PAGE);
+  };
+  /** a figure above the roster cuts it to one facet's options, and brings it into view */
+  const onCut = (key: FacetKey, ids: string[]) => {
+    const next = cutTo(selection, key, ids);
+    setSelection(next);
+    setShown(PAGE);
+    if (next[key]) reveal();
+  };
+  const onPreset = (p: Preset) => {
+    setSelection(presetActive(p, selection) ? {} : p.selection);
+    setShown(PAGE);
+  };
+  const clearFacet = (key: FacetKey) => {
+    setSelection((s) => ({ ...s, [key]: undefined }));
+    setShown(PAGE);
+  };
+  const clearAll = () => {
+    setSelection({});
+    setQuery("");
+    setShown(PAGE);
+  };
   const toggleSort = (key: SortKey) => {
     setSort((s) => (s.key === key ? { key, dir: s.dir === -1 ? 1 : -1 } : { key, dir: -1 }));
-    setShown(50);
+    setShown(PAGE);
+  };
+  const cutIs = (key: FacetKey, ids: string[]) => {
+    const cur = selection[key] ?? [];
+    return cur.length === ids.length && ids.every((id) => cur.includes(id));
+  };
+
+  const copy = async (key: string, text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
+    } catch {
+      /* clipboard unavailable: the IDs are in the table and the CSV */
+    }
+  };
+  const download = () => {
+    if (!target) return;
+    const href = URL.createObjectURL(new Blob([toCsv(filtered, target)], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `avalanche-validators-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(href), 0);
+  };
+
+  /* the swatches tie the rail's options to the colors on the board */
+  const paintOf = useMemo(() => new Map(shares.map((s) => [s.version, s.paint])), [shares]);
+  const swatch = (key: FacetKey, id: string): CSSProperties | undefined => {
+    if (key === "version") return { background: paintOf.get(id) ?? "#a1a1aa" };
+    if (key === "status") return { background: id === "current" ? "#16a34a" : id === "behind" ? BEHIND_SWATCH : "#a1a1aa" };
+    if (key === "online") return id === "yes" ? { background: "#10b981" } : { boxShadow: "inset 0 0 0 1.5px #E6212F" };
+    return undefined;
   };
 
   const SortHeader = ({ label, k }: { label: string; k: SortKey }) => {
@@ -428,10 +422,7 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
     return (
       <button
         onClick={() => toggleSort(k)}
-        className={cn(
-          "uppercase tracking-[0.14em] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100",
-          active && "text-zinc-900 dark:text-zinc-100",
-        )}
+        className={cn("uppercase tracking-[0.14em] transition-colors hover:text-zinc-900 dark:hover:text-zinc-100", active && "text-zinc-900 dark:text-zinc-100")}
       >
         {label}
         {active ? (sort.dir === -1 ? " ↓" : " ↑") : ""}
@@ -440,53 +431,53 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
   };
 
   /* ---------------------------------------------------------------- */
-  /* health aggregates from the p2p feed                                */
+  /* health across the set                                            */
   /* ---------------------------------------------------------------- */
 
-  const missBuckets = useMemo(() => {
-    if (!p2p?.size) return [];
-    const counts = new Map(MISS_EDGES.map((e) => [e.label, 0]));
-    p2p.forEach((v) => counts.set(missBucket(v.miss_rate_14d), (counts.get(missBucket(v.miss_rate_14d)) ?? 0) + 1));
-    return MISS_EDGES.map((e) => ({ label: e.label, count: counts.get(e.label) ?? 0 }));
-  }, [p2p]);
+  // validations that start after Helicon need 90% uptime to earn rewards; earlier ones 80%
+  const need = useMemo(() => uptimeRequirementAt(Date.now()), []);
+  const underIds = need > 80 ? ["80", "lt80"] : ["lt80"];
+  const uptime = useMemo(() => {
+    const all = (rows ?? []).map((r) => r.uptime).filter((u): u is number => u !== null).sort((a, b) => a - b);
+    if (!all.length) return null;
+    return { median: all[Math.floor(all.length / 2)], under: all.filter((u) => u < need).length };
+  }, [rows, need]);
 
-  const daysLeftBuckets = useMemo(() => {
-    if (!p2p?.size) return [];
-    const counts = new Map(DAYS_EDGES.map((e) => [e.label, 0]));
-    p2p.forEach((v) => counts.set(daysBucket(v.days_left), (counts.get(daysBucket(v.days_left)) ?? 0) + 1));
-    return DAYS_EDGES.map((e) => ({ label: e.label, count: counts.get(e.label) ?? 0 }));
-  }, [p2p]);
+  const expiring = useMemo(() => {
+    const days = (rows ?? []).map((r) => r.daysLeft).filter((d): d is number => d !== null);
+    if (!days.length) return null;
+    return { within30: days.filter((d) => d < 30).length, within7: days.filter((d) => d < 7).length };
+  }, [rows]);
 
-  const expiringSoon = useMemo(() => {
-    if (!p2p?.size) return null;
-    let within30 = 0;
-    let within7 = 0;
-    p2p.forEach((v) => {
-      if (v.days_left < 30) within30++;
-      if (v.days_left < 7) within7++;
-    });
-    return { within30, within7 };
-  }, [p2p]);
+  // the health charts draw the crawler's buckets over the whole set, whatever the cut
+  const [missBuckets, daysBuckets] = useMemo(() => {
+    const crawled = (rows ?? []).filter((r) => r.missRate !== null);
+    const bucket = (options: FacetOption[]) =>
+      crawled.length ? options.map((o) => ({ id: o.id, label: o.label, count: crawled.filter(o.test).length })) : [];
+    return [bucket(MISS_OPTIONS), bucket(ENDS_OPTIONS)];
+  }, [rows]);
+  const single = (key: FacetKey) => (selection[key]?.length === 1 ? selection[key]?.[0] : undefined);
 
-  const topProducers = useMemo(() => {
-    if (!p2p?.size) return [];
-    return Array.from(p2p.values())
-      .filter((v) => v.block_count_14d > 0)
-      .sort((a, b) => b.block_count_14d - a.block_count_14d)
-      .slice(0, 15);
-  }, [p2p]);
-  const maxBlocks = topProducers[0]?.block_count_14d ?? 0;
+  const topProducers = useMemo(
+    () =>
+      (rows ?? [])
+        .filter((r) => (r.blocks14d ?? 0) > 0)
+        .sort((a, b) => (b.blocks14d ?? 0) - (a.blocks14d ?? 0))
+        .slice(0, 15),
+    [rows],
+  );
+  const maxBlocks = topProducers[0]?.blocks14d ?? 0;
 
   /* ---------------------------------------------------------------- */
   /* validator count trend + the total-seats overlay                   */
   /* ---------------------------------------------------------------- */
 
   const countSeries = useMemo<CountPoint[]>(() => {
-    const counts = toSeries(metrics?.validator_count);
-    if (!counts.length) return [];
+    const series = toSeries(metrics?.validator_count);
+    if (!series.length) return [];
     const seats = new Map(toSeries(totalSeats).map((p) => [p.day, p.value]));
     return thin(
-      counts.map((p) => ({
+      series.map((p) => ({
         day: p.day,
         count: p.value,
         // the seats series only means something after Etna split the roles
@@ -497,8 +488,7 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
 
   const ownStake = num(metrics?.validator_weight?.current_value);
   const delegatedStake = num(metrics?.delegator_weight?.current_value);
-  const totalWeight =
-    ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
+  const totalWeight = ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
 
   /* the slabs' strips: the last 60 days of each figure */
   const countSpark = useMemo(() => toSeries(metrics?.validator_count).slice(-60).map((p) => p.value), [metrics]);
@@ -511,17 +501,10 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
       .slice(-60)
       .map((p) => (p.value + (del.get(p.day) ?? 0)) / NANO);
   }, [metrics]);
-  /* uptime across the set: the median, and who is under the reward line */
-  const uptime = useMemo(() => {
-    if (!p2p?.size) return null;
-    const all = Array.from(p2p.values()).map((v) => v.p50_uptime).sort((a, b) => a - b);
-    return { median: all[Math.floor(all.length / 2)], under: all.filter((u) => u < 80).length };
-  }, [p2p]);
-  const fleet = useMemo(() => (versions && minVersion ? fleetOf(versions, minVersion) : null), [versions, minVersion]);
-  const behindCount = fleet ? fleet.filter((f) => !f.current && f.version !== "Unknown").reduce((sum, f) => sum + f.nodes, 0) : null;
 
-  const nodeHref = (nodeId: string) =>
-    `/explorer/mainnet/p-chain/node/${encodeURIComponent(nodeId)}`;
+  const nodeHref = (nodeId: string) => `/explorer/mainnet/p-chain/node/${encodeURIComponent(nodeId)}`;
+  const total = useMemo(() => summarize(rows ?? []), [rows]);
+  const sum = useMemo(() => summarize(filtered), [filtered]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -536,8 +519,8 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
             sub={countDelta !== null ? `${countDelta >= 0 ? "+" : ""}${Math.round(countDelta)} in 30 days` : undefined}
             spark={countSpark}
             active={false}
-            onClick={cutting ? () => setCut({}) : undefined}
-            title={cutting ? "Show every validator" : undefined}
+            onClick={filtering ? clearAll : undefined}
+            title={filtering ? "Show every validator" : undefined}
           />
           <StatSlab
             label="Median Uptime"
@@ -545,11 +528,11 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
             format={(n) => n.toFixed(2)}
             unit="%"
             fill={uptime ? uptime.median / 100 : undefined}
-            sub={uptime ? (uptime.under > 0 ? `${uptime.under} under 80%` : "every node over 80%") : undefined}
-            alert={!!uptime && uptime.under > 0 && !!cut.lowUptime}
-            active={!!cut.lowUptime}
-            onClick={uptime?.under ? () => cutBy("lowUptime", true) : undefined}
-            title="A validator needs 80% uptime to earn its reward. Click to list the ones under it."
+            sub={uptime ? (uptime.under > 0 ? `${uptime.under} under ${need}%` : `every node over ${need}%`) : undefined}
+            alert={!!uptime && uptime.under > 0 && cutIs("uptime", underIds)}
+            active={cutIs("uptime", underIds)}
+            onClick={uptime?.under ? () => onCut("uptime", underIds) : undefined}
+            title={`Validations that start after Helicon need 90% uptime to earn rewards. Earlier ones need 80%. Click to list the validators under ${need}%.`}
           />
           <StatSlab
             label="Total Weight"
@@ -563,165 +546,307 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
           />
           <StatSlab
             label="Ending · 30d"
-            value={expiringSoon ? expiringSoon.within30 : null}
+            value={expiring ? expiring.within30 : null}
             format={(n) => n.toLocaleString("en-US")}
-            alert={!!expiringSoon && expiringSoon.within7 > 0}
-            sub={
-              expiringSoon ? (
-                expiringSoon.within7 > 0 ? (
-                  <span className="text-[#E6212F]">{expiringSoon.within7} inside a week</span>
-                ) : (
-                  "none inside a week"
-                )
-              ) : undefined
-            }
-            active={!!cut.expiring}
-            onClick={expiringSoon?.within30 ? () => cutBy("expiring", true) : undefined}
+            alert={!!expiring && expiring.within7 > 0}
+            sub={expiring ? expiring.within7 > 0 ? <span className="text-[#E6212F]">{expiring.within7} inside a week</span> : "none inside a week" : undefined}
+            active={cutIs("ends", ["lt7", "7-30"])}
+            onClick={expiring?.within30 ? () => onCut("ends", ["lt7", "7-30"]) : undefined}
             title="List the validators whose stake ends inside 30 days"
           />
         </div>
       </section>
 
-      {/* what the fleet runs */}
+      {/* how far the set is from the target release */}
       <section>
-        {fleet && versionStats ? (
-          <VersionFleet
-            fleet={fleet}
-            target={minVersion}
-            targets={availableVersions}
-            onTarget={setMinVersion}
-            stakePct={versionStats.stakePercentAbove}
-            nodePct={versionStats.nodesPercentAbove}
-            reporting={totalNodes}
-            picked={cut.version ?? null}
-            onPick={(v) => cutBy("version", v ?? undefined)}
-            grain={grain}
-            onGrain={setGrain}
+        {rows && target ? (
+          <UpgradeReadiness
+            rows={rows}
+            visible={visible}
+            target={target}
+            targets={targets}
+            onTarget={(v) => {
+              setTargetPick(v);
+              setShown(PAGE);
+            }}
+            required={required}
+            latest={latest}
+            selection={selection}
+            onCut={onCut}
+            nodeHref={nodeHref}
           />
         ) : (
           <Board divide={false} className="border">
-            <RowSkeleton n={5} />
+            {sdkFailed ? (
+              <EmptyRow>
+                <span className="text-[#E6212F]">validator feed unavailable</span>
+              </EmptyRow>
+            ) : rows ? (
+              <EmptyRow>no validator reports a version</EmptyRow>
+            ) : (
+              <RowSkeleton n={6} />
+            )}
           </Board>
         )}
       </section>
 
-      {/* the roster: every figure above can cut it; the cut shows as chips */}
+      {/* the roster: the presets, the rail and every figure above can cut it */}
       <section ref={rosterRef} className="flex scroll-mt-24 flex-col gap-4">
         <SectionHeader
           label="Validator Set"
           action={
-            merged.length ? (
+            rows?.length ? (
               <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-                {q || cutting
-                  ? `${rows.length.toLocaleString("en-US")} / ${merged.length.toLocaleString("en-US")}`
-                  : `${merged.length.toLocaleString("en-US")} validators`}
+                {filtering
+                  ? `${filtered.length.toLocaleString("en-US")} / ${rows.length.toLocaleString("en-US")}`
+                  : `${rows.length.toLocaleString("en-US")} validators`}
               </span>
             ) : undefined
           }
         />
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex w-full items-center gap-3 rounded-full border border-zinc-200 bg-white px-4 py-2 transition-colors focus-within:border-zinc-900 sm:w-80 dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
-            <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
-            <input
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-                setShown(50);
-              }}
-              placeholder="Filter by NodeID or version"
-              spellCheck={false}
-              className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
-            />
-            {query && (
+        <PresetRow counts={presetCounts} selection={selection} onPreset={onPreset} pending={pending} />
+
+        <div className="grid items-start gap-6 xl:grid-cols-[14rem_minmax(0,1fr)] xl:gap-8">
+          {/* the rail: every part of the filter, each option with the count it would leave */}
+          <aside className="sticky top-24 hidden max-h-[calc(100vh-7rem)] overflow-y-auto pr-1 [scrollbar-width:thin] xl:block">
+            <FacetRail facets={facets} counts={counts} selection={selection} onToggle={onToggle} onClearFacet={clearFacet} swatch={swatch} pending={pending} />
+          </aside>
+
+          <div className="flex min-w-0 flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex w-full items-center gap-3 rounded-full border border-zinc-200 bg-white px-4 py-2 transition-colors focus-within:border-zinc-900 sm:w-[26rem] dark:border-zinc-800 dark:bg-zinc-950 dark:focus-within:border-zinc-100">
+                <Search className="h-4 w-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
+                <input
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setShown(PAGE);
+                  }}
+                  onPaste={(e) => {
+                    // a one-line input drops line breaks, which would glue a pasted list together
+                    const text = e.clipboardData.getData("text");
+                    if (!/[\r\n]/.test(text)) return;
+                    e.preventDefault();
+                    const el = e.currentTarget;
+                    const start = el.selectionStart ?? el.value.length;
+                    const end = el.selectionEnd ?? el.value.length;
+                    setQuery(`${el.value.slice(0, start)}${text.replace(/\s+/g, " ").trim()}${el.value.slice(end)}`);
+                    setShown(PAGE);
+                  }}
+                  placeholder="NodeID, version, IP, or a list of NodeIDs"
+                  aria-label="Search validators"
+                  spellCheck={false}
+                  className="min-w-0 flex-1 bg-transparent font-mono text-[12px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-600"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setShown(PAGE);
+                    }}
+                    aria-label="Clear search"
+                    className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  setQuery("");
-                  setShown(50);
-                }}
-                aria-label="Clear search"
-                className="shrink-0 text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100"
+                onClick={() => setPanelOpen((o) => !o)}
+                aria-expanded={panelOpen}
+                className={cn(
+                  "inline-flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.12em] transition-colors xl:hidden",
+                  panelOpen || activeFacets > 0
+                    ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100"
+                    : "border-zinc-200 text-zinc-600 hover:border-zinc-400 dark:border-zinc-800 dark:text-zinc-300",
+                )}
               >
-                <X className="h-4 w-4" />
+                <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.75} />
+                Filters{activeFacets > 0 ? ` · ${activeFacets}` : ""}
               </button>
+              <div className="ml-auto flex items-center gap-1.5">
+                <ToolButton
+                  icon={copied === "ids" ? Check : Copy}
+                  onClick={() => copy("ids", filtered.map((r) => r.nodeId).join("\n"))}
+                  disabled={!filtered.length}
+                  title="Copy the NodeIDs of every validator in this list, one per line"
+                >
+                  {copied === "ids" ? "Copied" : `Copy ${filtered.length.toLocaleString("en-US")} IDs`}
+                </ToolButton>
+                <ToolButton icon={Download} onClick={download} disabled={!filtered.length} title="Download this list as CSV">
+                  CSV
+                </ToolButton>
+                <ToolButton
+                  icon={copied === "link" ? Check : Link2}
+                  onClick={() => copy("link", new URL(viewUrl(), window.location.origin).toString())}
+                  title={canLink ? "Copy a link to this view" : "This NodeID list is too long for a link. The link keeps the other filters; use Copy IDs or CSV for the list."}
+                >
+                  {copied === "link" ? (canLink ? "Copied" : "Copied without the list") : "Link"}
+                </ToolButton>
+              </div>
+            </div>
+
+            {panelOpen && (
+              <div className="border border-zinc-200 bg-white/80 px-5 py-4 xl:hidden dark:border-zinc-800 dark:bg-zinc-950/80">
+                <FacetRail
+                  facets={facets}
+                  counts={counts}
+                  selection={selection}
+                  onToggle={onToggle}
+                  onClearFacet={clearFacet}
+                  swatch={swatch}
+                  pending={pending}
+                  layout="grid"
+                />
+              </div>
+            )}
+
+            <ActiveChips facets={facets} selection={selection} onClearFacet={clearFacet} onClearAll={clearAll} />
+
+            {q.ids && rows && (
+              <p className="font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                {(q.ids.length - missing.length).toLocaleString("en-US")} of {q.ids.length.toLocaleString("en-US")} pasted NodeIDs are in the validator set.
+                {missing.length > 0 && (
+                  <>
+                    {" "}
+                    <span className="text-[#E6212F]">
+                      {missing.length.toLocaleString("en-US")} {missing.length === 1 ? "is" : "are"} not validating now.
+                    </span>{" "}
+                    <button
+                      type="button"
+                      onClick={() => copy("missing", missing.join("\n"))}
+                      className="text-[#0061E2] hover:underline dark:text-[#5f9dff]"
+                    >
+                      {copied === "missing" ? "Copied" : "Copy them"}
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+
+            {rows && (
+              <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">
+                <span className="text-zinc-900 dark:text-zinc-100">{sum.count.toLocaleString("en-US")}</span> validator{sum.count === 1 ? "" : "s"}
+                {" · "}
+                <span className="text-zinc-900 dark:text-zinc-100">{fmtCompact(sum.stake)}</span> AVAX
+                {filtering && total.stake > 0 && ` · ${((sum.stake / total.stake) * 100).toFixed(1)}% of stake`}
+                {" · "}
+                {sum.delegators.toLocaleString("en-US")} delegator{sum.delegators === 1 ? "" : "s"}
+              </p>
+            )}
+
+            <Board divide={false}>
+              {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
+              <div className="overflow-x-auto">
+                <div className="md:min-w-[60rem]">
+                  <div className={cn(HEAD, GRID, "border-b border-zinc-200 dark:border-zinc-800")}>
+                    <span>#</span>
+                    <span>Node</span>
+                    <span><SortHeader label="Version" k="version" /></span>
+                    <span className="text-right"><SortHeader label="Total Stake" k="stake" /></span>
+                    <span className="text-right"><SortHeader label="Delegators" k="delegators" /></span>
+                    <span className="text-right"><SortHeader label="Fee" k="fee" /></span>
+                    <span className="text-right"><SortHeader label="Uptime" k="uptime" /></span>
+                    <span className="whitespace-nowrap text-right"><SortHeader label="Days Left" k="daysLeft" /></span>
+                    <span className="whitespace-nowrap text-right"><SortHeader label="Miss · 14d" k="missRate" /></span>
+                  </div>
+                  {!rows && !sdkFailed && <RowSkeleton n={12} />}
+                  {rows &&
+                    filtered.slice(0, shown).map((r: StatusRow, i) => (
+                      <Link
+                        key={r.nodeId}
+                        href={nodeHref(r.nodeId)}
+                        title={r.ip ? `${r.nodeId} · ${r.ip}` : r.nodeId}
+                        className={cn(ROW, "grid-cols-4 gap-x-3 md:gap-x-4", GRID, "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}
+                      >
+                        <span className="hidden font-mono text-[12px] tabular-nums text-zinc-400 md:block dark:text-zinc-500">{i + 1}</span>
+                        <span className="col-span-4 flex min-w-0 items-center gap-2 md:col-span-1">
+                          <OnlineDot online={r.online} />
+                          <span className={cn("flex min-w-0 font-mono text-[12px]", idInk)}>
+                            <span className="truncate">{r.nodeId.slice(0, -6)}</span>
+                            <span className="shrink-0">{r.nodeId.slice(-6)}</span>
+                          </span>
+                        </span>
+                        <span className="min-w-0">
+                          <CellLabel>Version</CellLabel>
+                          <span className="flex items-center gap-1.5 font-mono text-[12px]">
+                            <span className="h-2 w-2 shrink-0 rounded-[1px]" style={{ background: paintOf.get(r.version ?? NO_VERSION) ?? "#a1a1aa" }} />
+                            <span className={cn("truncate", STATUS_INK[r.status])}>{r.version ?? "unknown"}</span>
+                          </span>
+                        </span>
+                        <span className="md:text-right">
+                          <CellLabel>Stake</CellLabel>
+                          <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">
+                            {fmtCompact(r.stake)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">AVAX</span>
+                          </span>
+                        </span>
+                        <span className="md:text-right">
+                          <CellLabel>Delegators</CellLabel>
+                          <span className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{r.delegators.toLocaleString("en-US")}</span>
+                        </span>
+                        <span className="md:text-right">
+                          <CellLabel>Fee</CellLabel>
+                          <span className="font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{r.fee !== null ? `${r.fee.toFixed(0)}%` : NA}</span>
+                        </span>
+                        <span className="md:text-right">
+                          <CellLabel>Uptime</CellLabel>
+                          <span className={cn("font-mono text-[12px] tabular-nums", r.uptime !== null && uptimeTone(r.uptime, need))}>
+                            {r.uptime !== null ? `${r.uptime.toFixed(2)}%` : NA}
+                          </span>
+                        </span>
+                        <span className="md:text-right">
+                          <CellLabel>Days left</CellLabel>
+                          <span className={cn("font-mono text-[12px] tabular-nums", r.daysLeft !== null && daysLeftTone(r.daysLeft))}>{r.daysLeft ?? NA}</span>
+                        </span>
+                        <span className="md:text-right">
+                          <CellLabel>Miss · 14d</CellLabel>
+                          <span className={cn("font-mono text-[12px] tabular-nums", r.missRate !== null && missRateTone(r.missRate))}>
+                            {r.missRate !== null ? `${r.missRate.toFixed(1)}%` : NA}
+                          </span>
+                        </span>
+                      </Link>
+                    ))}
+                  {rows && filtered.length === 0 && (
+                    <EmptyRow>
+                      {waitingOnCrawler ? (
+                        p2pFailed ? (
+                          <>
+                            the crawler feed is unavailable, so the uptime, miss rate and time-left filters cannot apply.{" "}
+                            <button type="button" onClick={clearAll} className="text-[#0061E2] hover:underline dark:text-[#5f9dff]">
+                              Clear the filter
+                            </button>
+                          </>
+                        ) : (
+                          "loading uptime, miss rate and time left from the crawler feed…"
+                        )
+                      ) : filtering ? (
+                        <>
+                          no validators match.{" "}
+                          <button type="button" onClick={clearAll} className="text-[#0061E2] hover:underline dark:text-[#5f9dff]">
+                            Clear the filter
+                          </button>
+                        </>
+                      ) : (
+                        "no validators found"
+                      )}
+                    </EmptyRow>
+                  )}
+                  {sdkFailed && !rows && (
+                    <EmptyRow>
+                      <span className="text-[#E6212F]">validator feed unavailable</span>
+                    </EmptyRow>
+                  )}
+                </div>
+              </div>
+            </Board>
+            {shown < filtered.length && (
+              <LoadMore onClick={() => setShown((s) => s + PAGE)} label={`Load more · ${(filtered.length - shown).toLocaleString("en-US")} remaining`} />
             )}
           </div>
-          {chips.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => cutBy(c.key, undefined)}
-              className="group inline-flex items-center gap-1.5 rounded-full bg-[#0061E2]/[0.08] py-1.5 pl-3 pr-2 font-mono text-[11px] text-[#0061E2] transition-colors hover:bg-[#0061E2]/[0.14] dark:bg-[#5b9bff]/15 dark:text-[#8db8ff]"
-            >
-              {c.label}
-              <X className="h-3 w-3 opacity-60 group-hover:opacity-100" />
-            </button>
-          ))}
-          {chips.length > 1 && (
-            <button type="button" onClick={() => setCut({})} className="px-1 font-mono text-[11px] text-zinc-400 transition-colors hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100">
-              Clear
-            </button>
-          )}
         </div>
-        <Board divide={false}>
-          {/* a tablet scrolls the ledger sideways; phones stack, desktops fit */}
-          <div className="overflow-x-auto">
-          <div className="md:min-w-[62rem] xl:min-w-0">
-          <div className={cn(HEAD, "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_9rem_6rem_4rem_6rem_6rem_6rem]", "border-b border-zinc-200 dark:border-zinc-800")}>
-            <span>#</span>
-            <span>Node</span>
-            <span><SortHeader label="Version" k="version" /></span>
-            <span className="text-right"><SortHeader label="Total Stake" k="stake" /></span>
-            <span className="text-right"><SortHeader label="Delegators" k="delegators" /></span>
-            <span className="text-right"><SortHeader label="Fee" k="fee" /></span>
-            <span className="text-right"><SortHeader label="Uptime" k="uptime" /></span>
-            <span className="text-right whitespace-nowrap"><SortHeader label="Days Left" k="daysLeft" /></span>
-            <span className="text-right whitespace-nowrap"><SortHeader label="Miss · 14d" k="missRate" /></span>
-          </div>
-          {sdkValidators === null && !sdkFailed && <RowSkeleton n={12} />}
-          {sdkValidators !== null &&
-            rows.slice(0, shown).map((v, i) => {
-              const stake = v.p2p?.total_stake ?? (num(v.amountStaked) ?? 0) + (num(v.amountDelegated) ?? 0);
-              return (
-                <Link key={v.nodeId} href={nodeHref(v.nodeId)} className={cn(ROW, "md:grid-cols-[2.5rem_minmax(0,1fr)_7rem_9rem_6rem_4rem_6rem_6rem_6rem]", "border-b border-zinc-100 last:border-b-0 dark:border-zinc-900")}>
-                  <span className="font-mono text-[12px] tabular-nums text-zinc-400 dark:text-zinc-500">{i + 1}</span>
-                  <span className={cn("min-w-0 truncate font-mono text-[12px]", idInk)} title={v.nodeId}>
-                    {v.nodeId}
-                  </span>
-                  <span className="truncate font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-                    {v.version?.replace("avalanchego/", "") ?? "—"}
-                  </span>
-                  <span className="font-mono text-[12.5px] tabular-nums text-zinc-900 md:text-right dark:text-zinc-50">
-                    {fmtCompact(stake / NANO)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">AVAX</span>
-                  </span>
-                  <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    {v.delegatorCount.toLocaleString("en-US")}
-                  </span>
-                  <span className="font-mono text-[12px] tabular-nums text-zinc-500 md:text-right dark:text-zinc-400">
-                    {num(v.delegationFee)?.toFixed(0) ?? "—"}%
-                  </span>
-                  <span className={cn("font-mono text-[12px] tabular-nums md:text-right", v.p2p ? uptimeTone(v.p2p.p50_uptime) : "text-zinc-300 dark:text-zinc-700")}>
-                    {v.p2p ? `${v.p2p.p50_uptime.toFixed(2)}%` : "—"}
-                  </span>
-                  <span className={cn("font-mono text-[12px] tabular-nums md:text-right", v.p2p ? daysLeftTone(v.p2p.days_left) : "text-zinc-300 dark:text-zinc-700")}>
-                    {v.p2p ? v.p2p.days_left : "—"}
-                  </span>
-                  <span className={cn("font-mono text-[12px] tabular-nums md:text-right", v.p2p ? missRateTone(v.p2p.miss_rate_14d) : "text-zinc-300 dark:text-zinc-700")}>
-                    {v.p2p ? `${v.p2p.miss_rate_14d.toFixed(1)}%` : "—"}
-                  </span>
-                </Link>
-              );
-            })}
-          {sdkValidators !== null && rows.length === 0 && <EmptyRow>{q || cutting ? "no validators match" : "no validators found"}</EmptyRow>}
-          {sdkFailed && sdkValidators === null && <EmptyRow><span className="text-[#E6212F]">validator feed unavailable</span></EmptyRow>}
-          </div>
-          </div>
-        </Board>
-        {shown < rows.length && (
-          <LoadMore onClick={() => setShown((s) => s + 50)} label={`Load more · ${(rows.length - shown).toLocaleString("en-US")} remaining`} />
-        )}
       </section>
-
 
       {/* how the fleet is behaving */}
       <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
@@ -729,9 +854,9 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
           {missBuckets.length ? (
             <BucketBars
               data={missBuckets}
-              picked={cut.miss}
-              onPick={(l) => cutBy("miss", l)}
-              tint={(b) => (b.label === "0%" ? QUIET_BAR : b.label.startsWith("0–") ? QUIET_BAR : "#E6212F")}
+              picked={single("miss")}
+              onPick={(id) => onCut("miss", [id])}
+              tint={(b) => (b.id === "0" || b.id === "0-1" ? QUIET_BAR : "#E6212F")}
             />
           ) : (
             <ChartEmpty failed={false} />
@@ -739,14 +864,12 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
         </ChartBoard>
 
         <ChartBoard label="Time Remaining · current set">
-          {daysLeftBuckets.length ? (
+          {daysBuckets.length ? (
             <BucketBars
-              data={daysLeftBuckets}
-              picked={cut.days}
-              onPick={(l) => cutBy("days", l)}
-              tint={(b) =>
-                b.label === "< 7d" ? "#E6212F" : b.label === "7–30d" ? "#d97706" : QUIET_BAR
-              }
+              data={daysBuckets}
+              picked={single("ends")}
+              onPick={(id) => onCut("ends", [id])}
+              tint={(b) => (b.id === "lt7" ? "#E6212F" : b.id === "7-30" ? "#d97706" : QUIET_BAR)}
             />
           ) : (
             <ChartEmpty failed={false} />
@@ -756,38 +879,22 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
 
       {/* who is actually sealing the chain */}
       {topProducers.length > 0 && (
-        <ChartBoard
-          label="Top Block Producers · 14d"
-          bodyClassName="p-0 divide-y divide-zinc-200 dark:divide-zinc-800"
-        >
-          {topProducers.map((v, i) => (
-              <div
-                key={v.node_id}
-                className="grid grid-cols-[2rem_minmax(0,14rem)_1fr_auto] items-center gap-4 px-5 py-2.5 md:px-6"
-              >
-                <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <Link
-                  href={nodeHref(v.node_id)}
-                  className="truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]"
-                >
-                  {v.node_id.slice(7, 15)}…{v.node_id.slice(-6)}
-                </Link>
-                <span className="h-2 bg-zinc-100 dark:bg-zinc-900">
-                  <span
-                    className="block h-full bg-[#A2AFB2] dark:bg-zinc-600"
-                    style={{ width: `${maxBlocks > 0 ? (v.block_count_14d / maxBlocks) * 100 : 0}%` }}
-                  />
-                </span>
-                <span className="font-mono text-[11px] tabular-nums text-zinc-700 dark:text-zinc-300">
-                  {v.block_count_14d.toLocaleString("en-US")}
-                  <span className="ml-2 text-zinc-400 dark:text-zinc-500">
-                    miss {v.miss_rate_14d.toFixed(1)}%
-                  </span>
-                </span>
-              </div>
-            ))}
+        <ChartBoard label="Top Block Producers · 14d" bodyClassName="p-0 divide-y divide-zinc-200 dark:divide-zinc-800">
+          {topProducers.map((r, i) => (
+            <div key={r.nodeId} className="grid grid-cols-[2rem_minmax(0,14rem)_1fr_auto] items-center gap-4 px-5 py-2.5 md:px-6">
+              <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
+              <Link href={nodeHref(r.nodeId)} className="truncate font-mono text-[12px] text-[#0061E2] hover:underline dark:text-[#5f9dff]">
+                {r.nodeId.slice(7, 15)}…{r.nodeId.slice(-6)}
+              </Link>
+              <span className="h-2 bg-zinc-100 dark:bg-zinc-900">
+                <span className="block h-full bg-[#A2AFB2] dark:bg-zinc-600" style={{ width: `${maxBlocks > 0 ? ((r.blocks14d ?? 0) / maxBlocks) * 100 : 0}%` }} />
+              </span>
+              <span className="font-mono text-[11px] tabular-nums text-zinc-700 dark:text-zinc-300">
+                {(r.blocks14d ?? 0).toLocaleString("en-US")}
+                <span className="ml-2 text-zinc-400 dark:text-zinc-500">miss {(r.missRate ?? 0).toFixed(1)}%</span>
+              </span>
+            </div>
+          ))}
         </ChartBoard>
       )}
 
@@ -806,15 +913,11 @@ export function PrimaryValidatorsContent({ stakingHref, switched = false }: { st
             </span>
           }
         >
-          {countSeries.length ? (
-            <CountChart data={countSeries} />
-          ) : (
-            <ChartEmpty failed={metricsFailed} />
-          )}
+          {countSeries.length ? <CountChart data={countSeries} /> : <ChartEmpty failed={metricsFailed} />}
         </ChartBoard>
         <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-          After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network —
-          the blue line counts every validator seat across the ecosystem since then.
+          After the Etna upgrade (ACP-77), L1 validators no longer stake on the Primary Network. The blue line counts every validator seat across the
+          ecosystem since then.
         </p>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { PrimaryNetworkMetrics, TimeSeriesMetric } from "@/types/stats";
+import type { AvalancheGoRelease } from "@/lib/avalanchego-releases";
 import { getValidatorFeeState } from "@/lib/pchain-node";
 
 /* Shared feeds for the Primary Network's two instruments — Staking (the
@@ -20,6 +21,8 @@ export interface SdkValidator {
   delegatorCount: number;
   validationStatus: string;
   version?: string;
+  /** the P-Chain API node is connected to it */
+  connected?: boolean;
 }
 
 export interface P2pValidator {
@@ -33,6 +36,8 @@ export interface P2pValidator {
   days_left: number;
   miss_rate_14d: number;
   block_count_14d: number;
+  /** host:port; "" when the crawler never reached the node */
+  public_ip?: string;
 }
 
 export interface StakingApy {
@@ -83,6 +88,15 @@ export function useP2pValidators() {
   return useLoad<Map<string, P2pValidator>>("/api/validators", (raw) => {
     if (!Array.isArray(raw)) return null;
     return new Map((raw as P2pValidator[]).map((v) => [v.node_id, v]));
+  });
+}
+
+/* AvalancheGo's stable releases, newest first: the validators page reads
+   the required upgrade target from them */
+export function useAvalancheGoReleases() {
+  return useLoad<AvalancheGoRelease[]>("/api/avalanchego-releases", (raw) => {
+    const list = (raw as { releases?: AvalancheGoRelease[] })?.releases;
+    return Array.isArray(list) ? list : null;
   });
 }
 
