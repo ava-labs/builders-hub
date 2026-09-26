@@ -4,21 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CartesianGrid, Cell, ResponsiveContainer, Scatter, ScatterChart, Tooltip as RechartsTooltip, XAxis, YAxis, ZAxis } from "recharts";
-import { X } from "lucide-react";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { cn } from "@/lib/utils";
-import { HEAD, ROW, RowDoor, idInk, fnInk } from "@/components/explorer-v2/ui";
+import { HEAD, ROW, idInk, fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { Names } from "@/lib/explorer-query/types";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
-import type { Format, VisualSpec } from "@/lib/explorer-query/visual";
+import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
 
 /* The rows of a query answer, as the explorer reads them: the column
-   words, the doors out of a cell, the generic table, the transaction
-   ledger and the one-dot-per-transaction plot. Shared by the answer
-   page, its zoom and its rows inspector. */
+   words, the doors out of a cell and a row, the generic table, a table
+   panel and the one-dot-per-transaction plot. Shared by the answer page,
+   its zoom, its rows inspector and the board tiles. */
 
 export type Row = Record<string, unknown>;
 export type Span = ReturnType<typeof spanOf>;
@@ -266,156 +265,67 @@ export function MiniHist({ rows, column, numeric }: { rows: Row[]; column: strin
   );
 }
 
-/* transactions, drawn as the explorer draws them everywhere else. The
-   columns follow what the query returned: the standard ones where they
-   exist, then whatever else it carried (an amount, a value, a token),
-   so the figure the question was about is never dropped. */
+/** the columns a list of transactions carries as standard; anything else is the query's own figure */
 export const LEDGER_KNOWN = new Set(["t", "tx_hash", "method_id", "from_address", "to_address", "block_number", "gas_charged", "fee_avax", "status"]);
 
-export function TxLedger({
+/** where one row of an answer opens: its transaction, for a list of
+    transactions, else the page of the thing a chart's axis names (a
+    contract, a validator, a block); null when it names nothing */
+export function rowDoor(row: Row, columns: ColumnMeta[], visual: VisualSpec | null, base: string): string | null {
+  if (isTxList(columns) && isHash(row.tx_hash)) return `${base}/tx/${row.tx_hash}`;
+  for (const p of visual?.panels ?? []) {
+    const door = p.x ? doorFor(p.x, row[p.x], base) : null;
+    if (door) return door;
+  }
+  return null;
+}
+
+/* a table the designer laid out: its columns, in its order, the first
+   rows in place and the rest a click away. Hashes, addresses and blocks
+   are links; a row opens what it is about. */
+export function PanelRows({
+  panel,
   columns,
   rows,
   names,
   visual,
   base,
   sym,
-  hoverTx,
-  onHoverTx,
+  onPick,
+  onAll,
+  limit = 10,
 }: {
+  panel: Panel;
   columns: ColumnMeta[];
   rows: Row[];
   names: Names;
   visual: VisualSpec | null;
   base: string;
   sym: string;
-  hoverTx?: string | null;
-  onHoverTx?: (h: string | null) => void;
+  onPick?: (row: Row) => void;
+  /** every row, in the sheet */
+  onAll?: () => void;
+  limit?: number;
 }) {
-  const has = new Set(columns.map((c) => c.name));
-  const extras = columns.filter((c) => !LEDGER_KNOWN.has(c.name));
-  const numericExtra = (c: ColumnMeta) => /Int|Float|Decimal/.test(c.type);
-  const cols: { key: string; head: string; width: string; right?: boolean }[] = [
-    { key: "status", head: "", width: "0.75rem" },
-    { key: "tx_hash", head: "Hash", width: "minmax(0,1.1fr)" },
-    ...(has.has("method_id") ? [{ key: "method_id", head: "Method", width: "minmax(0,1fr)" }] : []),
-    { key: "from_to", head: "From → To", width: "minmax(0,1.7fr)" },
-    ...extras.map((c) => ({ key: c.name, head: header(c.name), width: numericExtra(c) ? "8.5rem" : "minmax(0,1fr)", right: numericExtra(c) })),
-    ...(has.has("block_number") ? [{ key: "block_number", head: "Block", width: "6.5rem", right: true }] : []),
-    ...(has.has("gas_charged") ? [{ key: "gas_charged", head: "Gas charged", width: "6.5rem", right: true }] : []),
-    // fee = gas charged x price per gas: show the price so a row can be checked
-    ...(has.has("fee_avax") && has.has("gas_charged") ? [{ key: "__price", head: "nAVAX / gas", width: "6.5rem", right: true }] : []),
-    ...(has.has("fee_avax") ? [{ key: "fee_avax", head: "Fee", width: "minmax(0,7rem)", right: true }] : []),
-    ...(has.has("t") ? [{ key: "t", head: "Time (UTC)", width: "5rem", right: true }] : []),
-  ];
-  const tpl = { gridTemplateColumns: cols.map((c) => c.width).join(" ") };
-  // price per gas in nAVAX, and the list's median to spot tips far above it
-  const priceOf = (r: Row) => (typeof r.fee_avax === "number" && typeof r.gas_charged === "number" && r.gas_charged > 0 ? (r.fee_avax / r.gas_charged) * 1e9 : null);
-  const prices = rows.map(priceOf).filter((v): v is number => v !== null).sort((a, b) => a - b);
-  const median = prices.length ? prices[Math.floor(prices.length / 2)] : null;
-  const who = (col: string, v: unknown) => nameFor(names, col, v) ?? (isAddress(v) ? truncate(v, 6) : "");
-
-  const cell = (key: string, r: Row) => {
-    const v = r[key];
-    switch (key) {
-      case "status":
-        return <span className="flex h-3 w-3 items-center justify-center">{(v === 0 || v === "0") && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}</span>;
-      case "tx_hash":
-        return <span className={cn("min-w-0 truncate font-mono text-[12.5px]", idInk)}>{truncate(String(v), 6)}</span>;
-      case "method_id": {
-        const mName = nameFor(names, "method_id", v);
-        return (
-          <span className={cn("block min-w-0 truncate font-mono text-[12px]", mName ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={String(v ?? "")}>
-            {mName ?? (v && v !== "0x" ? String(v).toLowerCase() : "transfer")}
-          </span>
-        );
-      }
-      case "from_to":
-        return (
-          <span className="flex min-w-0 items-center gap-1.5 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
-            <Link href={`${base}/address/${String(r.from_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.from_address)}>
-              {who("from_address", r.from_address)}
-            </Link>
-            <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
-            <Link href={`${base}/address/${String(r.to_address)}`} className="truncate hover:text-[#E6212F]" title={String(r.to_address)}>
-              {who("to_address", r.to_address)}
-            </Link>
-          </span>
-        );
-      case "block_number":
-        return (
-          <Link href={`${base}/block/${String(v)}`} className={cn("text-right font-mono text-[12px] tabular-nums hover:text-[#E6212F]", idInk)}>
-            {typeof v === "number" ? formatNumber(v) : String(v ?? "")}
-          </Link>
-        );
-      case "gas_charged":
-        return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-500 dark:text-zinc-400">{typeof v === "number" ? formatNumber(v) : ""}</span>;
-      case "__price": {
-        const p = priceOf(r);
-        if (p === null) return <span />;
-        const over = median !== null && median > 0 && p > median * 20;
-        return (
-          <span
-            className={cn("text-right font-mono text-[12px] tabular-nums", over ? "text-amber-600 dark:text-amber-400" : "text-zinc-500 dark:text-zinc-400")}
-            title={over ? `${Math.round(p / median!)}x the list's median price: a priority tip far above the base fee` : "effective price per gas, fee / gas charged"}
-          >
-            {p >= 100 ? formatNumber(Math.round(p)) : p >= 1 ? p.toFixed(2) : p.toFixed(3)}
-          </span>
-        );
-      }
-      case "fee_avax":
-        return <span className="text-right font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-50">{typeof v === "number" ? fmt(v, "avax", sym) : ""}</span>;
-      case "t":
-        return (
-          <span className="text-right font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400" title={isTime(v) ? `${ago(toUnix(v))} ago` : undefined}>
-            {isTime(v) ? v.replace("T", " ").slice(11, 19) : ""}
-          </span>
-        );
-      default: {
-        // the query's own figures: an amount in a token, a value, a label
-        const name = nameFor(names, key, v);
-        if (typeof v === "number") return <span className="text-right font-mono text-[12.5px] tabular-nums text-zinc-900 dark:text-zinc-50">{fmt(v, formatOf(key, visual), sym)}</span>;
-        if (isAddress(v))
-          return (
-            <Link href={`${base}/address/${v}`} className={cn("min-w-0 truncate font-mono text-[12px] hover:text-[#E6212F]", name ? "text-zinc-900 dark:text-zinc-50" : idInk)} title={v}>
-              {name ?? truncate(v, 6)}
-            </Link>
-          );
-        return <span className="min-w-0 truncate font-mono text-[12px] text-zinc-600 dark:text-zinc-300">{name ?? String(v ?? "")}</span>;
-      }
-    }
-  };
-
+  const named = panel.series.map((s) => columns.find((c) => c.name === s.column)).filter((c): c is ColumnMeta => !!c);
+  const cols = named.length ? named : columns;
+  const when = cols.find((c) => isTime(rows[0]?.[c.name]))?.name;
+  const span = when ? spanOf(rows.map((r) => r[when])) : "other";
+  if (!rows.length) return <p className="py-6 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">No rows in this selection.</p>;
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[48rem] divide-y divide-zinc-200 dark:divide-zinc-800">
-        <div className={cn(HEAD, "grid")} style={tpl}>
-          {cols.map((c) => (
-            <span key={c.key} className={cn("truncate", c.right && "text-right")}>
-              {c.head}
-            </span>
-          ))}
-        </div>
-        {rows.map((r, i) => {
-          const hash = String(r.tx_hash);
-          return (
-            <RowDoor
-              key={`${hash}-${i}`}
-              id={`rec-${hash}`}
-              href={`${base}/tx/${hash}`}
-              onMouseEnter={() => onHoverTx?.(hash)}
-              onMouseLeave={() => onHoverTx?.(null)}
-              style={tpl}
-              className={cn(ROW, "grid items-center", hoverTx === hash && "bg-zinc-50 dark:bg-zinc-900")}
-            >
-              {cols.map((c) => (
-                <span key={c.key} className={cn("min-w-0", c.right && "text-right")}>
-                  {cell(c.key, r)}
-                </span>
-              ))}
-            </RowDoor>
-          );
-        })}
+    <div className="flex flex-col">
+      <div className="-mx-4 sm:-mx-5">
+        <ResultTable columns={cols} rows={rows.slice(0, limit)} names={names} visual={visual} base={base} sym={sym} span={span} picked={null} onPick={onPick ? (r) => onPick(r) : undefined} />
       </div>
+      {rows.length > limit && onAll && (
+        <button
+          type="button"
+          onClick={onAll}
+          className="self-start rounded-full px-3 py-1.5 font-mono text-[11px] text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900 -ml-3 mt-1 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+        >
+          All {formatNumber(rows.length)} rows
+        </button>
+      )}
     </div>
   );
 }

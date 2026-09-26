@@ -19,9 +19,9 @@ export const metadata: Metadata = createMetadata({
   twitter: { images: ogImage },
 });
 
-/* The network scope's chains tab: figures, the network map, and the
-   directory. The directory carries a mainnet/Fuji filter, so other network
-   segments just normalize here. */
+/* The network scope's chains tab: the city app, where the network map,
+   the figures and the directory are one tool. Its list carries a
+   mainnet/Fuji switch, so other network segments just normalize here. */
 export default async function NetworkChainsPage({
   params,
 }: {

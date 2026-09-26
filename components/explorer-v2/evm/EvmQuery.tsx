@@ -18,7 +18,7 @@ import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
-import { type Row, doorFor, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, toUnix } from "./QueryRows";
+import { type Row, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
@@ -41,6 +41,10 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
 /* the selection rides along with a follow-up after this mark, so the
    question the reader sees stays the one they typed */
 const FILTER_MARK = "\n\n(Only the rows where ";
+
+/* the thread rides in the URL: ?q= the question, one &then= per
+   follow-up, so a copied link opens the refined answer and not the first */
+const threadKey = (p: URLSearchParams) => JSON.stringify([p.get("q"), ...p.getAll("then")]);
 
 
 
@@ -199,6 +203,7 @@ export function NetworkQuery({ network, chains }: { network: string; chains: Net
     const url = new URL(window.location.href);
     url.searchParams.set("chain", next);
     url.searchParams.delete("from");
+    url.searchParams.delete("then");
     if (q) url.searchParams.set("q", q);
     else url.searchParams.delete("q");
     if (from) url.searchParams.set("from", from);
@@ -423,13 +428,31 @@ function QueryPage({
     [c.chainId],
   );
 
+  /** the thread as the URL keeps it; the page will not ask it again */
+  const writeThread = (text: string, refine: boolean) => {
+    const url = new URL(window.location.href);
+    if (refine) url.searchParams.append("then", text);
+    else {
+      url.searchParams.set("q", text);
+      url.searchParams.delete("then");
+    }
+    asked.current = threadKey(url.searchParams);
+    window.history.replaceState(null, "", url.toString());
+  };
+
+  /* a question, or a follow-up on the answer in view. A replay (a link
+     with its thread) passes each step's history along and leaves the URL
+     as it came. Resolves to the thread so far, or null when it stopped. */
   const ask = useCallback(
-    async (q: string, refine: boolean) => {
+    async (q: string, refine: boolean, opts: { replay?: boolean; hist?: Turn[] } = {}): Promise<Turn[] | null> => {
       const text = q.trim();
-      if (!text) return;
+      if (!text) return null;
       // a new question that names another chain is asked there; a follow-up stays on this chain
       const named = !refine && resolve && onRoute ? resolve(text) : null;
-      if (named && named !== c.chainSlug) return onRoute!(named, text);
+      if (named && named !== c.chainSlug) {
+        onRoute!(named, text);
+        return null;
+      }
       const my = ++token.current;
       setEvents([]);
       setReading(false);
@@ -444,44 +467,39 @@ function QueryPage({
       setInspect(false);
       setDesigning(false);
       setSqlOpen(false);
-      const hist = refine ? history : [];
+      const hist = refine ? (opts.hist ?? history) : [];
       try {
         const a = await stream({ prompt: text, history: hist }, my);
-        if (my !== token.current) return;
+        if (my !== token.current) return null;
         // a question about the other chain's data is asked on that chain's page
         if (a.route && a.route !== c.chainSlug) {
-          if (onRoute) return onRoute(a.route, text);
-          router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
-          return;
+          if (onRoute) onRoute(a.route, text);
+          else router.push(`/explorer/${network}/${a.route}/query?q=${encodeURIComponent(text)}&from=${c.chainSlug ?? ""}`);
+          return null;
         }
+        const next = [...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6);
         answerSql.current = a.sql;
         setAnswer(a);
         setSqlDraft(a.sql);
-        setHistory([...hist, { prompt: text, sql: a.sql, title: a.title }].slice(-6));
+        setHistory(next);
         setPrompt("");
-        const url = new URL(window.location.href);
-        if (!refine) {
-          asked.current = text;
-          url.searchParams.set("q", text);
-          rememberQuestion(c.chainSlug ?? String(c.chainId), text);
-        }
-        window.history.replaceState(null, "", url.toString());
+        if (!opts.replay) writeThread(text, refine);
+        if (!refine) rememberQuestion(c.chainSlug ?? String(c.chainId), text);
         setPhase("idle");
         setStarted(null);
         if (a.draftVisual) void design(text, a);
         else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
+        return next;
       } catch (e) {
         setError(e instanceof Error ? e.message : "The query failed.");
         if (e instanceof QueryError && e.signIn) {
-          // after sign-in the page reloads on ?q and asks again
-          asked.current = text;
-          const url = new URL(window.location.href);
-          url.searchParams.set("q", text);
-          window.history.replaceState(null, "", url.toString());
+          // after sign-in the page reloads on its thread and asks it again
+          if (!opts.replay) writeThread(text, refine);
           setGated(true);
         }
         setPhase("idle");
         setStarted(null);
+        return null;
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -551,22 +569,31 @@ function QueryPage({
     [answer, drill, sel, c.chainId, base],
   );
 
-  // a shared link asks on load, and so does a question typed into the
-  // search bar while this page is open (same route, new ?q)
+  // a shared link asks on load, its follow-ups after it, and so does a
+  // question typed into the search bar while this page is open (same
+  // route, new ?q)
   const params = useSearchParams();
   const qParam = params.get("q");
+  const thread = threadKey(params);
   // sent here from the other chain's Query page
   const cameFrom = params.get("from");
   const asked = useRef<string | null>(null);
   // the latest ask, read by the effect below without making it a trigger:
-  // only a new ?q may ask, never a re-render (New question changes ask)
+  // only a new thread in the URL may ask, never a re-render (New question changes ask)
   const askRef = useRef(ask);
   askRef.current = ask;
   useEffect(() => {
-    if (!qParam || qParam === asked.current) return;
-    asked.current = qParam;
-    void askRef.current(qParam, false);
-  }, [qParam]);
+    if (!qParam || thread === asked.current) return;
+    asked.current = thread;
+    const [first, ...then] = JSON.parse(thread) as string[];
+    void (async () => {
+      let h = await askRef.current(first, false, { replay: true });
+      for (const t of then) {
+        if (!h || asked.current !== thread) return;
+        h = await askRef.current(t, true, { replay: true, hist: h });
+      }
+    })();
+  }, [thread, qParam]);
   useEffect(() => () => setDigSelection(null), []);
 
   const reset = () => {
@@ -586,6 +613,7 @@ function QueryPage({
     asked.current = null;
     const url = new URL(window.location.href);
     url.searchParams.delete("q");
+    url.searchParams.delete("then");
     window.history.replaceState(null, "", url.toString());
     setTimeout(() => inputRef.current?.focus(), 50);
   };
@@ -605,10 +633,17 @@ function QueryPage({
   const busy = phase !== "idle";
   const stale = index && index !== "empty" && Date.now() / 1000 - index.untilUnix > STALE_S ? index : null;
   const elapsed = started ? Math.floor((Date.now() - started) / 1000) : 0;
-  const shareUrl = typeof window !== "undefined" && history[0] ? `${window.location.origin}${window.location.pathname}?q=${encodeURIComponent(history[0].prompt)}` : "";
 
   // every surface below the chart reads the rows through the selection
   const picked = useMemo(() => applySelection(allRows, sel), [allRows, sel]);
+
+  /** a row opens what it is about: its transaction, the thing its axis names, else its records */
+  const openRow = (r: Row) => {
+    const door = rowDoor(r, answer?.result?.columns ?? [], visual, base);
+    if (door) return router.push(door);
+    const i = allRows.indexOf(r);
+    if (i >= 0) void openDrill(r, i);
+  };
   const drilled = drill?.answer?.result ?? null;
   // what the inspector lists: the drilled records, else the picked rows
   const level = drill
@@ -830,7 +865,7 @@ function QueryPage({
               )}
               <div className="flex items-start justify-between gap-4">
                 <h1 className="text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{answer.title}</h1>
-                {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} question={history.at(-1)?.prompt} className="mt-1 shrink-0" />}
+                {c.chainSlug && !laying && <PinToBoard chain={c.chainSlug} network={network} answer={answer} thread={history.map((t) => t.prompt)} className="mt-1 shrink-0" />}
               </div>
               {!laying && reading && (
                 <span aria-busy="true" aria-label="Writing the reading" className="flex max-w-3xl flex-col gap-1.5 pt-1">
@@ -890,15 +925,9 @@ function QueryPage({
                     names={names}
                     sym={sym}
                     canDrill={canDrill || recordRows}
-                    onPick={(r) => {
-                      if (recordRows && r.tx_hash) return router.push(`${base}/tx/${String(r.tx_hash)}`);
-                      // a mark that is one thing on the chain (a contract, a
-                      // validator, a block) opens that thing's own page
-                      const door = visual?.panels.map((p) => p.x && doorFor(p.x, r[p.x], base)).find(Boolean);
-                      if (door) return router.push(door);
-                      const i = allRows.indexOf(r);
-                      if (i >= 0) void openDrill(r, i);
-                    }}
+                    // a mark that is one thing on the chain (a transaction, a
+                    // contract, a validator, a block) opens that thing's own page
+                    onPick={openRow}
                     hoverKey={hoverKey}
                     onHoverKey={setHoverKey}
                     range={range}
@@ -906,7 +935,21 @@ function QueryPage({
                     onZoom={(lo, hi) => void ask(`Only between ${String(lo)} and ${String(hi)} inclusive, same figures, finer buckets if that helps.`, true)}
                     selection={sel}
                     onSelection={setSel}
-                    panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} question={history.at(-1)?.prompt} /> : undefined}
+                    panelAction={c.chainSlug ? (i) => <PinToBoard chain={c.chainSlug!} network={network} answer={answer} panelIndex={i} thread={history.map((t) => t.prompt)} /> : undefined}
+                    // the designer's tables: the rows in its columns, each row a door
+                    renderTable={(p) => (
+                      <PanelRows
+                        panel={p}
+                        columns={answer.result?.columns ?? []}
+                        rows={picked}
+                        names={names}
+                        visual={visual}
+                        base={base}
+                        sym={sym}
+                        onPick={canDrill || recordRows ? openRow : undefined}
+                        onAll={() => setInspect(true)}
+                      />
+                    )}
                   />
                 ) : allRows.length === 1 ? (
                   // one row is a set of figures: each column on its own card
@@ -1017,8 +1060,8 @@ function QueryPage({
                               <Download className="h-3 w-3" /> All rows as CSV
                             </button>
                           )}
-                          {shareUrl && (
-                            <button type="button" onClick={() => copy("link", shareUrl)} className={quiet}>
+                          {history.length > 0 && (
+                            <button type="button" onClick={() => copy("link", window.location.href)} className={quiet}>
                               {copied === "link" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />} Link
                             </button>
                           )}
@@ -1105,6 +1148,7 @@ function QueryPage({
           visual={level.visual}
           base={base}
           sym={sym}
+          sql={drill ? drill.answer?.sql : answer.sql}
           onOpen={
             !drill && canDrill && !recordRows
               ? (r) => {

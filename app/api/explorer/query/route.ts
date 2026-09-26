@@ -9,6 +9,7 @@ import { designVisual, writeReading } from "@/lib/explorer-query/visual";
 import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
+import { runKept } from "@/lib/explorer-query/run-cache";
 import { targetOf } from "@/lib/explorer-query/target";
 import { checkChatRateLimit, formatResetTime, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -56,8 +57,8 @@ export async function POST(req: Request) {
     const d = drillSql(body.drill.sql, body.drill.row, chainId);
     if (!d.ok) return NextResponse.json({ error: d.error }, { status: 400 });
     try {
-      const run = await anchored(d.sql, chainId);
-      const result = await runQuery(run.sql);
+      const run = await runKept(d.sql, chainId);
+      const result = run.result;
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor });
     } catch (e) {
@@ -70,8 +71,9 @@ export async function POST(req: Request) {
     const g = guardSql(body.sql, chainId);
     if (!g.ok) return NextResponse.json({ error: g.error }, { status: 400 });
     try {
-      const run = await anchored(g.sql, chainId);
-      const result = await runQuery(run.sql);
+      // a board's tiles: many readers, one run a minute per query
+      const run = await runKept(g.sql, chainId);
+      const result = run.result;
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
       return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor });
     } catch (e) {

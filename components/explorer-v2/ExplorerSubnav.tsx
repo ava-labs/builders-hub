@@ -57,11 +57,17 @@ interface ExplorerSubnavProps {
   chainSlug?: string;
   chainName?: string;
   chainLogoURI?: string;
+  /** the page switches networks itself, as the Chains app's list does */
+  hideNetwork?: boolean;
+  /** classes for the page clock, such as hiding it where the page draws its own */
+  rangeClassName?: string;
   className?: string;
 }
 
 /* The network scope's home — every ecosystem-wide facet hangs off it. */
 const NETWORK_HOME = "/explorer/mainnet";
+/* the explorer's front door: the city of every chain, with the explorer's search */
+const NETWORK_FRONT = `${NETWORK_HOME}/chains`;
 
 /* Chain switcher — the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
@@ -108,7 +114,7 @@ function ChainSwitcher({
     {
       slug: "all-networks",
       name: "All Networks",
-      href: NETWORK_HOME,
+      href: NETWORK_FRONT,
     },
     {
       slug: "c-chain",
@@ -268,26 +274,6 @@ function ChainSwitcher({
               </p>
             )}
           </div>
-          <div className="border-t border-zinc-100 dark:border-zinc-900">
-            {(
-              [
-                ["All L1 chains", `${NETWORK_HOME}/chains`],
-                ["Explorer home", "/explorer"],
-              ] as const
-            ).map(([label, href]) => (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setOpen(false)}
-                className="group flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900"
-              >
-                <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-zinc-500 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-100">
-                  {label}
-                </span>
-                <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-300 transition-all group-hover:translate-x-0.5 group-hover:text-[#E6212F] dark:text-zinc-600" />
-              </Link>
-            ))}
-          </div>
         </div>
       )}
     </div>
@@ -313,17 +299,18 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   if (!chainSlug) {
     return [
       {
+        // the city leads: it is the explorer's front door
+        label: "Chains",
+        href: NETWORK_FRONT,
+        // the network map, ICM and validator versions live on the chains tab; message pages light it too
+        isActive: (p) =>
+          p.startsWith(NETWORK_FRONT) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
+      },
+      {
         label: "Overview",
         href: NETWORK_HOME,
         // the network stats live on the overview now
         isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
-      },
-      {
-        label: "Chains",
-        href: `${NETWORK_HOME}/chains`,
-        // the network map, ICM and validator versions live on the chains tab; message pages light it too
-        isActive: (p) =>
-          p.startsWith(`${NETWORK_HOME}/chains`) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
       },
       {
         label: "AVAX",
@@ -577,6 +564,8 @@ export function ExplorerSubnav({
   chainSlug,
   chainName,
   chainLogoURI,
+  hideNetwork = false,
+  rangeClassName,
   className,
 }: ExplorerSubnavProps) {
   const pathname = usePathname();
@@ -699,8 +688,8 @@ export function ExplorerSubnav({
       <div className="flex shrink-0 items-stretch gap-x-2 sm:gap-x-3">
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
-        <ExplorerRangeControl />
-        <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />
+        <ExplorerRangeControl className={rangeClassName} />
+        {!hideNetwork && <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
       </div>
     </div>
   );

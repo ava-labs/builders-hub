@@ -4,6 +4,7 @@ interface CoinGeckoResponse {
   "avalanche-2": {
     usd: number;
     usd_24h_change: number;
+    usd_market_cap?: number;
   };
 }
 
@@ -17,7 +18,7 @@ export async function GET() {
         next: { revalidate: 14400 }, // 4 hours - aligns with other aggregate metrics
       }),
       fetch(
-        "https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd&include_24hr_change=true",
+        "https://api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd&include_24hr_change=true&include_market_cap=true",
         {
           headers: {
             Accept: "application/json",
@@ -36,6 +37,7 @@ export async function GET() {
     let priceData = {
       price: 0,
       change24h: 0,
+      marketCap: 0,
     };
 
     if (priceResponse.ok) {
@@ -44,6 +46,7 @@ export async function GET() {
         priceData = {
           price: priceJson["avalanche-2"]?.usd || 0,
           change24h: priceJson["avalanche-2"]?.usd_24h_change || 0,
+          marketCap: priceJson["avalanche-2"]?.usd_market_cap || 0,
         };
       } catch (priceError) {
         console.warn("Failed to parse price data:", priceError);
@@ -56,6 +59,7 @@ export async function GET() {
       ...supplyData,
       price: priceData.price,
       priceChange24h: priceData.change24h,
+      marketCap: priceData.marketCap,
     });
   } catch (error) {
     console.error("Error fetching AVAX supply:", error);

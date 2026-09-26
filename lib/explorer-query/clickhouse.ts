@@ -211,6 +211,13 @@ export async function runQuery(sql: string): Promise<QueryResult> {
       if (typeof v === "string" && /^0x0{24}[0-9a-fA-F]{40}$/.test(v)) r[c.name] = `0x${v.slice(26).toLowerCase()}`;
     }
   }
+  // hex() writes capitals; the explorer writes every hash and selector in lowercase
+  for (const r of body.data) {
+    for (const k in r) {
+      const v = r[k];
+      if (typeof v === "string" && v.startsWith("0x") && /[A-F]/.test(v) && /^0x[0-9a-fA-F]+$/.test(v)) r[k] = v.toLowerCase();
+    }
+  }
   return {
     columns: body.meta,
     rows: body.data,

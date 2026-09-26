@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="vyoGem" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9B7FFF"/>
+      <stop offset="55%" stop-color="#5F3CF0"/>
+      <stop offset="100%" stop-color="#3B1FA8"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#vyoGem)"/>
+  <!-- Official VYO mark (same path as site nav logo) -->
+  <g transform="translate(5.2, 6.2) scale(0.052)">
+    <path
+      d="M411.46 9.61L211.71 355.6C209.24 359.87 203.08 359.87 200.62 355.6L0.870079 9.61C-1.59992 5.34 1.48008 0 6.41008 0H83.3801C86.8401 0 90.0301 1.84 91.7601 4.84L200.55 193.28C203.02 197.55 209.18 197.55 211.64 193.28L297.07 45.37C298.65 42.64 298 39.17 295.55 37.19L263.69 11.39C259 7.59 261.69 0.01 267.72 0.01H405.9C410.83 0.01 413.91 5.35 411.45 9.62L411.46 9.61Z"
+      fill="#FFFFFF"
+    />
+  </g>
+</svg>

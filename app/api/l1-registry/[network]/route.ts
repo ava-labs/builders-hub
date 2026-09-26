@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
+import { pchainPost } from "@/lib/pchain-rpc";
 
 // The chain build-out registry, aggregated server-side: every subnet the
 // P-Chain has ever created (the box's /v1 subnets endpoint, ~6 pages),
@@ -15,10 +16,6 @@ const FETCH_TIMEOUT_MS = 20_000;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h in-process
 const CACHE_CONTROL = "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400";
 const PRIMARY_SUBNET_ID = "11111111111111111111111111111111LpoYY";
-const P_CHAIN_RPC: Record<string, string> = {
-  mainnet: "https://api.avax.network/ext/bc/P",
-  fuji: "https://api.avax-test.network/ext/bc/P",
-};
 
 interface RegistryBlockchain {
   blockchainId: string;
@@ -49,10 +46,15 @@ export interface L1Registry {
     /** active validators at the proposed height; null when the P-Chain did not answer */
     validators: number | null;
   }[];
+  /** every subnet whose set runs now, named by its newest chain, newest
+   *  first; empty when the P-Chain did not answer */
+  active: L1Registry["recent"];
   lastUpdated: number;
 }
 
 const cache = new Map<string, { data: L1Registry; at: number }>();
+// the last counts the P-Chain gave, per network: a busy or rate-limited P-Chain serves them rather than none
+const lastCounts = new Map<string, Map<string, number>>();
 
 async function fetchAllSubnets(network: string): Promise<RegistrySubnet[]> {
   const out: RegistrySubnet[] = [];
@@ -77,12 +79,11 @@ async function fetchAllSubnets(network: string): Promise<RegistrySubnet[]> {
    a subnet whose set is empty is not running */
 async function fetchValidatorCounts(network: string): Promise<Map<string, number> | null> {
   try {
-    const res = await fetch(P_CHAIN_RPC[network], {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "platform.getAllValidatorsAt", params: { height: "proposed" } }),
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    });
+    const res = await pchainPost(
+      network,
+      { jsonrpc: "2.0", id: 1, method: "platform.getAllValidatorsAt", params: { height: "proposed" } },
+      FETCH_TIMEOUT_MS,
+    );
     if (!res.ok) return null;
     const sets = (await res.json())?.result?.validatorSets;
     if (!sets || typeof sets !== "object") return null;
@@ -123,7 +124,10 @@ function buildRegistry(subnets: RegistrySubnet[], counts: Map<string, number> | 
   }
 
   allChains.sort((a, b) => b.createdAt - a.createdAt);
-  return { totals, recent: allChains.slice(0, 8), lastUpdated: Date.now() };
+  // one per running set, so the map can stand the L1s the catalog does not list
+  const active = new Map<string, L1Registry["recent"][number]>();
+  for (const c of allChains) if ((c.validators ?? 0) > 0 && !active.has(c.subnetId)) active.set(c.subnetId, c);
+  return { totals, recent: allChains.slice(0, 8), active: [...active.values()], lastUpdated: Date.now() };
 }
 
 export async function GET(
@@ -139,12 +143,15 @@ export async function GET(
     return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
   }
   try {
-    const [subnets, counts] = await Promise.all([fetchAllSubnets(network), fetchValidatorCounts(network)]);
+    const [subnets, fresh] = await Promise.all([fetchAllSubnets(network), fetchValidatorCounts(network)]);
+    if (fresh) lastCounts.set(network, fresh);
+    const counts = fresh ?? lastCounts.get(network) ?? null;
     const data = buildRegistry(subnets, counts);
-    cache.set(network, { data, at: Date.now() });
+    // built without any counts, it holds a minute rather than the hour, so the map recovers when the P-Chain does
+    cache.set(network, { data, at: counts ? Date.now() : Date.now() - CACHE_TTL_MS + 60_000 });
     return NextResponse.json(data, { headers: { "cache-control": CACHE_CONTROL } });
   } catch {
-    // serve the stale aggregate over an error — creations move slowly
+    // serve the stale aggregate over an error: creations move slowly
     if (hit) return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
     return NextResponse.json({ error: "registry upstream unreachable" }, { status: 504 });
   }

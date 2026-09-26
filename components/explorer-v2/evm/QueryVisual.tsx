@@ -351,7 +351,8 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards }: { stats: St
   return (
     <div
       className={cn(
-        "-mx-5 -mt-5 grid grid-cols-2 border-b border-zinc-100 md:-mx-6 dark:border-zinc-900 [&>*]:border-zinc-100 dark:[&>*]:border-zinc-900 [&>*:nth-child(even)]:border-l sm:[&>*+*]:border-l",
+        // a board tile's strip runs edge to edge across the tile's padding
+        "-mx-4 -mt-2 grid grid-cols-2 border-b border-zinc-100 dark:border-zinc-900 [&>*]:border-zinc-100 dark:[&>*]:border-zinc-900 [&>*:nth-child(even)]:border-l sm:[&>*+*]:border-l",
         stats.length === 1 ? "grid-cols-1" : stats.length === 2 ? "sm:grid-cols-2" : stats.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-4",
         stats.length > 2 && "[&>*:nth-child(n+3)]:border-t sm:[&>*:nth-child(n+3)]:border-t-0",
       )}
@@ -901,19 +902,27 @@ export type QueryVisualProps = {
   titles?: boolean;
   /** each figure and panel on its own card (default); off inside a board tile */
   cards?: boolean;
+  /** draws a table panel (its rows) in its place; without it, table panels are left out */
+  renderTable?: (panel: Panel, index: number) => ReactNode;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
   const picked = useMemo(() => applySelection(rows, live), [rows, live]);
-  // each chart keeps its index in visual.panels, for the page's panel controls
+  // each panel keeps its index in visual.panels, for the page's panel controls;
+  // a table stands where the designer put it, when the page can draw one
+  const tables = !!renderTable;
   const charts = useMemo(
-    () => (panelIndex !== undefined ? [panelIndex] : visual.panels.map((_, i) => i)).flatMap((idx) => { const p = visual.panels[idx]; return isChart(p) ? [{ p, idx }] : []; }),
-    [visual, panelIndex],
+    () =>
+      (panelIndex !== undefined ? [panelIndex] : visual.panels.map((_, i) => i)).flatMap((idx) => {
+        const p = visual.panels[idx];
+        return (tables && p?.kind === "table") || isChart(p) ? [{ p, idx }] : [];
+      }),
+    [visual, panelIndex, tables],
   );
   const single = panelIndex !== undefined || charts.length === 1;
   return (
@@ -924,23 +933,33 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
             <div key={`${i}-${p.title}-${p.x}`} className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && p.width === "full" && "lg:col-span-2")}>
-              <PanelBlock
-                panel={p}
-                rows={rows}
-                names={names}
-                sym={sym}
-                canDrill={canDrill}
-                onPick={onPick}
-                selected={selected}
-                hoverKey={hoverKey}
-                onHoverKey={onHoverKey}
-                selection={whole}
-                live={live}
-                onSelection={onSelection}
-                compact={compact}
-                action={panelAction?.(idx)}
-                titled={titles}
-              />
+              {p.kind === "table" && renderTable ? (
+                <section aria-label={p.title || undefined} className="group/panel flex flex-col gap-3">
+                  <div className="flex min-h-7 items-center justify-between gap-3">
+                    <span className="min-w-0 truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{titles && p.title}</span>
+                    {panelAction && <span className="hidden shrink-0 opacity-0 transition-opacity duration-200 group-hover/panel:opacity-100 group-focus-within/panel:opacity-100 sm:inline [@media(hover:none)]:opacity-100">{panelAction(idx)}</span>}
+                  </div>
+                  {renderTable(p, idx)}
+                </section>
+              ) : (
+                <PanelBlock
+                  panel={p}
+                  rows={rows}
+                  names={names}
+                  sym={sym}
+                  canDrill={canDrill}
+                  onPick={onPick}
+                  selected={selected}
+                  hoverKey={hoverKey}
+                  onHoverKey={onHoverKey}
+                  selection={whole}
+                  live={live}
+                  onSelection={onSelection}
+                  compact={compact}
+                  action={panelAction?.(idx)}
+                  titled={titles}
+                />
+              )}
             </div>
           ))}
         </div>

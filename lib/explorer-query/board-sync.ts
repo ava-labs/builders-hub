@@ -9,7 +9,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
-import { goneBoards, listBoards, mergeRemote, type Board, type MergeOut, type RemoteBoard } from "./board";
+import { goneBoards, listBoards, mergeRemote, reidBoard, type Board, type MergeOut, type RemoteBoard } from "./board";
 
 export type SyncState = "off" | "loading" | "synced" | "error";
 
@@ -49,8 +49,10 @@ async function send(scope: string, s: ScopeSync, work: MergeOut): Promise<void> 
     });
     if (res.ok) s.sent.set(b.id, b.updatedAt);
     else if (res.status === 409) {
-      const body = (await res.json().catch(() => null)) as { board?: RemoteBoard } | null;
+      const body = (await res.json().catch(() => null)) as { board?: RemoteBoard; taken?: boolean } | null;
       if (body?.board) refused.push(body.board);
+      // another account holds the id: the board takes a new one, and the store change sends it
+      else if (body?.taken && reidBoard(scope, b.id)) continue;
       else throw new Error("board id taken");
     } else throw new Error(`PUT ${res.status}`);
   }

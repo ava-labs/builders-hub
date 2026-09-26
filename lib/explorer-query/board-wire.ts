@@ -27,6 +27,10 @@ const tileSchema = z.discriminatedUnion("kind", [
     visual: visualSpecSchema,
     panelIndex: z.number().int().min(0).nullable(),
     view: z.enum(["hbar", "bar", "line", "area", "scatter", "table"]).optional(),
+    /** the follow-ups after the question, so Open asks the same thread */
+    then: z.array(z.string().max(2000)).max(8).optional(),
+    /** how a mark opens into the records behind it */
+    drill: z.object({ sql: z.string().max(20_000), title: z.string().max(300) }).nullable().optional(),
     ...base,
   }),
 ]);
@@ -57,6 +61,16 @@ export const boardBodySchema = z.object({
   updatedAt: z.number().int().positive(),
 });
 export type BoardBody = z.infer<typeof boardBodySchema>;
+
+/** a board as anyone with its link reads it: no owner, no tombstone */
+export interface SharedBoard {
+  id: string;
+  scope: string;
+  name: string;
+  tiles: unknown[];
+  createdAt: number;
+  updatedAt: number;
+}
 
 /** a board as the account keeps it */
 export interface WireBoard {

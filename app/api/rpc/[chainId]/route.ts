@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import l1Chains from "@/constants/l1-chains.json";
 
 // The explorer's read path to our dedicated C-Chain and Fuji nodes. The node
 // URL carries a token and the node is paid for, so this route forwards only
@@ -13,6 +14,23 @@ const NODES: Record<string, { url: string | undefined; fallback: string }> = {
   "43114": { url: process.env.CCHAIN_DEBUG_RPC_URL, fallback: "https://api.avax.network/ext/bc/C/rpc" },
   "43113": { url: process.env.FUJI_DEBUG_RPC_URL, fallback: "https://api.avax-test.network/ext/bc/C/rpc" },
 };
+
+/* The relay for an L1 whose public RPC refuses the browser (no CORS
+   headers): the explorer's live view moves its reads here after a direct
+   fetch fails. The upstream is the catalog's own RPC for the chain ID, never
+   a URL from the request, so the route cannot be pointed anywhere else. The
+   L1 RPCs sit behind a shared rate limit, so identical reads from many
+   viewers share one upstream call for a moment, and a client gets a smaller
+   window than on our own node */
+const RELAYS = new Map<string, string>(
+  (l1Chains as { chainId?: string | number; rpcUrl?: string }[])
+    .filter((c) => c.chainId !== undefined && typeof c.rpcUrl === "string" && c.rpcUrl.startsWith("https://"))
+    .map((c) => [String(c.chainId), c.rpcUrl as string]),
+);
+const RELAY_MAX_CALLS = 40;
+const RELAY_MAX_PER_WINDOW = 600;
+const RELAY_SHARE_MS = 1_500;
+const shared = new Map<string, { at: number; ids: unknown[]; body: Promise<string | null> }>();
 
 const METHODS = new Set([
   "eth_blockNumber",
@@ -38,16 +56,16 @@ const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 3_000;
 const seen = new Map<string, { n: number; t: number }>();
 
-function allow(key: string, calls: number): boolean {
+function allow(key: string, calls: number, limit = MAX_PER_WINDOW): boolean {
   const now = Date.now();
   if (seen.size > 5_000) for (const [k, v] of seen) if (now - v.t > WINDOW_MS) seen.delete(k);
   const e = seen.get(key);
   if (!e || now - e.t > WINDOW_MS) {
     seen.set(key, { n: calls, t: now });
-    return calls <= MAX_PER_WINDOW;
+    return calls <= limit;
   }
   e.n += calls;
-  return e.n <= MAX_PER_WINDOW;
+  return e.n <= limit;
 }
 
 interface Call {
@@ -72,7 +90,8 @@ function refuse(c: Call): string | null {
 export async function POST(req: NextRequest, { params }: { params: Promise<{ chainId: string }> }) {
   const { chainId } = await params;
   const node = NODES[chainId];
-  if (!node) return NextResponse.json({ error: "unknown chain" }, { status: 404 });
+  const relay = node ? null : RELAYS.get(chainId) ?? null;
+  if (!node && !relay) return NextResponse.json({ error: "unknown chain" }, { status: 404 });
 
   const raw = await req.text();
   if (raw.length > MAX_BODY) return NextResponse.json({ error: "body too large" }, { status: 413 });
@@ -84,14 +103,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
   }
   const batch = Array.isArray(body);
   const calls = batch ? (body as Call[]) : [body as Call];
-  if (calls.length === 0 || calls.length > MAX_CALLS) return NextResponse.json({ error: `send 1 to ${MAX_CALLS} calls` }, { status: 400 });
+  const maxCalls = relay ? RELAY_MAX_CALLS : MAX_CALLS;
+  if (calls.length === 0 || calls.length > maxCalls) return NextResponse.json({ error: `send 1 to ${maxCalls} calls` }, { status: 400 });
   for (const c of calls) {
     const why = refuse(c);
     if (why) return NextResponse.json({ error: why }, { status: 403 });
   }
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (!allow(ip, calls.length)) return NextResponse.json({ error: "rate limit" }, { status: 429, headers: { "retry-after": "30" } });
+  const allowed = relay ? allow(`${ip}|${chainId}`, calls.length, RELAY_MAX_PER_WINDOW) : allow(ip, calls.length);
+  if (!allowed) return NextResponse.json({ error: "rate limit" }, { status: 429, headers: { "retry-after": "30" } });
 
   const clean = calls.map((c, i) => ({ jsonrpc: "2.0", id: c.id ?? i, method: c.method, params: c.params ?? [] }));
   const send = (url: string) =>
@@ -102,6 +123,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cha
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });
+
+  if (relay) {
+    // one upstream call for the same read from every viewer, for a moment
+    const key = `${chainId}|${JSON.stringify(batch ? clean.map(({ method, params }) => [method, params]) : [clean[0].method, clean[0].params])}`;
+    const now = Date.now();
+    if (shared.size > 500) for (const [k, v] of shared) if (now - v.at > RELAY_SHARE_MS) shared.delete(k);
+    let hit = shared.get(key);
+    if (!hit || now - hit.at > RELAY_SHARE_MS) {
+      hit = { at: now, ids: clean.map((c) => c.id), body: send(relay).then((r) => (r.ok ? r.text() : null)).catch(() => null) };
+      shared.set(key, hit);
+    }
+    const text = await hit.body;
+    if (text === null) return NextResponse.json({ error: "upstream unreachable" }, { status: 502 });
+    // the shared answer carries the first caller's ids, in any order: give this caller its own back
+    try {
+      const parsed = JSON.parse(text) as { id?: unknown }[] | { id?: unknown };
+      const first = hit.ids;
+      const ids = clean.map((c) => c.id);
+      const own = (r: { id?: unknown }) => ({ ...r, id: ids[first.indexOf(r.id)] ?? r.id });
+      const mine = Array.isArray(parsed) ? parsed.map(own) : { ...parsed, id: ids[0] };
+      return NextResponse.json(mine, { headers: { "cache-control": "no-store" } });
+    } catch {
+      return NextResponse.json({ error: "upstream sent invalid JSON" }, { status: 502 });
+    }
+  }
+  if (!node) return NextResponse.json({ error: "unknown chain" }, { status: 404 });
 
   try {
     let res = node.url ? await send(node.url).catch(() => null) : null;

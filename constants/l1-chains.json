@@ -28,7 +28,7 @@
   {
     "chainId": "xFwrfjdyhZRFbMUbGY3TjxM58iNxwkRazHL91xxwwnhRuUi8L",
     "chainName": "rwachain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/rwa-chain.png",
     "blockchainId": "0x7d78266d0f3701c77233d4220df59489ee3e301ec43e68738b762aa96ec042c2",
     "subnetId": "5pJqc6dvKDdNaigCTc9dkAifxLcmvMipvA9Q1b1oJRpN5VX8u",
     "slug": "rwachain-7d7826",
@@ -42,11 +42,11 @@
     "chainId": "80000",
     "chainName": "AIB Mainnet",
     "isActive": true,
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/aibtrust.jpg",
     "subnetId": "2qJPnDkDH6hn3PVzxzkUdTqDD1HeAnTT8FL4t2BJagc2iuq8j7",
     "slug": "aibmainnet",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Enterprise",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -205,7 +205,7 @@
     "subnetId": "2Ypm6RVhddu5Ps8DEbb35Y1PgX4uXE76yyxn6JMhnZy8ftAFLW",
     "slug": "btic",
     "color": "#06B6D4",
-    "category": "General",
+    "category": "Trade",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -248,7 +248,7 @@
     "subnetId": "o4Eariv2Cx1fTvPFXYofpJfS9KgwFaiGN8KFGcCeZM9t87GJr",
     "slug": "codenekt",
     "color": "#22C55E",
-    "category": "General",
+    "category": "Automotive",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -274,7 +274,7 @@
         "link": "https://explorer.avax.network/cx"
       }
     ],
-    "rpcUrl": "https://subnets.avax.network/cx/mainnet/rpc",
+    "rpcUrl": "https://cx.1node.org/rpc",
     "networkToken": {
       "name": "CX",
       "symbol": "CX",
@@ -298,7 +298,7 @@
     "subnetId": "fmmMAGwEYQZMGN7BC4b86gqmukSMEc6rAkG1SXapq3cz1W7y7",
     "slug": "dcomm",
     "color": "#10B981",
-    "category": "General",
+    "category": "Finance",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -378,7 +378,7 @@
     "chainId": "202110",
     "chainName": "Dinari Financial Network",
     "isActive": true,
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/dinari-icon.png",
     "subnetId": "2Ee4oBUute1PV5XaeS4b256eLH98r4NE8YgzX5nSX4cUxvtgre",
     "slug": "dinari-financial-network",
     "color": "#E57373",
@@ -422,7 +422,7 @@
       "twitter": "DOS_Chain",
       "discord": "https://discord.gg/DOS"
     },
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/dos-chain.png",
     "subnetId": "nQCwF6V9y8VFjvMuPeQVWWYn6ba75518Dpf6ZMWZNb3NyTA94",
     "slug": "dos",
     "color": "#6366F1",
@@ -440,11 +440,11 @@
     "chainId": "33345",
     "chainName": "Even",
     "isActive": true,
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/even.png",
     "subnetId": "VsxF67NQTACc2fLQL9fD3F8LzJ5eezcSGFNitGsk7VxKbPwcD",
     "slug": "even",
     "color": "#F97316",
-    "category": "General",
+    "category": "Music",
     "description": "EVEN's custom Avalanche L1 is an end-to-end platform for artists to release music directly to their fans, designed to onboard creators faster, support real-time token-gated access, enable transparent revenue distribution, and build data-rich tools that help artists better understand and monetize their audiences.",
     "website": "https://www.avax.network/about/blog/even-moves-to-avalanche-to-power-the-future-of-fan-first-music",
     "explorers": [
@@ -552,7 +552,7 @@
     "subnetId": "2LwJgsZLT52eAaxLTMLtBQeiUnEZuMibCqpAzJSQWHvRPs1iWN",
     "slug": "hashfire",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Enterprise",
     "description": "Hashfire, built on a custom Avalanche L1 using AvaCloud's infrastructure, allows governments and enterprises to embed approval processes, compliance rules and payment instructions directly into smart contracts.",
     "website": "https://hashfire.xyz/",
     "socials": {
@@ -631,7 +631,7 @@
     "subnetId": "oerPWBbtbe13eWbo3AegYUrHuSETeTwyNy7szoHJJ1QQBL9nu",
     "slug": "innovo",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Energy",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -663,7 +663,7 @@
     "socials": {
       "twitter": "intainft"
     },
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/intain-market.png",
     "subnetId": "2UEGsEEjRyMSgD7cNufCGEXbPXsma7RctBgfRw3Haqkk8oByFa",
     "slug": "intainmkt",
     "color": "#10B981",
@@ -676,11 +676,11 @@
     "chainId": "72379",
     "chainName": "Loyal",
     "isActive": true,
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "subnetId": "fZu9D9Ldxq9svbgRNdycWCSbLyEZLmTfKNxEnSqF3UXQztHP7",
     "slug": "loyal",
     "color": "#F97316",
-    "category": "General",
+    "category": "Loyalty",
     "description": "Japanese enterprise Loyalty Marketing partnered with blockchain services provider PlayThink to bring Loyalty Marketing's popular loyalty rewards program, 'Ponta', onchain to its 100M users. The Avalanche L1 issues and manage digital loyalty points and NFTs, enabling faster, cheaper, and more transparent customer rewards.",
     "website": "https://www.avax.network/about/press/playthink-and-loyalty-marketing-announce-web3-ecosystem-avalanche/?utm_source=chatgpt.com",
     "explorers": [
@@ -710,11 +710,11 @@
     "chainId": "29111",
     "chainName": "Mugen",
     "isActive": true,
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/mugen-chain.png",
     "subnetId": "LbvSkGmUJSpUby1gUrk4g9mmdeZQWcVGiFCXv57CJHBrxxEos",
     "slug": "mugen",
     "color": "#0EA5E9",
-    "category": "General",
+    "category": "Loyalty",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -734,7 +734,7 @@
     "blockchainId": "0xd32cc4660bcf8fa7971589f666fddb5ab22aee7e75dcb30b19829a65d4fb0063",
     "slug": "numi",
     "color": "#22C55E",
-    "category": "General",
+    "category": "Media",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -745,7 +745,7 @@
         "link": "https://8021.snowtrace.io"
       }
     ],
-    "rpcUrl": "https://subnets.avax.network/numi/mainnet/rpc",
+    "rpcUrl": "https://rpc.numine.io",
     "networkToken": {
       "name": "NUMINE",
       "symbol": "NUMINE",
@@ -799,7 +799,7 @@
     "subnetId": "26NzZkCTeUHfqdxRcUXDTAurNxDsT6mYLwSEqTz3s11G1rQV14",
     "slug": "pandasea",
     "color": "#3B82F6",
-    "category": "General",
+    "category": "Sports",
     "explorers": [],
     "aliasVerified": true,
     "isIndexed": true
@@ -812,7 +812,7 @@
     "subnetId": "2wLe8Ma7YcUmxMJ57JVWETMSHz1mjXmJc5gmssvKm3Pw8GkcFq",
     "slug": "playa3ull",
     "color": "#10B981",
-    "category": "General",
+    "category": "Gaming",
     "description": "PLAYA3ULL built a gaming-centric blockchain ecosystem: a dedicated Avalanche L1 powering the native token for in-game gas, transactions and deflationary mechanics. It enables players to truly own, trade, and earn from their in-game assets across a growing library of Web3 titles built on the PLAYA3ULL chain.",
     "website": "https://playa3ull.games/",
     "explorers": [
@@ -885,7 +885,7 @@
     "subnetId": "hkugVjqegihrQcggCnScNW8yQctyY7Z7oj2Mj5tGxWGXNa5iQ",
     "slug": "space",
     "color": "#A855F7",
-    "category": "General",
+    "category": "Collectibles",
     "explorers": [
       {
         "name": "Avalanche Explorer",
@@ -918,7 +918,7 @@
       "twitter": "StepApp_",
       "discord": "https://discord.gg/stepappdc"
     },
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/step-network.png",
     "subnetId": "7f9jciLEX25NPJEaAz1X7XF44B1Q9UBwq6PdnCHm5mnUq1e1C",
     "slug": "stepnetwork",
     "color": "#06B6D4",
@@ -942,7 +942,7 @@
     "subnetId": "2W9sERL7Zf7NrWpz7Bzg3fKSEt46gSQaKAU7ntTMSShLy64yMz",
     "slug": "straitsx",
     "color": "#84CC16",
-    "category": "General",
+    "category": "Finance",
     "description": "StraitsX integrated its SGD-pegged stablecoin XSGD on Avalanche, enabling faster, lower-fee, compliant cross-border payments and DeFi liquidity in Southeast Asia. Built for institutions, exchanges, and fintechs globally, StraitsX powers compliant, programmable transactions with stablecoins.",
     "website": "https://www.straitsx.com/",
     "explorers": [
@@ -975,7 +975,7 @@
     "subnetId": "2LbGgyVZE5aMMYPp3h1F2MkKbjefR51nSZWaZzarDZf8GThCcX",
     "slug": "titan",
     "color": "#F59E0B",
-    "category": "General",
+    "category": "Media",
     "description": "Titan Content, the Los Angeles–based K-pop powerhouse, introduced 2GATHR, a next-generation fan engagement app powered by TITAN, a custom Avalanche L1 built with AvaCloud. The app will soon be live on Google Play and the Apple App Store, offering K-pop fans an interactive, verifiable way to connect with their favorite artists.",
     "website": "https://www.avax.network/about/blog/titan-content-launches-2gathr-on-avalanche",
     "explorers": [
@@ -1058,7 +1058,7 @@
   {
     "chainId": "241121",
     "chainName": "Andromeda",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/anomaly-andromeda.png",
     "blockchainId": "0xf0b16824f7976c1d525fe747f8a3552e12775a069fd66b6980e8110bfbd318b3",
     "subnetId": "2otZ1ZSFtu5H8Sy8fM8V5VMWacJ5VE7DNKXkELjwRqWdLgUdwD",
     "slug": "andromeda",
@@ -1089,11 +1089,12 @@
   {
     "chainId": "YDJ1r9RMkewATmA7B35q1bdV18aywzmdiXwd9zGBq3uQjsCnn",
     "chainName": "ApertumMainnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/apertum.png",
     "blockchainId": "0x46dedd114cc538f39fb481fdb8a924ae1d819e60abe79600ddbc7ea4854ff183",
     "subnetId": "2Y83BEXg7zgSCJunL2KD2i1vjMfaMnU1QEpG4M7acqG44BnRto",
     "slug": "apertummainnet-46dedd",
     "color": "#7eee96",
+    "category": "General",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1107,6 +1108,7 @@
     "subnetId": "P5ueQKNWvXA1Jx4u7795DpNCR2gNWDDqXj9NLyw8i4Zb41EJa",
     "slug": "blerifymain-cfbcfa",
     "color": "#097aff",
+    "category": "Enterprise",
     "isTestnet": false,
     "isActive": true,
     "isEvm": true,
@@ -1115,7 +1117,7 @@
   {
     "chainId": "v8FsmtYmWSE3dozTVr9oQaHDP9uTrrNYm4nREouba9fmjKJEJ",
     "chainName": "ChamonixNetwork",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x78a087523a652907769f366ae77e484cf5dd1b3ccbbe747b75dfabe58b1a5062",
     "subnetId": "iWWVSnnmPUJFYTGRaonZdMKcog3gpWF9HFikYYYexT84g8ZYS",
     "slug": "chamonixnetwork-78a087",
@@ -1128,11 +1130,12 @@
   {
     "chainId": "RWfhP7moxu627ysqgaj4GoD3PZbdcJpAX56t6kHyuafSJGsNb",
     "chainName": "Datagram Chain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/datagram.png",
     "blockchainId": "0x37a8079ddde22cb48a2dbb081295bba0e414ebf6ef96598efe062b69063b4ca7",
     "subnetId": "1H2TczJ1U6x9VWLsSXCjy9NUN72LJM87axKe7T6Zh8fk3cXb6",
     "slug": "datagram-chain-37a807",
     "color": "#9d38b6",
+    "category": "Infrastructure",
     "isTestnet": false,
     "isActive": true,
     "isEvm": true,
@@ -1146,6 +1149,7 @@
     "subnetId": "F4Ef5bcugvX5GZPkDQXnysgU9xVFpaRLvCe3EFN3FzBqouZLg",
     "slug": "dep-chain-c722fc",
     "color": "#052857",
+    "category": "AI",
     "isTestnet": false,
     "isActive": true,
     "isEvm": true,
@@ -1154,11 +1158,12 @@
   {
     "chainId": "2ewKoUrSjnviEgGmeTiELHBmNjxVTVczBPowST471rYUZvA9bk",
     "chainName": "DOS Chain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/dos-chain.png",
     "blockchainId": "0xd9d5f999541709fed008181b06f93d638927ba48992021025ed5d5c4351c5a37",
     "subnetId": "2QG4keFP9iN5VG963jneAbN66Fo99V9Fgg6ba2wSiaxBMdGSUz",
     "slug": "dos-chain-d9d5f9",
     "color": "#eceb89",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": true,
@@ -1167,7 +1172,7 @@
   {
     "chainId": "2C1D31mrPpAaSkseb3iywafDvH5drvMJVKh1xZv3tmYWrbMkEf",
     "chainName": "fortitudemadeira",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x9cae5a3811347a95b9d507c5b9665e2536010ef02158144406aba1a1abc423b8",
     "subnetId": "dAzkxUSdbbsPoyMpLSdP8GrChXcJRKv4MVUfUn8CDJzyCV1bP",
     "slug": "fortitudemadeira-9cae5a",
@@ -1180,11 +1185,12 @@
   {
     "chainId": "2FJM6WqyDGX2PZYipnatYXuXsNcKLio5fJMkEaGgpP4kHDTPw2",
     "chainName": "Frqtal",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/frqtal.png",
     "blockchainId": "0xa429f547b98ec16d0d18b61954cd4e6343fe67b0ac03c2d40f3e3372981b07ab",
     "subnetId": "2E2AhbGH8jSsT3Riur2Pjjg2twpQj7xeD6u9SgmkmGkcWKTBzf",
     "slug": "frqtal-a429f5",
     "color": "#b4db2d",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1193,7 +1199,7 @@
   {
     "chainId": "2WxMrvZFC122si8XfRmMqKVBnk8V6GwhPaZJKd2sBc67DuzYgR",
     "chainName": "FrqtalMainnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/frqtal.png",
     "blockchainId": "0xc7b61e4ce92dd7db7fd741af5cbdb3d2a4460245584ef60dc820a3c608a16f1c",
     "subnetId": "2BAZQwJtoom377skLVy563A4JjLG945PDAh2bKSCtbEN3aekU3",
     "slug": "frqtalmainnet-c7b61e",
@@ -1206,7 +1212,7 @@
   {
     "chainId": "2HvYVUizFgTaRAxGCJdKdZVdNgRRXoUGXuuJhZUPmeywNjBjvp",
     "chainName": "goldensilenthawk",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xaa1f47abebb63d25bbd8c5786bd0652a8b02e9f4f873a950e50ea102acf4db53",
     "subnetId": "2fc5rBwYZ4Ru6tiRtDNXddb2d1YjXfVyWYuCj1h1uPJETaJoo5",
     "slug": "goldensilenthawk-aa1f47",
@@ -1219,7 +1225,7 @@
   {
     "chainId": "2PDZJhEoUr5944QGTDpztZvCDiWHa3iGbXenTmpqq3xQcqiW3A",
     "chainName": "goldleader",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xb624313371cbeaa15ff518e03a1b8aa3c9950901aa7083e0ca614b3093b53e0a",
     "subnetId": "2dZjx3s5EMP6DqKGgaVwJc6Nomj9sBdsWpuxzKfYiMMwqPexB7",
     "slug": "goldleader-b62431",
@@ -1237,6 +1243,7 @@
     "subnetId": "eAzuwNbMo63DDSrh7jq6tjMCQvmApshxoEMaH7SqrkReSqvzQ",
     "slug": "hanchain-0a5bed",
     "color": "#907dc9",
+    "category": "General",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1250,6 +1257,7 @@
     "subnetId": "jsdRzejuHUVa5bUUCWVKjmWha6mdZiaiBHTSR3oHYsk4z5dEy",
     "slug": "hanchain-fa5bb4",
     "color": "#711de0",
+    "category": "General",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1263,6 +1271,7 @@
     "subnetId": "21uUaTxVdR3Sp6SJhpcSrdH1g66aFoE8mPQDvwKJCjXNexo5y6",
     "slug": "kite",
     "color": "#de9f27",
+    "category": "AI",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1272,7 +1281,7 @@
   {
     "chainId": "83115",
     "chainName": "Kula",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/kula.png",
     "blockchainId": "0x626e794dc3fc53d663f2a6e7542fb6f6f3a2ab32468479f2d779261690a7d458",
     "subnetId": "2aRqefDZES46GBex4nHY6mhn2ZVxh1zGDWoQLNbVeYZEQfJ3cy",
     "slug": "kula",
@@ -1302,6 +1311,7 @@
     "subnetId": "2cu3j3LHfhao5dqQ3s9L8PCuP5ys7hfAYn4rahKQH8TEWgfJ9c",
     "slug": "lynq-01-17e4e0",
     "color": "#d67cd9",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": true,
@@ -1310,11 +1320,12 @@
   {
     "chainId": "2TfGh1pyDoumsDgTxDmWoseRD7GGRwrpX19HLsQdeCRqwK9BqZ",
     "chainName": "MakaChain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/makachain.svg",
     "blockchainId": "0xc03b030ed772cc8aa7d70e55298808c371b71fbae99a237e494c21ed31fde051",
     "subnetId": "Ni8pAzPXhQvMGk2qpR15BYvFfRMV24vpayDPKCWf75SjeEShR",
     "slug": "makachain-c03b03",
     "color": "#ae9416",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1323,7 +1334,7 @@
   {
     "chainId": "33654",
     "chainName": "mj0714ms1",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x08c5ea12c3f1f9381a046acd93a56a0e1d855a8e974a4099056aac20ec72f587",
     "subnetId": "2Px9xq86qS5qDVJwnuLTUNpPybiLGQPJxbuNMaXt6sQMR3DTQp",
     "slug": "mj0714ms1-08c5ea",
@@ -1347,11 +1358,12 @@
   {
     "chainId": "2RyzsmGypNQZPby1miwMMV8spTvhgd9qd2peNRzU1mErUQqSSw",
     "chainName": "nftchain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/vyo-chain.svg",
     "blockchainId": "0xbc6c23c46a1a00c96fa6540fc21dba198efe0a855d581fb1968a12e7ff27e969",
     "subnetId": "2Ra6kcHGKENzcYRjPtitGJr2sNimskVQ8nZ6A6meVFeeVEkTr2",
     "slug": "nftchain-bc6c23",
     "color": "#065543",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1360,10 +1372,11 @@
   {
     "chainId": "122225",
     "chainName": "north-investments",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x93edd51b1ad4aba594ecd5ae4516d984a88372bba5252dde45c1f8094e27b54c",
     "subnetId": "3RGWTpWdyveMRv9o9tGhhGsZpVdmZVMvvxZMTXTbaRHYhxA2y",
     "slug": "north-investments",
+    "category": "Finance",
     "rpcUrl": "https://subnets.avax.network/north/mainnet/rpc",
     "networkToken": {
       "name": "NORTH",
@@ -1385,11 +1398,12 @@
   {
     "chainId": "2PDRxzc6jMbZSTLb3sufkVszgQc2jtDnYZGtDTAAfom1CTwPsE",
     "chainName": "numbersevm",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/numbers-protocol.png",
     "blockchainId": "0xb622ec875d8e8119edb3296c2a5c95cf9ac29b53ed010d5898166ddd62d3602d",
     "subnetId": "2gHgAgyDHQv7jzFg6MxU2yyKq5NZBpwFLFeP8xX2E3gyK1SzSQ",
     "slug": "numbersevm-b622ec",
     "color": "#a8dc0c",
+    "category": "Media",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1398,11 +1412,12 @@
   {
     "chainId": "B5gLCyeRWScxf1CeGHfXjEkcp5au8dQYQjtSV6cRammsLjsbK",
     "chainName": "omnicoin",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/omnicoin.png",
     "blockchainId": "0x16e3ad769a882ff65c81df58290113d7f3517ca206931de81b5ce8799e3ecca7",
     "subnetId": "27dmQbsGrm4xo9VfrxNSewccy3kZ6N49MuSNJhsdhKkMaTZcYv",
     "slug": "omnicoin-16e3ad",
     "color": "#5a340e",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1437,11 +1452,12 @@
   {
     "chainId": "2t51dXsuxUvd9teY9TKEJmgxmxMk3CRF88UYTA4HQgjeYZqzSX",
     "chainName": "smartchain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/vyo-chain.svg",
     "blockchainId": "0xf7a7a4848b59c892b2baa8c6ea112b4bb67c3ac5afd9a2fdc0896719136ec505",
     "subnetId": "NW5TvuMNRyxWQcd5Ed7JxVp9KE81HazVwdKtFZjAh1MV5twF3",
     "slug": "smartchain-f7a7a4",
     "color": "#3507c7",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1450,7 +1466,7 @@
   {
     "chainId": "2HR9yTVXBwxJjmejn9yt1UQnrBpQVQRpxUQe6YUtEaWh9yqnPN",
     "chainName": "STLINK",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xa8f8bfd89b5a11ad488b260ad0a2a68e50f054241b7caed69f95940705f5b3e5",
     "subnetId": "2P3HrSbCPje8AWVDQU3rQLdYcojbnXh4NAAJRYmSC2VzZpWZ6x",
     "slug": "stlink-a8f8bf",
@@ -1463,10 +1479,11 @@
   {
     "chainId": "77974",
     "chainName": "technical-ivory-gopher",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x1774c6676542d09567e2f67b069b2e72beae28be4cd2d3b3344d45377053bac9",
     "subnetId": "22NZWmRxBgmwMy6dCueMEv7kxzuTAqvYzDjSJv27tjgH3twfxB",
     "slug": "technical-ivory-gopher-1774c6",
+    "category": "SocialFi",
     "rpcUrl": "https://subnets.avax.network/technicali/mainnet/rpc",
     "networkToken": {
       "name": "VERO",
@@ -1491,6 +1508,7 @@
     "blockchainId": "0x4d17dde28b48d8261d0e157ff214900e6575600325f02d6efb416eebdbde4ba9",
     "subnetId": "2qZWoi4PSG69vdYAQ9otTxMGmRh8YgAXEsm4HMbZZkMamibU76",
     "slug": "the-grotto",
+    "category": "Gaming",
     "rpcUrl": "https://subnets.avax.network/thegrotto/mainnet/rpc",
     "networkToken": {
       "name": "HERESY",
@@ -1523,6 +1541,7 @@
     "blockchainId": "0xb6dcfc926327a72ca7bdc07db2748e1e3f21c1c6c73823f55d280f59e68a8671",
     "subnetId": "LdAcdLzdbEAuPjivWf9HzhBZiztq31xbhGE21xTUqA1YP7LGH",
     "slug": "tomatochain",
+    "category": "Loyalty",
     "rpcUrl": "https://subnets.avax.network/ttchain/mainnet/rpc",
     "networkToken": {
       "name": "TTC",
@@ -1544,7 +1563,7 @@
   {
     "chainId": "120623",
     "chainName": "Turing Chain",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x6ad2a12adcdfebfda9b1e2534db12b48827912bcdc5029c249eebadba253f696",
     "subnetId": "24m4U5hnspQH4x5ZkNs9ZCeJ4P2cG57SbHRznPPNbgYWUyuBig",
     "slug": "turing-chain-6ad2a1",
@@ -1568,7 +1587,7 @@
   {
     "chainId": "zNXAbLSpaqfn3PTLi6ztbeomNtj4wsa7tBxSPyvXYEKstrtsR",
     "chainName": "vlxL1",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/valuex-chain.png",
     "blockchainId": "0x824498c0485cc77081f27a50e70a20a2cd0234581d4223c1fecf76d980572b13",
     "subnetId": "2o1i2YzX4FVfAzNHJYUnt4YFALuZNJGUvJS2nhx1zTTiGWUnZv",
     "slug": "vlxl1-824498",
@@ -1581,11 +1600,12 @@
   {
     "chainId": "2Ge2BkkjNupU2WwJ3SEbaoQGWhTb9HBK34RXqPbSTSzhnrqcJk",
     "chainName": "VYOChain",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/vyo-chain.svg",
     "blockchainId": "0xa734693e7b4ff13f06447bde76763c0f5e6cdc5d4a5547ef86ef1604c8769cba",
     "subnetId": "24PDVyhFQb6GdRrvQnhf5kvH5HeTh8UTPje2wW56buS4VmMeLc",
     "slug": "vyochain-a73469",
     "color": "#953938",
+    "category": "Finance",
     "isTestnet": false,
     "isActive": true,
     "isEvm": false,
@@ -1672,7 +1692,7 @@
   {
     "chainId": "2201",
     "chainName": "apparent-copper-piranha",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x03034b536cb3d155ac5ba20246f84bed1d83e347f171d76d641b700cea43ae1a",
     "subnetId": "J5xQpn7moexHnhEHmSLB9Qo3uFr2dwCvviWJPt72iwvbxZBwZ",
     "slug": "apparent-copper-piranha",
@@ -1774,7 +1794,7 @@
   {
     "chainId": "41561",
     "chainName": "AZ0826T1P2",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x9414f28ee493709ccf5e98ad3d6f6b1b541bb31727f9757e2d84da71c1334a2f",
     "subnetId": "uys3vr74i3y3y3D5SCJkquhyLAKKT5pF5yayfHBCaiRwsA7YX",
     "slug": "az0826t1p2-9414f2",
@@ -1942,7 +1962,7 @@
   {
     "chainId": "66850",
     "chainName": "coloured-lavender-blackbird",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xdc7d1afa562c58b58e1323abbe3892ad539b4315abfd1ac007c9f3c384651798",
     "subnetId": "JUYamqdNGFXrPf2PDi6E1ryV15t9GjzJovA7i6FoV3gmazWKL",
     "slug": "coloured-lavender-blackbird-dc7d1a",
@@ -2073,7 +2093,7 @@
   {
     "chainId": "179205",
     "chainName": "Dinari Paper Network",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/dinari-icon.png",
     "blockchainId": "0x0385d3ccf14afbf3bb3f22d09f6c052d4ca6cb046d4a7810b0aed9c3c3b6ba0a",
     "subnetId": "UyAWFQUdB4VizuQuXE971sEmyDNB6cfNUV9JHYw4FT1tic1iy",
     "slug": "dinari-paper-network",
@@ -2130,7 +2150,7 @@
   {
     "chainId": "2EhCz8u48mSCUzxEEGsqY7d1PnqUKkc2B1zkTQaJxbT99wshkJ",
     "chainName": "DOS Chain Testnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/dos-chain.png",
     "blockchainId": "0xa2c9c8e6987e6e8f66137778d93468771dcd9a99cf74e5027e13179a4367d2aa",
     "subnetId": "vzxxsDE3F2kF1g6Yk3FZ69eUiHefSMVJPpCfQ5BzPQfU4PoQY",
     "slug": "dos-chain-testnet-a2c9c8",
@@ -2143,7 +2163,7 @@
   {
     "chainId": "e4PHth8utBAPorg4sFRTaWmDfUWf9X8nAECczGx1BJVmYBv3A",
     "chainName": "DOS Testnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/dos-chain.png",
     "blockchainId": "0x542540b11e987734abfca335e87d0fca52b1ffe2e999e8b88c73003b07b8e274",
     "subnetId": "ydvj9cWpa5jM7VsHcdzk16KDBqc9us6zuhmTwc7Px6b42ACVN",
     "slug": "dos-testnet-542540",
@@ -2156,7 +2176,7 @@
   {
     "chainId": "JASJZyVTWR7aviy4eY5yE8AVfdXtH33c1AinvzhLcVBARhcm9",
     "chainName": "DOS Testnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/dos-chain.png",
     "blockchainId": "0x26f851b094774e37caa8447219481b86af21538cf52b65f63bd68285bb6a9b1f",
     "subnetId": "2XDEZGokdvMVSKxSGXBZNGHnmchJHdK74eTtBCqaQgw4G56DoS",
     "slug": "dos-testnet-26f851",
@@ -2169,7 +2189,7 @@
   {
     "chainId": "93959",
     "chainName": "dt0828t1ts",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xa301f0e37d00e81e905a817939e436cd8f556bb1909ab51c35ad4db74182ea7e",
     "subnetId": "2neRX5wcofhWD2cDZnDyvUPdfeo37q1NcaSzD7fkiM65GUy5aV",
     "slug": "dt0828t1ts-a301f0",
@@ -2403,7 +2423,7 @@
   {
     "chainId": "49619",
     "chainName": "functional-chocolate-meadowlark",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xcd5774a72c27a9be81a9bc786807862bc4c7c5ccd3caf57a0a7a6dacbce61eee",
     "subnetId": "5vYk9PY4opLJLzi5EBThHXEDoLTKdL9K8ya237jeUhXn4hqt3",
     "slug": "functional-chocolate-meadowlark-cd5774",
@@ -2492,7 +2512,7 @@
   {
     "chainId": "8995",
     "chainName": "HM0827T1TP",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x93e6886c3fe4eae132b90b10973fad25ef4ec971d60a04f9dc9020b13b9b61a5",
     "subnetId": "vq9jTJqrUecgBJnnpFL3wNMMKhg2DBTTsTnxAJTPeoJNoZtLY",
     "slug": "hm0827t1tp-93e688",
@@ -2516,7 +2536,7 @@
   {
     "chainId": "17070",
     "chainName": "impressed-harlequin-shark",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xb8fb87a4bb8e69e01bcac956289203c420b5ddd356fd900600790468c0bceb02",
     "subnetId": "MivcspnVCHB2dtQ2ScpG6Rpx2rWpSTRjhbWQk6YXXC4vYWJzv",
     "slug": "impressed-harlequin-shark",
@@ -2677,7 +2697,7 @@
   {
     "chainId": "nQ9iPT7ZQQx1qwBTs68EGiU8cu1GHMMjzvYktmA3oRs4esg3V",
     "chainName": "kiteaitestnet",
-    "chainLogoURI": "",
+    "chainLogoURI": "/images/kite-ai.jpg",
     "blockchainId": "0x6715950e0aad8a92efaade30bd427599e88c459c2d8e29ec350fc4bfb371a114",
     "subnetId": "LN3HF6L6WMdcjLTAwN9gUstNztNoaB4WhsbB3dKsggmJKXBk3",
     "slug": "kiteaitestnet-671595",
@@ -2716,7 +2736,7 @@
   {
     "chainId": "17789",
     "chainName": "kula-testnet",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/kula.png",
     "blockchainId": "0x68cf63c5ea513a3c03cd9c1cb5b97726d25dc5255201017a3d6cb809ecf25071",
     "subnetId": "2KXAm9xvxGRDcdnY394uvPmdkHhWfPgwiLkH6QSn67mo7UPibs",
     "slug": "kula-testnet",
@@ -3099,7 +3119,7 @@
   {
     "chainId": "88188",
     "chainName": "northasset",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x7e8cfa0ea553bdcc173d22f649ed1e52ce6c748cd23f5214d176699f7a5e53bc",
     "subnetId": "A9AgwpK36QVRTwhyesHsAthim4hXWc4KTWgGfvDYehbsL3axM",
     "slug": "northasset",
@@ -3247,7 +3267,7 @@
   {
     "chainId": "24665",
     "chainName": "pricing06",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x7502333cfc54e196f8017b3c2745951d961cc7f86fc5b727ae94122551b5c707",
     "subnetId": "mvcWjfFAniNNaxES2gY1MT6ByS31VfeDYvjp3hWjxpe6pyuSy",
     "slug": "pricing06-750233",
@@ -3316,7 +3336,7 @@
   {
     "chainId": "39447",
     "chainName": "QR0203Q2TS",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x585fbbf5fd1423ffc8d625aa19c00db2cc9926ffe1416239b6a73a17c68d3ef1",
     "subnetId": "2pdnPQGRSSpPNnMnoSRwqQPRuRadVfUskxX1QrtB9qdSArY91U",
     "slug": "qr0203q2ts",
@@ -3341,7 +3361,7 @@
   {
     "chainId": "49925",
     "chainName": "QR0213Q1TS",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x8690d0069b940482cfb96a8e6f586ff3cb95944bc91d484b1c44beb6b13e0fea",
     "subnetId": "dX6nRB5hHaZVVM2D69tznJmkqhv9Qh2ezwGsCm3LZHmm1KtMB",
     "slug": "qr0213q1ts",
@@ -3390,7 +3410,7 @@
   {
     "chainId": "4761",
     "chainName": "QR0819Q1TS",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x8d32dd95155e23a6be7e63de4a53560ac09ca1ba0fe7c93e496a228ad0088d6a",
     "subnetId": "sqDn5dmeSjkiVnWP8bBZLwSaoJfK3w7JRC8ubdkAtkt9FyCbo",
     "slug": "qr0819q1ts-8d32dd",
@@ -3414,7 +3434,7 @@
   {
     "chainId": "25699",
     "chainName": "QR0819Q2TS",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x687e0401a5a87ce64810af5a0ecdf3f57784c3cfad3d58d17f4dc79ab4c1007c",
     "subnetId": "2DUNxndgS2bFYNjBGbUKa1YSd9wKd386WpcT2P2B92YBquWUgJ",
     "slug": "qr0819q2ts-687e04",
@@ -3763,7 +3783,7 @@
   {
     "chainId": "4995",
     "chainName": "secondary-harlequin-cheetah",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x6a61738f7aa09549dd2f816bdc0716d3bb2572fb0e11062d4b94d154d4e5e535",
     "subnetId": "VhwNzng2xMzLKE5AcsqWfgRnxyMoTWB6ZCLaUeb5Upw16J74g",
     "slug": "secondary-harlequin-cheetah-6a6173",
@@ -3800,7 +3820,7 @@
   {
     "chainId": "44955",
     "chainName": "senior-purple-gopher",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x7c1fc3c0437238387121f3e514f396f76ef4feb536618eae3258394400be7ff8",
     "subnetId": "2ceqYA9BXcwXrzWKP6LEKCEUH7a255nSgRwE6YpQmL1LunCsNV",
     "slug": "senior-purple-gopher-7c1fc3",
@@ -3902,7 +3922,7 @@
   {
     "chainId": "10096",
     "chainName": "smiling-lime-date",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0xb460586c59ecff32f43ede059df4c64c7d908e81a8fbbe4a7c67cb7e526d64e9",
     "subnetId": "sraA13sSLHQe9wEefryKLv1iZAEQtRmpeFWfsLaN6CqR3KLHw",
     "slug": "smiling-lime-date-b46058",
@@ -3926,7 +3946,7 @@
   {
     "chainId": "39340",
     "chainName": "smiling-lime-twin",
-    "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/62KzIedYATHGgRODAP5Py9/e290f4d8598ac8d30d80975a560cca8f/AvaCloud-512x512.png",
+    "chainLogoURI": "/images/avacloud.svg",
     "blockchainId": "0x3d302eef38c8c847ea41864bdea0f9dbe85811b3a7d73530a8790778d8db3036",
     "subnetId": "SdGGeoNvHZ3jcjtea17A5sQD45BmCaUTBgcjmtCehFsMikiw8",
     "slug": "smiling-lime-twin-3d302e",
