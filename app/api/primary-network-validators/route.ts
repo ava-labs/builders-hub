@@ -3,12 +3,14 @@ import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 
 export const dynamic = 'force-dynamic';
 
-const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+// The snapshot is one fast response, and the validators page reads it for
+// live triage (who is offline now), so it is held for minutes, not hours.
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 const STALE_DURATION = 24 * 60 * 60 * 1000; // 1 day
 // Generous timeout for our /v1 validators cold-start (state build) before its
 // cache warms; the warmer normally keeps it hot so this rarely bites.
 const FETCH_TIMEOUT = 60000;
-const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
+const CACHE_CONTROL_HEADER = 'public, max-age=600, s-maxage=600, stale-while-revalidate=86400';
 
 interface ValidatorData {
   nodeId: string;
@@ -18,6 +20,7 @@ interface ValidatorData {
   delegatorCount: number;
   amountDelegated: string;
   version?: string;
+  connected?: boolean;
 }
 
 interface CacheEntry {
@@ -50,6 +53,7 @@ async function fetchAllValidators(): Promise<ValidatorData[]> {
     delegatorCount: v.delegatorCount || 0,
     amountDelegated: String(v.delegatorWeight ?? "0"),
     ...(typeof v.version === "string" && v.version ? { version: v.version } : {}),
+    ...(typeof v.connected === "boolean" ? { connected: v.connected } : {}),
   }));
 }
 
