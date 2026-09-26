@@ -3,6 +3,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import { STATS_CONFIG } from "@/types/stats";
 import { getChainICMCount } from "@/lib/icm-clickhouse";
 import { DEDICATED_STATS_BASE_URL, toStatsChainId } from "@/lib/dedicated-stats";
+import { pchainPost } from "@/lib/pchain-rpc";
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +15,12 @@ const STATS_API_URL = DEDICATED_STATS_BASE_URL;
 
 // P-Chain is the authority on how many L1s exist, and it answers for every
 // subnet whether or not we index it. Chain *counts* must come from here, not
-// from how many chains we happen to have figures for.
-const P_CHAIN_RPC = 'https://api.avax.network/ext/bc/P';
+// from how many chains we happen to have figures for (lib/pchain-rpc.ts).
 
 // days = daily buckets to pull from metrics-api (window + a 2-day buffer so
 // the newest complete bucket is never the edge one). secondsInRange divides
 // the summed txCount into tps and, over SECONDS_PER_DAY, gives the number of
-// daily buckets to sum — one source of truth per range.
+// daily buckets to sum: one source of truth per range.
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
   week: { days: 9, secondsInRange: 7 * SECONDS_PER_DAY },
@@ -159,15 +159,11 @@ async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
     return l1CountCache.counts;
   }
   try {
-    const res = await fetchWithTimeout(P_CHAIN_RPC, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0', id: 1,
-        method: 'platform.getAllValidatorsAt',
-        params: { height: 'proposed' },
-      }),
-    });
+    const res = await pchainPost('mainnet', {
+      jsonrpc: '2.0', id: 1,
+      method: 'platform.getAllValidatorsAt',
+      params: { height: 'proposed' },
+    }, REQUEST_TIMEOUT_MS);
     if (!res.ok) throw new Error(`p-chain ${res.status}`);
     const body = await res.json();
     const sets = body?.result?.validatorSets;
@@ -182,7 +178,9 @@ async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
     return counts;
   } catch (error) {
     console.error('[loadPChainValidatorSets] failed:', error);
-    return null;
+    // a busy or rate-limited P-Chain serves the last good sets rather than none,
+    // so the city keeps its buildings through a 429
+    return l1CountCache?.counts ?? null;
   }
 }
 
@@ -238,7 +236,7 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
   try {
     const endTimestamp = Math.floor(Date.now() / 1000);
 
-    // active addresses is a distinct count, not a sum — the API only buckets it
+    // active addresses is a distinct count, not a sum: the API only buckets it
     // by day/week/month, so quarter and year (no wider bucket exists) read the
     // monthly figure rather than an unsupported interval.
     //
