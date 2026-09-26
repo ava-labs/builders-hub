@@ -21,10 +21,14 @@ import { RailRow } from "@/components/explorer-v2/evm/EvmTx";
 import { dayLong, dayShort, formatAvax, formatNumber, formatTime, hourLong, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { usePchainData } from "./hooks";
 import { NotFound } from "./PchainTx";
+import { balanceAt, useSecondClock, type SettledBalance } from "./seat-balance";
 import {
   PRIMARY_SUBNET_ID,
+  getBlockTime,
   getCurrentValidators,
+  getL1Validator,
   getPrimaryTotalStake,
+  getValidatorFeeState,
   type CurrentValidator,
 } from "@/lib/pchain-node";
 import { txTypeLabel, type NodeResponse, type NodeStakingTx, type TxSummary, type ValidationsResponse } from "@/lib/pchain-explorer";
@@ -106,6 +110,54 @@ function useStakeContext(network: string, nodeId: string, enabled: boolean) {
     };
   }, [network, nodeId, enabled]);
   return { identity, networkStake };
+}
+
+/* The P-Chain debits an L1 seat's continuous fee only when a block moves
+   chain time, so the node reports the balance as of its last block:
+   minutes old on a quiet chain. The seat read carries the height it was
+   read at, and that block's time anchors it, so the pair holds even when
+   the public RPC's nodes are a block apart. The view draws it down from
+   there; a re-read each minute picks up the next block or a top-up. */
+const SEAT_REFRESH_MS = 60_000;
+
+/** settledAt is the time of the block at `height` */
+interface SettledSeat extends SettledBalance {
+  height: number;
+}
+
+function useSettledSeat(network: string, validationID: string | undefined): SettledSeat | null {
+  const [seat, setSeat] = useState<SettledSeat | null>(null);
+  useEffect(() => {
+    if (!validationID) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let last: SettledSeat | null = null;
+    const read = async () => {
+      const v = await getL1Validator(network, validationID);
+      const height = Number(v?.height);
+      // one state per height: the block and the price are asked again only when it moves
+      if (v && height > 0 && height !== last?.height) {
+        const [settledAt, fee] = await Promise.all([getBlockTime(network, height), getValidatorFeeState(network)]);
+        if (settledAt && fee) {
+          // a seat the node still knows but that reports no balance has run dry
+          last = { balance: Number(v.balance ?? 0), settledAt, height, price: fee.price };
+          if (!cancelled) setSeat(last);
+        }
+      }
+      if (!cancelled) timer = setTimeout(next, SEAT_REFRESH_MS);
+    };
+    // a hidden tab skips its read and asks again a minute on
+    const next = () => {
+      if (document.visibilityState === "hidden") timer = setTimeout(next, SEAT_REFRESH_MS);
+      else void read();
+    };
+    void read();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [network, validationID]);
+  return seat;
 }
 
 /* Primary Network staking rules: a validator can carry delegations up to
@@ -307,6 +359,7 @@ export function PchainNode({
           page whose data is already in hand */}
       {(error || l1Only) && l1Checked && l1Subnet && (l1 ?? l1FromDoc) && (
         <L1ValidatorView
+          network={network}
           nodeId={nodeId}
           subnetId={l1Subnet}
           v={(l1 ?? l1FromDoc)!}
@@ -900,12 +953,14 @@ function ValidationHistory({ data, base }: { data: ValidationsResponse; base: st
    the indexer view (no uptime history or delegators: L1 validators have
    neither on the Primary Network), but authoritative. */
 function L1ValidatorView({
+  network,
   nodeId,
   subnetId,
   v,
   live = true,
   base,
 }: {
+  network: string;
   nodeId: string;
   subnetId: string;
   v: CurrentValidator;
@@ -913,6 +968,10 @@ function L1ValidatorView({
   live?: boolean;
   base: string;
 }) {
+  const seat = useSettledSeat(network, v.validationID);
+  // the balance the chain will debit at its next block, a second at a time
+  const now = useSecondClock(!!seat);
+  const balance = seat ? balanceAt(seat, now) : v.balance;
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4">
@@ -941,7 +1000,16 @@ function L1ValidatorView({
                 </SpecRow>
               )}
               <SpecRow label="Weight">{formatNumber(Number(v.weight))}</SpecRow>
-              {v.balance !== undefined && <SpecRow label="Balance">{formatAvax(v.balance)}</SpecRow>}
+              {balance !== undefined && (
+                <SpecRow label="Balance">
+                  {formatAvax(balance)}
+                  {seat && seat.balance > 0 && (
+                    <span className="mt-0.5 block font-mono text-[10px] font-normal text-zinc-400 dark:text-zinc-500">
+                      less {formatNumber(seat.price)} nAVAX/s since block {formatNumber(seat.height)} · {formatTime(seat.settledAt)}
+                    </span>
+                  )}
+                </SpecRow>
+              )}
               {v.startTime && <SpecRow label="Start">{formatTime(Number(v.startTime))}</SpecRow>}
               {v.publicKey && (
                 <SpecRow label="BLS Public Key">
