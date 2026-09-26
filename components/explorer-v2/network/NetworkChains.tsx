@@ -5,18 +5,19 @@ import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/
 import { compareVersions, defaultVersionTarget, sortVersionsDesc } from "@/components/stats/VersionBreakdown";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { useCityData, type SizeBy, type VersionMix } from "@/components/explorer-v2/network/icm-map";
-import { CityApp } from "@/components/explorer-v2/network/city-app";
-import { EXPLORER_RANGES, RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
+import { CityApp, type Height, type Market } from "@/components/explorer-v2/network/city-app";
+import { RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
-/* The chains tab is the city: one app under the explorer's subnav, the
-   network map as its canvas and the directory, the figures and every
-   chain's links and wallet setup inside it (city-app.tsx). On large
-   screens it fills the window under the subnav, edge to edge, so a wide
-   screen's margins are city too; phones get the district browser in the
-   page's column. The rest of the explorer stays one click away in the
-   subnav. */
+/* The chains tab is the city, and the explorer's front door: one app
+   under the explorer's subnav, the network map as its canvas and the
+   search, the directory, the figures and every chain's links and wallet
+   setup inside it (city-app.tsx). On large screens it fills the window
+   under the subnav, edge to edge, so a wide screen's margins are city
+   too, and the subnav spans the same width; phones get the district
+   browser in the page's column. The rest of the explorer stays one click
+   away in the subnav. */
 
 /* a set's nodes split by where they stand against the target minor line */
 function mixOf(byVersion: Record<string, { nodes: number }>, target: string): VersionMix {
@@ -34,21 +35,51 @@ function mixOf(byVersion: Record<string, { nodes: number }>, target: string): Ve
   return m;
 }
 
+/* the city shows one day: its streets carry the last 24 hours of ICM, and
+   its figures count the same day. The explorer's clock does not drive it */
+const RANGE: ExplorerRange = "day";
+
 /* each chain's transactions over the window, from the same aggregate the
-   network overview reads. The aggregate stops at a year, so "all" reads
-   the year. A failed feed leaves the figures dashed */
+   network overview reads. A failed feed leaves the figures dashed */
 function useChainActivity(range: ExplorerRange) {
   const [byId, setById] = useState<Map<string, number | null> | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     setById(null);
-    fetch(`/api/overview-stats?timeRange=${range === "all" ? "year" : range}`, { signal: controller.signal })
+    fetch(`/api/overview-stats?timeRange=${range}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then((d: { chains?: { chainId: string; txCount: number | null }[] }) => setById(new Map((d.chains ?? []).map((c) => [String(c.chainId), c.txCount]))))
       .catch(() => {});
     return () => controller.abort();
   }, [range]);
   return byId;
+}
+
+/* AVAX's price and market cap, as the token page reads them; a minute's
+   refresh, while the tab is in view */
+function useAvaxMarket(): Market | null {
+  const [market, setMarket] = useState<Market | null>(null);
+  useEffect(() => {
+    let controller = new AbortController();
+    const read = () => {
+      if (document.visibilityState === "hidden") return;
+      controller.abort();
+      controller = new AbortController();
+      fetch("/api/avax-supply", { signal: controller.signal })
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+        .then((d: { price?: number; priceChange24h?: number; marketCap?: number }) => {
+          if (d.price && d.price > 0) setMarket({ price: d.price, change24h: d.priceChange24h ?? null, marketCap: d.marketCap && d.marketCap > 0 ? d.marketCap : null });
+        })
+        .catch(() => {});
+    };
+    read();
+    const timer = window.setInterval(read, 60_000);
+    return () => {
+      window.clearInterval(timer);
+      controller.abort();
+    };
+  }, []);
+  return market;
 }
 
 /* a large screen gets the canvas; unknown until the page has mounted */
@@ -66,16 +97,11 @@ function useWide(): boolean | null {
 
 export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: string[] | null } = {}) {
   const wide = useWide();
-  // the page's clock: the subnav's 1D to ALL drives every window here
-  const range = useExplorerTimeRange();
-  const days = RANGE_DAYS[range];
-  const windowShort = EXPLORER_RANGES.find((r) => r.value === range)?.label ?? "1M";
-  // the activity aggregate stops at a year
-  const txShort = range === "all" ? "1Y" : windowShort;
-  const activity = useChainActivity(range);
+  const activity = useChainActivity(RANGE);
+  const market = useAvaxMarket();
   const txOf = useCallback((id: string) => (activity ? activity.get(id) ?? null : null), [activity]);
 
-  const [sizeBy, setSizeBy] = useState<SizeBy>("versions");
+  const [height, setHeight] = useState<Height>("validators");
   // the validator feed by client version: what the city's windows are lit by
   const { subnets } = useValidatorStats();
   const [pickedTarget, setTarget] = useState("");
@@ -101,22 +127,23 @@ export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: st
     if (primary) m.set("43114", primary);
     return m;
   }, [subnets, target]);
-  // without a version feed the Versions view has nothing to paint
-  const view: SizeBy = sizeBy === "versions" && !versions ? "validators" : sizeBy;
-  const data = useCityData({ days, sizeBy: view });
+  // the heights count validators or messages; the windows are lit by version when the feed is in
+  const view: SizeBy = height === "messages" ? "messages" : versions ? "versions" : "validators";
+  const data = useCityData({ days: 1, sizeBy: view });
 
   const app = (isWide: boolean) => (
     <CityApp
       data={data}
-      sizeBy={view}
-      onSizeBy={setSizeBy}
+      height={height}
+      onHeight={setHeight}
       versions={versions}
       target={target}
       targets={targets}
       onTarget={setTarget}
-      windowLabel={RANGE_LABEL[range]}
-      windowShort={windowShort}
-      txShort={txShort}
+      range={RANGE}
+      windowLabel={RANGE_LABEL[RANGE]}
+      windowShort="24H"
+      market={market}
       txOf={txOf}
       catalog={l1ChainsData as L1Chain[]}
       indexedChainIds={indexedChainIds}
@@ -126,8 +153,11 @@ export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: st
 
   return (
     <main className="relative flex flex-col bg-white lg:h-[calc(100dvh-var(--fd-banner-height,0px)-3.5rem)] dark:bg-zinc-950">
-      <div className="mx-auto w-full max-w-[90rem] shrink-0 border-x border-transparent px-5 pt-5 md:px-6 min-[90rem]:border-zinc-200/90 dark:min-[90rem]:border-zinc-800/90">
-        <ExplorerSubnav network="mainnet" />
+      {/* on large screens the subnav sits on the app, as wide as the city, its edges on the panel's;
+          the app's list switches networks, so the subnav names none */}
+      <div className="mx-auto w-full max-w-[90rem] shrink-0 px-5 pt-5 md:px-6 lg:max-w-none lg:px-4 lg:pt-0">
+        {/* the city reads one day, so the subnav shows no clock here */}
+        <ExplorerSubnav network="mainnet" hideNetwork className="lg:-mx-4 lg:px-4" />
       </div>
       {wide === null ? (
         <div className="min-h-[60vh] flex-1 animate-pulse bg-zinc-50 dark:bg-zinc-900/40" />

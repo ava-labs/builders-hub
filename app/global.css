@@ -66,7 +66,6 @@ header[aria-label="Main"] [data-radix-popover-content] {
   pointer-events: auto !important; /* Ensure all dropdowns are clickable */
 }
 
-
 /* Add padding-top to table of contents when banner exists */
 #nd-toc {
   padding-top: 72px !important;
@@ -76,7 +75,6 @@ header[aria-label="Main"] [data-radix-popover-content] {
 .integrations-page {
   scroll-padding-top: 4rem;
 }
-
 
 /* Integrations page: Add scroll margin to section anchors for proper positioning */
 .integrations-page section[id] {
@@ -1826,27 +1824,14 @@ html.embed-mode #nd-toc {
   from { opacity: 0.85; }
   to { opacity: 0; }
 }
-/* a ripple on the ground: a ring that widens from its origin and fades */
-@keyframes bh-ripple {
-  0% { transform: scale(0.12); opacity: 0; }
-  10% { opacity: 0.9; }
-  100% { transform: scale(1); opacity: 0; }
-}
 /* a tile that settles into its place */
 @keyframes bh-fade {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-/* a comet down a path drawn with pathLength=1 and a 0.22 dash: head first, gone at the end */
-@keyframes bh-comet {
-  from { stroke-dashoffset: 0.22; }
-  to { stroke-dashoffset: -1.02; }
-}
-/* a place that waits for what lands in it */
-@keyframes bh-breathe {
-  0%, 100% { opacity: 0.08; }
-  50% { opacity: 0.3; }
-}
+/* the P-Chain's helicopters (city-heli.tsx): along the ground from --a to
+   --b and on to --c, up from --z0 to --z1, down to --z2 over the drop and
+   up to --z3 away; a rotor turning; the message falling --fall */
 
 /* Subtle 1px highlight at the top of every shadcn Card in dark mode.
    Differentiates cards from the page background (both are near-black
