@@ -1,0 +1,121 @@
+/*
+ * Academy design tokens (spec section 3; index contracts C1 to C3) and the rules that map fumadocs
+ * onto them on the course pages (spec 4.1). Values come from spec section 3 and contract C3.
+ * Every rule starts with an Academy root:
+ * data-academy="landing" on the track landings (components/academy/shared/academy-layout.tsx) and
+ * data-academy="docs" on the course pages (app/academy/layout-wrapper.client.tsx). Dark values follow
+ * the .dark class on <html> (app/global.css:4). The rules stay unlayered and at the top level, like the
+ * app/global.css colour pins they override. This file holds the Academy's only literal colours.
+ */
+
+/* Tokens, light (spec section 3, contract C3). */
+[data-academy] {
+  --ac-ground: #ffffff;
+  --ac-docs-ground: #ffffff;
+  --ac-paper: #ffffff;
+  --ac-panel: #fafafa;
+  --ac-tile: #f4f4f5;
+  --ac-ink: #1f1f1f;
+  --ac-ink-2: #3f3f46;
+  --ac-ink-3: #71717a;
+  --ac-rule: #e4e4e7;
+  --ac-rule-2: #d4d4d8;
+  --ac-red: #e6212f;
+  --ac-ok: #2f6b4f;
+  --ac-ok-bg: #eef5f0;
+  --ac-code: #fafafa;
+  --ac-line: #909098;
+  --ac-display: "Aeonik", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --ac-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --ac-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ac-hue-blue: #2563eb;
+  --ac-tint-blue: rgba(37, 99, 235, 0.09);
+  --ac-hue-purple: #7c3aed;
+  --ac-tint-purple: rgba(124, 58, 237, 0.09);
+  --ac-hue-emerald: #059669;
+  --ac-tint-emerald: rgba(5, 150, 105, 0.09);
+  --ac-hue-gold: #a16207;
+  --ac-tint-gold: rgba(161, 98, 7, 0.10);
+  --ac-hue-orange: #ea580c;
+  --ac-tint-orange: rgba(234, 88, 12, 0.09);
+  --ac-hue-teal: #0d9488;
+  --ac-tint-teal: rgba(13, 148, 136, 0.09);
+  --ac-hue-green: #16a34a;
+  --ac-tint-green: rgba(22, 163, 74, 0.09);
+  /* Icon tile without a data-hue: ink on the tile (C3). */
+  --ac-h: var(--ac-ink);
+  --ac-t: var(--ac-tile);
+}
+
+/* Tokens, dark (spec section 3, contract C3). */
+.dark [data-academy] {
+  --ac-ground: #0a0a0a;
+  --ac-docs-ground: #121212;
+  --ac-paper: #171717;
+  --ac-panel: #1f1f1f;
+  --ac-tile: #27272a;
+  --ac-ink: #ededed;
+  --ac-ink-2: #d4d4d8;
+  --ac-ink-3: #a1a1aa;
+  --ac-rule: #262626;
+  --ac-rule-2: #3f3f46;
+  --ac-red: #ff394a;
+  --ac-ok: #6fcf97;
+  --ac-ok-bg: #14211a;
+  --ac-code: #171717;
+  --ac-line: #5f5f68;
+  --ac-hue-blue: #60a5fa;
+  --ac-tint-blue: rgba(96, 165, 250, 0.16);
+  --ac-hue-purple: #a78bfa;
+  --ac-tint-purple: rgba(167, 139, 250, 0.16);
+  --ac-hue-emerald: #34d399;
+  --ac-tint-emerald: rgba(52, 211, 153, 0.16);
+  --ac-hue-gold: #eab308;
+  --ac-tint-gold: rgba(234, 179, 8, 0.16);
+  --ac-hue-orange: #fb923c;
+  --ac-tint-orange: rgba(251, 146, 60, 0.16);
+  --ac-hue-teal: #2dd4bf;
+  --ac-tint-teal: rgba(45, 212, 191, 0.16);
+  --ac-hue-green: #4ade80;
+  --ac-tint-green: rgba(74, 222, 128, 0.16);
+}
+
+/* Discipline hue, inside the icon tile only (spec section 3; contract C3). */
+[data-academy] [data-hue="blue"] { --ac-h: var(--ac-hue-blue); --ac-t: var(--ac-tint-blue); }
+[data-academy] [data-hue="purple"] { --ac-h: var(--ac-hue-purple); --ac-t: var(--ac-tint-purple); }
+[data-academy] [data-hue="emerald"] { --ac-h: var(--ac-hue-emerald); --ac-t: var(--ac-tint-emerald); }
+[data-academy] [data-hue="gold"] { --ac-h: var(--ac-hue-gold); --ac-t: var(--ac-tint-gold); }
+[data-academy] [data-hue="orange"] { --ac-h: var(--ac-hue-orange); --ac-t: var(--ac-tint-orange); }
+[data-academy] [data-hue="teal"] { --ac-h: var(--ac-hue-teal); --ac-t: var(--ac-tint-teal); }
+[data-academy] [data-hue="green"] { --ac-h: var(--ac-hue-green); --ac-t: var(--ac-tint-green); }
+
+/* Course pages: fumadocs' colour variables follow the tokens (spec 4.1). The
+   shadcn variables (--background, --primary, --border and the rest) are not remapped: the embedded
+   console tools draw with them, and their internals keep their own look (spec 2 and 4.3). */
+[data-academy="docs"] {
+  --color-fd-background: var(--ac-docs-ground);
+  --color-fd-card: var(--ac-docs-ground);
+  --color-fd-popover: var(--ac-paper);
+  --color-fd-border: var(--ac-rule);
+  --color-fd-primary: var(--ac-ink);
+  --color-fd-primary-foreground: var(--ac-paper);
+  --color-fd-muted: var(--ac-panel);
+  --color-fd-muted-foreground: var(--ac-ink-3);
+  --color-fd-secondary: var(--ac-panel);
+  --color-fd-accent: var(--ac-panel);
+  --color-fd-accent-foreground: var(--ac-ink);
+  --color-fd-foreground: var(--ac-ink);
+}
+
+/* app/global.css:262-282 pin fumadocs colours with unlayered class rules, which beat every
+   Tailwind utility. Inside the Academy they give way. */
+/* :262-269, the active sidebar row (#1f66f4 in both themes): ink, as the remapped primary. */
+[data-academy] .text-fd-primary { color: var(--ac-ink); }
+[data-academy] .bg-fd-primary\/10 { background-color: color-mix(in oklab, var(--ac-ink) 10%, transparent); }
+/* :271-278 match no Academy element in fumadocs 16.0.15; inside the scope the element's own
+   utilities decide, so later phases' classes are not overridden. */
+[data-academy] h2.text-sm.font-medium { color: revert-layer; }
+[data-academy] .mb-2.inline-flex.size-7.items-center.justify-center.rounded-full.bg-fd-primary.font-medium.text-fd-primary-foreground { background-color: revert-layer; color: revert-layer; }
+/* :280-282, muted text (#737373 in both themes, 3.95:1 on the dark ground): ink-3, 7.3:1 in dark
+   and 4.8:1 in light. */
+[data-academy] .text-fd-muted-foreground { color: var(--ac-ink-3); }

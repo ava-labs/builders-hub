@@ -6,6 +6,7 @@ import { AcademyLearningPath } from './academy-learning-path';
 import { AcademyBubbleNav } from './academy-bubble-nav';
 import type { AcademyLandingPageConfig, AcademyPathType } from './academy-types';
 import type { ReactNode } from 'react';
+import '@/components/academy/theme/academy-tokens.css';
 
 interface AcademyLayoutProps {
     config: AcademyLandingPageConfig;
@@ -27,7 +28,7 @@ export function AcademyLayout({
     return (
         <>
             <HeroBackground />
-            <main className="relative pt-8 w-full">
+            <main className="relative pt-8 w-full" data-academy="landing">
                 <div className="pb-32 sm:pb-36">
                     <div className="mx-auto max-w-7xl px-6 lg:px-8">
                         {children}

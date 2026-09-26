@@ -792,6 +792,28 @@ html {
   --color-surface-dark: #121212;
   --color-card-dark: #1f1f1f;
   --color-ink-soft-dark: #a2afb2;
+  /* Academy tokens (index C3). Their values live on the [data-academy] roots
+     (components/academy/theme/academy-tokens.css), so these utilities resolve only inside the
+     Academy. */
+  --color-ac-ground: var(--ac-ground);
+  --color-ac-docs-ground: var(--ac-docs-ground);
+  --color-ac-paper: var(--ac-paper);
+  --color-ac-panel: var(--ac-panel);
+  --color-ac-tile: var(--ac-tile);
+  --color-ac-ink: var(--ac-ink);
+  --color-ac-ink-2: var(--ac-ink-2);
+  --color-ac-ink-3: var(--ac-ink-3);
+  --color-ac-rule: var(--ac-rule);
+  --color-ac-rule-2: var(--ac-rule-2);
+  --color-ac-red: var(--ac-red);
+  --color-ac-ok: var(--ac-ok);
+  --color-ac-ok-bg: var(--ac-ok-bg);
+  --color-ac-code: var(--ac-code);
+  --color-ac-line: var(--ac-line);
+  --color-ac-h: var(--ac-h);
+  --color-ac-t: var(--ac-t);
+  --font-ac-display: var(--ac-display);
+  --font-ac-mono: var(--ac-mono);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
