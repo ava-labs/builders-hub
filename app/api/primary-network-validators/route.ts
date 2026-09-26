@@ -72,7 +72,9 @@ async function getValidators(): Promise<ValidatorData[]> {
   const isCacheValid = cacheAge < CACHE_DURATION;
   const isCacheStale = cachedData && !isCacheValid && cacheAge < STALE_DURATION;
 
-  if (isCacheStale && cachedData && !isRevalidating) {
+  // a stale copy is served while one background refresh runs, never a second upstream fetch
+  if (isCacheStale && cachedData) {
+    if (isRevalidating) return cachedData.data;
     isRevalidating = true;
     
     (async () => {
