@@ -1,5 +1,5 @@
 import type { Node } from "@/components/explorer-v2/network/icm-map";
-import { FLOOR, boxAt, boxPart, dropAt, type FormPart, type Plan } from "./frame";
+import { FLOOR, boxAt, boxPart, dropAt, pickReach, type FormPart, type Plan } from "./frame";
 
 /* Infrastructure is the data warehouse: long, low data halls, their walls
    louvered storey by storey between slots of glass, rows of cooling units
@@ -35,7 +35,8 @@ export function hallPlan(n: Node): Plan {
   return {
     parts,
     crest: h + unitH,
-    extent: w * 1.1,
+    // the pick holds the hall's ends and their louvers
+    extent: Math.max(w * 1.1, pickReach(hu + 0.6)),
     // the drone lands in the clear bay, away from the plaque over the ground point
     drop: dropAt((clear + hu) / 2, 0, h, Math.min((hu - clear) / 2 - 0.3, hv - 0.4) - 0.2),
     shaft: parts.reduce((best, p, i) => (!p.glass?.none && p.z1 - p.z0 > parts[best].z1 - parts[best].z0 ? i : best), 0),

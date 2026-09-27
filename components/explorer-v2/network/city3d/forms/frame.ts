@@ -1,6 +1,6 @@
 import { FLOOR, type Node, type Part } from "@/components/explorer-v2/network/icm-map";
 import { TILT } from "@/components/explorer-v2/network/city-geometry";
-import type { Building, CityModel, Inst } from "../model";
+import type { Building, CityModel, Inst, Tone } from "../model";
 
 /* The districts' architecture works in each building's own frame: u runs
    along its right face's normal, v along its left face's (the face the sun
@@ -47,10 +47,15 @@ export interface Plan {
   shaft: number;
   dress: (m: CityModel & { shapes: Record<ShapeKey, Inst[]> }, bd: Building, b: number) => void;
   drop?: Drop;
+  /** where its plaque and name stand, where not over the ground point at the crest */
+  anchor?: Drop;
 }
 
 /** a point of a building's frame in the plan, off its ground point */
 export const planAt = (u: number, v: number): [number, number] => [u * C + v * S, -u * S + v * C];
+
+/** the reach a set's pick must hold, as its extent: the pick is a square round the ground point, a half of 0.75 extents (Buildings.tsx) */
+export const pickReach = (reach: number) => (reach + 0.3) / 0.75;
 
 /** a drone's landing point in a building's frame, and the radius its landing ring may take there */
 export function dropAt(u: number, v: number, z: number, r?: number): Drop {
@@ -110,6 +115,18 @@ export function insetOf(hu: number, hv: number, f: Face): number {
 }
 /** the glass's half-run on a face */
 export const glassHalf = (hu: number, hv: number, f: Face) => f.half * (1 - 2 * insetOf(hu, hv, f));
+
+/** a band of glass round a square's four faces, a hair proud of them, from z0 up sy: its ribbons' ids, for the flashes */
+export function glassRound(m: CityModel, bd: Building, b: number, half: number, z0: number, sy: number, tone: Tone, out = 0.03): number[] {
+  const ids: number[] = [];
+  for (const f of facesOf(half, half)) {
+    const [u, v] = onFace(f, 0, out);
+    const [wx, wz] = planAt(u, v);
+    ids.push(m.ribbons.length);
+    m.ribbons.push({ b, x: bd.x + wx, y: bd.base + z0, z: bd.z + wz, sx: 2 * half * 0.98, sy, sz: 1, yaw: YAW + Math.PI / 2 - Math.atan2(f.nv, f.nu), k: -1, tone });
+  }
+  return ids;
+}
 
 /** a storey's line: the height a storey starts at, plus a hair */
 export const storeyAt = (k: number, over = 0.6) => k * FLOOR + over;

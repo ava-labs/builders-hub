@@ -19,6 +19,8 @@ import { WARM } from "./warmup";
 /** a building's roof plaque: its size in world units (0 when it has none), and the height over the crest it stands at */
 export const plaqueOf = (b: Building) => (b.n.role === "hub" || !b.n.logo ? 0 : b.n.role === "talker" ? 15 : 12);
 export const PLAQUE_LIFT = 0.4;
+/** where a set's plaque stands (and the words that stand on it): its plan's anchor (a stadium's roof ring), else its massing's top over its ground point */
+export const plaqueAt = (b: Building) => (b.anchor ? new Vector3(b.anchor[0], b.anchor[1] + PLAQUE_LIFT, b.anchor[2]) : new Vector3(b.x, b.base + b.crest + PLAQUE_LIFT, b.z));
 
 /** the halo the map's words wear, so they read over the roofs */
 export const HALO = "[text-shadow:0_0_3px_#fff,0_0_3px_#fff,0_0_7px_#fff] dark:[text-shadow:0_0_3px_#09090b,0_0_3px_#09090b,0_0_8px_#09090b]";
@@ -501,7 +503,8 @@ export function Badges({
     list.forEach(({ b, i }, k) => {
       const badge = plaqueOf(b);
       // anchored on its roof, at the top of its massing
-      M.makeTranslation(b.x, b.base + b.crest + PLAQUE_LIFT, b.z);
+      const at = plaqueAt(b);
+      M.makeTranslation(at.x, at.y, at.z);
       m.setMatrixAt(k, M);
       // the canvas texture is flipped on upload (flipY), so the atlas's row r from the top is v from 1 - (r + 1) / cols
       cell.set([(k % cols) / cols, 1 - (Math.floor(k / cols) + 1) / cols, 1 / cols, 1 / cols], k * 4);

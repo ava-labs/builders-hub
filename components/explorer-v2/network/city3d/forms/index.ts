@@ -79,6 +79,8 @@ export function plannerOf(nodes: Node[]): (n: Node) => Plan | null {
     }
     return seen >= 5;
   };
+  // the district's largest, which carries the slim mast
+  const financeLargest = ranked.find((n) => n.district === "finance");
   /* the temple front, one to the district, where the home camera sees it: on the largest set with a clear face
      toward the home view that is large enough to carry it, the lit face first; else a smaller portico on the
      largest set in that front row */
@@ -96,7 +98,7 @@ export function plannerOf(nodes: Node[]): (n: Node) => Plan | null {
     const roll = diceOf(`${n.id}:arch`);
     switch (n.district) {
       case "finance":
-        return financePlan(n, roll, front?.id === n.id ? front : null);
+        return financePlan(n, roll, front?.id === n.id ? front : null, financeLargest?.id === n.id);
       case "culture":
         return STADIUMS.has(n.id) ? stadiumPlan(n, roomOf(n)) : civicPlan(n, roll);
       case "infrastructure":

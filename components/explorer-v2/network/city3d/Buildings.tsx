@@ -20,7 +20,7 @@ import {
   type InstancedBufferAttribute,
 } from "three";
 import type { Glass } from "@/components/explorer-v2/network/icm-map";
-import { GLASS3, GLASS_BASE, GROUND, HUB3, MASS3, ROOF, type Theme } from "./palette";
+import { GLASS3, GLASS_BASE, GROUND, HUB3, MASS3, PAINT, ROOF, type Theme } from "./palette";
 import { feetOf, type CityModel } from "./model";
 import { FOOT_BLUR, paintFeetMask, paintFeetTime, PAINT_PX } from "./paint";
 import type { VeilState } from "./Labels";
@@ -283,9 +283,33 @@ export function Buildings({
     return {
       boxes: byBuilding(model.boxes),
       drums: byBuilding(model.drums),
-      shapes: tinted.map((k): [InstancedMesh, number[][]] => [meshes[k], byBuilding(model.shapes[k])]),
+      shapes: tinted.map((k): [InstancedMesh, number[][], ShapeKey] => [meshes[k], byBuilding(model.shapes[k]), k]),
     };
   }, [model, meshes]);
+
+  /* each tinted shape's own color, as a share of its material's for the theme: its paint (palette.ts PAINT) over the
+     material's color, else 1. It stands in the shape's instance colors, and the cursor's tint multiplies it */
+  const bases = useMemo(() => {
+    const under = { mass: c3(MASS3.wall[theme]), steel: c3(ROOF.steel[theme]) };
+    const c = new Color();
+    return partsOf.shapes.map(([, , k]) => {
+      const out = new Float32Array(Math.max(1, model.shapes[k].length) * 3).fill(1);
+      const u = under[SHAPES[k].mat];
+      model.shapes[k].forEach((it, i) => {
+        if (!it.paint) return;
+        c.set(PAINT[it.paint][theme]);
+        out.set([c.r / u.r, c.g / u.g, c.b / u.b], i * 3);
+      });
+      return out;
+    });
+  }, [model, theme, partsOf]);
+  useEffect(() => {
+    partsOf.shapes.forEach(([mesh], j) => {
+      if (!mesh.instanceColor) return;
+      (mesh.instanceColor.array as Float32Array).set(bases[j]);
+      mesh.instanceColor.needsUpdate = true;
+    });
+  }, [partsOf, bases]);
 
   // the theme: the white model by day, graphite by night, crisp edges, and the curtain walls' glass and its light
   useEffect(() => {
@@ -505,22 +529,26 @@ export function Buildings({
     b.needsUpdate = true;
   }, [meshes, state.flash]);
 
-  // the cursor's building takes a shade of the explorer's blue: a cool cast on the white model, a lift on the graphite
+  /* the cursor's building takes a shade of the explorer's blue: a cool cast on the white model, a lift on the graphite, over
+     a shape's own paint. It runs after the paints go in (a new theme or plan), so the building under the cursor keeps its shade */
   const lastHover = useRef(-1);
   useEffect(() => {
     const tint = dark ? new Color(1.25, 1.36, 1.6) : new Color(0.9, 0.94, 1);
     const plain = new Color(1, 1, 1);
-    const set = (b: number, c: Color) => {
+    const c = new Color();
+    const set = (b: number, by: Color) => {
       if (b < 0) return;
-      for (const i of partsOf.boxes[b] ?? []) meshes.boxes.setColorAt(i, c);
-      for (const i of partsOf.drums[b] ?? []) meshes.drums.setColorAt(i, c);
-      for (const [mesh, of] of partsOf.shapes) for (const i of of[b] ?? []) mesh.setColorAt(i, c);
+      for (const i of partsOf.boxes[b] ?? []) meshes.boxes.setColorAt(i, by);
+      for (const i of partsOf.drums[b] ?? []) meshes.drums.setColorAt(i, by);
+      partsOf.shapes.forEach(([mesh, of], j) => {
+        for (const i of of[b] ?? []) mesh.setColorAt(i, c.fromArray(bases[j], i * 3).multiply(by));
+      });
     };
     set(lastHover.current, plain);
     set(state.hover, tint);
     lastHover.current = state.hover;
     for (const m of [meshes.boxes, meshes.drums, ...partsOf.shapes.map(([mesh]) => mesh)]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
-  }, [state.hover, meshes, partsOf, dark]);
+  }, [state.hover, meshes, partsOf, dark, bases]);
 
   // the warning lights flash, the landmarks' white, downtown's in turn: each flash comes on at once and dies away long, as the brand's motion does
   const lampColors = useMemo(() => model.lamps.map((l) => c3(l.white ? "#FFFFFF" : ROOF.warn[theme])), [model, theme]);

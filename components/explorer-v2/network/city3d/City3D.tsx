@@ -33,7 +33,7 @@ import { Pillar } from "./Pillar";
 import { Sites } from "./Sites";
 import { Streetlights } from "./Streetlights";
 import { FOV, HOME_POLAR, Rig, type Shot } from "./Rig";
-import { Anchor, Badges, HALO, PLAQUE_LIFT, plaqueOf, TagLayout, type Keep, type Tag, type VeilState } from "./Labels";
+import { Anchor, Badges, HALO, plaqueAt, plaqueOf, TagLayout, type Keep, type Tag, type VeilState } from "./Labels";
 import { Marks } from "./Marks";
 import { Lighting } from "./Lighting";
 import { hurry, Rise, Stage, useSteady, Warmup, WARM } from "./warmup";
@@ -708,7 +708,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
       for (const i of leaders) {
         const b = model.buildings[i];
         const hub = b.n.role === "hub";
-        const at = hub ? new Vector3(b.x, b.base + b.n.h + HUB_REACH, b.z) : new Vector3(b.x, b.base + b.crest + PLAQUE_LIFT, b.z);
+        const at = hub ? new Vector3(b.x, b.base + b.n.h + HUB_REACH, b.z) : plaqueAt(b);
         out.push({ key: `t:${b.id}`, at, lifts: [8, 16, 24, 32, 40, 48, 56, 64], fade: true, b: i, rule: true, flag: true, avoid: true, clear: plaqueOf(b), from: schedule.rise[i] + RISE_S });
       }
     // the week's new L1s carry no floating tag: their building sites (fence, scaffolding, crane) and the New chip say it
@@ -716,7 +716,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
       const b = model.buildings[model.byId.get(id)!];
       // on its plaque's top, now the plaques stand on the roofs
       // it comes in with its tower's rise, so no name stands on the plate before its tower does
-      out.push({ key: `r:${id}`, at: new Vector3(b.x, b.base + b.crest + PLAQUE_LIFT, b.z), lifts: [0, 16, 32, 48, 64, 80], fade: true, b: model.byId.get(id), clear: plaqueOf(b), from: schedule.rise[model.byId.get(id)!] + RISE_S });
+      out.push({ key: `r:${id}`, at: plaqueAt(b), lifts: [0, 16, 32, 48, 64, 80], fade: true, b: model.byId.get(id), clear: plaqueOf(b), from: schedule.rise[model.byId.get(id)!] + RISE_S });
     }
     return out;
   }, [city, namesOff, roofIds, model, focus, schedule, rules, leaders]);
@@ -733,7 +733,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
     ];
     for (const b of model.buildings) {
       const plaque = plaqueOf(b);
-      if (plaque) out.push({ owner: `t:${b.id}`, at: new Vector3(b.x, b.base + b.crest + PLAQUE_LIFT, b.z), plaque });
+      if (plaque) out.push({ owner: `t:${b.id}`, at: plaqueAt(b), plaque });
     }
     return out;
   }, [rules, model]);

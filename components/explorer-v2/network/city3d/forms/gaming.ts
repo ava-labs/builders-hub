@@ -44,14 +44,14 @@ export function gamingPlan(n: Node, roll: Roll, landmark: boolean): Plan {
       const [gu, gv] = at(Hs - inset * Math.cos(slope) + lift * Math.sin(slope));
       const [wx, wz] = planAt(gu, gv);
       m.ribbons.push({ b, x: bd.x + wx, y: bd.base + z0 + inset * Math.sin(slope) + lift * Math.cos(slope), z: bd.z + wz, sx: 2 * Ht * 0.86, sy: len * 0.93, sz: 1, yaw: YAW + (alongV ? 0 : Math.PI / 2), pitch: -(Math.PI / 2 - slope), k: -1, tone: "top" });
-      // the deck's parapet, and the landmark's mast off its back, with its white light, as the model's
+      // the deck's parapet, and the landmark's mast off its back, with its white light, as the model's, short enough for the pick to hold
       const [pu, pv] = at(-Hs / 2);
       m.shapes.trim.push(boxAt(bd, b, pu, pv, (alongV ? Ht : Hs / 2) + 0.3, (alongV ? Hs / 2 : Ht) + 0.3, h - 0.6, h));
       if (landmark) {
         const [mu, mv] = at(-Hs * 0.62);
-        m.steel.push(boxAt(bd, b, mu, mv, 0.21, 0.21, h, h + 18));
+        m.steel.push(boxAt(bd, b, mu, mv, 0.21, 0.21, h, h + 14));
         const [mx, mz] = planAt(mu, mv);
-        m.lamps.push({ b, x: bd.x + mx, y: bd.base + h + 18.7, z: bd.z + mz, r: 1.05, white: true, beat: 3.2, phase: diceOf(`${bd.id}:spire`)() * 3.2 });
+        m.lamps.push({ b, x: bd.x + mx, y: bd.base + h + 14.7, z: bd.z + mz, r: 1.05, white: true, beat: 3.2, phase: diceOf(`${bd.id}:spire`)() * 3.2 });
       }
     },
   };

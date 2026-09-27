@@ -1,12 +1,12 @@
 import { BufferGeometry, CircleGeometry, CylinderGeometry, Float32BufferAttribute } from "three";
 import { standingBox } from "../geometry";
-import { STADIUM_PROFILE } from "./culture";
+import { STAND_B, STAND_D, STAND_PROFILE } from "./culture";
 import type { ShapeKey } from "./frame";
 
 /* The districts' own unit shapes, each standing on its base, so an
    instance's position is its foot, as the city's others do (geometry.ts):
    the stone's trim, a column, a pediment's gable, a sawtooth roof's tooth,
-   the stadium's bowl, a louver's blades, and a cooling unit's fan. Each is
+   the stadium's stands, a louver's blades, and a cooling unit's fan. Each is
    drawn as one instanced mesh for the whole city (Buildings.tsx). */
 
 type V = [number, number, number];
@@ -63,20 +63,41 @@ function saw(): BufferGeometry {
   return f.build();
 }
 
-/** a section turned round the upright axis: flat along the section, round the other way; each run of it faces to its right as the section is walked */
-function lathe(profile: [number, number][], segments: number): BufferGeometry {
+/** a stadium's stands: their section swept round the pitch's square-cornered edge, each corner turned in a fan, so
+    the back's corners round on the stands' depth. A unit long along x from the middle, STAND_B wide along z */
+function stands(fan = 10): BufferGeometry {
   const f = new Faces();
-  for (let i = 0; i + 1 < profile.length; i++) {
-    const [r0, y0] = profile[i];
-    const [r1, y1] = profile[i + 1];
-    const [nr, ny] = unit([y1 - y0, -(r1 - r0), 0]);
-    for (let j = 0; j < segments; j++) {
-      const t0 = (2 * Math.PI * j) / segments;
-      const t1 = (2 * Math.PI * (j + 1)) / segments;
-      const at = (r: number, y: number, t: number): V => [r * Math.cos(t), y, r * Math.sin(t)];
-      const n0: V = [nr * Math.cos(t0), ny, nr * Math.sin(t0)];
-      const n1: V = [nr * Math.cos(t1), ny, nr * Math.sin(t1)];
-      f.quad(at(r0, y0, t0), at(r1, y1, t0), at(r1, y1, t1), at(r0, y0, t1), n0, n0, n1, n1);
+  const iu = 1 - STAND_D;
+  const iv = STAND_B - STAND_D;
+  // the pitch's edge, walked round, and the way out there
+  const path: [V, V][] = [];
+  const turn = (cu: number, cv: number, a0: number) => {
+    for (let i = 0; i <= fan; i++) {
+      const a = a0 + (i / fan) * (Math.PI / 2);
+      path.push([[cu, 0, cv], [Math.cos(a), 0, Math.sin(a)]]);
+    }
+  };
+  path.push([[iu, 0, -iv], [1, 0, 0]], [[iu, 0, iv], [1, 0, 0]]);
+  turn(iu, iv, 0);
+  path.push([[iu, 0, iv], [0, 0, 1]], [[-iu, 0, iv], [0, 0, 1]]);
+  turn(-iu, iv, Math.PI / 2);
+  path.push([[-iu, 0, iv], [-1, 0, 0]], [[-iu, 0, -iv], [-1, 0, 0]]);
+  turn(-iu, -iv, Math.PI);
+  path.push([[-iu, 0, -iv], [0, 0, -1]], [[iu, 0, -iv], [0, 0, -1]]);
+  turn(iu, -iv, (3 * Math.PI) / 2);
+  const at = ([p, n]: [V, V], d: number, z: number): V => [p[0] + n[0] * d, z, p[2] + n[2] * d];
+  for (let j = 0; j < path.length; j++) {
+    const a = path[j];
+    const b = path[(j + 1) % path.length];
+    for (let k = 0; k + 1 < STAND_PROFILE.length; k++) {
+      const [d0, z0] = STAND_PROFILE[k];
+      const [d1, z1] = STAND_PROFILE[k + 1];
+      // the section's outward normal: it is walked up the front, out over the tiers and down the back
+      const [nd, nz] = [-(z1 - z0), d1 - d0];
+      const l = Math.hypot(nd, nz) || 1;
+      const na: V = unit([a[1][0] * (nd / l), nz / l, a[1][2] * (nd / l)]);
+      const nb: V = unit([b[1][0] * (nd / l), nz / l, b[1][2] * (nd / l)]);
+      f.quad(at(a, d0, z0), at(a, d1, z1), at(b, d1, z1), at(b, d0, z0), na, na, nb, nb);
     }
   }
   return f.build();
@@ -113,7 +134,7 @@ export const SHAPES: Record<ShapeKey, Shape> = {
   column: { geo: new CylinderGeometry(1, 1, 1, 14, 1).translate(0, 0.5, 0), mat: "mass", cast: true, tint: true },
   gable: { geo: gable(), mat: "mass", cast: true, tint: true },
   saw: { geo: saw(), mat: "mass", cast: true, tint: true },
-  bowl: { geo: lathe(STADIUM_PROFILE, 64), mat: "mass", cast: true, tint: true },
+  bowl: { geo: stands(), mat: "steel", cast: true, tint: true },
   louver: { geo: louver(), mat: "mass", cast: false, tint: true },
   fan: { geo: new CircleGeometry(1, 18).rotateX(-Math.PI / 2), mat: "steel", cast: false, tint: false },
 };

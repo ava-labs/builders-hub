@@ -89,6 +89,14 @@ export const GROUND = {
   pile: P("#C9D3DF", "#3B484B"),
 };
 
+/** the paints a district's form may give its shapes, over the massing's white: a stadium's pitch, a calm sage by day and a
+    graphite-green by night, which the massing's shade at its foot takes down to the lawns' lightness, and its lines, white
+    by day and pale by night, as the helipad's are */
+export const PAINT = {
+  pitch: P("#DCF8DC", "#263428"),
+  line: P("#FFFFFF", "#9AA0AE"),
+};
+
 /** the roofs' furniture: steel and glass, nothing warm */
 export const ROOF = {
   cap: P("#EEF1F5", "#30353C"),

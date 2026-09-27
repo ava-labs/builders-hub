@@ -40,6 +40,8 @@ export interface Inst {
   sz: number;
   yaw: number;
   pitch?: number;
+  /** its own paint, over the massing's white, where a district's form gives one (palette.ts PAINT) */
+  paint?: "pitch" | "line";
 }
 /** what a ribbon's glass shows: its storey's, its building's top storey's, downtown's white light, or a sky lobby's warm one */
 export type Tone = "floor" | "top" | "white" | "crown" | "lobby";
@@ -98,6 +100,8 @@ export interface Building {
   drop: [number, number, number];
   /** the radius of free roof round that point, where a district's plan knows it, for the drone's landing ring */
   ring?: number;
+  /** where its plaque and name stand, where a district's plan puts them off the ground point at the crest (Labels.tsx plaqueAt) */
+  anchor?: [number, number, number];
 }
 
 export interface CityModel {
@@ -221,6 +225,7 @@ export function modelOf(nodes: Node[]): CityModel {
       // a district's plan names its roof's landing point; else the ground point at the top part's height, or at the set's height where it has no parts
       drop: plan?.drop ? [x + plan.drop.dx, base + plan.drop.z, z + plan.drop.dy / TILT] : [x, base + (parts.length ? Math.max(...parts.map((p) => p.z1)) : n.h), z],
       ring: plan?.drop?.r,
+      anchor: plan?.anchor ? [x + plan.anchor.dx, base + plan.anchor.z, z + plan.anchor.dy / TILT] : undefined,
     };
     m.byId.set(n.id, b);
     m.buildings.push(building);

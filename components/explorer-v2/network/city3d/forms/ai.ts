@@ -1,6 +1,6 @@
 import type { Node } from "@/components/explorer-v2/network/icm-map";
 import { TILT } from "@/components/explorer-v2/network/city-geometry";
-import { FLOOR, boxAt, boxPart, dropAt, drumPart, planAt, type FormPart, type Plan } from "./frame";
+import { FLOOR, boxAt, boxPart, dropAt, drumPart, pickReach, planAt, type FormPart, type Plan } from "./frame";
 
 /* AI builds in rounded glass: towers on a stadium-shaped plan, their
    ends turned in half drums, glass run round them storey by storey, each
@@ -22,7 +22,8 @@ export function aiPlan(n: Node): Plan {
   return {
     parts,
     crest: h,
-    extent: w * 1.05,
+    // the pick holds the half drums' ends and their floor plates
+    extent: Math.max(w * 1.05, pickReach(hu + 0.35)),
     shaft: 0,
     // the drone lands on the roof of the right end's half drum, clear of the garden and the plaque
     drop: dropAt(core + hv * 0.45, 0, h, hv * 0.5 - 0.4),
