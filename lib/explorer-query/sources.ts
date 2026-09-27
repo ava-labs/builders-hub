@@ -6,6 +6,7 @@ import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
+import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, tokensFor, tokensSql } from "./protocols";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
 
@@ -319,14 +320,87 @@ const supply: Source = {
 };
 
 /* ------------------------------------------------------------------ */
+/* dex_factories, dex_tokens                                           */
 
-const SOURCES: Record<string, Source> = { p_validator_versions: versions, p_avax_supply: supply };
+/* The C-Chain's DEXs (protocols.ts): each protocol's pool factories, and
+   the decimals of the tokens a query scales, with the quote a volume is
+   counted in. A query finds a protocol's pools in its factories'
+   creation logs. Mainnet only. The two share what the query leaves of
+   the budget, each keeping the entries the query names: the factories
+   come first, since without one a protocol loses its pools and without a
+   token only its decimals; the tokens take up to TOKENS_ROOM of the rest,
+   and never less than the room of the quote tokens a volume needs. */
+
+/** the WITH around the two tables, in bytes */
+const DEX_WRAP = 64;
+const TOKENS_ROOM = 1600;
+
+const QUOTES_ROOM = Buffer.byteLength(tokensSql(DEX_CHAIN_ID, DEX_TOKENS.filter((t) => t.quote !== "")));
+
+function dexRoom(query: string) {
+  const free = SQL_BUDGET - Buffer.byteLength(query) - DEX_WRAP;
+  if (!reads(query, "dex_tokens")) return { tokens: null, factories: free };
+  const left = free - Buffer.byteLength(factoriesSql(DEX_CHAIN_ID));
+  const tokens = tokensFor(query, Math.min(TOKENS_ROOM, Math.max(left, QUOTES_ROOM)));
+  return { tokens, factories: free - Buffer.byteLength(tokens.sql) };
+}
+
+const factories: Source = {
+  columns: [
+    ["chain_id", "UInt64"],
+    ["protocol", "String"],
+    ["version", "String"],
+    ["family", "String"],
+    ["factory", "String"],
+    ["positions", "Array(String)"],
+  ],
+  async build(_chainId, query) {
+    const { sql, kept } = factoriesFor(query, dexRoom(query).factories);
+    const n = DEX_FACTORIES.length;
+    const protocols = new Set(DEX_FACTORIES.map((f) => f.protocol)).size;
+    const text =
+      kept.length < n
+        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order.`
+        : `Protocols and their pool factories come from our contract registry: ${fmt(n)} factories of ${fmt(protocols)} protocols.`;
+    return { sql, note: { table: "dex_factories", label: "the contract registry", at: DEX_LISTED_AT, total: n, known: kept.length, text } };
+  },
+};
+
+const tokens: Source = {
+  columns: [
+    ["chain_id", "UInt64"],
+    ["token", "String"],
+    ["decimals", "UInt8"],
+    ["quote", "String"],
+  ],
+  async build(_chainId, query) {
+    const { sql, kept } = dexRoom(query).tokens ?? tokensFor(query, TOKENS_ROOM);
+    const n = DEX_TOKENS.length;
+    const text =
+      kept.length < n
+        ? `Token decimals come from our list of the tokens with the most DEX volume. This table holds ${fmt(kept.length)} of its ${fmt(n)} tokens: the stablecoins, WAVAX and AVAX, then the ones the query names, then the rest.`
+        : `Token decimals come from our list of the ${fmt(n)} tokens with the most DEX volume.`;
+    return { sql, note: { table: "dex_tokens", label: "token decimals", at: DEX_LISTED_AT, total: n, known: kept.length, text } };
+  },
+};
+
+/* ------------------------------------------------------------------ */
+
+const SOURCES: Record<string, Source> = { p_validator_versions: versions, p_avax_supply: supply, dex_factories: factories, dex_tokens: tokens };
+
+/** the tables the DEX chapter of a DEX question's prompt describes itself, so every other prompt stays as it was */
+const OWN_CHAPTER = new Set(["dex_factories", "dex_tokens"]);
+
+/** a reference table's line: its name and typed columns */
+export function refLine(table: string): string {
+  return `${table}(${SOURCES[table].columns.map(([n, t]) => `${n} ${t}`).join(", ")})`;
+}
 
 /** the schema card's lines for this target's reference tables */
 export function refSchema(chainId: number): string[] {
   return targetOf(chainId)
-    .refs.filter((r) => SOURCES[r])
-    .map((r) => `${r}(${SOURCES[r].columns.map(([n, t]) => `${n} ${t}`).join(", ")})`);
+    .refs.filter((r) => SOURCES[r] && !OWN_CHAPTER.has(r))
+    .map(refLine);
 }
 
 const reads = (sql: string, table: string) => new RegExp(`\\b(?:FROM|JOIN)\\s+[\`"]?${table}\\b`, "i").test(sql);

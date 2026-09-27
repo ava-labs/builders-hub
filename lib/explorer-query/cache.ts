@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { createClient } from "redis";
-import { promptVersion } from "./prompt";
+import { dexQuestion, promptVersion } from "./prompt";
 import type { ChartSpec, Drill, Turn } from "./types";
 import type { VisualSpec } from "./visual";
 
@@ -56,11 +56,12 @@ async function redis() {
   return connecting;
 }
 
-/** the same question on the same chain, however it was typed, against the same prompt */
+/** the same question on the same chain, however it was typed, against the same prompt: a DEX question's names the DEX variant */
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
-  return createHash("sha256").update(`${chainId}\n${promptVersion(chainId)}\n${norm}\n${past}`).digest("hex").slice(0, 32);
+  const version = promptVersion(chainId, dexQuestion(chainId, prompt, history));
+  return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}`).digest("hex").slice(0, 32);
 }
 
 export async function getRecipe(key: string): Promise<Recipe | null> {

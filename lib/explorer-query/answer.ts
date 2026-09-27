@@ -6,7 +6,7 @@ import { MAX_ROWS, guardSql } from "./guard";
 import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
-import { pchainPrompt, systemPrompt } from "./prompt";
+import { dexQuestion, pchainPrompt, systemPrompt } from "./prompt";
 import { isCChain, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey } from "./cache";
 import { versionLines } from "./sources";
@@ -147,7 +147,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const system =
     targetOf(a.chainId).kind === "pchain"
       ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
-      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine });
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history) });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];

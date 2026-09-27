@@ -30,6 +30,10 @@ export const PCHAIN_TABLES = [
 export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply"] as const;
 const FUJI_REFS = PCHAIN_REFS.filter((r) => r !== "p_avax_supply");
 
+/** tables our server builds for the C-Chain's DEXs (protocols.ts): its
+    pool factories and token decimals. Mainnet only, so Fuji has none */
+export const CCHAIN_REFS = ["dex_factories", "dex_tokens"] as const;
+
 /** P-Chain tables that hold rows a re-ingest wrote twice, never merged:
     every read of them goes through FINAL (sources.ts). Counted on
     2026-09-27; the data fix belongs to the box */
@@ -80,7 +84,7 @@ export function targetOf(chainId: number): Target {
     kind: "evm",
     chainId,
     tables: EVM_TABLES,
-    refs: [],
+    refs: chainId === 43114 ? CCHAIN_REFS : [],
     final: [],
     wide: ["raw_txs", "raw_logs", "raw_traces"],
     bound: /\b(block_time|block_number)\s*(>=|>|<=|<|=|==|BETWEEN|IN)/i,

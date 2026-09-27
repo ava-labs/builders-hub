@@ -4,7 +4,8 @@
 
 import { createHash } from "node:crypto";
 import { MAX_ROWS } from "./guard";
-import { knownLines, refSchema } from "./sources";
+import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, dexFamilies, type DexFamily } from "./protocols";
+import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, PCHAIN_IDS, targetOf } from "./target";
 
 export const KNOWN_ADDRESSES: Record<string, string> = {
@@ -34,12 +35,216 @@ function chartSpec(symbol: string): string {
 - title: at most eight words, sentence case. note: one or two plain sentences on what is counted and any caveat: a first or last hour, day or week that is not whole, a ranking that keeps only its top rows, a 90-day clamp. Write for a person: never name columns (no share_pct, no success = false) or use engine words (bucket, row, query, table), never restate the data window, and never write hex (a topic, a selector, a hash or an address): say what it is ("ERC-20 transfers"). The note is kept with the query and shown again over later rows, so it never quotes a value from the rows: no figure, count, date, name or address. It claims no share or total ("all", "most", "the majority") that no column of the rows carries, and never calls a transaction's sender a contract. A share names the base its SQL divides by ("of the method calls counted", not "of all transactions"). It describes the data, never the server, the engine or the query (no "the server decodes names"). It makes no hedges ("may", "might", "could", "likely", "appears") and never repeats a filter in parentheses such as "(balance > 0)": it says the filter in words ("active seats"). No em dashes anywhere. Never write "settled", "waiting" or "pending", in any sense.`;
 }
 
-export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null }): string {
+/* ------------------------------------------------------------------ */
+/* The C-Chain's DEXs (protocols.ts), mainnet only, in the prompt of a
+   question about them (dexQuestion): every other question's prompt is
+   the one it was. The volume examples share one WITH, shown once: the
+   pools of every family from their factories' creation logs, the
+   window's swaps, the hour's WAVAX price and each swap's value. An
+   example whose protocol the registry does not list is left out. */
+
+const T = DEX_TOPICS;
+const topic = (t: string) => `unhex('${t}')`;
+const inList = (xs: string[]) => (xs.length === 1 ? `= ${xs[0]}` : `IN (${xs.join(", ")})`);
+/** word k of a log's data as a number, unsigned or signed; toFloat64 first, so no sum wraps */
+const U = (k: number, d = "data") => `toFloat64(reinterpretAsUInt256(reverse(substring(${d}, ${1 + 32 * k}, 32))))`;
+const I = (k: number, d = "data") => `toFloat64(reinterpretAsInt256(reverse(substring(${d}, ${1 + 32 * k}, 32))))`;
+/** the uint128 in the 16 bytes of a log's data from byte `at` */
+const H = (at: number | string, d = "data") => `toFloat64(reinterpretAsUInt128(reverse(substring(${d}, ${at}, 16))))`;
+/** the uint128 liquidity in the 16 bytes from `at`, exact, so a closed position sums to 0 */
+const LIQ = (at: number) => `toInt256(reinterpretAsUInt128(reverse(substring(data, ${at}, 16))))`;
+/** an int24 tick in the last 4 bytes of a topic */
+const TICK = (c: string) => `reinterpretAsInt32(reverse(substring(${c}, 29, 4)))`;
+const hexOf = (c: string) => `lower(concat('0x', hex(${c})))`;
+const FIRST_DAY = "'2020-09-23'";
+
+/** the events that create each family's pools; woofi has no pools to find */
+const CREATED: Record<DexFamily, string[]> = {
+  univ2: [T.v2Created],
+  solidly: [T.solidlyCreated],
+  univ3: [T.v3Created],
+  "cl-ramses": [T.v3Created],
+  algebra: [T.algebraCustom, T.algebraPool],
+  lb: [T.lbCreated],
+  univ4: [T.v4Initialize],
+  woofi: [],
+};
+/** the pools of the factories the WITH reads: protocol, version, pool, its tokens t0 and t1, and k, its fee or bin step */
+function poolsCte(): string {
+  const created = [...new Set(Object.values(CREATED).flat())];
+  // PoolCreated and Solidly's PairCreated put the pool in word 1, the others in word 0; a univ4 pool is its id
+  const pool = "multiIf(f.family = 'univ4', l.topic1, f.family IN ('univ3', 'cl-ramses', 'solidly'), substring(l.data, 45, 20), substring(l.data, 13, 20))";
+  // Initialize and algebra's CustomPool name the tokens in topic2 and topic3
+  const later = `f.family = 'univ4' OR l.topic0 = ${topic(T.algebraCustom)}`;
+  const k = "multiIf(f.family IN ('univ3', 'cl-ramses', 'lb'), reinterpretAsUInt32(reverse(substring(l.topic3, 29, 4))), f.family = 'univ4', reinterpretAsUInt32(reverse(substring(l.data, 29, 4))), 0)";
+  return `pools AS (SELECT f.protocol AS protocol, f.version AS version, ${pool} AS pool, substring(if(${later}, l.topic2, l.topic1), 13, 20) AS t0, substring(if(${later}, l.topic3, l.topic2), 13, 20) AS t1, ${k} AS k FROM raw_logs AS l INNER JOIN dex_factories AS f ON l.address = f.factory WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.address IN (SELECT factory FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} $PROTOCOL) AND l.topic0 ${inList(created.map(topic))})`;
+}
+
+/** the Swap topics, named once in the WITH */
+const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap`;
+/** the window's Swap logs by topic0: pool, time, transaction, trader, router, and what each moved of token0 (r0) and token1 (r1) */
+const swapsCte = (start: string) =>
+  `swap_logs AS (SELECT if(topic0 = v4_swap, topic1, address) AS pool, block_time, transaction_hash AS tx, tx_from AS trader, tx_to AS router, multiIf(topic0 = v2_swap, ${U(0)} + ${U(2)}, topic0 = lb_swap, ${H(49)} + ${H(81)}, abs(${I(0)})) AS r0, multiIf(topic0 = v2_swap, ${U(1)} + ${U(3)}, topic0 = lb_swap, ${H(33)} + ${H(65)}, abs(${I(1)})) AS r1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start} AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap))`;
+/** the WAVAX price per hour from the hour before `start`: the median over the hour's swaps in the price pool */
+const pxCte = (start: string, swap = "v3_swap") =>
+  `px AS (SELECT toStartOfHour(block_time) AS hour, quantileExact(0.5)(-${I(1)} / nullIf(${I(0)}, 0) * 1e12) AS price FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start} - INTERVAL 1 HOUR AND topic0 = ${swap} AND address = ${topic(DEX_PRICE_POOL.slice(2))} GROUP BY hour)`;
+/** the stablecoins with their decimals, and WAVAX with native AVAX, as arrays */
+const QUOTES = `q AS (SELECT groupArrayIf(token, quote = 'usd') AS S, groupArrayIf(decimals, quote = 'usd') AS SD, groupArrayIf(token, quote = 'avax') AS A FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID})`;
+/** a swap's value in USD: its stablecoin leg, else its WAVAX leg at the hour's price, else NULL */
+const USD =
+  "multiIf(has(S, p.t0), s.r0 / pow(10, SD[indexOf(S, p.t0)]), has(S, p.t1), s.r1 / pow(10, SD[indexOf(S, p.t1)]), has(A, p.t0) AND x.price > 0, s.r0 / 1e18 * x.price, has(A, p.t1) AND x.price > 0, s.r1 / 1e18 * x.price, NULL)";
+const LEGS = `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, ${USD} AS usd FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool CROSS JOIN q LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
+
+/** the DEX WITH with its two slots: the window's start, and a protocol filter or nothing */
+export const DEX_WITH = `WITH ${SWAPS_NAMED}, ${poolsCte()}, ${swapsCte("$START")}, ${pxCte("$START")}, ${QUOTES}, ${LEGS}`;
+/** the pools part of it alone */
+const DEX_POOLS = `WITH ${poolsCte()}`;
+
+/** an example's $DEX(start, 'slug') and $POOLS('slug') written out, as the prompt tells the model to; for the tests */
+export function expandDex(sql: string): string {
+  let out = "";
+  for (let i = 0; i < sql.length; ) {
+    const m = /^\$(DEX|POOLS)\(/.exec(sql.slice(i));
+    if (!m) {
+      out += sql[i++];
+      continue;
+    }
+    // the arguments run to the parenthesis that closes this one
+    let j = i + m[0].length - 1;
+    for (let depth = 0; j < sql.length; j++) {
+      if (sql[j] === "(") depth++;
+      else if (sql[j] === ")" && --depth === 0) break;
+    }
+    const args = sql.slice(i + m[0].length, j);
+    const slug = /,?\s*'([\w-]+)'\s*$/.exec(args)?.[1];
+    const text = m[1] === "DEX" ? DEX_WITH.replaceAll("$START", args.replace(/,?\s*'[\w-]+'\s*$/, "").trim()) : DEX_POOLS;
+    out += text.replace("$PROTOCOL", slug ? `AND protocol = '${slug}'` : "");
+    i = j + 1;
+  }
+  return out;
+}
+
+const SWAPS = "uniqExact(tx, pool) AS swaps, uniqExactIf(tx, pool, usd IS NOT NULL) AS priced_swaps, round(sum(usd), 2) AS volume_usd";
+/** a drill's record columns for a log */
+const LOG_RECORD = "l.block_time AS t, l.block_number AS block_number, concat('0x', hex(l.transaction_hash)) AS tx_hash, lower(concat('0x', hex(l.tx_from))) AS from_address, lower(concat('0x', hex(l.address))) AS contract";
+const SWAP_TOPICS = [T.v2Swap, T.v3Swap, T.lbSwap, T.v4Swap].map(topic).join(", ");
+/** the tokens of the one pool `pool` (bytes) that a family's creation log names */
+const tokWith = (family: DexFamily, pool: string) =>
+  `tok AS (SELECT substring(topic1, 13, 20) AS t0, substring(topic2, 13, 20) AS t1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 = ${topic(CREATED[family][0])} AND address IN (SELECT factory FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} AND family = '${family}') AND substring(data, ${family === "univ3" ? 45 : 13}, 20) = ${pool})`;
+/** the stablecoin and WAVAX sides of raw amounts a0 and a1 of the pool's token0 and token1, in USD at the latest hour's price */
+const worth = (a0: string, a1: string) =>
+  `if(has(S, t0), ${a0} / pow(10, SD[indexOf(S, t0)]), 0) + if(has(S, t1), ${a1} / pow(10, SD[indexOf(S, t1)]), 0) + (if(has(A, t0), ${a0}, 0) + if(has(A, t1), ${a1}, 0)) / 1e18 * (SELECT price FROM px ORDER BY hour DESC LIMIT 1)`;
+const LATEST = pxCte("now() - INTERVAL 1 HOUR", topic(T.v3Swap));
+
+function dexRules(): string {
+  const protocols = Object.entries(DEX_PROTOCOLS)
+    .map(([slug, name]) => `'${slug}' (${name}: ${DEX_FACTORIES.filter((f) => f.protocol === slug).map((f) => `${f.version || "pools"} ${f.family}`).join(", ")})`)
+    .join("; ");
+  const lines: Record<DexFamily, string> = {
+    univ2: `univ2: PairCreated ${topic(T.v2Created)} puts the pool in word 0. Swap ${topic(T.v2Swap)}: amount0In, amount1In, amount0Out, amount1Out are words 0 to 3, so token0 moved words 0 + 2 and token1 words 1 + 3. Mint ${topic(T.v2Mint)} adds amount0 and amount1 (words 0 and 1); Burn ${topic(T.v2Burn)} removes them and sends them to topic2. Sync ${topic(T.v2Sync)}: reserve0 and reserve1, words 0 and 1.`,
+    solidly: `solidly: PairCreated ${topic(T.solidlyCreated)} puts the pool in word 1: substring(data, 45, 20). Its pools emit the univ2 Swap, Mint and Burn, and Sync ${topic(T.solidlySync)} or the univ2 one.`,
+    univ3: `univ3: PoolCreated ${topic(T.v3Created)} puts the pool in word 1 (substring(data, 45, 20)) and the fee in topic3, in millionths (500 is 0.05%). Swap ${topic(T.v3Swap)}: amount0 and amount1 are words 0 and 1, int256 (reinterpretAsInt256), positive into the pool; the tick is word 4. Mint ${topic(T.v3Mint)}: owner topic1, tickLower topic2, tickUpper topic3, liquidity the last 16 bytes of word 1. Burn ${topic(T.v3Burn)}: the same topics, liquidity the last 16 bytes of word 0. The positions contract (in dex_factories.positions) holds most positions as NFTs: its IncreaseLiquidity ${topic(T.increase)} and DecreaseLiquidity ${topic(T.decrease)} carry tokenId in topic1 and liquidity in the last 16 bytes of word 0.`,
+    "cl-ramses": `cl-ramses: as univ3 (PoolCreated, Swap, Burn and the positions contract), but the pool's Mint is ${topic(T.ramsesMint)}: owner topic1, tickLower topic2, tickUpper topic3, the position's tokenId in word 1 and the liquidity in the last 16 bytes of word 2.`,
+    algebra: `algebra: CustomPool ${topic(T.algebraCustom)} names the tokens in topic2 and topic3 (topic1 is its deployer), Pool ${topic(T.algebraPool)} in topic1 and topic2; both put the pool in word 0. Its pools emit the univ3 Swap, Mint and Burn. Its positions contracts write IncreaseLiquidity ${topic(T.algebraIncrease)}, tokenId in topic1, the liquidity added in the last 16 bytes of word 1 and the pool in word 4, and the univ3 DecreaseLiquidity.`,
+    lb: `lb: LBPairCreated ${topic(T.lbCreated)} puts the pool in word 0 and the bin step in topic3; tokenX is token0 and tokenY token1. Swap ${topic(T.lbSwap)}: word 1 is amountsIn and word 2 amountsOut, each two uint128, X in the last 16 bytes and Y in the first 16. DepositedToBins ${topic(T.lbDeposit)} and WithdrawnFromBins ${topic(T.lbWithdraw)}: to is topic2, word 1 is the byte offset of the amounts array, and each bin's amounts word holds X in its last 16 bytes and Y in its first 16. Read the words as the worked example does, with extractAll over their hex: a lambda over range(n) that reads data copies the log once for each bin and runs out of memory.`,
+    univ4: `univ4: every pool lives in one PoolManager (dex_factories.factory). Initialize ${topic(T.v4Initialize)} creates a pool: its id is topic1 (32 bytes), its tokens are topic2 and topic3 (native AVAX is the zero address), its fee is word 0 (8388608 marks a fee that changes). Swap ${topic(T.v4Swap)}: the pool id is topic1; amount0 and amount1 are words 0 and 1, signed from the swapper's side: take their absolute values. The PoolManager holds the tokens of every univ4 pool, so no token moves to a univ4 pool's own address.`,
+    woofi: `woofi: no pools to find. Each woofi factory row is one WooPP contract that holds all its pairs and writes WooSwap ${topic(T.wooSwap)}: fromToken topic1, toToken topic2, fromAmount word 0, toAmount word 1, and swapVol word 4, the value in USDC (6 decimals). Its volume is the sum of swapVol / 1e6. The DEX WITH leaves it out, so add it when a question names WOOFi.`,
+  };
+  return `
+## DEXs
+Our server sends two small tables with a query that reads them:
+- ${refLine("dex_factories")}: the pool factories of each DEX protocol, from our contract registry. protocol is a slug: ${protocols}. family names the events its pools emit. positions lists the contracts that hold the factory's positions as NFTs; it is empty for the others.
+- ${refLine("dex_tokens")}: the tokens with the most DEX volume, with their decimals. quote is 'usd' for the four US dollar stablecoins (1 token = 1 USD), 'avax' for WAVAX and for native AVAX (the zero address in univ4 pools), else ''.
+- factory, positions and token are raw bytes, like raw_logs.address: compare them directly (l.address = f.factory), never as text.
+- Pools: the pools of a protocol are the pools its factories created, as the DEX WITH below reads them from the creation logs, from ${FIRST_DAY}, the first day of the C-Chain. k is the fee of a univ3, cl-ramses or univ4 pool (millionths) or the bin step of an lb pool, and 0 for the others. That read, and a read of one pool's own liquidity logs by its address, are the only exceptions to the 90-day window.
+- Swaps: read the Swap logs of the window by topic0 only, then join the pools on the pool (the log's address, or topic1 for univ4). A swap is the part of one transaction in one pool: count swaps as uniqExact(tx, pool), never as logs, because an lb pool writes one Swap log for each bin it crosses. Volume adds every log.
+- The families (word k of data is substring(data, 1 + 32 * k, 32); amounts are uint256 unless said; an address is the last 20 bytes of its word or topic):
+${dexFamilies()
+  .map((f) => `  - ${lines[f]}`)
+  .join("\n")}
+- Amounts: toFloat64 first, then divide by pow(10, decimals) from dex_tokens. A token that is not in dex_tokens has no decimals here: never add up its raw amounts; count its swaps or transfers instead.
+- Volume, in USD: the value of a swap is its stablecoin leg (1 token = 1 USD). With no stablecoin leg it is its WAVAX or native AVAX leg at the WAVAX price of that hour; with neither, it has no value. The WAVAX price of an hour is the median, over the swaps of that hour in the Uniswap v3 WAVAX/USDC 0.05% pool ${DEX_PRICE_POOL} (token0 WAVAX, token1 USDC), of -amount1 / amount0 * 1e12. Rows carry swaps, priced_swaps (the swaps with a value) and volume_usd. The note says that the volume counts the stablecoin leg of each swap, or its WAVAX leg at the price of that hour in the Uniswap v3 WAVAX/USDC pool, and leaves out swaps between other tokens.
+- A trader is the sender of the transaction (tx_from); a router is the contract it called (tx_to). The new pools of a period are the creation logs of the factories in that period. The fees of a univ3 pool are the value of each swap times its fee, k / 1e6.
+- Liquidity providers, one pool at a time, each as its worked example shows. First read the pool's own Mint and Burn logs (a rare topic by one address is fast), then only the blocks and transactions they name (block_number IN, since raw_logs sorts by topic0 and block_number): a read of a positions contract's or a pool token's logs over their whole history is too slow. univ3, cl-ramses and algebra: the positions contract's logs of those transactions, valued at the current tick. univ2 and solidly: the deposits less the withdrawals of each sender (a withdrawal can pay a router), as shares of the pool's reserves at its last Sync; the pool token's own Transfer logs are too many to read for an old pool. lb: the deposits less the withdrawals of each sender. Value only the stablecoin and WAVAX sides, at the latest WAVAX price, and the note says so.
+- In a DEX query, never name an expression after a column of a table it reads: with hex(topic0) AS topic0, every other topic0 in that SELECT reads the text, so WHERE topic0 = unhex(…) matches nothing. Name it for what it holds (pool_address, event_topic).
+- Divide by nullIf(x, 0), as the examples do: an inf or a nan in the rows fails the whole answer.
+- Say swaps, never trades: a trade routed through two pools is two swaps.
+- Return pools, tokens and providers as 0x text: the server names tokens and protocols. Filter a protocol by its slug, never by its name.
+`;
+}
+
+function dexExamples(): string {
+  const has = (slug: string) => DEX_FACTORIES.some((f) => f.protocol === slug);
+  const uni = DEX_FACTORIES.find((f) => f.protocol === "uniswap" && f.family === "univ3" && f.positions.length);
+  const tj = DEX_FACTORIES.filter((f) => f.protocol === "trader-joe").map((f) => f.family);
+  const today = "toStartOfDay(now())";
+  const week = "toStartOfDay(now()) - INTERVAL 7 DAY";
+  const blocks: string[] = [
+    `The DEX WITH. A query about swaps or volume starts with it: it reads the pools of every family, the Swap logs of the window, the WAVAX price of each hour and the value of each swap (legs). The examples write it as $DEX(start) or $DEX(start, 'slug'), and its pools part alone as $POOLS() or $POOLS('slug'). Write it out in full, with the start of the window in place of $START (both times) and, for one protocol, AND protocol = 'slug' in place of $PROTOCOL (else nothing). Never write $DEX, $POOLS, $START or $PROTOCOL in a query:
+${DEX_WITH}`,
+    `Every DEX protocol by today's volume, with its share; drill into one protocol's swaps:
+$DEX(${today}) SELECT protocol, ${SWAPS}, round(100 * sum(usd) / nullIf(sum(sum(usd)) OVER (), 0), 2) AS share_pct, count() OVER () AS of_total FROM legs GROUP BY protocol ORDER BY volume_usd DESC
+drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
+  ];
+  if (has("pharaoh")) {
+    blocks.push(`One protocol's swaps and volume per day; drill into one day's swaps:
+$DEX(${week}, 'pharaoh') SELECT toDate(block_time) AS t, ${SWAPS} FROM legs GROUP BY t ORDER BY t
+drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND toDate(l.block_time) = {{t}} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools) ORDER BY l.block_time DESC LIMIT 50`);
+  }
+  if (tj.length) {
+    blocks.push(`One protocol's 15 busiest pools today, with version, tokens and fee or bin step; drill into one pool's swaps:
+$DEX(${today}, 'trader-joe') SELECT ${hexOf("pool")} AS pool_address, version, ${hexOf("t0")} AS token0, ${hexOf("t1")} AS token1, k AS fee_or_bin_step, ${SWAPS}, count() OVER () AS of_total FROM legs GROUP BY pool, version, t0, t1, k ORDER BY swaps DESC LIMIT 15
+drill: SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_TOPICS}) AND l.address = {{pool_address:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
+  }
+  if (uni) {
+    const P = topic(DEX_PRICE_POOL.slice(2));
+    const N = "npm";
+    const from = `block_time >= ${FIRST_DAY}`;
+    blocks.push(`The 15 largest liquidity providers of one univ3 pool (here Uniswap v3 WAVAX/USDC 0.05%; find a pool in pools by its tokens and k), its positions valued at the current tick; drill into one provider's liquidity logs:
+WITH ${topic(uni.positions[0].slice(2))} AS npm, m AS (SELECT transaction_hash AS tx, block_number AS bn, substring(topic1, 13, 20) AS owner, ${TICK("topic2")} AS tl, ${TICK("topic3")} AS tu, ${LIQ(49)} AS liq FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND ${from} AND topic0 = ${topic(T.v3Mint)} AND address = ${P}), b AS (SELECT transaction_hash AS tx, block_number AS bn, substring(topic1, 13, 20) AS owner, ${TICK("topic2")} AS tl, ${TICK("topic3")} AS tu, ${LIQ(17)} AS liq FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND ${from} AND topic0 = ${topic(T.v3Burn)} AND address = ${P}), inc AS (SELECT transaction_hash AS tx, topic1 AS id, ${LIQ(17)} AS liq, block_time AS at, tx_from AS sender FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND ${from} AND topic0 = ${topic(T.increase)} AND address = ${N} AND block_number IN (SELECT bn FROM m WHERE owner = ${N}) AND transaction_hash IN (SELECT tx FROM m WHERE owner = ${N})), pos AS (SELECT inc.id AS id, m.tl AS tl, m.tu AS tu, sum(inc.liq) AS added, argMin(inc.sender, inc.at) AS creator FROM inc INNER JOIN m ON inc.tx = m.tx AND inc.liq = m.liq WHERE m.owner = ${N} GROUP BY inc.id, m.tl, m.tu), gone AS (SELECT topic1 AS id, sum(${LIQ(17)}) AS removed FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND ${from} AND topic0 = ${topic(T.decrease)} AND address = ${N} AND block_number IN (SELECT bn FROM b WHERE owner = ${N}) AND transaction_hash IN (SELECT tx FROM b WHERE owner = ${N}) GROUP BY id), held AS (SELECT pos.creator AS holder, pos.tl AS tl, pos.tu AS tu, pos.added - gone.removed AS L FROM pos LEFT JOIN gone ON pos.id = gone.id WHERE L > 0 UNION ALL SELECT owner AS holder, tl, tu, sum(liq) AS L FROM (SELECT owner, tl, tu, liq FROM m WHERE owner != ${N} UNION ALL SELECT owner, tl, tu, -liq FROM b WHERE owner != ${N}) GROUP BY owner, tl, tu HAVING L > 0), cur AS (SELECT argMax(reinterpretAsInt32(reverse(substring(data, 157, 4))), (block_number, log_index)) AS tick FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= now() - INTERVAL 1 DAY AND topic0 = ${topic(T.v3Swap)} AND address = ${P}), ${tokWith("univ3", P)}, ${LATEST}, ${QUOTES}, v AS (SELECT h.holder AS holder, toFloat64(h.L) AS liquidity, pow(1.0001, h.tl / 2) AS sa, pow(1.0001, h.tu / 2) AS sb, least(greatest(pow(1.0001, cur.tick / 2), sa), sb) AS s, liquidity * (sb - s) / (s * sb) AS a0, liquidity * (s - sa) AS a1, cur.tick >= h.tl AND cur.tick < h.tu AS in_range, ${worth("a0", "a1")} AS usd FROM held AS h CROSS JOIN cur CROSS JOIN tok CROSS JOIN q) SELECT ${hexOf("holder")} AS provider, count() AS positions, round(sum(usd), 2) AS value_usd, round(sum(if(in_range, usd, 0)), 2) AS in_range_usd, round(100 * sum(usd) / nullIf(sum(sum(usd)) OVER (), 0), 2) AS share_pct, count() OVER () AS of_total FROM v GROUP BY holder ORDER BY value_usd DESC LIMIT 15
+drill: SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.topic0 IN (${topic(T.v3Mint)}, ${topic(T.v3Burn)}) AND l.address = ${P} AND (l.tx_from = {{provider:bytes}} OR substring(l.topic1, 13, 20) = {{provider:bytes}}) ORDER BY l.block_time DESC LIMIT 50`);
+  }
+  if (tj.includes("univ2")) {
+    const P = topic("f4003f4efbe8691b60249e6afbd307abe7758adb");
+    blocks.push(`The 15 largest liquidity providers of one univ2 or solidly pool (here Trader Joe v1 WAVAX/USDC), by deposits less withdrawals, as shares of the pool's reserves at its last Sync; drill into one provider's Mint and Burn logs:
+WITH ${tokWith("univ2", P)}, moves AS (SELECT tx_from AS holder, if(topic0 = ${topic(T.v2Mint)}, 1, -1) AS dir, ${U(0)} AS a0, ${U(1)} AS a1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 IN (${topic(T.v2Mint)}, ${topic(T.v2Burn)}) AND address = ${P}), res AS (SELECT argMax(data, (block_number, log_index)) AS r FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= now() - INTERVAL 1 DAY AND topic0 IN (${topic(T.v2Sync)}, ${topic(T.solidlySync)}) AND address = ${P}), ${LATEST}, ${QUOTES}, net AS (SELECT d.holder AS holder, sum(d.dir * (${worth("d.a0", "d.a1")})) AS deposited FROM moves AS d CROSS JOIN tok CROSS JOIN q GROUP BY d.holder HAVING deposited > 0) SELECT ${hexOf("n.holder")} AS provider, round(100 * n.deposited / nullIf(sum(n.deposited) OVER (), 0), 2) AS share_pct, round(n.deposited / nullIf(sum(n.deposited) OVER (), 0) * (${worth(U(0, "res.r"), U(1, "res.r"))}), 2) AS value_usd, count() OVER () AS of_total FROM net AS n CROSS JOIN tok CROSS JOIN res CROSS JOIN q ORDER BY n.deposited DESC LIMIT 15
+drill: SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.topic0 IN (${topic(T.v2Mint)}, ${topic(T.v2Burn)}) AND l.address = ${P} AND l.tx_from = {{provider:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
+  }
+  if (tj.includes("lb")) {
+    const P = topic("864d4e5ee7318e97483db7eb0912e09f161516ea");
+    blocks.push(`The 15 largest liquidity providers of one lb pool (here Trader Joe LB v2.2 WAVAX/USDC), by deposits less withdrawals over all bins at the latest WAVAX price; drill into one provider's deposits and withdrawals:
+WITH ${tokWith("lb", P)}, moves AS (SELECT tx_from AS holder, if(topic0 = ${topic(T.lbDeposit)}, 1, -1) AS dir, reinterpretAsUInt32(reverse(substring(data, 61, 4))) AS o, extractAll(hex(substring(data, o + 33, 32 * reinterpretAsUInt32(reverse(substring(data, o + 29, 4))))), '[0-9A-F]{64}') AS words, arraySum(arrayMap(w -> toFloat64(reinterpretAsUInt128(reverse(unhex(substring(w, 33, 32))))), words)) AS a0, arraySum(arrayMap(w -> toFloat64(reinterpretAsUInt128(reverse(unhex(substring(w, 1, 32))))), words)) AS a1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 IN (${topic(T.lbDeposit)}, ${topic(T.lbWithdraw)}) AND address = ${P}), ${LATEST}, ${QUOTES} SELECT ${hexOf("d.holder")} AS provider, round(sum(d.dir * (${worth("d.a0", "d.a1")})), 2) AS value_usd, count() OVER () AS of_total FROM moves AS d CROSS JOIN tok CROSS JOIN q GROUP BY d.holder HAVING value_usd > 0 ORDER BY value_usd DESC LIMIT 15
+drill: SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.topic0 IN (${topic(T.lbDeposit)}, ${topic(T.lbWithdraw)}) AND l.address = ${P} AND l.tx_from = {{provider:bytes}} ORDER BY l.block_time DESC LIMIT 50`);
+  }
+  if (has("pharaoh")) {
+    blocks.push(`The net flow of each listed token into one protocol's pools today, from the tokens' Transfer logs; drill into one token's transfers:
+$POOLS('pharaoh'), places AS (SELECT groupArray(token) AS K, groupArray(decimals) AS D FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID}), moved AS (SELECT toString(l.address) AS contract, substring(l.topic2, 13, 20) IN (SELECT pool FROM pools) AS into_pools, substring(l.topic1, 13, 20) IN (SELECT pool FROM pools) AS out_of_pools, ${U(0, "l.data")} AS amount FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 = ${topic(T.transfer)} AND length(l.data) = 32 AND l.address IN (SELECT token FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID}) AND (into_pools OR out_of_pools)) SELECT ${hexOf("m.contract")} AS token, count() AS transfers, sumIf(m.amount, m.into_pools) / pow(10, any(D[indexOf(K, m.contract)])) AS inflow, sumIf(m.amount, m.out_of_pools) / pow(10, any(D[indexOf(K, m.contract)])) AS outflow, inflow - outflow AS net_flow FROM moved AS m CROSS JOIN places GROUP BY m.contract ORDER BY transfers DESC
+drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 = ${topic(T.transfer)} AND l.address = {{token:bytes}} AND (substring(l.topic2, 13, 20) IN (SELECT pool FROM pools) OR substring(l.topic1, 13, 20) IN (SELECT pool FROM pools)) ORDER BY l.block_time DESC LIMIT 50`);
+  }
+  return blocks.map((b) => `${b}\n\n`).join("");
+}
+
+/** the registry's protocol names and slugs, and the words of a DEX question */
+const DEX_NAMES = [...new Set(Object.entries(DEX_PROTOCOLS).flatMap(([slug, name]) => [slug, slug.replace(/-/g, " "), name, name.replace(/\s+DEX$/i, "")]))];
+const DEX_WORDS = new RegExp(`\\b(${[...DEX_NAMES.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), "swap(s|ped|ping)?", "pools?", "liquidity", "lps?", "dex(s|es)?"].join("|")})\\b`, "i");
+
+/** a question about DEXs, whose prompt carries the DEX chapter: it names a protocol the registry lists or a DEX word
+    (volume only when it names no transfer, so "USDC transfers, count and volume" is not one), or an earlier turn read
+    the DEX tables. Every other question's prompt is the one it was */
+export function dexQuestion(chainId: number, prompt: string, history: { prompt?: string; sql?: string }[] = []): boolean {
+  if (chainId !== DEX_CHAIN_ID || DEX_FACTORIES.length === 0) return false;
+  const about = (q: string) => DEX_WORDS.test(q) || (/\bvolumes?\b/i.test(q) && !/\btransfers?\b/i.test(q));
+  return about(prompt) || history.some((t) => about(t.prompt ?? "") || /\bdex_(factories|tokens)\b/.test(t.sql ?? ""));
+}
+
+export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean }): string {
   const known = Object.entries(KNOWN_ADDRESSES)
     .map(([a, n]) => `- ${n}: ${a}`)
     .join("\n");
   // an L1 shares the tables, not the C-Chain's tokens, fee rules or P-Chain door
   const c = isCChain(opts.chainId);
+  // the DEX tables and rules: a DEX question's (dexQuestion), on the mainnet C-Chain only
+  const dex = !!opts.dex && opts.chainId === DEX_CHAIN_ID && DEX_FACTORIES.length > 0;
   const sym = opts.symbol.toLowerCase();
   return `You turn a question about ${opts.chainName} (${c ? "" : "an Avalanche L1, "}EVM chain id ${opts.chainId}, native token ${opts.symbol}) into one ClickHouse SELECT and a chart spec. You are precise, terse, and you never invent data.
 
@@ -66,7 +271,7 @@ ${known}`
 - Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
 - Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). An answer about active addresses says in its note that they are the senders and recipients of transactions, and that the explorer's own charts count more roles, so their figure is higher.
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
-
+${dex ? dexRules() : ""}
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most.
@@ -133,7 +338,7 @@ SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_
 
 `
     : ""
-}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
+}${dex ? dexExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
 SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, uniqExact(tx_from) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
 
 Active addresses per day, each address once:
@@ -292,7 +497,8 @@ ${chartSpec("AVAX")}`;
 
 /* ------------------------------------------------------------------ */
 
-const versions = new Map<number, string>();
+/** one per chain and prompt variant */
+const versions = new Map<string, string>();
 
 /** what a kept recipe was written against: the prompt as this code writes
     it, with no schema, coverage or live figures in it, and the reference
@@ -300,15 +506,16 @@ const versions = new Map<number, string>();
     recipe keys (cache.ts), so a fixed question is written again instead of
     served its old SQL. Per chain: the C-Chain, an L1 and the P-Chain are
     told different things. */
-export function promptVersion(chainId: number): string {
-  let v = versions.get(chainId);
+export function promptVersion(chainId: number, dex = false): string {
+  const key = `${chainId}:${dex ? "dex" : ""}`;
+  let v = versions.get(key);
   if (!v) {
     const text =
       targetOf(chainId).kind === "pchain"
         ? pchainPrompt({ chainId, network: "", schema: "", coverage: null, lines: null })
-        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null });
+        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex });
     v = createHash("sha256").update(`${text}\n${refSchema(chainId).join("\n")}`).digest("hex").slice(0, 12);
-    versions.set(chainId, v);
+    versions.set(key, v);
   }
   return v;
 }

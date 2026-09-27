@@ -192,6 +192,28 @@ function binaryColumns(body: RawJson): string[] {
     .map((c) => c.name);
 }
 
+/** a column an address name marks: address, from, to_address, sender; never token0, topic2 or token_id */
+const ADDRESS_NAME = /address|^(from|to)(_|$)|sender|recipient|caller|contract/i;
+
+/** the 20 bytes of an address a log topic carries, left-padded to 32; null for a 32-byte number such as a v3 position
+    id, whose 20 low bytes start with 8 zero bytes (the zero address stays an address) */
+export function paddedAddress(v: unknown): string | null {
+  if (typeof v !== "string" || !/^0x0{24}[0-9a-fA-F]{40}$/.test(v)) return null;
+  const a = v.slice(26).toLowerCase();
+  return /^0{16}/.test(a) && /[^0]/.test(a) ? null : `0x${a}`;
+}
+
+/** an address read from a log topic is left-padded to 32 bytes; show the 20, in the columns an address name marks */
+export function unpadAddresses(meta: ColumnMeta[], rows: Record<string, unknown>[]): void {
+  for (const c of meta) {
+    if (!ADDRESS_NAME.test(c.name)) continue;
+    for (const r of rows) {
+      const a = paddedAddress(r[c.name]);
+      if (a) r[c.name] = a;
+    }
+  }
+}
+
 /** the types the query service sends right when a value is NULL. It scans each row into the row before's holders
     (stats-api query.go), and its driver clears a holder on NULL only for these (clickhouse-go nullable.go). Every
     other Nullable type, and every LowCardinality(Nullable(...)) (lowcardinality.go), keeps the row before's value */
@@ -235,14 +257,7 @@ export async function runQuery(sql: string): Promise<QueryResult> {
     }
     body = { ...again, meta: again.meta.map((m) => stale.find((x) => x.column.name === m.name)?.column ?? m) };
   }
-  // an address read from a log topic is left-padded to 32 bytes; show the 20
-  for (const c of body.meta) {
-    if (!/address|^from|^to|sender|recipient|caller|contract/i.test(c.name)) continue;
-    for (const r of body.data) {
-      const v = r[c.name];
-      if (typeof v === "string" && /^0x0{24}[0-9a-fA-F]{40}$/.test(v)) r[c.name] = `0x${v.slice(26).toLowerCase()}`;
-    }
-  }
+  unpadAddresses(body.meta, body.data);
   // hex() writes capitals; the explorer writes every hash and selector in lowercase
   for (const r of body.data) {
     for (const k in r) {

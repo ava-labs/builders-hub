@@ -3,7 +3,8 @@
    topics become event names. The sources are the ones the explorer
    already trusts: the built-in ABI registry, the Sourcify signature
    database behind /api/signatures, the token list, Sourcify itself for
-   verified contracts, and the well-known address book.
+   verified contracts, the well-known address book, and our DEX registry
+   (protocols.ts) for its protocols and their factories.
 
    A selector is 4 bytes, so many names hash to it, and some are mined
    to hit a cheap one (0x00000000). A selector is named by the registry,
@@ -13,6 +14,7 @@
    in the rows says otherwise. */
 
 import { pchainRows, toHexBytes } from "./pchain-ids";
+import { DEX_CHAIN_ID, DEX_PROTOCOLS, dexContractName } from "./protocols";
 import { subnetNames } from "./sources";
 import { targetOf } from "./target";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -123,6 +125,14 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
   const names: Names = {};
   if (rows.length === 0) return names;
 
+  // a DEX protocol's slug, as dex_factories carries it, reads as the protocol's name
+  if (chainId === DEX_CHAIN_ID) {
+    for (const col of columns) {
+      const slugs = rows.map((r) => r[col.name]).filter((v): v is string => typeof v === "string");
+      if (slugs.length && slugs.every((v) => Object.hasOwn(DEX_PROTOCOLS, v))) names[col.name] = Object.fromEntries([...new Set(slugs)].map((v) => [v, DEX_PROTOCOLS[v]]));
+    }
+  }
+
   const selectors = new Set<string>();
   const addresses = new Set<string>();
   const topics = new Set<string>();
@@ -158,13 +168,13 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
     }
   }
 
-  // addresses: the address book and the token list; Sourcify for the rest, below
+  // addresses: the address book, the DEX registry and the token list; Sourcify for the rest, below
   const addrMap = new Map<string, string>();
   const unknown: string[] = [];
   if (addresses.size) {
     const tokens = await tokenList(chainId, baseUrl);
     for (const a of addresses) {
-      const label = knownAddress(a)?.label ?? tokens.get(a)?.symbol;
+      const label = knownAddress(a)?.label ?? (chainId === DEX_CHAIN_ID ? dexContractName(a) : null) ?? tokens.get(a)?.symbol;
       if (label) addrMap.set(a, label);
       else unknown.push(a);
     }
