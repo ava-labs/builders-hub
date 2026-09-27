@@ -57,6 +57,29 @@ describe('designVisual', () => {
     ]);
   });
 
+  it('draws ins and outs either side of zero, and a net only with an outflow below it', async () => {
+    const flowInput = {
+      ...input,
+      question: 'How much USDC went into and out of Aave each day?',
+      columns: [{ name: 'day', type: 'Date' }, { name: 'usdc_in', type: 'Float64' }, { name: 'usdc_out', type: 'Float64' }],
+      rows: [{ day: '2026-09-26', usdc_in: 5, usdc_out: 3 }],
+    };
+    const series = (column: string, label: string, below?: boolean) => ({ ...spec.panels[0].series[0], column, label, format: 'compact', ...(below === undefined ? {} : { below }) });
+    const panel = { ...spec.panels[0], title: 'USDC in and out', x: 'day', series: [series('usdc_in', 'In'), series('usdc_out', 'Out')], net: true };
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      results.push(await opts.tools.design.execute({ ...spec, panels: [panel] }));
+      results.push(await opts.tools.design.execute({ ...spec, panels: [{ ...panel, series: [series('usdc_in', 'In'), series('usdc_out', 'Out', true)] }] }));
+      return {};
+    }) as unknown as typeof generateText);
+    const out = await designVisual(flowInput);
+    expect(results[0]).toMatchObject({ error: expect.stringContaining('below: true') });
+    expect(results[1]).toEqual({ ok: true });
+    expect(out.visual.panels[0]).toMatchObject({ net: true, series: [{ column: 'usdc_in' }, { column: 'usdc_out', below: true }] });
+    // a saved visual from before the flag reads as before
+    expect(visualSpecSchema.parse(spec).panels[0].series[0].below).toBeUndefined();
+  });
+
   it('holds a callout to its length as the page shows it: three full addresses pass, one too long as shown is refused', async () => {
     const a = (c: string) => `0x${c.repeat(40)}`;
     const three = `The same 300.1k USDT went from ${a('1')} to ${a('2')}, then on to ${a('3')} within 3 minutes.`;

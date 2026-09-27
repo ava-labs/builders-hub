@@ -538,6 +538,8 @@ function HoverLayer({ spec, formattedGraphicalItems: items, offset }: { spec: Ho
 
 /** a transformed series reads in its own unit: shares are percent, an index is a plain number */
 const unitOf = (sr: Series): Format => (sr.transform === "share" ? "percent" : sr.transform === "indexed" ? "number" : sr.format);
+/** a series' figure as the reader reads it: an outflow drawn below zero is still the amount that went out */
+const shownOf = (sr: Series, v: unknown) => (sr.below && typeof v === "number" ? -v : v);
 
 function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hoverKey, onHoverKey, selection, live, onSelection, compact, log = false }: PanelProps) {
   const reduced = useReduced();
@@ -592,9 +594,16 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
           out[j][k] = total > 0 ? ((num(r[sr.column]) ?? 0) / total) * 100 : null;
         });
       } else vals.forEach((v, j) => (out[j][k] = v));
+      // an outflow stands below the axis: it draws the column's value negated
+      if (sr.below) for (const r of out) if (typeof r[k] === "number") r[k] = -(r[k] as number);
     });
+    // the net line: each row's left-axis series summed, what came in less what went out
+    if (panel.net) {
+      const legs = panel.series.flatMap((s, i) => (s.axis === "right" ? [] : [`__s${i}`]));
+      for (const r of out) r.__net = legs.some((k) => typeof r[k] === "number") ? legs.reduce((a, k) => a + (typeof r[k] === "number" ? (r[k] as number) : 0), 0) : null;
+    }
     return { base: out, src: d };
-  }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x]);
+  }, [rows, panel.sortBy, panel.sortDir, panel.topN, panel.series, panel.kind, panel.x, panel.net]);
   const span = useMemo(() => spanOf(base.map((r) => r[x])), [base, x]);
   const horizontal = panel.kind === "hbar";
   const narrow = useNarrow();
@@ -606,6 +615,10 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
   const category = !continuous && !scatter;
   const selecting = !!onSelection && !scatter;
   const markOf = useCallback((sr: Series): "bar" | "line" | "area" => (horizontal ? "bar" : sr.mark !== "auto" ? sr.mark : panel.kind === "line" ? "line" : panel.kind === "area" ? "area" : "bar"), [horizontal, panel.kind]);
+  // ins and outs: a series drawn below zero stacks the panel by sign, each period's ins above the axis and its outs below
+  const signed = panel.series.some((s) => s.below);
+  const stack = panel.stacked || signed;
+  const netTone = TONES[panel.series.length % TONES.length];
   const left = panel.series.filter((s) => s.axis !== "right");
   const right = panel.series.filter((s) => s.axis === "right");
   const fmtL = left[0] ? unitOf(left[0]) : "number";
@@ -633,15 +646,15 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
   const height = horizontal ? Math.max(compact ? 120 : 160, data.length * rowH + 36) : compact ? 180 : 260;
   const active = hoverIdx ?? kb;
   const drillMark = category && selecting && canDrill;
-  // the chevron sits on the bar that ends the stack, or the first bar
+  // the chevron sits on the bar that ends the stack above the axis, or the first bar
   const barIdx = panel.series.map((s, i) => ({ s, i })).filter(({ s }) => markOf(s) === "bar");
-  const doorSeries = drillMark && barIdx.length ? (panel.stacked ? barIdx[barIdx.length - 1].i : barIdx[0].i) : -1;
+  const doorSeries = drillMark && barIdx.length ? (stack ? (barIdx.filter(({ s }) => !s.below).pop() ?? barIdx[barIdx.length - 1]).i : barIdx[0].i) : -1;
   const rangePick = live.find((p) => p.kind === "range" && p.column === x);
 
   const describe = (j: number) => {
     const r = data[j];
     if (!r) return "";
-    const figures = panel.series.map((s, i) => `${fmt(r[`__s${i}`], unitOf(s), sym)} ${s.label}`).join(", ");
+    const figures = [...panel.series.map((s, i) => `${fmt(shownOf(s, r[`__s${i}`]), unitOf(s), sym)} ${s.label}`), ...(panel.net && typeof r.__net === "number" ? [`${fmt(r.__net, fmtL, sym)} net`] : [])].join(", ");
     return `${nameFor(names, x, r[x]) ?? label(r[x])}: ${figures}${hasSel && lit[j] ? ", selected" : ""}`;
   };
 
@@ -809,6 +822,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
               layout={horizontal ? "vertical" : "horizontal"}
               margin={{ top: drillMark && !horizontal ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
               barCategoryGap={horizontal ? "26%" : "18%"}
+              stackOffset={signed ? "sign" : undefined}
               onMouseDown={(s) => ev.current.down(s)}
               onMouseUp={() => ev.current.up()}
               onClick={(s, e: ReactMouseEvent | undefined) => ev.current.click(s, e)}
@@ -860,10 +874,16 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                       {panel.series.map((s, i) => (
                         <p key={`${s.column}-${i}`} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
                           <span className="h-1.5 w-1.5 rounded-full" style={{ background: toneOf(s, i) }} />
-                          {fmt(r[`__s${i}`], unitOf(s), sym)} <span className="text-zinc-400">{s.label}</span>
+                          {fmt(shownOf(s, r[`__s${i}`]), unitOf(s), sym)} <span className="text-zinc-400">{s.label}</span>
                           {s.transform !== "none" && s.transform !== "share" && typeof r[s.column] === "number" && <span className="text-zinc-300 dark:text-zinc-600">raw {fmt(r[s.column], s.format, sym)}</span>}
                         </p>
                       ))}
+                      {panel.net && typeof r.__net === "number" && (
+                        <p className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                          <span className="h-0.5 w-2" style={{ background: netTone }} />
+                          {fmt(r.__net, fmtL, sym)} <span className="text-zinc-400">net</span>
+                        </p>
+                      )}
                       {(selecting || canDrill) && (
                         <p className="mt-1 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
                           {selecting && category ? `click selects${canDrill ? ", double-click opens" : ""}` : selecting && continuous ? `drag selects${canDrill ? ", click opens" : ""}` : "click opens"}
@@ -932,9 +952,9 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   ];
                 if (mark === "area")
                   return [
-                    <Area key={`${key}-area`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} fill={tone} fillOpacity={(s.dashed ? 0.05 : 0.16) * (hasSel ? 0.4 : 1)} strokeWidth={1.5} strokeDasharray={dash} stackId={panel.stacked ? `s-${s.axis}` : undefined} {...anim} />,
+                    <Area key={`${key}-area`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} fill={tone} fillOpacity={(s.dashed ? 0.05 : 0.16) * (hasSel ? 0.4 : 1)} strokeWidth={1.5} strokeDasharray={dash} stackId={stack ? `s-${s.axis}` : undefined} {...anim} />,
                     ...(hasSel
-                      ? [<Area key={`${key}-area-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} fill={tone} fillOpacity={s.dashed ? 0.06 : 0.2} strokeWidth={1.75} strokeDasharray={dash} stackId={panel.stacked ? `in-${s.axis}` : undefined} activeDot={false} isAnimationActive={false} legendType="none" />]
+                      ? [<Area key={`${key}-area-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} fill={tone} fillOpacity={s.dashed ? 0.06 : 0.2} strokeWidth={1.75} strokeDasharray={dash} stackId={stack ? `in-${s.axis}` : undefined} activeDot={false} isAnimationActive={false} legendType="none" />]
                       : []),
                   ];
                 return [
@@ -945,10 +965,10 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                     fill={tone}
                     stroke={s.dashed ? tone : undefined}
                     strokeDasharray={dash}
-                    stackId={panel.stacked ? `s-${s.axis}` : undefined}
+                    stackId={stack ? `s-${s.axis}` : undefined}
                     {...anim}
                     minPointSize={1}
-                    radius={panel.stacked ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
+                    radius={stack ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
                   >
                     {data.map((_, j) => {
                       const ink = inkOf(j, s.dashed);
@@ -957,6 +977,8 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
                   </Bar>,
                 ];
               })}
+              {signed && (horizontal ? <ReferenceLine x={0} stroke="currentColor" strokeOpacity={0.35} /> : <ReferenceLine yAxisId="left" y={0} stroke="currentColor" strokeOpacity={0.35} />)}
+              {panel.net && signed && !horizontal && <Line key="net" yAxisId="left" type="monotone" dataKey="__net" stroke={netTone} strokeWidth={1.75} dot={false} activeDot={false} {...anim} connectNulls />}
               <Customized component={<HoverLayer spec={spec} />} />
             </ComposedChart>
           </ResponsiveContainer>
@@ -981,6 +1003,12 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
               {s.transform !== "none" && <span className="text-zinc-300 dark:text-zinc-600">{s.transform === "indexed" ? "index" : s.transform}</span>}
             </span>
           ))}
+          {panel.net && signed && (
+            <span className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500 dark:text-zinc-400">
+              <span className="w-3 border-t-2" style={{ borderColor: netTone }} />
+              Net
+            </span>
+          )}
         </div>
       )}
       <div
@@ -1162,7 +1190,8 @@ function PanelBlock(props: PanelProps) {
   // the others onto the floor; such a panel opens on a log axis
   const skewed = useMemo(() => {
     const col = panel.series.find((x) => x.axis !== "right")?.column;
-    if (!col || panel.series.some((x) => x.transform !== "none" || x.format === "percent")) return false;
+    // a log axis has no zero: ins and outs keep a linear one
+    if (!col || panel.series.some((x) => x.transform !== "none" || x.format === "percent" || x.below)) return false;
     const v = rows.map((r) => r[col]).filter((n): n is number => typeof n === "number");
     if (v.length < 8 || v.some((n) => n <= 0)) return false;
     const sorted = [...v].sort((a, b) => a - b);

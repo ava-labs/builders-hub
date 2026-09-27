@@ -39,6 +39,8 @@ export const seriesSchema = z.object({
   transform: z.enum(["none", "cumulative", "indexed", "share", "rolling"]).default("none"),
   /** a baseline or a previous period, drawn dashed */
   dashed: z.boolean().default(false),
+  /** an outflow, drawn below zero: the panel stacks by sign, each period's ins above the axis and its outs below */
+  below: z.boolean().optional(),
 });
 export type Series = z.infer<typeof seriesSchema>;
 
@@ -58,6 +60,8 @@ export const panelSchema = z.object({
   /** shaded x ranges: the window being compared, an incident */
   bands: z.array(z.object({ from: z.union([z.string(), z.number()]), to: z.union([z.string(), z.number()]), label: z.string().max(28) })).max(2).default([]),
   stacked: z.boolean().default(false),
+  /** with a series drawn below zero: a line over the bars of each row's net, what came in less what went out */
+  net: z.boolean().optional(),
   /** for rankings: order rows by this series column before drawing */
   sortBy: z.string().optional(),
   sortDir: z.enum(["asc", "desc"]).default("desc"),
@@ -236,6 +240,7 @@ Comparisons and overlays (use them whenever the rows hold more than one thing to
 - Parts of a whole over time: transform "share" on each part plus stacked area, so each period sums to 100%.
 - Running totals: transform "cumulative". Noisy per-minute series: add a "rolling" copy of the same column as a thin line over the raw bars.
 - A count and a rate together: bars (mark "bar") on the left axis, the rate as a line (mark "line") on the right axis.
+- Ins and outs per period (deposits and withdrawals, bought and sold, bridged in and out): one bar series for each side, the outflow with below true, so each period's ins stand above zero and its outs below; set net true on the panel for a line of each period's net. Never draw ins and outs as two lines or as bars side by side.
 - Two numeric measures per group or per record (gas against fee, calls against callers): kind "scatter", x the first measure, one series the second.
 - Flows: when the question asks where value went, from whom or to whom, and each row is a pair (a column value comes from, a column it goes to, names or addresses, and the amount between them), use kind "flow" at full width: x is the column value comes from, target the column it goes to, and the one series the amount. The page draws the largest 30 flows and folds the rest into Other; a receiver that sends on becomes a second stage. A name stands in one row per partner, so never put an hbar or a pie over such rows: it would show one sender many times. Rows with one name each (who received the most) stay an hbar.
 - Markers: put one on the peak and on anything a callout names. Bands: shade the window the question compares.
@@ -510,6 +515,8 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
       // a ranking draws one bar per row: a name that repeats in the rows (a sender with several partners) would stand there several times
       const repeats = [...new Set(spec.panels.filter((p) => p.kind === "hbar" && p.x && new Set(input.rows.map((r) => String(r[p.x!]))).size < input.rows.length).map((p) => p.x!))];
       if (repeats.length) return { error: `an hbar draws one bar per row, and ${repeats.join(", ")} repeats in these rows: rank a column that names each row once, or leave the ranking out` };
+      // a net is what came in less what went out: it needs an outflow drawn below zero
+      if (spec.panels.some((p) => p.net && !p.series.some((s) => s.below))) return { error: "net draws each period's ins less its outs: give the outflow series below: true, or leave net out" };
       // a callout's cap counts it as the page shows it, each full address and hash short
       const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
       if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };
