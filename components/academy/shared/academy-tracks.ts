@@ -37,6 +37,7 @@ export function visibleAcademyTracks(
     customAttributes: readonly string[] | null | undefined,
     active: AcademyPathType,
 ): readonly AcademyTrack[] {
+    // With active 'team1' the Team1 tab always shows: the Team1 landing's server gate enforces access, the tab only mirrors it.
     if (active === 'team1' || hasTeam1AcademyAccess(customAttributes)) return ACADEMY_TRACKS;
     return ACADEMY_TRACKS.filter((track) => track.id !== 'team1');
 }

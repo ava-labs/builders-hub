@@ -23,6 +23,10 @@ const tab = (html: string, label: string) =>
   html.split("<a ").map((segment) => `<a ${segment}`).find((segment) => segment.includes(`>${label}<`)) ?? "";
 /** The course count the config gives a track, as the tab prints it. */
 const count = (id: AcademyPathType) => `>${String(getAcademyTrack(id).courses.length).padStart(2, "0")}</span>`;
+/** The class list of a markup segment's first tag. */
+const classesOf = (markup: string) => (markup.match(/^<[^>]*?\bclass="([^"]*)"/)?.[1] ?? "").split(" ");
+/** The ruled keyboard focus ring: 2 px of ink, 2 px outside the control. */
+const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2", "focus-visible:outline-ac-ink"];
 
 describe("AcademyTrackTabs", () => {
   it("shows the three public tracks with their course counts and no Team1 tab without access", () => {
@@ -63,6 +67,15 @@ describe("AcademyTrackTabs", () => {
     expect(container).toContain('aria-label="Academy tracks"');
     // app/global.css pads and recolours every `nav a` with !important, which would move the tabs.
     expect(container).toMatch(/^<div /);
+  });
+
+  it("draws the 2 px ink focus ring on every tab, inside the tab below 768 px where the row clips", () => {
+    const html = render("team1");
+    ["Avalanche L1", "Blockchain", "Entrepreneur", "Team1"].forEach((label) =>
+      expect(classesOf(tab(html, label))).toEqual(
+        expect.arrayContaining([...FOCUS_RING, "max-md:focus-visible:-outline-offset-3"]),
+      ),
+    );
   });
 
   it("scrolls the row only sideways below 768 px", () => {

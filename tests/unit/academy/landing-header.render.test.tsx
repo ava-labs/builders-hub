@@ -3,8 +3,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null, status: "unauthenticated" }) }));
-// Production's layout reads the pathname and the rail's router; the new landing reads neither.
-vi.mock("next/navigation", () => ({ usePathname: () => "/academy", useRouter: () => ({ push: () => undefined }) }));
 
 import { AcademyLayout } from "@/components/academy/shared/academy-layout";
 import { coursesInOrder, courseUrl, getAcademyTrack } from "@/components/academy/shared/academy-tracks";
@@ -20,6 +18,10 @@ const render = (config: AcademyLandingPageConfig) =>
 /** The markup of the first anchor that contains `text`, up to the next anchor. */
 const anchor = (html: string, text: string) =>
   html.split("<a ").map((segment) => `<a ${segment}`).find((segment) => segment.includes(text)) ?? "";
+/** The class list of a markup segment's first tag. */
+const classesOf = (markup: string) => (markup.match(/^<[^>]*?\bclass="([^"]*)"/)?.[1] ?? "").split(" ");
+/** The ruled keyboard focus ring: 2 px of ink, 2 px outside the control. */
+const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2", "focus-visible:outline-ac-ink"];
 
 // [track, its landing config, the title and the line the landing has always shown]
 const TRACKS: Array<[AcademyPathType, AcademyLandingPageConfig, string, string]> = [
@@ -41,6 +43,11 @@ describe("landing header server markup", () => {
     const button = anchor(render(config), `>Start with ${first.name}<`);
     expect(button).toContain(`href="${courseUrl(id, first.slug)}"`);
     expect(button).toContain("bg-ac-ink");
+  });
+
+  it.each(TRACKS)("%s: the button draws the 2 px ink focus ring", (id, config) => {
+    const [first] = coursesInOrder(getAcademyTrack(id).courses);
+    expect(classesOf(anchor(render(config), `>Start with ${first.name}<`))).toEqual(expect.arrayContaining(FOCUS_RING));
   });
 
   it.each(TRACKS)("%s: the tabs follow the button, with this track current", (id, config) => {

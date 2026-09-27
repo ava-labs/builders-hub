@@ -63,7 +63,7 @@ const GENERATE_CLASS = cn(
 
 const SHARE_CLASS = cn(
   buttonVariants({ variant: 'secondary' }),
-  'flex items-center rounded-lg border border-ac-rule bg-transparent px-4 py-2 text-ac-ink hover:bg-ac-panel',
+  'flex items-center rounded-lg border border-ac-rule bg-transparent px-4 py-2 text-ac-ink hover:bg-ac-panel focus-visible:border-ac-rule',
   FOCUS_RING,
 );
 

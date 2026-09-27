@@ -1,7 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { createElement } from 'react';
+import { describe, expect, it, vi } from 'vitest';
+import { createElement, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CertificateProgress, ChapterHeading, QuestionTitle } from '@/components/quizzes/certificate-progress';
+import { Accordion } from 'fumadocs-ui/components/accordion';
+
+// Each question row's quiz echoes the props the chapter list gives it.
+vi.mock('@/components/quizzes/quiz', () => ({
+  default: ({ quizId, showPosition }: { quizId: string; showPosition?: boolean }) =>
+    createElement('output', { 'data-quiz': quizId, 'data-show-position': String(showPosition) }),
+}));
+
+import {
+  CertificateChapters,
+  CertificateProgress,
+  ChapterHeading,
+  QuestionTitle,
+} from '@/components/quizzes/certificate-progress';
 
 const PRODUCTION_COLOUR = /(?:gray|green|red|amber|orange|yellow)-\d|\bbg-muted\b/;
 // Any element other than an icon hidden from screen readers (the status text must stay readable).
@@ -93,5 +106,40 @@ describe('QuestionTitle', () => {
         PRODUCTION_COLOUR,
       );
     });
+  });
+});
+
+describe('CertificateChapters', () => {
+  const props = {
+    chapters: ['Primer on Avalanche Consensus', 'Multi-Chain Architecture'],
+    quizzesByChapter: {
+      'Primer on Avalanche Consensus': [
+        { id: '101', question: 'What is a Double Spending Attack?' },
+        { id: '102', question: 'What is a Consensus Mechanism?' },
+      ],
+      'Multi-Chain Architecture': [{ id: '201', question: "What's the P-Chain's main purpose?" }],
+    },
+    completedQuizzes: ['101'],
+    onQuizCompleted: () => undefined,
+  };
+  /** Every question row in an element tree. */
+  const rowsIn = (node: ReactNode): ReactElement<{ children?: ReactNode }>[] => {
+    if (Array.isArray(node)) return node.flatMap(rowsIn);
+    if (!isValidElement<{ children?: ReactNode }>(node)) return [];
+    return node.type === Accordion ? [node] : rowsIn(node.props.children);
+  };
+
+  it('gives every question row its own accordion value, its quiz id, so each row opens alone', () => {
+    const html = renderToStaticMarkup(createElement(CertificateChapters, props));
+    const values = [...html.matchAll(/data-accordion-value="([^"]*)"/g)].map(([, value]) => value);
+    expect(values).toEqual(['101', '102', '201']);
+  });
+
+  it('turns off the question position on every quiz, as each row renders it once opened', () => {
+    // A closed row renders no content on the server, so each row's content is rendered on its own.
+    const opened = rowsIn(CertificateChapters(props)).map((row) => renderToStaticMarkup(row.props.children));
+    expect(opened).toEqual(
+      ['101', '102', '201'].map((id) => `<output data-quiz="${id}" data-show-position="false"></output>`),
+    );
   });
 });

@@ -23,6 +23,14 @@ const props = (over: Partial<CertificateCredentialProps> = {}): CertificateCrede
 });
 const render = (over?: Partial<CertificateCredentialProps>) =>
   renderToStaticMarkup(createElement(CertificateCredential, props(over)));
+/** The class list of the control labelled `label`: the last a or button tag that opens before the label. */
+const controlClasses = (html: string, label: string) => {
+  const end = html.indexOf(`${label}</`);
+  if (end < 0) return [];
+  const before = html.slice(0, end);
+  const tag = before.slice(Math.max(before.lastIndexOf('<a '), before.lastIndexOf('<button ')));
+  return (tag.match(/class="([^"]*)"/)?.[1] ?? '').split(' ');
+};
 
 describe('credentialFacts', () => {
   it('reads Modules and Lessons from the course outline, then Format', () => {
@@ -107,6 +115,15 @@ describe('CertificateCredential', () => {
     expect(html).toContain('Share on X');
     expect(html).toContain('href="https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME"');
     expect(html).not.toContain('View Certificate');
+  });
+
+  it("keeps each share control's rule border under keyboard focus, not buttonVariants' ring colour", () => {
+    const html = render({ certificatePdfUrl: 'blob:certificate' });
+    ['View Certificate', 'Add to LinkedIn', 'Share on X'].forEach((label) => {
+      const classes = controlClasses(html, label);
+      expect(classes).toEqual(expect.arrayContaining(['border-ac-rule', 'focus-visible:border-ac-rule']));
+      expect(classes).not.toContain('focus-visible:border-ring');
+    });
   });
 
   it('offers View Certificate once a PDF exists, and a disabled button while generating', () => {

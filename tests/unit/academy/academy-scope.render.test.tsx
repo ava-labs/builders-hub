@@ -7,9 +7,7 @@ vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 // Children that need a session, a browser or fumadocs' providers are stubbed; this file
 // tests the two scope roots only (index contract C1).
-vi.mock('@/components/landing/hero', () => ({ HeroBackground: () => null }));
 vi.mock('@/components/academy/shared/academy-learning-path', () => ({ AcademyLearningPath: () => 'LEARNING_PATH' }));
-vi.mock('@/components/academy/shared/academy-bubble-nav', () => ({ AcademyBubbleNav: () => null }));
 vi.mock('fumadocs-ui/layouts/notebook', () => ({ DocsLayout: ({ children }: { children: ReactNode }) => children }));
 vi.mock('@/components/navigation/navbar-dropdown-injector', () => ({ NavbarDropdownInjector: () => null }));
 vi.mock('@/components/navigation/force-mobile-sidebar', () => ({ ForceMobileSidebar: () => null }));

@@ -1,4 +1,6 @@
 import { Award, Check } from 'lucide-react';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import Quiz from '@/components/quizzes/quiz';
 import { cn } from '@/utils/cn';
 
 /** Production's two progress lines in one card, with a red bar at the completed share (spec 4.8). */
@@ -60,6 +62,57 @@ export function QuestionTitle({ question, answered }: { question: string; answer
         <span className="sr-only">{answered ? 'Answered correctly' : 'Not answered yet'}</span>
       </span>
       <span>{question}</span>
+    </>
+  );
+}
+
+interface ChapterQuiz {
+  id: string;
+  question: string;
+}
+
+interface CertificateChaptersProps {
+  chapters: readonly string[];
+  quizzesByChapter: Record<string, readonly ChapterQuiz[]>;
+  completedQuizzes: readonly string[];
+  onQuizCompleted: (quizId: string) => void;
+}
+
+/** Each chapter's heading with its count, then its questions as accordion rows, each row holding its quiz. */
+export function CertificateChapters({
+  chapters,
+  quizzesByChapter,
+  completedQuizzes,
+  onQuizCompleted,
+}: CertificateChaptersProps) {
+  return (
+    <>
+      {chapters.map((chapter) => {
+        const chapterQuizzes = quizzesByChapter[chapter];
+
+        return (
+          <div key={chapter} className="mb-8">
+            <ChapterHeading
+              chapter={chapter}
+              completed={chapterQuizzes.filter((quiz) => completedQuizzes.includes(quiz.id)).length}
+              total={chapterQuizzes.length}
+            />
+            <Accordions type="single" collapsible data-cert-questions="">
+              {chapterQuizzes.map((quiz) => (
+                <Accordion
+                  key={quiz.id}
+                  // fumadocs defaults an item's value to String(title), and this title is a React node: without
+                  // the id every row would get the value "[object Object]", so a chapter's rows would open together.
+                  value={quiz.id}
+                  title={<QuestionTitle question={quiz.question} answered={completedQuizzes.includes(quiz.id)} />}
+                >
+                  <Quiz quizId={quiz.id} onQuizCompleted={onQuizCompleted} showPosition={false} />
+                </Accordion>
+              ))}
+            </Accordions>
+          </div>
+        );
+      })}
     </>
   );
 }

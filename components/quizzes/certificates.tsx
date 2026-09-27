@@ -3,10 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
 import { cn } from '@/utils/cn';
 import quizData from '@/components/quizzes/data';
-import Quiz from '@/components/quizzes/quiz';
-import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { AwardBadgeWrapper } from '@/components/quizzes/components/awardBadgeWrapper';
-import { CertificateProgress, ChapterHeading, QuestionTitle } from '@/components/quizzes/certificate-progress';
+import { CertificateChapters, CertificateProgress } from '@/components/quizzes/certificate-progress';
 import {
   CertificateCredential,
   credentialAcademy,
@@ -162,30 +160,14 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
       {!shouldShowCertificate && (
         <CertificateProgress completed={correctlyAnsweredQuizzes} total={totalQuizzes} />
       )}
-      {!shouldShowCertificate && chapters.map((chapter) => {
-        const chapterQuizzes = quizzesByChapter[chapter];
-
-        return (
-          <div key={chapter} className="mb-8">
-            <ChapterHeading
-              chapter={chapter}
-              completed={chapterQuizzes.filter((quiz) => completedQuizzes.includes(quiz.id)).length}
-              total={chapterQuizzes.length}
-            />
-            <Accordions type="single" collapsible data-cert-questions="">
-              {chapterQuizzes.map((quiz) => (
-                <Accordion
-                  key={quiz.id}
-                  value={quiz.id}
-                  title={<QuestionTitle question={quiz.question} answered={completedQuizzes.includes(quiz.id)} />}
-                >
-                  <Quiz quizId={quiz.id} onQuizCompleted={handleQuizCompleted} showPosition={false} />
-                </Accordion>
-              ))}
-            </Accordions>
-          </div>
-        );
-      })}
+      {!shouldShowCertificate && (
+        <CertificateChapters
+          chapters={chapters}
+          quizzesByChapter={quizzesByChapter}
+          completedQuizzes={completedQuizzes}
+          onQuizCompleted={handleQuizCompleted}
+        />
+      )}
 
 
       {allQuizzesCompleted && (
