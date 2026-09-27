@@ -13,6 +13,8 @@ import {
   type ConversionInput,
 } from '@/components/toolbox/console/layer-1/create/conversionChecks';
 import type { ConvertToL1Validator } from '@/components/toolbox/coreViem/methods/convertToL1';
+import { generateGenesis } from '@/components/toolbox/components/genesis/genGenesis';
+import { generateEmptyAllowlistPrecompileConfig } from '@/components/toolbox/components/genesis/types';
 
 const C_CHAIN = C_CHAIN_IDS.testnet;
 const L1_CHAIN = '98qnjenm7MBd8G2cPZoRvZrgJC33JGSAAKghsQ6eojbLCeRNp'; // Echo
@@ -104,6 +106,46 @@ describe('conversionProblems', () => {
     ).toMatch(/remaining balance owner/);
     expect(conversionProblems(input({ validators: [validator({ nodeID: NODE + 'x' })] }))[0]).toMatch(/NodeID/);
     expect(conversionProblems(input({ managerAddress: '0x1234' }))[0]).toMatch(/not a valid EVM address/);
+  });
+});
+
+describe('the L1 path: a proxy in genesis, the implementation later', () => {
+  // Convert names the genesis proxy at 0xfacade; the Validator Manager is
+  // deployed after the chain runs, and ProxySetup points the proxy at it.
+  const FACADE = '0xfacade0000000000000000000000000000000000';
+  const genesis = (proxy: boolean) =>
+    JSON.stringify(
+      generateGenesis({
+        evmChainId: 1234,
+        tokenAllocations: [],
+        txAllowlistConfig: generateEmptyAllowlistPrecompileConfig(),
+        contractDeployerAllowlistConfig: generateEmptyAllowlistPrecompileConfig(),
+        nativeMinterAllowlistConfig: generateEmptyAllowlistPrecompileConfig(),
+        poaOwnerAddress: '0x1111111111111111111111111111111111111111',
+        preinstallConfig: {
+          proxy,
+          proxyAdmin: proxy,
+          safeSingletonFactory: false,
+          multicall3: false,
+          icmMessenger: false,
+          wrappedNativeToken: false,
+          create2Deployer: false,
+        },
+      }),
+    );
+  const onL1 = (g: string) =>
+    conversionProblems(
+      input({
+        managerChainId: L1_CHAIN,
+        managerAddress: FACADE,
+        cChainManager: { kind: 'none' },
+        managerChainGenesis: g,
+      }),
+    );
+
+  it('passes the genesis proxy, and refuses it when the genesis has no proxy', () => {
+    expect(onL1(genesis(true))).toEqual([]);
+    expect(onL1(genesis(false))[0]).toMatch(/genesis of the manager chain has no contract at 0xfacade/);
   });
 });
 
