@@ -124,7 +124,14 @@ function useTheme(): Theme {
   const [dark, setDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
   useEffect(() => {
     const el = document.documentElement;
-    const read = () => setDark(el.classList.contains("dark"));
+    // only a change is set: the site's theme provider sets the class again on a navigation, and an equal set still renders the city
+    let was: boolean | undefined;
+    const read = () => {
+      const now = el.classList.contains("dark");
+      if (now === was) return;
+      was = now;
+      setDark(now);
+    };
     read();
     const mo = new MutationObserver(read);
     mo.observe(el, { attributes: true, attributeFilter: ["class"] });
@@ -379,12 +386,32 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   }, [model, still]);
 
   /* what is lit: the building under the cursor or the app's list, the picked one, and the sets they talk with; else the app's search or cut */
-  const [hover, setHover] = useState<string | null>(null);
+  const [hover, setHoverNow] = useState<string | null>(null);
   const [hoverDistrict, setHoverDistrict] = useState<District | null>(null);
-  const [hoverSite, setHoverSite] = useState<Site | null>(null);
+  const [hoverSite, setHoverSiteNow] = useState<Site | null>(null);
   // the route under the cursor, and where on it the cursor found it
-  const [hoverRoute, setHoverRoute] = useState<{ key: string; at: Vector3 } | null>(null);
-  const onHoverRoute = useCallback((key: string | null, at?: Vector3) => setHoverRoute(key && at ? { key, at } : null), []);
+  const [hoverRoute, setHoverRouteNow] = useState<{ key: string; at: Vector3 } | null>(null);
+  /* the hover as last asked for: a set of the value asked for last is skipped, since right after another update React renders
+     the city for it all the same (its eager bail-out needs both fibers idle). So a drop with nothing to drop (a flight's start,
+     after its pick dropped the hover) sets nothing */
+  const asked = useRef<{ hover: string | null; site: Site | null; route: boolean }>({ hover: null, site: null, route: false });
+  const setHover = useCallback((id: string | null) => {
+    if (asked.current.hover === id) return;
+    asked.current.hover = id;
+    setHoverNow(id);
+  }, []);
+  const setHoverSite = useCallback((site: Site | null) => {
+    if (asked.current.site === site) return;
+    asked.current.site = site;
+    setHoverSiteNow(site);
+  }, []);
+  // a route's hover moves with the cursor along it, so only a drop with none held is skipped
+  const setHoverRoute = useCallback((r: { key: string; at: Vector3 } | null) => {
+    if (r === null && !asked.current.route) return;
+    asked.current.route = r !== null;
+    setHoverRouteNow(r);
+  }, []);
+  const onHoverRoute = useCallback((key: string | null, at?: Vector3) => setHoverRoute(key && at ? { key, at } : null), [setHoverRoute]);
   const [dragging, setDragging] = useState(false);
   /* while the camera flies or the reader drags it, nothing under a still cursor
      lights or opens its tooltip; after a flight, hover returns with the next move */
@@ -393,7 +420,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
     setHover(null);
     setHoverSite(null);
     setHoverRoute(null);
-  }, []);
+  }, [setHover, setHoverSite, setHoverRoute]);
   const flyTimer = useRef<number | null>(null);
   const onFlight = useCallback(
     (f: boolean) => {
@@ -888,11 +915,14 @@ export default function City3D({ data: incoming, versions = null, target = "", s
         <Monitor
           after={schedule.liveAt + 2}
           still={still}
+          // only a change is set: the watch calls again every 2.5 s while its verdict holds, and an equal set still renders the city
           onDecline={() => {
-            setRichOK(false);
-            setDpr((d) => Math.max(1, d - 0.5));
+            if (richOK) setRichOK(false);
+            if (dpr > 1) setDpr(Math.max(1, dpr - 0.5));
           }}
-          onIncline={() => setDpr((d) => Math.min(2, d + 0.5))}
+          onIncline={() => {
+            if (dpr < 2) setDpr(Math.min(2, dpr + 0.5));
+          }}
         />
         <Clock t0={t0} still={still} />
         <CameraNow />

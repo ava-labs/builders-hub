@@ -51,8 +51,9 @@ import type { L1Chain } from "@/types/stats";
 
 const REQUEST_LISTING_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 
-/* the city in 3D: WebGL, loaded only when the view is asked for */
-const City3D = dynamic(() => import("@/components/explorer-v2/network/city3d/City3D"), { ssr: false });
+/* the city in 3D: WebGL, loaded only when the view is asked for. A memo: the app renders for its panel, the live pane's
+   blocks and an answer too, and the city (with its scene) renders again only when its own props change */
+const City3D = memo(dynamic(() => import("@/components/explorer-v2/network/city3d/City3D"), { ssr: false }));
 // on a screen wide enough for the city, its chunk loads as the page hydrates, not once the app has mounted; the same
 // specifier as the dynamic() above, so both ask for one chunk; a chunk that fails is the fence's to show
 if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) import("@/components/explorer-v2/network/city3d/City3D").catch(() => {});
@@ -733,14 +734,14 @@ export function CityApp({
     };
   }, [listed]);
   const [rowHover, setRowHover] = useState<string | null>(null);
-  // the open chain's live view, shut by its close until another chain opens
-  const [liveShut, setLiveShut] = useState(false);
+  /* the open chain's live view, shut by its close until another chain opens: the chain it was shut for, so another chain
+     finds it open with no effect to reset it (an effect that sets the value a state holds renders the app once more) */
+  const [shutFor, setShutFor] = useState<string | null>(null);
+  const liveShut = shutFor !== null && shutFor === selected;
   // the city stands in 3D; a browser without WebGL 2 gets a note in its place, with the list open
   const [webgl] = useState(hasWebGL2);
-  useEffect(() => setLiveShut(false), [selected]);
-  // the open chain's newest block, as its live pane streams it, by chain: a new pick starts without one
+  // the open chain's newest block, as its live pane streams it, by chain: a new pick starts without one (open lets it go)
   const [liveTip, setLiveTip] = useState<(LiveTip & { id: string }) | null>(null);
-  useEffect(() => setLiveTip(null), [selected]);
   const tipOf = (id: string) => (tip: LiveTip | null) => setLiveTip(tip ? { ...tip, id } : null);
   // where a chain was opened from, for its back button
   const [openedFrom, setOpenedFrom] = useState<"list" | "district">("list");
@@ -978,6 +979,10 @@ export function CityApp({
     setFlown(null);
     setRoute(null);
     setOpenedFrom(from);
+    // the last chain's live pane: its shut, its newest block and its arming go in this render
+    setShutFor(null);
+    setLiveTip(null);
+    setLandedFor(null);
     // the camera flies to the chain's district; downtown and chains the city does not stand keep the camera where it is
     if (r.node && r.district) setFocus(r.district);
   };
@@ -1039,7 +1044,10 @@ export function CityApp({
     if (!selected) return;
     let live = true;
     const land = () => {
-      if (live) setFlown(selected);
+      if (!live) return;
+      // the first of the camera's landing and the clock lands it; the other finds it landed
+      live = false;
+      setFlown(selected);
     };
     const clock = setTimeout(land, 2200);
     void (camera.current?.settled() ?? Promise.resolve()).then(land);
@@ -1054,13 +1062,16 @@ export function CityApp({
      their renders stay out of the flight's frames; a camera that does not
      report lands by the clock */
   const liveId = liveShut ? null : liveOf(selectedRow)?.chainId ?? null;
-  const [landed, setLanded] = useState(false);
+  const [landedFor, setLandedFor] = useState<string | null>(null);
+  const landed = liveId !== null && landedFor === liveId;
   useEffect(() => {
-    setLanded(false);
     if (!liveId) return;
     let waiting = true;
     const land = () => {
-      if (waiting) setLanded(true);
+      if (!waiting) return;
+      // the first of the camera's landing and the clock arms it; the other finds it armed
+      waiting = false;
+      setLandedFor(liveId);
     };
     const clock = setTimeout(land, 2200);
     void (camera.current?.settled() ?? Promise.resolve()).then(land);
@@ -1941,6 +1952,31 @@ export function CityApp({
      render of the app */
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const mapKey = useMemo(mapKeyOf, [height, onHeight, versionLens, cut, versions, painted, targets, target, onTarget, windowShort]);
+  /* the city's callbacks stay the same objects, and its room the same object while its numbers hold, so the city renders
+     again only when what it draws changes */
+  const pickNow = useRef<(id: string | null) => void>(() => {});
+  pickNow.current = (id) => {
+    if (id === PCHAIN_PICK) {
+      setRoute(null);
+      setSelected(PCHAIN_PICK);
+      return;
+    }
+    const r = id ? rowById.get(id) : null;
+    if (r) open(r, focus ? "district" : "list");
+    else setSelected(null);
+  };
+  const onCityPick = useCallback((id: string | null) => pickNow.current(id), []);
+  const onCityFocus = useCallback((d: District | null) => {
+    setRoute(null);
+    setFocus(d);
+    setSelected(null);
+  }, []);
+  // a picked route lets the chain view go
+  const onCityRoute = useCallback((pair: string | null) => {
+    setRoute(pair);
+    if (pair) setSelected(null);
+  }, []);
+  const insetWas = useRef<Inset | null>(null);
 
   /* ---------------------------------------------------------------- */
   /* phones: the district browser                                      */
@@ -2115,7 +2151,9 @@ export function CityApp({
   const paneOpen = !ask && (!!liveTarget || pchainOpen);
   const rightW = ask ? askW : paneOpen ? LIVE_W : 0;
   // the camera keeps the city under the search and its chips, and clear of the panels
-  const inset: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: rightW ? rightW + 28 : 20, top: 112, bottom: 92 };
+  const room: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: rightW ? rightW + 28 : 20, top: 112, bottom: 92 };
+  const was = insetWas.current;
+  const inset = was && was.left === room.left && was.right === room.right ? was : (insetWas.current = room);
   // the sky under the canvas, matched to the city's first frame (its haze by rows, the sun's or the moon's glow at the upper left), so the canvas fades in on itself
   return (
     <div
@@ -2134,28 +2172,12 @@ export function CityApp({
           activity,
           windowLabel,
           selected: net === "mainnet" ? selected : null,
-          onSelect: (id: string | null) => {
-            if (id === PCHAIN_PICK) {
-              setRoute(null);
-              setSelected(PCHAIN_PICK);
-              return;
-            }
-            const r = id ? rowById.get(id) : null;
-            if (r) open(r, focus ? "district" : "list");
-            else setSelected(null);
-          },
+          onSelect: onCityPick,
           focus,
-          onFocus: (d: District | null) => {
-            setRoute(null);
-            setFocus(d);
-            setSelected(null);
-          },
+          onFocus: onCityFocus,
           // a picked route lets the chain view go, and its own light replaces an answer's or a search's while it is open
           route: net === "mainnet" ? route : null,
-          onRoute: (pair: string | null) => {
-            setRoute(pair);
-            if (pair) setSelected(null);
-          },
+          onRoute: onCityRoute,
           lit: route ? null : (lit ?? askLit),
           hovered: askHover ?? rowHover,
           onHover: setMapHover,
@@ -2238,7 +2260,7 @@ export function CityApp({
         )}
         style={{ width: LIVE_W }}
       >
-        {liveTarget && shown && !ask && <ChainLive key={liveTarget.chainId} chain={liveTarget} armed={landed} onTip={tipOf(liveTarget.chainId)} onClose={() => setLiveShut(true)} />}
+        {liveTarget && shown && !ask && <ChainLive key={liveTarget.chainId} chain={liveTarget} armed={landed} onTip={tipOf(liveTarget.chainId)} onClose={() => setShutFor(selected)} />}
         {pchainOpen && !ask && (
           <PChainLive pulse={data.pulse} l1Of={l1Of} onClose={() => setSelected(null)} onTarget={(subnet) => setRowHover(subnet ? (idBySubnet.get(subnet) ?? null) : null)} />
         )}
