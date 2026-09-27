@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
+import { useL1ByChainId, useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
@@ -86,6 +86,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [conversionResult, setConversionResult] = useState<ConversionData | null>(null);
   const [isValidatorSetInit, setIsValidatorSetInit] = useState<boolean | null>(null);
   const [isCheckingInit, setIsCheckingInit] = useState(false);
+  const [managerBlockchainId, setManagerBlockchainId] = useState('');
+  const managerChain = useL1ByChainId(managerBlockchainId);
 
   // The L1 whose validator set this step initializes. A wallet on the L1
   // names it. A wallet on the C-Chain (a manager hosted there) names only
@@ -136,6 +138,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
       if (data.managerAddress) {
         setManagerAddress(data.managerAddress);
+        setManagerBlockchainId(data.blockchainId);
       }
 
       const { signedMessage } = await aggregateSignature({
@@ -173,6 +176,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     setL1ConversionSignature('');
     setConversionResult(null);
     setManagerAddress('');
+    setManagerBlockchainId('');
     setIsValidatorSetInit(null);
     setTxSuccess(false);
     setError(null);
@@ -190,8 +194,11 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
           );
           return;
         }
-        const contractAddr = subnetInfo.l1ValidatorManagerDetails?.contractAddress;
-        if (contractAddr) setManagerAddress(contractAddr);
+        const manager = subnetInfo.l1ValidatorManagerDetails;
+        if (manager?.contractAddress) {
+          setManagerAddress(manager.contractAddress);
+          setManagerBlockchainId(manager.blockchainId);
+        }
         // Glacier reports no conversion hash until the subnet converts.
         const txId = subnetInfo.l1ConversionTransactionHash || saved;
         if (txId) setConversionTxID(txId);
@@ -209,9 +216,11 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     return () => controller.abort();
   }, [subnetId, storeSubnetId, storeConversionTxId, isTestnet]);
 
-  // Check on-chain whether initializeValidatorSet has already been called
+  // Check on-chain whether initializeValidatorSet has already been called.
+  // Read only on the chain that hosts the manager: the same address on
+  // another chain is another account.
   useEffect(() => {
-    if (!managerAddress || !chainPublicClient) {
+    if (!managerAddress || !chainPublicClient || (managerBlockchainId && selectedL1?.id !== managerBlockchainId)) {
       setIsCheckingInit(false);
       return;
     }
@@ -235,7 +244,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
     return () => {
       cancelled = true;
     };
-  }, [managerAddress, chainPublicClient]);
+  }, [managerAddress, managerBlockchainId, selectedL1?.id, chainPublicClient]);
 
   // Build the transaction args from conversion data
   function buildTxArgs(data: ConversionData) {
@@ -274,6 +283,13 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       setError('Aggregate signatures first');
       return;
     }
+    // A call to the manager's address on another chain reaches no contract and still succeeds.
+    if (!chainPublicClient || selectedL1?.id !== conversionResult.blockchainId) {
+      setError(
+        `The Validator Manager is on ${managerChain?.name ?? `blockchain ${conversionResult.blockchainId}`}. Switch your wallet to that chain.`,
+      );
+      return;
+    }
 
     setIsInitializing(true);
     setError(null);
@@ -282,7 +298,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       const txArgs = buildTxArgs(conversionResult);
       setCollectedData({ ...(txArgs[0] as any), L1ConversionSignature });
 
-      const initPromise = initializeValidatorSet(walletClient, chainPublicClient!, {
+      const initPromise = initializeValidatorSet(walletClient, chainPublicClient, {
         contractAddress: conversionResult.managerAddress as `0x${string}`,
         networkId: avalancheNetworkID,
         subnetId: conversionResult.subnetId,
@@ -329,7 +345,8 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   function generateCastCommand(): string {
     if (!conversionResult || !L1ConversionSignature) return '';
 
-    const rpcUrl = selectedL1?.rpcUrl || '<L1_RPC_URL>';
+    // the chain that hosts the manager, which need not be the wallet's
+    const rpcUrl = managerChain?.rpcUrl || '<L1_RPC_URL>';
     const addr = conversionResult.managerAddress || managerAddress || '<VALIDATOR_MANAGER_ADDRESS>';
 
     const txArgs = buildTxArgs(conversionResult);
