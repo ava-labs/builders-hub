@@ -49,6 +49,11 @@ export function isCChain(chainId: number | string): boolean {
   return CCHAIN_IDS.includes(Number(chainId));
 }
 
+/** Fuji's C-Chain and P-Chain, whose Query stays as it was: every fix is for mainnet */
+export function isFuji(chainId: number): boolean {
+  return chainId === CCHAIN_IDS[1] || chainId === PCHAIN_IDS.fuji;
+}
+
 export interface Target {
   kind: TargetKind;
   /** the chain_id the tables carry */

@@ -5,10 +5,18 @@ vi.mock('@/lib/clickhouse/client', () => ({ withQuerySlot: vi.fn() }));
 import { paddedAddress, unpadAddresses } from '@/lib/explorer-query/clickhouse';
 import { fillDrill } from '@/lib/explorer-query/enrich';
 import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
-import { expandDex, pchainPrompt, systemPrompt } from '@/lib/explorer-query/prompt';
+import { expandMacros } from '@/lib/explorer-query/macros';
+import { pchainPrompt, systemPrompt } from '@/lib/explorer-query/prompt';
 
 const LOGS = "FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY";
 const TOPIC = "unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef')";
+
+/** a DEX example's shorthand written out, as the guard writes it */
+function expandDex(sql: string): string {
+  const x = expandMacros(sql, 43114);
+  if (!x.ok) throw new Error(x.error);
+  return x.sql;
+}
 
 /** every worked example and drill of a prompt, the drills filled with a placeholder's own name as its value */
 function examples(prompt: string): string[] {

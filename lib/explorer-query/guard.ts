@@ -1,10 +1,12 @@
 /* The gate every model-written query passes before ClickHouse sees it.
    One SELECT, over the raw tables and our reference tables only, on one
    chain, capped in rows. The guard is the safety boundary; the prompt is
-   only advice. A reference table's rows are spliced in after this gate
-   (sources.ts), so what the gate reads is what the model wrote. */
+   only advice. The shorthand a DEX query opens with is written out
+   first (macros.ts), so the gate reads the whole text. A reference
+   table's rows are spliced in after this gate (sources.ts). */
 
-import { EVM_TABLES, targetOf } from "./target";
+import { expandMacros } from "./macros";
+import { EVM_TABLES, isFuji, targetOf } from "./target";
 
 /** the EVM chains' tables; each target carries its own list (target.ts) */
 export const ALLOWED_TABLES = EVM_TABLES;
@@ -117,11 +119,20 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const target = targetOf(chainId);
   let sql = String(raw ?? "").trim().replace(/;+\s*$/, "").trim();
   if (!sql) return { ok: false, error: "empty query" };
-  if (sql.length > 6000) return { ok: false, error: "query too long (6000 chars max)" };
+  // the shorthand is written out before any check, and the length counts the whole text
+  const x = expandMacros(sql, chainId);
+  if (!x.ok) return x;
+  sql = x.sql;
+  if (sql.length > 6000) {
+    const m = x.macro;
+    return { ok: false, error: m ? `query too long: ${sql.length} characters with $${m.name} written out, 6000 at most. Its WITH takes ${m.size}, so what follows it may take ${6000 - m.size}` : "query too long (6000 chars max)" };
+  }
   if (sql.includes(";")) return { ok: false, error: "one statement only; no semicolons" };
   if (/--|\/\*|\*\//.test(sql)) return { ok: false, error: "no comments in the query" };
-  // the DEX chapter's shorthand (prompt.ts) stands for text the query must carry
+  // the shorthand stands for text on the mainnet C-Chain only; elsewhere a query writes its WITH out
   if (/\$(DEX|POOLS|START|PROTOCOL)\b/.test(sql)) return { ok: false, error: "write the DEX WITH out in full: $DEX, $POOLS, $START and $PROTOCOL stand for its text" };
+  // hashes, addresses and topics are bytes already: unhex reads each of their bytes as a hex digit
+  if (!isFuji(chainId) && /\bhex\s*\(\s*unhex\s*\(/i.test(sql)) return { ok: false, error: "hex(unhex(x)) garbles x: hashes, addresses and topics are bytes already, so write lower(concat('0x', hex(x)))" };
   if (!/^(SELECT|WITH)\b/i.test(sql)) return { ok: false, error: "the query must start with SELECT or WITH" };
   const kw = sql.match(KEYWORDS);
   if (kw) return { ok: false, error: `${kw[1].toUpperCase()} is not allowed; write a plain SELECT (the server sets FORMAT and settings)` };
@@ -183,4 +194,25 @@ export function guardSql(raw: string, chainId: number): GuardResult {
     if (n > MAX_ROWS) return { ok: false, error: `LIMIT at most ${MAX_ROWS}; aggregate further or narrow the window` };
   }
   return { ok: true, sql, tables: [...tables] };
+}
+
+/* ------------------------------------------------------------------ */
+/* After the rows: a fee, a volume, a price or a value in USD is never
+   below zero, so a figure that is comes from a sign or a price gone
+   wrong. The writer is told once which column and row. */
+
+/** the figures that cannot be negative, by their column's name; a net, a flow, a change or a share can be */
+const NEVER_NEGATIVE = /(^|_)(fees?|volumes?|usd|prices?|tvl)(_|$)/i;
+const SIGNED = /(^|_)(net|flows?|inflows?|outflows?|change|delta|diff|pnl|profit|loss|gain|growth|pct|share|ratio)(_|$)/i;
+
+/** why the rows cannot be right when a column that is never negative is, or null; Fuji's answers are not checked */
+export function negativeFigure(result: { columns: readonly { name: string }[]; rows: readonly Record<string, unknown>[] }, chainId: number): string | null {
+  if (isFuji(chainId)) return null;
+  for (const { name } of result.columns) {
+    if (!NEVER_NEGATIVE.test(name) || SIGNED.test(name)) continue;
+    const i = result.rows.findIndex((r) => Number(r[name]) < 0);
+    if (i >= 0)
+      return `${name} is ${String(result.rows[i][name])} in row ${i + 1}, and a fee, a volume, a price or a value in USD is never below zero. Check the signs of what it is made of: take a swap's amounts as absolute values, and in a DEX query take a swap's value from usd in legs and the WAVAX price from px. Then call render_chart again.`;
+  }
+  return null;
 }

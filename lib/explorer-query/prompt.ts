@@ -4,9 +4,10 @@
 
 import { createHash } from "node:crypto";
 import { MAX_ROWS } from "./guard";
+import { CREATED, DEX_WITH, FIRST_DAY, QUOTES, U, pxCte, topic } from "./macros";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, dexFamilies, type DexFamily } from "./protocols";
 import { knownLines, refLine, refSchema } from "./sources";
-import { isCChain, PCHAIN_IDS, targetOf } from "./target";
+import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
 export const KNOWN_ADDRESSES: Record<string, string> = {
   "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7": "WAVAX",
@@ -24,8 +25,16 @@ function RECORD(opts: { chainId: number; symbol: string }, since = "now() - INTE
   return `SELECT block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(\`from\`))) AS from_address, lower(concat('0x', hex(\`to\`))) AS to_address, concat('0x', hex(substring(input, 1, 4))) AS method_id, gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS fee_${opts.symbol.toLowerCase()}, toUInt8(success) AS status FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= ${since}`;
 }
 
-/** what a question's time words mean; the same for every target */
-const CALENDAR = `- Calendar words are calendar windows: "today" starts at toStartOfDay(now()), "this week" at toMonday(now()), "this month" at toStartOfMonth(now()), "this year" at toStartOfYear(now()). "The last 30 days" (24 hours, 7 days) is a rolling window from now() - INTERVAL 30 DAY.`;
+/** what a question's time words mean; the same for every target but Fuji, whose line stays as it was */
+const CALENDAR = `- Calendar words are calendar windows that run to now: "today" starts at toStartOfDay(now()), "this week" at toMonday(now()), "this month" at toStartOfMonth(now()), "this year" at toStartOfYear(now()). A calendar window never starts earlier: this week is never toMonday(now()) - INTERVAL 7 DAY. "The last 30 days" (24 hours, 7 days) is a rolling window from now() - INTERVAL 30 DAY. Write these windows with now(), and in the note in words ("since Monday"), never with today's date: a kept answer and its note are shown again on later days. A day or a week the question names runs to the start of the next one, in the year of today's date (the question's first line) unless it names another: the week of Monday September 21, 2026 is block_time >= toDateTime('2026-09-21 00:00:00') AND block_time < toDateTime('2026-09-28 00:00:00').`;
+const CALENDAR_FUJI = `- Calendar words are calendar windows: "today" starts at toStartOfDay(now()), "this week" at toMonday(now()), "this month" at toStartOfMonth(now()), "this year" at toStartOfYear(now()). "The last 30 days" (24 hours, 7 days) is a rolling window from now() - INTERVAL 30 DAY.`;
+const calendar = (chainId: number) => (isFuji(chainId) ? CALENDAR_FUJI : CALENDAR);
+
+/** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
+    the system prompt, so the prompt's version and cache stay the same from day to day. Fuji's turn stays as it was */
+export function userTurn(chainId: number, prompt: string, now = new Date()): string {
+  return isFuji(chainId) ? prompt : `Today is ${now.toISOString().slice(0, 10)} (UTC).\n\n${prompt}`;
+}
 
 /** how an answer hands back its chart; the same for every target */
 function chartSpec(symbol: string): string {
@@ -38,91 +47,18 @@ function chartSpec(symbol: string): string {
 /* ------------------------------------------------------------------ */
 /* The C-Chain's DEXs (protocols.ts), mainnet only, in the prompt of a
    question about them (dexQuestion): every other question's prompt is
-   the one it was. The volume examples share one WITH, shown once: the
+   the one it was. The volume examples share one WITH, shown once and
+   named by its shorthand, which the guard writes out (macros.ts): the
    pools of every family from their factories' creation logs, the
    window's swaps, the hour's WAVAX price and each swap's value. An
    example whose protocol the registry does not list is left out. */
 
 const T = DEX_TOPICS;
-const topic = (t: string) => `unhex('${t}')`;
-const inList = (xs: string[]) => (xs.length === 1 ? `= ${xs[0]}` : `IN (${xs.join(", ")})`);
-/** word k of a log's data as a number, unsigned or signed; toFloat64 first, so no sum wraps */
-const U = (k: number, d = "data") => `toFloat64(reinterpretAsUInt256(reverse(substring(${d}, ${1 + 32 * k}, 32))))`;
-const I = (k: number, d = "data") => `toFloat64(reinterpretAsInt256(reverse(substring(${d}, ${1 + 32 * k}, 32))))`;
-/** the uint128 in the 16 bytes of a log's data from byte `at` */
-const H = (at: number | string, d = "data") => `toFloat64(reinterpretAsUInt128(reverse(substring(${d}, ${at}, 16))))`;
 /** the uint128 liquidity in the 16 bytes from `at`, exact, so a closed position sums to 0 */
 const LIQ = (at: number) => `toInt256(reinterpretAsUInt128(reverse(substring(data, ${at}, 16))))`;
 /** an int24 tick in the last 4 bytes of a topic */
 const TICK = (c: string) => `reinterpretAsInt32(reverse(substring(${c}, 29, 4)))`;
 const hexOf = (c: string) => `lower(concat('0x', hex(${c})))`;
-const FIRST_DAY = "'2020-09-23'";
-
-/** the events that create each family's pools; woofi has no pools to find */
-const CREATED: Record<DexFamily, string[]> = {
-  univ2: [T.v2Created],
-  solidly: [T.solidlyCreated],
-  univ3: [T.v3Created],
-  "cl-ramses": [T.v3Created],
-  algebra: [T.algebraCustom, T.algebraPool],
-  lb: [T.lbCreated],
-  univ4: [T.v4Initialize],
-  woofi: [],
-};
-/** the pools of the factories the WITH reads: protocol, version, pool, its tokens t0 and t1, and k, its fee or bin step */
-function poolsCte(): string {
-  const created = [...new Set(Object.values(CREATED).flat())];
-  // PoolCreated and Solidly's PairCreated put the pool in word 1, the others in word 0; a univ4 pool is its id
-  const pool = "multiIf(f.family = 'univ4', l.topic1, f.family IN ('univ3', 'cl-ramses', 'solidly'), substring(l.data, 45, 20), substring(l.data, 13, 20))";
-  // Initialize and algebra's CustomPool name the tokens in topic2 and topic3
-  const later = `f.family = 'univ4' OR l.topic0 = ${topic(T.algebraCustom)}`;
-  const k = "multiIf(f.family IN ('univ3', 'cl-ramses', 'lb'), reinterpretAsUInt32(reverse(substring(l.topic3, 29, 4))), f.family = 'univ4', reinterpretAsUInt32(reverse(substring(l.data, 29, 4))), 0)";
-  return `pools AS (SELECT f.protocol AS protocol, f.version AS version, ${pool} AS pool, substring(if(${later}, l.topic2, l.topic1), 13, 20) AS t0, substring(if(${later}, l.topic3, l.topic2), 13, 20) AS t1, ${k} AS k FROM raw_logs AS l INNER JOIN dex_factories AS f ON l.address = f.factory WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${FIRST_DAY} AND l.address IN (SELECT factory FROM dex_factories WHERE chain_id = ${DEX_CHAIN_ID} $PROTOCOL) AND l.topic0 ${inList(created.map(topic))})`;
-}
-
-/** the Swap topics, named once in the WITH */
-const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap`;
-/** the window's Swap logs by topic0: pool, time, transaction, trader, router, and what each moved of token0 (r0) and token1 (r1) */
-const swapsCte = (start: string) =>
-  `swap_logs AS (SELECT if(topic0 = v4_swap, topic1, address) AS pool, block_time, transaction_hash AS tx, tx_from AS trader, tx_to AS router, multiIf(topic0 = v2_swap, ${U(0)} + ${U(2)}, topic0 = lb_swap, ${H(49)} + ${H(81)}, abs(${I(0)})) AS r0, multiIf(topic0 = v2_swap, ${U(1)} + ${U(3)}, topic0 = lb_swap, ${H(33)} + ${H(65)}, abs(${I(1)})) AS r1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start} AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap))`;
-/** the WAVAX price per hour from the hour before `start`: the median over the hour's swaps in the price pool */
-const pxCte = (start: string, swap = "v3_swap") =>
-  `px AS (SELECT toStartOfHour(block_time) AS hour, quantileExact(0.5)(-${I(1)} / nullIf(${I(0)}, 0) * 1e12) AS price FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start} - INTERVAL 1 HOUR AND topic0 = ${swap} AND address = ${topic(DEX_PRICE_POOL.slice(2))} GROUP BY hour)`;
-/** the stablecoins with their decimals, and WAVAX with native AVAX, as arrays */
-const QUOTES = `q AS (SELECT groupArrayIf(token, quote = 'usd') AS S, groupArrayIf(decimals, quote = 'usd') AS SD, groupArrayIf(token, quote = 'avax') AS A FROM dex_tokens WHERE chain_id = ${DEX_CHAIN_ID})`;
-/** a swap's value in USD: its stablecoin leg, else its WAVAX leg at the hour's price, else NULL */
-const USD =
-  "multiIf(has(S, p.t0), s.r0 / pow(10, SD[indexOf(S, p.t0)]), has(S, p.t1), s.r1 / pow(10, SD[indexOf(S, p.t1)]), has(A, p.t0) AND x.price > 0, s.r0 / 1e18 * x.price, has(A, p.t1) AND x.price > 0, s.r1 / 1e18 * x.price, NULL)";
-const LEGS = `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, ${USD} AS usd FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool CROSS JOIN q LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
-
-/** the DEX WITH with its two slots: the window's start, and a protocol filter or nothing */
-export const DEX_WITH = `WITH ${SWAPS_NAMED}, ${poolsCte()}, ${swapsCte("$START")}, ${pxCte("$START")}, ${QUOTES}, ${LEGS}`;
-/** the pools part of it alone */
-const DEX_POOLS = `WITH ${poolsCte()}`;
-
-/** an example's $DEX(start, 'slug') and $POOLS('slug') written out, as the prompt tells the model to; for the tests */
-export function expandDex(sql: string): string {
-  let out = "";
-  for (let i = 0; i < sql.length; ) {
-    const m = /^\$(DEX|POOLS)\(/.exec(sql.slice(i));
-    if (!m) {
-      out += sql[i++];
-      continue;
-    }
-    // the arguments run to the parenthesis that closes this one
-    let j = i + m[0].length - 1;
-    for (let depth = 0; j < sql.length; j++) {
-      if (sql[j] === "(") depth++;
-      else if (sql[j] === ")" && --depth === 0) break;
-    }
-    const args = sql.slice(i + m[0].length, j);
-    const slug = /,?\s*'([\w-]+)'\s*$/.exec(args)?.[1];
-    const text = m[1] === "DEX" ? DEX_WITH.replaceAll("$START", args.replace(/,?\s*'[\w-]+'\s*$/, "").trim()) : DEX_POOLS;
-    out += text.replace("$PROTOCOL", slug ? `AND protocol = '${slug}'` : "");
-    i = j + 1;
-  }
-  return out;
-}
 
 const SWAPS = "uniqExact(tx, pool) AS swaps, uniqExactIf(tx, pool, usd IS NOT NULL) AS priced_swaps, round(sum(usd), 2) AS volume_usd";
 /** a drill's record columns for a log */
@@ -164,7 +100,9 @@ ${dexFamilies()
   .join("\n")}
 - Amounts: toFloat64 first, then divide by pow(10, decimals) from dex_tokens. A token that is not in dex_tokens has no decimals here: never add up its raw amounts; count its swaps or transfers instead.
 - Volume, in USD: the value of a swap is its stablecoin leg (1 token = 1 USD). With no stablecoin leg it is its WAVAX or native AVAX leg at the WAVAX price of that hour; with neither, it has no value. The WAVAX price of an hour is the median, over the swaps of that hour in the Uniswap v3 WAVAX/USDC 0.05% pool ${DEX_PRICE_POOL} (token0 WAVAX, token1 USDC), of -amount1 / amount0 * 1e12. Rows carry swaps, priced_swaps (the swaps with a value) and volume_usd. The note says that the volume counts the stablecoin leg of each swap, or its WAVAX leg at the price of that hour in the Uniswap v3 WAVAX/USDC pool, and leaves out swaps between other tokens.
-- A trader is the sender of the transaction (tx_from); a router is the contract it called (tx_to). The new pools of a period are the creation logs of the factories in that period. The fees of a univ3 pool are the value of each swap times its fee, k / 1e6.
+- Prices and values come from the DEX WITH: a swap's value is usd in legs, and the WAVAX price of an hour is price in px. Never price a swap again in a query of your own. A price the question asks for itself (the WAVAX price on each DEX) is the ratio of a swap's amounts r0 and r1 in legs, each over its decimals.
+- Tokens: a question about tokens (which tokens have the most volume or swaps) is answered per token, never per pair. Each swap counts once for each of its two tokens, and native AVAX (the zero address, a univ4 pool's t0) counts as WAVAX: FROM legs ARRAY JOIN [if(t0 = unhex('0000000000000000000000000000000000000000'), unhex('b31f66aa3c1e785363f0875a1b74e27b85fd66c7'), t0), t1] AS token.
+- A trader is the sender of the transaction (tx_from); a router is the contract it called (tx_to). The new pools of a period are the creation logs of the factories in that period. The fees of a univ3 or cl-ramses pool are the value of each swap times its fee: sum(usd * k / 1e6) over its legs.
 - Liquidity providers, one pool at a time, each as its worked example shows. First read the pool's own Mint and Burn logs (a rare topic by one address is fast), then only the blocks and transactions they name (block_number IN, since raw_logs sorts by topic0 and block_number): a read of a positions contract's or a pool token's logs over their whole history is too slow. univ3, cl-ramses and algebra: the positions contract's logs of those transactions, valued at the current tick. univ2 and solidly: the deposits less the withdrawals of each sender (a withdrawal can pay a router), as shares of the pool's reserves at its last Sync; the pool token's own Transfer logs are too many to read for an old pool. lb: the deposits less the withdrawals of each sender. Value only the stablecoin and WAVAX sides, at the latest WAVAX price, and the note says so.
 - In a DEX query, never name an expression after a column of a table it reads: with hex(topic0) AS topic0, every other topic0 in that SELECT reads the text, so WHERE topic0 = unhex(…) matches nothing. Name it for what it holds (pool_address, event_topic).
 - Say swaps, never trades: a trade routed through two pools is two swaps.
@@ -177,16 +115,16 @@ function dexExamples(): string {
   const uni = DEX_FACTORIES.find((f) => f.protocol === "uniswap" && f.family === "univ3" && f.positions.length);
   const tj = DEX_FACTORIES.filter((f) => f.protocol === "trader-joe").map((f) => f.family);
   const today = "toStartOfDay(now())";
-  const week = "toStartOfDay(now()) - INTERVAL 7 DAY";
+  const week = "toMonday(now())";
   const blocks: string[] = [
-    `The DEX WITH. A query about swaps or volume starts with it: it reads the pools of every family, the Swap logs of the window, the WAVAX price of each hour and the value of each swap (legs). The examples write it as $DEX(start) or $DEX(start, 'slug'), and its pools part alone as $POOLS() or $POOLS('slug'). Write it out in full, with the start of the window in place of $START (both times) and, for one protocol, AND protocol = 'slug' in place of $PROTOCOL (else nothing). Never write $DEX, $POOLS, $START or $PROTOCOL in a query:
+    `The DEX WITH. A query about swaps or volume starts with it: it reads the pools of every family, the Swap logs of the window, the WAVAX price of each hour and the value of each swap (legs). Never write it out, or a shorter copy of it: open every such query with $DEX(start) or $DEX(start, 'slug'), even one that needs no value, and our server writes it in place, with start for $START and, for one protocol, AND protocol = 'slug' for $PROTOCOL. $POOLS() or $POOLS('slug') is its first two parts alone: the Swap topic names and pools. start is a DateTime, such as toStartOfDay(now()) or toDateTime('2026-09-26 00:00:00'), and the WITH reads from it to now: a window with an end filters legs on block_time. legs has one row per Swap log: pool, block_time, tx, trader, router, protocol, version, t0, t1, k, r0, r1 and usd, and no chain_id or block_number (the WITH reads this chain's logs). After the shorthand comes SELECT, or , name AS (…) for a WITH of your own:
 ${DEX_WITH}`,
     `Every DEX protocol by today's volume, with its share; drill into one protocol's swaps:
 $DEX(${today}) SELECT protocol, ${SWAPS}, round(100 * sum(usd) / nullIf(sum(sum(usd)) OVER (), 0), 2) AS share_pct, count() OVER () AS of_total FROM legs GROUP BY protocol ORDER BY volume_usd DESC
 drill: $POOLS() SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${today} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools WHERE protocol = {{protocol}}) ORDER BY l.block_time DESC LIMIT 50`,
   ];
   if (has("pharaoh")) {
-    blocks.push(`One protocol's swaps and volume per day; drill into one day's swaps:
+    blocks.push(`One protocol's swaps and volume per day this week; drill into one day's swaps:
 $DEX(${week}, 'pharaoh') SELECT toDate(block_time) AS t, ${SWAPS} FROM legs GROUP BY t ORDER BY t
 drill: $POOLS('pharaoh') SELECT ${LOG_RECORD} FROM raw_logs AS l WHERE l.chain_id = ${DEX_CHAIN_ID} AND l.block_time >= ${week} AND toDate(l.block_time) = {{t}} AND l.topic0 IN (${SWAP_TOPICS}) AND if(l.topic0 = ${topic(T.v4Swap)}, l.topic1, l.address) IN (SELECT pool FROM pools) ORDER BY l.block_time DESC LIMIT 50`);
   }
@@ -282,7 +220,7 @@ ${dex ? dexRules() : ""}
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most.
 - A series starts its window on a bucket boundary, block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR (or toStartOfFiveMinutes, toStartOfDay, toMonday), so its first bucket is whole; its last bucket is still in progress, and the note says so in words of time ("the current hour is not over"). A sparse series of counts fills its empty buckets: ORDER BY t WITH FILL STEP INTERVAL 1 HOUR (the bucket's own step). A fill's TO, when it has one, is the bucket after now, never later: a fill adds no bucket that has not begun. A level such as a balance or a supply fills only as Nullable, toNullable(...), so a missing bucket stays empty instead of dropping to zero.
-${CALENDAR}
+${calendar(opts.chainId)}
 - Whole sets: a question about a set (every contract, each token, how many per chain) returns the whole set, with no LIMIT. A ranking (top, most, largest, busiest) keeps its first 15 rows unless the question names a number, and carries count() OVER () AS of_total, the size of the whole set, so the page can say of how many.
 - Order time series by time ascending. Name columns plainly: block_time bucket as \`t\`, counts as \`txs\`, gas as \`gas_charged\` or \`${c ? "gas_reserved" : "block_gas_used"}\`, fees as \`fees_${sym}\`.
 - Doors: when a row is about a record, include its key as text: block_number for blocks, concat('0x', hex(hash)) AS tx_hash for transactions, lower(concat('0x', hex(\`to\`))) AS address for contracts and accounts. The explorer turns those into links.
@@ -438,7 +376,7 @@ ${opts.coverage ? `\n${opts.coverage}` : ""}
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. At most ${MAX_ROWS} rows come back.
 - Buckets: toStartOfHour up to 7 days, toDate beyond, toMonday for weeks (never date arithmetic on dayOfWeek). A series of counts starts its window on a bucket boundary (block_time >= toMonday(now()) - INTERVAL 12 WEEK) and fills its empty buckets: ORDER BY t WITH FILL FROM the window's start TO the bucket after now STEP INTERVAL 1 WEEK (1 DAY, 1 HOUR), as in the worked examples. TO is always the bucket after now (toDate(now()) + INTERVAL 1 DAY for days), never the end of a calendar window such as this month: a fill adds no day that has not begun. A daily level (a supply, a stake, a balance) fills too, but only as Nullable, toNullable(...), so a day with no rows stays empty instead of dropping to zero and no line is drawn across it: some days have no rows (as in the worked examples). The last bucket is still in progress: the note says so in words of time ("the current week is not over"). Order time series ascending; name the time bucket \`t\`.
-${CALENDAR}
+${calendar(opts.chainId)}
 - Whole sets: a question about a set (every L1, each tx type, how many per L1) returns the whole set, with no LIMIT. A ranking (top, most, largest, lowest) keeps its first 20 rows unless the question names a number, and carries count() OVER () AS of_total, the size of the whole set.
 - When a SELECT names an expression after one of the table's columns (…AS tx_id over tx_id), every other mention of that column must be table-qualified (decoded_p_txs.tx_id), or it reads the alias instead.
 - Go one layer deeper when one chart can hold it: a ranking of validators carries delegated stake, delegators and fee; a count of delegations carries the AVAX delegated; a count of L1 registrations carries the conversions.

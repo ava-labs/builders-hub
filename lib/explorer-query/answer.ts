@@ -2,11 +2,11 @@ import "server-only";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
-import { MAX_ROWS, guardSql } from "./guard";
+import { MAX_ROWS, guardSql, negativeFigure } from "./guard";
 import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
-import { dexQuestion, pchainPrompt, systemPrompt } from "./prompt";
+import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
 import { isCChain, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey } from "./cache";
 import { versionLines } from "./sources";
@@ -156,7 +156,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     messages.push({ role: "user", content: String(t.prompt).slice(0, 1500) });
     messages.push({ role: "assistant", content: `Chart "${String(t.title).slice(0, 120)}" from:\n${String(t.sql).slice(0, 3000)}` });
   }
-  messages.push({ role: "user", content: a.prompt });
+  messages.push({ role: "user", content: userTurn(a.chainId, a.prompt) });
 
   const timings: StepTiming[] = [];
   const errors: string[] = [];
@@ -173,6 +173,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let emptyOnce = false;
     let capOnce = false;
     let wordsOnce = false;
+    let negOnce = false;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
     const step = (kind: StepTiming["kind"], sqlMs: number, ok: boolean, detail: string) => {
@@ -263,6 +264,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           const cols = new Set(result.columns.map((c) => c.name));
           const missing = [chart.x, ...chart.series.map((s) => s.column)].filter((c): c is string => !!c && !cols.has(c));
           if (missing.length) return fail(`chart refers to columns the query does not return: ${missing.join(", ")}`, Date.now() - q0);
+          // a fee, a volume or a value in USD below zero is a sign or a price gone wrong: ask once
+          const neg = negOnce ? null : negativeFigure(result, a.chainId);
+          if (neg) {
+            negOnce = true;
+            return fail(neg, Date.now() - q0);
+          }
           // a time series the row cap cut from its latest end runs again for its newest rows, and is kept that way
           let kept = g.sql;
           let ran = run;

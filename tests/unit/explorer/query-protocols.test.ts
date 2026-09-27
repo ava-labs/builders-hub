@@ -8,7 +8,8 @@ import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
 import { DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOKENS, DEX_TOPICS, dexContractName, dexFamilies, factoriesFor, factoriesSql, tokensFor, tokensSql, type DexFactory, type DexToken } from '@/lib/explorer-query/protocols';
 import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
-import { dexQuestion, expandDex, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
+import { expandMacros } from '@/lib/explorer-query/macros';
+import { dexQuestion, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
 import { refLine, refSchema, SQL_BUDGET, withSources } from '@/lib/explorer-query/sources';
 
 /** the query service's screen (stats-api query.go, forbiddenRe): one of these words, then a space or "(" */
@@ -249,6 +250,10 @@ describe('DEX rules and worked examples', () => {
   const row = { t: '2026-09-27', pool_address: hex(1, 'a'), provider: hex(2, 'b'), token: DEX_TOKENS[0].token, protocol: DEX_FACTORIES[0].protocol };
   /** an example's first line: its SQL, or the shorthand for the DEX WITH and then its own part */
   const example = (l: string) => /^(WITH|SELECT|\$DEX\(|\$POOLS\()/.test(l) && !l.includes('$START');
+  const expandDex = (sql: string) => {
+    const x = expandMacros(sql, 43114);
+    return x.ok ? x.sql : `not expanded: ${x.error}`;
+  };
   const sqls = lines.flatMap((l) => {
     if (example(l)) return [expandDex(l)];
     if (!l.startsWith('drill: ')) return [];
@@ -273,10 +278,11 @@ describe('DEX rules and worked examples', () => {
     expect(lines.filter(example)).toHaveLength(7);
     expect(lines.filter((l) => l.startsWith('drill: '))).toHaveLength(7);
     expect(sqls.filter((s) => s.startsWith('not filled'))).toEqual([]);
-    for (const sql of sqls) expect(sql).not.toMatch(/\$(DEX|POOLS|START|PROTOCOL)\b/);
-    // the shorthand itself never runs
-    const g = guardSql(lines.find((l) => l.startsWith('$DEX('))!, 43114);
-    expect(g.ok ? '' : g.error).toBe('write the DEX WITH out in full: $DEX, $POOLS, $START and $PROTOCOL stand for its text');
+    for (const sql of sqls) expect(sql).not.toMatch(/\$(DEX|POOLS|START|PROTOCOL)\b|^not expanded/);
+    // the guard writes the shorthand out, so the query it passes is the one the test expands
+    const first = lines.find((l) => l.startsWith('$DEX('))!;
+    const g = guardSql(first, 43114);
+    expect(g.ok && g.sql.startsWith(expandDex(first))).toBe(true);
   });
 
   it('count swaps by transaction and pool, and carry priced swaps beside the volume', () => {
