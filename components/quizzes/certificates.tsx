@@ -1,14 +1,20 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { getQuizResponse } from '@/utils/quizzes/indexedDB';
-import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/utils/cn';
 import quizData from '@/components/quizzes/data';
 import Quiz from '@/components/quizzes/quiz';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
-import { Linkedin, Twitter, Award, Share2, CheckCircle2, XCircle } from 'lucide-react';
 import { AwardBadgeWrapper } from '@/components/quizzes/components/awardBadgeWrapper';
-import { useRouter } from 'next/navigation';
+import { CertificateProgress, ChapterHeading, QuestionTitle } from '@/components/quizzes/certificate-progress';
+import {
+  CertificateCredential,
+  credentialAcademy,
+  credentialFacts,
+  credentialTitle,
+} from '@/components/quizzes/certificate-credential';
+import { useCourseOutline } from '@/components/academy/course/course-outline-context';
+import { usePathname, useRouter } from 'next/navigation';
 import { useCertificates } from '@/hooks/useCertificates';
 import { toast } from '@/hooks/use-toast';
 
@@ -25,6 +31,8 @@ interface QuizInfo {
 const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   const router = useRouter();
   const { isGenerating, certificatePdfUrl, generateCertificate } = useCertificates();
+  const outline = useCourseOutline();
+  const pathname = usePathname();
   const [completedQuizzes, setCompletedQuizzes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [quizzes, setQuizzes] = useState<QuizInfo[]>([]);
@@ -146,17 +154,32 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
+    <div
+      className={cn('max-w-4xl mx-auto', allQuizzesCompleted && 'p-4')}
+      data-certificate-page=""
+      data-certificate={allQuizzesCompleted ? 'complete' : 'progress'}
+    >
+      {!shouldShowCertificate && (
+        <CertificateProgress completed={correctlyAnsweredQuizzes} total={totalQuizzes} />
+      )}
       {!shouldShowCertificate && chapters.map((chapter) => {
         const chapterQuizzes = quizzesByChapter[chapter];
 
         return (
           <div key={chapter} className="mb-8">
-            <h3 className="text-xl font-medium mb-4">{chapter}</h3>
-            <Accordions type="single" collapsible>
+            <ChapterHeading
+              chapter={chapter}
+              completed={chapterQuizzes.filter((quiz) => completedQuizzes.includes(quiz.id)).length}
+              total={chapterQuizzes.length}
+            />
+            <Accordions type="single" collapsible data-cert-questions="">
               {chapterQuizzes.map((quiz) => (
-                <Accordion key={quiz.id} title={`${quiz.question}`}>
-                  <Quiz quizId={quiz.id} onQuizCompleted={handleQuizCompleted} />
+                <Accordion
+                  key={quiz.id}
+                  value={quiz.id}
+                  title={<QuestionTitle question={quiz.question} answered={completedQuizzes.includes(quiz.id)} />}
+                >
+                  <Quiz quizId={quiz.id} onQuizCompleted={handleQuizCompleted} showPosition={false} />
                 </Accordion>
               ))}
             </Accordions>
@@ -166,123 +189,20 @@ const CertificatePage: React.FC<CertificatePageProps> = ({ courseId }) => {
 
 
       {allQuizzesCompleted && (
-        <div className="mt-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+        <>
           <AwardBadgeWrapper courseId={courseId} isCompleted={allQuizzesCompleted} />
-          <div className="flex items-center justify-center mb-6">
-            <Award className="w-16 h-16 text-green-500 mr-4" />
-            <h2 className="text-3xl font-bold text-gray-800 dark:text-white" style={{ fontSize: '2rem', marginTop: '1em' }}>Congratulations!</h2>
-          </div>
-          <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
-            You've completed all quizzes for the {quizData.courses[courseId].title} course. Claim your certificate now!
-          </p>
-          <button
-            className={cn(
-              buttonVariants({ variant: 'default' }),
-              'w-full mb-6 py-3 text-lg relative overflow-hidden'
-            )}
-            onClick={handleGenerateCertificate}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <span className="flex items-center justify-center">
-                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
-                Generating Certificate...
-              </span>
-            ) : (
-              'Generate My Certificate'
-            )}
-          </button>
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <p className="text-center text-gray-600 dark:text-gray-300 mb-2">
-              Share your achievement:
-            </p>
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Your certificate PDF has been downloaded. You can attach it when sharing on social media.
-            </p>
-            <div className="flex justify-center space-x-4">
-              {certificatePdfUrl && (
-                <button
-                  onClick={viewCertificate}
-                  className={cn(
-                    buttonVariants({ variant: 'secondary' }),
-                    'flex items-center px-4 py-2'
-                  )}
-                >
-                  <Award className="mr-2 h-5 w-5" />
-                  View Certificate
-                </button>
-              )}
-              <a href={shareOnLinkedIn()} target="_blank" rel="noopener noreferrer"
-                style={{ textDecoration: 'none' }}
-                className={cn(
-                  buttonVariants({ variant: 'secondary' }),
-                  'flex items-center px-4 py-2'
-                )}
-              >
-                <Linkedin className="mr-2 h-5 w-5" />
-                Add to LinkedIn
-              </a>
-              <button
-                className={cn(
-                  buttonVariants({ variant: 'secondary' }),
-                  'flex items-center px-4 py-2'
-                )}
-                onClick={shareOnTwitter}
-              >
-                <Twitter className="mr-2 h-5 w-5" />
-                Share on X
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {!allQuizzesCompleted && (
-        <div className="mt-12 bg-muted rounded-lg shadow-lg p-8">
-          <Share2 className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
-          <p className="text-center text-gray-600 dark:text-gray-300 mb-2">
-            Complete all quizzes to get your certificate.
-          </p>
-          <p className="text-center text-gray-500 dark:text-gray-400 mb-6">
-            {correctlyAnsweredQuizzes} of {totalQuizzes} quizzes completed.
-          </p>
-
-          <div className="space-y-4">
-            {chapters.map((chapter) => {
-              const chapterQuizzes = quizzesByChapter[chapter];
-              const chapterComplete = chapterQuizzes.every(q => completedQuizzes.includes(q.id));
-              const chapterIncomplete = chapterQuizzes.filter(q => !completedQuizzes.includes(q.id));
-
-              return (
-                <div key={chapter} className={`rounded-lg border p-4 ${chapterComplete ? 'border-green-200 dark:border-green-800 bg-green-50/50 dark:bg-green-900/10' : 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    {chapterComplete ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
-                    )}
-                    <span className={`text-sm font-medium ${chapterComplete ? 'text-green-700 dark:text-green-300' : 'text-orange-700 dark:text-orange-300'}`}>
-                      {chapter}
-                    </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">
-                      {chapterQuizzes.filter(q => completedQuizzes.includes(q.id)).length}/{chapterQuizzes.length}
-                    </span>
-                  </div>
-                  {!chapterComplete && (
-                    <ul className="ml-6 space-y-1">
-                      {chapterIncomplete.map(quiz => (
-                        <li key={quiz.id} className="text-xs text-gray-600 dark:text-gray-400 flex items-start gap-1.5">
-                          <span className="text-orange-400 mt-0.5">&#8226;</span>
-                          <span>{quiz.question}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          <CertificateCredential
+            academy={credentialAcademy(pathname)}
+            courseTitle={credentialTitle(courseId, outline)}
+            facts={credentialFacts(outline)}
+            isGenerating={isGenerating}
+            certificatePdfUrl={certificatePdfUrl}
+            linkedInUrl={shareOnLinkedIn()}
+            onGenerate={handleGenerateCertificate}
+            onShareOnX={shareOnTwitter}
+            onViewCertificate={viewCertificate}
+          />
+        </>
       )}
     </div>
   );

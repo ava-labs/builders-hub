@@ -255,21 +255,21 @@
 [data-academy="docs"] #nd-page article > .prose > h3 { font-family: var(--ac-display); font-weight: 500; font-size: 19px; color: var(--ac-ink); }
 
 /* Content links. Console tools keep their own links, and so does the certificate block (the
-   CertificatePage root, the prose's direct child div.max-w-4xl.mx-auto.p-4 in
-   components/quizzes/certificates.tsx), which the certificate pages restyle (spec 4.8). */
-[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not(.prose > .max-w-4xl.mx-auto.p-4 a) {
+   CertificatePage root, [data-certificate-page] in components/quizzes/certificates.tsx), which the
+   certificate pages restyle (spec 4.8). */
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a) {
   color: var(--ac-ink);
   text-decoration-color: var(--ac-rule-2);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
-[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not(.prose > .max-w-4xl.mx-auto.p-4 a):hover { text-decoration-color: var(--ac-red); }
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a):hover { text-decoration-color: var(--ac-red); }
 [data-academy="docs"] #nd-page article > .prose li:not([data-console-frame] li)::marker { color: var(--ac-ink-3); }
 
 /* Keyboard focus: a 2 px ink ring outside the text, on links and on the section headings' anchors.
    An outline never moves a box. */
-[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not(.prose > .max-w-4xl.mx-auto.p-4 a):focus-visible,
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a):focus-visible,
 [data-academy="docs"] #nd-page article > .prose > :is(h2, h3) > a[data-card]:focus-visible {
   outline: 2px solid var(--ac-ink);
   outline-offset: 2px;
