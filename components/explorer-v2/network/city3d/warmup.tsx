@@ -675,9 +675,10 @@ export function Warmup({ hold = false, still = false, from = 0, fade, words }: {
     const sorted = [...st.lat].sort((a, b) => a - b);
     const cold = st.slow >= 2;
     if (process.env.NODE_ENV !== "production" && st.shownAt === null) Object.assign(DEV, { cold, slow: st.slow, lat: sorted.map(Math.round) });
-    WARM.quiet = !busy || !cold;
-    const all = !busy && st.drawn;
     const late = t0 - st.mountAt > st.showBy;
+    // an image's first strip waits on the GPU process: once the cap has shown the canvas mid-compile, it waits for the compile
+    WARM.quiet = !busy || (!cold && !late);
+    const all = !busy && st.drawn;
     if (st.shownAt === null && ((staged && !PENDING.size && (standing || cold ? all : !hidden.some((o) => !later.has(o)))) || late)) {
       st.shownAt = performance.now();
       WARM.unseen = false;

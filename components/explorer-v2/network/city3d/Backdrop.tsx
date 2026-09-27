@@ -24,6 +24,7 @@ import {
 } from "three";
 import { PLATE } from "@/components/explorer-v2/network/icm-map";
 import { diceOf } from "@/components/explorer-v2/network/city-geometry";
+import { onCityStood } from "@/components/explorer-v2/network/city-signal";
 import type { Theme } from "./palette";
 import { SUN } from "./Lighting";
 import { TIME } from "./shaders";
@@ -601,6 +602,19 @@ export function Backdrop({
     });
   };
   useEffect(() => request(theme, false));
+  // the other theme's image comes up in an idle slot once the city stands, so a flip uploads nothing
+  useEffect(() => {
+    let idle = 0;
+    const off = onCityStood(() => {
+      const other = () => request(want.current === "dark" ? "light" : "dark", false);
+      idle = window.requestIdleCallback ? window.requestIdleCallback(other, { timeout: 4000 }) : window.setTimeout(other, 1000);
+    });
+    return () => {
+      off();
+      if (idle) (window.cancelIdleCallback ?? window.clearTimeout)(idle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     const kept = images.current;
     return () => kept.forEach((t) => typeof t !== "string" && t.dispose());

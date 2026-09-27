@@ -144,6 +144,8 @@ export function TagLayout({
   const mid = useMemo(() => new Vector3(), []);
   // each word's place on screen (null while none fits), how much of it shows as it fades between places, and when it first showed
   const held = useRef(new Map<string, Place | null>());
+  // the words that have painted once while the canvas was unseen (so the browser's own pipelines for them stood ready)
+  const primed = useRef(new WeakSet<HTMLElement>());
   const shows = useRef(new Map<string, number>());
   const born = useRef(new Map<string, number>());
   // the gesture: whether the reader presses on the city, and the last moment the camera moved or a press began or ended
@@ -233,6 +235,19 @@ export function TagLayout({
       if (!el) continue;
       if (!born.current.has(t.key)) born.current.set(t.key, now);
       v.copy(t.at).project(camera);
+      /* on a cold cache a word's first paint compiles the browser's own pipelines for it (its halo, its filter), and held a
+         frame at the clock's start: while the canvas is unseen (it stands at 1%), each word paints once as it first shows, on
+         the screen, and then waits hidden for its time. It keeps no place, so it still comes in fresh */
+      if (WARM.unseen && !primed.current.has(el)) {
+        primed.current.add(el);
+        const px = Math.min(Math.max(0, (v.x * 0.5 + 0.5) * size.width), size.width - 80);
+        const py = Math.min(Math.max(0, (-v.y * 0.5 + 0.5) * size.height), size.height - 24);
+        el.style.transform = `translate(${Math.round(px)}px, ${Math.round(py)}px)`;
+        el.style.visibility = "visible";
+        el.style.opacity = "1";
+        el.style.filter = "opacity(0.5)";
+        continue;
+      }
       /* a word waits until the city's clock runs (the warm-up releases it once the plate has painted in: WARM.held starts true and
          stays so until then), so none stands over the sea or the blank plate; one with a `from` waits for that too */
       const due = !WARM.held && (t.from === undefined || TIME.value >= t.from);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Component, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, memo, startTransition, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, PanelLeftOpen, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
@@ -244,12 +244,30 @@ function LastBlock({ live, pulseAt }: { live: LiveTip | null; pulseAt: number | 
 /* the lists                                                           */
 /* ------------------------------------------------------------------ */
 
-function RowButton({ row, metric, painted, on, onOpen, onHover, tag }: { row: Row; metric: string; painted: boolean; on: boolean; onOpen: () => void; onHover?: (id: string | null) => void; tag?: string }) {
+/* the tower under the map's cursor, for the lists: a store the rows read, so a hover lights its row without a render of the
+   whole app */
+const MAP_HOVER: { id: string | null; subs: Set<() => void> } = { id: null, subs: new Set() };
+function setMapHover(id: string | null) {
+  if (MAP_HOVER.id === id) return;
+  MAP_HOVER.id = id;
+  for (const fn of MAP_HOVER.subs) fn();
+}
+function subscribeMapHover(fn: () => void) {
+  MAP_HOVER.subs.add(fn);
+  return () => {
+    MAP_HOVER.subs.delete(fn);
+  };
+}
+
+/* a row renders again only when its own props change: the app hands it stable callbacks */
+const RowButton = memo(function RowButton({ row, metric, painted, on: picked, onOpen, onHover, tag }: { row: Row; metric: string; painted: boolean; on: boolean; onOpen: (row: Row) => void; onHover?: (id: string | null) => void; tag?: string }) {
+  const lit = useSyncExternalStore(subscribeMapHover, () => MAP_HOVER.id === row.id, () => false);
+  const on = picked || lit;
   return (
     <li>
       <button
         type="button"
-        onClick={onOpen}
+        onClick={() => onOpen(row)}
         onMouseEnter={() => onHover?.(row.node ? row.id : null)}
         onMouseLeave={() => onHover?.(null)}
         aria-pressed={on}
@@ -269,7 +287,7 @@ function RowButton({ row, metric, painted, on, onOpen, onHover, tag }: { row: Ro
       </button>
     </li>
   );
-}
+});
 
 /* ------------------------------------------------------------------ */
 /* a chain, opened                                                     */
@@ -286,6 +304,7 @@ function ChainView({
   onDistrict,
   onPartner,
   liveTip,
+  headOnly = false,
 }: {
   row: Row;
   target: string;
@@ -298,6 +317,8 @@ function ChainView({
   onPartner: (row: Row) => void;
   /** the chain's newest block from its live pane, while the pane streams */
   liveTip: LiveTip | null;
+  /** the head alone (the logo, the name, the district): a pick's first frame, while the rest renders a frame later */
+  headOnly?: boolean;
 }) {
   const c = row.chain;
   const hub = row.node?.role === "hub";
@@ -328,8 +349,8 @@ function ChainView({
     </div>
   );
   const behind = row.mix ? row.mix.near + row.mix.stale : 0;
-  return (
-    <div className="px-4 pb-6 pt-3">
+  const head = (
+    <>
       {onBack && <BackButton onClick={onBack}>{backLabel}</BackButton>}
       <div className="mt-3 flex items-center gap-3">
         <BigLogo uri={row.logo} name={row.name} />
@@ -354,6 +375,13 @@ function ChainView({
           </p>
         </div>
       </div>
+    </>
+  );
+  // a pick's first frame: the head at once, the rest with the deferred render
+  if (headOnly) return <div className="px-4 pb-6 pt-3">{head}</div>;
+  return (
+    <div className="px-4 pb-6 pt-3">
+      {head}
       {c?.description && <p className="mt-3 line-clamp-4 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">{c.description}</p>}
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -703,7 +731,6 @@ export function CityApp({
   const [liveTip, setLiveTip] = useState<(LiveTip & { id: string }) | null>(null);
   useEffect(() => setLiveTip(null), [selected]);
   const tipOf = (id: string) => (tip: LiveTip | null) => setLiveTip(tip ? { ...tip, id } : null);
-  const [mapHover, setMapHover] = useState<string | null>(null);
   // where a chain was opened from, for its back button
   const [openedFrom, setOpenedFrom] = useState<"list" | "district">("list");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -937,11 +964,17 @@ export function CityApp({
   /* opening and closing */
   const open = (r: Row, from: "list" | "district" = focus ? "district" : "list") => {
     setSelected(r.id);
+    setFlown(null);
     setRoute(null);
     setOpenedFrom(from);
     // the camera flies to the chain's district; downtown and chains the city does not stand keep the camera where it is
     if (r.node && r.district) setFocus(r.district);
   };
+  // the rows' callbacks stay the same objects, so a row renders again only when its own props change
+  const openNow = useRef(open);
+  openNow.current = open;
+  const openFromList = useCallback((r: Row) => openNow.current(r, "list"), []);
+  const openFromDistrict = useCallback((r: Row) => openNow.current(r, "district"), []);
   // a view's back button: a chain goes back to its district or to the list, a district to the list
   const back = () => {
     if (selected) {
@@ -986,12 +1019,25 @@ export function CityApp({
           explorer: r.chain ? explorerOf(r.chain) : null,
         }
       : null;
-  /* a pick's urgent render is the camera's: the flight, the URL and the
-     room the panels leave. The panel's chain view and the live pane's
-     content follow from a deferred copy of the pick, rendered in slices
-     between the flight's frames */
-  const shownId = useDeferredValue(selected);
-  const shownRow = shownId ? rowById.get(shownId) ?? null : null;
+  /* a pick renders the app once: the camera's flight, the room the panels
+     leave and the chain's head. The chain's body comes in once the camera
+     lands on it, so its render holds no frame of the flight; a camera that
+     does not report lands by the clock */
+  const [flown, setFlown] = useState<string | null>(null);
+  useEffect(() => {
+    if (!selected) return;
+    let live = true;
+    const land = () => {
+      if (live) setFlown(selected);
+    };
+    const clock = setTimeout(land, 2200);
+    void (camera.current?.settled() ?? Promise.resolve()).then(land);
+    return () => {
+      live = false;
+      clearTimeout(clock);
+    };
+  }, [selected]);
+  const shownRow = flown ? rowById.get(flown) ?? null : null;
   const shown = shownRow !== null && shownRow.id === selectedRow?.id;
   /* the live pane's stream starts once the camera lands, so its polls and
      their renders stay out of the flight's frames; a camera that does not
@@ -1064,21 +1110,41 @@ export function CityApp({
   }, [data.nodes.length]);
   useEffect(() => {
     if (!restored.current) return;
-    const p = new URLSearchParams(window.location.search);
-    const r = selected ? rowById.get(selected) : null;
-    if (r) p.set("chain", r.chain?.slug ?? r.id);
-    else if (selected === PCHAIN_PICK) p.set("chain", PCHAIN_PICK);
-    else p.delete("chain");
-    if (focus) p.set("district", focus);
-    else p.delete("district");
-    if (route) p.set("route", route);
-    else p.delete("route");
-    // the one view needs no name in the URL; an old link's view=model or view=3d is let go
-    p.delete("view");
-    const s = p.toString();
-    const next = `${window.location.pathname}${s ? `?${s}` : ""}${window.location.hash}`;
-    // null, not history.state: state that carries Next's own mark is not synced into the router, which then writes its stale URL back
-    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(null, "", next);
+    /* it follows once the camera lands, in an idle slot: the router's render of the page, which the URL's change sets off,
+       holds no frame of the flight */
+    let live = true;
+    let idle = 0;
+    let asked = false;
+    const sync = () => {
+      if (!live) return;
+      const p = new URLSearchParams(window.location.search);
+      const r = selected ? rowById.get(selected) : null;
+      if (r) p.set("chain", r.chain?.slug ?? r.id);
+      else if (selected === PCHAIN_PICK) p.set("chain", PCHAIN_PICK);
+      else p.delete("chain");
+      if (focus) p.set("district", focus);
+      else p.delete("district");
+      if (route) p.set("route", route);
+      else p.delete("route");
+      // the one view needs no name in the URL; an old link's view=model or view=3d is let go
+      p.delete("view");
+      const s = p.toString();
+      const next = `${window.location.pathname}${s ? `?${s}` : ""}${window.location.hash}`;
+      // null, not history.state: state that carries Next's own mark is not synced into the router, which then writes its stale URL back
+      if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(null, "", next);
+    };
+    const later = () => {
+      if (!live || asked) return;
+      asked = true;
+      idle = window.requestIdleCallback ? window.requestIdleCallback(sync, { timeout: 1500 }) : window.setTimeout(sync, 200);
+    };
+    const clock = setTimeout(later, 2200);
+    void (camera.current?.settled() ?? Promise.resolve()).then(later);
+    return () => {
+      live = false;
+      clearTimeout(clock);
+      if (idle) (window.cancelIdleCallback ?? window.clearTimeout)(idle);
+    };
   }, [selected, focus, rowById, route]);
   // the answer's thread, beside the chain and the district
   useEffect(() => {
@@ -1442,7 +1508,8 @@ export function CityApp({
       <div className="px-4 pb-1.5 pt-4">{inner}</div>
     );
   };
-  const directory = (
+  // the list is built only where it shows: a chain or a district in the panel builds none of its rows
+  const directory = () => (
     <div className="pb-2">
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-zinc-100 bg-white/95 py-2 pl-4 pr-12 backdrop-blur dark:border-zinc-900 dark:bg-zinc-950/95">
         {netTabs}
@@ -1476,7 +1543,7 @@ export function CityApp({
           {groupHead(g)}
           <ul>
             {g.rows.map((r) => (
-              <RowButton key={r.id} row={r} tag={twinTag(r)} metric={metricOf(r)} painted={painted && net === "mainnet"} on={selected === r.id || mapHover === r.id} onOpen={() => open(r, "list")} onHover={setRowHover} />
+              <RowButton key={r.id} row={r} tag={twinTag(r)} metric={metricOf(r)} painted={painted && net === "mainnet"} on={selected === r.id} onOpen={openFromList} onHover={setRowHover} />
             ))}
           </ul>
         </section>
@@ -1610,7 +1677,7 @@ export function CityApp({
         </div>
         <ul className="mt-2">
           {members.map((r) => (
-            <RowButton key={r.id} row={r} tag={twinTag(r)} metric={r.validators > 0 ? `${r.validators}` : "—"} painted={painted} on={selected === r.id || mapHover === r.id} onOpen={() => open(r, "district")} onHover={setRowHover} />
+            <RowButton key={r.id} row={r} tag={twinTag(r)} metric={r.validators > 0 ? `${r.validators}` : "—"} painted={painted} on={selected === r.id} onOpen={openFromDistrict} onHover={setRowHover} />
           ))}
         </ul>
         {d === "frontier" && (
@@ -1652,7 +1719,7 @@ export function CityApp({
     );
   };
 
-  const chainView = (r: Row, phone = false) => (
+  const chainView = (r: Row, phone = false, headOnly = false) => (
     <ChainView
       row={r}
       target={target}
@@ -1671,6 +1738,7 @@ export function CityApp({
       }
       onPartner={(p) => open(p, openedFrom)}
       liveTip={liveTip?.id === r.id ? liveTip : null}
+      headOnly={headOnly}
     />
   );
 
@@ -1737,6 +1805,11 @@ export function CityApp({
     ),
     hudFigure(`Tx · ${windowShort}`, figures.tx === null ? "—" : fmtCompact(figures.tx), `across ${figures.active} chains`, phone),
   ];
+  // the large screen's strip, beside the panel and without it, built again only when its figures change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stripWide = useMemo(() => hud(false, false), [market, figures, target, windowShort, windowLabel]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stripNarrow = useMemo(() => hud(false, true), [market, figures, target, windowShort, windowLabel]);
 
   /* the key: what the heights, the windows, the lights and the streets
      show, each picked where it is explained */
@@ -1757,7 +1830,7 @@ export function CityApp({
     </div>
   );
   const versionTargets = targets.filter((t) => /^\d/.test(t)).slice(0, 4);
-  const mapKey = (
+  const mapKeyOf = () => (
     <div className="flex w-[19rem] flex-col gap-2.5 rounded-2xl border border-zinc-200/90 bg-white/[0.92] px-3.5 py-3 shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
       {keyRow(
         "Height",
@@ -1853,6 +1926,10 @@ export function CityApp({
       )}
     </div>
   );
+  /* built again only when what it shows changes: its switches' own renders measure their layout, a forced layout on every
+     render of the app */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const mapKey = useMemo(mapKeyOf, [height, onHeight, versionLens, cut, versions, painted, targets, target, onTarget, windowShort]);
 
   /* ---------------------------------------------------------------- */
   /* phones: the district browser                                      */
@@ -2106,7 +2183,7 @@ export function CityApp({
           <X className="h-4 w-4" />
         </button>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : null) : pchainOpen ? pchainView() : focus && net === "mainnet" ? districtView(focus) : listed || showPanel ? directory : null}
+          {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : chainView(selectedRow, false, true)) : pchainOpen ? pchainView() : focus && net === "mainnet" ? districtView(focus) : listed || showPanel ? directory() : null}
         </div>
       </aside>
 
@@ -2200,7 +2277,7 @@ export function CityApp({
           A panel and an answer both open leave the city too narrow for them */}
       <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : 88, right: rightW ? rightW + 32 : 88 }}>
         <div className="pointer-events-auto flex divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
-          {hud(false, showPanel || !!ask)}
+          {showPanel || ask ? stripNarrow : stripWide}
         </div>
       </div>
     </div>
