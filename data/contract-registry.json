@@ -400,7 +400,10 @@
       "name": "sAVAX",
       "protocol": "Benqi",
       "category": "lending",
-      "type": "token"
+      "type": "token",
+      "family": "savax",
+      "role": "lst",
+      "underlying": "0x0000000000000000000000000000000000000000"
     },
     {
       "address": "0x784da19e61cf348a8c54547531795ecfee2affd1",
@@ -840,7 +843,10 @@
       "name": "savUSD",
       "protocol": "Avant",
       "category": "yield",
-      "type": "token"
+      "type": "token",
+      "family": "erc4626",
+      "role": "vault",
+      "underlying": "0x24de8771bc5ddb3362db529fc3358f2df3a0e346"
     },
     {
       "address": "0xdd1cdfa52e7d8474d434cd016fd346701db6b3b9",
@@ -861,7 +867,10 @@
       "name": "savBTC",
       "protocol": "Avant",
       "category": "yield",
-      "type": "token"
+      "type": "token",
+      "family": "erc4626",
+      "role": "vault",
+      "underlying": "0xfd2c2a98009d0cbed715882036e43d26c4289053"
     },
     {
       "address": "0xa7c10c510df4b1702e1f36451dd29d7c3edc760c",
@@ -918,6 +927,24 @@
       "protocol": "Avant",
       "category": "yield",
       "type": "other"
+    },
+    {
+      "address": "0xf2af724f421b072d5c07c68a472ef391ef47bcbd",
+      "name": "savUSD Cooldown Silo",
+      "protocol": "Avant",
+      "category": "yield",
+      "type": "other",
+      "family": "erc4626",
+      "role": "silo"
+    },
+    {
+      "address": "0x8764d4009b213e41c0bb295fe143bea5ff91867b",
+      "name": "savBTC Cooldown Silo",
+      "protocol": "Avant",
+      "category": "yield",
+      "type": "other",
+      "family": "erc4626",
+      "role": "silo"
     },
     {
       "address": "0x0000000071727de22e5e9d8baf0edac6f37da032",
@@ -2546,10 +2573,64 @@
     },
     {
       "address": "0x81d40f21f12a8f0e3252bccb954d722d4c464b64",
-      "name": "AdminUpgradableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "CCTP MessageTransmitterV2",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "other",
+      "family": "cctp",
+      "role": "message-transmitter",
+      "version": "v2"
+    },
+    {
+      "address": "0x28b5a0e9c621a5badaa536219b3a228c8168cf5d",
+      "name": "CCTP TokenMessengerV2",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "router",
+      "family": "cctp",
+      "role": "token-messenger",
+      "version": "v2"
+    },
+    {
+      "address": "0x6b25532e1060ce10cc3b0a99e5683b91bfde6982",
+      "name": "CCTP TokenMessenger (V1)",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "router",
+      "family": "cctp",
+      "role": "token-messenger",
+      "version": "v1"
+    },
+    {
+      "address": "0x8186359af5f57fbb40c6b14a588d2a59c0c29880",
+      "name": "CCTP MessageTransmitter (V1)",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "other",
+      "family": "cctp",
+      "role": "message-transmitter",
+      "version": "v1"
+    },
+    {
+      "address": "0xfd78ee919681417d192449715b2594ab58f5d002",
+      "name": "CCTP TokenMinterV2",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "other"
+    },
+    {
+      "address": "0x420f5035fd5dc62a167e7e7f08b604335ae272b8",
+      "name": "CCTP TokenMinter (V1)",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "other"
+    },
+    {
+      "address": "0x71f54f818671cd0d7ea140da213e5c8b5c92a408",
+      "name": "CCTP TokenMessengerWithFees",
+      "protocol": "Circle CCTP",
+      "category": "bridge",
+      "type": "other"
     },
     {
       "address": "0x09c1e991870cbc01009a4b49397a4f2a127d3784",
@@ -4281,6 +4362,385 @@
       "protocol": "Selini Capital",
       "category": "mev",
       "type": "bot"
+    },
+    {
+      "address": "0x28b3a8fb53b741a8fd78c0fb9a6b2393d896a43d",
+      "name": "spUSDC (Spark Savings USDC)",
+      "protocol": "Spark",
+      "category": "yield",
+      "type": "vault",
+      "family": "erc4626",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xa25eaf2906fa1a3a13edac9b9657108af7b703e3",
+      "name": "stAVAX (Hypha Staked AVAX, formerly GoGoPool ggAVAX)",
+      "protocol": "Hypha",
+      "category": "yield",
+      "type": "vault",
+      "family": "erc4626",
+      "role": "vault",
+      "underlying": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
+    },
+    {
+      "address": "0x4d3b32bb456a6e387682f6cd37facefe9a219d0c",
+      "name": "OpenTrade PoolFactoryDynamic (pool beacon)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "factory",
+      "family": "opentrade",
+      "role": "factory"
+    },
+    {
+      "address": "0x1d7e71d0cb499c31349df3e9205a4b16bccf2536",
+      "name": "XHYC (High Yield Corporate Bond Vault AVAX)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xe6b4e31e56542e33d7e69a581ae649cf524699a1",
+      "name": "XDMM (Managed DeFi Yield Vault AVAX)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x061329361e0f163125225bf71a1e5af954b46869",
+      "name": "XFTB (Franklin Templeton Benji MMF Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x723a767cb1262cb5d021b37aa235cbc5353862c1",
+      "name": "XCLV (Digital Asset Corporate Lending Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xb62d6c99a387e97d470d0eebceb2387bb7f6d36c",
+      "name": "XFMC (Praxis Digital Trading FX and Metals Carry Trade)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x09ca60ca323a6313ae144778c3ebdfccfbb5e5d2",
+      "name": "XMMF (USD Money Market Fund Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x2af5f4ce440a0293c32e2f14c2613d1d8ec9774b",
+      "name": "XPCG7 (Private Credit (Galaxy Digital) - 7 Day Notice)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x1869e8750091b33854efb2650f83ce6cd8b11688",
+      "name": "xPCG30 (Private Credit (Galaxy Digital) - 30 Day Notice)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x4e2e4d72d0fc7470b7b8bd38e86868f6463934c5",
+      "name": "xPCG90 (Private Credit (Galaxy Digital) - 90 Day Notice)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x0e57dfcf4a53cd1a19256bd2af8bc28a9ac7ebe8",
+      "name": "xIGCP (Investment Grade Commercial Paper Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x4de33b57da730629cabbf9ee26721bd8f0001889",
+      "name": "xDFIS (Diversified Fixed Income Strategy)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x1f04e890063176e7b64be8884fcd26095c4d13fd",
+      "name": "XDFIS (Diversified Fixed Income Strategy)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x1b7dd356397bcc761c7d970189f2fda74b6427bc",
+      "name": "XDFIS (Diversified Fixed Income Strategy)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x58de4b7f9f95268f4e4bcfe8a28e29998100ffd6",
+      "name": "XEPL (EUROP PayFi Lending Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0x8835a2f66a7aaccb297cb985831a616b75e2e16c"
+    },
+    {
+      "address": "0x37873f86ee397f88c09b210dde555ebe3675e1a2",
+      "name": "XMMF-USDT (USDT Money Market Fund Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"
+    },
+    {
+      "address": "0x4a8094f20906a453a4a74769aa74c4012b0d5df6",
+      "name": "xAaveUSDC-ETH (Aave USDC (ETH) Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x9bb81e6b6a9ea5cc99d46fdde0ebbf19d303872f",
+      "name": "xMorphoGPUSDC-ETH (Morpho Gauntlet USDC Prime Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x4c8eaba17c3b30295f442a6415d495e8410a5693",
+      "name": "xWildcatWMTUSDC-ETH (Wildcat Wintermute Trading USDC Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x740a928229b0c54bf6a24ce335d08e30a6381faa",
+      "name": "XUSDC-LIQ-1 (USDC Liquidity Vault 1)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x9279f2aa29ea6a0c9a592eb8013c22132efdf723",
+      "name": "XUSDC-LIQ-2 (USDC Liquidity Vault 2)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x4e7ecc4c466535c6e82612428626fa0a7d8eb2f0",
+      "name": "XEURC-LIQ-1 (EURC Liquidity Vault 1)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
+    },
+    {
+      "address": "0xad4388a3499b68f3b3178a527f3c695f393c4dc6",
+      "name": "XUPL (USDC PayFi Lending Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x3458f1cab06cdf7c9323d8fffb04093f9d8380b6",
+      "name": "xMorphoGPUSDC-Base (Morpho Gauntlet USDC Prime Base Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x3f7a21a2550fbe70aacbc284ab0106fd0cf744b8",
+      "name": "XEMMF (EURC Money Market Fund Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
+    },
+    {
+      "address": "0x91f9f243bfc5fae734d862531f05fb7f171c17ed",
+      "name": "xSLP (Sierra LP Strategy Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xacee1912bffb0119cfe746d7701f7a1ba4f82598",
+      "name": "xECLO (EURC Collateralised Loan Obligations Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
+    },
+    {
+      "address": "0x27c3c978e3cbf383ed715d313a2e97c052fbbee0",
+      "name": "xSOLY (SOL Staking Yield Vault (AVAX))",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x8aa23d16f1bb8fc88e8ff00f9089f50995f0f3f0",
+      "name": "xEPCA (EURC Private Credit 90 Day Term 1)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xc891eb4cbdeff6e073e859e987815ed1505c2acd"
+    },
+    {
+      "address": "0xc2d0a336dc861abfdb2c99255775e7ad565c79a2",
+      "name": "XDFIS2 (Diversified Fixed Income Strategy Vault 2)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x3a07befb84da5251eb611042acdc818a048cf1ef",
+      "name": "XDFIS3 (Diversified Fixed Income Strategy Vault 3)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xca02f78a0e55d7b3fe138ef755333396af0140ef",
+      "name": "XDFIS-DeFi-1 (Diversified Fixed Income Strategy Vault (DeFi) 1)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xc0fd0afa73b35544cea520138cfdfa723bead848",
+      "name": "XDFIS-DeFi-2 (Diversified Fixed Income Strategy Vault (DeFi) 2)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xb031add794d2f04f7d3b10453cc5441ccf44ba73",
+      "name": "xPPV (Prime Plus Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0x6bcb49378fad952f0fd6bbdc2caff9cc76d5d408",
+      "name": "xUSCLO (USDC CLO Vault)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+    },
+    {
+      "address": "0xd1f0cc4f765035903bb1fd43095853714aa4c290",
+      "name": "xTradeflowCEMP90-USDCAva-1 (USDC TradeFlow CEMP 90 Day Vault 1)",
+      "protocol": "OpenTrade",
+      "category": "rwa",
+      "type": "vault",
+      "family": "opentrade",
+      "role": "vault",
+      "underlying": "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
     }
   ],
   "protocolSlugs": {
@@ -4368,6 +4828,10 @@
     "Silo Finance": "silo-finance",
     "Rango": "rango",
     "POPA": "popa",
-    "Cross-Chain Bridge": "cross-chain-bridge"
+    "Cross-Chain Bridge": "cross-chain-bridge",
+    "OpenTrade": "opentrade",
+    "Spark": "spark-savings",
+    "Hypha": "hypha",
+    "Circle CCTP": "circle-cctp"
   }
 }
