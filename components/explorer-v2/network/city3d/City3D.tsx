@@ -182,6 +182,17 @@ function CameraNow() {
   return null;
 }
 
+/* Next's router, kept in a ref by a child that renders nothing (as city-app's RouterRef): useRouter reads the layout's
+   context, which changes with every change of the URL, so a city that called it would render again for each one */
+type Router = ReturnType<typeof useRouter>;
+function RouterRef({ into }: { into: { current: Router | null } }) {
+  const router = useRouter();
+  useEffect(() => {
+    into.current = router;
+  }, [into, router]);
+  return null;
+}
+
 /** the sun's shadow map is drawn again on any frame where something that casts moves or the light turns, and held while
     nothing does: the build-out, a new plan or theme, the light's own motion. A part that moves by itself (a crane's jib) asks
     for the map in its own frame (gl.shadowMap.needsUpdate); the traffic and the drones cast no map shadow, only their own */
@@ -296,7 +307,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   const rich = tier === "high" && richOK;
   const theme = useTheme();
   const font = useMono();
-  const router = useRouter();
+  const router = useRef<Router | null>(null);
   const painted = paint ?? sizeBy === "versions";
 
   /* the plan, stood up: the buildings, the ground and its trees, the outskirts and the streets */
@@ -855,6 +866,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
       role="region"
       aria-label="Avalanche L1s as a city in 3D: drag to turn it, scroll to zoom, right-drag to pan"
     >
+      <RouterRef into={router} />
       {tier && (
       <Canvas
         shadows={tier === "high" ? { enabled: true, type: PCFSoftShadowMap, autoUpdate: false } : false}
@@ -948,7 +960,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
           onSite={(site) => {
             if (!flyingRef.current) setHoverSite(site);
           }}
-          onOpenSite={(site) => router.push(`/explorer/mainnet/p-chain/chain/${site.blockchainId}`)}
+          onOpenSite={(site) => router.current?.push(`/explorer/mainnet/p-chain/chain/${site.blockchainId}`)}
         />
         </Stage>
         <Stage at={4}>

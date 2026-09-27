@@ -656,6 +656,17 @@ class SceneFence extends Component<{ inset: Inset; children: ReactNode }, { fell
   }
 }
 
+/* Next's router for the app's links, kept in a ref by a child that renders nothing: useRouter reads the layout's context,
+   which changes with every change of the URL, so an app that called it would render again for each one */
+type Router = ReturnType<typeof useRouter>;
+function RouterRef({ into }: { into: { current: Router | null } }) {
+  const router = useRouter();
+  useEffect(() => {
+    into.current = router;
+  }, [into, router]);
+  return null;
+}
+
 export function CityApp({
   data,
   height,
@@ -764,7 +775,7 @@ export function CityApp({
   }, [wide]);
   // the map's camera, as the reader moved it: Escape takes it home before it shuts the list
   const camera = useRef<CameraHandle>(null);
-  const router = useRouter();
+  const router = useRef<Router | null>(null);
   // a tx hash Enter is waiting on while it races every chain
   const [pending, setPending] = useState<string | null>(null);
   // the search's picks show while the box has the focus; the arrow keys walk them
@@ -1169,7 +1180,7 @@ export function CityApp({
     if (wide) return;
     const p = new URLSearchParams(window.location.search);
     const q = p.get("ask");
-    if (q) router.replace(queryHref({ q, then: p.getAll("then"), on: p.get("on") ?? "c-chain", for: p.get("for") }, askChains));
+    if (q) router.current?.replace(queryHref({ q, then: p.getAll("then"), on: p.get("on") ?? "c-chain", for: p.get("for") }, askChains));
     // once, when the app opens
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1233,7 +1244,7 @@ export function CityApp({
   const go = (href: string) => {
     setQuery("");
     setPending(null);
-    router.push(href);
+    router.current?.push(href);
   };
   // where a question goes: the chain it names, the P-Chain for staking (for the L1 picked, when one is), the chain picked, else the C-Chain
   const pickedAsk = selected === PCHAIN_PICK ? "p-chain" : selectedRow?.chain?.isTestnet ? null : selectedRow?.node?.role === "hub" ? "c-chain" : (selectedRow?.chain?.slug ?? null);
@@ -1941,6 +1952,7 @@ export function CityApp({
     const topRoute = routes[0]?.messages ?? 1;
     return (
       <div className="flex flex-col gap-5 pb-12 pt-4">
+        <RouterRef into={router} />
         <div className="grid grid-cols-2 gap-2">{hud(true)}</div>
         <div className="flex flex-col gap-2.5">
           {searchField}
@@ -2111,6 +2123,7 @@ export function CityApp({
       data-city-app
       className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]"
     >
+      <RouterRef into={router} />
       {(() => {
         const mapProps = {
           data,
