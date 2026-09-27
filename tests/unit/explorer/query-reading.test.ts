@@ -146,6 +146,20 @@ describe('designVisual', () => {
     expect(results[1]).toEqual({ ok: true });
   });
 
+  it('reports its model steps and each visual the design tool turned back', async () => {
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      await opts.tools.design.execute({ ...spec, panels: [{ ...spec.panels[0], x: 'nope' }] });
+      await opts.tools.design.execute(spec);
+      // the SDK turns back a call its schema does not take before the tool sees it
+      return { steps: [{ content: [{ type: 'tool-error', error: 'Invalid input for tool design' }] }, { content: [{ type: 'tool-result' }] }] };
+    }) as unknown as typeof generateText);
+    const out = await designVisual(input);
+    expect(out).toMatchObject({ fromDesigner: true, steps: 2, refused: [expect.stringContaining('these columns are not in the rows: panel x nope'), 'Invalid input for tool design'] });
+    // a design the tool took at once reports no refusal
+    vi.mocked(generateText).mockImplementationOnce(designs(true));
+    expect(await designVisual(input)).toMatchObject({ steps: 0, refused: [] });
+  });
+
   it('asks the designer for low effort on every call', async () => {
     vi.mocked(generateText).mockImplementationOnce(designs(false)).mockImplementationOnce(designs(true));
     await designVisual(input);

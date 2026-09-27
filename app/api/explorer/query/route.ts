@@ -131,7 +131,8 @@ export async function POST(req: Request) {
       const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
       const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
-      return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });
+      // the design's own time, its model steps and each visual its tool turned back: a slow layout shows whether it retried
+      return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "design failed" }, { status: 400 });
     }
@@ -150,7 +151,7 @@ export async function POST(req: Request) {
       names: d.names ?? {},
       chart: d.chart ?? { kind: "table", series: [] },
     });
-    return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });
+    return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, steps: out.steps, refused: out.refused?.length ? out.refused : undefined, error: out.fromDesigner ? undefined : out.error });
   }
 
   const prompt = String(body.prompt ?? "").trim().slice(0, 1500);

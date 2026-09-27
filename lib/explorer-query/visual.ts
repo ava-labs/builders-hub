@@ -485,10 +485,10 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
   return out;
 }
 
-export async function designVisual(input: DesignInput): Promise<{ visual: VisualSpec; ms: number; fromDesigner: boolean; error?: string }> {
+export async function designVisual(input: DesignInput): Promise<{ visual: VisualSpec; ms: number; fromDesigner: boolean; error?: string; steps: number; refused: string[] }> {
   const t0 = Date.now();
   const fallback = basicVisual(input.chart, input.columns);
-  if (input.rows.length === 0) return { visual: fallback, ms: 0, fromDesigner: false };
+  if (input.rows.length === 0) return { visual: fallback, ms: 0, fromDesigner: false, steps: 0, refused: [] };
   let error: string | undefined;
 
   const seen = { ...input, x: input.x ?? input.chart.x };
@@ -497,42 +497,54 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
 
   let visual: VisualSpec | null = null;
   let relabeled = false;
+  // what a slow layout's timing shows: the model's steps, and each visual turned back by the design tool's checks or its schema
+  let steps = 0;
+  const refused: string[] = [];
+  const tally = ({ steps: taken = [] }: { steps?: { content: { type: string; error?: unknown }[] }[] }) => {
+    steps += taken.length;
+    for (const c of taken.flatMap((s) => s.content)) if (c.type === "tool-error") refused.push(String(c.error instanceof Error ? c.error.message : c.error).slice(0, 200));
+  };
+  const check = (spec: VisualSpec): { error: string } | { ok: true } => {
+    const bad = [
+      ...spec.stats.filter((s) => !cols.has(s.column)).map((s) => `stat ${s.label} -> ${s.column}`),
+      ...spec.panels.flatMap((p) => [...(p.x && !cols.has(p.x) ? [`panel x ${p.x}`] : []), ...(p.target && !cols.has(p.target) ? [`panel target ${p.target}`] : []), ...p.series.filter((s) => !cols.has(s.column)).map((s) => `series ${s.column}`), ...(p.sortBy && !cols.has(p.sortBy) ? [`sortBy ${p.sortBy}`] : [])]),
+    ];
+    if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
+    if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
+    // a flow runs from one column to another and draws one amount
+    const flows = spec.panels.filter((p) => p.kind === "flow");
+    if (flows.some((p) => !p.target || p.target === p.x || p.series.length !== 1)) return { error: "a flow panel needs x (the column value comes from), target (the column it goes to, not x) and one series (the amount)" };
+    const text = flows.map((p) => p.series[0].column).filter((c) => !NUMERIC.test(input.columns.find((k) => k.name === c)?.type ?? ""));
+    if (text.length) return { error: `a flow's series is the amount that moved: ${text.join(", ")} is not a number column` };
+    // a ranking draws one bar per row: a name that repeats in the rows (a sender with several partners) would stand there several times
+    const repeats = [...new Set(spec.panels.filter((p) => p.kind === "hbar" && p.x && new Set(input.rows.map((r) => String(r[p.x!]))).size < input.rows.length).map((p) => p.x!))];
+    if (repeats.length) return { error: `an hbar draws one bar per row, and ${repeats.join(", ")} repeats in these rows: rank a column that names each row once, or leave the ranking out` };
+    // a net is what came in less what went out: it needs an outflow drawn below zero
+    if (spec.panels.some((p) => p.net && !p.series.some((s) => s.below))) return { error: "net draws each period's ins less its outs: give the outflow series below: true, or leave net out" };
+    // a callout's cap counts it as the page shows it, each full address and hash short
+    const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
+    if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };
+    // the reader never sees the columns: labels and callouts that name one are written again once, then read as words
+    const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols]);
+    if (named.length && !relabeled) {
+      relabeled = true;
+      return { error: `the labels or callouts have ${named.join(", ")}, words the page never shows: the reader never sees the columns, and a transaction is final, never settled. Use plain words ("Seen in 7 days", not seen_7d; final, not settled) and call design again.` };
+    }
+    visual = readerSpec(spec, [...cols], heldHex(input));
+    return { ok: true };
+  };
   const design = tool({
     description: "The visual for this answer: headline stats, one to four panels, callouts.",
     inputSchema: visualSpecSchema,
     execute: async (spec) => {
-      const bad = [
-        ...spec.stats.filter((s) => !cols.has(s.column)).map((s) => `stat ${s.label} -> ${s.column}`),
-        ...spec.panels.flatMap((p) => [...(p.x && !cols.has(p.x) ? [`panel x ${p.x}`] : []), ...(p.target && !cols.has(p.target) ? [`panel target ${p.target}`] : []), ...p.series.filter((s) => !cols.has(s.column)).map((s) => `series ${s.column}`), ...(p.sortBy && !cols.has(p.sortBy) ? [`sortBy ${p.sortBy}`] : [])]),
-      ];
-      if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
-      if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
-      // a flow runs from one column to another and draws one amount
-      const flows = spec.panels.filter((p) => p.kind === "flow");
-      if (flows.some((p) => !p.target || p.target === p.x || p.series.length !== 1)) return { error: "a flow panel needs x (the column value comes from), target (the column it goes to, not x) and one series (the amount)" };
-      const text = flows.map((p) => p.series[0].column).filter((c) => !NUMERIC.test(input.columns.find((k) => k.name === c)?.type ?? ""));
-      if (text.length) return { error: `a flow's series is the amount that moved: ${text.join(", ")} is not a number column` };
-      // a ranking draws one bar per row: a name that repeats in the rows (a sender with several partners) would stand there several times
-      const repeats = [...new Set(spec.panels.filter((p) => p.kind === "hbar" && p.x && new Set(input.rows.map((r) => String(r[p.x!]))).size < input.rows.length).map((p) => p.x!))];
-      if (repeats.length) return { error: `an hbar draws one bar per row, and ${repeats.join(", ")} repeats in these rows: rank a column that names each row once, or leave the ranking out` };
-      // a net is what came in less what went out: it needs an outflow drawn below zero
-      if (spec.panels.some((p) => p.net && !p.series.some((s) => s.below))) return { error: "net draws each period's ins less its outs: give the outflow series below: true, or leave net out" };
-      // a callout's cap counts it as the page shows it, each full address and hash short
-      const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
-      if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };
-      // the reader never sees the columns: labels and callouts that name one are written again once, then read as words
-      const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols]);
-      if (named.length && !relabeled) {
-        relabeled = true;
-        return { error: `the labels or callouts have ${named.join(", ")}, words the page never shows: the reader never sees the columns, and a transaction is final, never settled. Use plain words ("Seen in 7 days", not seen_7d; final, not settled) and call design again.` };
-      }
-      visual = readerSpec(spec, [...cols], heldHex(input));
-      return { ok: true };
+      const r = check(spec);
+      if ("error" in r) refused.push(r.error.slice(0, 200));
+      return r;
     },
   });
 
   try {
-    await generateText({
+    const r = await generateText({
       model: anthropic(DESIGN_MODEL),
       providerOptions: DESIGN_OPTIONS,
       // the house style is the same for every answer; read it from the cache
@@ -555,6 +567,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
       stopWhen: [stepCountIs(3), () => visual !== null],
       maxRetries: 1,
     });
+    tally(r);
   } catch (e) {
     error = e instanceof Error ? e.message : String(e);
     console.warn("[explorer-query] designer failed:", error);
@@ -562,7 +575,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   // the designer may have been told its columns were wrong once; give it one more turn
   if (!visual) {
     try {
-      await generateText({
+      const r = await generateText({
         model: anthropic(DESIGN_MODEL),
         providerOptions: DESIGN_OPTIONS,
         system: HOUSE_STYLE,
@@ -571,9 +584,10 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
         stopWhen: [stepCountIs(2), () => visual !== null],
         maxRetries: 1,
       });
+      tally(r);
     } catch (e) {
       error = `${error ?? ""} | retry: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
-  return { visual: visual ?? fallback, ms: Date.now() - t0, fromDesigner: !!visual, error };
+  return { visual: visual ?? fallback, ms: Date.now() - t0, fromDesigner: !!visual, error, steps, refused };
 }
