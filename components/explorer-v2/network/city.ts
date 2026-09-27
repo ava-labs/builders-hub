@@ -210,6 +210,10 @@ function plotWard(n: number, a0: number, a1: number, lot: number, core: number, 
   return { blocks, lots };
 }
 
+/* pairs of sets in one ward whose lots trade places by hand, the first taking the lot in front: FIFA's stadium is
+   low, so it stands on Numi's lot, where Numi's tower does not hide it */
+const FRONT_OF: [string, string][] = [["13322", "8021"]];
+
 export function planCity(chains: CityChain[], g: CityGeometry): City {
   // each ward's sets, largest first, the week's new L1s last
   const groups = new Map<District, CityChain[]>();
@@ -270,6 +274,13 @@ export function planCity(chains: CityChain[], g: CityGeometry): City {
     });
     wards.push({ district: k, label: districtLabel(k), ids: members.map((c) => c.id), a0: arcs[i].a0, a1: arcs[i].a1, r0: core, r1 });
   });
+  for (const [front, back] of FRONT_OF) {
+    const a = lots.get(front);
+    const b = lots.get(back);
+    if (!a || !b || a.district !== b.district || a.y >= b.y) continue;
+    lots.set(front, b);
+    lots.set(back, a);
+  }
   for (const l of lots.values()) l.reach = Math.min(1, l.r / edge);
   const pairs = Math.round((edge - core - ROAD * lot) / ((2 + ROAD) * lot)) + 1;
   const rings = Array.from({ length: Math.max(1, pairs) }, (_, p) => core + (ROAD * lot) / 2 + p * (2 + ROAD) * lot);
