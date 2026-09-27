@@ -26,7 +26,7 @@ const firstTag = (html: string) => html.slice(0, html.indexOf('>') + 1);
 describe('Academy scope roots (index C1)', () => {
   it('puts data-academy="landing" on the element that wraps the whole landing', () => {
     nav.pathname = '/academy';
-    const html = renderToStaticMarkup(createElement(AcademyLayout, { config: avalancheDeveloperAcademyLandingPageConfig }));
+    const html = renderToStaticMarkup(createElement(AcademyLayout, { config: avalancheDeveloperAcademyLandingPageConfig, courseStats: {} }));
     const tag = firstTag(html);
     const name = tag.slice(1).split(/[\s>]/)[0];
     expect(tag).toContain('data-academy="landing"');

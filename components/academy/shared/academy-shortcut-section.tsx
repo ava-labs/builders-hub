@@ -14,10 +14,9 @@ import {
   Blocks,
   FileCode,
   Zap,
-  Rocket,
   type LucideIcon
 } from "lucide-react";
-import { cn } from "@/utils/cn";
+import { twoDigits } from "./academy-tracks";
 import Link from "next/link";
 import type { AcademyPathType } from './academy-types';
 
@@ -123,45 +122,42 @@ export function AcademyShortcutSection({ pathType }: AcademyShortcutSectionProps
   return (
     <div className="mb-16">
       <div className="flex items-center gap-3 mb-8">
-        <Rocket className="h-6 w-6 text-red-600" />
-        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+        <h2 className="font-ac-display text-2xl font-medium tracking-[-0.015em] text-ac-ink">
           Quick Access
         </h2>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-        {shortcuts.map((shortcut) => (
+        {shortcuts.map((shortcut, index) => (
           <Link
             key={shortcut.id}
             href={shortcut.href}
-            className={cn(
-              "group block p-4 rounded-lg transition-all duration-150",
-              "bg-zinc-50/50 dark:bg-zinc-900/50",
-              "border border-zinc-200/50 dark:border-zinc-800/50",
-              "hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50",
-              "hover:border-zinc-300/50 dark:hover:border-zinc-700/50"
-            )}
+            className="group relative block rounded-xl border border-ac-rule bg-ac-paper px-[14px] pt-[14px] pb-3 transition-colors duration-150 hover:border-ac-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink"
           >
+            {/* Its place in the list, as the tree cards carry theirs */}
+            <span className="absolute right-[15px] top-5 font-ac-mono text-[11px] text-ac-ink-3">
+              {twoDigits(index + 1)}
+            </span>
             <div className="h-full min-h-[100px] flex flex-col">
               {/* Icon */}
-              <div className="mb-3">
-                <shortcut.icon className="w-5 h-5 text-zinc-600 dark:text-zinc-400" />
+              <div className="mb-3 flex size-7 items-center justify-center rounded-lg bg-ac-tile">
+                <shortcut.icon className="size-[15px] text-ac-ink" />
               </div>
               
               {/* Content */}
               <div className="flex-1">
-                <h3 className="text-base font-medium mb-1 text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-[15px] font-semibold mb-1 text-ac-ink">
                   {shortcut.title}
                 </h3>
                 
-                <p className="text-xs text-zinc-500 dark:text-zinc-500 leading-snug">
+                <p className="text-[12.5px] text-ac-ink-3 leading-snug">
                   {shortcut.description}
                 </p>
               </div>
               
               {/* Arrow */}
               <div className="mt-3 flex justify-end">
-                <ArrowRight className="w-3.5 h-3.5 text-zinc-300 dark:text-zinc-600 group-hover:text-zinc-500 dark:group-hover:text-zinc-500 transition-colors" />
+                <ArrowRight className="size-3.5 text-ac-ink-3 transition-colors group-hover:text-ac-ink" />
               </div>
             </div>
           </Link>
