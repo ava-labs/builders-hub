@@ -184,6 +184,8 @@ export function Rig({
      wheel, for which camera-controls reports no control) until the camera rests */
   const flight = useRef<(() => void) | null>(null);
   const press = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  // the press that became a drag: the app heard onDrag(true) for it, so it hears onDrag(false) at its release (a plain click hears neither)
+  const dragged = useRef(false);
   const touched = useRef(false);
   /* a flight under way, and who waits for it to land (the app arms the
      live pane then). The landing is read from the camera's own motion, in
@@ -476,7 +478,9 @@ export function Rig({
       const p = press.current;
       if (p && !p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 4) {
         p.moved = true;
-        // the reader is dragging: a glide ends where it is, so the drag is not fought frame by frame
+        // the reader is dragging: the app hears it now, not at the press, so a plain click costs it no render; a glide ends where it is, so the drag is not fought frame by frame
+        dragged.current = true;
+        onDrag(true);
         glide.current = null;
         settleTo.current = null;
       }
@@ -498,6 +502,10 @@ export function Rig({
       if (!press.current) return;
       ref.current?.cancel();
       press.current = null;
+      if (dragged.current) {
+        dragged.current = false;
+        onDrag(false);
+      }
     };
     const onMoveAnywhere = (e: PointerEvent) => {
       if (press.current && e.buttons === 0) end();
@@ -523,7 +531,7 @@ export function Rig({
       window.removeEventListener("blur", end);
       document.removeEventListener("visibilitychange", onHidden);
     };
-  }, [dom, onFlight]);
+  }, [dom, onFlight, onDrag]);
 
   return (
     <CameraControls
@@ -542,12 +550,15 @@ export function Rig({
       polarRotateSpeed={0.6}
       restThreshold={0.004}
       onControlStart={() => {
-        onDrag(true);
+        // the app hears the drag once the press has moved (onMove), not here at the press
         const c = ref.current;
         if (c) c.smoothTime = 0.3;
       }}
       onControlEnd={() => {
-        onDrag(false);
+        if (dragged.current) {
+          dragged.current = false;
+          onDrag(false);
+        }
         const c = ref.current;
         // a press that moved nothing is a click: it does not move the camera, and a flight it halted goes on
         if (!press.current?.moved) {
@@ -564,6 +575,8 @@ export function Rig({
         if (c && shotWas.current === "home") mine.current = { pos: c.getPosition(new Vector3()), target: c.getTarget(new Vector3()) };
       }}
       onRest={() => {
+        // camera-controls rests whenever a frame moves less than restThreshold, which the brand ease's tail does mid-flight: the flight lands in the frame loop (or by its timer), not here
+        if (glide.current || inFlight.current) return;
         flight.current = null;
         settle();
         // the wheel's move and a drag's damping settle here: the reader's own view of the whole city

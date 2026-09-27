@@ -377,7 +377,6 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   const [dragging, setDragging] = useState(false);
   /* while the camera flies or the reader drags it, nothing under a still cursor
      lights or opens its tooltip; after a flight, hover returns with the next move */
-  const [flying, setFlying] = useState(false);
   const flyingRef = useRef(false);
   const holdHover = useCallback(() => {
     setHover(null);
@@ -387,15 +386,14 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   const flyTimer = useRef<number | null>(null);
   const onFlight = useCallback(
     (f: boolean) => {
+      // a ref, not state: the flight's start and landing render nothing here (the frame loops of TagLayout and Traffic read it)
       flyingRef.current = f;
-      setFlying(f);
       if (f) holdHover();
       // a flight that never reports its landing lets hover go after the longest a flight can take
       if (flyTimer.current) window.clearTimeout(flyTimer.current);
       flyTimer.current = f
         ? window.setTimeout(() => {
             flyingRef.current = false;
-            setFlying(false);
           }, 5000)
         : null;
     },
@@ -834,13 +832,15 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   return (
     <div
       ref={regionRef}
-      className={cn("absolute inset-0 isolate", dragging ? "cursor-grabbing" : pointer ? "cursor-pointer" : "cursor-grab")}
+      className={cn("absolute inset-0 isolate", dragging ? "cursor-grabbing" : pointer ? "cursor-pointer" : "cursor-grab active:cursor-grabbing")}
       onPointerDown={(e) => {
         down.current = [e.clientX, e.clientY];
         // any press during the opening is the reader's intent: the rest of it comes at once
         hurry();
       }}
-      onPointerLeave={() => setHover(null)}
+      onPointerLeave={() => {
+        if (!flyingRef.current) setHover(null);
+      }}
       role="region"
       aria-label="Avalanche L1s as a city in 3D: drag to turn it, scroll to zoom, right-drag to pan"
     >
@@ -960,7 +960,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
             if (!flyingRef.current && (id === null || byId.has(id))) setHover(id);
           }}
         />
-        <TagLayout tags={tags} els={tagEls} flying={flying} veil={veil} keep={keep} inset={inset} hud={hud} />
+        <TagLayout tags={tags} els={tagEls} flying={flyingRef} veil={veil} keep={keep} inset={inset} hud={hud} />
         <Anchor at={anchor} el={tipEl} inset={inset} />
         </Stage>
         </Rise>
@@ -1050,7 +1050,9 @@ export default function City3D({ data: incoming, versions = null, target = "", s
                   onPointerEnter={() => {
                     if (!flyingRef.current) setHover(n.id);
                   }}
-                  onPointerLeave={() => setHover(null)}
+                  onPointerLeave={() => {
+                    if (!flyingRef.current) setHover(null);
+                  }}
                 >
                   <span className="block font-semibold text-[#121212] dark:text-[#EBF0FA]">{name}</span>
                   <span className="block text-[#3B484B] dark:text-[#A2AFB2]">
@@ -1088,7 +1090,9 @@ export default function City3D({ data: incoming, versions = null, target = "", s
                 onPointerEnter={() => {
                   if (!flyingRef.current) setHover(id);
                 }}
-                onPointerLeave={() => setHover(null)}
+                onPointerLeave={() => {
+                  if (!flyingRef.current) setHover(null);
+                }}
               >
                 {name}
               </span>

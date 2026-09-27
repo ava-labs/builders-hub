@@ -114,7 +114,7 @@ const GAP = 2;
 export function TagLayout({
   tags,
   els,
-  flying = false,
+  flying,
   veil,
   keep = [],
   inset,
@@ -122,7 +122,8 @@ export function TagLayout({
 }: {
   tags: Tag[];
   els: RefObject<Map<string, HTMLElement>>;
-  flying?: boolean;
+  /** the camera's flight, read each frame: a ref, so a flight's start and landing render nothing */
+  flying?: { current: boolean };
   veil?: VeilState;
   keep?: Keep[];
   inset?: Inset;
@@ -326,7 +327,7 @@ export function TagLayout({
         return null;
       };
       // a fading word waits out a flight, and the moment after it shows, before a flight can start
-      const out = !!t.fade && (flying || now - born.current.get(t.key)! < 0.35);
+      const out = !!t.fade && (!!flying?.current || now - born.current.get(t.key)! < 0.35);
       /* a word seen for the first time, or one no one sees (a ghost, or a fading word out for a flight), takes the place it fits
          best at once, so it shows where it belongs; through a gesture every other word holds its place; at rest it goes where
          it fits best */
