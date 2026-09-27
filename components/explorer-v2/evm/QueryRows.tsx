@@ -64,6 +64,10 @@ export const isHash = (v: unknown): v is string => typeof v === "string" && /^0x
 export const isSelector = (v: unknown): v is string => typeof v === "string" && /^0x[0-9a-fA-F]{8}$/.test(v);
 export const isTime = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?$/.test(v);
 
+/** a column that holds transaction hashes, by its name: hash, tx_hash, transaction_hash, and any *_tx or *_tx_hash.
+    Elsewhere a 32-byte value is not known to be a transaction (a v4 pool id, a topic, a message id) and stays text */
+const TX_COLUMN = /^(?:hash|tx|txhash|tx_hash|transaction_hash)$|_tx(?:_hash)?$/;
+
 export function doorFor(col: string, v: unknown, base: string): string | null {
   const c = col.toLowerCase();
   // P-Chain ids, as the query returns them: NodeID-…, P-avax1…, CB58 tx ids
@@ -74,13 +78,13 @@ export function doorFor(col: string, v: unknown, base: string): string | null {
   }
   if (typeof v === "number" && Number.isInteger(v) && c === "block_height") return `${base}/block/${v}`;
   if (isAddress(v)) return `${base}/address/${v}`;
-  if (isHash(v)) return c.includes("block") ? null : `${base}/tx/${v}`;
+  if (isHash(v)) return TX_COLUMN.test(c) ? `${base}/tx/${v}` : null;
   if (typeof v === "number" && Number.isInteger(v) && (c === "block_number" || c === "block" || c.endsWith("_block"))) return `${base}/block/${v}`;
   return null;
 }
 
 /** a note as the page draws it: an address or a hash the writer named in full reads short, as readings
-    write it, and opens its own page */
+    write it, and an address opens its own page; a hash stays text, since a note has no column to say it is a transaction */
 export function NoteText({ text, base }: { text: string; base: string }) {
   return (
     <>
