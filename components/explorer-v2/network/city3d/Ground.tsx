@@ -38,10 +38,12 @@ import { OPENING } from "./warmup";
    the river runs in its bed to the rim as a quiet line of glassy steel
    water, pale by day and dark with a sheen by night, with the bridges
    over it, and the trees and the outskirts' low blocks stand on it. A district lights under the cursor
-   or the camera. A click on the ground steps back. The plan paints in once the column has landed
-   (OPENING.paint, warmup.tsx): a wave out from downtown to the rim, soft at its front, takes the
-   plate from its plain top to the paint, and what stands on it comes up as the wave passes. As the
-   column rises, the plate comes up out of the air with it (haze.ts). */
+   or the camera. A click on the ground steps back. As the column rises, the plate comes up out of
+   the air with it (haze.ts), and the plan draws in on its plain top from downtown out to the rim:
+   the paint's own edges, its streets, blocks and lots, the river and the plaza, as a fine line in
+   a shade of the plate's own tone. The plan paints in once the column has landed (OPENING.paint,
+   warmup.tsx): a wave out from downtown to the rim, soft at its front, takes the plate from its
+   lined top to the paint, and what stands on it comes up as the wave passes. */
 
 /** the river's water, by day and by night: pale steel by day, a dark steel by night that keeps a sheen, and the light it takes */
 const RIVER = {
@@ -59,9 +61,35 @@ const PAINT_GLSL = /* glsl */ `
 uniform float uPaint;
 varying vec2 vPaintXZ;
 float paintOf( vec2 xz ) { return smoothstep( 0.0, 1.0, ( uPaint * ${(1 + WAVE).toFixed(2)} - length( xz ) / ${PLATE.toFixed(1)} ) / ${WAVE.toFixed(2)} ); }`;
+/* the plan's line on the plain top while the column rises: where the paint changes across a point (its gradient, read in four
+   taps a quarter of a unit either side, on the paint's tones near their sRGB, so a dark plate's edges read as a pale one's), a
+   line in uLine, over the theme's edge range uEdge; drawn in from the plate's middle out, over this share of the rise, and this
+   share of the plate's radius wide at its front, on OPENING.plan (warmup.tsx: the column's rise once the paint is up, or its own
+   ramp from a paint that comes late, so a late plan draws in rather than showing at once). The paint's wave takes it with the
+   rest of the plain top */
+const DRAW = { from: 0.08, to: 0.9, wave: 0.3 };
+const PLAN_GLSL = /* glsl */ `
+uniform float uPlan;
+uniform vec3 uLine;
+uniform vec2 uEdge;
+#ifdef USE_MAP
+float planLum( vec2 uv ) { return dot( sqrt( texture2D( map, uv ).rgb ), vec3( 0.2126, 0.7152, 0.0722 ) ); }
+float planLine( vec2 uv ) {
+  vec2 d = vec2( ${(0.5 / PAINT_PX).toFixed(7)}, 0.0 );
+  vec2 g = vec2( planLum( uv + d.xy ) - planLum( uv - d.xy ), planLum( uv + d.yx ) - planLum( uv - d.yx ) );
+  return smoothstep( uEdge.x, uEdge.y, length( g ) );
+}
+#endif
+float drawOf( vec2 xz ) {
+  float k = smoothstep( ${DRAW.from.toFixed(2)}, ${DRAW.to.toFixed(2)}, uPlan );
+  return smoothstep( 0.0, 1.0, ( k * ${(1 + DRAW.wave).toFixed(2)} - length( xz ) / ${PLATE.toFixed(1)} ) / ${DRAW.wave.toFixed(2)} );
+}`;
+/** the plan's line, each theme's: a shade of the plate's own top, darker by day and paler by night, as a share of it in linear light; and the paint's change across a point that begins and fills it */
+const PLAN_LINE: Record<Theme, { tone: number; edge: [number, number] }> = { light: { tone: 0.7, edge: [0.012, 0.045] }, dark: { tone: 2.8, edge: [0.008, 0.028] } };
 type PaintMode = "paint" | "grow" | "tree" | "water";
+type Plan = { line: { value: Color }; edge: { value: Vector2 } };
 type Air = { haze: { value: Color }; mist: { value: Color } };
-function paintIn<M extends Material>(m: M, mode: PaintMode, air: Air, plain?: { value: Color }): M {
+function paintIn<M extends Material>(m: M, mode: PaintMode, air: Air, plain?: { value: Color }, plan?: Plan): M {
   const base = m.onBeforeCompile;
   const key = m.customProgramCacheKey();
   m.onBeforeCompile = (s, r) => {
@@ -71,6 +99,11 @@ function paintIn<M extends Material>(m: M, mode: PaintMode, air: Air, plain?: { 
     s.uniforms.uAir = air.haze;
     s.uniforms.uMist = air.mist;
     if (plain) s.uniforms.uPlain = plain;
+    if (plan) {
+      s.uniforms.uPlan = OPENING.plan;
+      s.uniforms.uLine = plan.line;
+      s.uniforms.uEdge = plan.edge;
+    }
     const scale = mode === "tree" ? "transformed *= paintOf( vPaintXZ );" : mode === "water" ? "" : "transformed.y *= paintOf( vPaintXZ );";
     s.vertexShader = s.vertexShader.replace("#include <common>", `#include <common>${PAINT_GLSL}${HAZE_GLSL}\nvarying float vAir;\nvarying float vMist;`).replace(
       "#include <begin_vertex>",
@@ -93,14 +126,25 @@ vMist = mistAt( airY );`,
       .replace("#include <common>", `#include <common>${PAINT_GLSL}\nuniform vec3 uAir;\nuniform vec3 uMist;\nvarying float vAir;\nvarying float vMist;${plain ? "\nuniform vec3 uPlain;" : ""}`)
       // the air after the light, as the column's
       .replace("#include <opaque_fragment>", "#include <opaque_fragment>\ngl_FragColor.rgb = mix( mix( gl_FragColor.rgb, uAir, vAir ), uMist, vMist );");
-    if (mode === "paint") s.fragmentShader = s.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix( uPlain, diffuseColor.rgb, paintOf( vPaintXZ ) );");
+    if (mode === "paint" && plan)
+      s.fragmentShader = s.fragmentShader.replace("#include <map_pars_fragment>", `#include <map_pars_fragment>${PLAN_GLSL}`).replace(
+        "#include <map_fragment>",
+        /* glsl */ `#include <map_fragment>
+float pw = paintOf( vPaintXZ );
+vec3 plainTop = uPlain;
+#ifdef USE_MAP
+if ( pw < 1.0 ) plainTop = mix( uPlain, uLine, planLine( vMapUv ) * drawOf( vPaintXZ ) );
+#endif
+diffuseColor.rgb = mix( plainTop, diffuseColor.rgb, pw );`,
+      );
+    else if (mode === "paint") s.fragmentShader = s.fragmentShader.replace("#include <map_fragment>", "#include <map_fragment>\ndiffuseColor.rgb = mix( uPlain, diffuseColor.rgb, paintOf( vPaintXZ ) );");
     else if (mode === "water")
       s.fragmentShader = s.fragmentShader
         .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb = mix( uPlain, diffuseColor.rgb, paintOf( vPaintXZ ) );")
         .replace("#include <specularmap_fragment>", "#include <specularmap_fragment>\nspecularStrength *= paintOf( vPaintXZ );");
     else s.fragmentShader = s.fragmentShader.replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\nif ( paintOf( vPaintXZ ) < 0.01 ) discard;");
   };
-  m.customProgramCacheKey = () => `${key}|paint-${mode}`;
+  m.customProgramCacheKey = () => `${key}|paint-${mode}${plan ? "-plan" : ""}`;
   return m;
 }
 /** the sun's shadow of what stands on the plate, cast only once the wave has reached it */
@@ -204,10 +248,11 @@ export function Ground({
   // the plate's top before the plan is painted on it, and the column's air
   const plain = useMemo(() => ({ value: new Color() }), []);
   const air = useMemo<Air>(() => ({ haze: { value: new Color() }, mist: { value: new Color() } }), []);
+  const plan = useMemo<Plan>(() => ({ line: { value: new Color() }, edge: { value: new Vector2() } }), []);
   const mats = useMemo(() => {
     const top = texture ? groundMaterial(texture, sectorU, "ground") : new MeshLambertMaterial();
     return {
-      top: paintIn(top, "paint", air, plain),
+      top: paintIn(top, "paint", air, plain, plan),
       lip: paintIn(new MeshLambertMaterial({ color: 0xffffff }), "grow", air),
       water: paintIn(new MeshPhongMaterial({ color: 0xffffff, specular: new Color("#FFFFFF"), shininess: 60 }), "water", air, plain),
       bridge: paintIn(new MeshLambertMaterial({ color: 0xffffff }), "grow", air),
@@ -218,7 +263,7 @@ export function Ground({
       growDepth: paintDepth("grow", air),
       treeDepth: paintDepth("tree", air),
     };
-  }, [texture, sectorU, plain, air]);
+  }, [texture, sectorU, plain, air, plan]);
 
   const meshes = useMemo(() => {
     // the plate's top and its rim
@@ -277,6 +322,8 @@ export function Ground({
   useEffect(() => {
     const t = theme;
     plain.value.set(GROUND.plateTop[t]);
+    plan.line.value.copy(plain.value).multiplyScalar(PLAN_LINE[t].tone);
+    plan.edge.value.set(...PLAN_LINE[t].edge);
     air.haze.value.set(HAZE_COLOR[t]);
     air.mist.value.set(MIST_COLOR[t]);
     mats.lip.color.set(GROUND.blockLip[t]);
@@ -288,7 +335,7 @@ export function Ground({
     mats.trunk.color.set(GROUND.trunk[t]);
     mats.outskirt.color.set(GROUND.outskirt[t]);
     sectorU.uSectorColor.value.set(GROUND.district[t]);
-  }, [theme, dark, mats, sectorU, plain, air]);
+  }, [theme, dark, mats, sectorU, plain, air, plan]);
 
   // the district's light eases in and out
   useFrame((_, dt) => {

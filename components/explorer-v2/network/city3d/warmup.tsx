@@ -59,6 +59,9 @@ export const OPENING = {
   column: { value: 0 },
   /** the plate's paint, once the column has landed and the plan is in: 0 plain stone, 1 painted */
   paint: { value: 0 },
+  /** the plan's lines on the plain plate, drawn in from downtown as the column rises: 0 until the plan and its paint are up,
+      then the column's own value if they were up before it rose, else a rise of their own from when they came */
+  plan: { value: 0 },
   /** a return in this tab: the city opens standing and lit, the camera at its shot */
   returning: false,
   /** the column rises on this visit (a first visit or a refresh, not a return or a reader who asks for less motion), and
@@ -325,6 +328,8 @@ interface Warm {
   shownAt: number | null;
   /** when the plate started to paint */
   paintAt: number | null;
+  /** when the plan was in and its paint was up */
+  planAt: number | null;
   /** the city opens standing: a return, or a reader who asked for something before the canvas showed */
   standing: boolean;
   /** where the opening stood when the reader asked for something */
@@ -363,6 +368,7 @@ const freshWarm = (): Warm => ({
   showBy: SHOW_BY_MS,
   shownAt: null,
   paintAt: null,
+  planAt: null,
   standing: false,
   hurried: null,
   words: -1,
@@ -473,6 +479,8 @@ export function Warmup({ hold = false, still = false, from = 0, fade, words }: {
     OPENING.column.value = column;
     if (standing || column >= 1) OPENING.rising = false;
     OPENING.paint.value = standing ? 1 : st.paintAt === null ? 0 : brand((t0 - st.paintAt) / paintMs);
+    const planAt = st.planAt;
+    OPENING.plan.value = standing ? 1 : planAt === null || riseAt === null ? 0 : planAt <= riseAt || h ? column : brand((t0 - planAt) / COLUMN_MS);
     const moving = !standing && st.shownAt !== null && column < 1;
     if (moving !== MOVING.on) {
       MOVING.on = moving;
@@ -691,7 +699,10 @@ export function Warmup({ hold = false, still = false, from = 0, fade, words }: {
     // the column has landed (or the reader asked), the plan is in and the plate is painted for it: the plate paints in
     if (column >= 1 && st.shownAt !== null) mark("landed");
     if (!hold) mark("data");
-    if (!hold && !pending) mark("upload");
+    if (!hold && !pending) {
+      mark("upload");
+      st.planAt ??= t0;
+    }
     if (staged) mark("staged");
     if (busy) st.quietAt = null;
     else st.quietAt ??= t0;
