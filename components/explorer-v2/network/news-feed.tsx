@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Newspaper, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 
 /* The city's corner, where the site's chat button stands on other pages:
    the newest posts from the Avalanche blog and the Builder Hub. Shut, a
@@ -16,6 +17,7 @@ interface NewsItem {
   href: string;
   date: string;
   source: "Avalanche" | "Builder Hub";
+  image?: string;
 }
 
 const SEEN_KEY = "city-news-seen";
@@ -30,6 +32,19 @@ function whenOf(iso: string): string {
   if (days === 1) return "Yesterday";
   if (days < 7) return `${days}d ago`;
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+const THUMB = "mt-0.5 h-12 w-[72px] shrink-0 rounded-lg border border-zinc-200/70 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900";
+/** the post's picture, small, at the row's left; a post with none, or one that fails to load, keeps the column with a plain tile */
+function Thumb({ src }: { src?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed)
+    return (
+      <span aria-hidden className={cn(THUMB, "flex items-center justify-center")}>
+        <AvalancheLogo className="h-4 w-4 text-zinc-300 dark:text-zinc-700 [&_path]:fill-current" />
+      </span>
+    );
+  return <img src={src} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} className={cn(THUMB, "object-cover")} />;
 }
 
 function Byline({ item }: { item: NewsItem }) {
@@ -112,17 +127,20 @@ export function NewsFeed({ className }: { className?: string }) {
               const out = /^https?:\/\//.test(item.href);
               const row = "group block px-4 py-2.5 transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900";
               const body = (
-                <>
-                  <Byline item={item} />
-                  <span className="mt-0.5 flex items-start gap-1.5">
-                    <span className="line-clamp-2 flex-1 text-[13px] font-medium leading-snug text-zinc-900 dark:text-zinc-50">{item.title}</span>
-                    {out ? (
-                      <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300" />
-                    ) : (
-                      <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300" />
-                    )}
+                <span className="flex items-start gap-3">
+                  <Thumb src={item.image} />
+                  <span className="min-w-0 flex-1">
+                    <Byline item={item} />
+                    <span className="mt-0.5 flex items-start gap-1.5">
+                      <span className="line-clamp-2 flex-1 text-[13px] font-medium leading-snug text-zinc-900 dark:text-zinc-50">{item.title}</span>
+                      {out ? (
+                        <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300" />
+                      ) : (
+                        <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-300 transition-colors group-hover:text-zinc-600 dark:text-zinc-600 dark:group-hover:text-zinc-300" />
+                      )}
+                    </span>
                   </span>
-                </>
+                </span>
               );
               return (
                 <li key={item.href} className="border-b border-zinc-100 last:border-0 dark:border-zinc-900">
