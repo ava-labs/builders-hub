@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getICMFlowData, getICMFlowDataBothSides } from "@/lib/icm-clickhouse";
+import { getICMFlowData, getICMFlowDataBothSides, type IcmNetwork } from "@/lib/icm-clickhouse";
 
 interface ICMFlowData {
   sourceChain: string;
@@ -37,7 +37,7 @@ interface ICMFlowResponse {
 
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 
-// Cache for flow data - keyed by days parameter and sides
+// Cache for flow data - keyed by network, days parameter and sides
 const cachedFlowData: Map<string, { data: ICMFlowResponse; timestamp: number }> = new Map();
 const CACHE_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 // A both-sides answer that fell back to deliveries alone is kept only this long, so the next ask tries the sends again
@@ -48,13 +48,17 @@ const PARTIAL_DURATION = 5 * 60 * 1000;
    deliveries alone, as every other page has read them */
 const sidesOf = (searchParams: URLSearchParams): 'both' | 'delivered' => (searchParams.get('sides') === 'both' ? 'both' : 'delivered');
 
+/* network=fuji reads Fuji's flows; any other value, or none, mainnet's. A flow stays on its own network */
+const networkOf = (searchParams: URLSearchParams): IcmNetwork => (searchParams.get('network') === 'fuji' ? 'fuji' : 'mainnet');
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30', 10);
     const clearCache = searchParams.get('clearCache') === 'true';
     const sides = sidesOf(searchParams);
-    const key = `${days}|${sides}`;
+    const network = networkOf(searchParams);
+    const key = `${network}|${days}|${sides}`;
 
     // Check cache for this specific days value
     const cached = cachedFlowData.get(key);
@@ -70,8 +74,8 @@ export async function GET(request: Request) {
     }
 
     // Fetch flow data from ClickHouse shared cache
-    const both = sides === 'both' ? await getICMFlowDataBothSides(days) : null;
-    const flows: ICMFlowData[] = both ? both.flows : await getICMFlowData(days);
+    const both = sides === 'both' ? await getICMFlowDataBothSides(days, network) : null;
+    const flows: ICMFlowData[] = both ? both.flows : await getICMFlowData(days, network);
 
     // Build source and target node lists
     const sourceNodesMap = new Map<string, ChainNode>();
@@ -142,10 +146,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const days = parseInt(searchParams.get('days') || '30', 10);
     const sides = sidesOf(searchParams);
+    const network = networkOf(searchParams);
 
-    // Return cached data if available for this days value or any cached data, counted the same way
-    const same = Array.from(cachedFlowData.entries()).filter(([k]) => k.endsWith(`|${sides}`));
-    const cached = cachedFlowData.get(`${days}|${sides}`) || cachedFlowData.get(`30|${sides}`) || same[0]?.[1];
+    // Return cached data if available for this days value or any cached data of the network, counted the same way
+    const same = Array.from(cachedFlowData.entries()).filter(([k]) => k.startsWith(`${network}|`) && k.endsWith(`|${sides}`));
+    const cached = cachedFlowData.get(`${network}|${days}|${sides}`) || cachedFlowData.get(`${network}|30|${sides}`) || same[0]?.[1];
     if (cached) {
       return NextResponse.json(cached.data, {
         status: 206,

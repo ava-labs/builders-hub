@@ -142,7 +142,13 @@ interface ChainInfo {
   chainName: string;
   chainLogoURI: string;
   color: string;
+  isTestnet: boolean;
 }
+
+/** the network a flow feed answers for: a message never crosses from one to the other */
+export type IcmNetwork = "mainnet" | "fuji";
+
+const onNetwork = (c: ChainInfo, network: IcmNetwork) => c.isTestnet === (network === "fuji");
 
 function generateColor(name: string): string {
   let hash = 0;
@@ -165,6 +171,7 @@ for (const c of l1ChainsData) {
     chainName: typed.chainName,
     chainLogoURI: typed.chainLogoURI || "",
     color: typed.color || generateColor(typed.chainName),
+    isTestnet: typed.isTestnet === true,
   });
 }
 
@@ -603,14 +610,17 @@ interface ICMFlowData {
   messageCount: number;
 }
 
-export async function getICMFlowData(days: number): Promise<ICMFlowData[]> {
+/* The flows of one network. The index holds Fuji's chains beside mainnet's,
+   so each flow keeps only when both its ends are catalog chains of the
+   network asked for. */
+export async function getICMFlowData(days: number, network: IcmNetwork = "mainnet"): Promise<ICMFlowData[]> {
   const crossChainFlows = await fetchCrossChainFlows(days);
 
   const flows: ICMFlowData[] = [];
   for (const row of crossChainFlows) {
     const src = lookupChain(row.source_chain_id);
     const dst = lookupChain(row.dest_chain_id);
-    if (!src || !dst) continue;
+    if (!src || !dst || !onNetwork(src, network) || !onNetwork(dst, network)) continue;
 
     flows.push({
       sourceChain: src.chainName,
@@ -648,12 +658,23 @@ const catalogIdOfStats = new Map(
 );
 const catalogIdOf = (statsId: string | number) => catalogIdOfStats.get(String(statsId)) ?? String(statsId);
 
-// SendCrossChainMessage: chain_id = the sender, topic2 = destinationBlockchainID
-async function fetchSentFlows(days: number): Promise<{ from: string; to: string; n: number }[]> {
+// the index's chain IDs for a network's senders: the catalog's EVM IDs, KiteAI's by its stats ID
+function senderChainIds(network: IcmNetwork): number[] {
+  const ids = new Set<number>();
+  for (const c of l1ChainsData as L1ChainEntry[]) {
+    if ((c.isTestnet === true) !== (network === "fuji")) continue;
+    const id = Number(DEDICATED_METRICS_CHAINS[c.chainId] ?? c.chainId);
+    if (Number.isSafeInteger(id)) ids.add(id);
+  }
+  return [...ids];
+}
+
+// SendCrossChainMessage: chain_id = the sender, topic2 = destinationBlockchainID; the senders are the network's own
+async function fetchSentFlows(days: number, network: IcmNetwork): Promise<{ from: string; to: string; n: number }[]> {
   const r = await runQuery(
     `SELECT chain_id AS src, hex(topic2) AS dest, count() AS n
 FROM raw_logs
-PREWHERE block_time >= now() - INTERVAL ${Math.ceil(days)} DAY
+PREWHERE block_time >= now() - INTERVAL ${Math.ceil(days)} DAY AND chain_id IN (${senderChainIds(network).join(", ")})
 WHERE topic0 = unhex('${SEND_CROSS_CHAIN_MSG_TOPIC0}')
 GROUP BY src, dest`
   );
@@ -665,10 +686,10 @@ GROUP BY src, dest`
   return out;
 }
 
-export async function getICMFlowDataBothSides(days: number): Promise<{ flows: ICMFlowBothSides[]; complete: boolean }> {
+export async function getICMFlowDataBothSides(days: number, network: IcmNetwork = "mainnet"): Promise<{ flows: ICMFlowBothSides[]; complete: boolean }> {
   const [delivered, sent] = await Promise.all([
     fetchCrossChainFlows(days),
-    fetchSentFlows(days).catch((err) => {
+    fetchSentFlows(days, network).catch((err) => {
       console.warn("[icm-clickhouse] sent flows unavailable; deliveries alone:", err);
       return null;
     }),
@@ -687,7 +708,8 @@ export async function getICMFlowDataBothSides(days: number): Promise<{ flows: IC
   for (const f of best.values()) {
     const src = lookupChain(f.from);
     const dst = lookupChain(f.to);
-    if (!src || !dst || !(f.n > 0)) continue;
+    // both ends on the network asked for: the deliveries hold Fuji's receivers too
+    if (!src || !dst || !onNetwork(src, network) || !onNetwork(dst, network) || !(f.n > 0)) continue;
     flows.push({
       sourceChain: src.chainName,
       sourceChainId: src.chainId,
