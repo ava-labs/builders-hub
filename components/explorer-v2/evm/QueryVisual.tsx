@@ -1,8 +1,8 @@
 "use client";
 
-import { useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { Area, Bar, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, CartesianGrid, Cell, ComposedChart, Customized, Line, Pie, PieChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, ArrowUp, ChartArea, ChartBar, ChartColumn, ChartLine, ChartPie, ChartScatter, ChevronRight, Sigma, Table2, X as XIcon, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,8 @@ const MONO = { fontSize: 10, fontFamily: "var(--font-geist-mono)" };
 const ACCENT = "#0061E2";
 /** how far an unselected mark recedes */
 const DIM = 0.22;
+/** a scatter's dot in the pointer's focus, and the dots around it */
+const DOT_INK = { "--qv-on": 1, "--qv-off": 0.35 } as CSSProperties;
 
 type Row = Record<string, unknown>;
 type Span = "minutes" | "hours" | "days" | "other";
@@ -450,14 +452,105 @@ function OpenMark({ cx, cy, label, onOpen }: { cx: number; cy: number; label: st
   );
 }
 
+/* A hover never draws the marks again. Recharts lays a chart out again
+   whenever a child's props change, and a mark's ink or a door in a bar's
+   label changed on every move: a chart of 721 bars cost 138 ms a move.
+   So the marks hold only what the data and the selection say, and what
+   the pointer lights is drawn by one small layer in the chart's own svg:
+   the marks' focus as a style rule, the door, the line that follows a
+   hover elsewhere on the page, and the band a drag draws. */
+
+/** the mark under the pointer or the keyboard, the x value hovered anywhere on the page, and a drag's two ends */
+const HoverContext = createContext<{ active: number | null; key: unknown; drag: [number, number] | null }>({ active: null, key: undefined, drag: null });
+
+type HoverSpec = {
+  /** the chart's scope for its style rule */
+  uid: string;
+  data: Row[];
+  x: string;
+  /** a scatter's dots follow only their own pointer */
+  scatter: boolean;
+  /** the dataKey of the bars that carry the door, if any */
+  door: string | null;
+  horizontal: boolean;
+  /** a continuous chart marks a hover elsewhere on the page with a line */
+  cross: boolean;
+  label: (v: unknown) => string;
+  open: (j: number) => void;
+};
+
+/** what recharts hands a Customized child: the laid-out marks and the plot's box */
+type Laid = {
+  formattedGraphicalItems?: { item?: { props?: { dataKey?: unknown } }; props?: { data?: { x?: number; y?: number; width?: number; height?: number }[]; points?: { x?: number | null }[] } }[];
+  offset?: { top?: number; height?: number };
+};
+
+function HoverLayer({ spec, formattedGraphicalItems: items, offset }: { spec: HoverSpec } & Laid) {
+  const { active, key, drag } = useContext(HoverContext);
+  const { data, x, uid } = spec;
+  const named = active === null && key !== undefined ? data.findIndex((r) => r[x] === key) : -1;
+  // null: nothing in focus; -1: a value these marks do not hold, so every mark recedes
+  const focus = spec.scatter ? active : active !== null ? active : key !== undefined ? named : null;
+  const rule = focus === null ? "" : `[data-qv="${uid}"] .qv-m{fill-opacity:var(--qv-off)}${focus >= 0 ? `[data-qv="${uid}"] .qv-i-${focus}{fill-opacity:var(--qv-on)}` : ""}`;
+  let door: ReactNode = null;
+  if (spec.door && active !== null) {
+    const b = items?.find((it) => it.item?.props?.dataKey === spec.door)?.props?.data?.[active];
+    if (b && b.x !== undefined && b.y !== undefined) {
+      const bw = b.width ?? 0;
+      const bh = b.height ?? 0;
+      const cx = spec.horizontal ? b.x + Math.max(0, bw) + 13 : b.x + bw / 2;
+      const cy = spec.horizontal ? b.y + bh / 2 : Math.min(b.y, b.y + bh) - 11;
+      const j = active;
+      door = <OpenMark cx={cx} cy={cy} label={spec.label(data[j]?.[x])} onOpen={() => spec.open(j)} />;
+    }
+  }
+  // a mark's left edge, middle and right edge on the x axis, from the first series as laid out
+  const first = items?.[0]?.props;
+  const edges = (j: number): [number, number, number] | null => {
+    const bar = first?.data?.[j];
+    if (bar?.x !== undefined) return [bar.x, bar.x + (bar.width ?? 0) / 2, bar.x + (bar.width ?? 0)];
+    const px = first?.points?.[j]?.x;
+    return typeof px === "number" ? [px, px, px] : null;
+  };
+  const top = offset?.top;
+  const tall = offset?.height;
+  let line: ReactNode = null;
+  if (spec.cross && named >= 0 && top !== undefined && tall !== undefined) {
+    const e = edges(named);
+    if (e) line = <line x1={e[1]} x2={e[1]} y1={top} y2={top + tall} stroke="currentColor" strokeOpacity={0.5} strokeDasharray="2 3" />;
+  }
+  let band: ReactNode = null;
+  if (drag && top !== undefined && tall !== undefined) {
+    const a = edges(Math.min(drag[0], drag[1]));
+    const b = edges(Math.max(drag[0], drag[1]));
+    if (a && b) band = <rect x={a[0]} y={top} width={Math.max(1, b[2] - a[0])} height={tall} fill={ACCENT} fillOpacity={0.12} stroke={ACCENT} strokeOpacity={0.5} />;
+  }
+  return (
+    <g>
+      {rule && <style>{rule}</style>}
+      {band}
+      {line}
+      {door}
+    </g>
+  );
+}
+
+/** a transformed series reads in its own unit: shares are percent, an index is a plain number */
+const unitOf = (sr: Series): Format => (sr.transform === "share" ? "percent" : sr.transform === "indexed" ? "number" : sr.format);
+
 function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hoverKey, onHoverKey, selection, live, onSelection, compact, log = false }: PanelProps) {
   const reduced = useReduced();
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [kb, setKb] = useState<number | null>(null);
-  const [inside, setInside] = useState(false);
+  // after the keyboard's cursor leaves, the tooltip it opened is held shut until the pointer comes back
+  const [shut, setShut] = useState(false);
   const [drag, setDrag] = useState<[number, number] | null>(null);
+  const dragging = drag !== null;
   const dragRef = useRef<{ a: number; b: number } | null>(null);
   const dragged = useRef(false);
+  // the mark last handed to the page, so a move within one mark sets nothing
+  const shown = useRef<number | null>(null);
+  const uid = useId();
   const x = panel.x!;
   // rankings: order and cut before drawing; src keeps the page's own row
   // objects, so a pick hands back a row the page can find
@@ -511,9 +604,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
   const continuous = !horizontal && !scatter && (span !== "other" || (base.length > 0 && base.every((r) => typeof r[x] === "number")));
   const category = !continuous && !scatter;
   const selecting = !!onSelection && !scatter;
-  // a transformed series reads in its own unit: shares are percent, an index is a plain number
-  const unitOf = (sr: Series): Format => (sr.transform === "share" ? "percent" : sr.transform === "indexed" ? "number" : sr.format);
-  const markOf = (sr: Series): "bar" | "line" | "area" => (horizontal ? "bar" : sr.mark !== "auto" ? sr.mark : panel.kind === "line" ? "line" : panel.kind === "area" ? "area" : "bar");
+  const markOf = useCallback((sr: Series): "bar" | "line" | "area" => (horizontal ? "bar" : sr.mark !== "auto" ? sr.mark : panel.kind === "line" ? "line" : panel.kind === "area" ? "area" : "bar"), [horizontal, panel.kind]);
   const left = panel.series.filter((s) => s.axis !== "right");
   const right = panel.series.filter((s) => s.axis === "right");
   const fmtL = left[0] ? unitOf(left[0]) : "number";
@@ -535,8 +626,8 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
   }, [base, lit, hasSel, traces, panel.series]);
 
   // markers and bands name x values; match them to the drawn category
-  const xOf = (v: string | number) => data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined;
-  const label = (v: unknown) => xText(names, x, v, span);
+  const xOf = useCallback((v: string | number) => data.find((r) => String(r[x]) === String(v))?.[x] as string | number | undefined, [data, x]);
+  const label = useCallback((v: unknown) => xText(names, x, v, span), [names, x, span]);
   const rowH = compact ? 22 : 26;
   const height = horizontal ? Math.max(compact ? 120 : 160, data.length * rowH + 36) : compact ? 180 : 260;
   const active = hoverIdx ?? kb;
@@ -585,6 +676,8 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
     if (typeof j === "number" && src[j] && canDrill) onPick(src[j]);
   };
   const walk = (j: number | null) => {
+    shown.current = null;
+    if (j === null && kb !== null) setShut(true);
     setKb(j);
     onHoverKey?.(j === null ? undefined : data[j]?.[x]);
   };
@@ -626,21 +719,249 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
     return typeof i === "number" && i >= 0 && i < data.length ? i : null;
   };
 
-  /** a bar's ink: the selection first, then the drill, then the pointer */
-  const inkOf = (j: number, dashed: boolean) => {
-    const r = data[j];
-    let o = lit[j] ? 0.9 : DIM;
-    if (selected !== undefined && r?.[x] !== selected) o = Math.min(o, 0.3);
-    const focus = active !== null ? active === j : hoverKey !== undefined ? r?.[x] === hoverKey : null;
-    if (focus === true) o = lit[j] ? 1 : 0.5;
-    else if (focus === false && !hasSel && selected === undefined) o = 0.4;
-    return (dashed ? 0.35 : 1) * o;
+  /** a bar's ink: the selection first, then the drill. The pointer's focus is the hover
+      layer's style rule over the two inks each bar carries: in focus, and beside it */
+  const inkOf = useCallback(
+    (j: number, dashed: boolean) => {
+      let o = lit[j] ? 0.9 : DIM;
+      if (selected !== undefined && data[j]?.[x] !== selected) o = Math.min(o, 0.3);
+      const k = dashed ? 0.35 : 1;
+      const off = !hasSel && selected === undefined ? 0.4 : o;
+      return { base: k * o, style: { "--qv-on": k * (lit[j] ? 1 : 0.5), "--qv-off": k * off } as CSSProperties };
+    },
+    [data, lit, selected, x, hasSel],
+  );
+  const drillRef = useRef(drill);
+  drillRef.current = drill;
+  const open = useCallback((j: number) => drillRef.current(j), []);
+  const hover = useMemo(() => ({ active, key: hoverKey, drag }), [active, hoverKey, drag]);
+
+  /* the chart's gestures, read through a ref: the chart below is built
+     once per data and selection, and each handler still sees this render */
+  const ev = useRef({ down: (_s: unknown) => {}, up: () => {}, click: (_s: unknown, _e?: ReactMouseEvent) => {}, move: (_s: unknown) => {}, leave: () => {} });
+  ev.current = {
+    down: (s) => {
+      dragged.current = false;
+      const i = idxOf(s);
+      if (selecting && continuous && i !== null) dragRef.current = { a: i, b: i };
+    },
+    up: () => {
+      const d = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (d && d.a !== d.b) {
+        dragged.current = true;
+        setRange(d.a, d.b);
+      }
+    },
+    click: (s, e) => {
+      if (dragged.current) {
+        dragged.current = false;
+        return;
+      }
+      const i = idxOf(s);
+      if (i === null) return;
+      if (selecting && category) toggle(i, !!(e && (e.shiftKey || e.metaKey || e.ctrlKey)));
+      else drill(i);
+    },
+    move: (s) => {
+      const idx = idxOf(s);
+      // off the plot (the chevron's margin) the last mark stays in hand
+      if (idx === null) return;
+      if (kb !== null) setKb(null);
+      if (shut) setShut(false);
+      if (idx !== shown.current) {
+        shown.current = idx;
+        setHoverIdx(idx);
+        onHoverKey?.(data[idx]?.[x]);
+      }
+      const d = dragRef.current;
+      if (d && idx !== d.b) {
+        d.b = idx;
+        setDrag([d.a, idx]);
+      }
+    },
+    leave: () => {
+      const d = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (d && d.a !== d.b) setRange(d.a, d.b);
+      shown.current = null;
+      setHoverIdx(null);
+      onHoverKey?.(undefined);
+    },
   };
 
-  const anim = { isAnimationActive: !reduced, animationDuration: CHART_MS, animationEasing: "ease-out" as const };
+  const anim = useMemo(() => ({ isAnimationActive: !reduced, animationDuration: CHART_MS, animationEasing: "ease-out" as const }), [reduced]);
   const traceInk = hasSel ? 0.3 : 1;
   const mode = scatter ? "scatter" : horizontal ? "ranking" : continuous ? "series" : "columns";
   const hint = selecting ? (category ? "Arrow keys move, Space selects, Enter opens, Escape clears." : "Arrow keys move, Space marks a range, Enter opens, Escape clears.") : "Arrow keys move, Enter opens.";
+  const spec = useMemo<HoverSpec>(
+    () => ({ uid, data, x, scatter, door: doorSeries >= 0 ? `__s${doorSeries}` : null, horizontal, cross: continuous, label, open }),
+    [uid, data, x, scatter, doorSeries, horizontal, continuous, label, open],
+  );
+  const chart = useMemo(
+    () => (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={data}
+              layout={horizontal ? "vertical" : "horizontal"}
+              margin={{ top: drillMark && !horizontal ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
+              barCategoryGap={horizontal ? "26%" : "18%"}
+              onMouseDown={(s) => ev.current.down(s)}
+              onMouseUp={() => ev.current.up()}
+              onClick={(s, e: ReactMouseEvent | undefined) => ev.current.click(s, e)}
+              onMouseMove={(s) => ev.current.move(s)}
+              onMouseLeave={() => ev.current.leave()}
+            >
+              <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.14)" />
+              {/* recharts reads axes as direct children: no fragments here */}
+              {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
+              {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
+              {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
+              {scatter && (
+                <XAxis
+                  type="number"
+                  dataKey={timeX ? "__x" : x}
+                  domain={timeX ? ["dataMin", "dataMax"] : ["auto", "auto"]}
+                  tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span) : fmt(v, "compact", sym, true))}
+                  tick={MONO}
+                  tickLine={false}
+                  axisLine={false}
+                  minTickGap={28}
+                  name={x}
+                />
+              )}
+              {!horizontal && <YAxis yAxisId="left" scale={log ? "log" : "auto"} domain={log ? ["auto", "auto"] : undefined} tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
+              {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
+              <RechartsTooltip
+                // the keyboard drives the tooltip through defaultIndex; off the
+                // chart with no keyboard cursor it is forced shut
+                defaultIndex={!scatter && kb !== null ? kb : undefined}
+                active={dragging ? false : !scatter && kb !== null ? true : shut ? false : undefined}
+                isAnimationActive={false}
+                cursor={continuous && markOf(panel.series[0]) !== "bar" ? { stroke: "rgba(161,161,170,0.4)" } : { fill: "rgba(161,161,170,0.08)" }}
+                content={({ active: on, payload }) => {
+                  if (!on || !payload?.[0]) return null;
+                  const r = payload[0].payload as Row;
+                  const name = nameFor(names, x, r[x]);
+                  return (
+                    <TipPlate>
+                      <p className="font-mono text-[10px] text-zinc-500">
+                        {name ?? fmtX(r[x], span)}
+                        {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
+                      </p>
+                      {scatter && !timeX && (
+                        <p className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                          {fmt(r[x], "number", sym)} <span className="text-zinc-400">{x.replace(/_/g, " ")}</span>
+                        </p>
+                      )}
+                      {panel.series.map((s, i) => (
+                        <p key={`${s.column}-${i}`} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: toneOf(s, i) }} />
+                          {fmt(r[`__s${i}`], unitOf(s), sym)} <span className="text-zinc-400">{s.label}</span>
+                          {s.transform !== "none" && s.transform !== "share" && typeof r[s.column] === "number" && <span className="text-zinc-300 dark:text-zinc-600">raw {fmt(r[s.column], s.format, sym)}</span>}
+                        </p>
+                      ))}
+                      {(selecting || canDrill) && (
+                        <p className="mt-1 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                          {selecting && category ? `click selects${canDrill ? ", double-click opens" : ""}` : selecting && continuous ? `drag selects${canDrill ? ", click opens" : ""}` : "click opens"}
+                        </p>
+                      )}
+                    </TipPlate>
+                  );
+                }}
+              />
+              {!horizontal &&
+                !scatter &&
+                panel.bands.map((b) => {
+                  const x1 = xOf(b.from);
+                  const x2 = xOf(b.to);
+                  return x1 !== undefined && x2 !== undefined ? (
+                    <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} fill="currentColor" fillOpacity={0.04} stroke="none" label={{ value: b.label, position: "insideTopLeft", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#71717a" }} />
+                  ) : null;
+                })}
+              {continuous &&
+                rangePick?.kind === "range" &&
+                (() => {
+                  const x1 = xOf(rangePick.from);
+                  const x2 = xOf(rangePick.to);
+                  return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
+                })()}
+              {!horizontal &&
+                !scatter &&
+                panel.markers.map((m) => {
+                  const mx = xOf(m.x);
+                  return mx !== undefined ? (
+                    <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={{ value: m.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                  ) : null;
+                })}
+              {panel.referenceLines.map((l) =>
+                horizontal ? (
+                  <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                ) : (
+                  <ReferenceLine key={l.label} yAxisId="left" y={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "insideTopRight", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
+                ),
+              )}
+              {panel.series.flatMap((s, i) => {
+                const tone = toneOf(s, i);
+                const key = `${s.column}-${i}`;
+                const dataKey = `__s${i}`;
+                // a ranking has one unnamed axis pair; an explicit undefined id
+                // would not match it, so the prop is left out entirely
+                const axis = horizontal ? {} : { yAxisId: s.axis === "right" ? "right" : "left" };
+                const dash = s.dashed ? "5 4" : undefined;
+                if (scatter)
+                  return [
+                    <Scatter key={`${key}-dot`} {...axis} dataKey={dataKey} fill={tone} {...anim} onClick={(_d: unknown, j: number) => open(j)}>
+                      {data.map((_, j) => (
+                        <Cell key={j} fillOpacity={0.7} className={`qv-m qv-i-${j}`} style={DOT_INK} />
+                      ))}
+                    </Scatter>,
+                  ];
+                const mark = markOf(s);
+                // keys carry the mark, so a view change mounts the new mark and
+                // recharts grows it; the same mark keeps its key and morphs
+                if (mark === "line")
+                  return [
+                    <Line key={`${key}-line`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} strokeWidth={s.transform === "rolling" ? 2 : 1.5} strokeDasharray={dash} dot={false} {...anim} connectNulls />,
+                    ...(hasSel
+                      ? [<Line key={`${key}-line-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} strokeWidth={s.transform === "rolling" ? 2.25 : 1.75} strokeDasharray={dash} dot={litCount === 1 ? { r: 2.5, fill: tone, strokeWidth: 0 } : false} activeDot={false} isAnimationActive={false} legendType="none" />]
+                      : []),
+                  ];
+                if (mark === "area")
+                  return [
+                    <Area key={`${key}-area`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} fill={tone} fillOpacity={(s.dashed ? 0.05 : 0.16) * (hasSel ? 0.4 : 1)} strokeWidth={1.5} strokeDasharray={dash} stackId={panel.stacked ? `s-${s.axis}` : undefined} {...anim} />,
+                    ...(hasSel
+                      ? [<Area key={`${key}-area-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} fill={tone} fillOpacity={s.dashed ? 0.06 : 0.2} strokeWidth={1.75} strokeDasharray={dash} stackId={panel.stacked ? `in-${s.axis}` : undefined} activeDot={false} isAnimationActive={false} legendType="none" />]
+                      : []),
+                  ];
+                return [
+                  <Bar
+                    key={`${key}-bar`}
+                    {...axis}
+                    dataKey={dataKey}
+                    fill={tone}
+                    stroke={s.dashed ? tone : undefined}
+                    strokeDasharray={dash}
+                    stackId={panel.stacked ? `s-${s.axis}` : undefined}
+                    {...anim}
+                    minPointSize={1}
+                    radius={panel.stacked ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
+                  >
+                    {data.map((_, j) => {
+                      const ink = inkOf(j, s.dashed);
+                      return <Cell key={j} fillOpacity={ink.base} className={`qv-m qv-i-${j}`} style={ink.style} />;
+                    })}
+                  </Bar>,
+                ];
+              })}
+              <Customized component={<HoverLayer spec={spec} />} />
+            </ComposedChart>
+          </ResponsiveContainer>
+    ),
+    [data, x, names, sym, span, horizontal, scatter, timeX, continuous, category, selecting, canDrill, drillMark, narrow, compact, log, fmtL, fmtR, right.length, panel, rangePick, dragging, kb, shut, hasSel, litCount, traceInk, anim, label, xOf, markOf, inkOf, open, spec],
+  );
 
   return (
     <div className="flex flex-col gap-3">
@@ -665,12 +986,12 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
         style={{ height }}
         tabIndex={0}
         role="group"
+        data-qv={uid}
         aria-roledescription="chart"
         aria-label={`${panel.title || "Chart"}, ${mode} of ${data.length} ${data.length === 1 ? "mark" : "marks"}. ${hint}`}
         onKeyDown={onKey}
         onBlur={() => walk(null)}
-        onMouseEnter={() => setInside(true)}
-        onMouseLeave={() => setInside(false)}
+        onMouseEnter={() => shut && setShut(false)}
         onDoubleClick={() => selecting && category && drill(active)}
         className={cn(
           "relative rounded-md text-zinc-900 outline-none select-none focus-visible:ring-2 focus-visible:ring-[#0061E2]/40 focus-visible:ring-offset-4 focus-visible:ring-offset-white dark:text-zinc-100 dark:focus-visible:ring-offset-zinc-950",
@@ -681,222 +1002,7 @@ function PanelChart({ panel, rows, names, sym, canDrill, onPick, selected, hover
         <span className="sr-only" aria-live="polite">
           {kb !== null ? describe(kb) : ""}
         </span>
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={data}
-            layout={horizontal ? "vertical" : "horizontal"}
-            margin={{ top: drillMark && !horizontal ? 18 : 4, right: drillMark && horizontal ? 28 : right.length ? 8 : scatter ? 36 : 12, left: 0, bottom: 0 }}
-            barCategoryGap={horizontal ? "26%" : "18%"}
-            onMouseDown={(s) => {
-              dragged.current = false;
-              const i = idxOf(s);
-              if (selecting && continuous && i !== null) dragRef.current = { a: i, b: i };
-            }}
-            onMouseUp={() => {
-              const d = dragRef.current;
-              dragRef.current = null;
-              setDrag(null);
-              if (d && d.a !== d.b) {
-                dragged.current = true;
-                setRange(d.a, d.b);
-              }
-            }}
-            onClick={(s, e: ReactMouseEvent | undefined) => {
-              if (dragged.current) {
-                dragged.current = false;
-                return;
-              }
-              const i = idxOf(s);
-              if (i === null) return;
-              if (selecting && category) toggle(i, !!(e && (e.shiftKey || e.metaKey || e.ctrlKey)));
-              else drill(i);
-            }}
-            onMouseMove={(s) => {
-              const idx = idxOf(s);
-              // off the plot (the chevron's margin) the last mark stays in hand
-              if (idx === null) return;
-              setKb(null);
-              setHoverIdx(idx);
-              onHoverKey?.(data[idx]?.[x]);
-              const d = dragRef.current;
-              if (d && idx !== d.b) {
-                d.b = idx;
-                setDrag([d.a, idx]);
-              }
-            }}
-            onMouseLeave={() => {
-              const d = dragRef.current;
-              dragRef.current = null;
-              setDrag(null);
-              if (d && d.a !== d.b) setRange(d.a, d.b);
-              setHoverIdx(null);
-              onHoverKey?.(undefined);
-            }}
-          >
-            <CartesianGrid vertical={horizontal} horizontal={!horizontal} stroke="rgba(161,161,170,0.14)" />
-            {/* recharts reads axes as direct children: no fragments here */}
-            {horizontal && <XAxis type="number" tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} />}
-            {horizontal && <YAxis type="category" dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} width={narrow ? 92 : compact ? 120 : 172} interval={0} />}
-            {!horizontal && !scatter && <XAxis dataKey={x} tickFormatter={label} tick={MONO} tickLine={false} axisLine={false} minTickGap={28} interval={data.length <= 14 ? 0 : "preserveEnd"} />}
-            {scatter && (
-              <XAxis
-                type="number"
-                dataKey={timeX ? "__x" : x}
-                domain={timeX ? ["dataMin", "dataMax"] : ["auto", "auto"]}
-                tickFormatter={(v: number) => (timeX ? fmtX(new Date(v).toISOString().slice(0, 19).replace("T", " "), span) : fmt(v, "compact", sym, true))}
-                tick={MONO}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={28}
-                name={x}
-              />
-            )}
-            {!horizontal && <YAxis yAxisId="left" scale={log ? "log" : "auto"} domain={log ? ["auto", "auto"] : undefined} tickFormatter={(v) => fmt(v, fmtL, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
-            {!horizontal && right.length > 0 && <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => fmt(v, fmtR, sym, true)} tick={MONO} tickLine={false} axisLine={false} width={56} />}
-            <RechartsTooltip
-              // the keyboard drives the tooltip through defaultIndex; off the
-              // chart with no keyboard cursor it is forced shut
-              defaultIndex={!scatter && kb !== null ? kb : undefined}
-              active={drag ? false : !scatter && kb !== null ? true : inside ? undefined : false}
-              isAnimationActive={false}
-              cursor={continuous && markOf(panel.series[0]) !== "bar" ? { stroke: "rgba(161,161,170,0.4)" } : { fill: "rgba(161,161,170,0.08)" }}
-              content={({ active: on, payload }) => {
-                if (!on || !payload?.[0]) return null;
-                const r = payload[0].payload as Row;
-                const name = nameFor(names, x, r[x]);
-                return (
-                  <TipPlate>
-                    <p className="font-mono text-[10px] text-zinc-500">
-                      {name ?? fmtX(r[x], span)}
-                      {name && <span className="ml-2 text-zinc-300 dark:text-zinc-600">{String(r[x]).length > 20 ? truncate(String(r[x]), 6) : String(r[x])}</span>}
-                    </p>
-                    {scatter && !timeX && (
-                      <p className="font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                        {fmt(r[x], "number", sym)} <span className="text-zinc-400">{x.replace(/_/g, " ")}</span>
-                      </p>
-                    )}
-                    {panel.series.map((s, i) => (
-                      <p key={`${s.column}-${i}`} className="flex items-center gap-2 font-mono text-[11px] tabular-nums text-zinc-900 dark:text-zinc-100">
-                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: toneOf(s, i) }} />
-                        {fmt(r[`__s${i}`], unitOf(s), sym)} <span className="text-zinc-400">{s.label}</span>
-                        {s.transform !== "none" && s.transform !== "share" && typeof r[s.column] === "number" && <span className="text-zinc-300 dark:text-zinc-600">raw {fmt(r[s.column], s.format, sym)}</span>}
-                      </p>
-                    ))}
-                    {(selecting || canDrill) && (
-                      <p className="mt-1 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
-                        {selecting && category ? `click selects${canDrill ? ", double-click opens" : ""}` : selecting && continuous ? `drag selects${canDrill ? ", click opens" : ""}` : "click opens"}
-                      </p>
-                    )}
-                  </TipPlate>
-                );
-              }}
-            />
-            {hoverIdx === null && kb === null && hoverKey !== undefined && data.some((r) => r[x] === hoverKey) && continuous && (
-              <ReferenceLine yAxisId="left" x={hoverKey as string | number} stroke="currentColor" strokeOpacity={0.5} strokeDasharray="2 3" />
-            )}
-            {!horizontal &&
-              !scatter &&
-              panel.bands.map((b) => {
-                const x1 = xOf(b.from);
-                const x2 = xOf(b.to);
-                return x1 !== undefined && x2 !== undefined ? (
-                  <ReferenceArea key={b.label} yAxisId="left" x1={x1} x2={x2} fill="currentColor" fillOpacity={0.04} stroke="none" label={{ value: b.label, position: "insideTopLeft", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#71717a" }} />
-                ) : null;
-              })}
-            {continuous &&
-              rangePick?.kind === "range" &&
-              (() => {
-                const x1 = xOf(rangePick.from);
-                const x2 = xOf(rangePick.to);
-                return x1 !== undefined && x2 !== undefined ? <ReferenceArea yAxisId="left" x1={x1} x2={x2} fill={ACCENT} fillOpacity={0.06} stroke="none" /> : null;
-              })()}
-            {drag && data[drag[0]] && data[drag[1]] && (
-              <ReferenceArea yAxisId="left" x1={data[drag[0]][x] as string | number} x2={data[drag[1]][x] as string | number} fill={ACCENT} fillOpacity={0.12} stroke={ACCENT} strokeOpacity={0.5} />
-            )}
-            {!horizontal &&
-              !scatter &&
-              panel.markers.map((m) => {
-                const mx = xOf(m.x);
-                return mx !== undefined ? (
-                  <ReferenceLine key={`${m.label}-${String(m.x)}`} yAxisId="left" x={mx} stroke="#E6212F" strokeOpacity={0.7} strokeDasharray="3 3" label={{ value: m.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
-                ) : null;
-              })}
-            {panel.referenceLines.map((l) =>
-              horizontal ? (
-                <ReferenceLine key={l.label} x={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "top", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
-              ) : (
-                <ReferenceLine key={l.label} yAxisId="left" y={l.y} stroke="#E6212F" strokeDasharray="4 3" label={{ value: l.label, position: "insideTopRight", fontSize: 10, fontFamily: "var(--font-geist-mono)", fill: "#E6212F" }} />
-              ),
-            )}
-            {panel.series.flatMap((s, i) => {
-              const tone = toneOf(s, i);
-              const key = `${s.column}-${i}`;
-              const dataKey = `__s${i}`;
-              // a ranking has one unnamed axis pair; an explicit undefined id
-              // would not match it, so the prop is left out entirely
-              const axis = horizontal ? {} : { yAxisId: s.axis === "right" ? "right" : "left" };
-              const dash = s.dashed ? "5 4" : undefined;
-              if (scatter)
-                return [
-                  <Scatter key={`${key}-dot`} {...axis} dataKey={dataKey} fill={tone} {...anim} onClick={(_d: unknown, j: number) => drill(j)}>
-                    {data.map((_, j) => (
-                      <Cell key={j} fillOpacity={active === j ? 1 : active !== null ? 0.35 : 0.7} />
-                    ))}
-                  </Scatter>,
-                ];
-              const mark = markOf(s);
-              // keys carry the mark, so a view change mounts the new mark and
-              // recharts grows it; the same mark keeps its key and morphs
-              if (mark === "line")
-                return [
-                  <Line key={`${key}-line`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} strokeWidth={s.transform === "rolling" ? 2 : 1.5} strokeDasharray={dash} dot={false} {...anim} connectNulls />,
-                  ...(hasSel
-                    ? [<Line key={`${key}-line-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} strokeWidth={s.transform === "rolling" ? 2.25 : 1.75} strokeDasharray={dash} dot={litCount === 1 ? { r: 2.5, fill: tone, strokeWidth: 0 } : false} activeDot={false} isAnimationActive={false} legendType="none" />]
-                    : []),
-                ];
-              if (mark === "area")
-                return [
-                  <Area key={`${key}-area`} {...axis} type="monotone" dataKey={dataKey} stroke={tone} strokeOpacity={traceInk} fill={tone} fillOpacity={(s.dashed ? 0.05 : 0.16) * (hasSel ? 0.4 : 1)} strokeWidth={1.5} strokeDasharray={dash} stackId={panel.stacked ? `s-${s.axis}` : undefined} {...anim} />,
-                  ...(hasSel
-                    ? [<Area key={`${key}-area-in`} {...axis} type="monotone" dataKey={`__in${i}`} stroke={tone} fill={tone} fillOpacity={s.dashed ? 0.06 : 0.2} strokeWidth={1.75} strokeDasharray={dash} stackId={panel.stacked ? `in-${s.axis}` : undefined} activeDot={false} isAnimationActive={false} legendType="none" />]
-                    : []),
-                ];
-              return [
-                <Bar
-                  key={`${key}-bar`}
-                  {...axis}
-                  dataKey={dataKey}
-                  fill={tone}
-                  stroke={s.dashed ? tone : undefined}
-                  strokeDasharray={dash}
-                  stackId={panel.stacked ? `s-${s.axis}` : undefined}
-                  {...anim}
-                  minPointSize={1}
-                  radius={panel.stacked ? 0 : horizontal ? [0, 2, 2, 0] : [2, 2, 0, 0]}
-                  label={
-                    i === doorSeries
-                      ? (p: { x?: number | string; y?: number | string; width?: number | string; height?: number | string; index?: number }) => {
-                          const j = p.index;
-                          if (j === undefined || j !== active) return <g />;
-                          const bx = Number(p.x);
-                          const by = Number(p.y);
-                          const bw = Number(p.width);
-                          const bh = Number(p.height);
-                          const cx = horizontal ? bx + Math.max(0, bw) + 13 : bx + bw / 2;
-                          const cy = horizontal ? by + bh / 2 : Math.min(by, by + bh) - 11;
-                          return <OpenMark cx={cx} cy={cy} label={label(data[j]?.[x])} onOpen={() => drill(j)} />;
-                        }
-                      : undefined
-                  }
-                >
-                  {data.map((_, j) => (
-                    <Cell key={j} fillOpacity={inkOf(j, s.dashed)} />
-                  ))}
-                </Bar>,
-              ];
-            })}
-          </ComposedChart>
-        </ResponsiveContainer>
+        <HoverContext.Provider value={hover}>{chart}</HoverContext.Provider>
       </div>
       {scatter && kb !== null && <p className="font-mono text-[11px] tabular-nums text-zinc-500 dark:text-zinc-400">{describe(kb)}</p>}
     </div>
