@@ -42,20 +42,23 @@ import { OPENING, RISE_DEPTH } from "./warmup";
    plate's shadow lies faint on it. By night the fog is barely there. Until
    the city stands the sea is a plain tile painted here; the image then
    fades in, and where it cannot load the painted tile stays. The sky's
-   lights are placed for the picture: the sun stands at the upper left of
-   the city's own view, on a bearing fixed in the world, so it moves as the
-   camera goes round, and always a few degrees under the frame's top edge,
-   so it stays in the band of haze at the top of the frame however the
-   camera tilts; it is a soft white disc with a wide, low glow that lights
+   lights are placed for the picture and for the light: the sun stands on
+   the key light's line, from the plate's middle on screen through the key's
+   point on the horizon (Lighting.tsx), which is where the shadows on the
+   ground spread out from in the frame's perspective, so they fall away from
+   it in every view that shows it. It stands a few degrees under the frame's
+   top edge, so it stays in the band of haze at the top of the frame however
+   the camera tilts, slid along its line toward the plate where the app's
+   cards would crowd it or, once the city stands, where a pane that shifts
+   the city would push it out of the frame; it is out of the frame when
+   that point is behind the eye. It is a soft white disc with a wide, low glow that lights
    the haze on its side. By night the moon stands in its place, pale, with
    a faint glow and its seas on its face, and a sparse field of stars
    stands in the same band, sized by their brightness, a few of them
    twinkling slowly; they fade out down the band before the cloud tops
    show. The sea's fog takes the sun, the moon and the stars wherever the
    clouds show through it, so none of them ever sits over the clouds. A
-   theme's switch cross-fades them, the sun dimming into the moon. The key
-   light (Lighting.tsx) stays where it is, behind the city's view; the sun
-   at its upper left is the picture's. A sparse, slow fall of fine snow may drift across the
+   theme's switch cross-fades them, the sun dimming into the moon. A sparse, slow fall of fine snow may drift across the
    city, left to right; it is off unless asked for, and never shows to a
    reader who asks for less motion. Three draw calls, four with the snow,
    all round the camera. */
@@ -89,11 +92,13 @@ const LOOK: Record<Theme, { zenith: string; sky: string; haze: string; mean: str
   dark: { zenith: "#1F1F1F", sky: "#161A21", haze: "#0D1118", mean: "#2D4A6A", contrast: 0.22, sat: 0.15, tint: 0.26, lift: 0.62, shade: 0.2, fog: 0.9e-4, flake: "#DCE4F0", flakeA: 0.55 },
 };
 
-/** the sun's and the moon's place: a bearing fixed in the world, 14 degrees left of the city's own view (its camera looks along -z), where that view shows it about a fifth of the way in from its left edge; a height a fixed angle under the frame's top edge, and never under the horizon when the frame shows it; and their size, as angles */
-const DISC_LEFT = (14 * Math.PI) / 180;
-const DISC_XZ = new Vector2(-Math.sin(DISC_LEFT), -Math.cos(DISC_LEFT));
+/** the sun's and the moon's place: on the key light's line (Lighting.tsx), where the city's own view shows it near its upper left; a height a fixed angle under the frame's top edge, and never under the horizon when the frame shows it; and their size, as angles */
+const KEY_XZ = new Vector3(SUN.x, 0, SUN.z).normalize();
 const DISC_BELOW = (3.2 * Math.PI) / 180;
 const DISC_R = (0.7 * Math.PI) / 180;
+/** the room the sun or the moon keeps from the app's cards over the city (data-city-chrome, data-city-hud) and, once the city stands, inside the frame's edges, in CSS pixels; and how far along its line toward the plate it may slide to keep it */
+const CLEAR_PX = 32;
+const SLIDE_MIN = 0.3;
 /** the least height over the horizon the sun or the moon keeps once the frame shows a band of sky over it: the top edge's heights the lift comes in over, and how far under the top edge the disc may then come */
 const DISC_LIFT = (1 * Math.PI) / 180;
 const LIFT_BAND: [number, number] = [(1.5 * Math.PI) / 180, (3.5 * Math.PI) / 180];
@@ -621,7 +626,31 @@ export function Backdrop({
   }, []);
 
   const edge = useMemo(() => new Vector3(), []);
-  useFrame((_, dt) => {
+  const aim = useMemo(() => ({ fwd: new Vector3(), band: new Vector3(), key: new Vector3(), at: new Vector3(), slide: 1 }), []);
+  // the app's cards over the canvas, in its CSS pixels, read twice a second: the sun and the moon keep clear of them
+  const cards = useRef<[number, number, number, number][]>([]);
+  useEffect(() => {
+    const read = () => {
+      const c = gl.domElement;
+      const root = c.closest("[data-city-app]");
+      if (!root) return;
+      const r0 = c.getBoundingClientRect();
+      const out: [number, number, number, number][] = [];
+      root.querySelectorAll<HTMLElement>("[data-city-chrome], [data-city-hud]").forEach((el) => {
+        if (el.closest("[aria-hidden='true']")) return;
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height || getComputedStyle(el).opacity === "0") return;
+        out.push([r.left - r0.left, r.top - r0.top, r.right - r0.left, r.bottom - r0.top]);
+      });
+      cards.current = out;
+    };
+    read();
+    const id = window.setInterval(read, 500);
+    return () => window.clearInterval(id);
+  }, [gl]);
+  useFrame((state, dt) => {
+    // the canvas's CSS size as R3F keeps it (its resize observer): a read of the canvas's own size here would lay the page out mid-frame
+    const { width: w, height: h } = state.size;
     parts.sky.position.copy(camera.position);
     /* the frame's top edge in the middle of the frame, as the lens and the rig's shift of it for the app's panels show it; the sun or the moon
        a fixed angle under it, on its bearing, and lifted over the horizon as the frame comes to show it */
@@ -630,7 +659,36 @@ export function Backdrop({
     const under = top.value - DISC_BELOW;
     const lift = MathUtils.smoothstep(top.value, LIFT_BAND[0], LIFT_BAND[1]);
     const e = under + (Math.max(under, Math.min(DISC_LIFT, top.value - LIFT_ROOM)) - under) * lift;
-    disc.value.set(DISC_XZ.x * Math.cos(e), Math.sin(e), DISC_XZ.y * Math.cos(e));
+    /* on the key light's line: from the plate's middle on screen through the key's point on the horizon, to the band's height straight ahead,
+       then slid back toward the plate as far as the app's cards ask, eased, so it never jumps, and once the city stands kept inside the frame's
+       edges. Where the point is behind the eye, or under the plate, the disc goes behind the eye */
+    camera.getWorldDirection(aim.fwd).setY(0).normalize();
+    aim.band.set(aim.fwd.x * Math.cos(e), Math.sin(e), aim.fwd.z * Math.cos(e)).multiplyScalar(1000).add(camera.position).project(camera);
+    aim.key.copy(KEY_XZ).multiplyScalar(1e5).add(camera.position).project(camera);
+    aim.at.set(0, -RISE_DEPTH * (1 - OPENING.column.value), 0).project(camera);
+    if (KEY_XZ.dot(aim.fwd) > 0.05 && aim.key.y > aim.at.y + 0.02) {
+      const s = (aim.band.y - aim.at.y) / (aim.key.y - aim.at.y);
+      const nx = s * (aim.key.x - aim.at.x);
+      const ny = aim.band.y - aim.at.y;
+      const r = (Math.tan(DISC_R) / Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360)) * (h / 2) + CLEAR_PX;
+      const cxOf = (t: number) => ((aim.at.x + nx * t + 1) / 2) * w;
+      const cyOf = (t: number) => ((1 - aim.at.y - ny * t) / 2) * h;
+      // once the column stands, the frame's edges keep it in as the cards keep it off, so a pane that shifts the city (the answer, the live pane) cannot push it out of the frame; through the opening it enters with the push
+      const edges = OPENING.column.value >= 1;
+      const out = (t: number) => edges && (cxOf(t) < r || cxOf(t) > w - r || cyOf(t) < r);
+      const crowded = (t: number) => {
+        if (out(t)) return true;
+        const cx = cxOf(t);
+        const cy = cyOf(t);
+        return cards.current.some(([l, tp, rt, b]) => Math.hypot(cx - Math.max(l, Math.min(cx, rt)), cy - Math.max(tp, Math.min(cy, b))) < r);
+      };
+      let t = 1;
+      while (t > SLIDE_MIN && crowded(t)) t -= 0.01;
+      aim.slide += (t - aim.slide) * Math.min(1, dt * 8);
+      // the edges hold at once, not eased: as a pane's shift of the lens eases in, the disc goes with the frame and never leaves it
+      while (aim.slide > SLIDE_MIN && out(aim.slide)) aim.slide -= 0.01;
+      disc.value.set(aim.at.x + nx * aim.slide, aim.at.y + ny * aim.slide, 0.5).unproject(camera).sub(camera.position).normalize();
+    } else disc.value.set(-aim.fwd.x, 0, -aim.fwd.z);
     (parts.stars.material as ShaderMaterial).uniforms.uCam.value.copy(camera.position);
     parts.sea.position.set(camera.position.x, SEA_Y, camera.position.z);
     // the sky's lights cross-fade to the theme's
@@ -645,7 +703,7 @@ export function Backdrop({
     // the flakes keep their size in CSS pixels as the pixel ratio steps, and as the lens is set
     const fu = (parts.flakes.material as ShaderMaterial).uniforms;
     fu.uDpr.value = gl.getPixelRatio();
-    fu.uFocal.value = gl.domElement.clientHeight / 2 / Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360);
+    fu.uFocal.value = h / 2 / Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360);
     const u = (parts.sea.material as ShaderMaterial).uniforms;
     u.uCam.value.copy(camera.position);
     // the plate's shadow comes out from under it as the column rises

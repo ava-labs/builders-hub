@@ -25,9 +25,11 @@ import {
 } from "three";
 import type { Theme } from "./palette";
 
-/* The city's light: the sun high on the left, square to the home view, so
-   the shadows fall straight to the right, away from the sky's disc
-   (Backdrop.tsx); the sky's fill, a tone curve that keeps the
+/* The city's light: the sun 45 degrees left of the home view and 45 up,
+   on the side the sky's disc stands (Backdrop.tsx, which sets the disc on
+   its line), so the shadows fall away from the disc in every view that
+   shows it; a low fill from the left, with no shadow, so the walls model
+   as a sun from the side would light them; the sky's fill, a tone curve that keeps the
    city's colors, and the sky itself as the one thing the glass reflects.
    The reflections are baked once per theme into a small cube from the
    sky's own gradient, a soft glow round the sun, and a band of haze at
@@ -37,8 +39,10 @@ import type { Theme } from "./palette";
    glass), and `cityEnvMode` "add" (the default, a sheen) or "mix". On a
    renderer that cannot carry it, nothing reflects. */
 
-/** the sun's direction: high on the left, square to the home view, so a shadow falls straight to the right */
-export const SUN = new Vector3(-0.46, 1, 0).normalize();
+/** the sun's direction: 45 degrees left of the home view (its camera looks along -z) and 45 up, so a shadow is as long as its tower is tall */
+export const SUN = new Vector3(-0.5, Math.SQRT1_2, -0.5).normalize();
+/** the fill's: from the home view's left, 10 degrees up, so it lights the walls and leaves the ground, and the ground's shadows, to the sun */
+const FILL = new Vector3(-Math.cos((10 * Math.PI) / 180), Math.sin((10 * Math.PI) / 180), 0);
 
 /* The tone curve: straight up to a shoulder at 0.85, so every hex the
    city paints stays on it, and a soft roll-off above it, so the night's
@@ -201,7 +205,7 @@ export function Lighting({ theme, rich }: { theme: Theme; rich: boolean }) {
 
   return (
     <>
-      {/* the sky's cool fill, steel from the ground below; the sun a cool white, the night's moon a steel blue */}
+      {/* the sky's cool fill, steel from the ground below; the sun a cool white, the night's moon a steel blue; the low fill in the sun's color, with no shadow */}
       <hemisphereLight args={[dark ? "#9AA6B8" : "#FFFFFF", dark ? "#3B484B" : "#C9D3DF", dark ? 2.5 : 2.3]} />
       <directionalLight
         position={SUN.clone().multiplyScalar(1500)}
@@ -219,6 +223,7 @@ export function Lighting({ theme, rich }: { theme: Theme; rich: boolean }) {
         shadow-normalBias={0.45}
         shadow-radius={3}
       />
+      <directionalLight position={FILL.clone().multiplyScalar(1500)} color={dark ? "#BCC8DC" : "#F5F8FF"} intensity={dark ? 0.5 : 0.45} />
     </>
   );
 }

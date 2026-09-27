@@ -2109,7 +2109,7 @@ export function CityApp({
     <div
       ref={appRef}
       data-city-app
-      className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_420px_300px_at_21.5%_12.8%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_21.5%_12.8%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]"
+      className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_13%_11%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]"
     >
       {(() => {
         const mapProps = {
@@ -2163,8 +2163,9 @@ export function CityApp({
         );
       })()}
 
-      {/* the panel: the list, a district or a chain, shut until one is asked for */}
+      {/* the panel: the list, a district or a chain, shut until one is asked for; the sky's disc keeps clear of it (data-city-chrome), as of the other cards */}
       <aside
+        data-city-chrome
         inert={!showPanel || undefined}
         aria-hidden={!showPanel}
         className={cn(
@@ -2192,6 +2193,7 @@ export function CityApp({
         <button
           type="button"
           onClick={() => setPanelOpen(true)}
+          data-city-chrome
           className="absolute left-4 top-[calc(1rem+var(--under,0px))] z-30 flex h-11 items-center gap-2 rounded-2xl border border-zinc-200/90 bg-white/[0.94] pl-3.5 pr-4 text-[13px] font-medium text-zinc-800 shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl transition-colors hover:text-zinc-950 dark:border-zinc-800/90 dark:bg-zinc-950/[0.9] dark:text-zinc-100 dark:hover:text-white"
         >
           <PanelLeftOpen className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
@@ -2202,7 +2204,7 @@ export function CityApp({
 
       {/* the search, fixed over the city's top and centred on what the panel leaves of it; its chips under it */}
       <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center px-4 transition-[left,right] duration-300 ease-out" style={{ left: showPanel ? PANEL_W + 16 : 0, right: rightW ? rightW + 16 : 0 }}>
-        <div className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
+        <div data-city-chrome className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
           <div className="relative w-full">
             {searchField}
             {picksPanel}
@@ -2213,6 +2215,7 @@ export function CityApp({
 
       {/* the open chain's live view, at the right; the site's chat button keeps the corner under it */}
       <aside
+        data-city-chrome
         inert={!paneOpen || undefined}
         aria-hidden={!paneOpen}
         aria-label={liveTarget ? `${liveTarget.name}, live` : pchainOpen ? "P-Chain, live" : undefined}
@@ -2230,6 +2233,7 @@ export function CityApp({
 
       {/* a question's answer, at the right over the city; the site's chat button keeps the corner under it */}
       <aside
+        data-city-chrome
         inert={!ask || undefined}
         aria-hidden={!ask}
         aria-label={shownAsk ? `Answer: ${shownAsk.q}` : undefined}
