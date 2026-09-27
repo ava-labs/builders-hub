@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { useRouter } from "next/navigation";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerformanceMonitor } from "@react-three/drei";
-import { PCFSoftShadowMap, Vector3 } from "three";
+import { PCFSoftShadowMap, Vector3, type DirectionalLight } from "three";
 import { CX, CY, HUB_ID, Logo, PLATE, PLATE_T, RING_IN, floorsOf, mixTotal, type Glass } from "@/components/explorer-v2/network/icm-map";
 import type { CityViewProps } from "@/components/explorer-v2/network/icm-map";
 import { PCHAIN_LOGO, PCHAIN_PICK } from "@/components/explorer-v2/network/city-model";
@@ -182,15 +182,41 @@ function CameraNow() {
   return null;
 }
 
-/** the shadows are drawn again only while something that casts one moves: the build-out, a new plan, a new theme */
+/** the sun's shadow map is drawn again on any frame where something that casts moves or the light turns, and held while
+    nothing does: the build-out, a new plan or theme, the light's own motion. A part that moves by itself (a crane's jib) asks
+    for the map in its own frame (gl.shadowMap.needsUpdate); the traffic and the drones cast no map shadow, only their own */
 function Shadows({ until, bump }: { until: number; bump: unknown }) {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   useEffect(() => {
     gl.shadowMap.needsUpdate = true;
   }, [bump, gl]);
+  /* the light that casts, and its place, its aim and its shadow's frame as they stood last frame: a light that turns (earth
+     ties it to the sun and the moon) or reframes its shadow draws the map again, on the frame it moves, and holds it after */
+  const light = useRef<DirectionalLight | null>(null);
+  const was = useMemo(() => new Float32Array(12).fill(Number.NaN), []);
   useFrame(() => {
     // while the clock holds, every caster stands still: the warm-up redraws the map as the column moves or what casts changes
     if (TIME.value < until && !WARM.held) gl.shadowMap.needsUpdate = true;
+    let l = light.current;
+    if (!l || !l.parent) {
+      l = null;
+      scene.traverse((o) => {
+        if (!l && (o as DirectionalLight).isDirectionalLight && o.castShadow) l = o as DirectionalLight;
+      });
+      light.current = l;
+    }
+    if (!l) return;
+    const p = l.position;
+    const t = l.target.position;
+    const c = l.shadow.camera;
+    const now = [p.x, p.y, p.z, t.x, t.y, t.z, c.left, c.right, c.top, c.bottom, c.near, c.far];
+    let moved = false;
+    for (let i = 0; i < 12; i++) if (!(Math.abs(was[i] - now[i]) < 1e-4)) moved = true;
+    if (moved) {
+      was.set(now);
+      gl.shadowMap.needsUpdate = true;
+    }
   });
   return null;
 }

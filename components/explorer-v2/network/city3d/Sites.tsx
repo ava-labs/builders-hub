@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { BoxGeometry, BufferGeometry, Color, Float32BufferAttribute, Group, LineBasicMaterial, LineSegments, Matrix4, Mesh, MeshBasicMaterial, MeshLambertMaterial, Quaternion, Vector3 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { FLOOR, crestOf } from "@/components/explorer-v2/network/icm-map";
@@ -202,6 +202,8 @@ export function Sites({
       t.castShadow = true;
       t.receiveShadow = true;
       head.receiveShadow = true;
+      // the jib casts too: the city's shadow map is drawn again whenever it turns
+      head.castShadow = true;
       return { spec: c, group: g, head };
     });
   }, [cranes, mat, theme, dark]);
@@ -270,14 +272,22 @@ export function Sites({
   );
 
   const group = useRef<Group>(null);
+  const gl = useThree((s) => s.gl);
   useFrame(() => {
     const t = TIME.value;
+    let moved = false;
     for (const b of built) {
-      b.group.visible = still || t > b.spec.rise;
+      const up = still || t > b.spec.rise;
+      if (b.group.visible !== up) moved = true;
+      b.group.visible = up;
       // the jib works as a crane does: it turns to a new heading, fast then slow, and holds there
-      b.head.rotation.y = still ? b.spec.yaw : jibAt(b.spec, t);
+      const yaw = still ? b.spec.yaw : jibAt(b.spec, t);
+      if (up && Math.abs(yaw - b.head.rotation.y) > 1e-5) moved = true;
+      b.head.rotation.y = yaw;
     }
     scaffold.visible = still || t > newRise;
+    // a crane that turns or comes up casts anew: the sun's map is drawn again this frame
+    if (moved) gl.shadowMap.needsUpdate = true;
   });
 
   return (
