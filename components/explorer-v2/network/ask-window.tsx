@@ -8,7 +8,7 @@ import { ArrowUp, ArrowUpRight, Check, ChevronRight, ChevronsUpDown, Copy, Rows3
 import { cn } from "@/lib/utils";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
-import { AvalancheLoader } from "@/components/explorer-v2/evm/AvalancheLoader";
+import { QueryLoader } from "@/components/explorer-v2/evm/QueryLoader";
 import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/QueryVisual";
 import { PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
@@ -447,7 +447,7 @@ export function AskWindow({
 
         {busy && (
           <div className="mt-3">
-            <AvalancheLoader status={`${progress(events)} · ${elapsed} s`} height={200} />
+            <QueryLoader status={`${progress(events)} · ${elapsed} s`} height={200} />
           </div>
         )}
         {error && (
@@ -525,7 +525,7 @@ export function AskWindow({
                 ) : laying ? (
                   // one draw: the loader holds the space until the layout is final
                   <div aria-busy="true" className={cn(CARD, "flex min-h-[16rem] flex-1 flex-col")}>
-                    <AvalancheLoader status="Rows are in. Laying out the chart" fill framed={false} />
+                    <QueryLoader status="Rows are in. Laying out the chart" fill framed={false} />
                   </div>
                 ) : charted && visual ? (
                   <QueryVisual

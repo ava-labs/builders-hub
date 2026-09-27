@@ -23,7 +23,7 @@ import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
-import { AvalancheLoader } from "./AvalancheLoader";
+import { QueryLoader } from "./QueryLoader";
 import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, progress, reads, streamQuery } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
@@ -763,7 +763,7 @@ function QueryPage({
               Indexed {stale.since.slice(0, 10)} to {stale.until.slice(0, 10)} UTC. Answers read that window, not today.
             </p>
           )}
-          {busy && <AvalancheLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
+          {busy && <QueryLoader status={`${phase === "running" ? "Running your SQL" : progress(events)} · ${elapsed} s`} />}
           {error && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-l-2 border-[#E6212F] pl-3">
               <p className="font-mono text-[12px] text-[#E6212F]">{error}</p>
@@ -847,7 +847,7 @@ function QueryPage({
                 ) : laying ? (
                   // one draw: the loader holds the space until the layout is final
                   <div aria-busy="true" className={cn(CARD, "flex min-h-[18rem] flex-1 flex-col")}>
-                    <AvalancheLoader status="Rows are in. Laying out the chart" fill framed={false} />
+                    <QueryLoader status="Rows are in. Laying out the chart" fill framed={false} />
                   </div>
                 ) : charted && visual ? (
                   <QueryVisual
