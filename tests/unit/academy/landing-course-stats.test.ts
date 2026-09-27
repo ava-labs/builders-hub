@@ -8,11 +8,11 @@ import { loadAcademyTree } from "@/tests/unit/academy/helpers/content-tree";
 
 const ROOT = process.cwd();
 
-// The real academy page tree (phase 3's helper: content/academy through fumadocs' own loader).
+// The real academy page tree (the content-tree helper: content/academy through fumadocs' own loader).
 const tree = loadAcademyTree();
 const statsByTrack = new Map(ACADEMY_TRACKS.map((track) => [track.id, getCourseStats(tree, track.segment)]));
 
-describe("landing card stats (index C8)", () => {
+describe("landing card stats", () => {
   it.each(ACADEMY_TRACKS.map((track) => [track.label, track] as const))("every %s card resolves to a stats entry", (_label, track) => {
     const stats = statsByTrack.get(track.id) ?? {};
     track.courses.forEach((node) => {
@@ -22,7 +22,7 @@ describe("landing card stats (index C8)", () => {
     });
   });
 
-  it("resolves every card on the four landings (24, index C8)", () => {
+  it("resolves every card on the four landings (24)", () => {
     const cards = ACADEMY_TRACKS.flatMap((track) => track.courses.map((node) => ({ track, node })));
     const resolved = cards.filter(({ track, node }) => (statsByTrack.get(track.id) ?? {})[courseUrl(track.id, node.slug)]);
     expect(cards).toHaveLength(24);
@@ -30,7 +30,7 @@ describe("landing card stats (index C8)", () => {
   });
 });
 
-describe("the generated stats module (index C8)", () => {
+describe("the generated stats module", () => {
   const generated: Record<string, Record<string, CourseStats>> = COURSE_STATS;
 
   it("holds the four landing tracks", () => {
@@ -49,7 +49,7 @@ const PAGES: Array<[string, string]> = [
   ["team1", "app/(home)/academy/team1/page.tsx"],
 ];
 
-describe("each track page passes its own stats (index C8)", () => {
+describe("each track page passes its own stats", () => {
   it.each(PAGES)("%s", (segment, file) => {
     const source = readFileSync(join(ROOT, file), "utf8");
     expect(source).toMatch(new RegExp(`COURSE_STATS\\[["']${segment}["']\\]`));

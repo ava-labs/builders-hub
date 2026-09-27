@@ -8,7 +8,7 @@ vi.mock("next-auth/react", () => ({ useSession: () => ({ data: null, status: "un
 import EntrepreneurAcademyPage from "@/app/(home)/academy/entrepreneur/page";
 import { entrepreneurAcademyLandingPageConfig } from "@/app/(home)/academy/entrepreneur/config";
 
-/** The ruled keyboard focus ring: 2 px of ink, 2 px outside the control. */
+/** The keyboard focus ring: 2 px of ink, 2 px outside the control. */
 const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2", "focus-visible:outline-ac-ink"];
 const blogs = entrepreneurAcademyLandingPageConfig.features?.highlights?.blogs ?? [];
 

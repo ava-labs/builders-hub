@@ -792,7 +792,7 @@ html {
   --color-surface-dark: #121212;
   --color-card-dark: #1f1f1f;
   --color-ink-soft-dark: #a2afb2;
-  /* Academy tokens (index C3). Their values live on the [data-academy] roots
+  /* Academy tokens. Their values live on the [data-academy] roots
      (components/academy/theme/academy-tokens.css), so these utilities resolve only inside the
      Academy. */
   --color-ac-ground: var(--ac-ground);

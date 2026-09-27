@@ -36,7 +36,7 @@ const Mermaid = ({ chart }: MermaidProps): JSX.Element => {
       try {
         // Unique ID only used internally by mermaid render
         const renderId = `mmd-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        // Inside the Academy, the dark theme keeps dark labels on nodes an author filled light (spec 4.3).
+        // Inside the Academy, the dark theme keeps dark labels on nodes an author filled light.
         const render = async (source: string): Promise<string> => (await mermaid.render(renderId, source)).svg;
         const svg = await renderWithLightFillLabels(render, chart, theme, containerRef.current);
         if (!destroyed && containerRef.current) {

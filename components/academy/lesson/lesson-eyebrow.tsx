@@ -22,9 +22,9 @@ function StepBar({ index, count }: { index: number; count: number }) {
 }
 
 /**
- * "<module> / Lesson N of M" and the step bar above the lesson title (spec 4.5). Below 1024 px it
- * stacks the course, the module and the position; from 1024 px the sidebar names the course (R6)
- * and the row never wraps: a module name too long for it ends in an ellipsis instead.
+ * "<module> / Lesson N of M" and the step bar above the lesson title. Below 1024 px it stacks
+ * the course, the module and the position; from 1024 px the sidebar names the course and the
+ * row never wraps: a module name too long for it ends in an ellipsis instead.
  * The spaces between segments are for screen readers; the grid and flex layouts ignore them.
  */
 export function LessonEyebrow({ outline, position, lessonTitle }: LessonEyebrowProps) {

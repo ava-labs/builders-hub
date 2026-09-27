@@ -1,7 +1,7 @@
 /**
  * Remark plugin for the Academy collection (source.config.ts): gives every MDX <Callout> a
  * data-callout attribute with its kind and, unless it labels itself or is a quote, a
- * data-callout-label attribute with its label (spec 4.3). It works on the MDX tree, so it reaches
+ * data-callout-label attribute with its label. It works on the MDX tree, so it reaches
  * callouts whether the file imports Callout or takes it from the components map; fumadocs-ui passes
  * both attributes to the callout's root element (node_modules/fumadocs-ui/dist/components/callout.js:5-6,
  * :15-20). It returns a new tree and never changes the one it is given.

@@ -68,7 +68,7 @@ describe('QuizHeader', () => {
   });
 });
 
-describe('Quiz server markup (Review Focus 2)', () => {
+describe('Quiz server markup', () => {
   it('renders the neutral placeholder with the root marker and no question count', () => {
     const html = renderToStaticMarkup(createElement(Quiz, { quizId: '104' }));
     expect(html).toBe('<div data-quiz-root="">Loading...</div>');

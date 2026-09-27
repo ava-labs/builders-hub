@@ -12,7 +12,7 @@ export interface CredentialFact {
   value: string;
 }
 
-/** Modules and Lessons from the course outline (a count it lacks is left out), then Format (spec 4.8, R5: no Course cell). */
+/** Modules and Lessons from the course outline (a count it lacks is left out), then Format; no Course cell, as the title names the course. */
 export function credentialFacts(outline: CourseOutlineFacts | null): CredentialFact[] {
   const counts = outline
     ? [
@@ -26,12 +26,12 @@ export function credentialFacts(outline: CourseOutlineFacts | null): CredentialF
   ];
 }
 
-/** The course as its certificate names it (index C6: the content/courses.tsx entry the PDF prints), else the outline's name, else the quiz data title. */
+/** The course as its certificate names it (the certificate entry's name in content/courses.tsx, which the PDF prints), else the outline's name, else the quiz data title. */
 export function credentialTitle(courseId: string, outline: CourseOutlineFacts | null): string {
   return getCourseConfig()[courseId]?.name ?? outline?.name ?? quizData.courses[courseId]?.title ?? '';
 }
 
-/** The academy the certificate names (index C6), from the track: the page's first folder under /academy/. */
+/** The academy the certificate names, from the track: the page's first folder under /academy/. */
 export function credentialAcademy(pathname: string): CertificateAcademy {
   return certificateAcademyFor(pathname.split('/')[2] ?? '');
 }
@@ -68,7 +68,7 @@ const SHARE_CLASS = cn(
 );
 
 /**
- * The completed certificate page (spec 4.8): the framed credential, then production's Generate and share controls.
+ * The completed certificate page: the framed credential, then production's Generate and share controls.
  * The frame opts out of the course page's prose rules (not-prose), whose heading margins beat m-0.
  */
 export function CertificateCredential({

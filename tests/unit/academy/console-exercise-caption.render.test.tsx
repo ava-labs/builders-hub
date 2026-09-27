@@ -24,7 +24,7 @@ const frameTag = (html: string) => {
   return html.slice(start, html.indexOf('>', start) + 1);
 };
 
-describe('ConsoleExerciseCaption (spec 4.3)', () => {
+describe('ConsoleExerciseCaption', () => {
   it('reads "Interactive exercise" and leaves the console name to the frame header', () => {
     expect(caption()).toContain('>Interactive exercise<');
     expect(caption()).not.toContain('Builder Console');

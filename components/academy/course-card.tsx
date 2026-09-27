@@ -45,7 +45,7 @@ export interface CourseCardProps {
   discipline: string;
   hue: DisciplineHue | null;
   icon: LucideIcon;
-  /** From the page tree (index C8); undefined renders the card without counts. */
+  /** From the page tree; undefined renders the card without counts. */
   stats: CourseStats | undefined;
   /** content/courses.tsx duration, e.g. "2 hours". */
   duration: string | undefined;
@@ -54,7 +54,7 @@ export interface CourseCardProps {
   completed: boolean;
 }
 
-/** "1 hour" to "1 h", "1.5 hours" to "1.5 h", "45 minutes" to "45 min", as the approved cards print it. */
+/** "1 hour" to "1 h", "1.5 hours" to "1.5 h", "45 minutes" to "45 min". */
 export function shortDuration(duration: string): string {
   return duration.replace(/\s*hours?$/i, " h").replace(/\s*minutes?$/i, " min");
 }
@@ -62,7 +62,7 @@ export function shortDuration(duration: string): string {
 const counted = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? "" : "s"}`;
 
 /**
- * "31 lessons · 4 modules", the dot in its own element with 1 px side margins, as the approved cards set it;
+ * "31 lessons · 4 modules", the dot in its own element with 1 px side margins;
  * a course without modules (Team1) shows its lessons alone.
  */
 export function statsLabel({ lessons, modules }: CourseStats): ReactNode {
@@ -140,7 +140,7 @@ function CardFoot({ variant, stats, duration, tool, completed }: CourseCardProps
   );
 }
 
-/** The one card anatomy of the track landings (spec 4.2). */
+/** The one card anatomy of the track landings. */
 export function CourseCard(props: CourseCardProps) {
   const { variant, name, description, tool } = props;
   return (

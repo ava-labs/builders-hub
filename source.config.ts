@@ -84,7 +84,7 @@ export const course = defineCollections({
   postprocess: {
     includeProcessedMarkdown: !isDevelopment,
   },
-  // Callouts get their kind and label marks (spec 4.3), in this collection only; the marks stay
+  // Callouts get their kind and label marks, in this collection only; the marks stay
   // out of the search index built from structuredData.
   mdxOptions: getDefaultMDXOptions({
     ...mdxOptions,

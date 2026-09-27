@@ -3,7 +3,7 @@ import { ArrowRight, Award, BookOpen, Clock, Layers, type LucideIcon } from 'luc
 import type { CourseOutline } from '@/lib/academy/course-outline';
 import type { CourseDiscipline } from '@/lib/academy/course-discipline';
 
-/** The discipline tile and "Course · <discipline>" above the overview title (spec 4.6). */
+/** The discipline tile and "Course · <discipline>" above the overview title. */
 export function CourseHeader({ discipline }: { discipline: CourseDiscipline | null }) {
   return (
     <div data-academy-part="course-head" className="mb-3.5 flex items-center gap-3">
@@ -51,7 +51,7 @@ interface CourseFactsProps {
 }
 
 /**
- * The facts row after the overview description, ending in the ink "Start course" button (spec 4.6).
+ * The facts row after the overview description, ending in the ink "Start course" button.
  * The button's hover takes the outlined look (paper, ink text, an inset ink border) and its keyboard
  * focus a 2 px ink ring; neither moves a box.
  */

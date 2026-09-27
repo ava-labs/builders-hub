@@ -3,7 +3,7 @@ import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import Quiz from '@/components/quizzes/quiz';
 import { cn } from '@/utils/cn';
 
-/** Production's two progress lines in one card, with a red bar at the completed share (spec 4.8). */
+/** Production's two progress lines in one card, with a red bar at the completed share. */
 export function CertificateProgress({ completed, total }: { completed: number; total: number }) {
   const percent = total > 0 ? Math.min(100, (completed / total) * 100) : 0;
   return (

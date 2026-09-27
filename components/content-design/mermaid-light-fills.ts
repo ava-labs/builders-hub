@@ -1,5 +1,5 @@
 /**
- * Dark labels on light author fills in Mermaid charts (spec 4.3: production's dark-mode defect).
+ * Dark labels on light author fills in Mermaid charts (production's dark-mode defect).
  * The dark theme draws labels in a light grey, so a node the author filled with a light colour
  * (a `style` or `classDef` line with a light `fill:`) shows light text on a light shape.
  * Mermaid applies a `color` given on the same line to that node's label, so the chart gets one:
@@ -27,7 +27,7 @@ function channels(hex: string): [number, number, number] | null {
   return [at(0), at(2), at(4)];
 }
 
-/** A hex fill is light when 0.2126 R + 0.7152 G + 0.0722 B, over 255, is above 0.6 (the prototype's rule). Anything but hex is not light. */
+/** A hex fill is light when 0.2126 R + 0.7152 G + 0.0722 B, over 255, is above 0.6. Anything but hex is not light. */
 export function isLightFill(color: string): boolean {
   const rgb = channels(color.trim());
   if (rgb === null) return false;

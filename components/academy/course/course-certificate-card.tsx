@@ -11,7 +11,7 @@ interface CourseCertificateCardProps {
   afterModules: boolean; // sits right under the Modules list
 }
 
-/** "Certificate": the course's certificate drawing in the one card anatomy, linking to the certificate page (spec 4.6). */
+/** "Certificate": the course's certificate drawing in the one card anatomy, linking to the certificate page. */
 export function CourseCertificateCard({ academy, courseTitle, href, label, afterModules }: CourseCertificateCardProps) {
   return (
     <section data-academy-part="course-certificate" className={cn('mb-9', afterModules ? 'mt-2' : 'mt-10')}>

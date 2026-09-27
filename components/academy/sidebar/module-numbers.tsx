@@ -1,7 +1,7 @@
 import type { Folder, Node, Root } from 'fumadocs-core/page-tree';
 import { moduleHeads } from '@/lib/academy/course-outline';
 
-/** The number before a module heading in the sidebar (spec 4.3), mono in the secondary grey. */
+/** The number before a module heading in the sidebar, mono in the secondary grey. */
 export function ModuleNumber({ value }: { value: string }) {
   return (
     <span data-academy-part="module-number" className="mr-2 font-ac-mono text-[11px] font-normal text-ac-ink-3">
@@ -18,7 +18,7 @@ function numberCourse(course: Folder): Folder {
     children: course.children.map((node) => {
       const number = numbers.get(node);
       if (number === undefined || node.type === 'page') return node;
-      // A long name wraps beside its number, as the round 8 stills show; the number stays whole.
+      // A long name wraps beside its number; the number stays whole.
       return { ...node, name: <><ModuleNumber value={number} />{' '}{node.name}</> };
     }),
   };

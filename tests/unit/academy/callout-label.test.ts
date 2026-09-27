@@ -50,7 +50,7 @@ describe('opensWithLabelWord', () => {
   });
 });
 
-describe('calloutMarks (spec 4.3 and 7)', () => {
+describe('calloutMarks', () => {
   it('gives each kind its label', () => {
     expect(calloutMarks('info', 'Is PoA Manager Required?')).toEqual({ kind: 'info', label: 'Note' });
     expect(calloutMarks(undefined, 'Make sure you have:')).toEqual({ kind: 'info', label: 'Note' });

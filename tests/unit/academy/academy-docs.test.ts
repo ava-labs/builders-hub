@@ -4,14 +4,14 @@ import postcss from 'postcss';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Contract of the course page skin (index C1 to C3): every rule is scoped to the course page root,
+ * Contract of the course page skin: every rule is scoped to the course page root,
  * every colour is a token, and the course pages load the file right after the tokens.
  */
 const read = (file: string) => readFileSync(path.join(process.cwd(), file), 'utf8');
 const SKIN = 'components/academy/theme/academy-docs.css';
 const LITERAL_COLOUR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix)\(/i;
 
-describe('academy-docs.css (index C1 to C3)', () => {
+describe('academy-docs.css', () => {
   it('starts every selector with [data-academy="docs"]', () => {
     const selectors: string[] = [];
     postcss.parse(read(SKIN)).walkRules((rule) => {

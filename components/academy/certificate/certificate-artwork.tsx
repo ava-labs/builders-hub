@@ -8,7 +8,7 @@ export type CertificateAcademy = 'Avalanche Academy' | 'Entrepreneur Academy';
 
 export interface CertificateFieldBox { x: number; y: number; width: number; height: number } // viewBox units, origin top-left
 
-/** The Entrepreneur templates' "Enter Name" and "Enter Date" field rectangles, where phase 6 places the PDF fields. */
+/** The Entrepreneur templates' "Enter Name" and "Enter Date" field rectangles, where the template PDFs built from this drawing place their form fields. */
 export const CERTIFICATE_FIELDS: { name: CertificateFieldBox; date: CertificateFieldBox } = {
   name: { x: 320, y: 935, width: 500, height: 29 },
   date: { x: 1430, y: 935, width: 250, height: 29 },
@@ -20,7 +20,7 @@ export function certificateAcademyFor(track: string): CertificateAcademy {
 
 export interface CertificateArtworkProps { academy: CertificateAcademy; courseTitle: string; className?: string }
 
-// Print colours of the template (a print design, so hex values live here, index C6).
+// Print colours of the template (a print design, so hex values live here).
 const RED = '#FF394A';
 const WHITE = '#FFFFFF';
 const BLACK = '#000000';
@@ -67,8 +67,8 @@ function TitleLines({ layout }: { layout: CertificateLayout }) {
 }
 
 /**
- * The course certificate in the Entrepreneur Academy template's layout (spec section 6): one SVG,
- * no hooks, so react-dom/server can render it for the PDFs. The name and date areas stay empty.
+ * The course certificate in the Entrepreneur Academy template's layout: one SVG, no hooks, so
+ * react-dom/server can render it for the PDFs. The name and date areas stay empty.
  */
 export function CertificateArtwork({ academy, courseTitle, className }: CertificateArtworkProps): JSX.Element {
   const layout = layoutCertificate(courseTitle);

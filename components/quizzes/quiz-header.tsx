@@ -2,7 +2,7 @@ import { ListChecks } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { quizSegments, type QuizPosition } from './quiz-position';
 
-/** The knowledge check's header row (spec 4.7): the ink tile, "Knowledge check" and, when the page has several quizzes, the position with one segment per quiz. */
+/** The knowledge check's header row: the ink tile, "Knowledge check" and, when the page has several quizzes, the position with one segment per quiz. */
 export function QuizHeader({ position }: { position: QuizPosition | null }) {
   return (
     <div className="not-prose flex items-center gap-2.5 border-b border-ac-rule px-[18px] py-[13px] max-md:flex-wrap max-md:gap-y-1.5">

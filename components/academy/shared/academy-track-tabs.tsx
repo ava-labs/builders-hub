@@ -13,7 +13,7 @@ interface AcademyTrackTabsProps {
 /**
  * The tab row under the landing header: each track with its course count, the active one on the red rule.
  * A div with the navigation role, not a nav element: app/global.css pads and recolours every `nav a`
- * with !important, which would move the tabs off the approved layout.
+ * with !important, which would move the tabs.
  * Below 768 px the row scrolls sideways only: with overflow-y left to auto, the tabs' -1 px margin over the
  * row's rule would give it a 1 px vertical scroll.
  * Keyboard focus draws a 2 px ink ring outside the tab, and inside it below 768 px, where the scrolling row

@@ -1,5 +1,5 @@
 /**
- * Academy callout marks (spec 4.3): the kind picks the icon's hue and the label shown above the
+ * Academy callout marks: the kind picks the icon's hue and the label shown above the
  * text; a callout whose own text opens with a label word, or a quote, gets no label.
  * Kinds follow fumadocs-ui's Callout (node_modules/fumadocs-ui/dist/components/callout.js:8-14):
  * no type is "info", "warn" is "warning", "tip" is "info".
@@ -16,7 +16,7 @@ export interface CalloutMarks {
 
 const KINDS: ReadonlySet<string> = new Set(['info', 'warning', 'error', 'success', 'idea', 'quote']);
 
-/** One label per kind (spec 7); "idea" shares warning's label, as the prototype's colour rule did. */
+/** One label per kind; "idea" shares warning's label, as it shares warning's gold glyph (academy-docs.css). */
 const LABELS: Readonly<Record<Exclude<CalloutKind, 'quote'>, CalloutLabel>> = {
   info: 'Note',
   warning: 'Caution',

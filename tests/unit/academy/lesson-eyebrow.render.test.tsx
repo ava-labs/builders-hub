@@ -48,7 +48,7 @@ describe('LessonEyebrow markup', () => {
     expect(tagWith(html, '>Lesson 2 of 3')).not.toMatch(/truncate|min-w-0/);
   });
 
-  it('names the course only below 1024 px (R6)', () => {
+  it('names the course only below 1024 px', () => {
     expect(tagWith(html, '>Blockchain Fundamentals</b>')).toContain('lg:hidden');
   });
 

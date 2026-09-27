@@ -5,7 +5,7 @@ import LearningTree, { treeEdges } from "@/components/academy/learning-tree";
 import { avalancheLearningPaths } from "@/components/academy/learning-path-configs/avalanche.config";
 import { coursesInOrder, courseUrl } from "@/components/academy/shared/academy-tracks";
 
-// Fixture stats in the C5 shape for two courses; the other cards get no entry.
+// Fixture stats, CourseStats by course url, for two courses; the other cards get no entry.
 const courseStats = {
   "/academy/avalanche-l1/avalanche-fundamentals": { modules: 4, lessons: 31 },
   "/academy/avalanche-l1/permissioned-l1s": { modules: 7, lessons: 40 },
@@ -38,7 +38,7 @@ describe("LearningTree server markup", () => {
     cardsFor("ERC20 Bridge").forEach((card) => expect(card).not.toContain("lessons"));
   });
 
-  it("renders no completed state before mount (Review Focus 2)", () => {
+  it("renders no completed state before mount", () => {
     expect(html).not.toContain("Completed");
     expect(html).not.toContain("bg-ac-ok");
   });

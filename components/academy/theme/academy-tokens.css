@@ -1,6 +1,5 @@
 /*
- * Academy design tokens (spec section 3; index contracts C1 to C3) and the rules that map fumadocs
- * onto them on the course pages (spec 4.1). Values come from spec section 3 and contract C3.
+ * Academy design tokens and the rules that map fumadocs onto them on the course pages.
  * Every rule starts with an Academy root:
  * data-academy="landing" on the track landings (components/academy/shared/academy-layout.tsx) and
  * data-academy="docs" on the course pages (app/academy/layout-wrapper.client.tsx). Dark values follow
@@ -8,7 +7,7 @@
  * app/global.css colour pins they override. This file holds the Academy's only literal colours.
  */
 
-/* Tokens, light (spec section 3, contract C3). */
+/* Tokens, light. */
 [data-academy] {
   --ac-ground: #ffffff;
   --ac-docs-ground: #ffffff;
@@ -40,22 +39,22 @@
   --ac-tint-orange: rgba(234, 88, 12, 0.09);
   --ac-hue-teal: #0d9488;
   --ac-tint-teal: rgba(13, 148, 136, 0.09);
-  /* Darker than the round 8 value #16a34a (2.98:1), so the glyph keeps 3:1 on its own tint: 3.07:1. */
+  /* Darker than #16a34a (2.98:1), so the glyph keeps 3:1 on its own tint: 3.07:1. */
   --ac-hue-green: #16a049;
   --ac-tint-green: rgba(22, 160, 73, 0.09);
-  /* Icon tile without a data-hue: ink on the tile (C3). */
+  /* Icon tile without a data-hue: ink on the tile. */
   --ac-h: var(--ac-ink);
   --ac-t: var(--ac-tile);
   /* Ink at 80%, what fumadocs' body text (text-fd-foreground/80) computes on the course pages; the
-     console tools keep it under the prose skin (spec 2 and 4.3). It follows --ac-ink, so dark needs
+     console tools keep it under the prose skin. It follows --ac-ink, so dark needs
      no value of its own. */
   --ac-ink-80: color-mix(in oklab, var(--ac-ink) 80%, transparent);
-  /* Mermaid labels on light author fills, the light ink in both themes, because the fills stay light
-     (spec 4.3); components/content-design/mermaid-light-fills.ts gives it to those labels. */
+  /* Mermaid labels on light author fills, the light ink in both themes, because the fills stay light;
+     components/content-design/mermaid-light-fills.ts gives it to those labels. */
   --ac-ink-on-light: #1f1f1f;
 }
 
-/* Tokens, dark (spec section 3, contract C3). */
+/* Tokens, dark. */
 .dark [data-academy] {
   --ac-ground: #0a0a0a;
   --ac-docs-ground: #121212;
@@ -71,7 +70,7 @@
   --ac-ok: #6fcf97;
   --ac-ok-bg: #14211a;
   --ac-code: #171717;
-  /* Lighter than the round 8 value: the phone table-of-contents bar is fixed and 80% opaque, so the
+  /* Lighter than #5f5f68: the phone table-of-contents bar is fixed and 80% opaque, so the
      ring's track must keep 3:1 while paper and code (#171717) scroll under it. 3.06:1 on #171717. */
   --ac-line: #64646d;
   --ac-hue-blue: #60a5fa;
@@ -90,7 +89,7 @@
   --ac-tint-green: rgba(74, 222, 128, 0.16);
 }
 
-/* Discipline hue, inside the icon tile only (spec section 3; contract C3). */
+/* Discipline hue, inside the icon tile only. */
 [data-academy] [data-hue="blue"] { --ac-h: var(--ac-hue-blue); --ac-t: var(--ac-tint-blue); }
 [data-academy] [data-hue="purple"] { --ac-h: var(--ac-hue-purple); --ac-t: var(--ac-tint-purple); }
 [data-academy] [data-hue="emerald"] { --ac-h: var(--ac-hue-emerald); --ac-t: var(--ac-tint-emerald); }
@@ -99,9 +98,9 @@
 [data-academy] [data-hue="teal"] { --ac-h: var(--ac-hue-teal); --ac-t: var(--ac-tint-teal); }
 [data-academy] [data-hue="green"] { --ac-h: var(--ac-hue-green); --ac-t: var(--ac-tint-green); }
 
-/* Course pages: fumadocs' colour variables follow the tokens (spec 4.1). The
+/* Course pages: fumadocs' colour variables follow the tokens. The
    shadcn variables (--background, --primary, --border and the rest) are not remapped: the embedded
-   console tools draw with them, and their internals keep their own look (spec 2 and 4.3). */
+   console tools draw with them, and their internals keep their own look. */
 [data-academy="docs"] {
   --color-fd-background: var(--ac-docs-ground);
   --color-fd-card: var(--ac-docs-ground);
@@ -123,7 +122,7 @@
 [data-academy] .text-fd-primary { color: var(--ac-ink); }
 [data-academy] .bg-fd-primary\/10 { background-color: color-mix(in oklab, var(--ac-ink) 10%, transparent); }
 /* :271-278 match no Academy element in fumadocs 16.0.15; inside the scope the element's own
-   utilities decide, so later phases' classes are not overridden. */
+   utilities decide, so classes added inside the Academy are not overridden. */
 [data-academy] h2.text-sm.font-medium { color: revert-layer; }
 [data-academy] .mb-2.inline-flex.size-7.items-center.justify-center.rounded-full.bg-fd-primary.font-medium.text-fd-primary-foreground { background-color: revert-layer; color: revert-layer; }
 /* :280-282, muted text (#737373 in both themes, 3.95:1 on the dark ground): ink-3, 7.3:1 in dark

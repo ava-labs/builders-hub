@@ -6,7 +6,7 @@ import type { AcademyLandingPageConfig } from './academy-types';
 
 interface AcademyLayoutProps {
     config: AcademyLandingPageConfig;
-    /** Lessons and modules per course url, computed by the track page from the page tree (index C8). */
+    /** Lessons and modules per course url, from the page tree: the track page reads them from lib/academy/course-stats.generated.ts. */
     courseStats: Record<string, CourseStats>;
     afterLearningPath?: ReactNode;
 }
@@ -14,7 +14,7 @@ interface AcademyLayoutProps {
 export function AcademyLayout({ config, courseStats, afterLearningPath }: AcademyLayoutProps) {
     return (
         <main className="relative w-full" data-academy="landing">
-            {/* The hub's ground (spec 4.2); HeroBackground stays on the other pages that use it. */}
+            {/* The hub's ground; HeroBackground stays on the other pages that use it. */}
             <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 bg-ac-ground" />
             <div className="pb-32 sm:pb-36">
                 <div className="mx-auto max-w-7xl px-6 lg:px-8">

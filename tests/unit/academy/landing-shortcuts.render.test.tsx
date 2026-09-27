@@ -9,7 +9,7 @@ const render = (pathType: "avalanche" | "blockchain") =>
 const cards = (html: string) => html.split("<a ").slice(1).map((segment) => `<a ${segment}`);
 /** The class list of a markup segment's first tag. */
 const classesOf = (markup: string) => (markup.match(/^<[^>]*?\bclass="([^"]*)"/)?.[1] ?? "").split(" ");
-/** The ruled keyboard focus ring: 2 px of ink, 2 px outside the control. */
+/** The keyboard focus ring: 2 px of ink, 2 px outside the control. */
 const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2", "focus-visible:outline-ac-ink"];
 
 describe("Quick Access in the card anatomy", () => {

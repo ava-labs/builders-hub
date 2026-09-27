@@ -26,7 +26,7 @@ export interface CourseNode {
 
 interface LearningTreeProps {
   pathType?: AcademyPathType;
-  /** Lessons and modules per course url, from the track page (index C8). */
+  /** Lessons and modules per course url, from the track page. */
   courseStats: Record<string, CourseStats>;
 }
 
@@ -41,7 +41,7 @@ const getCourseSlug = (fullSlug: string): string => {
 };
 
 // Lines leave a parent 95 px below its top, as before the reskin. Cards are now up to 139 px tall and their
-// paper covers that start, so each line appears at the card's bottom edge, as in the approved stills.
+// paper covers that start, so each line appears at the card's bottom edge.
 const EDGE_START = 95;
 // Lines end 5 px inside the child card, under its paper.
 const EDGE_END_INSET = 5;
@@ -103,7 +103,7 @@ interface TreeViewProps {
   completion: ReadonlyMap<string, boolean>;
 }
 
-/** The lines behind the desktop cards (C3): the line token at 1 px, lines into completed courses in the ok token at 1.5 px. */
+/** The lines behind the desktop cards: the line token at 1 px, lines into completed courses in the ok token at 1.5 px. */
 function TreeLines({ courses, completion, maxY }: { courses: readonly CourseNode[]; completion: ReadonlyMap<string, boolean>; maxY: number }) {
   return (
     <svg
@@ -189,14 +189,14 @@ export default function LearningTree({ pathType = 'avalanche', courseStats }: Le
   const ordered = React.useMemo(() => coursesInOrder(track.courses), [track]);
 
   // Course completion tracking (IndexedDB). The map stays empty until the hook's effect runs after
-  // mount, so the server markup is the neutral state (index Review Focus 2).
+  // mount, so the server markup is the neutral state.
   const courseEntries = React.useMemo(
     () => track.courses.map((node) => ({ nodeId: node.id, courseSlug: getCourseSlug(node.slug) })),
     [track],
   );
   const { completionMap } = useCourseCompletion(courseEntries);
 
-  // One number per course at every width: its place in the mobileOrder sort (spec 4.2).
+  // One number per course at every width: its place in the mobileOrder sort.
   const numbers = new Map(ordered.map((node, index) => [node.id, twoDigits(index + 1)]));
   const card = (node: CourseNode) =>
     cardContent(node, track, numbers.get(node.id) ?? "", courseStats, completionMap.get(node.id) === true);

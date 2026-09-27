@@ -1,7 +1,7 @@
 import type { CourseOutline, LessonPosition } from '@/lib/academy/course-outline';
 
 export interface LessonEyebrowText {
-  course: string;              // shown below 1024 px only (spec 4.5, R6)
+  course: string;              // shown below 1024 px only
   module: string | null;       // null without a module, or when the lesson title already names it
   position: string;            // "Lesson N of M"
   steps: { index: number; count: number } | null; // null for a lesson outside the modules of a course that has them

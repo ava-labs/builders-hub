@@ -5,7 +5,7 @@ import { blockchainCategoryStyles } from '@/components/academy/learning-path-con
 import { entrepreneurCategoryStyles } from '@/components/academy/learning-path-configs/entrepreneur.config';
 import { team1CategoryStyles } from '@/components/academy/learning-path-configs/team1.config';
 
-// Spec section 3: production's category colour to the Academy hue, per track and category.
+// Production's category colour to the Academy hue, per track and category.
 const EXPECTED: Record<string, Record<string, DisciplineHue>> = {
   avalanche: { Fundamentals: 'blue', Interoperability: 'purple', 'L1 Development': 'emerald', 'L1 Tokenomics': 'gold', 'VM Customization': 'orange' },
   blockchain: { Fundamentals: 'blue', Development: 'orange', Privacy: 'teal' },
@@ -24,7 +24,7 @@ const CATEGORIES = Object.entries(TRACKS).flatMap(([track, styles]) =>
   Object.entries(styles).map(([category, style]) => ({ track, category, gradient: style.gradient })),
 );
 
-describe('disciplineHue (index C4)', () => {
+describe('disciplineHue', () => {
   it('reads all 16 category gradients of the four track configs', () => {
     expect(CATEGORIES).toHaveLength(16);
   });

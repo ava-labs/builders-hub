@@ -3,7 +3,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { CourseStats } from '@/lib/academy/course-outline';
 
-/** What a course page tells the components in its MDX body (index C7): the course name and size, from the course outline. */
+/** What a course page tells the components in its MDX body: the course name and size, from the course outline. */
 export interface CourseOutlineFacts extends CourseStats {
   name: string;
 }

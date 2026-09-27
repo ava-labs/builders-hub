@@ -64,7 +64,7 @@ export interface QuizOptionProps {
   children: ReactNode;
 }
 
-/** One option as a radio row (spec 4.7). The option text stays in the last span. */
+/** One option as a radio row. The option text stays in the last span. */
 export function QuizOption({ state, marker, multiple, locked, onSelect, children }: QuizOptionProps) {
   return (
     <div
@@ -91,7 +91,7 @@ export function QuizOption({ state, marker, multiple, locked, onSelect, children
 }
 
 /**
- * The explanation panel (spec 4.7): the lightbulb, production's "Correct" or "Not Quite" label, the text.
+ * The explanation panel: the lightbulb, production's "Correct" or "Not Quite" label, the text.
  * The text's margin carries !important: the prose paragraph rule sits later in the utilities layer
  * than m-0 and would add 1.25em above and below it.
  */

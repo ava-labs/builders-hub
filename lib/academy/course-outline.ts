@@ -144,7 +144,7 @@ export function lessonPosition(outline: CourseOutline, url: string): LessonPosit
   return index === -1 ? null : { module: null, index: index + 1, count: outline.lessons.length };
 }
 
-/** The sidebar row that heads each module, with the module's number (used to number the sidebar, spec 4.3). */
+/** The sidebar row that heads each module, with the module's number (used to number the sidebar). */
 export function moduleHeads(course: Folder): { head: ModuleHead; number: string }[] {
   return buildCourse(course)?.heads ?? [];
 }

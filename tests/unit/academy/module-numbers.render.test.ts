@@ -33,7 +33,7 @@ describe('withModuleNumbers', () => {
     expect(headings(course(1, 0)).slice(0, 3)).toEqual(['01 Legal Foundations', '01b Security Fundamentals', '02 Business Model Canvas']);
   });
 
-  it('keeps the number whole and lets a long name wrap beside it, as the round 8 stills show', () => {
+  it('keeps the number whole and lets a long name wrap beside it', () => {
     const primer = course(0, 0).children[1];
     const html = label(primer.type === 'separator' ? primer.name : '');
     expect(html).toMatch(/^<span data-academy-part="module-number" class="[^"]*">01<\/span> Primer on Avalanche Consensus$/);
@@ -41,7 +41,7 @@ describe('withModuleNumbers', () => {
     expect(/data-academy-part="module-number" class="([^"]*)"/.exec(html)?.[1]).not.toMatch(/truncate|overflow/);
   });
 
-  it('marks the number for the harness and keeps pages and courses without modules as they are', () => {
+  it('marks the number with its data-academy-part attribute and keeps pages and courses without modules as they are', () => {
     const primer = course(0, 0).children[1];
     expect(primer.type).toBe('separator');
     expect(label(primer.type === 'separator' ? primer.name : '')).toContain('data-academy-part="module-number"');

@@ -5,16 +5,16 @@ import { compile } from 'tailwindcss';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Contract tests for the Academy design tokens (spec section 3; index contracts C1, C2, C3).
- * They read the CSS as text. The live cascade (scope roots, dark mode, nothing outside the
- * Academy) is checked on live pages by the token probe of the gate harness (contract C9).
+ * Contract tests for the Academy design tokens. They read the CSS as text, so the live cascade
+ * (scope roots, dark mode, nothing outside the Academy) is not checked here: that needs a browser
+ * on live pages.
  */
 
 const ROOT = process.cwd();
 const read = (file: string) => readFileSync(path.join(ROOT, file), 'utf8');
 const TOKENS_FILE = 'components/academy/theme/academy-tokens.css';
 
-// Index C3, spec section 3: name, light, dark.
+// Name, light, dark.
 const COLOR_TOKENS = [
   ['ground', '#ffffff', '#0a0a0a'],
   ['docs-ground', '#ffffff', '#121212'],
@@ -33,7 +33,7 @@ const COLOR_TOKENS = [
   ['line', '#909098', '#64646d'],
 ] as const;
 
-// Index C3 hues, spec section 3: hue, light colour, light tint, dark colour, dark tint.
+// Hues: hue, light colour, light tint, dark colour, dark tint.
 const HUES = [
   ['blue', '#2563eb', 'rgba(37, 99, 235, 0.09)', '#60a5fa', 'rgba(96, 165, 250, 0.16)'],
   ['purple', '#7c3aed', 'rgba(124, 58, 237, 0.09)', '#a78bfa', 'rgba(167, 139, 250, 0.16)'],
@@ -62,7 +62,7 @@ function themeInlineBlock(): string {
   return block.toString();
 }
 
-describe('Academy tokens (index C3)', () => {
+describe('Academy tokens', () => {
   it.each(COLOR_TOKENS)('defines --ac-%s as %s in light and %s in dark', (name, light, dark) => {
     const css = read(TOKENS_FILE);
     expect(declarations(css, '[data-academy]')[`--ac-${name}`]).toBe(light);
@@ -98,16 +98,16 @@ describe('Academy tokens (index C3)', () => {
     });
   });
 
-  it('scopes every rule to an Academy root and wraps none in an at-rule (index C1)', () => {
+  it('scopes every rule to an Academy root and wraps none in an at-rule', () => {
     const nodes = postcss.parse(read(TOKENS_FILE)).nodes;
-    // Unlayered and top level on purpose: the app/global.css pins it overrides (contract C2) are unlayered.
+    // Unlayered and top level on purpose: the app/global.css pins it overrides are unlayered.
     expect(nodes.filter((node) => node.type === 'atrule')).toEqual([]);
     const outside = nodes.filter(isRule).flatMap((rule) => rule.selectors).filter((s) => !/^(\.dark )?\[data-academy[\]=]/.test(s));
     expect(outside).toEqual([]);
   });
 });
 
-describe('Academy Tailwind utilities (index C3)', () => {
+describe('Academy Tailwind utilities', () => {
   it('registers every colour token and both type tokens in @theme inline', async () => {
     const { build } = await compile(`${themeInlineBlock()}\n@tailwind utilities;`);
     const names = [...COLOR_TOKENS.map(([name]) => name), 'h', 't'];
@@ -119,7 +119,7 @@ describe('Academy Tailwind utilities (index C3)', () => {
   });
 });
 
-describe('Academy stylesheet imports (index C2)', () => {
+describe('Academy stylesheet imports', () => {
   const IMPORT = "import '@/components/academy/theme/academy-tokens.css';";
 
   it('loads the tokens on the course pages after the course-page stylesheets', () => {
@@ -133,7 +133,7 @@ describe('Academy stylesheet imports (index C2)', () => {
   });
 });
 
-describe('fumadocs colour remap on the course pages (spec 4.1)', () => {
+describe('fumadocs colour remap on the course pages', () => {
   it('maps the fumadocs colour variables to the tokens on [data-academy="docs"]', () => {
     expect(declarations(read(TOKENS_FILE), '[data-academy="docs"]')).toEqual({
       '--color-fd-background': 'var(--ac-docs-ground)',

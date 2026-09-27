@@ -6,7 +6,7 @@ const nav = vi.hoisted(() => ({ pathname: '/academy' }));
 vi.mock('next/navigation', () => ({ usePathname: () => nav.pathname }));
 
 // Children that need a session, a browser or fumadocs' providers are stubbed; this file
-// tests the two scope roots only (index contract C1).
+// tests the two scope roots only.
 vi.mock('@/components/academy/shared/academy-learning-path', () => ({ AcademyLearningPath: () => 'LEARNING_PATH' }));
 vi.mock('fumadocs-ui/layouts/notebook', () => ({ DocsLayout: ({ children }: { children: ReactNode }) => children }));
 vi.mock('@/components/navigation/navbar-dropdown-injector', () => ({ NavbarDropdownInjector: () => null }));
@@ -21,7 +21,7 @@ import { avalancheDeveloperAcademyLandingPageConfig } from '@/app/(home)/academy
 /** The first opening tag of the markup. */
 const firstTag = (html: string) => html.slice(0, html.indexOf('>') + 1);
 
-describe('Academy scope roots (index C1)', () => {
+describe('Academy scope roots', () => {
   it('puts data-academy="landing" on the element that wraps the whole landing', () => {
     nav.pathname = '/academy';
     const html = renderToStaticMarkup(createElement(AcademyLayout, { config: avalancheDeveloperAcademyLandingPageConfig, courseStats: {} }));

@@ -1,8 +1,8 @@
 import { SquareTerminal } from 'lucide-react';
 
 /**
- * The caption row above an embedded console tool (spec 4.3): the terminal tile and "Interactive
- * exercise". The frame's own header already names the Builder Console, so the caption does not.
+ * The caption row above an embedded console tool: the terminal tile and "Interactive exercise".
+ * The frame's own header already names the Builder Console, so the caption does not.
  */
 export function ConsoleExerciseCaption() {
   return (

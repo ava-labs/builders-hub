@@ -51,7 +51,7 @@ export default function EntrepreneurAcademyPage(): React.ReactElement {
                                         className="group relative flex flex-col rounded-xl border border-ac-rule bg-ac-paper p-6 hover:border-ac-ink transition-colors duration-200 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ac-ink"
                                     >
                                         <div className="flex items-start justify-between mb-4">
-                                            {/* 16 px with text-lg's line height (1.5556), as the approved card */}
+                                            {/* 16 px with text-lg's line height (1.5556) */}
                                             <h3 className="font-semibold text-[16px] leading-[1.5556] text-ac-ink pr-4">
                                                 {blog.title}
                                             </h3>

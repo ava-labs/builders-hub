@@ -96,7 +96,7 @@ describe("CourseCard", () => {
 });
 
 describe("card footer text", () => {
-  it("shortens durations as the approved cards print them", () => {
+  it("shortens hours to h and minutes to min", () => {
     expect(shortDuration("1 hour")).toBe("1 h");
     expect(shortDuration("2 hours")).toBe("2 h");
     expect(shortDuration("1.5 hours")).toBe("1.5 h");

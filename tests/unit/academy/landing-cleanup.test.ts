@@ -15,7 +15,7 @@ function sources(dir: string): string[] {
   });
 }
 
-describe("phase 5 cleanup", () => {
+describe("removed landing rail, badge fetch and legend", () => {
   it.each(DELETED)("%s is gone", (file) => {
     expect(existsSync(join(ROOT, file))).toBe(false);
   });

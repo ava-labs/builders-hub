@@ -80,7 +80,7 @@ describe('CertificateCredential', () => {
     expect(html).toContain('border border-ac-ink');
   });
 
-  it('keeps the credential out of the prose heading margins, so the frame keeps the approved height', () => {
+  it('keeps the credential out of the prose heading margins, so they cannot change the frame height', () => {
     expect(render()).toMatch(/^<div class="not-prose /);
   });
 

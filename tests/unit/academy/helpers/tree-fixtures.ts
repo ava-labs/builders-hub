@@ -79,7 +79,7 @@ export const erc20 = folder('ERC20 Bridge', [
 
 const ENT = '/academy/entrepreneur/foundations-web3-venture';
 
-/** Entrepreneur modules numbered by their folders (X2). */
+/** Entrepreneur modules numbered by their folders. */
 export const foundations = folder('Foundations', [
   page(ENT, 'Entrepreneur Academy'),
   sep('Legal Foundations'),

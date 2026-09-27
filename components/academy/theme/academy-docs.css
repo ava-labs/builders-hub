@@ -1,7 +1,6 @@
 /*
- * Academy course pages: the G2 "Programme" skin for fumadocs internals, prose and MDX blocks
- * (reskin phase 2; values follow the approved round 8 stills). Every selector starts with
- * [data-academy="docs"], the course page root, and every colour is an --ac-* token
+ * Academy course pages: the skin for fumadocs internals, prose and MDX blocks. Every selector
+ * starts with [data-academy="docs"], the course page root, and every colour is an --ac-* token
  * (academy-tokens.css). Unlayered, so these rules win over fumadocs' layered utilities; !important
  * appears only where an !important rule, an inline style or a chart's own stylesheet competes.
  */
@@ -19,7 +18,7 @@
 /* ---------- Sidebar: desktop column and phone drawer ---------- */
 
 /* Course button: "Course" above the course name, no course icon, the card border on paper. The
-   padding stays at production's 8px (critical.css and styles.css pin it), as the stills show. */
+   padding stays at production's 8px (critical.css and styles.css pin it). */
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] {
   border: 1px solid var(--ac-rule);
   border-radius: 10px;
@@ -77,11 +76,11 @@
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] div[data-state] > div[data-state]::before,
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] a[data-active]::before { content: none; }
 
-/* Section headings read ink, as the stills show. They inherit the page's shadcn --foreground, which
+/* Section headings read ink. They inherit the page's shadcn --foreground, which
    the tokens leave unmapped because the console tools draw with it. */
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] p.inline-flex.items-center.gap-2 { color: var(--ac-ink); }
 
-/* Every section heading takes the round 8 heading type (spec 4.3), numbered or not, so a module's
+/* Every section heading takes 12.5px at weight 600, numbered or not, so a module's
    number fits beside its name; the number keeps its own 11px mono at weight 400. In the drawer the
    headings are inline boxes on the drawer's 15px lines: top alignment keeps each heading's top where
    it was, so the smaller type shortens the heading's line by the heading's own height change and
@@ -92,7 +91,7 @@
   vertical-align: top;
 }
 
-/* The round 8 heading spacing (spec 4.3, as the stills show): 22px above a heading where fumadocs
+/* Heading spacing: 22px above a heading where fumadocs
    gives mt-6 (24px); the first heading of a list keeps fumadocs' 0. */
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] p.inline-flex.items-center.gap-2.mt-6 { margin-top: 22px; }
 
@@ -108,7 +107,7 @@
 
 /* Below 1280 px the column becomes the bar above the article. fumadocs draws the track of its
    progress ring in the text colour at 25%, under 3:1 on the ground; the track takes the line token
-   (spec section 3) and the progress arc takes ink, so the position reads against the track. */
+   and the progress arc takes ink, so the position reads against the track. */
 [data-academy="docs"] #nd-tocnav svg[role="progressbar"] > circle:first-child { stroke: var(--ac-line); }
 [data-academy="docs"] #nd-tocnav svg[role="progressbar"] > circle:last-child { stroke: var(--ac-ink); }
 
@@ -121,7 +120,7 @@
 }
 
 /* Page actions outlined, Edit on GitHub in ink. The link-shaped actions (Report Issue, the
-   Telegram chat) read in the secondary grey, as the stills show. */
+   Telegram chat) read in the secondary grey. */
 [data-academy="docs"] #nd-toc :is([data-slot="button"], [data-slot="dropdown-menu-trigger"]),
 [data-academy="docs"] #nd-toc a[href*="t.me"] {
   border: 1px solid var(--ac-rule);
@@ -157,8 +156,8 @@
 [data-academy="docs"] #nd-page article > div.border-y :is(button, textarea) { border-color: var(--ac-rule); }
 [data-academy="docs"] #nd-page article > div.border-y button { color: var(--ac-ink-2); }
 
-/* The feedback question and the prev/next title rows (the page name and its chevron) read ink, as the
-   stills show, instead of the page's shadcn --foreground; a card's description keeps ink-3. */
+/* The feedback question and the prev/next title rows (the page name and its chevron) read ink
+   instead of the page's shadcn --foreground; a card's description keeps ink-3. */
 [data-academy="docs"] #nd-page article > div.border-y p.text-sm.font-medium,
 [data-academy="docs"] #nd-page article > div.grid > a > div.font-medium { color: var(--ac-ink); }
 
@@ -219,7 +218,7 @@
   color: var(--ac-ink-2);
 }
 
-/* Console tool text keeps its type (spec 2 and 4.3: console internals untouched). The prose above
+/* Console tool text keeps its type (console internals stay untouched). The prose above
    reaches it by inheritance, so the frame takes back what the prose gave it before this skin:
    fumadocs' 1rem on 1.75rem, in the body colour (text-fd-foreground/80, the --ac-ink-80 token). An
    accordion body (role="region") sets its own size, 0.9375rem, which a console inside it keeps. */
@@ -256,7 +255,7 @@
 
 /* Content links. Console tools keep their own links, and so does the certificate block (the
    CertificatePage root, [data-certificate-page] in components/quizzes/certificates.tsx), which the
-   certificate pages restyle (spec 4.8). */
+   certificate pages restyle. */
 [data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a) {
   color: var(--ac-ink);
   text-decoration-color: var(--ac-rule-2);
@@ -479,7 +478,7 @@
 [data-academy="docs"] .prose svg[id^="mmd-"] :is(.edgePath path, .flowchart-link, line, .messageLine0, .messageLine1) { stroke: var(--ac-ink-3) !important; }
 [data-academy="docs"] .prose svg[id^="mmd-"] :is(text, .nodeLabel) { fill: var(--ac-ink) !important; color: var(--ac-ink) !important; }
 
-/* Course overview (spec 4.6): the facts row under the description carries the rule, so the
+/* Course overview: the facts row under the description carries the rule, so the
    description keeps none of its own margin, padding or rule. */
 [data-academy="docs"] #nd-page article > [data-academy-part="course-head"] + h1 + p {
   margin-bottom: 0 !important;

@@ -16,7 +16,7 @@ interface AcademyLandingHeaderProps {
     pathType: AcademyPathType;
 }
 
-/** The landing header (spec 4.2): title, line, the button to card 01's course, then the track tabs. */
+/** The landing header: title, line, the button to card 01's course, then the track tabs. */
 export function AcademyLandingHeader({ pathType }: AcademyLandingHeaderProps) {
     const heading = TRACK_HEADINGS[pathType];
     const [firstCourse] = coursesInOrder(getAcademyTrack(pathType).courses);

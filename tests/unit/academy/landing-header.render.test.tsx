@@ -12,7 +12,7 @@ import { blockchainAcademyLandingPageConfig } from "@/app/(home)/academy/blockch
 import { entrepreneurAcademyLandingPageConfig } from "@/app/(home)/academy/entrepreneur/config";
 import { team1AcademyLandingPageConfig } from "@/app/(home)/academy/team1/config";
 
-// No stats: the cards render without counts (index C8); Task 6's test covers the counts.
+// No stats: the cards render without counts; learning-tree.render.test.tsx covers the counts.
 const render = (config: AcademyLandingPageConfig) =>
   renderToStaticMarkup(createElement(AcademyLayout, { config, courseStats: {} }));
 /** The markup of the first anchor that contains `text`, up to the next anchor. */
@@ -20,7 +20,7 @@ const anchor = (html: string, text: string) =>
   html.split("<a ").map((segment) => `<a ${segment}`).find((segment) => segment.includes(text)) ?? "";
 /** The class list of a markup segment's first tag. */
 const classesOf = (markup: string) => (markup.match(/^<[^>]*?\bclass="([^"]*)"/)?.[1] ?? "").split(" ");
-/** The ruled keyboard focus ring: 2 px of ink, 2 px outside the control. */
+/** The keyboard focus ring: 2 px of ink, 2 px outside the control. */
 const FOCUS_RING = ["focus-visible:outline-2", "focus-visible:outline-offset-2", "focus-visible:outline-ac-ink"];
 
 // [track, its landing config, the title and the line the landing has always shown]

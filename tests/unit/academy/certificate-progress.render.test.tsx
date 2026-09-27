@@ -38,7 +38,7 @@ describe('CertificateProgress', () => {
     expect(html).toContain('style="width:0%"');
   });
 
-  it('keeps the card out of the prose paragraph margins, so its lines sit as the approved box has them', () => {
+  it('keeps the card out of the prose paragraph margins, so they cannot move its lines', () => {
     const html = renderToStaticMarkup(createElement(CertificateProgress, { completed: 5, total: 14 }));
     expect(html).toMatch(/^<div class="not-prose /);
   });
@@ -81,7 +81,7 @@ describe('QuestionTitle', () => {
     expect(html).toContain('bg-ac-ok');
     expect(html).toContain('lucide-check');
     expect(html).toContain('<span>What is a Double Spending Attack?</span>');
-    // D6: the mark tells screen readers its status.
+    // The mark tells screen readers its status.
     expect(html).toContain('<span class="sr-only">Answered correctly</span>');
     expect(html).not.toContain('Not answered yet');
     expect(html).not.toMatch(HIDDEN_NON_ICON);
@@ -94,7 +94,7 @@ describe('QuestionTitle', () => {
     expect(html).toContain('border-ac-ink-3');
     expect(html).not.toContain('lucide-check');
     expect(html).not.toContain('bg-ac-ok');
-    // D6: the empty ring tells screen readers its status.
+    // The empty ring tells screen readers its status.
     expect(html).toContain('<span class="sr-only">Not answered yet</span>');
     expect(html).not.toContain('Answered correctly');
     expect(html).not.toMatch(HIDDEN_NON_ICON);

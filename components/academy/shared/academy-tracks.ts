@@ -8,7 +8,7 @@ import type { AcademyPathType } from './academy-types';
 
 export interface AcademyTrack {
     id: AcademyPathType;
-    /** The url segment, also the course outline's track key (index C5). */
+    /** The url segment, also the course outline's track key. */
     segment: string;
     label: string;
     href: string;
@@ -42,7 +42,7 @@ export function visibleAcademyTracks(
     return ACADEMY_TRACKS.filter((track) => track.id !== 'team1');
 }
 
-/** A course's landing url, resolved as the learning tree always has (index C8). */
+/** A course's landing url, resolved as the learning tree always has. */
 export function courseUrl(pathType: AcademyPathType, slug: string): string {
     if (pathType === 'entrepreneur') return `/academy/entrepreneur/${slug.replace(/^entrepreneur\//, '')}`;
     return `/academy/${slug}`;

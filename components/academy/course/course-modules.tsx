@@ -23,7 +23,7 @@ function ModuleTile({ courseModule }: { courseModule: OutlineModule }) {
   );
 }
 
-/** "Modules": one numbered tile per module, as the sidebar numbers them, linking to its first lesson (spec 4.6). */
+/** "Modules": one numbered tile per module, as the sidebar numbers them, linking to its first lesson. */
 export function CourseModules({ outline }: { outline: CourseOutline }) {
   if (outline.modules.length === 0) return null;
   return (
