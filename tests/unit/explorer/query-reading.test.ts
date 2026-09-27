@@ -56,6 +56,13 @@ describe('designVisual', () => {
       [false, true],
     ]);
   });
+
+  it('asks the designer for low effort on every call', async () => {
+    vi.mocked(generateText).mockImplementationOnce(designs(false)).mockImplementationOnce(designs(true));
+    await designVisual(input);
+    const efforts = vi.mocked(generateText).mock.calls.map((c) => (c[0] as { providerOptions?: { anthropic?: { effort?: string } } }).providerOptions?.anthropic?.effort);
+    expect(efforts).toEqual(['low', 'low']);
+  });
 });
 
 describe('writeReading', () => {
