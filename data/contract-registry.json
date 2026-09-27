@@ -12,7 +12,9 @@
       "name": "Joe Factory V1",
       "protocol": "Trader Joe",
       "category": "dex",
-      "type": "factory"
+      "type": "factory",
+      "family": "univ2",
+      "version": "v1"
     },
     {
       "address": "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd",
@@ -54,7 +56,10 @@
       "name": "LB Factory V2.0",
       "protocol": "Trader Joe",
       "category": "dex",
-      "type": "factory"
+      "type": "factory",
+      "family": "lb-v2.0",
+      "version": "LB v2.0",
+      "active": false
     },
     {
       "address": "0xe3ffc583dc176575eea7fd9df2a7c65f7e23f4c3",
@@ -68,7 +73,9 @@
       "name": "LB Factory V2.1",
       "protocol": "Trader Joe",
       "category": "dex",
-      "type": "factory"
+      "type": "factory",
+      "family": "lb",
+      "version": "LB v2.1"
     },
     {
       "address": "0xb4315e873dbcf96ffd0acd8ea43f689d8c20fb30",
@@ -89,7 +96,9 @@
       "name": "LB Factory V2.2",
       "protocol": "Trader Joe",
       "category": "dex",
-      "type": "factory"
+      "type": "factory",
+      "family": "lb",
+      "version": "LB v2.2"
     },
     {
       "address": "0x18556da13313f3532c54711497a8fedac273220e",
@@ -145,7 +154,9 @@
       "name": "Pangolin Factory",
       "protocol": "Pangolin",
       "category": "dex",
-      "type": "factory"
+      "type": "factory",
+      "family": "univ2",
+      "version": "v2"
     },
     {
       "address": "0x60781c2586d68229fde47564546784ab3faca982",
@@ -421,18 +432,27 @@
       "type": "router"
     },
     {
-      "address": "0x020630613e296c3e9b06186f630d1bf97a2b6ad1",
+      "address": "0x4c4af8dbc524681930a27b2f1af5bcc8062e6fb7",
       "name": "WooRouterV2",
       "protocol": "WOOFi",
       "category": "dex",
       "type": "router"
     },
     {
+      "address": "0x020630613e296c3e9b06186f630d1bf97a2b6ad1",
+      "name": "IntegrationHelper",
+      "protocol": "WOOFi",
+      "category": "dex",
+      "type": "other"
+    },
+    {
       "address": "0x3b3e4b4741e91af52d0e9ad8660573e951c88524",
       "name": "WooPPV2",
       "protocol": "WOOFi",
       "category": "dex",
-      "type": "pool"
+      "type": "pool",
+      "family": "woofi",
+      "version": "WooPPV2 (2022)"
     },
     {
       "address": "0x5aa6a4e96a9129562e2fc06660d07feddaaf7854",
@@ -558,7 +578,9 @@
       "name": "SushiSwap Factory",
       "protocol": "SushiSwap",
       "category": "dex",
-      "type": "factory"
+      "type": "factory",
+      "family": "univ2",
+      "version": "v2"
     },
     {
       "address": "0x4c5e62f95b6686ffef2d6753e05a47fa0dc7bdc7",
@@ -884,10 +906,15 @@
     },
     {
       "address": "0x1128f23d0bc0a8396e9fbc3c0c68f5ea228b8256",
-      "name": "Pangolin Contract",
+      "name": "Pangolin V3 Factory",
       "protocol": "Pangolin",
       "category": "dex",
-      "type": "other"
+      "type": "factory",
+      "family": "univ3",
+      "version": "v3",
+      "positions": [
+        "0xf40937279f38d0c1f97afa5919f1cb3cb7f06a7f"
+      ]
     },
     {
       "address": "0x1231deb6f5749ef6ce6943a275a1d3e7486f4eae",
@@ -1010,15 +1037,15 @@
     },
     {
       "address": "0x3fed017ec0f5517cdf2e8a9a4156c64d74252146",
-      "name": "NonfungiblePositionManager",
-      "protocol": "Pharaoh",
+      "name": "CL Position Manager V1 (Algebra NonfungiblePositionManager)",
+      "protocol": "Blackhole DEX",
       "category": "dex",
-      "type": "router"
+      "type": "other"
     },
     {
       "address": "0xa47ad2c95fae476a73b85a355a5855adb4b3a449",
       "name": "FarmingCenter",
-      "protocol": "Pharaoh",
+      "protocol": "Blackhole DEX",
       "category": "dex",
       "type": "staking"
     },
@@ -1163,7 +1190,7 @@
       "name": "RamsesV3PositionManager",
       "protocol": "Pharaoh",
       "category": "dex",
-      "type": "router"
+      "type": "other"
     },
     {
       "address": "0xd0175063773f80910c87c4a69663a00e622b0745",
@@ -1543,6 +1570,24 @@
       "protocol": "WOOFi",
       "category": "dex",
       "type": "other"
+    },
+    {
+      "address": "0x5520385bfcf07ec87c4c53a7d8d65595dff69fa4",
+      "name": "WooPPV2.2",
+      "protocol": "WOOFi",
+      "category": "dex",
+      "type": "pool",
+      "family": "woofi",
+      "version": "WooPPV2.2"
+    },
+    {
+      "address": "0xed9e3f98bbed560e66b89aac922e29d4596a9642",
+      "name": "WooPPV2 (2024)",
+      "protocol": "WOOFi",
+      "category": "dex",
+      "type": "pool",
+      "family": "woofi",
+      "version": "WooPPV2 (2024)"
     },
     {
       "address": "0x3bc36a0ea51b95597174bce8b05025d1a5c0df9e",
@@ -2109,8 +2154,44 @@
     },
     {
       "address": "0xe30d0c8532721551a51a9fec7fb233759964d9e3",
-      "name": "TransparentUpgradeableProxy (Pharaoh deployer)",
-      "protocol": "Pharaoh",
+      "name": "VoterV3",
+      "protocol": "Blackhole DEX",
+      "category": "dex",
+      "type": "controller"
+    },
+    {
+      "address": "0x512eb749541b7cf294be882d636218c84a5e9e5f",
+      "name": "Blackhole CL Factory (AlgebraFactory)",
+      "protocol": "Blackhole DEX",
+      "category": "dex",
+      "type": "factory",
+      "family": "algebra",
+      "version": "CL",
+      "positions": [
+        "0xfd1c727d8a2259493c66899f478ebfea41329545",
+        "0x3fed017ec0f5517cdf2e8a9a4156c64d74252146"
+      ]
+    },
+    {
+      "address": "0xfe926062fb99ca5653080d6c14fe945ad68c265c",
+      "name": "Blackhole Pair Factory",
+      "protocol": "Blackhole DEX",
+      "category": "dex",
+      "type": "factory",
+      "family": "solidly",
+      "version": "AMM"
+    },
+    {
+      "address": "0x9eed160d7d8253dec1a2a512e504de5e7ff3c111",
+      "name": "RouterV2",
+      "protocol": "Blackhole DEX",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0xfd1c727d8a2259493c66899f478ebfea41329545",
+      "name": "CL Position Manager V2 (Algebra NonfungiblePositionManager)",
+      "protocol": "Blackhole DEX",
       "category": "dex",
       "type": "other"
     },
@@ -2261,10 +2342,17 @@
     },
     {
       "address": "0x5485a0751a249225d3ba2f6f296551507e22547f",
-      "name": "SwapRouter",
-      "protocol": "Infrastructure",
+      "name": "Pangolin V3 SwapRouter",
+      "protocol": "Pangolin",
       "category": "dex",
       "type": "router"
+    },
+    {
+      "address": "0xf40937279f38d0c1f97afa5919f1cb3cb7f06a7f",
+      "name": "Pangolin V3 NonfungiblePositionManager",
+      "protocol": "Pangolin",
+      "category": "dex",
+      "type": "other"
     },
     {
       "address": "0xb300000b72deaeb607a12d5f54773d1c19c7028d",
@@ -2422,10 +2510,10 @@
     },
     {
       "address": "0xaaa45c8f5ef92a000a121d102f4e89278a711faa",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "Pharaoh Legacy Router",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "router"
     },
     {
       "address": "0x66a8cb6c4230b044378ac3676d47ed4fe18e3cfb",
@@ -2617,6 +2705,39 @@
       "type": "other"
     },
     {
+      "address": "0x3e603c14af37ebdad31709c4f848fc6ad5bec715",
+      "name": "SushiSwap V3 Factory",
+      "protocol": "SushiSwap",
+      "category": "dex",
+      "type": "factory",
+      "family": "univ3",
+      "version": "v3",
+      "positions": [
+        "0x18350b048ab366ed601ffdbc669110ecb36016f3"
+      ]
+    },
+    {
+      "address": "0x18350b048ab366ed601ffdbc669110ecb36016f3",
+      "name": "SushiSwap V3 NonfungiblePositionManager",
+      "protocol": "SushiSwap",
+      "category": "dex",
+      "type": "other"
+    },
+    {
+      "address": "0x8e4638eefee96732c56291fbf48bbb98725c6b31",
+      "name": "SushiSwap V3 SwapRouter",
+      "protocol": "SushiSwap",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0xc10ee9031f2a0b84766a86b55a8d90f357910fb4",
+      "name": "RouteProcessor RP11",
+      "protocol": "SushiSwap",
+      "category": "dex",
+      "type": "router"
+    },
+    {
       "address": "0x6228947dab1ec28a3106600abaa223cfd01a6f9c",
       "name": "DexFiKeeper",
       "protocol": "DexFi",
@@ -2643,6 +2764,85 @@
       "protocol": "Pharaoh",
       "category": "dex",
       "type": "router"
+    },
+    {
+      "address": "0xae6e5c62328ade73ceefd42228528b70c8157d0d",
+      "name": "Pharaoh V3 CL Factory (RamsesV3Factory)",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "factory",
+      "family": "cl-ramses",
+      "version": "V3",
+      "positions": [
+        "0x0b4478e810d48b5882d4019d435a2f864bab4f39"
+      ]
+    },
+    {
+      "address": "0xeb480050b016f6c6d45203d2346b68bddda23d4d",
+      "name": "Pharaoh DLMM Factory",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "factory",
+      "family": "lb",
+      "version": "DLMM"
+    },
+    {
+      "address": "0x85448bf2f589ab1f56225df5167c63f57758f8c1",
+      "name": "Pharaoh V3 Pair Factory",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "factory",
+      "family": "univ2",
+      "version": "V3 legacy pairs"
+    },
+    {
+      "address": "0xaaa32926fce6be95ea2c51cb4fcb60836d320c42",
+      "name": "Pharaoh Legacy CL Factory",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "factory",
+      "family": "univ3",
+      "version": "CL (old)",
+      "positions": [
+        "0xaaa78e8c4241990b4ce159e105da08129345946a"
+      ]
+    },
+    {
+      "address": "0xaaa16c016bf556fcd620328f0759252e29b1ab57",
+      "name": "Pharaoh Legacy Pair Factory",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "factory",
+      "family": "solidly",
+      "version": "v1 pairs (old)"
+    },
+    {
+      "address": "0x9cee04bdce127da7e448a333f006defb3d5e38cc",
+      "name": "Pharaoh V3 Router",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0xff2befc4ff86cb0f3e8d3d9d6200b7a05bf5d93d",
+      "name": "Pharaoh DLMM Router",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0xaaae99091fbb28d400029052821653c1c752483b",
+      "name": "Pharaoh Legacy CL SwapRouter",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0xaaa78e8c4241990b4ce159e105da08129345946a",
+      "name": "Pharaoh Legacy CL Position Manager",
+      "protocol": "Pharaoh",
+      "category": "dex",
+      "type": "other"
     },
     {
       "address": "0x7caf521af2969d8cab7b399b68dd7e7c037fc3ff",
@@ -2685,6 +2885,22 @@
       "protocol": "Arena",
       "category": "token",
       "type": "other"
+    },
+    {
+      "address": "0xf16784dcaf838a3e16bef7711a62d12413c39bd1",
+      "name": "Arena DEX Factory",
+      "protocol": "Arena",
+      "category": "dex",
+      "type": "factory",
+      "family": "univ2",
+      "version": "AMM"
+    },
+    {
+      "address": "0xf56d524d651b90e4b84dc2fffd83079698b9066e",
+      "name": "Arena DEX Router",
+      "protocol": "Arena",
+      "category": "dex",
+      "type": "router"
     },
     {
       "address": "0x7773721134c27a33a2c30e02e6b0130900000000",
@@ -2830,7 +3046,61 @@
       "name": "Pool Manager V4",
       "protocol": "Uniswap",
       "category": "dex",
-      "type": "controller"
+      "type": "controller",
+      "family": "univ4",
+      "version": "v4",
+      "positions": [
+        "0xb74b1f14d2754acfcbbe1a221023a5cf50ab8acd"
+      ]
+    },
+    {
+      "address": "0x9e5a52f57b3038f1b8eee45f28b3c1967e22799c",
+      "name": "Uniswap V2 Factory",
+      "protocol": "Uniswap",
+      "category": "dex",
+      "type": "factory",
+      "family": "univ2",
+      "version": "v2"
+    },
+    {
+      "address": "0x740b1c1de25031c31ff4fc9a62f554a55cdc1bad",
+      "name": "Uniswap V3 Factory",
+      "protocol": "Uniswap",
+      "category": "dex",
+      "type": "factory",
+      "family": "univ3",
+      "version": "v3",
+      "positions": [
+        "0x655c406ebfa14ee2006250925e54ec43ad184f8b"
+      ]
+    },
+    {
+      "address": "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+      "name": "UniswapV2Router02",
+      "protocol": "Uniswap",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0x8b844f885672f333bc0042cb669255f93a4c1e6b",
+      "name": "UniversalRouter 2.1.1",
+      "protocol": "Uniswap",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0x661e93cca42afacb172121ef892830ca3b70f08d",
+      "name": "UniversalRouter 2.1.2",
+      "protocol": "Uniswap",
+      "category": "dex",
+      "type": "router"
+    },
+    {
+      "address": "0xb74b1f14d2754acfcbbe1a221023a5cf50ab8acd",
+      "name": "PositionManager V4",
+      "protocol": "Uniswap",
+      "category": "dex",
+      "type": "other"
     },
     {
       "address": "0x191c10aa4af7c30e871e70c95db0e4eb77237530",
