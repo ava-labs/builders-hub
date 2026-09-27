@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/explorer/query/warm",
-      "schedule": "30 5 * * *"
+      "schedule": "30 */6 * * *"
     }
   ],
   "functions": {

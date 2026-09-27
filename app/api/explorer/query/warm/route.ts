@@ -26,8 +26,8 @@ const QUEUE = Array.from({ length: Math.max(EXAMPLE_PROMPTS.length, PCHAIN_PROMP
   ...(i < EXAMPLE_PROMPTS.length ? [{ chain: CCHAIN, prompt: EXAMPLE_PROMPTS[i] }] : []),
   ...(i < PCHAIN_PROMPTS.length ? [{ chain: PCHAIN, prompt: PCHAIN_PROMPTS[i] }] : []),
 ]).flat();
-/** stop taking new questions this long before the function is cut off */
-const BUDGET_MS = 240_000;
+/** stop taking new questions after this long, so the slowest answer seen (about 160 s) still ends before the cutoff at 300 s */
+const BUDGET_MS = 140_000;
 /** the guard's refusal of a wide table read with no time or height bound */
 const UNBOUND = /^bound\b/i;
 
