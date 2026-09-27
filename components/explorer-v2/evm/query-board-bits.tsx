@@ -214,6 +214,31 @@ function Glyph({ tile }: { tile: Tile }) {
     );
   const panel = tile.panelIndex !== null ? tile.visual.panels[tile.panelIndex] : tile.visual.panels[0];
   const kind = tile.view ?? panel?.kind ?? "table";
+  if (kind === "flow")
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        {/* bands from the senders on the left to the receivers on the right; the largest, drawn last, in the accent */}
+        {[[13, 5, 3], [17, 16.5, 2], [5.5, 13, 5]].map(([a, b, w], i) => (
+          <path key={i} d={`M5 ${a} C20 ${a} 20 ${b} 35 ${b}`} fill="none" strokeWidth={w} className={i === 2 ? "stroke-[#E6212F]/45" : "stroke-zinc-300 dark:stroke-zinc-600"} />
+        ))}
+        {[[3, 3, 5], [3, 11.5, 3], [3, 16, 2], [35, 3.5, 3], [35, 10.5, 7]].map(([x, y, h], i) => (
+          <rect key={i} x={x} y={y} width="2" height={h} rx="0.5" className="fill-zinc-500 dark:fill-zinc-400" />
+        ))}
+      </svg>
+    );
+  // ins above a middle line and outs below it
+  if (kind === "bar" && panel?.series.some((s) => s.below))
+    return (
+      <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
+        <line x1="2" y1="10" x2="38" y2="10" className={ink} strokeWidth="0.6" />
+        {[[5, 3], [3, 6], [7, 4], [4, 2], [6, 7], [8, 3], [5, 5], [3, 4]].map(([up, down], i) => (
+          <Fragment key={i}>
+            <rect x={3 + i * 4.4} y={9.6 - up} width="2.8" height={up} rx="0.6" className={i === 5 ? "fill-[#E6212F]/80" : "fill-zinc-300 dark:fill-zinc-600"} />
+            <rect x={3 + i * 4.4} y={10.4} width="2.8" height={down} rx="0.6" className={i === 5 ? "fill-[#E6212F]/40" : "fill-zinc-200 dark:fill-zinc-700"} />
+          </Fragment>
+        ))}
+      </svg>
+    );
   if (kind === "hbar")
     return (
       <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>
