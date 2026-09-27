@@ -218,7 +218,7 @@ export function NetworkOverview() {
             href="/explorer/mainnet/p-chain/validators"
             value={supply ? (staked ? fmtCompact(staked) : "—") : null}
             unit="AVAX"
-            sub={staked && circulating ? `${((staked / circulating) * 100).toFixed(1)}% of supply` : undefined}
+            sub={staked && circulating ? `${((staked / circulating) * 100).toFixed(1)}% of circulating` : undefined}
             delta={stakeWin.delta}
             spark={stakeWin.spark}
           />

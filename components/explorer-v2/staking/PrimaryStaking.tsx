@@ -250,8 +250,8 @@ function ApyChart({ data }: { data: ApyPoint[] }) {
   );
 }
 
-/* staked share of the circulating supply: the auto domain magnifies the
-   drift, which IS the signal here; the tooltip carries the absolutes */
+/* staked share of the P-Chain supply, before burns: the auto domain magnifies
+   the drift, which IS the signal here; the tooltip carries the absolutes */
 function RatioChart({ data }: { data: RatioPoint[] }) {
   return (
     <div className="h-40 text-zinc-900 dark:text-zinc-100">
@@ -269,7 +269,7 @@ function RatioChart({ data }: { data: RatioPoint[] }) {
                 <TipPlate>
                   <p className="text-[10px] text-zinc-500">{fmtDay(d.day)}</p>
                   <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.pct.toFixed(1)}% of supply staked
+                    {d.pct.toFixed(1)}% of P-Chain supply staked
                   </p>
                   <p className="text-[10px] tabular-nums text-zinc-500">
                     {fmtCompact(d.staked)} of {fmtCompact(d.supply)} AVAX
@@ -770,8 +770,8 @@ export function PrimaryStakingContent({
     ownStake !== null && delegatedStake !== null ? (ownStake + delegatedStake) / NANO : null;
   const delegators = num(metrics?.delegator_count?.current_value);
   const cumulativeRewards = num(metrics?.cumulative_rewards?.current_value);
-  // the APY feed carries the live circulating supply (AVAX units) and the
-  // all-time burn: the ratio is THE number behind the reward rate
+  // the APY feed carries the P-Chain supply (AVAX units, before burns) and
+  // the all-time burn: the ratio is THE number behind the reward rate
   const supplyAvax = num(apy?.current?.supply);
   const totalBurned = num(apy?.current?.totalBurned);
   const stakingRatio =
@@ -990,7 +990,7 @@ export function PrimaryStakingContent({
                 totalStaked !== null
                   ? [
                       avaxUsd !== null ? `≈ $${fmtCompact(totalStaked * avaxUsd)}` : null,
-                      stakingRatio !== null ? `${stakingRatio.toFixed(1)}% of supply` : null,
+                      stakingRatio !== null ? `${stakingRatio.toFixed(1)}% of P-Chain supply` : null,
                     ]
                       .filter(Boolean)
                       .join(" · ") || undefined
@@ -1068,7 +1068,7 @@ export function PrimaryStakingContent({
         >
           {stakingRatio !== null && ratioStart !== null && (
             <Caption>
-              <Ink>{stakingRatio.toFixed(1)}%</Ink> of the circulating supply is staked, against {ratioStart.toFixed(1)}% at the start of {windowWord}.
+              <Ink>{stakingRatio.toFixed(1)}%</Ink> of the P-Chain supply, before burns, is staked, against {ratioStart.toFixed(1)}% at the start of {windowWord}.
             </Caption>
           )}
           {ratioSeries.length ? (

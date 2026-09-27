@@ -184,7 +184,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
           <Stat label="Delegated">
             {delegated !== null ? `${fmtCompact(delegated / NANO)} AVAX` : <StatDash />}
           </Stat>
-          <Stat label="Of Supply" sub={supply ? `${fmtCompact(supply)} AVAX circulating` : undefined}>
+          <Stat label="Of P-Chain Supply" sub={supply ? `${fmtCompact(supply)} AVAX, before burns` : undefined}>
             {ofSupply !== null ? `${ofSupply.toFixed(1)}%` : <StatDash />}
           </Stat>
         </SheetStrip>
@@ -256,7 +256,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
               {range < 7 ? "Staking Ratio · 7 days" : "Staking Ratio"}
             </p>
             <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              staked share of circulating supply
+              of P-Chain supply, before burns
             </span>
           </div>
           {ratioSeries.length ? (
@@ -282,7 +282,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
                         <TipPlate>
                           <p className="text-[10px] text-zinc-500">{d.day}</p>
                           <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                            {d.pct.toFixed(1)}% of supply staked
+                            {d.pct.toFixed(1)}% of P-Chain supply staked
                           </p>
                           <p className="text-[10px] tabular-nums text-zinc-500">
                             {fmtCompact(d.staked)} of {fmtCompact(d.supply)} AVAX
@@ -304,7 +304,7 @@ function TotalStakeSheet({ base, network }: { base: string; network: string }) {
             <ChartEmpty failed={failed} />
           )}
           <p className="text-[13px] leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Total stake read against the circulating supply the emission feed reports for the same
+            Total stake read against the P-Chain supply, before burns, that the emission feed reports for the same
             day. The axis floats to magnify the drift — the range across the whole history is only
             a few points, and the drift is the signal.
           </p>
@@ -389,7 +389,7 @@ function ApySheet({ base, network }: { base: string; network: string }) {
           <Stat label="2-Week Term · Est" sub="minimum duration rate">
             {apy?.current ? `${apy.current.minAPY.toFixed(2)}%` : <StatDash />}
           </Stat>
-          <Stat label="Supply" sub="AVAX circulating">
+          <Stat label="P-Chain Supply" sub="AVAX, before burns">
             {apy?.current?.supply ? fmtCompact(apy.current.supply) : <StatDash />}
           </Stat>
         </SheetStrip>

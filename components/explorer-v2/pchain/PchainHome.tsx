@@ -132,9 +132,9 @@ function buildStatCells(
       sub: subs?.staked,
     },
     {
-      // denominator is the TOTAL SUPPLY cell beside it — the two read
+      // denominator is the P-CHAIN SUPPLY cell beside it: the two read
       // as one statement
-      label: "Staked · of Total Supply",
+      label: "Staked · of P-Chain Supply",
       value:
         stakingRatio !== null ? (
           <span className={FIG}>
@@ -146,8 +146,11 @@ function buildStatCells(
         ),
     },
     {
-      label: "Total Supply",
+      // the P-Chain's own counter: every AVAX minted, rewards reserved for
+      // current stakers included, and no burn taken off
+      label: "P-Chain Supply",
       value: s?.currentSupply ? avax(s.currentSupply) : <StatDash />,
+      sub: "before burns",
     },
     {
       label: "Delegators",
