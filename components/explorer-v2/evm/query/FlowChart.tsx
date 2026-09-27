@@ -52,6 +52,9 @@ function nodeText(n: FlowNode, chars: number): string {
   return t.length > chars ? `${t.slice(0, chars - 1)}…` : t;
 }
 
+/** what a band or Other holds when it folds smaller flows: 1 smaller flow, 12 smaller flows */
+const folds = (n: number) => `${n} smaller ${n === 1 ? "flow" : "flows"}, folded`;
+
 const pct = (v: number, total: number) => {
   const p = total > 0 ? (v / total) * 100 : 0;
   return `${p >= 10 || p === 0 ? p.toFixed(0) : p >= 0.1 ? p.toFixed(1) : "<0.1"}%`;
@@ -315,7 +318,7 @@ function Plate({ flow, hover, figure, label, door, drill }: { flow: Flow; hover:
         <p className={line}>
           {pct(l.value, flow.total)} <span className="text-zinc-400">of the total</span>
         </p>
-        {l.folded > 0 && <p className={hint}>{l.folded} smaller flows, folded</p>}
+        {l.folded > 0 && <p className={hint}>{folds(l.folded)}</p>}
         {drill && !l.folded && l.rows.length === 1 && <p className={hint}>click opens its records</p>}
       </TipPlate>
     );
@@ -342,7 +345,7 @@ function Plate({ flow, hover, figure, label, door, drill }: { flow: Flow; hover:
           {figure(received)} <span className="text-zinc-400">received, {pct(received, flow.total)}</span>
         </p>
       )}
-      {n.other && <p className={hint}>{n.folded} smaller flows, folded</p>}
+      {n.other && <p className={hint}>{folds(n.folded)}</p>}
       {door(n) && <p className={hint}>click opens its page</p>}
     </TipPlate>
   );
