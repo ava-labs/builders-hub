@@ -175,6 +175,46 @@ describe('DEX names', () => {
   });
 });
 
+describe('registry names', () => {
+  afterEach(() => {
+    vi.resetModules();
+  });
+
+  it('name a registry contract from its protocol and name, before Sourcify, and leave its tokens to the token list', async () => {
+    // a fresh module, so the token list is this test's own: USDC by its symbol, as the page's list names it
+    vi.resetModules();
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ tokens: { '0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e': { symbol: 'USDC', name: 'USD Coin' } } })));
+    const { enrichNames: namesOf } = await import('@/lib/explorer-query/enrich');
+    const listed = (registry as { contracts: { address: string; name: string; protocol: string; category: string }[] }).contracts;
+    const at = (name: string) => listed.find((e) => e.name === name)?.address ?? '';
+    // the registry's unattributed contracts go by proxy type: a verified name reads better, and theirs is the last resort
+    const [verified, bare] = listed.filter((e) => e.protocol === 'Infrastructure' && e.category !== 'token');
+    const { getVerifiedContractResolvingProxies } = await import('@/lib/sourcify');
+    vi.mocked(getVerifiedContractResolvingProxies).mockImplementation(async (_chainId, address) =>
+      address === verified.address ? ({ match: 'match', name: 'VaultV2', compilerVersion: null, language: null, verifiedAt: null, abi: [] } as never) : null,
+    );
+    const rows = [
+      { from_address: at('qiUSDC'), to_address: at('Benqi Comptroller'), amount: 1 },
+      { from_address: at('aAvaUSDC'), to_address: at('Joe Router V1'), amount: 2 },
+      { from_address: at('USDC'), to_address: hex(7, 'e'), amount: 3 },
+      { from_address: verified.address, to_address: bare.address, amount: 4 },
+    ];
+    const columns = [
+      { name: 'from_address', type: 'String' },
+      { name: 'to_address', type: 'String' },
+      { name: 'amount', type: 'Float64' },
+    ];
+    const names = await namesOf(43114, columns, rows, 'http://localhost:3000');
+    expect(names.from_address).toEqual({ [at('qiUSDC')]: 'Benqi qiUSDC', [at('aAvaUSDC')]: 'Aave aAvaUSDC', [at('USDC')]: 'USDC', [verified.address]: 'VaultV2' });
+    // a name that already says its protocol is not said twice; an address the registry does not list stays unnamed
+    expect(names.to_address).toEqual({ [at('Benqi Comptroller')]: 'Benqi Comptroller', [at('Joe Router V1')]: 'Joe Router V1', [bare.address]: bare.name });
+    // the registry is the C-Chain's: an L1's rows are named by the token list alone
+    const other = await namesOf(432204, columns, rows, 'http://localhost:3000');
+    expect(other.from_address).toEqual({ [at('USDC')]: 'USDC', [verified.address]: 'VaultV2' });
+    expect(other.to_address).toBeUndefined();
+  });
+});
+
 describe('the DEX variant of the prompt', () => {
   const ask = (dex: boolean) => systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null, dex });
 

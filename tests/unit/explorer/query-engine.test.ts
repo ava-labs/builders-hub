@@ -59,6 +59,21 @@ describe('an alias that hides its column', () => {
   });
 });
 
+describe('the flow and finite-value rules', () => {
+  const prompt = (chainId: number, dex = false) => systemPrompt({ chainId, chainName: 'a chain', symbol: 'AVAX', schema: '', coverage: null, dex });
+  const FINITE = 'Divide by nullIf(x, 0), and wrap a ratio or a quantile in ifNotFinite(x, NULL)';
+
+  it('ask for sender and receiver pairs on the mainnet C-Chain only', () => {
+    for (const p of [prompt(43114), prompt(43114, true)]) expect(p).toContain('\n- Flows: when the question asks where value went, from whom or to whom');
+    for (const p of [prompt(43113), prompt(432204)]) expect(p).not.toContain('- Flows:');
+  });
+
+  it('guard every division on each EVM chain but Fuji, whose prompt stays as it was, and say so once', () => {
+    for (const p of [prompt(43114), prompt(43114, true), prompt(432204)]) expect(p.split(FINITE)).toHaveLength(2);
+    expect(prompt(43113)).not.toContain('nullIf(x, 0)');
+  });
+});
+
 describe('an address read from a log topic', () => {
   const padded = (tail: string) => `0x${'0'.repeat(24)}${tail}`;
 

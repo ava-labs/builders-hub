@@ -104,6 +104,9 @@ async function statsSlot<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+/** what a writer and a reader are told when the rows stop short, and how to write the query so they do not */
+const CUT_OFF = "the query service cut its answer off, as it does when a value is NaN or infinite: divide by nullIf(x, 0), and wrap ratios and quantiles in ifNotFinite(x, NULL)";
+
 async function postStats(sql: string): Promise<RawJson> {
   const key = process.env.STATS_QUERY_KEY;
   if (!key) throw new Error("STATS_QUERY_KEY is not set");
@@ -134,6 +137,8 @@ async function postStats(sql: string): Promise<RawJson> {
   try {
     body = JSON.parse(text) as StatsQueryJson;
   } catch {
+    // rows that began and stopped: the service ends its answer where a value is NaN or infinite, which JSON cannot hold
+    if (text.startsWith('{"columns":')) throw new Error(CUT_OFF);
     throw new Error(`stats-api ${res.status}: ${text.slice(0, 200)}`);
   }
   // the endpoint streams, so a query can fail after the rows began: the trailer says so

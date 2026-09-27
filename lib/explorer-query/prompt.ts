@@ -167,7 +167,6 @@ ${dexFamilies()
 - A trader is the sender of the transaction (tx_from); a router is the contract it called (tx_to). The new pools of a period are the creation logs of the factories in that period. The fees of a univ3 pool are the value of each swap times its fee, k / 1e6.
 - Liquidity providers, one pool at a time, each as its worked example shows. First read the pool's own Mint and Burn logs (a rare topic by one address is fast), then only the blocks and transactions they name (block_number IN, since raw_logs sorts by topic0 and block_number): a read of a positions contract's or a pool token's logs over their whole history is too slow. univ3, cl-ramses and algebra: the positions contract's logs of those transactions, valued at the current tick. univ2 and solidly: the deposits less the withdrawals of each sender (a withdrawal can pay a router), as shares of the pool's reserves at its last Sync; the pool token's own Transfer logs are too many to read for an old pool. lb: the deposits less the withdrawals of each sender. Value only the stablecoin and WAVAX sides, at the latest WAVAX price, and the note says so.
 - In a DEX query, never name an expression after a column of a table it reads: with hex(topic0) AS topic0, every other topic0 in that SELECT reads the text, so WHERE topic0 = unhex(…) matches nothing. Name it for what it holds (pool_address, event_topic).
-- Divide by nullIf(x, 0), as the examples do: an inf or a nan in the rows fails the whole answer.
 - Say swaps, never trades: a trade routed through two pools is two swaps.
 - Return pools, tokens and providers as 0x text: the server names tokens and protocols. Filter a protocol by its slug, never by its name.
 `;
@@ -245,6 +244,13 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const c = isCChain(opts.chainId);
   // the DEX tables and rules: a DEX question's (dexQuestion), on the mainnet C-Chain only
   const dex = !!opts.dex && opts.chainId === DEX_CHAIN_ID && DEX_FACTORIES.length > 0;
+  // the rows the flow panel draws, on the mainnet C-Chain, where the contract registry names senders and receivers
+  const flows =
+    opts.chainId === DEX_CHAIN_ID
+      ? "\n- Flows: when the question asks where value went, from whom or to whom, or how it moved between addresses, contracts or protocols, return one row per sender and receiver pair, largest first, at most 200 pairs: from_address, to_address and the amount in token units summed over the pair, with its transfers beside it. The page draws the pairs as a flow from sender to receiver. A question about one side alone (who received the most) stays a ranking of that side."
+      : "";
+  // the query service cannot send an inf or a nan; Fuji's prompt stays as it was
+  const finite = c && opts.chainId !== DEX_CHAIN_ID ? "" : " Divide by nullIf(x, 0), and wrap a ratio or a quantile in ifNotFinite(x, NULL): an inf or a nan in the rows fails the whole answer.";
   const sym = opts.symbol.toLowerCase();
   return `You turn a question about ${opts.chainName} (${c ? "" : "an Avalanche L1, "}EVM chain id ${opts.chainId}, native token ${opts.symbol}) into one ClickHouse SELECT and a chart spec. You are precise, terse, and you never invent data.
 
@@ -281,7 +287,7 @@ ${CALENDAR}
 - Order time series by time ascending. Name columns plainly: block_time bucket as \`t\`, counts as \`txs\`, gas as \`gas_charged\` or \`${c ? "gas_reserved" : "block_gas_used"}\`, fees as \`fees_${sym}\`.
 - Doors: when a row is about a record, include its key as text: block_number for blocks, concat('0x', hex(hash)) AS tx_hash for transactions, lower(concat('0x', hex(\`to\`))) AS address for contracts and accounts. The explorer turns those into links.
 - Names: return function selectors as text, concat('0x', hex(substring(input, 1, 4))) AS method_id, over rows with length(input) >= 4 (a transaction with no calldata is a plain transfer and has no selector; count those as native transfers when asked). Return addresses and topics as 0x text the same way. The server decodes selectors to function names, addresses to token and contract names, topics to event names. Never try to name them yourself, and never filter a selector out because it looks unknown.
-- Cast UInt64 sums to Float64 when you divide.
+- Cast UInt64 sums to Float64 when you divide.${finite}
 - When a SELECT names an expression after one of the table's own columns (lower(concat('0x', hex(address))) AS address), every other mention of that column must be table-qualified (raw_logs.address in WHERE and GROUP BY), or it reads the alias instead. Drills included.
 - Success and failure: raw_txs.success and raw_traces.tx_success are Bool; count failures with countIf(NOT success). In record rows return toUInt8(success) AS status. raw_logs keys its transaction as transaction_hash (raw_txs.hash), and carries tx_from and tx_to. raw_blocks has no transaction count: count raw_txs by block_number when you need it.
 - Go one layer deeper than the literal ask when one chart can hold it: a ranking carries its transactions (txs), its distinct senders (senders, or callers for methods) and share_pct (Float64, percent of the window's total); a ranking of methods also carries how many contracts each was called on (contracts, uniqExact over \`to\`) and names one (contract) only when it holds most of the method's calls, as in the worked example, so the server can name the method from that contract's verified code; a series of counts carries its reverted count; gas carries the fee in ${opts.symbol.toLowerCase()}. Keep it to what fits one chart.
@@ -292,7 +298,7 @@ Answer comparative questions with ONE query that puts the things being compared 
 - Periods: align by offset. Take the window end from the data (max(block_time)), split it into current and previous halves, and return one row per offset bucket: toUInt32(dateDiff('minute', window_start, block_time) / 5) * 5 AS offset_min, with current_* and previous_* columns. Name the offset column so the axis reads minutes into the window.
 - Fees or gas per bucket: also return the largest single transaction in the bucket (max_fee_${sym}, or max_gas) and that transaction beside it: concat('0x', lower(hex(argMax(hash, toFloat64(gas_used) * gas_price)))) AS max_fee_tx, or concat('0x', lower(hex(argMax(hash, gas_used)))) AS max_gas_tx. A spike from one or two overpaying transactions is then visible, and the page opens that transaction.${c ? " Priority tips on the C-Chain go to the burn address with the base fee, so all of gas_used * gas_price is burned." : ""}
 - Rates and shares with their counts: return both (txs, reverted, revert_pct), so the page can draw bars with a rate line.
-- Relations: one row per group or per record with two numeric measures (gas_charged and fee, calls and callers) for a scatter.
+- Relations: one row per group or per record with two numeric measures (gas_charged and fee, calls and callers) for a scatter.${flows}
 - Cumulative, rolling and rebased views are computed by the page: return the raw per-bucket values.
 - Use WITH to name windows and to reuse a filter; up to six value columns per row is fine. Keep every table bounded on chain_id and time.
 

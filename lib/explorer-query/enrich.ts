@@ -3,8 +3,9 @@
    topics become event names. The sources are the ones the explorer
    already trusts: the built-in ABI registry, the Sourcify signature
    database behind /api/signatures, the token list, Sourcify itself for
-   verified contracts, the well-known address book, and our DEX registry
-   (protocols.ts) for its protocols and their factories.
+   verified contracts, the well-known address book, and our contract
+   registry (data/contract-registry.json) for C-Chain contracts, their
+   protocols and the DEX factories (protocols.ts).
 
    A selector is 4 bytes, so many names hash to it, and some are mined
    to hit a cheap one (0x00000000). A selector is named by the registry,
@@ -22,6 +23,7 @@ import { getFunctionBySelector, getEventVariantsByTopic } from "@/abi/event-sign
 import { getVerifiedContractResolvingProxies } from "@/lib/sourcify";
 import { toFunctionSelector, type AbiFunction } from "viem";
 import { knownAddress } from "@/lib/evm-explorer";
+import { getContractInfo, type ContractInfo as RegistryContract } from "@/lib/contracts";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import type { ColumnMeta } from "./clickhouse";
 import type { Names } from "./types";
@@ -46,6 +48,18 @@ interface ContractInfo {
 const tokenCache = new Map<number, { at: number; tokens: Map<string, TokenInfo> }>();
 const contractCache = new Map<string, { at: number; info: ContractInfo }>();
 const sigCache = new Map<string, string | null>();
+
+/** the registry's protocol for a contract it knows by address alone; its names are proxy types (ERC1967Proxy), so a
+    verified contract's name reads better, and the registry's is the last one tried */
+const UNATTRIBUTED = "Infrastructure";
+
+/** a contract the registry lists, as a reader knows it: its protocol, then its name ("Benqi qiUSDC"), or the name
+    alone when it already says the protocol ("Benqi Comptroller", "Joe Router V1") */
+function registryName(e: RegistryContract): string {
+  const protocol = e.protocol.toLowerCase();
+  const first = e.name.split(/\s+/)[0].toLowerCase();
+  return e.name.toLowerCase().startsWith(protocol) || protocol.split(/\s+/).includes(first) ? e.name : `${e.protocol} ${e.name}`;
+}
 
 /** the columns that hold the contract a row's selector was called on, in the order they are trusted */
 const CALLED = ["contract", "to_address", "top_contract", "address"];
@@ -168,13 +182,21 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
     }
   }
 
-  // addresses: the address book, the DEX registry and the token list; Sourcify for the rest, below
+  // addresses: the address book, the DEX registry, the contract registry (its tokens after the token list's symbols)
+  // and the token list; Sourcify for the rest, below
   const addrMap = new Map<string, string>();
   const unknown: string[] = [];
   if (addresses.size) {
     const tokens = await tokenList(chainId, baseUrl);
     for (const a of addresses) {
-      const label = knownAddress(a)?.label ?? (chainId === DEX_CHAIN_ID ? dexContractName(a) : null) ?? tokens.get(a)?.symbol;
+      const found = chainId === DEX_CHAIN_ID ? getContractInfo(a) : undefined;
+      const listed = found?.protocol === UNATTRIBUTED ? undefined : found;
+      const label =
+        knownAddress(a)?.label ??
+        (chainId === DEX_CHAIN_ID ? dexContractName(a) : null) ??
+        (listed && listed.category !== "token" ? registryName(listed) : null) ??
+        tokens.get(a)?.symbol ??
+        (listed ? registryName(listed) : null);
       if (label) addrMap.set(a, label);
       else unknown.push(a);
     }
@@ -189,7 +211,7 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
   const unnamed = [...selectors].filter((s) => !fnMap.has(s));
   const infos = await contractInfos(chainId, [...unnamed.flatMap((s) => [...(callees.get(s) ?? [])]), ...unknown]);
   for (const a of unknown) {
-    const name = infos.get(a)?.name;
+    const name = infos.get(a)?.name ?? (chainId === DEX_CHAIN_ID ? getContractInfo(a)?.name : undefined);
     if (name) addrMap.set(a, name);
   }
   // a verified contract without the function says the signature database's name is another function's

@@ -140,3 +140,16 @@ describe('a NULL in any other type the driver does not clear', () => {
     expect(r.rows).toEqual([{ e: 'a', d: null, t: null, f: 1.5, z: null, s: 'x' }]);
   });
 });
+
+describe('an answer the query service cut off', () => {
+  it('reads as a NaN or an infinity, with how to write the query instead', async () => {
+    // the endpoint as it is (qdata/flows/inf.sql): an infinity in the third row ends the body after its header
+    endpoint(new Response('{"columns":["n","r"]\n,"types":["UInt64","Float64"]\n,"rows":['));
+    await expect(runQuery('SELECT number AS n, 1 / (toInt64(number) - 2) AS r FROM numbers(4)')).rejects.toThrow(
+      'the query service cut its answer off, as it does when a value is NaN or infinite: divide by nullIf(x, 0), and wrap ratios and quantiles in ifNotFinite(x, NULL)',
+    );
+    // any other body that is not JSON keeps its status and text
+    endpoint(new Response('<html>Bad Gateway</html>', { status: 502 }));
+    await expect(runQuery('SELECT 1')).rejects.toThrow('stats-api 502: <html>Bad Gateway</html>');
+  });
+});
