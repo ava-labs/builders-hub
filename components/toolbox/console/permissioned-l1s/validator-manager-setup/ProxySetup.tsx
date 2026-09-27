@@ -22,9 +22,7 @@ import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubU
 import { ContractDeployViewer, type ContractSource } from '@/components/console/contract-deploy-viewer';
 import { Check, ChevronDown, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-
-// Storage slot with the admin of the proxy (following EIP1967)
-const ADMIN_SLOT = '0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103';
+import { ADMIN_SLOT, implementationProblem } from './proxyTarget';
 
 // Pre-deployed proxy address on L1s created via Builder Console
 const GENESIS_PROXY_ADDRESS = '0xfacade0000000000000000000000000000000000';
@@ -99,6 +97,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [newProxyAdminAddress, setNewProxyAdminAddress] = useState<string>('');
   const [newProxyAddress, setNewProxyAddress] = useState<string>('');
   const [deployImplementationAddress, setDeployImplementationAddress] = useState<string>('');
+  const [implementationError, setImplementationError] = useState<string | null>(null);
+  const [isCheckingImplementation, setIsCheckingImplementation] = useState(false);
+  const [deployImplementationError, setDeployImplementationError] = useState<string | null>(null);
 
   // Load proxy address from selected L1
   useEffect(() => {
@@ -118,12 +119,87 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     })();
   }, [selectedL1?.subnetId]);
 
-  // Pre-fill desired implementation from store
+  // Pre-fill desired implementation from store. After an upgrade the store
+  // holds the proxy itself (downstream steps want the proxy), and a proxy
+  // upgraded to itself stops working.
+  const prefilledImplementation = useRef<string | null>(null);
   useEffect(() => {
-    if (validatorManagerAddress && !desiredImplementation) {
+    if (
+      validatorManagerAddress &&
+      !desiredImplementation &&
+      validatorManagerAddress.toLowerCase() !== proxyAddress.toLowerCase()
+    ) {
+      prefilledImplementation.current = validatorManagerAddress;
       setDesiredImplementation(validatorManagerAddress);
     }
-  }, [validatorManagerAddress, desiredImplementation]);
+  }, [validatorManagerAddress, desiredImplementation, proxyAddress]);
+
+  // The prefill can run before the proxy address is known. When the value
+  // turns out to be the proxy, drop it; a value the user typed stays.
+  useEffect(() => {
+    const prefilled = prefilledImplementation.current;
+    if (prefilled && desiredImplementation === prefilled && prefilled.toLowerCase() === proxyAddress.toLowerCase()) {
+      prefilledImplementation.current = null;
+      setDesiredImplementation('');
+    }
+  }, [desiredImplementation, proxyAddress]);
+
+  // A proxy that already points at an implementation is set up: show it as
+  // up to date instead of asking for an implementation again.
+  useEffect(() => {
+    if (desiredImplementation || !currentImplementation || !chainPublicClient) return;
+    let cancelled = false;
+    implementationProblem(chainPublicClient, proxyAddress, currentImplementation)
+      .then((problem) => {
+        if (!cancelled && problem === null) setDesiredImplementation(currentImplementation);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [currentImplementation, desiredImplementation, proxyAddress, chainPublicClient]);
+
+  // The upgrade target must be an implementation: not the proxy itself, and
+  // not another proxy.
+  useEffect(() => {
+    setImplementationError(null);
+    if (!desiredImplementation || !chainPublicClient) {
+      setIsCheckingImplementation(false);
+      return;
+    }
+    let cancelled = false;
+    setIsCheckingImplementation(true);
+    implementationProblem(chainPublicClient, proxyAddress, desiredImplementation)
+      .then((problem) => {
+        if (!cancelled) setImplementationError(problem);
+      })
+      .catch(() => {
+        if (!cancelled) setImplementationError('Could not read this address. Check the network and try again.');
+      })
+      .finally(() => {
+        if (!cancelled) setIsCheckingImplementation(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [desiredImplementation, proxyAddress, chainPublicClient]);
+
+  // The same holds for the implementation of a new proxy.
+  useEffect(() => {
+    setDeployImplementationError(null);
+    if (!deployImplementationAddress || !chainPublicClient) return;
+    let cancelled = false;
+    implementationProblem(chainPublicClient, '', deployImplementationAddress)
+      .then((problem) => {
+        if (!cancelled) setDeployImplementationError(problem);
+      })
+      .catch(() => {
+        if (!cancelled) setDeployImplementationError('Could not read this address. Check the network and try again.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [deployImplementationAddress, chainPublicClient]);
 
   // Pre-fill the Deploy New Proxy "implementation" field too. This is the
   // same ValidatorManager address the user just deployed in the previous
@@ -193,6 +269,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
     setIsUpgrading(true);
     try {
+      const problem = await implementationProblem(chainPublicClient, proxyAddress, desiredImplementation);
+      if (problem) {
+        setImplementationError(problem);
+        return;
+      }
       if (!walletClient) throw new Error('Wallet not connected');
       const upgradePromise = walletClient.writeContract({
         address: proxyAdminAddress as `0x${string}`,
@@ -255,6 +336,11 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     setNewProxyAddress('');
 
     try {
+      const problem = await implementationProblem(chainPublicClient, '', deployImplementationAddress);
+      if (problem) {
+        setDeployImplementationError(problem);
+        return;
+      }
       if (!walletClient) throw new Error('Wallet not connected');
       const deployPromise = walletClient.deployContract({
         abi: TransparentUpgradeableProxyABI.abi as any,
@@ -288,7 +374,14 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       ? currentImplementation.toLowerCase() !== desiredImplementation.toLowerCase()
       : true;
 
-  const canUpgrade = !!proxyAddress && !!proxyAdminAddress && !!desiredImplementation && isUpgradeNeeded && !proxyError;
+  const canUpgrade =
+    !!proxyAddress &&
+    !!proxyAdminAddress &&
+    !!desiredImplementation &&
+    isUpgradeNeeded &&
+    !proxyError &&
+    !implementationError &&
+    !isCheckingImplementation;
   const upgradeComplete = !isUpgradeNeeded && !!currentImplementation;
 
   return (
@@ -382,6 +475,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                       className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
                       placeholder="0x..."
                     />
+                    {implementationError && (
+                      <p className="mt-1 text-[11px] text-red-600 dark:text-red-400 px-1">{implementationError}</p>
+                    )}
                   </div>
 
                   {upgradeComplete ? (
@@ -483,7 +579,12 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                         variant="secondary"
                         onClick={deployTransparentProxy}
                         loading={isDeployingProxy}
-                        disabled={!newProxyAdminAddress || !deployImplementationAddress || isDeployingProxy}
+                        disabled={
+                          !newProxyAdminAddress ||
+                          !deployImplementationAddress ||
+                          !!deployImplementationError ||
+                          isDeployingProxy
+                        }
                         className="w-full text-xs py-1.5"
                       >
                         Deploy
@@ -501,6 +602,9 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
                     className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono"
                     placeholder="Implementation address for proxy..."
                   />
+                )}
+                {!newProxyAddress && newProxyAdminAddress && deployImplementationError && (
+                  <p className="text-[11px] text-red-600 dark:text-red-400 px-1">{deployImplementationError}</p>
                 )}
               </div>
             )}
