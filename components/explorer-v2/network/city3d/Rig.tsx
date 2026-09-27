@@ -46,24 +46,34 @@ const sphB = new Spherical();
 const FLIGHT_MS = 900;
 const FLIGHT_SLOW_MS = 1300;
 
-/* the brand's ease, cubic-bezier(0.16, 1, 0.3, 1): a fast attack and a long decay, solved for the curve's x */
-function ease(x: number): number {
-  if (x <= 0) return 0;
-  if (x >= 1) return 1;
-  const bx = (t: number) => 3 * (1 - t) * (1 - t) * t * 0.16 + 3 * (1 - t) * t * t * 0.3 + t * t * t;
-  const by = (t: number) => 3 * (1 - t) * (1 - t) * t + 3 * (1 - t) * t * t + t * t * t;
-  let lo = 0;
-  let hi = 1;
-  let t = x;
-  for (let i = 0; i < 24; i++) {
-    const v = bx(t);
-    if (Math.abs(v - x) < 1e-5) break;
-    if (v < x) lo = t;
-    else hi = t;
-    t = (lo + hi) / 2;
-  }
-  return by(t);
+/* a cubic bezier ease as CSS writes it, solved for the curve's x by bisection */
+function bezier(x1: number, y1: number, x2: number, y2: number): (x: number) => number {
+  const bx = (t: number) => 3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t;
+  const by = (t: number) => 3 * (1 - t) * (1 - t) * t * y1 + 3 * (1 - t) * t * t * y2 + t * t * t;
+  return (x: number) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let lo = 0;
+    let hi = 1;
+    let t = x;
+    for (let i = 0; i < 24; i++) {
+      const v = bx(t);
+      if (Math.abs(v - x) < 1e-5) break;
+      if (v < x) lo = t;
+      else hi = t;
+      t = (lo + hi) / 2;
+    }
+    return by(t);
+  };
 }
+/** the brand's ease, cubic-bezier(0.16, 1, 0.3, 1): a fast attack and a long decay, for the flights */
+const ease = bezier(0.16, 1, 0.3, 1);
+/** the opening's push into home: a smooth S (smootherstep, 6t^5 - 15t^4 + 10t^3), zero speed and zero acceleration at both
+    ends, so the camera neither jumps off nor stops short; its top speed is 1.9 x its mean, halfway in */
+const PUSH_EASE = (x: number): number => {
+  const t = Math.min(1, Math.max(0, x));
+  return t * t * t * (t * (t * 6 - 15) + 10);
+};
 
 /** the first look: farther out and higher than the home fit, settling into it once the city stands */
 const SETTLE_OUT = 1.08;
@@ -72,10 +82,11 @@ const SETTLE_MS = 1400;
 /** the establishing shot while the column rises (load's opening): wider and lower than home, aimed down the shaft, so the
     capital comes up through the haze with the cloud sea under the plate's place, and the landed city clear of the search
     bar (the downtown tower's top a fifth down the frame, the plate from a quarter to a half). The push into the home fit
-    starts as the column nears its rest, and runs alongside the rise's tail and the paint, so the camera stands at home
-    before the downtown tower rises */
+    starts once the column has done most of its rise (0.7, about 240 ms in) and runs 1.6 s on a smooth S, so it takes the
+    motion over as the plate slows and is home (within 1%) as the plate paints, before the downtown tower rises */
 const RISE_LOOK = { down: 250, polar: 1.22, out: 1.35 };
-const PUSH_AT = 0.9;
+const PUSH_AT = 0.7;
+const PUSH_MS = 1600;
 /** the opening's own word that its column is rising (load sets it on a first visit); without it the first look is the still one above */
 const rising = () => OPENING.column.value < 1 && OPENING.rising;
 
@@ -214,13 +225,13 @@ export function Rig({
   };
   /* a glide: the camera's own tween between two poses on the brand's ease. It drives camera-controls pose by
      pose, so it lands exactly where it aimed and on time, and the reader's drag or wheel ends it */
-  const glide = useRef<{ p0: Vector3; t0: Vector3; p1: Vector3; t1: Vector3; at: number; ms: number } | null>(null);
+  const glide = useRef<{ p0: Vector3; t0: Vector3; p1: Vector3; t1: Vector3; at: number; ms: number; ease: (x: number) => number } | null>(null);
   // the home pose the first look settles into once the city stands
   const settleTo = useRef<{ pos: Vector3; target: Vector3; onColumn: boolean } | null>(null);
-  const glideTo = (pos: Vector3, target: Vector3, ms: number) => {
+  const glideTo = (pos: Vector3, target: Vector3, ms: number, curve: (x: number) => number = ease) => {
     const c = ref.current;
     if (!c) return;
-    glide.current = { p0: c.getPosition(new Vector3(), false), t0: c.getTarget(new Vector3(), false), p1: pos.clone(), t1: target.clone(), at: performance.now(), ms };
+    glide.current = { p0: c.getPosition(new Vector3(), false), t0: c.getTarget(new Vector3(), false), p1: pos.clone(), t1: target.clone(), at: performance.now(), ms, ease: curve };
     flight.current = null;
     takeOff();
   };
@@ -239,7 +250,7 @@ export function Rig({
       // a glide under way: the pose for this frame, and its exact landing
       const g = glide.current;
       if (g) {
-        const k = ease(Math.min(1, (performance.now() - g.at) / g.ms));
+        const k = g.ease(Math.min(1, (performance.now() - g.at) / g.ms));
         // the target moves straight; the eye orbits it, its distance and angles eased, the short way round
         tmpTarget.lerpVectors(g.t0, g.t1, k);
         sphA.setFromVector3(tmpPos.subVectors(g.p0, g.t0));
@@ -263,7 +274,7 @@ export function Rig({
       if (settleTo.current && (settleTo.current.onColumn ? OPENING.column.value >= PUSH_AT : standsAt !== undefined && TIME.value >= standsAt)) {
         const s = settleTo.current;
         settleTo.current = null;
-        if (!touched.current && shotWas.current === "home") glideTo(s.pos, s.target, SETTLE_MS);
+        if (!touched.current && shotWas.current === "home") glideTo(s.pos, s.target, s.onColumn ? PUSH_MS : SETTLE_MS, s.onColumn ? PUSH_EASE : ease);
       }
       const q = pose.current;
       const rate = (c.getPosition(tmpPos, false).distanceTo(q.pos) + c.getTarget(tmpTarget, false).distanceTo(q.target)) / Math.max(dt, 1 / 240);
