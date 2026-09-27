@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { guardSql } from "@/lib/explorer-query/guard";
-import { runQuery, anchored, indexState, type ColumnMeta } from "@/lib/explorer-query/clickhouse";
+import { runQuery, anchored, indexState, type ColumnMeta, type QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { Turn } from "@/lib/explorer-query/types";
 import { nameRows } from "@/lib/explorer-query/enrich";
 import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
-import type { ChartSpec, Names } from "@/lib/explorer-query/types";
+import type { ChartSpec, Names, Totals } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
@@ -39,6 +39,32 @@ interface Body {
   reading?: boolean;
   /** lay out rows the page already has */
   design?: { question: string; title: string; note: string; columns: ColumnMeta[]; rows: Record<string, unknown>[]; names: Names; chart: ChartSpec };
+}
+
+/* An answer's own read, kept a minute under its key on this instance: the layout the page asks for next is designed
+   from the rows the reader was shown, not from a second read of the same SQL (a full scan again, and the totals with
+   it). The layout is still made from the kept recipe's SQL on this server, never from rows a reader sends; on an
+   instance that did not answer, the SQL is read again as before. */
+const READ_MS = 60_000;
+const READS_MAX = 32;
+type Read = { result: QueryResult; names: Names; totals: Totals | null; anchor: string | null };
+const reads = new Map<string, Read & { at: number }>();
+
+function keepRead(key: string, read: Read) {
+  reads.delete(key);
+  reads.set(key, { ...read, at: Date.now() });
+  while (reads.size > READS_MAX) reads.delete(reads.keys().next().value as string);
+}
+
+/** the answer's read while it is fresh, else the kept SQL read again with its names and totals */
+async function readOf(key: string, sql: string, chainId: number, baseUrl: string): Promise<Read> {
+  const hit = reads.get(key);
+  if (hit && Date.now() - hit.at < READ_MS) return hit;
+  const run = await anchored(sql, chainId);
+  const result = await runQuery(run.sql);
+  // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
+  const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(sql, result, chainId)]);
+  return { result, names, totals, anchor: run.anchor };
 }
 
 export async function POST(req: Request) {
@@ -93,11 +119,8 @@ export async function POST(req: Request) {
     if (recipe.visual && body.reading) {
       const t0 = Date.now();
       try {
-        const run = await anchored(recipe.sql, chainId);
-        const result = await runQuery(run.sql);
-        // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-        const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(recipe.sql, result, chainId)]);
-        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor: run.anchor });
+        const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
+        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
         return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
@@ -105,11 +128,8 @@ export async function POST(req: Request) {
     }
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
     try {
-      const run = await anchored(recipe.sql, chainId);
-      const result = await runQuery(run.sql);
-      // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-      const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(recipe.sql, result, chainId)]);
-      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor: run.anchor });
+      const { result, names, totals, anchor } = await readOf(body.key, recipe.sql, chainId, baseUrl);
+      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });
     } catch (e) {
@@ -168,6 +188,8 @@ export async function POST(req: Request) {
       const emit = (e: QueryEvent) => ctl.enqueue(enc.encode(JSON.stringify(e) + "\n"));
       try {
         const answer = await answerQuestion({ chainId, chainName: chain.chainName, symbol, prompt, history, baseUrl, emit });
+        // the rows just read are the ones the layout request designs from
+        if (answer?.key && answer.result) keepRead(answer.key, { result: answer.result, names: answer.names, totals: answer.totals ?? null, anchor: answer.anchor ?? null });
         // what the server's tables in the answer cover, for the page to state
         if (answer?.sql && !answer.sources) answer.sources = await sourceNotes(answer.sql, chainId);
         if (answer) emit({ type: "answer", answer });
