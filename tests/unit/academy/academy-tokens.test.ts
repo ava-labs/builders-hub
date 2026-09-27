@@ -41,7 +41,7 @@ const HUES = [
   ['gold', '#a16207', 'rgba(161, 98, 7, 0.10)', '#eab308', 'rgba(234, 179, 8, 0.16)'],
   ['orange', '#ea580c', 'rgba(234, 88, 12, 0.09)', '#fb923c', 'rgba(251, 146, 60, 0.16)'],
   ['teal', '#0d9488', 'rgba(13, 148, 136, 0.09)', '#2dd4bf', 'rgba(45, 212, 191, 0.16)'],
-  ['green', '#16a34a', 'rgba(22, 163, 74, 0.09)', '#4ade80', 'rgba(74, 222, 128, 0.16)'],
+  ['green', '#16a049', 'rgba(22, 160, 73, 0.09)', '#4ade80', 'rgba(74, 222, 128, 0.16)'],
 ] as const;
 
 const isRule = (node: postcss.ChildNode): node is Rule => node.type === 'rule';

@@ -81,6 +81,21 @@
    the tokens leave unmapped because the console tools draw with it. */
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] p.inline-flex.items-center.gap-2 { color: var(--ac-ink); }
 
+/* Every section heading takes the round 8 heading type (spec 4.3), numbered or not, so a module's
+   number fits beside its name; the number keeps its own 11px mono at weight 400. In the drawer the
+   headings are inline boxes on the drawer's 15px lines: top alignment keeps each heading's top where
+   it was, so the smaller type shortens the heading's line by the heading's own height change and
+   moves nothing else. The desktop column's headings are blocks, where vertical-align does nothing. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] p.inline-flex.items-center.gap-2 {
+  font-size: 12.5px;
+  font-weight: 600;
+  vertical-align: top;
+}
+
+/* The round 8 heading spacing (spec 4.3, as the stills show): 22px above a heading where fumadocs
+   gives mt-6 (24px); the first heading of a list keeps fumadocs' 0. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] p.inline-flex.items-center.gap-2.mt-6 { margin-top: 22px; }
+
 /* ---------- Right column ---------- */
 
 [data-academy="docs"] #toc-title { font-size: 13px; font-weight: 600; color: var(--ac-ink); }
@@ -463,3 +478,11 @@
 
 [data-academy="docs"] .prose svg[id^="mmd-"] :is(.edgePath path, .flowchart-link, line, .messageLine0, .messageLine1) { stroke: var(--ac-ink-3) !important; }
 [data-academy="docs"] .prose svg[id^="mmd-"] :is(text, .nodeLabel) { fill: var(--ac-ink) !important; color: var(--ac-ink) !important; }
+
+/* Course overview (spec 4.6): the facts row under the description carries the rule, so the
+   description keeps none of its own margin, padding or rule. */
+[data-academy="docs"] #nd-page article > [data-academy-part="course-head"] + h1 + p {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+  border-bottom: 0 !important;
+}

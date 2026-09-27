@@ -40,8 +40,9 @@
   --ac-tint-orange: rgba(234, 88, 12, 0.09);
   --ac-hue-teal: #0d9488;
   --ac-tint-teal: rgba(13, 148, 136, 0.09);
-  --ac-hue-green: #16a34a;
-  --ac-tint-green: rgba(22, 163, 74, 0.09);
+  /* Darker than the round 8 value #16a34a (2.98:1), so the glyph keeps 3:1 on its own tint: 3.07:1. */
+  --ac-hue-green: #16a049;
+  --ac-tint-green: rgba(22, 160, 73, 0.09);
   /* Icon tile without a data-hue: ink on the tile (C3). */
   --ac-h: var(--ac-ink);
   --ac-t: var(--ac-tile);

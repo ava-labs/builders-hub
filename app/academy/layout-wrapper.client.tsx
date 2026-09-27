@@ -10,6 +10,7 @@ import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { AcademyLayoutClient } from './layout.client';
 import { AcademyBubbleNav } from '@/components/academy/shared/academy-bubble-nav';
 import { DecorativeGrid } from '@/components/ui/decorative-grid';
+import { withModuleNumbers } from '@/components/academy/sidebar/module-numbers';
 
 type Tree = DocsLayoutProps['tree'];
 
@@ -50,7 +51,7 @@ export function AcademyDocsLayoutWrapper({
 
     const academyOptions: DocsLayoutProps = useMemo(
         () => ({
-            tree: activeTree,
+            tree: withModuleNumbers(activeTree),
             nav: {
                 enabled: false,
             },
