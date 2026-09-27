@@ -154,9 +154,9 @@ export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: st
   // on large screens the page is one window: the navbar is 3.5rem and its 1px rule
   return (
     <main data-city-page className="relative flex flex-col bg-white lg:h-[calc(100dvh-var(--fd-banner-height,0px)-3.5rem-1px)] dark:bg-zinc-950">
-      {/* on large screens the subnav sits on the app, as wide as the city, its edges on the panel's;
-          the app's list switches networks, so the subnav names none */}
-      <div className="mx-auto w-full max-w-[90rem] shrink-0 px-5 pt-5 md:px-6 lg:max-w-none lg:px-4 lg:pt-0">
+      {/* on large screens the app is the window and draws the sections on its own card, over the city;
+          below them the subnav stands over the page. The app's list switches networks, so the subnav names none */}
+      <div className="mx-auto w-full max-w-[90rem] shrink-0 px-5 pt-5 md:px-6 lg:hidden">
         {/* the city reads one day, so the subnav shows no clock here */}
         <ExplorerSubnav network="mainnet" hideNetwork className="lg:-mx-4 lg:px-4" />
       </div>

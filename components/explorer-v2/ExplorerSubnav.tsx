@@ -73,16 +73,22 @@ const NETWORK_FRONT = `${NETWORK_HOME}/chains`;
    system chains are pinned; the L1 list is validated against the P-Chain
    (a chain appears only if its subnet has stake-backed validators right
    now), fetched lazily the first time the menu opens. */
-function ChainSwitcher({
+export function ChainSwitcher({
   network,
   chainSlug,
   chainName,
   chainLogoURI,
+  compact = false,
+  menuClassName,
 }: {
   network: string;
   chainSlug?: string;
   chainName?: string;
   chainLogoURI?: string;
+  /** the mark and the chevrons only, as on the city's floating card; the name stays for screen readers */
+  compact?: boolean;
+  /** the menu's own frame, where the rail's square one would not fit */
+  menuClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -219,7 +225,9 @@ function ChainSwitcher({
           setOpen((v) => !v);
           setFilter("");
         }}
-        className="group flex items-center gap-2.5 pr-1 text-left"
+        aria-label={compact ? "Switch chain" : undefined}
+        title={compact ? "Switch chain" : undefined}
+        className={cn("group flex items-center text-left", compact ? "gap-1.5 px-3" : "gap-2.5 pr-1")}
       >
         {!chainSlug ? (
           <AvalancheLogo className="h-5 w-5 shrink-0 text-zinc-900 dark:text-zinc-100 [&_path]:fill-current" />
@@ -234,7 +242,7 @@ function ChainSwitcher({
         )}
         {/* below sm the name would starve the section tabs — the mark and
             chevron carry the switcher, the page header names the surface */}
-        <span className="hidden truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:block sm:max-w-40 md:max-w-56 dark:text-zinc-100">
+        <span className={cn(compact ? "sr-only" : "hidden truncate font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-zinc-900 sm:block sm:max-w-40 md:max-w-56 dark:text-zinc-100")}>
           {(chainSlug === "c-chain" ? "C-Chain" : chainName) ?? "All Networks"}
         </span>
         <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-900 dark:text-zinc-500 dark:group-hover:text-zinc-100" />
@@ -243,7 +251,7 @@ function ChainSwitcher({
       {open && (
         // z-50 within the subnav's own stacking context (the z-[35] rail):
         // only needs to clear siblings inside the rail, not the page
-        <div className="absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+        <div className={cn("absolute left-0 top-full z-50 w-[min(20rem,calc(100vw-2.5rem))] border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-950", menuClassName)}>
           <div className="relative border-b border-zinc-100 dark:border-zinc-900">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
             <input
@@ -295,7 +303,7 @@ function queryTab(network: string, chainSlug: string): Tab[] {
    are first-class sections of the same chain, so they ride here too.
    No chain at all is the widest lens — the network scope, where every
    ecosystem-wide facet (chains, ICM, validators, the token) lives. */
-function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
+export function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   if (!chainSlug) {
     return [
       {

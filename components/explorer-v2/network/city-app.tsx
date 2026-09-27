@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Component, memo, startTransition, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, PanelLeftOpen, Search, X } from "lucide-react";
+import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { ChainSwitcher, buildTabs } from "@/components/explorer-v2/ExplorerSubnav";
 import { cn } from "@/lib/utils";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -2136,6 +2137,8 @@ export function CityApp({
   /* large screens: the city, and its panels over it                   */
   /* ---------------------------------------------------------------- */
   const PANEL_W = 372;
+  // the sections the card links to besides this one
+  const SECTIONS = buildTabs("mainnet", undefined).filter((t) => t.label !== "Chains");
   const LIVE_W = 344;
   // the panel stands while the list is asked for, or while a chain or a district is open
   // without WebGL 2 the list stands open: it is the way to the chains while the city cannot
@@ -2204,7 +2207,7 @@ export function CityApp({
         inert={!showPanel || undefined}
         aria-hidden={!showPanel}
         className={cn(
-          "absolute bottom-4 left-4 top-[calc(1rem+var(--under,0px))] z-20 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-out dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]",
+          "absolute bottom-4 left-4 top-[calc(4.25rem+var(--under,0px))] z-20 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-out dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]",
           showPanel ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-6 opacity-0",
         )}
         style={{ width: PANEL_W }}
@@ -2223,22 +2226,41 @@ export function CityApp({
         </div>
       </aside>
 
-      {/* the list's door while the panel is shut */}
-      {!showPanel && (
+      {/* the explorer's sections, on a card as the list's door was: the chain switcher, then Chains (this page, and the
+          list's door), then the other sections. It is as wide as the panel, which opens under it */}
+      <nav
+        aria-label="Explorer sections"
+        data-city-chrome
+        className="absolute left-4 top-[calc(1rem+var(--under,0px))] z-30 flex h-11 items-stretch rounded-2xl border border-zinc-200/90 bg-white/[0.94] text-[13px] font-medium shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]"
+        style={{ width: PANEL_W }}
+      >
+        <ChainSwitcher
+          network="mainnet"
+          compact
+          menuClassName="top-[calc(100%+0.5rem)] overflow-hidden rounded-2xl border-zinc-200/90 shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] dark:border-zinc-800/90"
+        />
+        <span aria-hidden className="my-3 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />
         <button
           type="button"
-          onClick={() => setPanelOpen(true)}
-          data-city-chrome
-          className="absolute left-4 top-[calc(1rem+var(--under,0px))] z-30 flex h-11 items-center gap-2 rounded-2xl border border-zinc-200/90 bg-white/[0.94] pl-3.5 pr-4 text-[13px] font-medium text-zinc-800 shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl transition-colors hover:text-zinc-950 dark:border-zinc-800/90 dark:bg-zinc-950/[0.9] dark:text-zinc-100 dark:hover:text-white"
+          onClick={() => (showPanel ? shut() : setPanelOpen(true))}
+          aria-expanded={showPanel}
+          aria-current="page"
+          title={showPanel ? "Close the list" : "Open the list"}
+          className="flex items-center gap-2 px-2.5 text-zinc-900 dark:text-zinc-50"
         >
-          <PanelLeftOpen className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+          {showPanel ? <PanelLeftClose className="h-4 w-4 text-zinc-500 dark:text-zinc-400" /> : <PanelLeftOpen className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />}
           Chains
           <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{dimmed && cityHits ? `${cityHits.length} of ${cityRows.length}` : cityRows.length}</span>
         </button>
-      )}
+        {SECTIONS.map((t) => (
+          <Link key={t.label} href={t.href} className="flex items-center px-2 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+            {t.label}
+          </Link>
+        ))}
+      </nav>
 
       {/* the search, fixed over the city's top and centred on what the panel leaves of it; its chips under it */}
-      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center px-4 transition-[left,right] duration-300 ease-out" style={{ left: showPanel ? PANEL_W + 16 : 0, right: rightW ? rightW + 16 : 0 }}>
+      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center px-4 transition-[left,right] duration-300 ease-out" style={{ left: PANEL_W + 16, right: rightW ? rightW + 16 : 0 }}>
         <div data-city-chrome className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
           <div className="relative w-full">
             {searchField}
