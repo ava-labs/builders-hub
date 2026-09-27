@@ -300,6 +300,21 @@ describe('prompt', () => {
     }
   });
 
+  it('returns the largest fee with its transaction, and lets an L1 say burned only when every block burns', () => {
+    const cchain = systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null });
+    const l1 = systemPrompt({ chainId: 432204, chainName: 'Dexalot', symbol: 'ALOT', schema: '', coverage: null });
+    for (const text of [cchain, l1]) {
+      expect(text).toContain("concat('0x', lower(hex(argMax(hash, toFloat64(gas_used) * gas_price)))) AS max_fee_tx, count() AS txs FROM raw_txs");
+      expect(text).toContain("concat('0x', lower(hex(argMax(hash, gas_used)))) AS max_gas_tx");
+    }
+    expect(l1).toContain("countIf(miner != unhex('0100000000000000000000000000000000000000')) AS not_burned FROM raw_blocks WHERE chain_id = 432204 AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR\nThen render_chart with the fee query");
+    expect(l1).toContain('say "fees paid", never "burned". A fee question also reads raw_blocks.miner over the same window');
+    expect(l1).toContain('to the burn address when not_burned is 0');
+    expect(l1).toContain('The one exception is a fee question: call run_sql first with the check of where the fees went, as the worked example "Fees per bucket" shows');
+    expect(cchain).not.toContain('The one exception is a fee question');
+    expect(cchain).not.toContain('not_burned');
+  });
+
   it('gives a refusal a title that names no topic', () => {
     for (const text of [systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null }), pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null })]) {
       expect(text).toContain('With kind "none" the title is "No chart for this question", whatever the question is about');

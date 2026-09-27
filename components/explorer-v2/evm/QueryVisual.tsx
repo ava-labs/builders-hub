@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import Link from "next/link";
 import { Area, Bar, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceArea, ReferenceLine, ResponsiveContainer, Scatter, Tooltip as RechartsTooltip, XAxis, YAxis } from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, ArrowUp, ChartArea, ChartBar, ChartColumn, ChartLine, ChartPie, ChartScatter, ChevronRight, Sigma, Table2, X as XIcon, type LucideIcon } from "lucide-react";
@@ -12,6 +13,7 @@ import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPi
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount } from "./query-client";
+import { statDoor } from "./stat-door";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -323,7 +325,7 @@ function Spark({ s, rows, all }: { s: Stat; rows: Row[]; all: Row[] }) {
   );
 }
 
-function StatFigure({ s, rows, all, names, sym, active, totals }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null }) {
+function StatFigure({ s, rows, all, names, sym, active, totals, base }: { s: Stat; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; totals?: Totals | null; base?: string }) {
   const reduced = useReduced();
   // with no selection the figure counts the whole answer, past any LIMIT; a selection counts its own rows
   const total = totalValue(totals, s);
@@ -333,10 +335,19 @@ function StatFigure({ s, rows, all, names, sym, active, totals }: { s: Stat; row
   const text = (x: number | string) => (typeof x === "number" ? fmt(x, s.format, sym) : (nameFor(names, s.column, x) ?? String(x)));
   const shown = num !== null ? fmt(t !== null && Number.isInteger(num) ? Math.round(t) : (t ?? num), s.format, sym) : v === null ? "…" : text(v);
   const sub = active ? compare(s, v, total ?? statValue(all, s), text) : s.sub;
+  // a row's extreme opens that row's transaction; a figure the totals gave names no row the page holds
+  const door = statDoor(s, rows, v, base);
   return (
     <div className="flex min-w-0 flex-col gap-1.5 px-4 py-4 sm:gap-2 sm:px-5 sm:py-5 md:px-6">
       <span className="truncate font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400">{s.label}</span>
-      <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{shown}</span>
+      {door ? (
+        <Link href={door.href} title={`Open transaction ${door.hash}`} className="group flex min-w-0 flex-col gap-1.5 sm:gap-2">
+          <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 transition-colors group-hover:text-[#0061E2] sm:text-[26px] dark:text-zinc-50 dark:group-hover:text-[#5b9bff]">{shown}</span>
+          <span className="truncate font-mono text-[11px] text-zinc-400 underline-offset-2 group-hover:underline dark:text-zinc-500">{door.short}</span>
+        </Link>
+      ) : (
+        <span className="truncate font-mono text-[21px] leading-none tabular-nums tracking-tight text-zinc-900 sm:text-[26px] dark:text-zinc-50">{shown}</span>
+      )}
       <AnimatePresence mode="wait" initial={false}>
         {sub && (
           <motion.span
@@ -360,14 +371,14 @@ function StatFigure({ s, rows, all, names, sym, active, totals }: { s: Stat; row
 export const CARD =
   "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
 
-function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null }) {
+function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false, totals, base }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean; totals?: Totals | null; base?: string }) {
   if (stats.length === 0) return null;
   if (cards) {
     return (
       <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stack ? "" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
         {stats.map((s) => (
           <div key={s.label} className={cn(CARD, "min-w-0")}>
-            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} />
+            <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} />
           </div>
         ))}
       </div>
@@ -383,7 +394,7 @@ function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false
       )}
     >
       {stats.map((s) => (
-        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} />
+        <StatFigure key={s.label} s={s} rows={rows} all={all} names={names} sym={sym} active={active} totals={totals} base={base} />
       ))}
     </div>
   );
@@ -933,11 +944,13 @@ export type QueryVisualProps = {
   stack?: boolean;
   /** when a LIMIT cut the rows: the whole answer's figures, which the figures across the top count */
   totals?: Totals | null;
+  /** the chain's explorer path: a figure that is one row's extreme opens that row's transaction */
+  base?: string;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false, totals, base }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -956,7 +969,7 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   const single = panelIndex !== undefined || charts.length === 1;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
-      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} />}
+      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} totals={totals} base={base} />}
       {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
         <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>

@@ -55,7 +55,7 @@ ${
   c
     ? `- Gas, per ACP-194 (Continuous Execution, live since the Helicon upgrade): raw_blocks.gas_used is the gas RESERVED (the sum of the block's tx gas limits, what fills the block against gas_limit). raw_txs.gas_used is the gas CHARGED per receipt, max(used, half the limit); fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. The C-Chain burns every fee.
 - Use these names in titles and notes, never "gas used" for the block figure. A sum of raw_txs.gas_used is gas charged, per block, per hour or per contract alike (name it gas_charged); gas reserved comes only from raw_blocks.gas_used.`
-    : `- Gas: raw_blocks.gas_used is the block's gas used, against gas_limit. raw_txs.gas_used is the gas charged per receipt; fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. Whether an L1 burns its fees or pays them to a fee recipient depends on its configuration: say "fees paid", never "burned".`
+    : `- Gas: raw_blocks.gas_used is the block's gas used, against gas_limit. raw_txs.gas_used is the gas charged per receipt; fees are paid on it. Fees paid in wei = toFloat64(gas_used) * gas_price. Divide by 1e18 for ${opts.symbol}. Whether an L1 burns its fees or pays them to a fee recipient depends on its configuration: say "fees paid", never "burned". A fee question also reads raw_blocks.miner over the same window, as the worked example "Fees per bucket" shows, and the note says where the fees went: to the burn address when not_burned is 0, that is when every block's miner is 0x0100000000000000000000000000000000000000, the one case where it may say "burned"; else to the one recipient, by its full address, when recipients is 1; else to how many recipients. That address or count is the one exception to the note rules against hex, addresses and counts.`
 }
 - ERC-20 Transfer logs: topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'); topic1 = from, topic2 = to (left-padded to 32 bytes, address is the last 20 bytes); data = amount (uint256, big endian: reinterpretAsUInt256(reverse(data))). A transfer's sender and recipient are lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address and the same over topic2 AS to_address. Never take them from tx_from, tx_to or raw_logs.address: those are the transaction's sender, the contract it called and the token contract. ${
   c
@@ -85,14 +85,14 @@ ${CALENDAR}
 Answer comparative questions with ONE query that puts the things being compared side by side as columns, so the page can overlay them:
 - Groups: one row per bucket, one column per group with countIf / sumIf (usdc_transfers, usdt_transfers, usdc_volume, usdt_volume). Never one row per group per bucket when the question compares them.
 - Periods: align by offset. Take the window end from the data (max(block_time)), split it into current and previous halves, and return one row per offset bucket: toUInt32(dateDiff('minute', window_start, block_time) / 5) * 5 AS offset_min, with current_* and previous_* columns. Name the offset column so the axis reads minutes into the window.
-- Fees or gas per bucket: also return the largest single transaction in the bucket (max_fee_${sym}, or max_gas) so a spike from one or two overpaying transactions is visible.${c ? " Priority tips on the C-Chain go to the burn address with the base fee, so all of gas_used * gas_price is burned." : ""}
+- Fees or gas per bucket: also return the largest single transaction in the bucket (max_fee_${sym}, or max_gas) and that transaction beside it: concat('0x', lower(hex(argMax(hash, toFloat64(gas_used) * gas_price)))) AS max_fee_tx, or concat('0x', lower(hex(argMax(hash, gas_used)))) AS max_gas_tx. A spike from one or two overpaying transactions is then visible, and the page opens that transaction.${c ? " Priority tips on the C-Chain go to the burn address with the base fee, so all of gas_used * gas_price is burned." : ""}
 - Rates and shares with their counts: return both (txs, reverted, revert_pct), so the page can draw bars with a rate line.
 - Relations: one row per group or per record with two numeric measures (gas_charged and fee, calls and callers) for a scatter.
 - Cumulative, rolling and rebased views are computed by the page: return the raw per-bucket values.
 - Use WITH to name windows and to reuse a filter; up to six value columns per row is fine. Keep every table bounded on chain_id and time.
 
 ## How to work
-1. If the question fits a worked example below, adapt it and call render_chart directly. Do not test first: render_chart runs the query and returns the database error if it fails, so a wrong final costs one step, the same as a test.
+1. If the question fits a worked example below, adapt it and call render_chart directly. Do not test first: render_chart runs the query and returns the database error if it fails, so a wrong final costs one step, the same as a test.${c ? "" : " The one exception is a fee question: call run_sql first with the check of where the fees went, as the worked example \"Fees per bucket\" shows, then render_chart."}
 2. Call run_sql first only when you write something the examples do not cover: a join, a period comparison, bytes decoding. Fix and retry from the error.
 ${
   c
@@ -111,8 +111,14 @@ Counts over time with reverts; drill into one bucket:
 SELECT toStartOfFiveMinutes(block_time) AS t, count() AS txs, countIf(NOT success) AS reverted, round(100 * countIf(NOT success) / count(), 2) AS revert_pct FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR GROUP BY t ORDER BY t
 drill: ${RECORD(opts, "toStartOfFiveMinutes(now()) - INTERVAL 6 HOUR")} AND toStartOfFiveMinutes(block_time) = {{t}} ORDER BY block_time DESC LIMIT 50
 
-Fees per bucket with the largest single fee (toFloat64 before multiplying, so the product cannot wrap):
-SELECT toStartOfHour(block_time) AS t, sum(toFloat64(gas_used) * gas_price) / 1e18 AS fees_${opts.symbol.toLowerCase()}, max(toFloat64(gas_used) * gas_price) / 1e18 AS max_fee_${opts.symbol.toLowerCase()}, count() AS txs FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t ORDER BY t
+Fees per bucket with the largest single fee and its transaction (toFloat64 before multiplying, so the product cannot wrap)${
+  c
+    ? ":"
+    : `. On this chain a fee question takes two calls. First run_sql, over the fee query's window, where the fees went:
+SELECT uniqExact(miner) AS recipients, lower(concat('0x', hex(any(miner)))) AS recipient, countIf(miner != unhex('0100000000000000000000000000000000000000')) AS not_burned FROM raw_blocks WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR
+Then render_chart with the fee query, and a note that says where the fees went:`
+}
+SELECT toStartOfHour(block_time) AS t, sum(toFloat64(gas_used) * gas_price) / 1e18 AS fees_${opts.symbol.toLowerCase()}, max(toFloat64(gas_used) * gas_price) / 1e18 AS max_fee_${opts.symbol.toLowerCase()}, concat('0x', lower(hex(argMax(hash, toFloat64(gas_used) * gas_price)))) AS max_fee_tx, count() AS txs FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t ORDER BY t
 
 Gas charged against ${c ? "gas reserved" : "the blocks' gas used"} per hour (charged from the receipts in raw_txs, ${c ? "reserved" : "the block figure"} from raw_blocks):
 SELECT t, c.gas_charged AS gas_charged, b.${c ? "gas_reserved" : "block_gas_used"} AS ${c ? "gas_reserved" : "block_gas_used"} FROM (SELECT toStartOfHour(block_time) AS t, sum(gas_used) AS gas_charged FROM raw_txs WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t) AS c INNER JOIN (SELECT toStartOfHour(block_time) AS t, sum(gas_used) AS ${c ? "gas_reserved" : "block_gas_used"} FROM raw_blocks WHERE chain_id = ${opts.chainId} AND block_time >= toStartOfHour(now()) - INTERVAL 24 HOUR GROUP BY t) AS b USING t ORDER BY t

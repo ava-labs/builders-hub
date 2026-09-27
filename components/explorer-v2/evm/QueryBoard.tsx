@@ -180,6 +180,7 @@ function TileChart({
       sym={sym}
       canDrill={open && !!onMark}
       onPick={onMark ?? (() => {})}
+      base={base}
       titles={visual.panels.length > 1}
       cards={false}
       renderTable={(p) => (

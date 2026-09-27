@@ -864,6 +864,7 @@ function QueryPage({
                     names={names}
                     sym={sym}
                     totals={answer.totals}
+                    base={base}
                     canDrill={canDrill || recordRows}
                     // a mark that is one thing on the chain (a transaction, a
                     // contract, a validator, a block) opens that thing's own page
