@@ -89,7 +89,8 @@ interface SubnetInfo {
   locktime: number;
   subnetOwnershipInfo: SubnetOwnershipInfo;
   isL1: boolean;
-  l1ConversionTransactionHash: string;
+  /** Absent until the subnet converts to an L1, and always absent for the Primary Network. */
+  l1ConversionTransactionHash?: string;
   l1ValidatorManagerDetails?: L1ValidatorManagerDetails; // Optional based on response structure
   blockchains: SubnetBlockchainInfo[];
 }

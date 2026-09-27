@@ -6,6 +6,9 @@ import { useSelectedL1 } from '@/components/toolbox/stores/l1ListStore';
 import { getPChainRpcUrl, getGlacierNetwork } from '@/components/toolbox/utils/avalancheEndpoints';
 import { useViemChainStore } from '@/components/toolbox/stores/toolboxStore';
 import { useWalletStore } from '@/components/toolbox/stores/walletStore';
+import { useCreateChainStore } from '@/components/toolbox/stores/createChainStore';
+import SelectSubnetId from '@/components/toolbox/components/SelectSubnetId';
+import { PRIMARY_NETWORK_SUBNET_ID } from '@/components/toolbox/components/InputSubnetId';
 import { useChainPublicClient } from '@/components/toolbox/hooks/useChainPublicClient';
 import { useResolvedWalletClient } from '@/components/toolbox/hooks/useResolvedWalletClient';
 import { hexToBytes, decodeErrorResult, Abi, encodeFunctionData, type Hex } from 'viem';
@@ -44,6 +47,15 @@ type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId:
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 const add0x = (hex: string): `0x${string}` => (hex.startsWith('0x') ? (hex as `0x${string}`) : `0x${hex}`);
 
+/** A well-formed CB58 subnet ID: 32 bytes behind a valid checksum. */
+function isSubnetId(id: string): boolean {
+  try {
+    return hexToBytes(add0x(CB58ToHex(id))).length === 32;
+  } catch {
+    return false;
+  }
+}
+
 const metadata: ConsoleToolMetadata = {
   title: 'Initialize Validator Set',
   description: 'Initialize the ValidatorManager with the initial validator set from P-Chain',
@@ -75,10 +87,21 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   const [isValidatorSetInit, setIsValidatorSetInit] = useState<boolean | null>(null);
   const [isCheckingInit, setIsCheckingInit] = useState(false);
 
+  // The L1 whose validator set this step initializes. A wallet on the L1
+  // names it. A wallet on the C-Chain (a manager hosted there) names only
+  // the Primary Network, so the subnet from the create flow stands in.
+  const storeSubnetId = useCreateChainStore()((s) => s.subnetId);
+  const storeConversionTxId = useCreateChainStore()((s) => s.convertToL1TxId);
+  const walletSubnetId =
+    selectedL1?.subnetId && selectedL1.subnetId !== PRIMARY_NETWORK_SUBNET_ID ? selectedL1.subnetId : '';
+  const [subnetId, setSubnetId] = useState('');
+  const [notConverted, setNotConverted] = useState(false);
+
   const { notify } = useConsoleNotifications();
 
   // Unified aggregation: works for ALL wallet types
   async function aggSigs() {
+    const txId = conversionTxID.trim();
     setError(null);
     setIsAggregating(true);
 
@@ -88,10 +111,16 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
       // L1's bootstrap validators); kept out of the SDK to avoid pulling in
       // a Glacier dep there.
       const extracted = await extractSubnetToL1ConversionDataFromPChainTx({
-        txId: conversionTxID,
+        txId,
         pChainRpcUrl: getPChainRpcUrl(isTestnet),
         networkId: avalancheNetworkID,
       });
+      // A pasted or saved ID can belong to another subnet: never sign for the wrong L1.
+      if (subnetId && extracted.subnetId !== subnetId) {
+        throw new Error(
+          `Transaction ${txId} converted subnet ${extracted.subnetId}, not ${subnetId}. Select that subnet, or paste the conversion ID for ${subnetId}.`,
+        );
+      }
 
       const network = getGlacierNetwork(isTestnet);
       const glacierRes = await fetch(
@@ -132,24 +161,61 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
   }
 
   useEffect(() => {
+    const next = walletSubnetId || storeSubnetId;
+    if (next) setSubnetId(next);
+  }, [walletSubnetId, storeSubnetId]);
+
+  useEffect(() => {
+    // A different L1: nothing from the last one carries over.
+    setConversionTxID('');
     setConversionTxIDError('');
-    const subnetId = selectedL1?.subnetId;
-    if (!subnetId) return;
-    getSubnetInfo(subnetId)
+    setNotConverted(false);
+    setL1ConversionSignature('');
+    setConversionResult(null);
+    setManagerAddress('');
+    setIsValidatorSetInit(null);
+    setTxSuccess(false);
+    setError(null);
+    setCollectedData({});
+    if (!isSubnetId(subnetId)) return;
+
+    // The convert step's own record, for when Glacier has not indexed the conversion yet.
+    const saved = subnetId === storeSubnetId ? storeConversionTxId : '';
+    const controller = new AbortController();
+    getSubnetInfo(subnetId, controller.signal)
       .then((subnetInfo) => {
-        setConversionTxID(subnetInfo.l1ConversionTransactionHash);
+        if (subnetInfo.isTestnet !== isTestnet) {
+          setConversionTxIDError(
+            `Subnet ${subnetId} is on ${subnetInfo.isTestnet ? 'Fuji' : 'Mainnet'}. Switch the console to that network.`,
+          );
+          return;
+        }
         const contractAddr = subnetInfo.l1ValidatorManagerDetails?.contractAddress;
         if (contractAddr) setManagerAddress(contractAddr);
+        // Glacier reports no conversion hash until the subnet converts.
+        const txId = subnetInfo.l1ConversionTransactionHash || saved;
+        if (txId) setConversionTxID(txId);
+        else setNotConverted(true);
       })
       .catch((error) => {
+        if (controller.signal.aborted) return;
+        if (saved) {
+          setConversionTxID(saved);
+          return;
+        }
         console.error('Error getting subnet info:', error);
         setConversionTxIDError((error as Error)?.message || 'Unknown error');
       });
-  }, [selectedL1?.subnetId]);
+    return () => controller.abort();
+  }, [subnetId, storeSubnetId, storeConversionTxId, isTestnet]);
 
   // Check on-chain whether initializeValidatorSet has already been called
   useEffect(() => {
-    if (!managerAddress || !chainPublicClient) return;
+    if (!managerAddress || !chainPublicClient) {
+      setIsCheckingInit(false);
+      return;
+    }
+    let cancelled = false;
     setIsCheckingInit(true);
     chainPublicClient
       .readContract({
@@ -158,14 +224,17 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
         functionName: 'isValidatorSetInitialized',
       })
       .then((result) => {
-        setIsValidatorSetInit(result as boolean);
+        if (!cancelled) setIsValidatorSetInit(result as boolean);
       })
       .catch(() => {
-        setIsValidatorSetInit(null);
+        if (!cancelled) setIsValidatorSetInit(null);
       })
       .finally(() => {
-        setIsCheckingInit(false);
+        if (!cancelled) setIsCheckingInit(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [managerAddress, chainPublicClient]);
 
   // Build the transaction args from conversion data
@@ -193,7 +262,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
 
   // Core Wallet path: send tx with access list in-browser
   const onInitialize = async () => {
-    if (!conversionTxID) {
+    if (!conversionTxID.trim()) {
       setError('Conversion Tx ID is required');
       return;
     }
@@ -336,6 +405,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 <div className="mt-2 space-y-2">
+                  <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} label="L1 Subnet ID" />
                   <div>
                     <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
                       Conversion Tx ID (P-Chain)
@@ -348,6 +418,15 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       placeholder="txID..."
                     />
                     {conversionTxIDError && <p className="mt-0.5 text-[10px] text-red-500">{conversionTxIDError}</p>}
+                    {notConverted && !conversionTxID && (
+                      <p className="mt-0.5 text-[10px] text-amber-600 dark:text-amber-400">
+                        This subnet is not converted to an L1 yet. Convert it with{' '}
+                        <Link href="/console/layer-1/create/convert-to-l1" className="underline">
+                          Convert to L1
+                        </Link>
+                        , or paste the conversion transaction ID.
+                      </p>
+                    )}
                   </div>
 
                   {step1Complete ? (
@@ -375,7 +454,7 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                       variant="primary"
                       onClick={aggSigs}
                       loading={isAggregating}
-                      disabled={!conversionTxID || isAggregating}
+                      disabled={!conversionTxID.trim() || isAggregating}
                       className="w-full"
                     >
                       {isAggregating ? 'Aggregating...' : 'Aggregate Signatures'}
