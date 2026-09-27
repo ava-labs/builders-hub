@@ -4,10 +4,13 @@ import { STATS_CONFIG } from "@/types/stats";
 import { getChainICMCount } from "@/lib/icm-clickhouse";
 import { DEDICATED_STATS_BASE_URL, toStatsChainId } from "@/lib/dedicated-stats";
 import { pchainPost } from "@/lib/pchain-rpc";
+import { latestComplete, sumComplete } from "@/lib/stats-windows";
+import { fetchAllSubnets, runningL1Count, type RegistrySubnet } from "@/lib/pchain-subnets";
 
 export const dynamic = 'force-dynamic';
 
-const SECONDS_PER_DAY = 24 * 60 * 60;
+const SECONDS_PER_HOUR = 60 * 60;
+const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
 const CACHE_CONTROL_HEADER = 'public, max-age=14400, s-maxage=14400, stale-while-revalidate=86400';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CONCURRENT_CHAINS = 10;
@@ -17,10 +20,11 @@ const STATS_API_URL = DEDICATED_STATS_BASE_URL;
 // subnet whether or not we index it. Chain *counts* must come from here, not
 // from how many chains we happen to have figures for (lib/pchain-rpc.ts).
 
-// days = daily buckets to pull from metrics-api (window + a 2-day buffer so
-// the newest complete bucket is never the edge one). secondsInRange divides
-// the summed txCount into tps and, over SECONDS_PER_DAY, gives the number of
-// daily buckets to sum: one source of truth per range.
+// days = daily buckets to pull from the stats API (the window and a 2-day
+// buffer). "day" reads hourly buckets instead: the explorer labels it
+// "24 hours", so it sums the last 24 complete hours. secondsInRange divides
+// the summed txCount into tps and gives the number of buckets to sum: one
+// source of truth per range.
 const TIME_RANGE_CONFIG = {
   day: { days: 3, secondsInRange: SECONDS_PER_DAY },
   week: { days: 9, secondsInRange: 7 * SECONDS_PER_DAY },
@@ -116,27 +120,17 @@ async function processInBatches<T, R>(items: T[], processor: (item: T) => Promis
   return results;
 }
 
-function sortByTimestampDesc<T extends { timestamp: number }>(items: T[]): T[] {
-  return [...items].sort((a, b) => b.timestamp - a.timestamp);
-}
-
-function sumValues(sorted: MetricResult[], daysToSum: number): number {
-  let sum = 0;
-  for (let i = 1; i <= Math.min(daysToSum, sorted.length - 1); i++) {
-    sum += sorted[i]?.value || 0;
-  }
-  return sum;
-}
-
 /**
  * How many L1s are live on mainnet, straight from P-Chain.
  *
  * `getAllValidatorsAt` at height `proposed` returns the validator set per
- * subnet, and a subnet with a non-empty set is a running L1. Deliberately not
+ * subnet, and a subnet with a non-empty set is running. Deliberately not
  * `getCurrentValidators`: that lists registered validators regardless of state,
  * so under ACP-77 it reports healthy-looking sets for chains whose L1 validators
- * have run out of fee balance. Same definition scripts/enrich-chains.ts uses to
- * decide isActive, so the headline and the catalog cannot disagree.
+ * have run out of fee balance. The running sets are the ones
+ * scripts/enrich-chains.ts marks isActive; legacy subnets (gunz, StepNetwork)
+ * run sets too, so the count keeps only the subnets the subnet list marks
+ * isL1, as /api/validator-stats and /api/l1-registry's totals.activeL1s do.
  *
  * Returns null if P-Chain is unreachable; the caller falls back rather than
  * publishing a count it did not verify.
@@ -149,9 +143,26 @@ async function getPChainValidatorCounts(): Promise<Map<string, number> | null> {
 }
 
 async function getActiveL1CountFromPChain(): Promise<number | null> {
-  const counts = await loadPChainValidatorSets();
-  if (!counts) return null;
-  return counts.size - (counts.has(PRIMARY_NETWORK_SUBNET_ID) ? 1 : 0);
+  const [counts, subnets] = await Promise.all([loadPChainValidatorSets(), loadSubnets()]);
+  if (!counts || !subnets) return null;
+  return runningL1Count(counts, subnets);
+}
+
+// the subnet list moves only when a subnet is created or converted: read
+// hourly, the last good list kept through a failure
+const SUBNETS_TTL_MS = 60 * 60 * 1000;
+let subnetsCache: { subnets: RegistrySubnet[]; at: number } | null = null;
+
+async function loadSubnets(): Promise<RegistrySubnet[] | null> {
+  if (subnetsCache && Date.now() - subnetsCache.at < SUBNETS_TTL_MS) return subnetsCache.subnets;
+  try {
+    const subnets = await fetchAllSubnets('mainnet');
+    subnetsCache = { subnets, at: Date.now() };
+    return subnets;
+  } catch (error) {
+    console.error('[loadSubnets] failed:', error);
+    return subnetsCache?.subnets ?? null;
+  }
 }
 
 async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
@@ -184,8 +195,6 @@ async function loadPChainValidatorSets(): Promise<Map<string, number> | null> {
   }
 }
 
-const PRIMARY_NETWORK_SUBNET_ID = '11111111111111111111111111111111LpoYY';
-
 function getAllChains(): ChainInfo[] {
   return l1ChainsData
     .filter(chain =>
@@ -204,14 +213,17 @@ function getAllChains(): ChainInfo[] {
 async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise<Metric> {
   try {
     const config = TIME_RANGE_CONFIG[timeRange];
+    const hourly = timeRange === 'day';
     const endTimestamp = Math.floor(Date.now() / 1000);
-    const startTimestamp = endTimestamp - (config.days * SECONDS_PER_DAY);
+    // the day's 24 hours and a 2-hour buffer, or the window's days and their buffer
+    const span = hourly ? config.secondsInRange / SECONDS_PER_HOUR + 2 : config.days;
+    const startTimestamp = endTimestamp - span * (hourly ? SECONDS_PER_HOUR : SECONDS_PER_DAY);
 
     const url = new URL(`${STATS_API_URL}/v2/chains/${toStatsChainId(chainId)}/metrics/txCount`);
-    url.searchParams.set('timeInterval', 'day');
+    url.searchParams.set('timeInterval', hourly ? 'hour' : 'day');
     url.searchParams.set('startTimestamp', String(startTimestamp));
     url.searchParams.set('endTimestamp', String(endTimestamp));
-    url.searchParams.set('pageSize', String(config.days + 1));
+    url.searchParams.set('pageSize', String(span + 1));
 
     const res = await fetchWithTimeout(url.toString());
     if (!res.ok) {
@@ -220,12 +232,12 @@ async function getTxCountData(chainId: string, timeRange: TimeRangeKey): Promise
     }
     const data = await res.json();
 
-    const allResults: MetricResult[] = data.results || [];
-    const sorted = sortByTimestampDesc(allResults);
-    if (sorted.length === 0) return NO_DATA;
-    if (sorted.length === 1) return { v: sorted[0]?.value ?? 0, ok: true };
-    if (timeRange === 'day') return { v: sorted[1]?.value ?? 0, ok: true };
-    return { v: sumValues(sorted, config.secondsInRange / SECONDS_PER_DAY), ok: true };
+    // every stored bucket is a complete period: the newest counts too
+    const results: MetricResult[] = data.results || [];
+    const sum = hourly
+      ? sumComplete(results, 'hour', config.secondsInRange / SECONDS_PER_HOUR, endTimestamp)
+      : sumComplete(results, 'day', config.secondsInRange / SECONDS_PER_DAY, endTimestamp);
+    return sum === null ? NO_DATA : { v: sum, ok: true };
   } catch (error) {
     console.error(`[getTxCountData] Failed for chain ${chainId}:`, error);
     return UNAVAILABLE;
@@ -259,9 +271,8 @@ async function getActiveAddressesData(chainId: string, timeRange: TimeRangeKey):
     }
     const data = await res.json();
 
-    const allResults: MetricResult[] = data.results || [];
-    const sorted = sortByTimestampDesc(allResults);
-    const dataPoint = sorted.length > 1 ? sorted[1] : sorted[0];
+    // a distinct count, so one bucket: the latest complete period's, never an older one
+    const dataPoint = latestComplete(data.results || [], interval, endTimestamp);
     if (!dataPoint) return NO_DATA;
     return { v: dataPoint.value ?? 0, ok: true };
   } catch (error) {

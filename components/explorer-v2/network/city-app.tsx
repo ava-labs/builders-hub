@@ -1686,7 +1686,7 @@ export function CityApp({
           <p className="mt-1 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">{districtAbout(d)}</p>
           <dl className="mt-3 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800">
             {[
-              ["L1s", String(members.length)],
+              ["Chains", String(members.length)],
               ["Validators", vals.toLocaleString("en-US")],
               [painted ? `On ${target}+` : `ICM · ${windowShort}`, painted ? (onShare === null ? "—" : `${onShare}%`) : fmtCompact(msgs)],
             ].map(([k, v]) => (

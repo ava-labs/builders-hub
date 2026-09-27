@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
+import { isPchainNetwork } from "@/lib/pchain-explorer";
 import { pchainPost } from "@/lib/pchain-rpc";
+import { fetchAllSubnets, runningL1Count, type RegistrySubnet } from "@/lib/pchain-subnets";
 
 // The chain build-out registry, aggregated server-side: every subnet the
 // P-Chain has ever created (the box's /v1 subnets endpoint, ~6 pages),
@@ -11,30 +12,14 @@ import { pchainPost } from "@/lib/pchain-rpc";
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 100;
 const FETCH_TIMEOUT_MS = 20_000;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h in-process
 const CACHE_CONTROL = "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400";
 const PRIMARY_SUBNET_ID = "11111111111111111111111111111111LpoYY";
 
-interface RegistryBlockchain {
-  blockchainId: string;
-  blockchainName?: string;
-  createBlockTimestamp?: number;
-  evmChainId?: number;
-  subnetId?: string;
-  vmId?: string;
-}
-
-interface RegistrySubnet {
-  subnetId: string;
-  isL1?: boolean;
-  createBlockTimestamp?: number;
-  blockchains?: RegistryBlockchain[] | null;
-}
-
 export interface L1Registry {
-  totals: { subnets: number; l1s: number; blockchains: number; evmChains: number };
+  /** l1s: every subnet ever converted; activeL1s: the L1s among the running sets, null when the P-Chain did not answer */
+  totals: { subnets: number; l1s: number; activeL1s: number | null; blockchains: number; evmChains: number };
   /** newest blockchain launches, newest first */
   recent: {
     name: string;
@@ -47,7 +32,9 @@ export interface L1Registry {
     validators: number | null;
   }[];
   /** every subnet whose set runs now, named by its newest chain, newest
-   *  first; empty when the P-Chain did not answer */
+   *  first; empty when the P-Chain did not answer. Not all are L1s: legacy
+   *  subnets (gunz, StepNetwork) run sets too, so an L1 count reads isL1,
+   *  or totals.activeL1s */
   active: L1Registry["recent"];
   lastUpdated: number;
 }
@@ -55,25 +42,6 @@ export interface L1Registry {
 const cache = new Map<string, { data: L1Registry; at: number }>();
 // the last counts the P-Chain gave, per network: a busy or rate-limited P-Chain serves them rather than none
 const lastCounts = new Map<string, Map<string, number>>();
-
-async function fetchAllSubnets(network: string): Promise<RegistrySubnet[]> {
-  const out: RegistrySubnet[] = [];
-  let pageToken: string | undefined;
-  for (let i = 0; i < 50; i++) {
-    const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
-    const res = await fetch(
-      `${EXPLORER_API_BASE}/v1/networks/${network}/subnets?pageSize=${PAGE_SIZE}${tok}`,
-      { headers: { accept: "application/json" }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
-    );
-    if (!res.ok) throw new Error(`subnets upstream ${res.status}`);
-    const page = (await res.json()) as { subnets?: RegistrySubnet[]; nextPageToken?: string };
-    const subnets = page.subnets ?? [];
-    out.push(...subnets);
-    pageToken = page.nextPageToken;
-    if (!pageToken || subnets.length < PAGE_SIZE) break;
-  }
-  return out;
-}
 
 /* each subnet's active validators at the proposed height, from one call:
    a subnet whose set is empty is not running */
@@ -99,7 +67,7 @@ async function fetchValidatorCounts(network: string): Promise<Map<string, number
 }
 
 function buildRegistry(subnets: RegistrySubnet[], counts: Map<string, number> | null): L1Registry {
-  const totals = { subnets: 0, l1s: 0, blockchains: 0, evmChains: 0 };
+  const totals = { subnets: 0, l1s: 0, activeL1s: counts ? runningL1Count(counts, subnets) : null, blockchains: 0, evmChains: 0 };
   const allChains: L1Registry["recent"] = [];
 
   for (const s of subnets) {

@@ -1029,7 +1029,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
                 <button
                   type="button"
                   tabIndex={namesOff ? -1 : 0}
-                  aria-label={`${t.label}: ${t.ids.length} L1s. Open the district`}
+                  aria-label={`${t.label}: ${t.ids.length} chains. Open the district`}
                   onPointerEnter={() => setHoverDistrict(t.district)}
                   onPointerLeave={() => setHoverDistrict(null)}
                   onFocus={() => setHoverDistrict(t.district)}
@@ -1061,7 +1061,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
               <button
                 type="button"
                 tabIndex={namesOff ? -1 : 0}
-                aria-label={`${t.label}: ${t.ids.length} L1s. Open the district`}
+                aria-label={`${t.label}: ${t.ids.length} chains. Open the district`}
                 onPointerEnter={() => setHoverDistrict(t.district)}
                 onPointerLeave={() => setHoverDistrict(null)}
                 onFocus={() => setHoverDistrict(t.district)}
