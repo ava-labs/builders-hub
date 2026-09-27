@@ -30,7 +30,8 @@ import {
 } from '@/components/toolbox/components/WithConsoleToolMetadata';
 import useConsoleNotifications from '@/hooks/useConsoleNotifications';
 import { generateConsoleToolGitHubUrl } from '@/components/toolbox/utils/githubUrl';
-import { CB58ToHex } from '@avalanche-sdk/client/utils';
+import { CB58ToHex, removeChecksum } from '@avalanche-sdk/client/utils';
+import { utils } from '@avalabs/avalanchejs';
 import { ContractFunctionViewer } from '@/components/console/contract-function-viewer';
 import { Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
@@ -47,10 +48,14 @@ type ConversionData = ExtractSubnetToL1ConversionDataResult & { signingSubnetId:
 const ICM_COMMIT = versions['ava-labs/icm-services'];
 const add0x = (hex: string): `0x${string}` => (hex.startsWith('0x') ? (hex as `0x${string}`) : `0x${hex}`);
 
-/** A well-formed CB58 subnet ID: 32 bytes behind a valid checksum. */
+/**
+ * A well-formed CB58 subnet ID: 32 bytes behind a valid checksum. Checked
+ * with removeChecksum, because base58check.decode (and so CB58ToHex) does
+ * not verify the checksum and takes a mistyped ID.
+ */
 function isSubnetId(id: string): boolean {
   try {
-    return hexToBytes(add0x(CB58ToHex(id))).length === 32;
+    return removeChecksum(utils.base58.decode(id)).length === 32;
   } catch {
     return false;
   }
@@ -422,7 +427,12 @@ function InitValidatorSet({ onSuccess }: BaseConsoleToolProps) {
                 </p>
 
                 <div className="mt-2 space-y-2">
-                  <SelectSubnetId value={subnetId} onChange={setSubnetId} hidePrimaryNetwork={true} label="L1 Subnet ID" />
+                  <SelectSubnetId
+                    value={subnetId}
+                    onChange={setSubnetId}
+                    hidePrimaryNetwork={true}
+                    label="L1 Subnet ID"
+                  />
                   <div>
                     <label className="block text-[11px] font-medium text-zinc-600 dark:text-zinc-400 mb-1">
                       Conversion Tx ID (P-Chain)
