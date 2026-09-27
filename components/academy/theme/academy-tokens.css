@@ -45,6 +45,13 @@
   /* Icon tile without a data-hue: ink on the tile (C3). */
   --ac-h: var(--ac-ink);
   --ac-t: var(--ac-tile);
+  /* Ink at 80%, what fumadocs' body text (text-fd-foreground/80) computes on the course pages; the
+     console tools keep it under the prose skin (spec 2 and 4.3). It follows --ac-ink, so dark needs
+     no value of its own. */
+  --ac-ink-80: color-mix(in oklab, var(--ac-ink) 80%, transparent);
+  /* Mermaid labels on light author fills, the light ink in both themes, because the fills stay light
+     (spec 4.3); components/content-design/mermaid-light-fills.ts gives it to those labels. */
+  --ac-ink-on-light: #1f1f1f;
 }
 
 /* Tokens, dark (spec section 3, contract C3). */
@@ -63,7 +70,9 @@
   --ac-ok: #6fcf97;
   --ac-ok-bg: #14211a;
   --ac-code: #171717;
-  --ac-line: #5f5f68;
+  /* Lighter than the round 8 value: the phone table-of-contents bar is fixed and 80% opaque, so the
+     ring's track must keep 3:1 while paper and code (#171717) scroll under it. 3.06:1 on #171717. */
+  --ac-line: #64646d;
   --ac-hue-blue: #60a5fa;
   --ac-tint-blue: rgba(96, 165, 250, 0.16);
   --ac-hue-purple: #a78bfa;

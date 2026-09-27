@@ -30,7 +30,7 @@ const COLOR_TOKENS = [
   ['ok', '#2f6b4f', '#6fcf97'],
   ['ok-bg', '#eef5f0', '#14211a'],
   ['code', '#fafafa', '#171717'],
-  ['line', '#909098', '#5f5f68'],
+  ['line', '#909098', '#64646d'],
 ] as const;
 
 // Index C3 hues, spec section 3: hue, light colour, light tint, dark colour, dark tint.

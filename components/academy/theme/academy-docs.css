@@ -1,0 +1,465 @@
+/*
+ * Academy course pages: the G2 "Programme" skin for fumadocs internals, prose and MDX blocks
+ * (reskin phase 2; values follow the approved round 8 stills). Every selector starts with
+ * [data-academy="docs"], the course page root, and every colour is an --ac-* token
+ * (academy-tokens.css). Unlayered, so these rules win over fumadocs' layered utilities; !important
+ * appears only where an !important rule, an inline style or a chart's own stylesheet competes.
+ */
+
+/* ---------- Shell ---------- */
+
+/* critical.css and styles.css set background: hsl(var(--background)) !important here, an invalid
+   value that computes to transparent. body cannot take a [data-academy] selector. The attribute is
+   repeated so this rule (1,2,1) outranks styles.css's (1,1,1) in whatever order the files load. */
+[data-academy="docs"][data-academy="docs"] main#nd-docs-layout { background: var(--ac-docs-ground) !important; }
+
+/* The decorative grid is not part of the hub grounds. */
+[data-academy="docs"] #nd-docs-layout > span.absolute { display: none; }
+
+/* ---------- Sidebar: desktop column and phone drawer ---------- */
+
+/* Course button: "Course" above the course name, no course icon, the card border on paper. The
+   padding stays at production's 8px (critical.css and styles.css pin it), as the stills show. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] {
+  border: 1px solid var(--ac-rule);
+  border-radius: 10px;
+  background: var(--ac-paper);
+  box-shadow: none;
+}
+
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] > div:first-child { display: none; }
+
+/* app/global.css centres every #nd-sidebar p with !important; the drawer gets the same. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] p.text-sm.font-medium {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: 600;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] p.text-sm.font-medium::before {
+  content: "Course";
+  margin-bottom: 2px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--ac-ink-3);
+}
+
+/* Lesson rows on a hairline, the active row on the red rule, no row icons. A folder link's chevron
+   carries data-icon (fumadocs-ui sidebar.js:131) and stays. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] a[data-active] {
+  padding: 6px 10px 6px 12px;
+  border-left: 1px solid var(--ac-rule);
+  border-radius: 0;
+  background: transparent;
+  font-size: 13.5px;
+  color: var(--ac-ink-3);
+}
+
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] a[data-active="true"] {
+  padding-left: 11px;
+  border-left: 2px solid var(--ac-red);
+  font-weight: 500;
+  color: var(--ac-ink);
+}
+
+/* Hover: the row skin above clears fumadocs' hover tint, so the hairline and the label turn ink
+   instead. Colour only, so no box moves. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] a[data-active="false"]:hover {
+  border-left-color: var(--ac-ink);
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] a[data-active] > svg:not([data-icon]) { display: none; }
+
+/* Rows inside a plain folder module: the row hairline replaces fumadocs' folder rail and marker. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] div[data-state] > div[data-state]::before,
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] a[data-active]::before { content: none; }
+
+/* Section headings read ink, as the stills show. They inherit the page's shadcn --foreground, which
+   the tokens leave unmapped because the console tools draw with it. */
+[data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) [data-radix-scroll-area-viewport] p.inline-flex.items-center.gap-2 { color: var(--ac-ink); }
+
+/* ---------- Right column ---------- */
+
+[data-academy="docs"] #toc-title { font-size: 13px; font-weight: 600; color: var(--ac-ink); }
+[data-academy="docs"] #toc-title > svg { display: none; }
+[data-academy="docs"] #nd-toc a[data-active="true"] { color: var(--ac-ink); }
+[data-academy="docs"] #nd-toc a[data-active="false"] { color: var(--ac-ink-3); }
+
+/* The track thumb: red marks the position. */
+[data-academy="docs"] #nd-toc [role="none"] { background-color: var(--ac-red); }
+
+/* Below 1280 px the column becomes the bar above the article. fumadocs draws the track of its
+   progress ring in the text colour at 25%, under 3:1 on the ground; the track takes the line token
+   (spec section 3) and the progress arc takes ink, so the position reads against the track. */
+[data-academy="docs"] #nd-tocnav svg[role="progressbar"] > circle:first-child { stroke: var(--ac-line); }
+[data-academy="docs"] #nd-tocnav svg[role="progressbar"] > circle:last-child { stroke: var(--ac-ink); }
+
+/* Keyboard focus on the bar's trigger, whose outline fumadocs removes (focus-visible:outline-none): a
+   2 px ink ring inside its box, because the trigger spans the viewport and the site navbar covers its
+   top edge. An outline never moves a box. */
+[data-academy="docs"] #nd-tocnav > button[aria-expanded]:focus-visible {
+  outline: 2px solid var(--ac-ink);
+  outline-offset: -2px;
+}
+
+/* Page actions outlined, Edit on GitHub in ink. The link-shaped actions (Report Issue, the
+   Telegram chat) read in the secondary grey, as the stills show. */
+[data-academy="docs"] #nd-toc :is([data-slot="button"], [data-slot="dropdown-menu-trigger"]),
+[data-academy="docs"] #nd-toc a[href*="t.me"] {
+  border: 1px solid var(--ac-rule);
+  border-radius: 8px;
+  background: var(--ac-paper);
+  box-shadow: none;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-toc a[data-slot="button"]:not(.bg-primary),
+[data-academy="docs"] #nd-toc a[href*="t.me"] { color: var(--ac-ink-3); }
+
+[data-academy="docs"] #nd-toc a[data-slot="button"].bg-primary {
+  border-color: var(--ac-ink);
+  background: var(--ac-ink);
+  color: var(--ac-docs-ground);
+}
+
+[data-academy="docs"] #nd-toc .text-muted-foreground { color: var(--ac-ink-3); }
+[data-academy="docs"] #nd-toc .font-semibold { color: var(--ac-ink); }
+[data-academy="docs"] #nd-toc .border-t { border-color: var(--ac-rule); }
+
+/* ---------- Article footer ---------- */
+
+[data-academy="docs"] #nd-page article > div.grid > a {
+  border: 1px solid var(--ac-rule);
+  border-radius: 12px;
+  background: var(--ac-paper);
+  box-shadow: none;
+}
+
+[data-academy="docs"] #nd-page article > div.border-y { border-color: var(--ac-rule); }
+[data-academy="docs"] #nd-page article > div.border-y :is(button, textarea) { border-color: var(--ac-rule); }
+[data-academy="docs"] #nd-page article > div.border-y button { color: var(--ac-ink-2); }
+
+/* The feedback question and the prev/next title rows (the page name and its chevron) read ink, as the
+   stills show, instead of the page's shadcn --foreground; a card's description keeps ink-3. */
+[data-academy="docs"] #nd-page article > div.border-y p.text-sm.font-medium,
+[data-academy="docs"] #nd-page article > div.grid > a > div.font-medium { color: var(--ac-ink); }
+
+/* ---------- Page actions and prev/next cards: hover and keyboard focus ---------- */
+
+/* The rules above clear the components' own hover and focus styles. Hover: the border and the label
+   turn ink; Edit on GitHub, filled with ink, takes the outlined look instead. */
+[data-academy="docs"] #nd-toc :is([data-slot="button"], [data-slot="dropdown-menu-trigger"], a[href*="t.me"]):not(.bg-primary):hover,
+[data-academy="docs"] #nd-page article > div.grid > a:hover {
+  border-color: var(--ac-ink);
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-toc a[data-slot="button"].bg-primary:hover {
+  background: var(--ac-paper);
+  color: var(--ac-ink);
+}
+
+/* Keyboard focus: a 2 px ink ring inside the box, because the table-of-contents column clips anything
+   drawn outside it. An outline never moves a box. On Edit's ink fill, a gap in the ground colour keeps
+   the ring visible. */
+[data-academy="docs"] #nd-toc :is([data-slot="button"], [data-slot="dropdown-menu-trigger"], a[href*="t.me"]):focus-visible,
+[data-academy="docs"] #nd-page article > div.grid > a:focus-visible {
+  outline: 2px solid var(--ac-ink);
+  outline-offset: -2px;
+}
+
+[data-academy="docs"] #nd-toc a[data-slot="button"].bg-primary:focus-visible { box-shadow: inset 0 0 0 4px var(--ac-docs-ground); }
+
+/* ---------- Title and description ---------- */
+
+[data-academy="docs"] #nd-page article > h1 {
+  font-family: var(--ac-display);
+  font-weight: 500;
+  font-size: 42px;
+  line-height: 1.06;
+  letter-spacing: -0.022em;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > h1 + p {
+  margin-bottom: 12px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--ac-rule);
+  font-size: 18.5px;
+  line-height: 1.5;
+  color: var(--ac-ink-3);
+}
+
+/* ---------- Prose ----------
+   The console keeps its own look: rules that restyle elements stop at its frame
+   ([data-console-frame], components/toolbox/academy/wrapper/ToolboxMdxWrapper.tsx). */
+
+[data-academy="docs"] #nd-page article > .prose {
+  counter-reset: ac-h2;
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: var(--ac-ink-2);
+}
+
+/* Console tool text keeps its type (spec 2 and 4.3: console internals untouched). The prose above
+   reaches it by inheritance, so the frame takes back what the prose gave it before this skin:
+   fumadocs' 1rem on 1.75rem, in the body colour (text-fd-foreground/80, the --ac-ink-80 token). An
+   accordion body (role="region") sets its own size, 0.9375rem, which a console inside it keeps. */
+[data-academy="docs"] [data-console-frame] {
+  font-size: 1rem;
+  line-height: 1.75rem;
+  color: var(--ac-ink-80);
+}
+
+[data-academy="docs"] [role="region"] [data-console-frame] { font-size: inherit; }
+
+/* Only the page's own sections are numbered: headings inside quizzes, accordions, steps and other
+   components are not direct children of the prose. */
+[data-academy="docs"] #nd-page article > .prose > h2 {
+  counter-increment: ac-h2;
+  margin-top: 2.1em;
+  font-family: var(--ac-display);
+  font-weight: 500;
+  font-size: 25px;
+  letter-spacing: -0.015em;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > .prose > h2::before {
+  content: counter(ac-h2, decimal-leading-zero);
+  margin-right: 8px;
+  font-family: var(--ac-mono);
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--ac-ink-3);
+}
+
+[data-academy="docs"] #nd-page article > .prose > h3 { font-family: var(--ac-display); font-weight: 500; font-size: 19px; color: var(--ac-ink); }
+
+/* Content links. Console tools keep their own links, and so does the certificate block (the
+   CertificatePage root, the prose's direct child div.max-w-4xl.mx-auto.p-4 in
+   components/quizzes/certificates.tsx), which the certificate pages restyle (spec 4.8). */
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not(.prose > .max-w-4xl.mx-auto.p-4 a) {
+  color: var(--ac-ink);
+  text-decoration-color: var(--ac-rule-2);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not(.prose > .max-w-4xl.mx-auto.p-4 a):hover { text-decoration-color: var(--ac-red); }
+[data-academy="docs"] #nd-page article > .prose li:not([data-console-frame] li)::marker { color: var(--ac-ink-3); }
+
+/* Keyboard focus: a 2 px ink ring outside the text, on links and on the section headings' anchors.
+   An outline never moves a box. */
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not(.prose > .max-w-4xl.mx-auto.p-4 a):focus-visible,
+[data-academy="docs"] #nd-page article > .prose > :is(h2, h3) > a[data-card]:focus-visible {
+  outline: 2px solid var(--ac-ink);
+  outline-offset: 2px;
+}
+
+[data-academy="docs"] #nd-page article > .prose :not(pre) > code:not([data-console-frame] code) {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--ac-rule);
+  border-radius: 5px;
+  background: var(--ac-panel);
+  font-size: 0.84em;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > .prose strong:not([data-console-frame] strong) { font-weight: 600; color: var(--ac-ink); }
+
+/* ---------- Code blocks and tables ---------- */
+
+[data-academy="docs"] #nd-page article > .prose figure.shiki:not([data-console-frame] figure) {
+  border: 1px solid var(--ac-rule);
+  border-radius: 12px;
+  background: var(--ac-code);
+  box-shadow: none;
+}
+
+[data-academy="docs"] #nd-page article > .prose div.prose-no-margin:not([data-console-frame] div) > table { border-collapse: collapse; font-size: 14px; }
+
+[data-academy="docs"] #nd-page article > .prose div.prose-no-margin:not([data-console-frame] div) > table th {
+  border-right: 0;
+  border-bottom: 1px solid var(--ac-ink);
+  border-left: 0;
+  background: transparent;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > .prose div.prose-no-margin:not([data-console-frame] div) > table td {
+  border-color: var(--ac-rule);
+  border-right: 0;
+  border-left: 0;
+}
+
+/* ---------- Callouts ----------
+   data-callout (the kind) and data-callout-label come from lib/academy/remark-callout-labels.ts, so
+   callouts that console tools render carry neither and keep their own look. */
+
+[data-academy="docs"] #nd-page article > .prose [data-callout] {
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--ac-rule);
+  border-radius: 12px;
+  background: var(--ac-panel);
+  box-shadow: none;
+}
+
+/* The kind shows in its glyph and its hue, not in a colour bar. */
+[data-academy="docs"] #nd-page article > .prose [data-callout] > div[role="none"] { display: none; }
+
+[data-academy="docs"] #nd-page article > .prose [data-callout] > svg {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 3px;
+  fill: none;
+  color: var(--ac-hue-blue);
+}
+
+[data-academy="docs"] #nd-page article > .prose :is([data-callout="warning"], [data-callout="idea"]) > svg { color: var(--ac-hue-gold); }
+[data-academy="docs"] #nd-page article > .prose [data-callout="error"] > svg { color: var(--ac-ink); }
+[data-academy="docs"] #nd-page article > .prose [data-callout="success"] > svg { color: var(--ac-ok); }
+[data-academy="docs"] #nd-page article > .prose [data-callout] > div:last-child > div { font-size: 14.5px; line-height: 1.65; color: var(--ac-ink-2); }
+
+[data-academy="docs"] #nd-page article > .prose [data-callout-label] > div:last-child::before {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > .prose [data-callout-label="Note"] > div:last-child::before { content: "Note"; }
+[data-academy="docs"] #nd-page article > .prose [data-callout-label="Caution"] > div:last-child::before { content: "Caution"; }
+[data-academy="docs"] #nd-page article > .prose [data-callout-label="Important"] > div:last-child::before { content: "Important"; }
+[data-academy="docs"] #nd-page article > .prose [data-callout-label="Tip"] > div:last-child::before { content: "Tip"; }
+
+/* ---------- Steps: numbered tiles on a hairline ---------- */
+
+[data-academy="docs"] #nd-page article > .prose .fd-steps:not([data-console-frame] .fd-steps) { border-left: 1px solid var(--ac-rule); }
+
+[data-academy="docs"] #nd-page article > .prose .fd-steps:not([data-console-frame] .fd-steps) > .fd-step::before {
+  content: counter(step, decimal-leading-zero);
+  inset-inline-start: -14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--ac-tile);
+  box-shadow: 0 0 0 4px var(--ac-docs-ground);
+  font-family: var(--ac-mono);
+  font-size: 11.5px;
+  line-height: 1;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > .prose .fd-steps:not([data-console-frame] .fd-steps) > .fd-step > h3:first-child {
+  font-family: var(--ac-display);
+  font-weight: 500;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+  color: var(--ac-ink);
+}
+
+/* ---------- Accordions: the card, the chevron on the right ----------
+   The certificate page's chapter lists use the same fumadocs Accordions and take the same card. The
+   rules reach only each item's own header and trigger (child combinators), so an open panel's content,
+   its console frames and headings included, keeps its own look. */
+
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) {
+  border: 1px solid var(--ac-rule);
+  border-radius: 12px;
+  background: var(--ac-paper);
+  box-shadow: none;
+}
+
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div { border-color: var(--ac-rule); }
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 { margin: 0; }
+
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 > button[aria-expanded] {
+  gap: 12px;
+  padding: 12px 16px;
+  font-weight: 500;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--ac-ink);
+}
+
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 > button[aria-expanded] > svg {
+  flex: none;
+  order: 3;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  color: var(--ac-ink-3);
+}
+
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 > button[aria-expanded]:hover { background: var(--ac-panel); }
+
+@media (max-width: 767px) {
+  [data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 > button[aria-expanded] {
+    gap: 10px;
+    padding: 11px 12px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  [data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 > button[aria-expanded] > svg { width: 14px; height: 14px; }
+}
+
+/* ---------- Videos and author captions ---------- */
+
+[data-academy="docs"] #nd-page article > .prose .aspect-video:has(lite-youtube) {
+  overflow: hidden;
+  border: 1px solid var(--ac-rule);
+  border-radius: 12px;
+}
+
+/* Authors colour captions inline (#666); only !important reaches an inline colour. */
+[data-academy="docs"] #nd-page article > .prose p[style*="color"]:not([data-console-frame] p) { color: var(--ac-ink-3) !important; }
+[data-academy="docs"] #nd-page article > .prose p[style*="color"]:not([data-console-frame] p) a { color: var(--ac-ink) !important; }
+
+/* ---------- Steps, accordions and captions: hover and keyboard focus ----------
+   The accordion trigger keeps the panel hover above. With keyboard focus it takes a 2 px ink ring
+   inside its box, because the accordion root clips (overflow hidden); a step heading's anchor takes
+   the section headings' ring. A caption link's inline text-decoration outranks the prose link hover,
+   so its red underline needs !important. An outline never moves a box. */
+
+[data-academy="docs"] #nd-page article > .prose div.divide-y.divide-fd-border.rounded-lg[data-orientation="vertical"]:not([data-console-frame] div) > div > h3 > button[aria-expanded]:focus-visible {
+  outline: 2px solid var(--ac-ink);
+  outline-offset: -2px;
+}
+
+[data-academy="docs"] #nd-page article > .prose .fd-steps:not([data-console-frame] .fd-steps) > .fd-step > h3:first-child > a[data-card]:focus-visible {
+  outline: 2px solid var(--ac-ink);
+  outline-offset: 2px;
+}
+
+[data-academy="docs"] #nd-page article > .prose p[style*="color"]:not([data-console-frame] p) a:hover { text-decoration-color: var(--ac-red) !important; }
+
+/* ---------- Mermaid diagrams ----------
+   A chart's own <style> is keyed on its id, so theme colours need !important; author fills are
+   inline !important and stay. These selectors stay below an id's specificity, so a classDef rule,
+   also keyed on the chart id, keeps its colours. */
+
+[data-academy="docs"] .prose div:has(> svg[id^="mmd-"]) {
+  padding: 18px 12px;
+  border: 1px solid var(--ac-rule);
+  border-radius: 12px;
+  background: var(--ac-paper);
+}
+
+[data-academy="docs"] .prose svg[id^="mmd-"] :is(.node rect, .node polygon, rect.actor) {
+  fill: var(--ac-paper) !important;
+  stroke: var(--ac-ink) !important;
+  stroke-width: 1px !important;
+}
+
+[data-academy="docs"] .prose svg[id^="mmd-"] :is(.edgePath path, .flowchart-link, line, .messageLine0, .messageLine1) { stroke: var(--ac-ink-3) !important; }
+[data-academy="docs"] .prose svg[id^="mmd-"] :is(text, .nodeLabel) { fill: var(--ac-ink) !important; color: var(--ac-ink) !important; }
