@@ -192,19 +192,31 @@ function binaryColumns(body: RawJson): string[] {
     .map((c) => c.name);
 }
 
+/** the types the query service sends wrong: it scans each row into the row before's holders (stats-api query.go),
+    and a big integer or a decimal keeps the old value where the new one is NULL. As text, a NULL stays NULL */
+const STALE_NULL = /^Nullable\((U?Int(128|256)|Decimal)\b/;
+
 export async function runQuery(sql: string): Promise<QueryResult> {
   let body = await post(sql);
   // a query that returned bytes (a model forgot hex()) runs once more with
-  // those columns as 0x text, so the page never shows mangled bytes
+  // those columns as 0x text, so the page never shows mangled bytes; one
+  // with a nullable big integer or decimal runs once more with it as text
   const bytes = binaryColumns(body);
-  if (bytes.length) {
+  const stale = body.meta.filter((c) => STALE_NULL.test(c.type));
+  if (bytes.length || stale.length) {
     const cols = body.meta
       .map((c) => {
         const q = "`" + c.name.replace(/`/g, "") + "`";
-        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : q;
+        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : stale.includes(c) ? `toString(${q}) AS ${q}` : q;
       })
       .join(", ");
-    body = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    const again = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
+    // each keeps its type, and its values read as the endpoint writes them: a big integer as a number, a decimal as text
+    for (const c of stale) {
+      if (c.type.includes("Decimal")) continue;
+      for (const r of again.data) if (typeof r[c.name] === "string") r[c.name] = Number(r[c.name]);
+    }
+    body = { ...again, meta: again.meta.map((m) => stale.find((c) => c.name === m.name) ?? m) };
   }
   // an address read from a log topic is left-padded to 32 bytes; show the 20
   for (const c of body.meta) {
