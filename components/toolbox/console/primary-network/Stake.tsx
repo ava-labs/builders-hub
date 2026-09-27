@@ -19,7 +19,7 @@ import {
 import { createPChainClient } from '@avalanche-sdk/client';
 import { avalanche, avalancheFuji } from '@avalanche-sdk/client/chains';
 import { sendXPTransaction } from '@avalanche-sdk/client/methods/wallet';
-import { avaxToNanoAvax } from '@avalanche-sdk/client/utils';
+import { toNanoAvax } from '@/components/toolbox/coreViem/utils/units';
 import { networkIDs } from '@avalabs/avalanchejs';
 import { AddValidatorControls } from '@/components/toolbox/components/ValidatorListInput/AddValidatorControls';
 import type { ConvertToL1Validator } from '@/components/toolbox/components/ValidatorListInput';
@@ -442,7 +442,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
       if (isAutoRenew) {
         ({ tx } = await prepareAddAutoRenewedValidatorTxn(avalancheWalletClient.pChain, {
           nodeId: validator!.nodeID,
-          stakeInNanoAvax: avaxToNanoAvax(Number(stakeInAvax)),
+          stakeInNanoAvax: toNanoAvax(stakeInAvax),
           period: BigInt(Math.round(Number(periodHours) * 60 * 60)),
           rewardAddresses: [pChainAddress!],
           delegatorRewardAddresses: [pChainAddress!],
@@ -458,7 +458,7 @@ function Stake({ onSuccess }: BaseConsoleToolProps) {
         const endUnix = Math.floor(new Date(endTime).getTime() / 1000);
         ({ tx } = await prepareAddPermissionlessValidatorTxn(avalancheWalletClient.pChain, {
           nodeId: validator!.nodeID,
-          stakeInNanoAvax: avaxToNanoAvax(Number(stakeInAvax)),
+          stakeInNanoAvax: toNanoAvax(stakeInAvax),
           end: BigInt(endUnix),
           rewardAddresses: [pChainAddress!],
           delegatorRewardAddresses: [pChainAddress!],
