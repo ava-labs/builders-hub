@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { recipeKey } from '@/lib/explorer-query/cache';
 import { guardSql } from '@/lib/explorer-query/guard';
-import { pchainPrompt, promptVersion } from '@/lib/explorer-query/prompt';
+import { pchainPrompt, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
 import { refSchema, SQL_BUDGET } from '@/lib/explorer-query/sources';
 
 const PRIMARY = '11111111111111111111111111111111LpoYY';
@@ -26,6 +26,9 @@ interface Net {
   primary: Seat[];
   l1: Seat[];
   crawler: { nodeId: string; version: string; lastSeenOnline: number }[] | null;
+  /** the validator feed's names, and the registry's subnets with their chains */
+  stats?: { id: string; name: string }[];
+  subnets?: { subnetId: string; blockchains: { blockchainName?: string; createBlockTimestamp?: number }[] }[];
 }
 
 const now = Date.now();
@@ -68,6 +71,8 @@ async function fresh() {
 
 let nets: Record<string, Net>;
 let calls: string[];
+/** set, the registry's answer waits for it */
+let registryGate: Promise<void> | null;
 
 function route(url: string): Response {
   const u = new URL(url);
@@ -83,6 +88,8 @@ function route(url: string): Response {
     const page = nets[net].l1.slice(from, from + 100);
     return Response.json({ validators: page, ...(from + 100 < nets[net].l1.length ? { nextPageToken: String(from + 100) } : {}) });
   }
+  if (u.pathname === '/api/validator-stats') return Response.json(nets[net].stats ?? []);
+  if (/^\/v1\/networks\/(mainnet|fuji)\/subnets$/.test(u.pathname)) return Response.json({ subnets: nets[net].subnets ?? [] });
   if (u.pathname === '/api/avax-supply') {
     return Response.json({ totalSupply: '467980000.5', circulatingSupply: '420000000', totalStaked: '221000000', totalLocked: '1000', totalRewards: '9000', totalPBurned: '1', totalCBurned: '4500000', totalXBurned: '2', l1ValidatorFees: '18151.28', genesisUnlock: '3', lastUpdated: '2026-09-27T04:30:17.000Z' });
   }
@@ -92,7 +99,14 @@ function route(url: string): Response {
 beforeEach(() => {
   nets = { mainnet: mainnet(), fuji: fuji() };
   calls = [];
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => route(String(url))));
+  registryGate = null;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) => {
+      if (registryGate && new URL(String(url)).pathname.endsWith('/subnets')) await registryGate;
+      return route(String(url));
+    }),
+  );
 });
 
 afterEach(() => {
@@ -195,6 +209,101 @@ describe('withSources', () => {
     expect(sql).toContain('toFloat64(18151.28) AS l1_validator_fees_avax');
     expect(sql).toContain("toDateTime('2026-09-27 04:30:17', 'UTC') AS updated_at");
     expect(sources).toEqual([expect.objectContaining({ table: 'p_avax_supply', text: 'Supply figures come from the Avalanche Data API, updated 2026-09-27 04:30 UTC.' })]);
+  });
+});
+
+describe('subnet names', () => {
+  it("takes the validator feed's name first, then the registry's newest named chain", async () => {
+    nets.mainnet.stats = [{ id: subnetId(1), name: 'Feed name' }];
+    nets.mainnet.subnets = [
+      { subnetId: subnetId(1), blockchains: [{ blockchainName: 'Registry name', createBlockTimestamp: 5 }] },
+      { subnetId: subnetId(2), blockchains: [{ blockchainName: 'old chain', createBlockTimestamp: 1 }, { blockchainName: 'new chain', createBlockTimestamp: 9 }, { blockchainName: ' ', createBlockTimestamp: 20 }] },
+    ];
+    const names = await (await fresh()).subnetNames(1);
+    expect(names.get(subnetId(1))).toBe('Feed name');
+    expect(names.get(subnetId(2))).toBe('new chain');
+    expect(names.size).toBe(2);
+  });
+
+  it("answers with the feed's names when the registry outlasts the wait, and names the next answer from that same read", async () => {
+    nets.mainnet.stats = [{ id: subnetId(1), name: 'Feed name' }];
+    nets.mainnet.subnets = [{ subnetId: subnetId(2), blockchains: [{ blockchainName: 'Registry name', createBlockTimestamp: 1 }] }];
+    let open!: () => void;
+    registryGate = new Promise<void>((resolve) => (open = resolve));
+    const { subnetNames } = await fresh();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const first = subnetNames(1);
+      await vi.advanceTimersByTimeAsync(3000);
+      expect(Object.fromEntries(await first)).toEqual({ [subnetId(1)]: 'Feed name' });
+      // the registry answers after the wait ended; the clock stays still, so the next call can only be answered by that read
+      open();
+      expect(Object.fromEntries(await subnetNames(1))).toEqual({ [subnetId(1)]: 'Feed name', [subnetId(2)]: 'Registry name' });
+      expect(Object.fromEntries(await subnetNames(1))).toEqual({ [subnetId(1)]: 'Feed name', [subnetId(2)]: 'Registry name' });
+      expect(calls.filter((c) => c.endsWith('/subnets'))).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('prompt', () => {
+  it("names a method's contract only when it holds most of the calls, and counts the contracts", () => {
+    const text = systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null });
+    expect(text).toContain('if(top_calls * 2 > txs, top_contract, NULL) AS contract');
+    expect(text).toContain('uniqExact(callee) AS contracts');
+    expect(text).not.toContain('anyHeavy');
+  });
+
+  it('fills a daily level as empty, not zero, so no line crosses a day with no rows', () => {
+    const text = pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null });
+    expect(text).toMatch(/toNullable\(argMax\(supply, block_height\) \/ 1e9\) AS pchain_supply_avax FROM p_exec_state_history .* WITH FILL FROM toDate\(now\(\)\) - INTERVAL 90 DAY/);
+    expect(text).toMatch(/toNullable\(argMax\(staked, snapshot_time\)\) AS staked_avax .* WITH FILL FROM/);
+  });
+
+  it('reads calendar words as calendar windows, and "the last 30 days" as a rolling one', () => {
+    for (const text of [systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null }), pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null })]) {
+      expect(text).toContain('"this month" at toStartOfMonth(now())');
+      expect(text).toContain('"The last 30 days" (24 hours, 7 days) is a rolling window from now() - INTERVAL 30 DAY.');
+    }
+  });
+
+  it('claims no share the rows do not carry, and never calls a sender a contract', () => {
+    const text = systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null });
+    expect(text).toContain('It claims no share or total ("all", "most", "the majority") that no column of the rows carries, and never calls a transaction\'s sender a contract.');
+    expect(text).toContain('is the account that signed it, never a contract');
+  });
+
+  it('counts unqualified validators on the Primary Network and the L1s side by side, and keeps server caveats out of notes', () => {
+    const text = pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null });
+    expect(text).toContain('never the Primary Network alone');
+    expect(text).toMatch(/AS primary_validators, \(SELECT count\(\) FROM p_l1_validator_snapshots WHERE chain_id = 1 AND balance > 0 .* AS l1_validators/);
+    expect(text).toContain('passes over a snapshot still being written, so the note never mentions it');
+    expect(text).toContain('if(up.observers > 0, round(up.median_uptime, 2), NULL), never 0');
+  });
+
+  it('names the base of a share, and makes no hedges or parenthesized filters in a note', () => {
+    for (const text of [systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null }), pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null })]) {
+      expect(text).toContain('A share names the base its SQL divides by ("of the method calls counted", not "of all transactions").');
+      expect(text).toContain('It makes no hedges ("may", "might", "could", "likely", "appears") and never repeats a filter in parentheses such as "(balance > 0)"');
+    }
+  });
+
+  it('stops a fill at the bucket after now, keeps notes on the data, and bans the finality words', () => {
+    const evm = systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null });
+    const pchain = pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null });
+    expect(evm).toContain("A fill's TO, when it has one, is the bucket after now, never later");
+    expect(pchain).toContain('never the end of a calendar window such as this month: a fill adds no day that has not begun');
+    for (const text of [evm, pchain]) {
+      expect(text).toContain('It describes the data, never the server, the engine or the query');
+      expect(text).toContain('Never write "settled", "waiting" or "pending", in any sense.');
+    }
+  });
+
+  it('gives a refusal a title that names no topic', () => {
+    for (const text of [systemPrompt({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', schema: '', coverage: null }), pchainPrompt({ chainId: 1, network: 'mainnet', schema: '', coverage: null, lines: null })]) {
+      expect(text).toContain('With kind "none" the title is "No chart for this question", whatever the question is about');
+    }
   });
 });
 

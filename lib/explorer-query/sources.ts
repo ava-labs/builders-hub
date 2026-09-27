@@ -4,6 +4,7 @@ import { siteBaseUrl } from "@/lib/chat/site-url";
 import { minorVersionLine } from "@/lib/node-version";
 import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
@@ -390,11 +391,34 @@ const nameFeed = kept(
   "subnet names",
 );
 
-/** subnet id -> name; empty when the feed does not answer in time */
-export function subnetNames(chainId: number, timeoutMs = 3000): Promise<Map<string, string>> {
-  return within(
-    nameFeed.get(networkOf(chainId)).then((s) => s.names),
-    timeoutMs,
-    new Map<string, string>(),
-  );
+/* subnet id -> the name of its newest chain, over every subnet the
+   P-Chain has created, as /api/l1-registry reads them: it names the L1s
+   the validator feed does not, such as a new L1 with no active seat */
+const registryFeed = kept(
+  async (network: Network) => {
+    const names = new Map<string, { name: string; at: number }>();
+    for (const s of await fetchAllSubnets(network)) {
+      for (const b of s.blockchains ?? []) {
+        const name = b.blockchainName?.trim();
+        const at = b.createBlockTimestamp ?? 0;
+        if (name && at >= (names.get(s.subnetId)?.at ?? -1)) names.set(s.subnetId, { name, at });
+      }
+    }
+    return { names: new Map([...names].map(([id, n]) => [id, n.name])), at: Date.now() };
+  },
+  3600_000,
+  24 * 3600_000,
+  "subnet names",
+);
+
+/** subnet id -> name, the validator feed's first, then the registry's; empty when neither answers in time.
+    A read that outlasts the wait (a cold registry takes about 9 s) keeps going and fills the kept names,
+    so the next answer on this server has them at once */
+export async function subnetNames(chainId: number, timeoutMs = 3000): Promise<Map<string, string>> {
+  const none = new Map<string, string>();
+  const [feed, registry] = await Promise.all([
+    within(nameFeed.get(networkOf(chainId)).then((s) => s.names), timeoutMs, none),
+    within(registryFeed.get(networkOf(chainId)).then((s) => s.names), timeoutMs, none),
+  ]);
+  return new Map([...registry, ...feed]);
 }
