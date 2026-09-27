@@ -192,31 +192,48 @@ function binaryColumns(body: RawJson): string[] {
     .map((c) => c.name);
 }
 
-/** the types the query service sends wrong: it scans each row into the row before's holders (stats-api query.go),
-    and a big integer or a decimal keeps the old value where the new one is NULL. As text, a NULL stays NULL */
-const STALE_NULL = /^Nullable\((U?Int(128|256)|Decimal)\b/;
+/** the types the query service sends right when a value is NULL. It scans each row into the row before's holders
+    (stats-api query.go), and its driver clears a holder on NULL only for these (clickhouse-go nullable.go). Every
+    other Nullable type, and every LowCardinality(Nullable(...)) (lowcardinality.go), keeps the row before's value */
+const NULL_SAFE = /^(U?Int(8|16|32|64)|Float(32|64)|String|FixedString\(\d+\)|Enum(8|16)\(.*\)|Date|Date32|DateTime(\(.*\))?|DateTime64\(.*\)|Nothing)$/;
+
+/** how a column whose NULLs arrive wrong is read again so a NULL stays NULL: a LowCardinality one as its plain type
+    (toString keeps LowCardinality), the rest as text. back turns the text into what the endpoint writes for the type */
+function reread(type: string): { sql: (q: string) => string; back?: (v: string) => unknown } | undefined {
+  const lc = /^LowCardinality\(Nullable\((.*)\)\)$/.exec(type)?.[1];
+  const inner = lc ?? /^Nullable\((.*)\)$/.exec(type)?.[1];
+  if (inner === undefined || (lc === undefined && NULL_SAFE.test(inner))) return undefined;
+  const plain = (q: string) => (lc === undefined ? q : `CAST(${q} AS Nullable(${inner}))`);
+  if (NULL_SAFE.test(inner)) return { sql: plain };
+  const back = /^U?Int(128|256)$/.test(inner) ? Number : inner === "Bool" ? (v: string) => v === "true" : undefined;
+  return { sql: (q) => `toString(${plain(q)})`, back };
+}
 
 export async function runQuery(sql: string): Promise<QueryResult> {
   let body = await post(sql);
   // a query that returned bytes (a model forgot hex()) runs once more with
   // those columns as 0x text, so the page never shows mangled bytes; one
-  // with a nullable big integer or decimal runs once more with it as text
+  // with a column whose NULLs arrive wrong runs once more with it read so a NULL stays NULL
   const bytes = binaryColumns(body);
-  const stale = body.meta.filter((c) => STALE_NULL.test(c.type));
+  const stale = body.meta.flatMap((c) => {
+    const r = reread(c.type);
+    return r ? [{ column: c, ...r }] : [];
+  });
   if (bytes.length || stale.length) {
     const cols = body.meta
       .map((c) => {
         const q = "`" + c.name.replace(/`/g, "") + "`";
-        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : stale.includes(c) ? `toString(${q}) AS ${q}` : q;
+        const s = stale.find((x) => x.column === c);
+        return bytes.includes(c.name) ? `lower(concat('0x', hex(${q}))) AS ${q}` : s ? `${s.sql(q)} AS ${q}` : q;
       })
       .join(", ");
     const again = await post(`SELECT ${cols} FROM (${sql.replace(/\nLIMIT (\d+)$/, " LIMIT $1")})`);
-    // each keeps its type, and its values read as the endpoint writes them: a big integer as a number, a decimal as text
-    for (const c of stale) {
-      if (c.type.includes("Decimal")) continue;
-      for (const r of again.data) if (typeof r[c.name] === "string") r[c.name] = Number(r[c.name]);
+    // each keeps its type, and its values read as the endpoint writes them: a big integer as a number, a Bool as
+    // true or false, a decimal, UUID or IP as text
+    for (const { column, back } of stale) {
+      if (back) for (const r of again.data) if (typeof r[column.name] === "string") r[column.name] = back(r[column.name] as string);
     }
-    body = { ...again, meta: again.meta.map((m) => stale.find((c) => c.name === m.name) ?? m) };
+    body = { ...again, meta: again.meta.map((m) => stale.find((x) => x.column.name === m.name)?.column ?? m) };
   }
   // an address read from a log topic is left-padded to 32 bytes; show the 20
   for (const c of body.meta) {

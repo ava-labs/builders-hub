@@ -77,3 +77,66 @@ describe('a NULL in a big integer or decimal column', () => {
     expect(r.rows).toEqual([{ u256: 1001, u64: null }]);
   });
 });
+
+describe('a NULL in any other type the driver does not clear', () => {
+  const types: [string, string][] = [
+    ['n', 'UInt8'],
+    ['lcs', 'LowCardinality(Nullable(String))'],
+    ['lcu', 'LowCardinality(Nullable(UInt64))'],
+    ['b', 'Nullable(Bool)'],
+    ['id', 'Nullable(UUID)'],
+    ['e', "Nullable(Enum8('a' = 1, 'b' = 2))"],
+  ];
+
+  it('comes back NULL: a LowCardinality column read again as its plain type, the rest as text, each with its type', async () => {
+    // the endpoint as it is (qdata/nullfix2/types2.out): a NULL in these types repeats the row before; Enum is right
+    const sent = endpoint(
+      answer(types, [
+        [1, '1001', 1001, true, '00000000-0000-0000-0000-000000000001', 'a'],
+        [2, '1001', 1001, true, '00000000-0000-0000-0000-000000000001', null],
+        [3, '1003', 1003, false, '00000000-0000-0000-0000-000000000003', 'b'],
+      ]),
+      answer(
+        [
+          ['n', 'UInt8'],
+          ['lcs', 'Nullable(String)'],
+          ['lcu', 'Nullable(UInt64)'],
+          ['b', 'Nullable(String)'],
+          ['id', 'Nullable(String)'],
+          ['e', "Nullable(Enum8('a' = 1, 'b' = 2))"],
+        ],
+        [
+          [1, '1001', 1001, 'true', '00000000-0000-0000-0000-000000000001', 'a'],
+          [2, null, null, null, null, null],
+          [3, '1003', 1003, 'false', '00000000-0000-0000-0000-000000000003', 'b'],
+        ],
+      ),
+    );
+    const r = await runQuery('SELECT n, lcs, lcu, b, id, e FROM t');
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).toBe(
+      'SELECT `n`, CAST(`lcs` AS Nullable(String)) AS `lcs`, CAST(`lcu` AS Nullable(UInt64)) AS `lcu`, toString(`b`) AS `b`, toString(`id`) AS `id`, `e` FROM (SELECT n, lcs, lcu, b, id, e FROM t)',
+    );
+    expect(r.rows).toEqual([
+      { n: 1, lcs: '1001', lcu: 1001, b: true, id: '00000000-0000-0000-0000-000000000001', e: 'a' },
+      { n: 2, lcs: null, lcu: null, b: null, id: null, e: null },
+      { n: 3, lcs: '1003', lcu: 1003, b: false, id: '00000000-0000-0000-0000-000000000003', e: 'b' },
+    ]);
+    expect(r.columns).toEqual(types.map(([name, type]) => ({ name, type })));
+  });
+
+  it('is asked for once when the driver clears every nullable column', async () => {
+    const safe: [string, string][] = [
+      ['e', "Nullable(Enum8('a' = 1))"],
+      ['d', 'Nullable(Date32)'],
+      ['t', "Nullable(DateTime64(3, 'UTC'))"],
+      ['f', 'Nullable(Float64)'],
+      ['z', 'Nullable(Nothing)'],
+      ['s', 'LowCardinality(String)'],
+    ];
+    const sent = endpoint(answer(safe, [['a', null, null, 1.5, null, 'x']]));
+    const r = await runQuery('SELECT e, d, t, f, z, s FROM t');
+    expect(sent).toHaveLength(1);
+    expect(r.rows).toEqual([{ e: 'a', d: null, t: null, f: 1.5, z: null, s: 'x' }]);
+  });
+});
