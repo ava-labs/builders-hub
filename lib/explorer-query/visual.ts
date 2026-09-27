@@ -16,6 +16,11 @@ export const DESIGN_MODEL = "claude-opus-5-5";
 /** the designer runs at low effort: in 20 blind pairs its charts were rated as good as the default's (7 wins each, 6 ties), in about half the time */
 export const DESIGN_OPTIONS = { anthropic: { effort: "low" as const } };
 
+/** the most characters a callout shows; it names addresses and hashes in full, and the page draws each short */
+const CALLOUT_SHOWN = 160;
+/** a callout's cap as written: the shown cap and room for six full hashes, so naming transactions never fails a schema */
+const CALLOUT_RAW = CALLOUT_SHOWN + 6 * 55;
+
 export const formatSchema = z.enum(["number", "compact", "percent", "avax", "gas", "seconds", "usd"]);
 export type Format = z.infer<typeof formatSchema>;
 
@@ -75,8 +80,8 @@ export const visualSpecSchema = z.object({
   /** two to four headline figures across the top */
   stats: z.array(statSchema).max(4).default([]),
   panels: z.array(panelSchema).min(1).max(4),
-  /** one to three sentences a reader should take away, grounded in the rows */
-  callouts: z.array(z.string().max(160)).max(3).default([]),
+  /** one to three sentences a reader should take away, grounded in the rows; the design tool holds each to CALLOUT_SHOWN as the page shows it */
+  callouts: z.array(z.string().max(CALLOUT_RAW)).max(3).default([]),
 });
 export type VisualSpec = z.infer<typeof visualSpecSchema>;
 
@@ -187,6 +192,9 @@ export function withFullHex(c: string, held: readonly string[]): string | null {
   });
   return lost || (out.match(FULL_HEX) ?? []).some((a) => !held.includes(a.toLowerCase())) ? null : out;
 }
+
+/** a callout's length as the page draws it: each full address and hash at its short form, 0x1234…abcd */
+export const shownLength = (c: string) => c.replace(FULL_HEX, "0x0000…0000").length;
 
 /** every label a visual shows the reader */
 function labelsOf(v: VisualSpec): string[] {
@@ -422,12 +430,12 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
   let out: string[] = [];
   const reading = tool({
     description: "One to three callouts on these rows.",
-    inputSchema: z.object({ callouts: z.array(z.string().max(160)).max(3) }),
+    inputSchema: z.object({ callouts: z.array(z.string().max(CALLOUT_RAW)).max(3) }),
     execute: async ({ callouts }) => {
-      // a callout that names a column, or an address the rows do not hold, is left out
+      // a callout that names a column or an address the rows do not hold, or that runs past CALLOUT_SHOWN as shown, is left out
       const names = input.columns.map((c) => c.name);
       const held = heldHex(input);
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).slice(0, 3);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).slice(0, 3);
       return { ok: true };
     },
   });
@@ -490,6 +498,9 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
       ];
       if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
       if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
+      // a callout's cap counts it as the page shows it, each full address and hash short
+      const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
+      if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };
       // the reader never sees the columns: labels and callouts that name one are written again once, then read as words
       const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols]);
       if (named.length && !relabeled) {

@@ -5,7 +5,7 @@ import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, plainWords, readerSpec, sampleOf, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { codeWords, figures, plainLabel, plainWords, readerSpec, sampleOf, shownLength, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });
 const result = (rows: Record<string, unknown>[], truncated = false) => ({ columns: [], rows, rowCount: rows.length, elapsedMs: 0, rowsRead: 0, bytesRead: 0, truncated, ranAt: '' });
@@ -157,6 +157,10 @@ describe('reader words', () => {
     expect(withFullHex('It went to 0xbe05...8d8d.', [a])).toBeNull();
     expect(withFullHex(`It went to ${a}.`, [a])).toBe(`It went to ${a}.`);
     expect(withFullHex(`It went to 0x${'f'.repeat(40)}.`, [a])).toBeNull();
+  });
+
+  it('counts a callout as the page draws it, each full address and hash short', () => {
+    expect(shownLength(`Sent by 0x${'a'.repeat(40)} in 0x${'b'.repeat(64)}.`)).toBe('Sent by 0xaaaa…aaaa in 0xbbbb…bbbb.'.length);
   });
 
   it('keeps the columns out of a layout', () => {

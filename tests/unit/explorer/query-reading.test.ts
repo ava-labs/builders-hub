@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { designVisual, writeReading } from '@/lib/explorer-query/visual';
+import { designVisual, visualSpecSchema, writeReading } from '@/lib/explorer-query/visual';
 
 // a model call that hands the reading tool these callouts, as the model would
 type Call = { tools: { reading: { execute: (input: { callouts: string[] }) => Promise<unknown> } } };
@@ -55,6 +55,25 @@ describe('designVisual', () => {
       [false, false],
       [false, true],
     ]);
+  });
+
+  it('holds a callout to its length as the page shows it: three full addresses pass, one too long as shown is refused', async () => {
+    const a = (c: string) => `0x${c.repeat(40)}`;
+    const three = `The same 300.1k USDT went from ${a('1')} to ${a('2')}, then on to ${a('3')} within 3 minutes.`;
+    const long = 'Fees rose on every day of the week. '.repeat(5).trim();
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      results.push(await opts.tools.design.execute({ ...spec, callouts: [long] }));
+      results.push(await opts.tools.design.execute({ ...spec, callouts: [three] }));
+      return {};
+    }) as unknown as typeof generateText);
+    const out = await designVisual({ ...input, rows: [{ t: '2026-09-27 00:00:00', fees_avax: 1, from: a('1'), via: a('2'), to: a('3') }] });
+    // the schema the model's call is checked against takes the full addresses too
+    expect(three.length).toBeGreaterThan(160);
+    expect(visualSpecSchema.safeParse({ ...spec, callouts: [three] }).success).toBe(true);
+    expect(results[0]).toMatchObject({ error: expect.stringContaining('as the page shows it') });
+    expect(results[1]).toEqual({ ok: true });
+    expect(out.visual.callouts).toEqual([three]);
   });
 
   it('asks the designer for low effort on every call', async () => {
