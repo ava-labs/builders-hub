@@ -440,9 +440,12 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   const pickRoute = useCallback(
     (key: string) => {
       const r = routes.find((x) => x.key === key);
-      if (r) onRoute?.(pair?.has(r.from) && pair.has(r.to) ? null : `${r.from}~${r.to}`);
+      if (!r) return;
+      // the hover goes in the pick's own render, so the flight it starts renders nothing
+      if (!still) holdHover();
+      onRoute?.(pair?.has(r.from) && pair.has(r.to) ? null : `${r.from}~${r.to}`);
     },
-    [routes, pair, onRoute],
+    [routes, pair, onRoute, still, holdHover],
   );
   const litId = hover ?? hovered ?? pickedId;
   const near = useMemo(() => {
@@ -551,8 +554,16 @@ export default function City3D({ data: incoming, versions = null, target = "", s
     [routes, focus, byId, routesOf, litSet, pickedId, pair],
   );
 
-  /* a pick, by any id: a building's, or one another part of the city names (the landmark's wings); a second click lets it go */
-  const pickId = useCallback((id: string) => onSelect(selected === id ? null : id), [onSelect, selected]);
+  /* a pick, by any id: a building's, or one another part of the city names (the landmark's wings); a second click lets it go.
+     The hover goes in the pick's own render (React batches it with the app's selection), so the flight the pick starts finds
+     nothing to drop and its start renders nothing; the hover returns with the next move, as after any flight */
+  const pickId = useCallback(
+    (id: string) => {
+      if (!still) holdHover();
+      onSelect(selected === id ? null : id);
+    },
+    [onSelect, selected, still, holdHover],
+  );
 
   /* the camera's shots: the whole city, a district, a building, downtown's close-up */
   const home = useMemo<Shot>(() => {

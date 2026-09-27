@@ -575,7 +575,9 @@ export function Rig({
         if (c && shotWas.current === "home") mine.current = { pos: c.getPosition(new Vector3()), target: c.getTarget(new Vector3()) };
       }}
       onRest={() => {
-        // camera-controls rests whenever a frame moves less than restThreshold, which the brand ease's tail does mid-flight: the flight lands in the frame loop (or by its timer), not here
+        /* a rest inside a flight is not its landing: a glide sets each pose with setLookAt(..., false), which leaves no
+           transition, so camera-controls reports a rest one frame after its wake, at the glide's start. The glide's own end,
+           the frame loop's motion read and the 4.5 s timer land the flight */
         if (glide.current || inFlight.current) return;
         flight.current = null;
         settle();
