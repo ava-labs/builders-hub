@@ -2398,8 +2398,8 @@
     },
     {
       "address": "0x00000000efe302beaa2b3e6e1b18d08d69a9012a",
-      "name": "AgoraDollarErc1967Proxy",
-      "protocol": "Infrastructure",
+      "name": "AUSD",
+      "protocol": "Agora",
       "category": "token",
       "type": "token"
     },
@@ -2447,10 +2447,10 @@
     },
     {
       "address": "0xb300000b72deaeb607a12d5f54773d1c19c7028d",
-      "name": "Diamond",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "DEX Router",
+      "protocol": "Binance Wallet",
+      "category": "dex",
+      "type": "router"
     },
     {
       "address": "0x94b75331ae8d42c1b61065089b7d48fe14aa73b7",
@@ -2468,108 +2468,90 @@
     },
     {
       "address": "0x236088b6a190d8b0471d5ef53c5ca90461645dc3",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "DayCare V5 (NFKey staking)",
+      "protocol": "Tresr",
+      "category": "gaming",
+      "type": "staking"
     },
     {
       "address": "0xf739bd12e31e9c61040c3d7a1f69065b6cdd4699",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
+      "name": "Collateral Factory V2 (Coordinator 0x5bbb)",
+      "protocol": "Rain",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "factory"
     },
     {
       "address": "0x38a07152ee64c7067feeba904d72abc9a9da0c77",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
+      "name": "Orchestrator",
+      "protocol": "Steer",
+      "category": "yield",
       "type": "controller"
     },
     {
       "address": "0xc40da05d24e09a2906fbea2147e6a670aa659939",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
-    },
-    {
-      "address": "0x2196e106af476f57618373ec028924767c758464",
-      "name": "UUPSProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "MEV Bot (MexV2 trader fleet)",
+      "protocol": "MEV Bot (0x00aa deployer)",
+      "category": "mev",
+      "type": "other",
+      "subcategory": "high-frequency"
     },
     {
       "address": "0x76e3bc265307c8dd654bcac3c001f66f3ddb6583",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "MEV Bot (Pharaoh CL LP manager #3)",
+      "protocol": "MEV Bot (0x23c2 deployer)",
+      "category": "mev",
+      "type": "other",
+      "subcategory": "market-maker"
     },
     {
       "address": "0x27428dd2d3dd32a4d7f7c497eaaa23130d894911",
-      "name": "SimpleProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "WormholeRelayer",
+      "protocol": "Wormhole",
+      "category": "bridge",
+      "type": "router"
     },
     {
       "address": "0x10ac9b7eb034fab1f3bc446e81479d7dc089be83",
-      "name": "OptimizedTransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
-    },
-    {
-      "address": "0xc605c2cf66ee98ea925b1bb4fea584b71c00cc4c",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "PriceFeed",
+      "protocol": "LayerZero",
+      "category": "bridge",
+      "type": "other"
     },
     {
       "address": "0xbbbfd134e9b44bfb5123898ba36b01de7ab93d98",
-      "name": "ApprovalProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
-    },
-    {
-      "address": "0x8315f1eb449dd4b779495c3a0b05e5d194446c6e",
-      "name": "UUPSProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "RelayApprovalProxy",
+      "protocol": "Relay",
+      "category": "bridge",
+      "type": "router"
     },
     {
       "address": "0x3176f6e4be2448c53edd59c27651edfaa74bf483",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
+      "name": "AccessHub",
+      "protocol": "Pharaoh",
+      "category": "dex",
       "type": "controller"
     },
     {
       "address": "0xd57f0bb9ed6cbbad0b2bdd470fd496db852aeb76",
-      "name": "RebalanceProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
+      "name": "RebalanceProxy (Blackhole CL hypervisors)",
+      "protocol": "Gamma",
+      "category": "yield",
       "type": "controller"
     },
     {
       "address": "0x93676a067566ec92a5b16aa741b9d4b45649711e",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
+      "name": "Push Oracle glvAVAX/USD",
+      "protocol": "Chaos Labs",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "other"
     },
     {
       "address": "0x3a7ad40286540fc7e666adec44e679c59c34dd00",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "MEV Bot (Pharaoh CL LP manager #2)",
+      "protocol": "MEV Bot (0x23c2 deployer)",
+      "category": "mev",
+      "type": "other",
+      "subcategory": "market-maker"
     },
     {
       "address": "0x81d40f21f12a8f0e3252bccb954d722d4c464b64",
@@ -2634,23 +2616,23 @@
     },
     {
       "address": "0x09c1e991870cbc01009a4b49397a4f2a127d3784",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "sAVAX RewardTimeLock",
+      "protocol": "Benqi",
+      "category": "lending",
+      "type": "rewards"
     },
     {
       "address": "0xde12e956aa65e0581e9c470ace2a8194987a8935",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
+      "name": "Push Oracle COQ/USD",
+      "protocol": "Chaos Labs",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "other"
     },
     {
       "address": "0xc104debc37806421cb3b3d7e075e61f566efb583",
-      "name": "UUPSProxy",
+      "name": "Prediction market (FPMM, PTS points)",
       "protocol": "Infrastructure",
-      "category": "infrastructure",
+      "category": "other",
       "type": "controller"
     },
     {
@@ -2662,101 +2644,95 @@
     },
     {
       "address": "0x66a8cb6c4230b044378ac3676d47ed4fe18e3cfb",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
+      "name": "Push Oracle AVAX/USD",
+      "protocol": "Chaos Labs",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "other"
     },
     {
       "address": "0x6a5b3ab3274b738eab25205af6e2d4dd77812924",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
+      "name": "Push Oracle sAVAX/USD",
+      "protocol": "Chaos Labs",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "other"
     },
     {
       "address": "0x90e595783e43eb89ff07f63d27b8430e6b44bd9c",
-      "name": "OptimizedTransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "Executor",
+      "protocol": "LayerZero",
+      "category": "bridge",
+      "type": "other"
     },
     {
       "address": "0x8a92294ffcfe469a3df4a85c76a0b0d2b3292119",
-      "name": "AMTransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "Router",
+      "protocol": "Spectra",
+      "category": "yield",
+      "type": "router"
     },
     {
       "address": "0xee7ae85f2fe2239e27d9c1e23fffe168d63b4055",
-      "name": "ERC1967Proxy",
+      "name": "Circle MSCA smart account (USDC payouts)",
       "protocol": "Infrastructure",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "other"
     },
     {
       "address": "0x297ac6b26ad11691474e370a65cb4b26f3bf0a20",
-      "name": "BeaconProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "CLM Strategy WAVAX-USDC (Uniswap V3 0.05%)",
+      "protocol": "Beefy",
+      "category": "yield",
+      "type": "other"
     },
     {
       "address": "0x2e581710e811e785b5e11f064aede3eec0bd5c70",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
+      "name": "Push Oracle GUN/USD",
+      "protocol": "Chaos Labs",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "other"
     },
     {
       "address": "0x922b9ca8e2207bfb850b6ff647c054d4b58a2aa7",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
+      "name": "Voter",
+      "protocol": "Pharaoh",
+      "category": "dex",
       "type": "controller"
     },
     {
       "address": "0x936385b7aaaf73e089360c571f11e3d39561372f",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
+      "name": "Collateral Factory V2 (Coordinator 0xefa4)",
+      "protocol": "Rain",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "factory"
     },
     {
       "address": "0x21e539a5b00b4d0ab4a603889f01fd4a431af103",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "TCG Card Staking (ERC1155Staking)",
+      "protocol": "Pixelmon",
+      "category": "gaming",
+      "type": "staking"
     },
     {
       "address": "0x154f97554eaa9ecca7b75fc3daca021613f9ac95",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
+      "name": "RainCollateralFactory V1",
+      "protocol": "Rain",
       "category": "infrastructure",
-      "type": "controller"
+      "type": "factory"
     },
     {
       "address": "0x663dc15d3c1ac63ff12e45ab68fea3f0a883c251",
-      "name": "TransparentUpgradeableProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
-    },
-    {
-      "address": "0xeffb809d99142ce3b51c1796c096f5b01b4aaec4",
-      "name": "UUPSProxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "Crosschain Forwarder (DeBridgeRouter)",
+      "protocol": "deBridge",
+      "category": "bridge",
+      "type": "router"
     },
     {
       "address": "0x829a0c4654cdbf899e35762e1fe9ab5aa80c5999",
-      "name": "ERC1967Proxy",
-      "protocol": "Infrastructure",
-      "category": "infrastructure",
-      "type": "controller"
+      "name": "MEV Bot (Pharaoh CL LP manager #1)",
+      "protocol": "MEV Bot (0x23c2 deployer)",
+      "category": "mev",
+      "type": "other",
+      "subcategory": "market-maker"
     },
     {
       "address": "0x105fecae0c48d683da63620de1f2d1582de9e98a",
@@ -3046,6 +3022,34 @@
       "protocol": "Arena",
       "category": "dex",
       "type": "router"
+    },
+    {
+      "address": "0x2196e106af476f57618373ec028924767c758464",
+      "name": "Launchpad TokenManagerERC20",
+      "protocol": "Arena",
+      "category": "dex",
+      "type": "controller"
+    },
+    {
+      "address": "0x8315f1eb449dd4b779495c3a0b05e5d194446c6e",
+      "name": "Launchpad TokenManager",
+      "protocol": "Arena",
+      "category": "dex",
+      "type": "controller"
+    },
+    {
+      "address": "0xc605c2cf66ee98ea925b1bb4fea584b71c00cc4c",
+      "name": "Shares (StarsArena)",
+      "protocol": "Arena",
+      "category": "other",
+      "type": "other"
+    },
+    {
+      "address": "0xeffb809d99142ce3b51c1796c096f5b01b4aaec4",
+      "name": "ArenaStaking",
+      "protocol": "Arena",
+      "category": "yield",
+      "type": "staking"
     },
     {
       "address": "0x7773721134c27a33a2c30e02e6b0130900000000",
