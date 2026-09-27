@@ -335,11 +335,11 @@ function StatFigure({ s, rows, all, names, sym, active }: { s: Stat; rows: Row[]
 export const CARD =
   "rounded-2xl bg-white ring-1 ring-zinc-200/80 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_8px_24px_-18px_rgba(24,24,27,0.18)] transition-shadow duration-300 hover:shadow-[0_1px_2px_rgba(24,24,27,0.05),0_14px_32px_-18px_rgba(24,24,27,0.28)] dark:bg-zinc-950 dark:ring-zinc-800/80 dark:shadow-none";
 
-function StatsStrip({ stats, rows, all, names, sym, active, cards }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean }) {
+function StatsStrip({ stats, rows, all, names, sym, active, cards, stack = false }: { stats: Stat[]; rows: Row[]; all: Row[]; names: Names; sym: string; active: boolean; cards: boolean; stack?: boolean }) {
   if (stats.length === 0) return null;
   if (cards) {
     return (
-      <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
+      <div className={cn("grid grid-cols-2 gap-3", stats.length === 1 ? "grid-cols-1" : stack ? "" : stats.length === 3 ? "sm:grid-cols-3" : stats.length === 4 ? "sm:grid-cols-4" : "")}>
         {stats.map((s) => (
           <div key={s.label} className={cn(CARD, "min-w-0")}>
             <StatFigure s={s} rows={rows} all={all} names={names} sym={sym} active={active} />
@@ -904,11 +904,13 @@ export type QueryVisualProps = {
   cards?: boolean;
   /** draws a table panel (its rows) in its place; without it, table panels are left out */
   renderTable?: (panel: Panel, index: number) => ReactNode;
+  /** one panel a row and two figures a row, for a narrow frame the viewport's breakpoints cannot see (the city's answer window) */
+  stack?: boolean;
 };
 
 const isChart = (p: Panel | undefined): p is Panel => !!p && p.kind !== "table" && !!p.x && p.series.length > 0;
 
-export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable }: QueryVisualProps) {
+export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom, selected, hoverKey, onHoverKey, selection, onSelection, chips = true, compact = false, panelIndex, panelAction, titles = true, cards = true, renderTable, stack = false }: QueryVisualProps) {
   const whole = selection ?? EMPTY;
   // a pick on a column these rows lack (another answer's) cannot narrow them
   const live = useMemo(() => whole.filter((p) => rows.some((r) => p.column in r)), [whole, rows]);
@@ -927,12 +929,12 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
   const single = panelIndex !== undefined || charts.length === 1;
   return (
     <div className={cn("flex flex-col", compact ? "gap-3" : cards ? "gap-3 sm:gap-4" : "gap-6")}>
-      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} />}
+      {!compact && <StatsStrip stats={visual.stats} rows={picked} all={rows} names={names} sym={sym} active={live.length > 0} cards={cards} stack={stack} />}
       {onSelection && chips && <SelectionChips selection={whole} onSelection={onSelection} names={names} onZoom={onZoom} className={cards ? "px-1" : "-mb-2"} />}
       {charts.length > 0 && (
-        <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && "lg:grid-cols-2")}>
+        <div className={cn("grid", cards ? "gap-3 sm:gap-4" : "gap-x-10 gap-y-8", !single && !stack && "lg:grid-cols-2")}>
           {charts.map(({ p, idx }, i) => (
-            <div key={`${i}-${p.title}-${p.x}`} className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && p.width === "full" && "lg:col-span-2")}>
+            <div key={`${i}-${p.title}-${p.x}`} className={cn("min-w-0", cards && cn(CARD, "px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4"), !single && !stack && p.width === "full" && "lg:col-span-2")}>
               {p.kind === "table" && renderTable ? (
                 <section aria-label={p.title || undefined} className="group/panel flex flex-col gap-3">
                   <div className="flex min-h-7 items-center justify-between gap-3">

@@ -117,6 +117,7 @@ export function ResultTable({
   lead,
   hoverKey,
   onHoverKey,
+  onHoverRow,
   step,
   hist = false,
 }: {
@@ -134,6 +135,8 @@ export function ResultTable({
   lead?: { x: string; col: string; max: number } | null;
   hoverKey?: unknown;
   onHoverKey?: (k: unknown) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHoverRow?: (row: Row | null) => void;
   /** show this many rows, then this many more on each ask; unset, the first 200 */
   step?: number;
   /** a small histogram of each numeric or time column in its header */
@@ -165,8 +168,14 @@ export function ResultTable({
             onKeyDown={(e) => {
               if (onPick && e.key === "Enter" && e.target === e.currentTarget) onPick(r, i);
             }}
-            onMouseEnter={() => lead && onHoverKey?.(r[lead.x])}
-            onMouseLeave={() => lead && onHoverKey?.(undefined)}
+            onMouseEnter={() => {
+              if (lead) onHoverKey?.(r[lead.x]);
+              onHoverRow?.(r);
+            }}
+            onMouseLeave={() => {
+              if (lead) onHoverKey?.(undefined);
+              onHoverRow?.(null);
+            }}
             className={cn(
               ROW,
               "grid items-center",
@@ -293,6 +302,7 @@ export function PanelRows({
   sym,
   onPick,
   onAll,
+  onHover,
   limit = 10,
 }: {
   panel: Panel;
@@ -303,6 +313,8 @@ export function PanelRows({
   base: string;
   sym: string;
   onPick?: (row: Row) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHover?: (row: Row | null) => void;
   /** every row, in the sheet */
   onAll?: () => void;
   limit?: number;
@@ -315,7 +327,7 @@ export function PanelRows({
   return (
     <div className="flex flex-col">
       <div className="-mx-4 sm:-mx-5">
-        <ResultTable columns={cols} rows={rows.slice(0, limit)} names={names} visual={visual} base={base} sym={sym} span={span} picked={null} onPick={onPick ? (r) => onPick(r) : undefined} />
+        <ResultTable columns={cols} rows={rows.slice(0, limit)} names={names} visual={visual} base={base} sym={sym} span={span} picked={null} onPick={onPick ? (r) => onPick(r) : undefined} onHoverRow={onHover} />
       </div>
       {rows.length > limit && onAll && (
         <button

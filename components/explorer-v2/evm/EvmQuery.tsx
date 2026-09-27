@@ -24,6 +24,7 @@ import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { AvalancheLoader } from "./AvalancheLoader";
+import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, progress, reads, streamQuery } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -38,9 +39,6 @@ import { useLoginModalTrigger } from "@/hooks/useLoginModal";
    a mark zooms in place into the records behind it. Where the figures
    came from (tables, window, timings, SQL) folds away under the chart. */
 
-/* the selection rides along with a follow-up after this mark, so the
-   question the reader sees stays the one they typed */
-const FILTER_MARK = "\n\n(Only the rows where ";
 
 /* the thread rides in the URL: ?q= the question, one &then= per
    follow-up, so a copied link opens the refined answer and not the first */
@@ -60,47 +58,6 @@ function useCopy() {
 }
 
 
-
-/** one line on where the answer is: who is writing, and the last step */
-/** the callouts as one paragraph: every sentence closed, no 1.395e+6, short addresses */
-function reads(callouts: string[]): string {
-  return callouts
-    .map((c) =>
-      c
-        .trim()
-        .replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m)))
-        // an address reads the way the charts write it
-        .replace(/\b0x[0-9a-fA-F]{40}\b/g, (m) => truncate(m.toLowerCase(), 6)),
-    )
-    .filter(Boolean)
-    .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))
-    .join(" ");
-}
-
-/** under every answer: the figures rest on SQL a model wrote */
-/** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
-class QueryError extends Error {
-  constructor(message: string, readonly signIn = false) {
-    super(message);
-  }
-}
-
-const SQL_CAVEAT = "The SQL behind this answer is written by an AI model and may not be 100% accurate. Check it before you rely on a figure.";
-
-/* the loader's line: what is happening, never which model does it */
-function progress(events: QueryEvent[]): string {
-  let line = "Writing the SQL";
-  for (const e of events) {
-    if (e.type === "stage") {
-      if (e.stage === "cached") return "Kept answer: running its SQL for fresh rows";
-      line = e.stage === "escalated" ? "Taking a second pass at the SQL" : "Writing the SQL";
-    } else if (e.type === "step") {
-      const what = e.kind === "test" ? `Test ${e.n}` : "Final query";
-      line = e.ok ? `${what} ran, ${e.detail}` : `${what} failed, fixing`;
-    }
-  }
-  return line;
-}
 
 /** the chain a Query page asks: its table chain_id and how the page names it */
 interface QueryChain {
@@ -353,39 +310,13 @@ function QueryPage({
     return () => clearInterval(id);
   }, [started]);
 
-  const post = async <T,>(body: object): Promise<T> => {
-    const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
-    const out = (await res.json()) as T & { error?: string };
-    if (!res.ok || out.error) throw new Error(out.error ?? `HTTP ${res.status}`);
-    return out;
-  };
+  const post = <T,>(body: object): Promise<T> => postQuery<T>({ chainId: c.chainId, ...body });
 
   /** a question, streamed: each step as it ends, then the answer */
-  const stream = async (body: object, my: number): Promise<QueryAnswer> => {
-    const res = await fetch("/api/explorer/query", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ chainId: c.chainId, ...body }) });
-    if (!res.ok || !res.body) {
-      const out = (await res.json().catch(() => ({}))) as { error?: string; signIn?: boolean };
-      throw new QueryError(out.error ?? `HTTP ${res.status}`, !!out.signIn);
-    }
-    const reader = res.body.getReader();
-    const dec = new TextDecoder();
-    let buf = "";
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (value) buf += dec.decode(value, { stream: true });
-      let nl: number;
-      while ((nl = buf.indexOf("\n")) >= 0) {
-        const line = buf.slice(0, nl).trim();
-        buf = buf.slice(nl + 1);
-        if (!line) continue;
-        const e = JSON.parse(line) as QueryEvent;
-        if (e.type === "answer") return e.answer;
-        if (e.type === "error") throw new Error(e.error);
-        if (my === token.current) setEvents((prev) => [...prev, e]);
-      }
-      if (done) throw new Error("The answer stopped before it finished.");
-    }
-  };
+  const stream = (body: object, my: number): Promise<QueryAnswer> =>
+    streamQuery({ chainId: c.chainId, ...body }, (e) => {
+      if (my === token.current) setEvents((prev) => [...prev, e]);
+    });
 
   /** a kept layout's sentences, written again from the rows just fetched */
   const reread = async (a: QueryAnswer) => {

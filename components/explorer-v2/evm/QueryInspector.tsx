@@ -116,6 +116,7 @@ export function RankList({
   base,
   sym,
   onOpen,
+  onHover,
   step = 60,
 }: {
   rows: Row[];
@@ -125,6 +126,8 @@ export function RankList({
   base: string;
   sym: string;
   onOpen?: (row: Row) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHover?: (row: Row | null) => void;
   step?: number;
 }) {
   const [shown, setShown] = useState(step);
@@ -164,7 +167,7 @@ export function RankList({
         );
         const cls = "flex w-full flex-col gap-1.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-zinc-100/80 focus-visible:bg-zinc-100/80 focus-visible:outline-none dark:hover:bg-zinc-900 dark:focus-visible:bg-zinc-900";
         return (
-          <li key={`${String(raw)}-${i}`}>
+          <li key={`${String(raw)}-${i}`} onMouseEnter={onHover && (() => onHover(r))} onMouseLeave={onHover && (() => onHover(null))}>
             {onOpen ? (
               <button type="button" onClick={() => onOpen(r)} className={cls}>
                 {body}
@@ -195,6 +198,7 @@ export function RowsBody({
   base,
   sym,
   onOpen,
+  onHover,
   table = false,
 }: {
   columns: ColumnMeta[];
@@ -204,12 +208,14 @@ export function RowsBody({
   base: string;
   sym: string;
   onOpen?: (row: Row) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHover?: (row: Row | null) => void;
   table?: boolean;
 }) {
   if (!rows.length) return <p className="px-3 py-6 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">No rows in this selection.</p>;
   const shape = shapeOf(columns, rows, visual);
   if (!table && shape.kind === "tx") return <TxCards rows={rows} names={names} visual={visual} base={base} sym={sym} />;
-  if (!table && shape.kind === "rank") return <RankList rows={rows} shape={shape} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} />;
+  if (!table && shape.kind === "rank") return <RankList rows={rows} shape={shape} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} onHover={onHover} />;
   return (
     <div className="-mx-1 [&_a]:outline-offset-2">
       <ResultTable
@@ -222,6 +228,7 @@ export function RowsBody({
         span="other"
         picked={null}
         onPick={onOpen ? (r) => onOpen(r) : undefined}
+        onHoverRow={onHover}
         step={100}
         hist
       />
