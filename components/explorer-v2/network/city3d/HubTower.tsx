@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import {
+  AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
   Color,
@@ -16,10 +17,12 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshPhongMaterial,
+  NormalBlending,
   Quaternion,
   ShaderMaterial,
   Shape,
   ShapeGeometry,
+  Vector2,
   Vector3,
   Vector4,
 } from "three";
@@ -141,6 +144,10 @@ const SPIRE_FOOT: [number, number] = [2.2, 1.2];
 const SPIRE_H = 22;
 const SPIRE_R: [number, number] = [0.55, 0.12];
 const AIRCRAFT_R = 0.62;
+/** the spire's light as an obstruction light: its cycle in seconds, its rise and its fade in it, and its light between pulses, a share of its peak; its halo, a hot core in a soft glow, as big as its radius in the world or haloPx CSS pixels on screen, whichever is larger, the core a share of it */
+const OBSTRUCTION = { cycle: 2, rise: 0.35, fade: 1.1, rest: 0.25, halo: 4.5, haloPx: 9, core: 0.24 };
+/** the beam variant (?beacon=beam), by night only: a faint thin line of the light into the sky, its height, its width in the world or in CSS pixels at the least, and its strength at its foot */
+const BEAM = { h: 320, w: 0.8, px: 1.5, alpha: 0.16 };
 /** where a helicopter's message lands on the C wing: its roof in front of the spire, from the roof's middle, over the half-width */
 const ROOF_AT: Pt = [0, 0.2];
 /** how high the tower reaches over its roof: the spire's aircraft light */
@@ -1000,7 +1007,108 @@ function cGlassOf(w: number, h: number): BufferGeometry {
   return g;
 }
 
-/** the meshes the tower draws on a half-width w and a height h, rising at `rise`: its massing, the C and P wings' glass, its lights (the spire's aircraft light, the beacon, the transfers' lights), and the lines of light (a transfer's path and the lid's line); and the boxes the cursor catches */
+/* the spire light's halo: a quad that faces the eye at the light, as big on screen as its radius in the world or OBSTRUCTION.haloPx, whichever is larger, drawn a little toward the eye so its own spire does not cut it, a hot core in a soft glow. It lies over the scene by day, so it reads on a light sky, and adds to it at night, where it glows */
+function haloOf() {
+  const u = { uAt: { value: new Vector3() }, uColor: { value: new Color() }, uI: { value: 0 }, uPx: { value: 1 }, uView: { value: new Vector2(1, 1) } };
+  const m = new ShaderMaterial({
+    uniforms: u,
+    vertexShader: /* glsl */ `
+      attribute vec2 aCorner;
+      uniform vec3 uAt;
+      uniform float uPx;
+      uniform vec2 uView;
+      varying vec2 vUv;
+      void main() {
+        vUv = aCorner;
+        vec4 mv = modelViewMatrix * vec4( uAt, 1.0 );
+        mv.xyz += normalize( -mv.xyz ) * 3.0;
+        vec4 c = projectionMatrix * mv;
+        float px = max( ${OBSTRUCTION.halo.toFixed(2)} * projectionMatrix[ 1 ][ 1 ] * uView.y * 0.5 / c.w, ${OBSTRUCTION.haloPx.toFixed(1)} * uPx );
+        gl_Position = c + vec4( aCorner * px / uView * 2.0 * c.w, 0.0, 0.0 );
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uI;
+      varying vec2 vUv;
+      void main() {
+        float r = length( vUv );
+        if ( r > 1.0 ) discard;
+        float core = 1.0 - smoothstep( ${(OBSTRUCTION.core * 0.6).toFixed(3)}, ${OBSTRUCTION.core.toFixed(3)}, r );
+        float glow = pow( 1.0 - r, 2.2 ) * 0.55;
+        float a = clamp( ( core + glow ) * uI, 0.0, 1.0 );
+        if ( a < 0.004 ) discard;
+        gl_FragColor = vec4( uColor * ( 1.0 + 0.6 * core ), a );
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(new Array(12).fill(0), 3));
+  g.setAttribute("aCorner", new Float32BufferAttribute([-1, -1, 1, -1, 1, 1, -1, 1], 2));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  const mesh = new Mesh(g, m);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 3;
+  // light, not a thing: the cursor passes through it, it casts no shadow, and what stands in front of it hides it (its depth test)
+  mesh.raycast = () => {};
+  mesh.castShadow = mesh.receiveShadow = false;
+  return { mesh, m, u };
+}
+/* the beam variant: a line of the light's glow up into the night sky, as wide on screen as its width in the world or BEAM.px, whichever is larger, fading as it rises and at its edges, pulsing with the light */
+function beamOf() {
+  const u = { uAt: { value: new Vector3() }, uColor: { value: new Color() }, uI: { value: 0 }, uPx: { value: 1 }, uView: { value: new Vector2(1, 1) } };
+  const m = new ShaderMaterial({
+    uniforms: u,
+    vertexShader: /* glsl */ `
+      attribute vec2 aCorner;
+      uniform vec3 uAt;
+      uniform float uPx;
+      uniform vec2 uView;
+      varying vec2 vUv;
+      void main() {
+        vUv = aCorner;
+        vec4 a = projectionMatrix * modelViewMatrix * vec4( uAt, 1.0 );
+        vec4 b = projectionMatrix * modelViewMatrix * vec4( uAt + vec3( 0.0, ${BEAM.h.toFixed(1)}, 0.0 ), 1.0 );
+        vec4 c = mix( a, b, aCorner.y );
+        // across the line on screen
+        vec2 d = normalize( ( b.xy / b.w - a.xy / a.w ) * uView );
+        vec2 n = vec2( -d.y, d.x );
+        float px = max( ${(BEAM.w / 2).toFixed(2)} * projectionMatrix[ 1 ][ 1 ] * uView.y * 0.5 / c.w, ${(BEAM.px / 2).toFixed(2)} * uPx );
+        gl_Position = c + vec4( n * aCorner.x * px / uView * 2.0 * c.w, 0.0, 0.0 );
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      uniform float uI;
+      varying vec2 vUv;
+      void main() {
+        float a = uI * ${BEAM.alpha.toFixed(2)} * pow( 1.0 - vUv.y, 1.6 ) * ( 1.0 - vUv.x * vUv.x );
+        if ( a < 0.002 ) discard;
+        gl_FragColor = vec4( uColor, a );
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    // its corners turn with the line on screen, so either face may be the one the eye sees
+    side: DoubleSide,
+    toneMapped: false,
+  });
+  const g = new BufferGeometry();
+  g.setAttribute("position", new Float32BufferAttribute(new Array(12).fill(0), 3));
+  g.setAttribute("aCorner", new Float32BufferAttribute([-1, 0, 1, 0, 1, 1, -1, 1], 2));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  const mesh = new Mesh(g, m);
+  mesh.frustumCulled = false;
+  mesh.renderOrder = 3;
+  mesh.visible = false;
+  mesh.raycast = () => {};
+  mesh.castShadow = mesh.receiveShadow = false;
+  return { mesh, m, u };
+}
+
+/** the meshes the tower draws on a half-width w and a height h, rising at `rise`: its massing, the C and P wings' glass, its lights (the spire's aircraft light, the beacon, the transfers' lights), the lines of light (a transfer's path and the lid's line), the spire light's halo, and the beam, drawn only at night in its variant; and the boxes the cursor catches */
 export function hubTowerParts(w: number, h: number, rise: { value: number }) {
   const f = frameOf(w, h);
   const mass = massMaterial({ perInstance: false, riseAt: rise, key: "hub-tower", foot: 0.9 });
@@ -1043,6 +1151,12 @@ export function hubTowerParts(w: number, h: number, rise: { value: number }) {
     return new Mesh(new BoxGeometry(r, top, r).translate(0, top / 2, 0).rotateY(-Math.PI / 4).translate(c[0], 0, c[1]), pickMat);
   };
   const picks = { c: pickOf("c", h + 20), p: pickOf("p", f.top.p + 10), x: pickOf("x", f.top.x + 4), base: new Mesh(new CylinderGeometry(w * PODIUM_R, w * STEPS[0], PODIUM, 16).translate(0, PODIUM / 2, 0), pickMat) };
+  // the spire light's halo, and the beam, at the light
+  const aircraft = V(cc[0], h + HUB_REACH - AIRCRAFT_R, cc[1]);
+  const halo = haloOf();
+  halo.u.uAt.value.copy(aircraft);
+  const beam = beamOf();
+  beam.u.uAt.value.copy(aircraft);
   return {
     body,
     mass,
@@ -1053,20 +1167,22 @@ export function hubTowerParts(w: number, h: number, rise: { value: number }) {
     pMat,
     storeys: f.pStoreys.length,
     lights,
-    aircraft: V(cc[0], h + HUB_REACH - AIRCRAFT_R, cc[1]),
+    aircraft,
+    halo,
+    beam,
     beacon: V(back[0], f.top.p + ROOF_SLAB + BEACON_MAST + 0.5, back[1] + 1.4),
     run: { from: V(run.from[0], f.lobbies[1] + 3, run.from[1]), to: V(run.to[0], f.lobbies[1] + 3, run.to[1]), yaw: run.yaw },
     climb,
     flow,
     flowMat,
     picks,
-    meshes: [body, cGlass, pGlass, lights, flow],
+    meshes: [body, cGlass, pGlass, lights, flow, halo.mesh, beam.mesh],
   };
 }
 type Parts = ReturnType<typeof hubTowerParts>;
 
 /** the tower's colors in a theme: its stone and steel as they are by day, tinted to the night; the C wing's two reds, or each storey's own under the Versions lens, as the city paints its glass (floors); the P wing's slate and its blue */
-export function tintHubTower(parts: Parts, theme: Theme, floors: Glass[] = ["downtown"]) {
+export function tintHubTower(parts: Parts, theme: Theme, floors: Glass[] = ["downtown"], beam = false) {
   const dark = theme === "dark";
   const t = dark ? 1 : 0;
   parts.mass.color.set(TINT[t]);
@@ -1115,6 +1231,12 @@ export function tintHubTower(parts: Parts, theme: Theme, floors: Glass[] = ["dow
   // a transfer lights the lobby in the brand's blue and flashes the crown's band in its light red
   parts.flowMat.u.uBandColor.value.copy(dark ? BLUE.night : BLUE.day);
   parts.flowMat.u.uCrownColor.value.copy(RED.night);
+  // the spire's light in the brand's red: its halo laid over the day, added to the night; the beam in its variant, by night only
+  parts.halo.u.uColor.value.copy(dark ? RED.night : RED.day);
+  parts.halo.m.blending = dark ? AdditiveBlending : NormalBlending;
+  parts.halo.m.needsUpdate = true;
+  parts.beam.u.uColor.value.copy(RED.night);
+  parts.beam.mesh.visible = beam && dark;
 }
 
 /** the C wing's flashes, laid as the city lays a set's (City3D's flashesOf, with the same dice): the busier the C-Chain in the city's window, the more of its storeys flash and the more often, each on a face the eye sees; none while the city is still */
@@ -1175,9 +1297,10 @@ const _p = new Vector3();
 const _s = new Vector3();
 const _c = new Color();
 const _n = new Quaternion();
+const _view = new Vector2();
 
 /** the tower's motion, frame by frame: the C wing's glass as the lights come on, the aircraft light, the beacon, the P-Chain's storeys and each transfer's play */
-export function stepHubTower(parts: Parts, o: { dark: boolean; still: boolean; riseAt: number; lightAt: number; flashes: { storey: number; at: number }[]; runs: { at: number; out: boolean }[]; px?: number }) {
+export function stepHubTower(parts: Parts, o: { dark: boolean; still: boolean; riseAt: number; lightAt: number; flashes: { storey: number; at: number }[]; runs: { at: number; out: boolean }[]; px?: number; view?: Vector2 }) {
   const t = TIME.value;
   const lit = o.still ? 1 : clamp01((t - o.lightAt) / 1.1);
   parts.pMat.u.uLit.value = lit;
@@ -1229,11 +1352,17 @@ export function stepHubTower(parts: Parts, o: { dark: boolean; still: boolean; r
     const i = f.storey % Math.max(1, parts.storeys);
     fl[i] = Math.max(fl[i], k);
   }
-  // the spire's aircraft light: a short red blink every two seconds, the way a tower's light keeps time
+  // the spire's obstruction light: a slow pulse every OBSTRUCTION.cycle seconds, on in a breath and fading long, never quite out; its lamp swells a little with it, and its halo carries it to the home view
   const L = parts.lights;
-  const blink = o.still ? 1 : 0.12 + 0.88 * pulseOf(t % 2, 0.06, 0.9);
-  L.setMatrixAt(0, _m.compose(parts.aircraft, _n.identity(), _s.setScalar(AIRCRAFT_R * up)));
-  L.setColorAt(0, _c.copy(red).multiplyScalar((o.dark ? 1.8 : 1.2) * blink));
+  const obs = o.still ? 1 : pulseOf(t % OBSTRUCTION.cycle, OBSTRUCTION.rise, OBSTRUCTION.fade);
+  const glow = OBSTRUCTION.rest + (1 - OBSTRUCTION.rest) * obs;
+  L.setMatrixAt(0, _m.compose(parts.aircraft, _n.identity(), _s.setScalar(AIRCRAFT_R * up * (0.85 + 0.3 * obs))));
+  L.setColorAt(0, _c.copy(red).multiplyScalar((o.dark ? 1.8 : 1.2) * glow));
+  for (const x of [parts.halo.u, parts.beam.u]) {
+    x.uI.value = up * glow;
+    x.uPx.value = o.px ?? 1;
+    if (o.view) x.uView.value.copy(o.view);
+  }
   // the beacon: small and blue, a hint by day and plain at night, and a flare as a transfer leaves the P wing or reaches it
   const beat = o.still ? 1 : 0.35 + 0.65 * Math.max(0, Math.sin(t * 2.4)) ** 6;
   L.setMatrixAt(1, _m.compose(parts.beacon, _n.identity(), _s.setScalar(0.6 * up * (1 + 1.8 * signal))));
@@ -1300,7 +1429,9 @@ export function HubTower({
     },
     [parts],
   );
-  useEffect(() => tintHubTower(parts, theme, floors), [parts, theme, floors]);
+  // the beam, as a variant to compare: ?beacon=beam
+  const beam = useMemo(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("beacon") === "beam", []);
+  useEffect(() => tintHubTower(parts, theme, floors, beam), [parts, theme, floors, beam]);
   useEffect(() => flashHubTower(parts, hub, activity, still), [parts, hub, activity, still]);
 
   /* each P-Chain tx that lands lights the next storey of the P wing up; an import or an export plays a transfer; a burst plays a beat apart */
@@ -1333,7 +1464,7 @@ export function HubTower({
       const dir = asked.shift();
       if (!still) runOut(dir === "toC", TIME.value);
     }
-    stepHubTower(parts, { dark, still, riseAt, lightAt, flashes: flashes.current, runs: runs.current, px: gl.getPixelRatio() });
+    stepHubTower(parts, { dark, still, riseAt, lightAt, flashes: flashes.current, runs: runs.current, px: gl.getPixelRatio(), view: gl.getDrawingBufferSize(_view) });
   });
 
   const pick = (id: string) => (e: ThreeEvent<MouseEvent>) => {
