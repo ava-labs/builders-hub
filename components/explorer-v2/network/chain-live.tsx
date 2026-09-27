@@ -1,20 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { memo, startTransition, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { INK, MUTED, LiveDot, RowDoor, fnInk } from "@/components/explorer-v2/ui";
 import { ageShort, formatNumber } from "@/components/explorer-v2/format";
 import { EASE_CSS, useStill } from "@/components/explorer-v2/motion";
-import { Belt, MotionRow, Party, fmtAmount, useDrip, useFreeze } from "@/components/explorer-v2/evm/LiveBoards";
+import { Belt, MotionRow, Party, fmtAmount } from "@/components/explorer-v2/evm/LiveBoards";
 import { useMethodNames } from "@/components/explorer-v2/evm/bits";
-import { useHeadStream, type Head, type StreamTx } from "@/components/explorer-v2/evm/useHeadStream";
+import { useLiveFeed } from "@/components/explorer-v2/network/live-feed";
+import { useTicker } from "@/components/explorer-v2/network/ticker";
 import { readRpc } from "@/lib/explorer-rpc";
+import type { LiveHead as Head, LiveTx as StreamTx } from "@/lib/live-window";
 import { prewarmContractNames, useVerifiedContracts } from "@/lib/sourcify-client";
 import { decodeErc20Call, formatTokenAmount, useTokenList } from "@/lib/token-list";
-import type { TxListResponse } from "@/lib/evm-explorer";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
@@ -22,16 +23,15 @@ import type { L1Chain } from "@/types/stats";
    as they land, in the explorer's own grammar. The city opens it at the
    right when a chain is picked.
 
-   The feed is the C-Chain home's head stream, read every five seconds
-   instead of every second: headers for the blocks, and each poll the
-   newest block's receipts for the transactions, so a row knows when it
-   reverted and a token transfer shows its amount. The C-Chain reads through the
-   dedicated node, an L1 through the public RPC its catalog entry lists.
-   The indexer is asked once, when the card opens, so a quiet chain's list
-   opens full; its rows count only inside the strip's blocks, because for
-   some L1s it is months behind the chain. Polls stop while the tab is
-   hidden and when the card closes, and a feed that stays silent for three
-   polls stops and says why. */
+   The feed is the chain's live window (/api/live/[chainId]), read once a
+   second: the server holds the newest heads and the transactions of the
+   newest executed blocks, read from our dedicated node for the C-Chain and
+   from the RPC its catalog entry lists for an L1, and every viewer shares
+   that one read. A row knows when it reverted and a token transfer shows
+   its amount. Blocks and rows enter through the ticker, one at a time at
+   the feed's own pace, and never move once placed. Polls rest while the
+   tab is hidden and when the card closes, and a feed that stays silent
+   stops and says why. */
 
 export interface LiveTarget {
   /** EVM chain ID, the explorer routes' key */
@@ -43,8 +43,6 @@ export interface LiveTarget {
   symbol: string;
   /** the chain's explorer home, when it has one */
   explorer: string | null;
-  /** the chain's public RPC; the catalog's when absent */
-  rpcUrl?: string | null;
 }
 
 /** the chain's newest block, as the pane's stream read it */
@@ -54,14 +52,13 @@ export interface LiveTip {
   timestamp: number;
 }
 
-const POLL_MS = 5_000;
 /* the strip's blocks, and the list's rows with the one sliding out under its foot */
 const BLOCKS = 6;
 const TXS = 12;
-/* polls without an answer before the card stops asking */
-const MAX_MISSES = 3;
 /* this long connecting in view, the status says what it waits on */
 const SLOW_MS = 8_000;
+/* blocks with transactions but no rows this long: the source serves no receipts */
+const STUCK_MS = 15_000;
 /* the first paint's stagger: a tile after a tile, a row after a row */
 const TILE_STEP_MS = 80;
 const ROW_STEP_MS = 45;
@@ -134,43 +131,6 @@ function gapOf(ms: number): string {
   if (s < 10) return `${s.toFixed(1)} s`;
   if (s < 120) return `${Math.round(s)} s`;
   return `${Math.round(s / 60)} min`;
-}
-
-/* the indexer's newest transactions, read once; null until the read settles */
-function useIndexedTxs(chainId: string, on: boolean): StreamTx[] | null {
-  const [rows, setRows] = useState<StreamTx[] | null>(null);
-  useEffect(() => {
-    if (!on) return;
-    const controller = new AbortController();
-    fetch(`/api/evm/${chainId}/txs?limit=${TXS}`, {
-      cache: "no-store",
-      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(4_000)]),
-    })
-      .then((res) => (res.ok ? (res.json() as Promise<TxListResponse>) : { transactions: [] }))
-      .then((data) => {
-        const rows = (data.transactions ?? []).map((t) => ({
-          hash: t.hash,
-          blockNumber: t.blockNumber,
-          txIndex: t.txIndex,
-          timestamp: t.timestamp,
-          from: t.from,
-          to: t.to,
-          value: t.value,
-          methodId: t.methodId ?? "",
-          // the indexer keeps no calldata, so its token transfers show no amount
-          input: "",
-          success: t.success,
-          feeWei: 0,
-        }));
-        // the opening rows land in a transition: their render yields to the camera's frames
-        startTransition(() => setRows(rows));
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setRows([]);
-      });
-    return () => controller.abort();
-  }, [chainId, on]);
-  return rows;
 }
 
 const txNewer = (a: StreamTx, b: StreamTx) => b.blockNumber - a.blockNumber || a.txIndex - b.txIndex;
@@ -407,9 +367,12 @@ const TxList = memo(function TxList({
   // the ticker: one row at a time, names warmed before a row is released;
   // it holds still while the pointer is over it so a row can be clicked
   const [hover, setHover] = useState(false);
-  const shown = useDrip(txs, TXS, true, (fresh) => void prewarmContractNames(chainId, fresh.map((t) => t.to)), hover);
-  // a block whose receipts came late slots into its place
-  const rows = useMemo(() => [...shown].sort(txNewer), [shown]);
+  const rows = useTicker(txs, TXS, {
+    key: (t) => t.hash,
+    newer: txNewer,
+    paused: hover,
+    onEnqueue: (fresh) => void prewarmContractNames(chainId, fresh.map((t) => t.to)),
+  });
   const still = useStill();
   // the first paint's rows, by their place: they fade up over the skeleton's hairlines in turn, where a later row slides in
   const intro = useRef<Map<string, number> | null>(null);
@@ -521,32 +484,19 @@ export function ChainLive({
   const entry = catalogEntry(chain.chainId);
   // the catalog's EVM chain ID: a guest set arrives keyed by its subnet
   const chainId = entry ? String(entry.chainId) : chain.chainId;
-  const rpc = /^\d+$/.test(chainId) ? readRpc(chainId, chain.rpcUrl ?? entry?.rpcUrl) : undefined;
+  // the feed has a source when our node serves the chain or its catalog entry lists an RPC
+  const rpc = /^\d+$/.test(chainId) && Boolean(readRpc(chainId, entry?.rpcUrl));
   const symbol = chain.symbol || entry?.networkToken?.symbol || "";
   const base = chain.explorer;
 
-  const [down, setDown] = useState(false);
-  // after the opening three blocks, one block's receipts a poll: about four
-  // requests every five seconds, under one a second on a shared RPC. Ten
-  // heads keep a backfill batch under ten calls, the cap some L1 RPCs set
-  // (Henesys answers 500 to eleven)
-  // an L1 whose RPC refuses the browser reads through the site's relay, which only forwards to the catalog's own RPC
-  const relay = rpc && !rpc.startsWith("/") ? `/api/rpc/${chainId}` : undefined;
-  const head = useHeadStream(down || !armed ? undefined : rpc, { intervalMs: POLL_MS, keep: 10, seed: BLOCKS + 1, keepTxs: 36, pull: 1, relay });
+  // the server's window, shared by every viewer, once a second; its first
+  // answer is held until the pane is armed, so the rows show as the camera lands
+  const head = useLiveFeed(rpc ? chainId : undefined, armed);
   const answering = head.live;
-  // a feed silent for three polls in view stops asking; the note says so and offers a retry
-  useEffect(() => {
-    if (!rpc || down || answering || !armed) return;
-    let misses = 0;
-    const id = setInterval(() => {
-      if (document.visibilityState === "hidden") return;
-      misses += 1;
-      if (misses >= MAX_MISSES) setDown(true);
-    }, POLL_MS);
-    return () => clearInterval(id);
-  }, [rpc, down, answering, armed]);
-  // an RPC slow to answer: eight seconds connecting, the status says what it waits on
-  const connecting = Boolean(rpc) && armed && !down && head.heads.length === 0;
+  // a feed silent for ten polls stops asking; the note says so and offers a retry
+  const down = head.down;
+  // a source slow to answer: eight seconds connecting, the status says what it waits on
+  const connecting = rpc && armed && !down && head.heads.length === 0;
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     if (!connecting) return;
@@ -570,44 +520,26 @@ export function ChainLive({
   useEffect(() => () => onTipRef.current?.(null), []);
 
   // a stopped feed keeps what it last showed
-  const heads = useFreeze(head.heads, down);
-  const streamTxs = useFreeze(head.streamTxs, down);
+  const { heads, txs } = head;
   const tip = heads[0] ?? null;
   const txsInHeads = heads.some((h) => h.txCount > 0);
 
-  // the opening fill: the indexer's rows inside the strip's blocks, fixed
-  // once both have answered, so a late read never lands above newer rows
-  const indexed = useIndexedTxs(chainId, Boolean(rpc));
-  const [opening, setOpening] = useState<StreamTx[] | null>(null);
-  useEffect(() => {
-    if (opening !== null || indexed === null || heads.length === 0) return;
-    const floor = heads[Math.min(heads.length, BLOCKS + 1) - 1].number;
-    setOpening(indexed.filter((t) => t.blockNumber >= floor));
-  }, [opening, indexed, heads]);
-  const txs = useMemo(() => {
-    if (opening === null) return [];
-    const seen = new Set(streamTxs.map((t) => t.hash));
-    return [...streamTxs, ...opening.filter((t) => !seen.has(t.hash))].sort(txNewer);
-  }, [streamTxs, opening]);
-
-  // blocks with transactions but no receipts after three polls: the RPC does not serve them
+  // blocks with transactions but no rows for a while: the source serves no receipts
   const waiting = !down && txsInHeads && txs.length === 0;
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
     if (!waiting) return;
-    const id = setTimeout(() => setStuck(true), POLL_MS * MAX_MISSES);
+    const id = setTimeout(() => setStuck(true), STUCK_MS);
     return () => {
       clearTimeout(id);
       setStuck(false);
     };
   }, [waiting]);
 
-  // the strip drips here so the height above it moves with it
+  // the strip ticks here so the height above it moves with it
   const [holdBlocks, setHoldBlocks] = useState(false);
   const newest = useMemo(() => heads.slice(0, BLOCKS), [heads]);
-  const dripped = useDrip(newest, BLOCKS, true, undefined, holdBlocks);
-  // a height filled in late slots into its place
-  const blocks = useMemo(() => [...dripped].sort((a, b) => b.number - a.number), [dripped]);
+  const blocks = useTicker(newest, BLOCKS, { key: (h) => h.hash, newer: (a, b) => b.number - a.number, paused: holdBlocks });
 
   // the mean gap over every kept head: an L1 makes blocks in bursts, so
   // the newest pair alone would read a quiet chain as a fast one
@@ -626,7 +558,7 @@ export function ChainLive({
   const rate = rateOf(down ? null : tps);
   const height = blocks[0]?.number ?? tip?.number ?? null;
   // the figures shimmer until the first heads, and the rate until the pulse has read them
-  const loading = Boolean(rpc) && !down && heads.length === 0;
+  const loading = rpc && !down && heads.length === 0;
   const rateLoading = loading || (!down && heads.length > 0 && tps === null && pulse.current.size === 0);
 
   const status = !rpc
@@ -646,7 +578,7 @@ export function ChainLive({
   ) : down ? (
     <>
       {heads.length ? "The chain's RPC stopped answering; these are the last blocks it sent." : "The chain's RPC is not answering."}{" "}
-      <button type="button" onClick={() => setDown(false)} className="font-medium text-[#0061E2] hover:underline dark:text-[#5f9dff]">
+      <button type="button" onClick={head.retry} className="font-medium text-[#0061E2] hover:underline dark:text-[#5f9dff]">
         Retry
       </button>
     </>
@@ -660,7 +592,7 @@ export function ChainLive({
         : null;
 
   // connecting, or waiting on a slow RPC: the dot breathes
-  const waitingNow = Boolean(rpc) && !down && !answering && heads.length === 0;
+  const waitingNow = rpc && !down && !answering && heads.length === 0;
   const statusLine = <StatusLine label={status} state={status === "Live" ? "live" : waitingNow ? "waiting" : "still"} />;
   // a figure shimmers until its value lands, then the value fades in once
   const figure = (label: string, value: ReactNode, pending: boolean) => (

@@ -7,7 +7,8 @@ import { ArrowRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { EASE_CSS, useStill } from "@/components/explorer-v2/motion";
-import { Belt, MotionRow, useDrip } from "@/components/explorer-v2/evm/LiveBoards";
+import { Belt, MotionRow } from "@/components/explorer-v2/evm/LiveBoards";
+import { useTicker } from "@/components/explorer-v2/network/ticker";
 import { chainDisplayName, pchainApiPath, txTypeLabel, type Tx } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { TipPlate } from "@/components/explorer-v2/staking/bits";
@@ -15,6 +16,7 @@ import { FAM, Logo, famOf } from "@/components/explorer-v2/network/icm-map";
 import { actsOnSubnet, useTxTargets } from "@/components/explorer-v2/network/tx-targets";
 import { PCHAIN_LOGO } from "@/components/explorer-v2/network/city-model";
 import type { PchainPulse, PulseTx } from "@/components/explorer-v2/network/pchain-pulse";
+import type { NodeBlockTx } from "@/lib/pchain-block";
 import { Age, ChainLogo, Heading, Note, Shimmer, SkeletonRows, StatusLine } from "@/components/explorer-v2/network/chain-live";
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
@@ -24,10 +26,13 @@ import type { L1Chain } from "@/types/stats";
    it at the right when downtown's P wing is picked.
 
    The pane reads the ledger the city already streams (usePchainPulse, the
-   last 96 txs and the tip), so it polls nothing of its own; the L1 an
-   operation acts on comes from the same session-wide lookups the ring
-   uses. The feed's rows carry no amounts, and the per-tx read that has
-   them is the origin's heaviest query, so the pane shows the stake's
+   last 96 txs) and the newest blocks from the node (/api/live/pchain, shared
+   by every viewer), because the indexer's ledger runs about a minute behind
+   the chain: a tx shows the moment its block lands, and its indexer row
+   takes that place, with more on it, when it arrives. When the node is
+   silent the list says how far behind the chain it is. The L1 an operation
+   acts on comes from the same session-wide lookups the ring uses. The feed's rows carry no amounts, and the per-tx read that
+   has them is the origin's heaviest query, so the pane shows the stake's
    period and node instead. */
 
 /** an L1 by its subnet, as the city names it */
@@ -46,10 +51,83 @@ const SLOW_MS = 8_000;
 const OPEN_MS = 30_000;
 /* the first paint's stagger, a row after a row */
 const ROW_STEP_MS = 45;
+/* the node's newest blocks are read this often; the route shares one read among every viewer */
+const TIP_MS = 3_000;
 
 const BY_SUBNET = new Map(
   (l1ChainsData as L1Chain[]).filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [c.subnetId, { name: c.chainName, logo: c.chainLogoURI ?? "" }]),
 );
+
+/* the node's rows: converted once per tx, so a row keeps its identity across
+   polls, and each remembers its place in its block for the list's order */
+const NODE_ROWS = new Map<string, PulseTx>();
+const PLACE = new Map<string, number>();
+
+function nodeRow(t: NodeBlockTx): PulseTx {
+  let row = NODE_ROWS.get(t.hash);
+  if (!row) {
+    row = { hash: t.hash, type: t.type, height: t.height, ts: t.ts, nodeId: t.nodeId, seq: -1, fresh: false, replay: false, lane: 0 };
+    NODE_ROWS.set(t.hash, row);
+    PLACE.set(t.hash, t.index);
+    if (NODE_ROWS.size > 600) {
+      for (const k of [...NODE_ROWS.keys()].slice(0, 300)) {
+        NODE_ROWS.delete(k);
+        PLACE.delete(k);
+      }
+    }
+  }
+  return row;
+}
+
+/** newest block first, then by place in the block; negative when `a` is newer */
+const rowNewer = (a: PulseTx, b: PulseTx) => b.height - a.height || (PLACE.get(a.hash) ?? 0) - (PLACE.get(b.hash) ?? 0) || a.hash.localeCompare(b.hash);
+
+/** the indexer's rows over the node's: a tx the indexer has read keeps its row, with more on it, in the node row's place */
+function mergeRows(indexed: PulseTx[], node: NodeBlockTx[]): PulseTx[] {
+  const by = new Map<string, PulseTx>();
+  for (const t of node) by.set(t.hash, nodeRow(t));
+  for (const t of indexed) by.set(t.hash, t);
+  return [...by.values()].sort(rowNewer);
+}
+
+interface NodeFeed {
+  height: number;
+  /** unix seconds of the newest block read */
+  time: number;
+  txs: NodeBlockTx[];
+}
+
+/** the P-Chain's newest blocks as the node sees them; null until the first read, and kept when a read fails */
+function useNodeFeed(network: string): NodeFeed | null {
+  const [feed, setFeed] = useState<NodeFeed | null>(null);
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/live/pchain/${network}`, { cache: "no-store", signal: AbortSignal.timeout(6_000) });
+        if (res.ok) {
+          const w = (await res.json()) as { height: number; time: number; txs?: NodeBlockTx[] };
+          // a window from behind (a stale answer) never replaces a newer one
+          if (alive && w.height) setFeed((prev) => (prev && prev.height > w.height ? prev : { height: w.height, time: w.time, txs: w.txs ?? [] }));
+        }
+      } catch {
+        /* the last window stands */
+      }
+      if (alive) schedule();
+    };
+    // a hidden tab does not read; the next look does
+    const schedule = () => {
+      timer = setTimeout(() => (document.visibilityState === "hidden" ? schedule() : void poll()), TIP_MS);
+    };
+    void poll();
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [network]);
+  return feed;
+}
 
 /** "58 min", "1.4 h": the span the ledger covers */
 function spanOf(txs: PulseTx[]): string | null {
@@ -241,10 +319,10 @@ const TxList = memo(function TxList({
   /** the row under the pointer or the keyboard's focus, and null as it leaves */
   onRow?: (row: HoverRow | null) => void;
 }) {
-  // the ticker: a poll's txs enter one at a time, and the list holds
-  // still while the pointer is over it so a row can be clicked
+  // the ticker: a poll's txs enter one at a time at the ledger's pace, and
+  // the list holds still while the pointer is over it so a row can be clicked
   const [hover, setHover] = useState(false);
-  const rows = useDrip(txs, ROWS, true, undefined, hover);
+  const rows = useTicker(txs, ROWS, { key: (t) => t.hash, newer: rowNewer, paused: hover });
   // the ring's own lookups, shared for the session: asking again costs nothing
   const targets = useTxTargets(rows);
   const still = useStill();
@@ -333,6 +411,10 @@ export function PChainLive({
   onTarget?: (subnetId: string | null) => void;
 }) {
   const { txs, stats, epoch } = pulse;
+  // the node's newest blocks over the indexer's ledger: a tx shows from the
+  // node the moment its block lands, and its indexer row takes the place when it arrives
+  const node = useNodeFeed("mainnet");
+  const rows = useMemo(() => mergeRows(txs, node?.txs ?? []), [txs, node]);
 
   // the tx under the pointer: its card at the pane's left, and the L1 it acts on lit in the city
   const [row, setRow] = useState<HoverRow | null>(null);
@@ -373,13 +455,21 @@ export function PChainLive({
     };
   }, []);
 
-  // the tip: the stats' when they are newer, else the newest tx's block
-  const head = txs[0] ?? null;
-  const tipHeight = Math.max(stats?.tipHeight ?? 0, head?.height ?? 0) || null;
-  const tipAt = stats && stats.tipHeight >= (head?.height ?? 0) ? stats.tipTimestamp : (head?.ts ?? null);
+  // the tip: the node's, else the stats' when they are newer, else the newest row's block
+  const head = rows[0] ?? null;
+  const known = [node, stats && { height: stats.tipHeight, time: stats.tipTimestamp }, head && { height: head.height, time: head.ts }].filter(
+    (t): t is { height: number; time: number } => Boolean(t && t.height),
+  );
+  const top = known.sort((a, b) => b.height - a.height)[0] ?? null;
+  const tipHeight = top?.height ?? null;
+  // a block without a time (a commit block) leaves the age out
+  const tipAt = top?.time ? top.time : null;
+  // the P-Chain seals a block for every transaction, so the list is this many
+  // behind the chain; with the node's rows in it, only when the node has gone quiet
+  const behind = node && head ? Math.max(0, node.height - head.height) : 0;
   const span = useMemo(() => spanOf(txs), [txs]);
 
-  const empty = txs.length === 0;
+  const empty = rows.length === 0;
   const status = empty ? (late ? "Not answering" : slow ? "Waiting for the P-Chain's feed" : "Connecting") : silent ? "Not answering" : "Live";
   const note = empty && late ? "The P-Chain's feed is not answering; the pane fills in when it does." : null;
 
@@ -448,9 +538,9 @@ export function PChainLive({
         <div className="flex-1" />
       ) : (
         <section className="flex min-h-0 flex-1 flex-col">
-          <Heading label="Transactions" />
+          <Heading label="Transactions" aside={behind > 1 ? `${formatNumber(behind)} blocks behind the chain` : undefined} />
           {/* a ledger reloaded whole (a tab hidden a long time) paints whole, not as a cascade */}
-          <TxList key={epoch} txs={txs} loading={empty} l1Of={l1Of} onRow={setRow} />
+          <TxList key={epoch} txs={rows} loading={empty} l1Of={l1Of} onRow={setRow} />
           {row && <TxCard row={row} l1Of={l1Of} />}
         </section>
       )}
