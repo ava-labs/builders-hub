@@ -29,7 +29,7 @@ import { chamferOf } from "@/components/explorer-v2/network/hub-tower";
 import type { PchainPulse } from "@/components/explorer-v2/network/pchain-pulse";
 import { GLASS3, MASS3, type Theme } from "./palette";
 import { massMaterial, riseDepth, RISE_S, TIME } from "./shaders";
-import type { Building, CityModel, Ribbon } from "./model";
+import type { Building, CityModel } from "./model";
 
 /* Downtown as the Primary Network, drawn as an institution's supertall:
    one landmark of three wings on one podium, the C-, P- and X-Chains.
@@ -58,19 +58,16 @@ import type { Building, CityModel, Ribbon } from "./model";
    does. The tower stands on a forecourt of two stone steps and a podium
    of pale glass behind steel fins, entered up a broad stair under a
    flat steel canopy. It draws in five meshes: the massing, its stone
-   and steel each in its own color; the C wing's glass, in its own red
-   from its rise, which the city's wave brightens and which flashes with
-   the C-Chain's transactions as the
-   city's glass does, with the lobbies' and the bridges' gap glass; the
-   P wing's glass; the lights; and the lines of light a transfer and the
-   lid draw. The X wing's glass and the podium's are the city's own
+   and steel each in its own color; the tower's glass, every pane of it
+   in its final hues from its rise, which the city's wave brightens: the
+   C wing's red, which flashes with the C-Chain's transactions as the
+   city's glass does, the X wing's and the podium's pale glass, and the
+   gaps' glass; the P wing's glass; the lights; and the lines of light a
+   transfer and the lid draw. The city draws none of its glass
    (hubWindows). */
 
 type Pt = [number, number];
-type Tone = Ribbon["tone"];
 type WingKey = "c" | "p" | "x";
-/** a window of the tower round its ground point: a ribbon of the city's glass */
-export type HubWindow = Omit<Ribbon, "b">;
 
 /** the pick that opens the P-Chain, from its wing (city-model.ts keeps it, so the app need not load this file to read it) */
 export { PCHAIN_PICK };
@@ -119,9 +116,9 @@ const C_GLASS = {
 const MULL_HALF = 0.12;
 const CORNER = 1.8;
 /** the C wing's glass carries its storeys (below C_STOREYS), then the tower's steel and gaps, each in a slot of its own, then its lantern (C_TOP); the storeys its transactions can light at once */
-const C_SLOTS = 32;
+const C_SLOTS = 34;
 const C_STOREYS = 25;
-const SLOT = { steel: 25, sill: 26, bridge: 27, gapX: 28, gapP: 29, gapC: 30 } as const;
+const SLOT = { steel: 25, sill: 26, bridge: 27, gapX: 28, gapP: 29, gapC: 30, xPane: 31, podium: 32 } as const;
 const C_TOP = C_SLOTS - 1;
 const C_FLASHES = 6;
 /** the gaps by day: the lobbies' and the bridges' glass in the day palette's darkest tone, the P wing's slate. At night the C wing's steel, sills and gaps go into its own red, each a share of its night glass's light, so nothing near black crosses it; the P and X wings' gaps and the bridges' take a night tone of their own, lifted off black */
@@ -353,62 +350,8 @@ function bridgeOf(f: Frame, a: WingKey, b: WingKey, z: number) {
   return { ca, cb, len, d, from, to, yaw: Math.atan2(d[0], d[1]) };
 }
 
-/* a window on a wall of a plan that changes with height: wall i of plan(y) and plan(y + dy), its foot at y, its width a share of the wall or the wall less an inset */
-function wallWindow(plan: (z: number) => Pt[], c: Pt, i: number, y: number, dy: number, width: (len: number) => number, k: number, tone: Tone, proud = PROUD): HubWindow {
-  const P0 = plan(y);
-  const P1 = plan(y + dy);
-  const j = (i + 1) % P0.length;
-  const a0 = V(P0[i][0], y, P0[i][1]);
-  const b0 = V(P0[j][0], y, P0[j][1]);
-  const a1 = V(P1[i][0], y + dy, P1[i][1]);
-  const n = new Vector3().subVectors(b0, a0).cross(new Vector3().subVectors(a1, a0)).normalize();
-  const mid = a0.clone().add(b0).multiplyScalar(0.5);
-  if (n.x * (mid.x - c[0]) + n.z * (mid.z - c[1]) < 0) n.negate();
-  const pitch = -Math.asin(Math.max(-1, Math.min(1, n.y)));
-  const len = Math.min(a0.distanceTo(b0), a1.distanceTo(V(P1[j][0], y + dy, P1[j][1])));
-  return { x: mid.x + n.x * proud, y: mid.y + n.y * proud, z: mid.z + n.z * proud, sx: Math.max(0.2, width(len)), sy: dy / Math.cos(pitch), sz: 1, yaw: Math.atan2(n.x, n.z), pitch, k, tone };
-}
-/* a window on a vertical face from a to b, its foot at y, facing away from c */
-function faceWindow(a: Pt, b: Pt, y: number, sy: number, sx: number, k: number, tone: Tone, c: Pt, proud = PROUD): HubWindow {
-  const [mx, mz] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  let [nx, nz] = [(b[1] - a[1]) / len, -(b[0] - a[0]) / len];
-  if (nx * (mx - c[0]) + nz * (mz - c[1]) < 0) [nx, nz] = [-nx, -nz];
-  return { x: mx + nx * proud, y, z: mz + nz * proud, sx, sy, sz: 1, yaw: Math.atan2(nx, nz), k, tone };
-}
-
-/* the X wing's curtain wall over one run of storeys: a pale pane a storey tall between two floors' joints, on each of its eight faces */
-function curtainOf(f: Frame, key: WingKey, z0: number, z1: number, tone: Tone): HubWindow[] {
-  const out: HubWindow[] = [];
-  const c = f.centre(key);
-  for (let k = Math.floor(z0 / FLOOR); k * FLOOR < z1 - 0.5; k++) {
-    const ya = Math.max(z0, k * FLOOR) + JOINT;
-    const yb = Math.min(z1, (k + 1) * FLOOR) - JOINT;
-    if (yb - ya < 1) continue;
-    for (let i = 0; i < 8; i++) out.push(wallWindow((z) => f.plan(key, z), c, i, ya, yb - ya, (l) => l - 0.24, -1, tone));
-  }
-  return out;
-}
-
-/** the tower's glass that the city draws, round its ground point: the podium's and the X wing's curtain wall. The C wing's, the gaps' and the P wing's are the tower's own (hubTowerParts) */
-export function windowsOf(w: number, h: number): HubWindow[] {
-  const out: HubWindow[] = [];
-  const f = frameOf(w, h);
-  const base = STEP_H * STEPS.length;
-  // the podium's pale glass, behind its fins
-  const pod = chamferOf(w * PODIUM_R, PODIUM_CUT);
-  pod.forEach((a, i) => {
-    const b = pod[(i + 1) % pod.length];
-    out.push(faceWindow(a, b, base + 0.3, PODIUM - 1.5 - base - 0.5, Math.hypot(b[0] - a[0], b[1] - a[1]) - 0.6, -1, "crown", [0, 0], -0.1));
-  });
-  for (const [z0, z1] of f.runsOf("x")) out.push(...curtainOf(f, "x", z0, z1, "crown"));
-  return out;
-}
-
-/** downtown's glass in the city's list, as model.ts's hubRibbons lays it. The C wing's storeys light and flash in the tower's own glass (hubTowerParts), so the city lays no flashes on the tower */
-export function hubWindows(m: CityModel, bd: Building) {
-  const b = m.buildings.indexOf(bd);
-  for (const it of windowsOf(bd.n.w, bd.n.h)) m.ribbons.push({ ...it, b, x: bd.x + it.x, y: bd.base + it.y, z: bd.z + it.z });
+/** downtown's glass in the city's list, as model.ts's hubRibbons lays it: none. The tower draws all its own glass (hubTowerParts), in its final hues from its rise, and lights and flashes its C wing itself, so the city lays no flashes on it */
+export function hubWindows(_m: CityModel, bd: Building) {
   bd.k0 = 0;
   bd.k1 = -1;
 }
@@ -673,7 +616,8 @@ varying float vLen;
 varying float vDiv;
 varying float vRise;
 varying float vGlowK;
-varying float vWave;`,
+varying float vWave;
+varying float vRamp;`,
       )
       .replace(
         "#include <begin_vertex>",
@@ -699,7 +643,8 @@ vLen = aLen;
 vDiv = aDiv;
 vRise = clamp( position.y / uTop, 0.0, 1.0 );
 vGlowK = slot == ${C_TOP} ? ${C_GLASS.lantern.toFixed(2)} : 1.0;
-vWave = aK < ${C_STOREYS}.0 - 0.5 || slot == ${C_TOP} ? 1.0 : 0.0;`,
+vWave = aK < ${C_STOREYS}.0 - 0.5 || slot == ${C_TOP} || slot == ${SLOT.xPane} || slot == ${SLOT.podium} ? 1.0 : 0.0;
+vRamp = slot == ${SLOT.xPane} || slot == ${SLOT.podium} ? 0.0 : 1.0;`,
       );
     s.fragmentShader = s.fragmentShader
       .replace(
@@ -720,7 +665,8 @@ varying float vLen;
 varying float vDiv;
 varying float vRise;
 varying float vGlowK;
-varying float vWave;`,
+varying float vWave;
+varying float vRamp;`,
       )
       .replace(
         "#include <color_fragment>",
@@ -744,7 +690,7 @@ diffuseColor.rgb *= mix( pane, line, mull );`,
       // the glow, brighter toward the crown, the lantern's brighter again
       .replace(
         "#include <emissivemap_fragment>",
-        `#include <emissivemap_fragment>\nfloat ramp = mix( ${C_GLASS.ramp[0].toFixed(2)}, ${C_GLASS.ramp[1].toFixed(2)}, smoothstep( 0.1, 1.0, vRise ) ) * vGlowK;\ntotalEmissiveRadiance += ( pane * uGlow * ramp + uFlashColor * vFlash * uFlashGlow ) * ( 1.0 - mull ) + line * uLineGlow * ramp * mull;`,
+        `#include <emissivemap_fragment>\nfloat ramp = mix( 1.0, mix( ${C_GLASS.ramp[0].toFixed(2)}, ${C_GLASS.ramp[1].toFixed(2)}, smoothstep( 0.1, 1.0, vRise ) ), vRamp ) * vGlowK;\ntotalEmissiveRadiance += ( pane * uGlow * ramp + uFlashColor * vFlash * uFlashGlow ) * ( 1.0 - mull ) + line * uLineGlow * ramp * mull;`,
       )
       // the sky in the glass, as the city's glass takes it (Schlick's Fresnel, 4% face on)
       .replace(
@@ -1006,6 +952,22 @@ function cGlassOf(w: number, h: number): BufferGeometry {
       for (let e = 0; e < 4; e++) pane(fin, fin, f.crown, h - LID, e, SLOT.steel, 0, [p[0] + (n[0] * FIN.d) / 2, p[1] + (n[1] * FIN.d) / 2]);
     }
   }
+  // the X wing's pale curtain wall, a pane a storey tall between two floors' joints on each face, divided as its fins divide it; and the podium's pale glass behind its fins, all round
+  const cx = f.centre("x");
+  for (const [z0, z1] of f.runsOf("x")) {
+    const P = f.plan("x", z0);
+    const div = P.map((a, i) => Math.max(1, Math.round(Math.hypot(P[(i + 1) % 8][0] - a[0], P[(i + 1) % 8][1] - a[1]) / MULLION.every)));
+    for (let k = Math.floor(z0 / FLOOR); k * FLOOR < z1 - 0.5; k++) {
+      const ya = Math.max(z0, k * FLOOR) + JOINT;
+      const yb = Math.min(z1, (k + 1) * FLOOR) - JOINT;
+      if (yb - ya < 1) continue;
+      const [P0, P1] = [f.plan("x", ya, out), f.plan("x", yb, out)];
+      for (let i = 0; i < 8; i++) pane(P0, P1, ya, yb, i, SLOT.xPane, div[i], cx);
+    }
+  }
+  const pod = chamferOf(w * PODIUM_R - 0.13, PODIUM_CUT);
+  const base = STEP_H * STEPS.length;
+  for (let i = 0; i < 8; i++) pane(pod, pod, base + 0.3, PODIUM - 1.7, i, SLOT.podium, 0, [0, 0]);
   // the gaps: glass round each wing's lobbies, between the bands over and under them (the P wing has none), and down each side of each bridge
   const gapOf = { c: SLOT.gapC, p: SLOT.gapP, x: SLOT.gapX } as const;
   for (const key of ["c", "p", "x"] as WingKey[])
@@ -1109,7 +1071,7 @@ export function tintHubTower(parts: Parts, theme: Theme, floors: Glass[] = ["dow
   const t = dark ? 1 : 0;
   parts.mass.color.set(TINT[t]);
   (parts.mass.userData.foot as { value: number }).value = dark ? 0.8 : 0.9;
-  // each storey's glass: downtown's two reds, made up so its lit face shows them, or the city's color for its storey and the city's frame; the gaps' glass
+  // each storey's glass: downtown's two reds, made up so its lit face shows them, or the city's color for its storey and the city's frame
   const c = parts.cMat.u;
   for (let k = 0; k < C_SLOTS; k++) {
     if (k >= C_STOREYS && k !== C_TOP) continue;
@@ -1131,6 +1093,12 @@ export function tintHubTower(parts: Parts, theme: Theme, floors: Glass[] = ["dow
   slot(SLOT.gapP, GAP_DAY, new Color(NIGHT_GAP.p));
   slot(SLOT.gapX, GAP_DAY, new Color(NIGHT_GAP.x));
   slot(SLOT.bridge, GAP_DAY, new Color(NIGHT_GAP.bridge));
+  // the X wing's and the podium's pale glass, as the city paints its crown tone, and the X wing's mullions in the city's frame
+  const pale = new Color(MASS3.wall[theme]).lerp(new Color("#FFFFFF"), 0.62);
+  c.uPane.value[SLOT.xPane].copy(pale);
+  c.uLine.value[SLOT.xPane].set(MASS3.frame[theme]);
+  c.uPane.value[SLOT.podium].copy(pale);
+  c.uLine.value[SLOT.podium].copy(pale);
   c.uGlow.value = C_GLASS.glow[t];
   c.uLineGlow.value = C_GLASS.mullionGlow[t];
   c.uFlashGlow.value = C_GLASS.flashGlow[t];
