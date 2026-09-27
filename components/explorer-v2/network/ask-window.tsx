@@ -13,7 +13,7 @@ import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/Qu
 import { PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
 import { Crumbs, DrillView, ZoomStage, type OpenDrill } from "@/components/explorer-v2/evm/QueryZoom";
-import { QueryError, SQL_CAVEAT, postQuery, progress, reads, streamQuery } from "@/components/explorer-v2/evm/query-client";
+import { NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "@/components/explorer-v2/evm/query-client";
 import { askChainsOf, queryHref, routeFor, scopeOf, sentOf, towerOfRow, towersOf, type AskChain, type AskThread } from "@/components/explorer-v2/network/ask-route";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
 import { useLoginModalTrigger } from "@/hooks/useLoginModal";
@@ -241,7 +241,7 @@ export function AskWindow({
       return next;
     } catch (e) {
       if (my !== token.current) return null;
-      setError(e instanceof Error ? e.message : "The query failed.");
+      setError(e instanceof Error ? readerError(e.message) : "The query failed.");
       setGated(e instanceof QueryError && e.signIn);
       setPhase("idle");
       setStarted(null);
@@ -299,6 +299,8 @@ export function AskWindow({
   const columns = answer?.result?.columns ?? [];
   const names = answer?.names ?? {};
   const visual = answer?.visual ?? null;
+  // a time series' edge buckets that the window cuts through wear a label
+  const drawn = useMemo(() => withEdges(visual, answer), [visual, answer]);
   const canDrill = !!answer?.drill;
   const recordRows = !!answer?.result && isTxList(columns);
   const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
@@ -493,6 +495,12 @@ export function AskWindow({
               ) : (
                 !reading && answer.note && <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>
               )}
+              {/* what a table from our server covers, and how recent it is */}
+              {sourceLines(answer).map((t) => (
+                <p key={t} className="font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                  {t}
+                </p>
+              ))}
             </div>
 
             <div className="flex min-w-0 flex-col gap-2.5">
@@ -501,7 +509,7 @@ export function AskWindow({
                   <Crumbs items={[{ label: answer.title, onClick: () => setDrill(null) }, { label: drill.title }]} />
                 ) : (
                   <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {charted && opens ? (lit && onOpen ? "Open a mark to find it in the city." : "Open a mark to see what it names.") : ""}
+                    {[cutLine(answer), charted && opens ? (lit && onOpen ? "Open a mark to find it in the city." : "Open a mark to see what it names.") : ""].filter(Boolean).join(" · ")}
                   </span>
                 )}
                 {level.rows.length > 0 && (
@@ -512,7 +520,7 @@ export function AskWindow({
                     className="flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 font-mono text-[11px] tabular-nums text-zinc-700 transition-colors hover:bg-zinc-200/80 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                   >
                     <Rows3 className="h-3.5 w-3.5" />
-                    Rows ({formatNumber(level.rows.length)})
+                    Rows ({drill || !answer ? formatNumber(level.rows.length) : rowsLabel(answer, level.rows.length)})
                   </button>
                 )}
               </div>
@@ -529,10 +537,11 @@ export function AskWindow({
                   </div>
                 ) : charted && visual ? (
                   <QueryVisual
-                    visual={visual}
+                    visual={drawn ?? visual}
                     rows={allRows}
                     names={names}
                     sym={sym}
+                    totals={answer.totals}
                     canDrill={opens}
                     // a mark that is one thing on the chain opens that thing's own page, and a chain its tower
                     onPick={openRow}
@@ -577,13 +586,13 @@ export function AskWindow({
                     <RowsBody columns={columns} rows={allRows} names={names} visual={visual} base={base} sym={sym} onOpen={canDrill || lit ? openRow : undefined} onHover={lit ? setHoverRow : undefined} />
                   </div>
                 ) : (
-                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>The query returned no rows.</p>
+                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>{answer.result ? "The query returned no rows." : NO_QUERY}</p>
                 )}
               </ZoomStage>
             </div>
 
-            {/* where the figures came from: the SQL, a click away */}
-            <div className="flex flex-col gap-2">
+            {/* where the figures came from: the SQL, a click away; an answer that ran no query has none to show */}
+            <div className={cn("flex flex-col gap-2", !answer.result && "hidden")}>
               <span className="flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[11px]">
                 <button type="button" onClick={() => setSqlOpen((v) => !v)} aria-expanded={sqlOpen} className="flex items-center gap-1 text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
                   <ChevronRight className={cn("h-3 w-3 transition-transform duration-200 motion-reduce:transition-none", sqlOpen && "rotate-90")} />
@@ -603,7 +612,7 @@ export function AskWindow({
                 </button>
                 {answer.result && (
                   <span className="tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {formatNumber(answer.result.rowCount)} row{answer.result.rowCount === 1 ? "" : "s"} · {formatNumber(answer.result.rowsRead)} scanned in {(answer.result.elapsedMs / 1000).toFixed(2)} s
+                    {cutLine(answer) ?? rowCount(answer.result.rowCount)} · {answer.result.rowsRead > 0 ? `${formatNumber(answer.result.rowsRead)} scanned in ` : ""}{(answer.result.elapsedMs / 1000).toFixed(2)} s
                   </span>
                 )}
               </span>

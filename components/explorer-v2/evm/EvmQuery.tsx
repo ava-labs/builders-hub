@@ -12,7 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { useChainContext } from "@/app/(home)/explorer/[network]/[chain]/layout.client";
 import { setSelection as setDigSelection, askAbout } from "@/components/explorer-v2/dig/selection";
-import type { ChartSpec, DrillAnswer, Names, QueryAnswer, Turn } from "@/lib/explorer-query/types";
+import type { ChartSpec, DrillAnswer, Names, QueryAnswer, SourceNote, Turn } from "@/lib/explorer-query/types";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
@@ -24,7 +24,7 @@ import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { QueryLoader } from "./QueryLoader";
-import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, progress, reads, rowCount, streamQuery } from "./query-client";
+import { FILTER_MARK, NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -422,7 +422,7 @@ function QueryPage({
         else if (a.model?.cached && a.key && a.result?.rowCount) void reread(a);
         return next;
       } catch (e) {
-        setError(e instanceof Error ? e.message : "The query failed.");
+        setError(e instanceof Error ? readerError(e.message) : "The query failed.");
         if (e instanceof QueryError && e.signIn) {
           // after sign-in the page reloads on its thread and asks it again
           if (!opts.replay) writeThread(text, refine);
@@ -447,7 +447,7 @@ function QueryPage({
     setSel([]);
     setInspect(false);
     try {
-      const out = await post<{ sql: string; result: QueryResult; names: Names }>({ sql: sqlDraft });
+      const out = await post<{ sql: string; result: QueryResult; names: Names; sources?: SourceNote[] }>({ sql: sqlDraft });
       const cols = new Set(out.result.columns.map((k) => k.name));
       let next: QueryAnswer | null = null;
       setAnswer((prev) => {
@@ -455,7 +455,7 @@ function QueryPage({
         const v = prev?.visual;
         const fits = !!v && v.panels.every((p) => (!p.x || cols.has(p.x)) && p.series.every((s) => cols.has(s.column))) && v.stats.every((s) => cols.has(s.column));
         const dFits = !!prev?.drill && [...prev.drill.sql.matchAll(/\{\{\s*(\w+)/g)].every((m) => cols.has(m[1]));
-        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, names: out.names ?? {}, visual: fits ? v! : null };
+        next = { ...(prev as QueryAnswer), note: "Your edit of the query.", sql: out.sql, chart, drill: dFits ? prev!.drill : null, result: out.result, totals: null, names: out.names ?? {}, sources: out.sources ?? [], visual: fits ? v! : null };
         return next;
       });
       if (next && !(next as QueryAnswer).visual) void design(history[history.length - 1]?.prompt ?? "", next);
@@ -553,6 +553,8 @@ function QueryPage({
   const allRows: Row[] = answer?.result?.rows ?? [];
   const names = answer?.names ?? {};
   const visual = answer?.visual ?? null;
+  // a time series' edge buckets that the window cuts through wear a label
+  const drawn = useMemo(() => withEdges(visual, answer), [visual, answer]);
   const canDrill = !!answer?.drill;
   const charted = !!visual && visual.panels.some((p) => p.kind !== "table");
   // the basic layout is never drawn while the real one is on its way
@@ -810,6 +812,12 @@ function QueryPage({
               ) : (
                 !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>
               )}
+              {/* what a table from our server covers, and how recent it is */}
+              {sourceLines(answer).map((t) => (
+                <p key={t} className="max-w-3xl font-mono text-[11px] leading-relaxed text-zinc-500 dark:text-zinc-400">
+                  {t}
+                </p>
+              ))}
             </div>
 
             {/* the chart, full width; a drill zooms it in place */}
@@ -819,7 +827,7 @@ function QueryPage({
                   <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
                 ) : (
                   <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {sel.length ? `${formatNumber(picked.length)} of ${rowCount(allRows.length)}` : charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""}
+                    {sel.length ? `${formatNumber(picked.length)} of ${rowCount(allRows.length)}` : [cutLine(answer), charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""].filter(Boolean).join(" · ")}
                   </span>
                 )}
                 <span className="flex items-center gap-1">
@@ -832,7 +840,7 @@ function QueryPage({
                       className="flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1 font-mono text-[11px] tabular-nums text-zinc-700 transition-colors hover:bg-zinc-200/80 hover:text-zinc-900 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
                     >
                       <Rows3 className="h-3.5 w-3.5" />
-                      Rows ({formatNumber(level.rows.length)})
+                      Rows ({drill || sel.length || !answer ? formatNumber(level.rows.length) : rowsLabel(answer, level.rows.length)})
                       <kbd className="hidden rounded bg-white px-1 text-[10px] text-zinc-400 sm:inline dark:bg-zinc-950 dark:text-zinc-500">R</kbd>
                     </button>
                   )}
@@ -851,10 +859,11 @@ function QueryPage({
                   </div>
                 ) : charted && visual ? (
                   <QueryVisual
-                    visual={visual}
+                    visual={drawn ?? visual}
                     rows={allRows}
                     names={names}
                     sym={sym}
+                    totals={answer.totals}
                     canDrill={canDrill || recordRows}
                     // a mark that is one thing on the chain (a transaction, a
                     // contract, a validator, a block) opens that thing's own page
@@ -912,7 +921,7 @@ function QueryPage({
                     />
                   </div>
                 ) : (
-                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>The query returned no rows.</p>
+                  <p className={cn(CARD, "px-5 py-10 font-mono text-[12px] text-zinc-500")}>{answer.result ? "The query returned no rows." : NO_QUERY}</p>
                 )}
               </ZoomStage>
             </div>
@@ -943,7 +952,7 @@ function QueryPage({
                     <div className="flex flex-col gap-5 pb-2 pl-5 pt-4">
                       {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>}
                       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
-                        <Fact label="Source" sub="Indexed ClickHouse tables, read-only">
+                        <Fact label="Source" sub={answer.sources?.length ? `Indexed ClickHouse tables, read-only, with ${answer.sources.map((s) => s.label).join(" and ")} from our API` : "Indexed ClickHouse tables, read-only"}>
                           {tables.length ? tables.join(", ") : "none"}
                         </Fact>
                         {cov && (
@@ -971,14 +980,13 @@ function QueryPage({
                           </Fact>
                         )}
                         {answer.result && (
-                          <Fact label="Result" sub={`${formatNumber(answer.result.rowsRead)} rows scanned in ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
-                            {formatNumber(answer.result.rowCount)} row{answer.result.rowCount === 1 ? "" : "s"}
-                            {answer.result.truncated ? " (capped)" : ""}
+                          <Fact label="Result" sub={`${answer.result.rowsRead > 0 ? `${formatNumber(answer.result.rowsRead)} rows scanned in` : "Ran in"} ${(answer.result.elapsedMs / 1000).toFixed(2)} s`}>
+                            {cutLine(answer) ?? rowCount(answer.result.rowCount)}
                           </Fact>
                         )}
                       </dl>
 
-                      <div className="flex flex-col gap-2">
+                      <div className={cn("flex flex-col gap-2", !answer.result && "hidden")}>
                         <span className="flex flex-wrap gap-x-4 gap-y-1.5 font-mono text-[11px]">
                           <button type="button" onClick={() => setSqlOpen((v) => !v)} className="text-zinc-900 transition-colors hover:text-[#E6212F] dark:text-zinc-50">
                             {sqlOpen ? "Hide SQL" : "Edit SQL"}
@@ -1060,7 +1068,7 @@ function QueryPage({
                 )}
               </AnimatePresence>
             </div>
-            <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>
+            {answer.result && <p className="font-mono text-[10.5px] leading-relaxed text-zinc-400 dark:text-zinc-500">{SQL_CAVEAT}</p>}
           </section>
         )}
       </div>

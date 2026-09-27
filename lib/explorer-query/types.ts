@@ -57,6 +57,19 @@ export interface SourceNote {
   text: string;
 }
 
+/** the whole result when the rows stop at a LIMIT: its size and each column's figures, read once past the limit */
+export interface Totals {
+  rows: number;
+  /** the rows shown are a time series' newest, not its first */
+  newest: boolean;
+  sum: Record<string, number>;
+  /** the rows that hold a number in each column, for an average */
+  count: Record<string, number>;
+  min: Record<string, number>;
+  max: Record<string, number>;
+  distinct: Record<string, number>;
+}
+
 /** one model step, timed: what the model spent thinking and what the database spent */
 export interface StepTiming {
   n: number;
@@ -76,6 +89,8 @@ export interface QueryAnswer {
   chart: ChartSpec;
   drill: Drill | null;
   result: QueryResult | null;
+  /** when the rows stop at a LIMIT: how many the query had, and its figures over all of them */
+  totals?: Totals | null;
   names: Names;
   /** how the designer laid the answer out; the page draws this */
   visual: VisualSpec | null;

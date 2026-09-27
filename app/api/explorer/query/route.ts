@@ -8,6 +8,7 @@ import { siteBaseUrl } from "@/lib/chat/site-url";
 import { designVisual, writeReading } from "@/lib/explorer-query/visual";
 import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
+import { totalsOf } from "@/lib/explorer-query/cut";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { runKept } from "@/lib/explorer-query/run-cache";
 import { sourceNotes } from "@/lib/explorer-query/sources";
@@ -92,9 +93,11 @@ export async function POST(req: Request) {
     if (recipe.visual && body.reading) {
       const t0 = Date.now();
       try {
-        const result = await runQuery((await anchored(recipe.sql, chainId)).sql);
-        const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names });
+        const run = await anchored(recipe.sql, chainId);
+        const result = await runQuery(run.sql);
+        // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
+        const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(run.sql, result)]);
+        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
         return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
@@ -102,9 +105,11 @@ export async function POST(req: Request) {
     }
     if (recipe.visual) return NextResponse.json({ visual: recipe.visual, designer: true, ms: 0 });
     try {
-      const result = await runQuery((await anchored(recipe.sql, chainId)).sql);
-      const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart });
+      const run = await anchored(recipe.sql, chainId);
+      const result = await runQuery(run.sql);
+      // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
+      const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(run.sql, result)]);
+      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });
     } catch (e) {

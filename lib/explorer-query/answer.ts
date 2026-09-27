@@ -2,14 +2,17 @@ import "server-only";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
-import { guardSql } from "./guard";
+import { MAX_ROWS, guardSql } from "./guard";
 import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
 import { pchainPrompt, systemPrompt } from "./prompt";
 import { isCChain, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey } from "./cache";
-import { basicVisual } from "./visual";
+import { versionLines } from "./sources";
+import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
+import { cutOf, newestSql, totalsOf } from "./cut";
+import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 
 /* A question in, an answer out. A cached recipe answers at once: its SQL
    runs again for fresh rows and no model is asked. Otherwise a model
@@ -67,6 +70,17 @@ interface Ask {
   fresh?: boolean;
 }
 
+/** what a reader is told when no answer came: a question with no words, one the chain's records cannot
+    answer, or SQL that kept failing; each with a next step, never the database's own words */
+function noAnswer(a: Ask, steps: number): string {
+  const pchain = targetOf(a.chainId).kind === "pchain";
+  const example = (pchain ? PCHAIN_EXAMPLES : examplesFor(a.chainId))[0]?.items[0]?.q;
+  const tryThis = example ? ` For example: “${example}”.` : "";
+  if (!/\p{L}/u.test(a.prompt)) return `Ask a question in words.${tryThis}`;
+  if (steps === 0) return `Query reads the ${a.chainName} records (${pchain ? "validators, stake, L1s and P-Chain transactions" : "transactions, blocks, contracts and tokens"}) and could not turn this question into a query.${tryThis}`;
+  return "The query kept failing on the database, so there is no answer. Try a shorter window, or one figure at a time.";
+}
+
 /** the answer, without its layout when none is kept: the page asks for that next */
 export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const key = recipeKey(a.chainId, a.prompt, a.history);
@@ -76,19 +90,36 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   if (recipe) {
     a.emit({ type: "stage", stage: "cached", writer: recipe.writer });
     try {
-      const run = await anchored(recipe.sql, a.chainId);
-      const result = await runQuery(run.sql);
+      let sql = recipe.sql;
+      let run = await anchored(sql, a.chainId);
+      let result = await runQuery(run.sql);
       if (result.rowCount === 0) throw new Error("empty");
-      const names = await nameRows(a.chainId, result.columns, result.rows, a.baseUrl);
+      // a time series the row cap cut from its latest end keeps its newest rows, from now on
+      const newest = newestSql(sql, result, recipe.chart.x);
+      if (newest) {
+        sql = newest;
+        run = await anchored(sql, a.chainId);
+        result = await runQuery(run.sql);
+        await putRecipe(key, { ...recipe, sql });
+      }
+      // rows that stop at the query's own LIMIT are cut too, not only rows at the cap
+      result.truncated ||= !!cutOf(run.sql, result.rowCount);
       const cover = await coverage(a.chainId);
+      // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
+      const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(run.sql, result)]);
+      // rows that only reach their LIMIT leave nothing out
+      if (totals && totals.rows <= result.rowCount) result.truncated = false;
       return {
         anchor: run.anchor,
-        title: recipe.title,
-        note: recipe.note,
-        sql: recipe.sql,
+        sources: run.sources,
+        title: plainLabel(recipe.title),
+        // a kept note loses any sentence that names the SQL's parts
+        note: withoutCode(recipe.note, sqlNames(sql)),
+        sql,
         chart: recipe.chart,
         drill: recipe.drill,
         result,
+        totals,
         names,
         visual: recipe.visual ?? basicVisual(recipe.chart, result.columns),
         draftVisual: !recipe.visual,
@@ -105,7 +136,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   try {
     schema = await schemaCard(a.chainId);
   } catch (e) {
-    a.emit({ type: "error", error: `the database is not reachable: ${e instanceof Error ? e.message : String(e)}`, status: 503 });
+    console.warn("[explorer-query] schema card failed:", e instanceof Error ? e.message : e);
+    a.emit({ type: "error", error: "The database did not answer. Try again in a minute.", status: 503 });
     return null;
   }
   const cover = await coverage(a.chainId);
@@ -114,7 +146,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const coverLine = cover ? coverageText(a.chainId, cover) : null;
   const system =
     targetOf(a.chainId).kind === "pchain"
-      ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine })
+      ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
       : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine });
 
   // earlier turns, so "make it weekly" refines the last chart
@@ -128,6 +160,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
 
   const timings: StepTiming[] = [];
   const errors: string[] = [];
+  let ranSql: string | null = null;
   let tries = 0;
   let steps = 0;
   let cacheRead = 0;
@@ -137,6 +170,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     const w = WRITERS[writer];
     let final: QueryAnswer | null = null;
     let emptyOnce = false;
+    let capOnce = false;
+    let wordsOnce = false;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
     const step = (kind: StepTiming["kind"], sqlMs: number, ok: boolean, detail: string) => {
@@ -181,10 +216,20 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         chart: chartSpecSchema,
         drill: drillSchema.optional().describe("how one row opens into its records; required when rows are groups"),
         route: z.enum(["p-chain", "c-chain"]).optional().describe("with kind none: the question belongs to this chain's data instead"),
+        reason: z.string().max(300).optional().describe("with kind none and no route: why this chain's data cannot answer, one plain sentence for the reader"),
       }),
-      execute: async ({ title, note, sql, chart, drill, route }) => {
+      execute: async ({ title, note, sql, chart, drill, route, reason }) => {
         if (chart.kind === "none") {
-          final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null, ...(route && canRoute ? { route } : {}) };
+          const routed = !!route && canRoute;
+          // an answer with no figure says why, and a question the rows can answer gets its SQL instead
+          if (!routed && !reason?.trim()) {
+            step("final", 0, false, "no figure and no reason");
+            return {
+              error:
+                "kind none leaves the reader with no figure and no reason. If the rows can answer the question, write the SQL and chart it: a count or a total over a window is one row, and the page shows it as a figure. If this chain's data cannot answer it, call render_chart again with kind none and the reason in reason, one plain sentence for the reader.",
+            };
+          }
+          final = { title, note: routed ? note : reason!.trim(), sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null, ...(routed ? { route } : {}) };
           step("final", 0, true, "no chart");
           return { ok: true };
         }
@@ -195,6 +240,16 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         };
         const g = guardSql(sql, a.chainId);
         if (!g.ok) return fail(g.error, 0);
+        // the reader never sees the SQL: a title, note or label that names its parts is written again once, then left out
+        const own = sqlNames(sql);
+        const named = codeWords([title, note, ...chart.series.map((s) => s.label)].join("\n"), own);
+        if (named.length && !wordsOnce) {
+          wordsOnce = true;
+          step("final", 0, false, `reader words: ${named.join(", ")}`);
+          return {
+            error: `the title, note or a series label names ${named.join(", ")}, and the reader never sees the SQL or its columns. Say what each one counts in plain words ("seen in the last 7 days", not seen_7d), and call render_chart again with the same SQL.`,
+          };
+        }
         const q0 = Date.now();
         try {
           const run = await anchored(g.sql, a.chainId);
@@ -207,9 +262,24 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           const cols = new Set(result.columns.map((c) => c.name));
           const missing = [chart.x, ...chart.series.map((s) => s.column)].filter((c): c is string => !!c && !cols.has(c));
           if (missing.length) return fail(`chart refers to columns the query does not return: ${missing.join(", ")}`, Date.now() - q0);
+          // a time series the row cap cut from its latest end runs again for its newest rows, and is kept that way
+          let kept = g.sql;
+          let ran = run;
+          let rows = result;
+          const newest = newestSql(g.sql, result, chart.x);
+          // once, the writer may bucket a series coarser so the whole window fits; after that it keeps its newest rows
+          if (newest && !capOnce) {
+            capOnce = true;
+            return fail(`the series runs past ${MAX_ROWS} rows, so the row cap cut its latest part. Use a coarser bucket (toStartOfFifteenMinutes, toStartOfHour, toDate) so the whole window fits in ${MAX_ROWS} rows.`, Date.now() - q0);
+          }
+          if (newest) {
+            kept = newest;
+            ran = await anchored(newest, a.chainId);
+            rows = await runQuery(ran.sql);
+          }
           // the drill must work on a real row before the answer ships
-          if (drill && result.rows[0]) {
-            const d = drillSql(drill.sql, result.rows[0], a.chainId);
+          if (drill && rows.rows[0]) {
+            const d = drillSql(drill.sql, rows.rows[0], a.chainId);
             if (!d.ok) return fail(`drill: ${d.error}`, Date.now() - q0);
             try {
               const probe = await runQuery((await anchored(d.sql, a.chainId)).sql.replace(/\bLIMIT\s+\d+\s*$/i, "LIMIT 1"));
@@ -219,9 +289,11 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
               return fail(`drill: ${e instanceof Error ? e.message : String(e)}`, Date.now() - q0);
             }
           }
-          final = { title, note, sql: g.sql, chart, drill: drill ?? null, result, names: {}, visual: null, coverage: null, anchor: run.anchor };
-          step("final", Date.now() - q0, true, `${result.rowCount} rows`);
-          return { ok: true, rows: result.rowCount };
+          rows.truncated ||= !!cutOf(ran.sql, rows.rowCount);
+          final = { title: plainLabel(title), note: withoutCode(note, own), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          ranSql = ran.sql;
+          step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
+          return { ok: true, rows: rows.rowCount };
         } catch (e) {
           return fail(e instanceof Error ? e.message : String(e), Date.now() - q0);
         }
@@ -235,6 +307,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       system: { role: "system", content: system, providerOptions: CACHE },
       messages,
       tools: { run_sql, render_chart },
+      // every step calls a tool, so a reply in prose never ends the run with no answer
+      toolChoice: "required",
       stopWhen: [stepCountIs(w.steps), () => final !== null],
       prepareStep: ({ stepNumber, messages: sent }) => {
         // mark the newest turn too, so the next step reads the whole
@@ -265,17 +339,26 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       final = await loop("full");
     }
   } catch (e) {
-    a.emit({ type: "error", error: `the model failed: ${e instanceof Error ? e.message : String(e)}`, status: 502 });
+    console.warn("[explorer-query] writer failed:", e instanceof Error ? e.message : e);
+    a.emit({ type: "error", error: "The answer could not be written this time. Try again.", status: 502 });
     return null;
   }
 
   if (!final) {
-    const last = errors.slice(-2).join(" | ");
-    a.emit({ type: "error", error: `The query could not be finished.${last ? ` Last database error: ${last.slice(0, 300)}` : ""} Try a narrower question.`, status: 422 });
+    // the database's own words stay in the log; the reader gets what to do next
+    if (errors.length) console.warn("[explorer-query] no answer:", errors.slice(-3).join(" | ").slice(0, 900));
+    a.emit({ type: "error", error: noAnswer(a, timings.length), status: 422 });
     return null;
   }
   const done = final as QueryAnswer;
-  if (done.result) done.names = await nameRows(a.chainId, done.result.columns, done.result.rows, a.baseUrl);
+  if (done.result) {
+    // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
+    const [names, totals] = await Promise.all([nameRows(a.chainId, done.result.columns, done.result.rows, a.baseUrl), ranSql ? totalsOf(ranSql, done.result) : null]);
+    done.names = names;
+    done.totals = totals;
+    // rows that only reach their LIMIT leave nothing out
+    if (totals && totals.rows <= done.result.rowCount) done.result.truncated = false;
+  }
   done.coverage = cover;
   done.key = key;
   // draw something at once; the page asks the designer for the real layout

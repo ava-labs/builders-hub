@@ -8,7 +8,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
 import type { ColumnMeta } from "./clickhouse";
-import type { ChartSpec, Names } from "./types";
+import type { ChartSpec, Names, Totals } from "./types";
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 export const DESIGN_MODEL = "claude-opus-5-5";
@@ -105,17 +105,59 @@ export function basicVisual(chart: ChartSpec, columns: ColumnMeta[]): VisualSpec
   };
 }
 
-function summarize(columns: ColumnMeta[], rows: Row[]) {
-  return columns.map((c) => {
-    const vals = rows.map((r) => r[c.name]);
-    const nums = vals.filter((v): v is number => typeof v === "number");
-    if (nums.length) {
-      const sum = nums.reduce((a, b) => a + b, 0);
-      return `${c.name} (${c.type}): min ${Math.min(...nums)}, max ${Math.max(...nums)}, sum ${sum}, avg ${(sum / nums.length).toPrecision(4)}`;
-    }
-    const distinct = new Set(vals.map(String)).size;
-    return `${c.name} (${c.type}): ${distinct} distinct, e.g. ${String(vals[0]).slice(0, 40)}`;
-  });
+
+/* how a reading speaks, for the designer's callouts and the reader's sentences alike: in the reader's
+   words, in the right units, with the right verbs */
+const READER_RULES =
+  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. The first and last buckets of a window can be partial: never call them a dip or a jump, and when one holds the highest value, name the highest complete bucket too.";
+
+/* The reader never sees the SQL, so no reader text names its parts: a
+   snake_case name (seen_7d, to_address, p_validator_versions), or one of
+   the query's own names that holds a digit (topic0). */
+const SNAKE = /\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b/g;
+const DIGITED = /\b[A-Za-z]+\d[A-Za-z0-9]*\b/g;
+
+/** a query's own names that hold a digit (topic0), outside its quoted strings and comments */
+export function sqlNames(sql: string): string[] {
+  const code = sql.replace(/'(?:[^'\\]|\\.)*'/g, "''").replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  return [...new Set(code.match(DIGITED) ?? [])];
+}
+
+/** the SQL's parts a reader text names: each snake_case name, and each of the query's own names */
+export function codeWords(text: string, names: readonly string[] = []): string[] {
+  const own = new Set(names);
+  return [...new Set([...(text.match(SNAKE) ?? []), ...(text.match(DIGITED) ?? []).filter((w) => own.has(w))])];
+}
+
+/** reader text without the sentences that name the SQL's parts */
+export function withoutCode(text: string, names: readonly string[] = []): string {
+  if (codeWords(text, names).length === 0) return text;
+  return text
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => codeWords(s, names).length === 0)
+    .join(" ");
+}
+
+/** a label with its snake_case names read as words: seen_7d becomes seen 7d */
+export const plainLabel = (s: string) => s.replace(SNAKE, (w) => w.replace(/_/g, " "));
+
+/** every label a visual shows the reader */
+function labelsOf(v: VisualSpec): string[] {
+  return [
+    ...v.stats.flatMap((s) => [s.label, s.sub ?? ""]),
+    ...v.panels.flatMap((p) => [p.title, ...p.series.map((s) => s.label), ...p.markers.map((m) => m.label), ...p.bands.map((b) => b.label), ...p.referenceLines.map((r) => r.label)]),
+  ];
+}
+
+/** a visual in the reader's words: a snake_case name left in a label reads as words, and a callout that names a column is left out */
+export function readerSpec(v: VisualSpec, names: readonly string[]): VisualSpec {
+  const worded = <T extends { label: string }>(o: T): T => ({ ...o, label: plainLabel(o.label) });
+  return {
+    ...v,
+    stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: plainLabel(s.sub) } : {}) })),
+    panels: v.panels.map((p) => ({ ...p, title: plainLabel(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
+    callouts: v.callouts.filter((c) => codeWords(c, names).length === 0),
+  };
 }
 
 const HOUSE_STYLE = `You design the visual for an answer on the Avalanche explorer (build.avax.network). The page is a drafting sheet: mono labels, one red accent (#E6212F) then blue, teal, amber; thin lines; no decoration. Your job is to decide what a careful analyst would put on the sheet so the reader sees the answer in two seconds and can check it in ten.
@@ -126,6 +168,8 @@ Rules of the sheet
 - Gas reserved against a limit: a line with the limit as a reference line. Fees in AVAX use format avax. Gas figures use format gas (compact with the word gas). Percent columns use percent.
 - Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
 - Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting". Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.
+- Figures are computed over all rows, and the rows shown are a sample: take every peak, low, total, first and last value, and the row that holds it, from Figures, and put a peak's marker at the x Figures names. When Figures says the rows are cut, never call a sum over them the total.
+- ${READER_RULES}
 - Panel titles: two to four plain words, no "by" chains longer than one.
 Comparisons and overlays (use them whenever the rows hold more than one thing to compare)
 - Two groups or two periods in columns (usdc_*, usdt_*; current_*, previous_*): overlay them in ONE panel. The baseline or previous period is dashed.
@@ -148,19 +192,136 @@ export interface DesignInput {
   rows: Row[];
   names: Names;
   chart: ChartSpec;
+  /** when the rows stop at a LIMIT: the whole result's size and figures */
+  totals?: Totals | null;
+  /** the column a row is known by, when there is no chart to say it */
+  x?: string;
 }
 
-/** the rows as a model sees them: names where the server found them */
-function sampleRows(input: Pick<DesignInput, "rows" | "columns" | "names">, n: number): Row[] {
-  return input.rows.slice(0, n).map((r) => {
-    const o: Row = {};
-    for (const c of input.columns) {
-      const v = r[c.name];
-      const name = typeof v === "string" ? input.names[c.name]?.[v.toLowerCase()] : undefined;
-      o[c.name] = name ? `${name} (${String(v).slice(0, 10)}…)` : v;
+type Seen = Pick<DesignInput, "columns" | "rows" | "names" | "totals" | "x">;
+
+const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
+const TIME = /^(Nullable\()?Date/;
+
+/** a value as a model reads it: a name where the server found one */
+function shown(input: Pick<DesignInput, "names">, column: string, v: unknown): unknown {
+  const name = typeof v === "string" ? input.names[column]?.[v.toLowerCase()] : undefined;
+  return name ? `${name} (${String(v).slice(0, 10)}…)` : v;
+}
+
+/** a number as a model reads it: plain digits, six significant, never 1.2e+6 */
+const plain = (n: number) => (Number.isInteger(n) ? String(n) : String(Number(n.toPrecision(6))));
+
+/** the column a row is known by: the chart's x, else a time, else the first text column */
+function labelOf(input: Seen): ColumnMeta | null {
+  const { columns } = input;
+  return columns.find((c) => c.name === input.x) ?? columns.find((c) => TIME.test(c.type)) ?? columns.find((c) => !NUMERIC.test(c.type)) ?? null;
+}
+
+/* The figures a reading quotes, computed over every row, since a model
+   sees only a sample of them: each number column's total, average and
+   extremes with the row that holds each, and its first and last values;
+   each other column's distinct count and range. When the rows stop at a
+   LIMIT, the cut comes first and the whole result's figures stand beside
+   the rows' own, so a sum over the rows shown is never passed off as the
+   total. */
+export function figures(input: Seen): string[] {
+  const { columns, rows, totals } = input;
+  const label = labelOf(input);
+  const at = (r: Row) => (label ? `${label.name} ${String(shown(input, label.name, r[label.name]))}` : `row ${rows.indexOf(r) + 1}`);
+  const cut = !!totals && totals.rows > rows.length;
+  const out: string[] = [];
+  if (totals && cut) {
+    out.push(
+      totals.newest
+        ? `The rows are the newest ${rows.length} of ${totals.rows}: the row cap cut the oldest.`
+        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. A sum over these rows is not the total; the total over all ${totals.rows} is given beside it.`,
+    );
+  }
+  for (const c of columns) {
+    const nums: { r: Row; v: number }[] = [];
+    for (const r of rows) {
+      const v = numOf(c, r[c.name]);
+      if (v !== null) nums.push({ r, v });
     }
-    return o;
-  });
+    if (nums.length) {
+      let hi = nums[0];
+      let lo = nums[0];
+      let sum = 0;
+      for (const x of nums) {
+        if (x.v > hi.v) hi = x;
+        if (x.v < lo.v) lo = x;
+        sum += x.v;
+      }
+      const all = totals && cut && totals.sum[c.name] !== undefined ? totals : null;
+      // a figure the same in every row (a set's size, of_total) is one figure, and its sum means nothing
+      if (rows.length > 1 && nums.length === rows.length && hi.v === lo.v && (!all || (all.max[c.name] === hi.v && all.min[c.name] === hi.v))) {
+        out.push(`${c.name} (${c.type}): ${plain(hi.v)} in every row`);
+        continue;
+      }
+      // the next highest rows too, for when the highest is a bucket still filling
+      const next = nums.filter((t) => t !== hi).sort((p, q) => q.v - p.v).slice(0, 2);
+      const parts = [
+        all ? `total ${plain(all.sum[c.name])} over all ${all.rows} rows (${plain(sum)} over these ${rows.length})` : `total ${plain(sum)}`,
+        `avg ${plain(sum / nums.length)}`,
+        `max ${plain(hi.v)} at ${at(hi.r)}${all && all.max[c.name] > hi.v ? ` (${plain(all.max[c.name])} in a row not shown)` : ""}${next.length ? `, then ${next.map((t) => `${plain(t.v)} at ${at(t.r)}`).join(" and ")}` : ""}`,
+        `min ${plain(lo.v)} at ${at(lo.r)}${all && all.min[c.name] < lo.v ? ` (${plain(all.min[c.name])} in a row not shown)` : ""}`,
+        `first ${plain(nums[0].v)}, last ${plain(nums[nums.length - 1].v)}`,
+      ];
+      out.push(`${c.name} (${c.type}): ${parts.join(", ")}`);
+      continue;
+    }
+    const vals = rows.map((r) => r[c.name]);
+    const distinct = new Set(vals.map(String)).size;
+    const count = totals && cut && totals.distinct[c.name] !== undefined ? `${totals.distinct[c.name]} distinct over all ${totals.rows} rows (${distinct} here)` : `${distinct} distinct`;
+    const times = TIME.test(c.type) ? vals.map(String).sort() : null;
+    const range = times?.length ? `, from ${times[0]} to ${times[times.length - 1]}` : `, e.g. ${String(shown(input, c.name, vals[0])).slice(0, 60)}`;
+    out.push(`${c.name} (${c.type}): ${count}${range}`);
+  }
+  return out;
+}
+
+/** the most rows a model reads in full */
+const SAMPLE = 24;
+
+/** a cell as a number, when its column holds numbers */
+function numOf(c: ColumnMeta, v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && NUMERIC.test(c.type) && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
+}
+
+/** the rows a model sees: all of a short answer; else the first and last five, each number column's
+    highest and lowest row, and an even spread between them, in the rows' own order */
+export function sampleOf(input: Seen): { head: string; rows: Row[] } {
+  const { rows, columns } = input;
+  const named = (r: Row) => Object.fromEntries(columns.map((c) => [c.name, shown(input, c.name, r[c.name])]));
+  if (rows.length <= SAMPLE) return { head: `All ${rows.length} rows:`, rows: rows.map(named) };
+  const pick = new Set<number>();
+  for (let i = 0; i < 5; i++) pick.add(i).add(rows.length - 1 - i);
+  for (const c of columns) {
+    let hi = -1;
+    let lo = -1;
+    let hv = -Infinity;
+    let lv = Infinity;
+    rows.forEach((r, i) => {
+      const v = numOf(c, r[c.name]);
+      if (v === null) return;
+      if (v > hv) [hi, hv] = [i, v];
+      if (v < lv) [lo, lv] = [i, v];
+    });
+    if (hi >= 0) pick.add(hi).add(lo);
+  }
+  for (let k = 1; pick.size < SAMPLE && k < SAMPLE; k++) pick.add(Math.round((k * (rows.length - 1)) / SAMPLE));
+  const at = [...pick].sort((x, y) => x - y);
+  return { head: `${at.length} of the ${rows.length} rows, in order: the first and last five, each column's highest and lowest, and an even spread between:`, rows: at.map((i) => named(rows[i])) };
+}
+
+/** what a model reads about the rows: the figures over all of them, then a sample */
+function rowsBrief(input: Seen): string[] {
+  const s = sampleOf(input);
+  const cut = !!input.totals && input.totals.rows > input.rows.length;
+  const head = cut ? `Figures, computed over the ${input.rows.length} rows shown, with the whole result's beside them:` : `Figures, computed over all ${input.rows.length} rows:`;
+  return [head, ...figures(input).map((f) => `- ${f}`), s.head, ...s.rows.map((r) => JSON.stringify(r))];
 }
 
 const READER_MODEL = "claude-haiku-4-5-20251001";
@@ -174,7 +335,9 @@ export async function writeReading(input: Omit<DesignInput, "chart">): Promise<s
     description: "One to three callouts on these rows.",
     inputSchema: z.object({ callouts: z.array(z.string().max(160)).max(3) }),
     execute: async ({ callouts }) => {
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).slice(0, 3);
+      // a callout that names a column is left out: the reader never sees the SQL
+      const names = input.columns.map((c) => c.name);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).filter((c) => codeWords(c, names).length === 0).slice(0, 3);
       return { ok: true };
     },
   });
@@ -186,7 +349,10 @@ export async function writeReading(input: Omit<DesignInput, "chart">): Promise<s
         "At most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas).",
         "No adjectives, no restating the title. Do not mention the data window. No em dashes. Never say settled or waiting.",
         "Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.",
-        "Quote only figures you can see in the rows or the column summaries. Call the reading tool once.",
+        "Figures are computed over all rows; the rows shown are a sample. Take every peak, low, total, first and last value, and the row that holds it, from Figures, never from the rows shown.",
+        "When Figures says the rows are cut, say they are the first (or the newest) of the total, and never call a sum over them the total.",
+        READER_RULES,
+        "Call the reading tool once.",
       ].join("\n"),
       messages: [
         {
@@ -194,11 +360,8 @@ export async function writeReading(input: Omit<DesignInput, "chart">): Promise<s
           content: [
             `Question: ${input.question}`,
             `Title: ${input.title}`,
-            `Native token: ${input.symbol}. Rows: ${input.rows.length}.`,
-            `Columns and summaries:`,
-            ...summarize(input.columns, input.rows).map((s) => `- ${s}`),
-            `First rows:`,
-            ...sampleRows(input, 15).map((r) => JSON.stringify(r)),
+            `Native token: ${input.symbol}. Rows: ${input.rows.length}${input.totals && input.totals.rows > input.rows.length ? ` of ${input.totals.rows}` : ""}.`,
+            ...rowsBrief(input),
           ].join("\n"),
         },
       ],
@@ -219,10 +382,12 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
   if (input.rows.length === 0) return { visual: fallback, ms: 0, fromDesigner: false };
   let error: string | undefined;
 
-  const sample = sampleRows(input, 15);
+  const seen = { ...input, x: input.x ?? input.chart.x };
+  const sample = sampleOf(seen).rows;
   const cols = new Set(input.columns.map((c) => c.name));
 
   let visual: VisualSpec | null = null;
+  let relabeled = false;
   const design = tool({
     description: "The visual for this answer: headline stats, one to four panels, callouts.",
     inputSchema: visualSpecSchema,
@@ -233,7 +398,13 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
       ];
       if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
       if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
-      visual = spec;
+      // the reader never sees the columns: labels and callouts that name one are written again once, then read as words
+      const named = codeWords([...labelsOf(spec), ...spec.callouts].join("\n"), [...cols]);
+      if (named.length && !relabeled) {
+        relabeled = true;
+        return { error: `the labels or callouts name ${named.join(", ")}, and the reader never sees the columns. Use plain words ("Seen in 7 days", not seen_7d) and call design again.` };
+      }
+      visual = readerSpec(spec, [...cols]);
       return { ok: true };
     },
   });
@@ -250,11 +421,8 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
             `Question: ${input.question}`,
             `Title from the query stage: ${input.title}`,
             `Note from the query stage: ${input.note}`,
-            `Native token: ${input.symbol}. Rows: ${input.rows.length}.`,
-            `Columns and summaries:`,
-            ...summarize(input.columns, input.rows).map((s) => `- ${s}`),
-            `First rows:`,
-            ...sample.map((r) => JSON.stringify(r)),
+            `Native token: ${input.symbol}. Rows: ${input.rows.length}${input.totals && input.totals.rows > input.rows.length ? ` of ${input.totals.rows}` : ""}.`,
+            ...rowsBrief(seen),
             `Call the design tool exactly once with the visual. If it returns an error, call it again with the fix. Do not answer in prose.`,
           ].join("\n"),
         },

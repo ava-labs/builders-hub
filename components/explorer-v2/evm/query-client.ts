@@ -7,6 +7,7 @@
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
+import type { VisualSpec } from "@/lib/explorer-query/visual";
 
 /** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
 export class QueryError extends Error {
@@ -66,6 +67,11 @@ export function progress(events: QueryEvent[]): string {
       line = e.stage === "cached" ? "Running the query" : e.stage === "escalated" ? "Writing the SQL again" : "Writing the SQL";
     } else if (e.type === "step") {
       if (!e.ok) {
+        // an answer in the SQL's own words is written again; the SQL itself stands
+        if (e.detail.startsWith("reader words")) {
+          line = "Rewording the answer";
+          continue;
+        }
         fixes += 1;
         line = fixes === 1 ? "Fixing the SQL" : `Fixing the SQL, ${ordinal(fixes)} try`;
         continue;
@@ -74,7 +80,7 @@ export function progress(events: QueryEvent[]): string {
       const rows = n ? Number(n[1]) : null;
       if (e.kind === "test") line = rows === null ? "Trying the SQL on a sample" : `Trying the SQL on a sample: ${rowCount(rows)}`;
       else if (e.detail === "no chart") line = "Writing the answer";
-      else line = rows ? `Reading ${rowCount(rows)}` : "Reading the rows";
+      else line = rows ? `Reading ${rowCount(rows)}${rows >= ROW_CAP ? ", the most one answer holds" : ""}` : "Reading the rows";
     }
   }
   return line;
@@ -82,6 +88,73 @@ export function progress(events: QueryEvent[]): string {
 
 /** "1 row", "1,204 rows" */
 export const rowCount = (n: number) => `${formatNumber(n)} ${n === 1 ? "row" : "rows"}`;
+
+/** what the rows shown are of the whole answer, when a LIMIT or the row cap cut it: "100 of 142 rows" */
+export function cutLine(a: Pick<QueryAnswer, "result" | "totals">): string | null {
+  if (!a.result) return null;
+  const n = a.result.rowCount;
+  // read totals decide it: rows that only reach their LIMIT leave nothing out
+  if (a.totals) return a.totals.rows > n ? `${a.totals.newest ? "The newest " : ""}${formatNumber(n)} of ${rowCount(a.totals.rows)}` : null;
+  return a.result.truncated ? `The first ${rowCount(n)}; the query has more` : null;
+}
+
+/** an answer that ran no query; its note says why */
+export const NO_QUERY = "No query ran for this question.";
+
+/** the rows one answer holds at most: MAX_ROWS in lib/explorer-query/guard.ts, which the page does not load */
+export const ROW_CAP = 2000;
+
+/** the rows sheet's count: "100 of 142" when a LIMIT or the cap cut the answer */
+export function rowsLabel(a: Pick<QueryAnswer, "result" | "totals">, n: number): string {
+  if (a.totals) return a.totals.rows > n ? `${formatNumber(n)} of ${formatNumber(a.totals.rows)}` : formatNumber(n);
+  return a.result?.truncated ? `${formatNumber(n)}, capped` : formatNumber(n);
+}
+
+/* a failure as a reader reads it: the engine's own words (a database error, a stream cut on its way)
+   go to the console, and the reader gets what to do next */
+const ENGINE = /\b(Code: \d+|DB::Exception|clickhouse|stats-api|HTTP \d{3}|ECONN\w*|fetch failed|socket)\b/i;
+export function readerError(message: string): string {
+  if (/stopped before it finished/i.test(message)) {
+    console.warn("[query]", message);
+    return "The answer was cut off on its way. Try again.";
+  }
+  if (!ENGINE.test(message)) return message;
+  console.warn("[query]", message);
+  return "The database stopped before the answer was complete. Try again in a minute.";
+}
+
+const SPAN_MS: Record<string, number> = { MINUTE: 60_000, HOUR: 3_600_000, DAY: 86_400_000, WEEK: 604_800_000, MONTH: 2_592_000_000 };
+/** a UTC time as the rows write it (2026-09-27 00:30:00, or a day), in ms */
+const msOf = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? Date.parse(v.length > 10 ? `${v.replace(" ", "T")}Z` : `${v}T00:00:00Z`) : NaN);
+
+/** a time series' edge buckets that the window cuts through, labeled, so a short first bar never reads as a dip */
+export function withEdges(visual: VisualSpec | null, a: Pick<QueryAnswer, "sql" | "anchor" | "result"> | null): VisualSpec | null {
+  const rows = a?.result?.rows;
+  const w = a ? /now\(\)\s*-\s*INTERVAL\s+(\d+)\s+(MINUTE|HOUR|DAY|WEEK|MONTH)S?\b/i.exec(a.sql) : null;
+  if (!visual || !a || !rows || rows.length < 3 || !w) return visual;
+  const end = a.anchor ? msOf(a.anchor) : Date.now();
+  const start = end - Number(w[1]) * SPAN_MS[w[2].toUpperCase()];
+  let changed = false;
+  const panels = visual.panels.map((p) => {
+    if (!p.x || !["bar", "line", "area"].includes(p.kind)) return p;
+    const xs = rows.map((r) => r[p.x!]);
+    const ms = xs.map(msOf);
+    if (ms.some((t) => !Number.isFinite(t))) return p;
+    // the bucket is the smallest step between rows
+    let step = Infinity;
+    for (let i = 1; i < ms.length; i++) if (ms[i] > ms[i - 1]) step = Math.min(step, ms[i] - ms[i - 1]);
+    if (!Number.isFinite(step)) return p;
+    const lo = ms.indexOf(Math.min(...ms));
+    const hi = ms.indexOf(Math.max(...ms));
+    const marks = [...p.markers];
+    if (ms[lo] < start - 1000 && ms[lo] + step > start) marks.push({ x: String(xs[lo]), label: "partial" });
+    if (ms[hi] + step > end + 1000) marks.push({ x: String(xs[hi]), label: "so far" });
+    if (marks.length === p.markers.length) return p;
+    changed = true;
+    return { ...p, markers: marks };
+  });
+  return changed ? { ...visual, panels } : visual;
+}
 
 const ordinal = (n: number) => `${n}${n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : n % 10 === 1 && n % 100 !== 11 ? "st" : "th"}`;
 
@@ -93,7 +166,9 @@ export function reads(callouts: string[]): string {
         .trim()
         .replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m)))
         // an address reads the way the charts write it
-        .replace(/\b0x[0-9a-fA-F]{40}\b/g, (m) => truncate(m.toLowerCase(), 6)),
+        .replace(/\b0x[0-9a-fA-F]{40}\b/g, (m) => truncate(m.toLowerCase(), 6))
+        // a bare figure of five digits or more gets its separators: 14,302, never 14302
+        .replace(/(?<![\w.,#])\d{5,}(?:\.\d+)?(?![\w,])/g, (m) => formatNumber(Number(m))),
     )
     .filter(Boolean)
     .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))
@@ -104,6 +179,11 @@ export function reads(callouts: string[]): string {
    question the reader sees stays the one they typed; the city's window
    scopes a P-Chain question to a picked L1 the same way */
 export const FILTER_MARK = "\n\n(Only the rows where ";
+
+/** under an answer: what the server's own tables it read cover, and how recent they are, in the server's words */
+export function sourceLines(a: Pick<QueryAnswer, "sources">): string[] {
+  return (a.sources ?? []).map((s) => s.text).filter(Boolean);
+}
 
 /** under every answer: the figures rest on SQL a model wrote */
 export const SQL_CAVEAT = "The SQL behind this answer is written by an AI model and may not be 100% accurate. Check it before you rely on a figure.";
