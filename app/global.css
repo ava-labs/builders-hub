@@ -2139,3 +2139,17 @@ html.embed-mode #nd-toc {
     }
   }
 }
+
+/* on a large screen the city is one window under the navbar, so no scroll can carry the subnav
+   away: the site's footer and chat button stand down (the city's news takes that corner), and the
+   explorer's full-screen wrapper adds no height. The page marks itself in its server render, so
+   this holds from the first paint. Phones keep the footer and the chat button */
+@media (min-width: 1024px) {
+  body:has([data-city-page]) [data-site-footer],
+  body:has([data-city-page]) .chatbot-container {
+    display: none;
+  }
+  div:has(> [data-city-page]) {
+    min-height: 0;
+  }
+}
