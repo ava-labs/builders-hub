@@ -53,20 +53,37 @@ export async function streamQuery(body: object, onEvent: (e: QueryEvent) => void
   }
 }
 
-/* the loader's line: what is happening, never which model does it */
+/* the loader's line: the phase a reader would name, never which model
+   does it and never the engine's own words for its steps. An event ends a
+   step, so the line names the phase that step leaves the question in */
 export function progress(events: QueryEvent[]): string {
   let line = "Writing the SQL";
+  let fixes = 0;
   for (const e of events) {
     if (e.type === "stage") {
-      if (e.stage === "cached") return "Kept answer: running its SQL for fresh rows";
-      line = e.stage === "escalated" ? "Taking a second pass at the SQL" : "Writing the SQL";
+      // a kept answer runs its SQL; one that no longer runs is written again
+      fixes = 0;
+      line = e.stage === "cached" ? "Running the query" : e.stage === "escalated" ? "Writing the SQL again" : "Writing the SQL";
     } else if (e.type === "step") {
-      const what = e.kind === "test" ? `Test ${e.n}` : "Final query";
-      line = e.ok ? `${what} ran, ${e.detail}` : `${what} failed, fixing`;
+      if (!e.ok) {
+        fixes += 1;
+        line = fixes === 1 ? "Fixing the SQL" : `Fixing the SQL, ${ordinal(fixes)} try`;
+        continue;
+      }
+      const n = /^(\d+) rows?$/.exec(e.detail);
+      const rows = n ? Number(n[1]) : null;
+      if (e.kind === "test") line = rows === null ? "Trying the SQL on a sample" : `Trying the SQL on a sample: ${rowCount(rows)}`;
+      else if (e.detail === "no chart") line = "Writing the answer";
+      else line = rows ? `Reading ${rowCount(rows)}` : "Reading the rows";
     }
   }
   return line;
 }
+
+/** "1 row", "1,204 rows" */
+export const rowCount = (n: number) => `${formatNumber(n)} ${n === 1 ? "row" : "rows"}`;
+
+const ordinal = (n: number) => `${n}${n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : n % 10 === 1 && n % 100 !== 11 ? "st" : "th"}`;
 
 /** the callouts as one paragraph: every sentence closed, no 1.395e+6, short addresses */
 export function reads(callouts: string[]): string {

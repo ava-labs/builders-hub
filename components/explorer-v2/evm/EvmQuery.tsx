@@ -24,7 +24,7 @@ import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
 import { Crumbs, DrillView, type OpenDrill, ZoomStage } from "./QueryZoom";
 import { QueryLoader } from "./QueryLoader";
-import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, progress, reads, streamQuery } from "./query-client";
+import { FILTER_MARK, QueryError, SQL_CAVEAT, postQuery, progress, reads, rowCount, streamQuery } from "./query-client";
 import { EXAMPLES, PCHAIN_EXAMPLES, examplesFor } from "@/lib/explorer-query/examples";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { rememberQuestion } from "@/lib/explorer-query/recent";
@@ -819,7 +819,7 @@ function QueryPage({
                   <Crumbs items={[{ label: answer.title, onClick: popZoom }, { label: drill.title }]} />
                 ) : (
                   <span className="min-w-0 truncate font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
-                    {sel.length ? `${formatNumber(picked.length)} of ${formatNumber(allRows.length)} rows` : charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""}
+                    {sel.length ? `${formatNumber(picked.length)} of ${rowCount(allRows.length)}` : charted ? (canDrill ? "Drag or click to filter. Open a mark with ›." : "Drag or click to filter.") : ""}
                   </span>
                 )}
                 <span className="flex items-center gap-1">

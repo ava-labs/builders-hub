@@ -11,6 +11,7 @@ import type { Names } from "@/lib/explorer-query/types";
 import { EMPTY, applySelection, clearColumn, matches, order, toggleValue, withPick, type Selection } from "@/lib/explorer-query/selection";
 import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-query/visual";
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
+import { rowCount } from "./query-client";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -1293,7 +1294,7 @@ function PanelTable({ panel, rows, names, sym, canDrill, onPick, hoverKey, onHov
     <div className="flex flex-col gap-2">
       {live.length > 0 && (
         <span className="font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-          {kept.length} of {rows.length} rows
+          {formatNumber(kept.length)} of {rowCount(rows.length)}
         </span>
       )}
       <div className="max-h-[26rem] overflow-auto">
