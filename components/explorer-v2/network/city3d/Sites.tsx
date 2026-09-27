@@ -288,6 +288,8 @@ export function Sites({
       <primitive object={scaffold} />
       <primitive object={piles} />
       <primitive
+        // keyed by the mesh, so rebuilt sites still take the cursor (Buildings.tsx)
+        key={picks.uuid}
         object={picks}
         onPointerOver={(e: ThreeEvent<PointerEvent>) => {
           e.stopPropagation();
@@ -295,7 +297,7 @@ export function Sites({
         }}
         onPointerOut={() => onSite(null)}
         onClick={(e: ThreeEvent<MouseEvent>) => {
-          if (e.delta > 6 || e.instanceId === undefined) return;
+          if (e.delta > 12 || e.instanceId === undefined) return;
           e.stopPropagation();
           const s = outskirts.sites[e.instanceId];
           if (s) onOpenSite(s.site);

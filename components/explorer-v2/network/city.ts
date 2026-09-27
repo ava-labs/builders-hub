@@ -101,6 +101,8 @@ const BLOCK = 3;
 const LANE = 0.3;
 const ROAD = 0.5;
 const AVENUE = 0.95;
+/** downtown's plaza's radius in the plan: fixed, so the tower's width moves no lot (it was five of the tower's half-widths, when that was 19) */
+const PLAZA = 95;
 
 /* a ward's claim on the circle: a small ward keeps room for a block */
 const weightOf = (n: number) => Math.pow(n, 0.8) + 0.8;
@@ -227,7 +229,7 @@ export function planCity(chains: CityChain[], g: CityGeometry): City {
     );
   const order = DISTRICTS.map((d) => d.key).filter((k) => (groups.get(k)?.length ?? 0) > 0);
   // downtown's plaza: room round the tower's podium for its name on the ground in front
-  const coreOf = (lot: number) => Math.max(g.hub.w * 5, lot * 2.1);
+  const coreOf = (lot: number) => Math.max(PLAZA, lot * 2.1);
   if (!order.length) return { lots: new Map(), wards: [], blocks: [], lot: LOT_MAX, core: coreOf(LOT_MAX), edge: coreOf(LOT_MAX), rings: [], avenue: AVENUE * LOT_MAX };
 
   const arcs = arcsOf(order.map((k) => ({ key: k, n: groups.get(k)!.length })));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   AddOperation,
@@ -18,13 +18,16 @@ import {
   SphereGeometry,
   Vector3,
   WebGLCubeRenderTarget,
+  type Camera,
   type Material,
   type MeshLambertMaterial,
+  type Texture,
 } from "three";
 import type { Theme } from "./palette";
 
-/* The city's light: the sun from the upper left and a little in front, as
-   the map's shadows fall, the sky's fill, a tone curve that keeps the
+/* The city's light: the sun high on the left, square to the home view, so
+   the shadows fall straight to the right, away from the sky's disc
+   (Backdrop.tsx); the sky's fill, a tone curve that keeps the
    city's colors, and the sky itself as the one thing the glass reflects.
    The reflections are baked once per theme into a small cube from the
    sky's own gradient, a soft glow round the sun, and a band of haze at
@@ -34,8 +37,8 @@ import type { Theme } from "./palette";
    glass), and `cityEnvMode` "add" (the default, a sheen) or "mix". On a
    renderer that cannot carry it, nothing reflects. */
 
-/** the sun's direction, as the map's shadows fall */
-export const SUN = new Vector3(-0.46, 1, 0.18).normalize();
+/** the sun's direction: high on the left, square to the home view, so a shadow falls straight to the right */
+export const SUN = new Vector3(-0.46, 1, 0).normalize();
 
 /* The tone curve: straight up to a shoulder at 0.85, so every hex the
    city paints stays on it, and a soft roll-off above it, so the night's
@@ -56,6 +59,24 @@ ShaderChunk.tonemapping_pars_fragment = ShaderChunk.tonemapping_pars_fragment.re
 }`,
 );
 const EXPOSURE: Record<Theme, number> = { light: 1, dark: 1 };
+
+/* the reflection a material that asks for it takes: the sky's cube where the renderer carries it, else none. The scene's
+   warm-up hands it to each material before its program compiles (warmup.tsx), since a reflection that comes later compiles
+   the material again */
+const ENV: { map: Texture | null } = { map: null };
+
+/** a material that asks for the reflection takes the one that stands now; true when that changed it */
+export function takeEnv(m: Material): boolean {
+  const k = m.userData?.cityEnv as number | undefined;
+  if (k === undefined) return false;
+  const phong = m as MeshLambertMaterial;
+  if (phong.envMap === ENV.map && phong.reflectivity === k) return false;
+  phong.envMap = ENV.map;
+  phong.reflectivity = k;
+  phong.combine = m.userData.cityEnvMode === "mix" ? MixOperation : AddOperation;
+  phong.needsUpdate = true;
+  return true;
+}
 
 /* the sky the city reflects, as the Backdrop draws it (the brand's cool
    blue-white by day, its dark by night): its zenith, its sky, the haze at
@@ -112,8 +133,8 @@ export function Lighting({ theme, rich }: { theme: Theme; rich: boolean }) {
   const scene = useThree((s) => s.scene);
   const invalidate = useThree((s) => s.invalidate);
 
-  // the tone curve and each theme's exposure
-  useEffect(() => {
+  // the tone curve and each theme's exposure, set before the first frame: every program compiles with the curve it is drawn with
+  useLayoutEffect(() => {
     gl.toneMapping = CustomToneMapping;
     gl.toneMappingExposure = EXPOSURE[theme];
     invalidate();
@@ -134,6 +155,10 @@ export function Lighting({ theme, rich }: { theme: Theme; rich: boolean }) {
     },
     [bake],
   );
+  // the reflection stands before the first frame too, so the glass's programs compile with it
+  useLayoutEffect(() => {
+    ENV.map = rich ? bake.target.texture : null;
+  }, [bake, rich]);
   useEffect(() => {
     if (!rich) return;
     const k = SKY[theme];
@@ -146,8 +171,20 @@ export function Lighting({ theme, rich }: { theme: Theme; rich: boolean }) {
     u.uSunK.value = k.sunK;
     u.uCity.value.set(k.city);
     u.uCityK.value = k.cityK;
-    bake.camera.update(gl, bake.sky);
-    invalidate();
+    // the sky's program compiles off the main thread first, for the cube it draws into; the bake follows once it is ready
+    let live = true;
+    const was = gl.getRenderTarget();
+    gl.setRenderTarget(bake.target);
+    const ready = gl.compileAsync(bake.sky, bake.camera.children[0] as Camera);
+    gl.setRenderTarget(was);
+    void ready.then(() => {
+      if (!live) return;
+      bake.camera.update(gl, bake.sky);
+      invalidate();
+    });
+    return () => {
+      live = false;
+    };
   }, [bake, gl, theme, rich, invalidate]);
 
   /* the materials that ask for the reflection take it, and give it back when the
@@ -155,20 +192,10 @@ export function Lighting({ theme, rich }: { theme: Theme; rich: boolean }) {
   const tick = useRef(0);
   useFrame(() => {
     if (tick.current++ % 30) return;
-    const env = rich ? bake.target.texture : null;
     scene.traverse((o) => {
       const mats = (o as Mesh).material as Material | Material[] | undefined;
       if (!mats) return;
-      for (const m of Array.isArray(mats) ? mats : [mats]) {
-        const k = m.userData?.cityEnv as number | undefined;
-        if (k === undefined) continue;
-        const phong = m as MeshLambertMaterial;
-        if (phong.envMap === env && phong.reflectivity === k) continue;
-        phong.envMap = env;
-        phong.reflectivity = k;
-        phong.combine = m.userData.cityEnvMode === "mix" ? MixOperation : AddOperation;
-        phong.needsUpdate = true;
-      }
+      for (const m of Array.isArray(mats) ? mats : [mats]) takeEnv(m);
     });
   });
 

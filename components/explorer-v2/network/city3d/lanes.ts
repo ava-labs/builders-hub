@@ -183,16 +183,57 @@ export interface RouteStreets {
   ways: { bearing: number; r0: number; r1: number }[];
 }
 
-/* a lane path in the traffic's frame, walked a unit at a time */
+/* a lane path in the traffic's frame, walked a unit at a time: its lines, its arcs and its rounded corners, as the map's
+   fleet writes them (M, L, A and Q), read here. An SVG path's getPointAtLength walks the path from its start for every
+   point, which cost the city's first frame 150 ms (600 ms on a slow CPU); a path walked once is kept, so a plan that
+   comes in again, or a return to the page, walks nothing */
+const walks = new Map<string, Pt[]>();
+// in dev, the walks for the load checks, which hold them against the SVG path's own getPointAtLength
+if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") (window as unknown as { __lanes?: Map<string, Pt[]> }).__lanes = walks;
 function walked(d: string): Pt[] {
-  const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  el.setAttribute("d", d);
-  const len = el.getTotalLength();
-  const n = Math.max(2, Math.ceil(len));
-  return Array.from({ length: n + 1 }, (_, i) => {
-    const p = el.getPointAtLength((len * i) / n);
-    return [p.x, p.y] as Pt;
-  });
+  const had = walks.get(d);
+  if (had) return had;
+  const out: Pt[] = [];
+  let at: Pt | null = null;
+  for (const [, cmd, rest] of d.matchAll(/([MLAQ])([^MLAQ]*)/g)) {
+    const n = rest.trim().split(/[\s,]+/).map(Number);
+    const to: Pt = [n[n.length - 2], n[n.length - 1]];
+    if (!at || cmd === "M") {
+      out.push(to);
+    } else if (cmd === "L") {
+      // a line is its two ends: the lane's sampling runs straight between them
+      out.push(to);
+    } else if (cmd === "A") {
+      // a circle's arc from the pen to its end (rx = ry, no rotation), its centre found as SVG finds it
+      const hx = (at[0] - to[0]) / 2;
+      const hy = (at[1] - to[1]) / 2;
+      const h2 = hx * hx + hy * hy;
+      const r = Math.max(n[0], Math.sqrt(h2));
+      const k = (n[3] !== n[4] ? 1 : -1) * Math.sqrt(Math.max(0, (r * r - h2) / Math.max(h2, 1e-9)));
+      const cx = k * hy + (at[0] + to[0]) / 2;
+      const cy = -k * hx + (at[1] + to[1]) / 2;
+      const t0 = Math.atan2(at[1] - cy, at[0] - cx);
+      let dt = Math.atan2(to[1] - cy, to[0] - cx) - t0;
+      if (n[4] && dt < 0) dt += 2 * Math.PI;
+      if (!n[4] && dt > 0) dt -= 2 * Math.PI;
+      const steps = Math.max(1, Math.ceil(r * Math.abs(dt)));
+      for (let i = 1; i < steps; i++) out.push([cx + r * Math.cos(t0 + (dt * i) / steps), cy + r * Math.sin(t0 + (dt * i) / steps)]);
+      out.push(to);
+    } else {
+      // a corner's quadratic curve, a point about every unit along it
+      const q: Pt = [n[0], n[1]];
+      const steps = Math.max(2, Math.ceil(Math.hypot(q[0] - at[0], q[1] - at[1]) + Math.hypot(to[0] - q[0], to[1] - q[1])));
+      for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        out.push([(1 - t) * (1 - t) * at[0] + 2 * (1 - t) * t * q[0] + t * t * to[0], (1 - t) * (1 - t) * at[1] + 2 * (1 - t) * t * q[1] + t * t * to[1]]);
+      }
+      out.push(to);
+    }
+    at = to;
+  }
+  if (walks.size > 600) walks.clear();
+  walks.set(d, out);
+  return out;
 }
 
 /** each route's streets, and the lane it drives: the map's fleet's own (city-traffic.tsx), or one worked out here when the page has no paths to walk */

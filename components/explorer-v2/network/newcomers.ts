@@ -62,24 +62,29 @@ const getTx = async (hash: string): Promise<Tx | null> => {
   return res.ok ? ((await res.json()) as Tx) : null;
 };
 
+/* the registry's read, kept for the tab: a return to the city stands its sets from the first frame, and a read that comes
+   back as it was changes nothing */
+let kept: { text: string; registry: Newcomer[]; residents: Resident[]; sites: Site[] } | null = null;
+
 export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents: Resident[]; sites: Site[] } {
-  const [registry, setRegistry] = useState<Newcomer[]>([]);
-  const [residents, setResidents] = useState<Resident[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
+  const [registry, setRegistry] = useState<Newcomer[]>(() => kept?.registry ?? []);
+  const [residents, setResidents] = useState<Resident[]>(() => kept?.residents ?? []);
+  const [sites, setSites] = useState<Site[]>(() => kept?.sites ?? []);
   const [live, setLive] = useState<Newcomer[]>([]);
   const seen = useRef(new Set<string>());
 
   useEffect(() => {
     const controller = new AbortController();
     fetch("/api/l1-registry/mainnet", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((d: { recent?: RegistryEntry[]; active?: RegistryEntry[] } | null) => {
+      .then((res) => (res.ok ? res.text() : null))
+      .then((text) => {
+        if (text === null || text === kept?.text) return;
+        const d = JSON.parse(text) as { recent?: RegistryEntry[]; active?: RegistryEntry[] } | null;
         // every set the P-Chain runs now; one with no running validators does not stand
-        setResidents(
-          (d?.active ?? [])
-            .filter((r) => (r.validators ?? 0) > 0)
-            .map((r) => ({ subnetId: r.subnetId, name: r.name, blockchainId: r.blockchainId, validators: r.validators ?? 0 })),
-        );
+        const standing = (d?.active ?? [])
+          .filter((r) => (r.validators ?? 0) > 0)
+          .map((r) => ({ subnetId: r.subnetId, name: r.name, blockchainId: r.blockchainId, validators: r.validators ?? 0 }));
+        setResidents(standing);
         const since = Date.now() / 1000 - NEW_DAYS * 86400;
         const bySubnet = new Map<string, Newcomer>();
         // newest first, so a subnet's newest chain names it; an L1 with no running validators stays off the map
@@ -95,14 +100,17 @@ export function useNewcomers(txs: PulseTx[]): { newcomers: Newcomer[]; residents
             tx: null,
           });
         }
-        setRegistry([...bySubnet.values()]);
+        const joined = [...bySubnet.values()];
+        setRegistry(joined);
         // created in the last two weeks and no validator running yet: still being built
         const building = new Map<string, Site>();
         for (const r of d?.recent ?? []) {
           if (r.validators !== 0 || r.createdAt < since - NEW_DAYS * 86400 || building.has(r.subnetId) || bySubnet.has(r.subnetId)) continue;
           building.set(r.subnetId, { subnetId: r.subnetId, name: r.name, blockchainId: r.blockchainId, createdAt: r.createdAt });
         }
-        setSites([...building.values()]);
+        const built = [...building.values()];
+        setSites(built);
+        kept = { text, registry: joined, residents: standing, sites: built };
       })
       .catch(() => {});
     return () => controller.abort();

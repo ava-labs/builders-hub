@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { useFrame, useThree } from "@react-three/fiber";
-import { CanvasTexture, InstancedBufferAttribute, InstancedMesh, Matrix4, PerspectiveCamera, PlaneGeometry, SRGBColorSpace, Vector3, type Color, type ShaderMaterial } from "three";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { CanvasTexture, InstancedBufferAttribute, InstancedMesh, Matrix4, PerspectiveCamera, PlaneGeometry, SRGBColorSpace, Sphere, Vector3, type Color, type Intersection, type Raycaster, type ShaderMaterial } from "three";
 import { logoAt, type Inset } from "@/components/explorer-v2/network/icm-map";
 import type { Building, CityModel } from "./model";
 import type { Theme } from "./palette";
 import { badgeMaterial, PLAQUE_MAX_PX, TIME } from "./shaders";
+import { WARM } from "./warmup";
 
 /* The words and marks over the model: each district's name round the
    city's edge, which opens the district; in a district, every set's name
@@ -84,14 +85,30 @@ function plaqueOnScreen(at: Vector3, plaque: number, camera: PerspectiveCamera, 
   return true;
 }
 
-/** places the scene's words each frame: each over its point, lifted clear of
-    those placed before it, or out of sight. A word's lift is chosen while the
-    camera stands still and held while it moves, so no word jumps a level in a
-    flight or a drag; a word that fades goes out while the camera flies. A flag
-    (a data tag) flies beside its rule, out from the city's middle, else on its
-    other side, else level beside its plaque; a word that avoids keeps clear of
-    the kept parts (the landmark, the plaques large enough to read, the app's
-    cards) and inside the frame's room */
+/** where a word stands: the side of its point, and its spot there */
+type Side = "up" | "down" | "left" | "right";
+type Place = { side: Side; spot: Spot };
+const samePlace = (a: Place | null, b: Place | null) => a === b || (!!a && !!b && a.side === b.side && a.spot.f === b.spot.f && a.spot.l === b.spot.l);
+/** how long the camera stands after a gesture before a word may move, and how long a word takes to fade out or in when it must, in seconds */
+const HOLD_S = 0.3;
+const FADE_S = 0.15;
+/** how far past the city's middle a word's point must go before the word crosses to the point's other side, in pixels */
+const FLIP_PX = 16;
+/** the least clear room between two words, in pixels, so no two names ever touch */
+const GAP = 2;
+
+/** places the scene's words each frame: each beside its point, lifted clear of
+    those placed before it, or out of sight. A word holds its place (its side of
+    its point and its lift) through a whole gesture: while the reader presses on
+    the city, and until the camera has stood HOLD_S after it, so no word jumps in
+    a drag, a zoom or a flight. At rest it takes the place it fits best; a word
+    that must move fades out where it stands and in where it goes, in the brand's
+    motion, and a word changes sides only once its point is clearly past the turn.
+    A word that fades goes out while the camera flies. A flag (a data tag) flies
+    beside its rule, out from the city's middle, else on its other side, else
+    level beside its plaque; a word that avoids keeps clear of the kept parts (the
+    landmark, the plaques large enough to read, the app's cards) and inside the
+    frame's room */
 export function TagLayout({
   tags,
   els,
@@ -112,6 +129,8 @@ export function TagLayout({
 }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera;
   const size = useThree((s) => s.size);
+  const gl = useThree((s) => s.gl);
+  const clock = useThree((s) => s.clock);
   const v = useMemo(() => new Vector3(), []);
   const depth = useMemo(() => new Vector3(), []);
   const onScreen = useMemo(() => [0, 0, 0], []);
@@ -123,12 +142,37 @@ export function TagLayout({
     return () => document.fonts.removeEventListener("loadingdone", fresh);
   }, []);
   const mid = useMemo(() => new Vector3(), []);
-  // each word's spot, or null when none fits; and when it first showed
-  const held = useRef(new Map<string, Spot | null>());
+  // each word's place on screen (null while none fits), how much of it shows as it fades between places, and when it first showed
+  const held = useRef(new Map<string, Place | null>());
+  const shows = useRef(new Map<string, number>());
   const born = useRef(new Map<string, number>());
-  // the camera as it stood last frame, and how long it has stood so
+  // the gesture: whether the reader presses on the city, and the last moment the camera moved or a press began or ended
+  const down = useRef(false);
+  const active = useRef(-Infinity);
+  useEffect(() => {
+    const el = gl.domElement;
+    const press = () => {
+      down.current = true;
+      active.current = clock.elapsedTime;
+    };
+    const release = () => {
+      if (!down.current) return;
+      down.current = false;
+      active.current = clock.elapsedTime;
+    };
+    el.addEventListener("pointerdown", press);
+    window.addEventListener("pointerup", release, true);
+    window.addEventListener("pointercancel", release, true);
+    window.addEventListener("blur", release);
+    return () => {
+      el.removeEventListener("pointerdown", press);
+      window.removeEventListener("pointerup", release, true);
+      window.removeEventListener("pointercancel", release, true);
+      window.removeEventListener("blur", release);
+    };
+  }, [gl, clock]);
+  // the camera as it stood last frame
   const last = useRef<Float32Array | null>(null);
-  const still = useRef(0);
   useFrame((state, dt) => {
     const m = camera.matrixWorld.elements;
     const pm = camera.projectionMatrix.elements;
@@ -139,9 +183,11 @@ export function TagLayout({
       was[i] = m[i];
       was[16 + i] = pm[i];
     }
-    still.current = moved ? 0 : still.current + dt;
-    const settled = still.current > 0.15;
     const now = state.clock.elapsedTime;
+    if (moved) active.current = now;
+    const gesture = down.current || now - active.current < HOLD_S;
+    // a fade's step this frame, in the brand's motion: fast at first, then settling
+    const k = 1 - Math.pow(2, (-10 * Math.min(dt, 0.1)) / FADE_S);
     const placed: Box[] = [];
     mid.set(0, 0, 0).project(camera);
     const cx = (mid.x * 0.5 + 0.5) * size.width;
@@ -177,7 +223,8 @@ export function TagLayout({
       if (front) kept.push({ owner: k.owner, box: [x0, y0, x1, y1] });
     }
     for (const box of hud?.current ?? []) kept.push({ owner: "", box });
-    const meets = (a: Box, b: Box) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+    // whether two boxes meet, or come within g pixels of each other
+    const meets = (a: Box, b: Box, g = 0) => a[0] < b[2] + g && a[2] > b[0] - g && a[1] < b[3] + g && a[3] > b[1] - g;
     // the frame's room, inside the app's bars and panels; the top inset holds a margin under the search's chips, which a word may use
     const room = inset ? [inset.left, inset.top - 16, size.width - inset.right, size.height - inset.bottom] : [0, 0, size.width, size.height];
     const inRoom = (a: Box) => a[0] >= room[0] && a[1] >= room[1] && a[2] <= room[2] && a[3] <= room[3];
@@ -186,7 +233,10 @@ export function TagLayout({
       if (!el) continue;
       if (!born.current.has(t.key)) born.current.set(t.key, now);
       v.copy(t.at).project(camera);
-      if (v.z > 1 || (t.from !== undefined && TIME.value < t.from)) {
+      /* a word waits until the city's clock runs (the warm-up releases it once the plate has painted in: WARM.held starts true and
+         stays so until then), so none stands over the sea or the blank plate; one with a `from` waits for that too */
+      const due = !WARM.held && (t.from === undefined || TIME.value >= t.from);
+      if (v.z > 1 || !due) {
         el.style.visibility = "hidden";
         continue;
       }
@@ -202,15 +252,27 @@ export function TagLayout({
         sizes.current.set(el, (wh = [words.offsetWidth, words.offsetHeight]));
       }
       const [w, h] = wh;
-      // the side of its point it stands on: over it, under it, or out to the left or the right of the city
       const dx = x - cx;
       const dy = y - cy;
-      const side = t.below ? "down" : !t.out ? "up" : t.vertical || Math.abs(dy) > Math.abs(dx) * 0.45 ? (dy > 0 ? "down" : "up") : dx > 0 ? "right" : "left";
-      // a flag flies out from the city's middle, else on its other side, else level beside its plaque; its spot holds while the camera moves, as a lift does
+      const shown = held.current.get(t.key);
+      // the side of its point it stands on: over it, under it, or out to the left or the right of the city; it keeps its side until its point is clearly past the turn
+      const sideOf = (prev: Side | undefined): Side => {
+        if (t.below) return "down";
+        if (!t.out) return "up";
+        const wasVert = prev === "up" || prev === "down";
+        const wasFlat = prev === "left" || prev === "right";
+        if (t.vertical || Math.abs(dy) > Math.abs(dx) * (wasVert ? 0.35 : wasFlat ? 0.55 : 0.45)) {
+          if (wasVert && Math.abs(dy) < FLIP_PX) return prev as Side;
+          return dy > 0 ? "down" : "up";
+        }
+        if (wasFlat && Math.abs(dx) < FLIP_PX) return prev as Side;
+        return dx > 0 ? "right" : "left";
+      };
+      // a flag flies out from the city's middle, else on its other side, else level beside its plaque
       const outward: "right" | "left" = dx >= 0 ? "right" : "left";
       const inward: "right" | "left" = outward === "right" ? "left" : "right";
       const mid = y + r;
-      const boxOf = ({ f, l }: Spot): Box => {
+      const boxOf = ({ side, spot: { f, l } }: Place): Box => {
         if (f === "right") return [x, y - l - h, x + w, y - l];
         if (f === "left") return [x - w, y - l - h, x, y - l];
         if (f === "beside-right") return [x + r + l, mid - h / 2, x + r + l + w, mid + h / 2];
@@ -224,50 +286,76 @@ export function TagLayout({
               : [x - l - w, y - h / 2, x - l, y + h / 2];
       };
       // what it covers there: its words' box, and a flag's leader to its point, as a thin box of its own
-      const hitsOf = (s: Spot): Box[] => {
-        const box = boxOf(s);
-        if (s.f === "right" || s.f === "left") return [box, [x - 2, box[3], x + 2, y - 1]];
-        if (s.f === "beside-right") return [box, [x + r, mid - 2, x + r + s.l, mid + 2]];
-        if (s.f === "beside-left") return [box, [x - r - s.l, mid - 2, x - r, mid + 2]];
+      const hitsOf = (p: Place): Box[] => {
+        const box = boxOf(p);
+        const { f, l } = p.spot;
+        if (f === "right" || f === "left") return [box, [x - 2, box[3], x + 2, y - 1]];
+        if (f === "beside-right") return [box, [x + r, mid - 2, x + r + l, mid + 2]];
+        if (f === "beside-left") return [box, [x - r - l, mid - 2, x - r, mid + 2]];
         return [box];
       };
-      const fits = (s: Spot) =>
-        !!t.ghost || hitsOf(s).every((hit) => !placed.some((p) => meets(hit, p)) && (!t.avoid || (inRoom(hit) && !kept.some((k) => k.owner !== t.key && meets(hit, k.box)))));
-      // at rest, the first spot clear of the words placed before it and of the kept parts; while the camera moves, the one it had
-      let spot = settled ? undefined : held.current.get(t.key);
-      if (spot === undefined) {
+      const fits = (p: Place) =>
+        !!t.ghost || hitsOf(p).every((hit) => !placed.some((q) => meets(hit, q, GAP)) && (!t.avoid || (inRoom(hit) && !kept.some((q) => q.owner !== t.key && meets(hit, q.box)))));
+      // where it would stand now: the first place clear of the words placed before it and of the kept parts
+      const best = (): Place | null => {
+        const side = sideOf(shown?.side);
         const spots: Spot[] = t.flag
           ? [
               ...[outward, inward].flatMap((f) => t.lifts.map((l) => ({ f, l }))),
               ...(r > 0 ? ([`beside-${outward}`, `beside-${inward}`] as FlagSide[]).flatMap((f) => BESIDE.map((l) => ({ f, l }))) : []),
             ]
           : t.lifts.map((l) => ({ f: null, l }));
-        spot = spots.find(fits) ?? null;
-        held.current.set(t.key, spot);
+        for (const spot of spots) if (fits({ side, spot })) return { side, spot };
+        return null;
+      };
+      // a fading word waits out a flight, and the moment after it shows, before a flight can start
+      const out = !!t.fade && (flying || now - born.current.get(t.key)! < 0.35);
+      /* a word seen for the first time, or one no one sees (a ghost, or a fading word out for a flight), takes the place it fits
+         best at once, so it shows where it belongs; through a gesture every other word holds its place; at rest it goes where
+         it fits best */
+      const unseen = !!t.ghost || out;
+      let place = shown === undefined || unseen ? best() : shown;
+      if (shown === undefined || unseen) held.current.set(t.key, place);
+      const target = gesture || unseen ? place : best();
+      // a word that must move fades out where it stands, and moves once it is out of sight; then it fades in, as a word does when it first shows
+      let show = unseen ? 1 : (shows.current.get(t.key) ?? (shown === undefined ? 0 : 1));
+      if (!samePlace(target, place) && (show < 0.03 || !place)) {
+        place = target;
+        held.current.set(t.key, place);
+        show = 0;
       }
-      if (!spot) {
+      // through a gesture, a held word that comes against one placed before it yields: it fades where it stands until it is clear again
+      const yields = gesture && !unseen && !!place && hitsOf(place).some((hit) => placed.some((q) => meets(hit, q, GAP)));
+      show += ((samePlace(target, place) && !yields ? 1 : 0) - show) * k;
+      shows.current.set(t.key, place ? show : 0);
+      const standing = gesture ? place : target;
+      if (!t.ghost && !yields && standing) placed.push(...hitsOf(standing));
+      if (!place) {
         el.style.visibility = "hidden";
         continue;
       }
-      const at = boxOf(spot);
-      if (!t.ghost) placed.push(...hitsOf(spot));
+      const at = boxOf(place);
       el.style.visibility = "visible";
       el.style.transform = `translate(${Math.round(at[0])}px, ${Math.round(at[1])}px)`;
-      el.style.setProperty("--lift", `${spot.l}px`);
-      if (t.rule && el.dataset.side !== side) el.dataset.side = side;
-      if (spot.f && el.dataset.flag !== spot.f) el.dataset.flag = spot.f;
-      // a fading word waits out a flight, and the moment after it shows, before a flight can start; a veiled set's name fades with it
-      const out = t.fade && (flying || now - born.current.get(t.key)! < 0.35);
+      el.style.setProperty("--lift", `${place.spot.l}px`);
+      if (t.rule && el.dataset.side !== place.side) el.dataset.side = place.side;
+      if (place.spot.f && el.dataset.flag !== place.spot.f) el.dataset.flag = place.spot.f;
+      // a veiled set's name fades with it
       const veiled = t.b !== undefined && veil ? veil.b[t.b] < 0.999 : false;
       el.style.opacity = out ? "0" : veiled ? "0.2" : "1";
+      // a move's fade rides on its own filter, so it never waits on a word's own opacity transition
+      const filter = show < 0.995 ? `opacity(${show.toFixed(3)})` : "";
+      if (el.style.filter !== filter) el.style.filter = filter;
     }
-    // a word that left forgets its lift, so it places itself afresh when it comes back
+    // a word that left forgets its place, so it places itself afresh when it comes back
     if (held.current.size > tags.length * 2) {
       const keys = new Set(tags.map((t) => t.key));
-      for (const k of held.current.keys()) if (!keys.has(k)) {
-        held.current.delete(k);
-        born.current.delete(k);
-      }
+      for (const k of held.current.keys())
+        if (!keys.has(k)) {
+          held.current.delete(k);
+          shows.current.delete(k);
+          born.current.delete(k);
+        }
     }
   });
   return null;
@@ -347,6 +435,8 @@ export function Badges({
   veil,
   mono = false,
   lit = [-1, -1],
+  onPick,
+  onHover,
 }: {
   model: CityModel;
   rise: Float32Array;
@@ -357,6 +447,9 @@ export function Badges({
   mono?: boolean;
   /** the buildings whose logos keep their colors in the mono option: the hovered and the picked */
   lit?: [number, number];
+  /** a plaque is its set's handle, as its tower is: a click picks the set, the cursor on it lights the set */
+  onPick?: (id: string) => void;
+  onHover?: (id: string | null) => void;
 }) {
   const list = useMemo(
     () =>
@@ -405,6 +498,30 @@ export function Badges({
     m.geometry.setAttribute("aAlpha", new InstancedBufferAttribute(new Float32Array(Math.max(1, list.length)), 1));
     m.geometry.setAttribute("aRise", new InstancedBufferAttribute(r, 1));
     m.geometry.setAttribute("aTint", new InstancedBufferAttribute(new Float32Array(Math.max(1, list.length)), 1));
+    /* a plaque is picked where the shader stands it: a disc of its size facing the eye, capped on screen, lifted by
+       half of it and drawn half of it nearer; one not yet risen, or faded out, is not there to pick */
+    const disc = new Sphere();
+    const at = new Vector3();
+    const hit = new Vector3();
+    const im = new Matrix4();
+    m.raycast = (raycaster: Raycaster, intersects: Intersection[]) => {
+      const cam = raycaster.camera as PerspectiveCamera | undefined;
+      const u = (m.material as ShaderMaterial).uniforms;
+      if (!cam) return;
+      const alphaOf = (m.geometry.getAttribute("aAlpha") as InstancedBufferAttribute).array;
+      for (let k = 0; k < m.count; k++) {
+        if (alphaOf[k] < 0.05 || TIME.value < r[k]) continue;
+        m.getMatrixAt(k, im);
+        at.setFromMatrixPosition(im).applyMatrix4(m.matrixWorld).applyMatrix4(cam.matrixWorldInverse);
+        if (at.z > -1) continue;
+        const s = Math.min(size[k], (u.uMaxPx.value * -at.z) / u.uFocal.value);
+        at.y += s * 0.5;
+        at.z += s * 0.5;
+        disc.set(at.applyMatrix4(cam.matrixWorld), s * 0.5);
+        if (!raycaster.ray.intersectSphere(disc, hit)) continue;
+        intersects.push({ distance: raycaster.ray.origin.distanceTo(hit), point: hit.clone(), object: m, instanceId: k });
+      }
+    };
     return m;
     // the rise is read once per plan
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -519,7 +636,26 @@ export function Badges({
     write();
   });
 
-  return mesh ? <primitive object={mesh} /> : null;
+  const idOf = (k: number | undefined) => (k === undefined ? null : (list[k]?.b.id ?? null));
+  return mesh ? (
+    <primitive
+      // keyed by the mesh, so rebuilt plaques still take the cursor (Buildings.tsx)
+      key={mesh.uuid}
+      object={mesh}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        onHover?.(idOf(e.instanceId));
+      }}
+      onPointerOut={() => onHover?.(null)}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        // a press that slid under a trackpad's slip still picks
+        if (e.delta > 12) return;
+        e.stopPropagation();
+        const id = idOf(e.instanceId);
+        if (id) onPick?.(id);
+      }}
+    />
+  ) : null;
 }
 
 /** keeps a DOM element over a point of the scene, beside it on the side with more room */

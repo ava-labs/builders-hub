@@ -18,6 +18,7 @@ import {
   TorusGeometry,
   Vector2,
   Vector3,
+  type PerspectiveCamera,
 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { famOf } from "@/components/explorer-v2/network/icm-map";
@@ -70,6 +71,8 @@ const BEAM_OUT_S = 0.45;
 const RING_W = 1.25;
 const BEAM_W = 1.6;
 const RING_N = 72;
+/** the ring's least radius, in CSS pixels, so a small roof's ring still reads from afar */
+const RING_MIN_PX = 6;
 
 /* the drone's colors, from the brand: the body and arms slate, the canopy dark glass, the rotor rings slate by day and the block grey by night, so they read as its parts, the nav light red, the beam pale blue, the ring blue */
 const BODY = "#3B484B";
@@ -341,9 +344,10 @@ export function Helicopters({
     const subnet = famOf(t.type) === "l1" ? targetsRef.current.get(t.hash) : undefined;
     const b = subnet && subnet !== PRIMARY ? model.buildings.find((x) => x.n.subnetId === subnet) : undefined;
     if (b) {
-      const roof = b.base + Math.max(...b.parts.map((q) => q.z1), 0);
-      const drop = new Vector3(b.x, roof + 0.3, b.z);
-      return { over: drop.clone().setY(Math.max(roof + HOVER, b.base + b.crest + 8)), drop, ring: Math.max(6, b.n.w * 1.15) };
+      // the landing point the model names on its roof: a district form's own roof (a stand, a fly tower, a deck), else its top part's; the ring fills the free roof round it, where the plan knows it
+      const [x, y, z] = b.drop;
+      const drop = new Vector3(x, y + 0.3, z);
+      return { over: drop.clone().setY(Math.max(y + HOVER, b.base + b.crest + 8)), drop, ring: b.ring ?? Math.max(6, b.n.w * 1.15) };
     }
     // the C wing's roof, in front of its spire; the drone hovers over the spire's light
     const drop = cDrop ? cDrop.clone().setY(cDrop.y + 0.3) : new Vector3(hub.x, hub.base + hub.crest + 0.3, hub.z);
@@ -351,7 +355,7 @@ export function Helicopters({
   };
 
   const P = useMemo(() => new Vector3(), []);
-  useFrame(() => {
+  useFrame(({ camera }) => {
     res.value.set(size.width * gl.getPixelRatio(), size.height * gl.getPixelRatio());
     const dpr = gl.getPixelRatio();
     const now = performance.now() / 1000;
@@ -417,14 +421,15 @@ export function Helicopters({
         bu.uAlpha.value = beamA * 0.9;
         bu.uWidth.value = BEAM_W * dpr;
       }
-      // the ring: it opens on the roof as it arrives over it, quick at first, and fades long
+      // the ring: it opens on the roof as it arrives over it, quick at first, and fades long; from afar it is never under RING_MIN_PX
       const since = s - legs[2];
       if (since >= 0 && since < RING_S) {
         const k2 = since / RING_S;
         const ru = (k.ring.material as ShaderMaterial).uniforms;
         k.ring.visible = true;
         k.ring.position.copy(drop);
-        k.ring.scale.setScalar(c.ring! * (0.55 + 0.45 * EASE(k2)));
+        const perPx = (2 * Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360) * camera.position.distanceTo(drop)) / size.height;
+        k.ring.scale.setScalar(Math.max(c.ring!, RING_MIN_PX * perPx) * (0.55 + 0.45 * EASE(k2)));
         ru.uAlpha.value = Math.exp(-3 * k2) * (1 - k2);
         ru.uWidth.value = RING_W * dpr;
       }

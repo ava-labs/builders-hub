@@ -583,9 +583,13 @@ export interface CityData {
    routes, the P-Chain's ledger and the week's new L1s, planned into lots
    and streets. The app reads it for its panels and lists; the canvas
    draws it. Phones read it without the canvas */
+/* the city's feeds, kept for the tab: a return to the page stands the city from its first frame, and a feed that comes
+   back as it was changes nothing, so the plan is not made again */
+const FEEDS: { chains: { text: string; value: MapChain[] } | null; flows: Map<number, { text: string; value: FlowRoute[] }> } = { chains: null, flows: new Map() };
+
 export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }): CityData {
-  const [chains, setChains] = useState<MapChain[] | null>(null);
-  const [flows, setFlows] = useState<FlowRoute[]>([]);
+  const [chains, setChains] = useState<MapChain[] | null>(() => FEEDS.chains?.value ?? null);
+  const [flows, setFlows] = useState<FlowRoute[]>(() => FEEDS.flows.get(days)?.value ?? []);
   const [failed, setFailed] = useState(false);
   // the ground: the P-Chain's latest txs and tip
   const pulse = usePchainPulse("mainnet");
@@ -596,8 +600,13 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
     const controller = new AbortController();
     // the chains and their validators; the window only moves the arcs
     fetch("/api/overview-stats?timeRange=month", { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: { chains?: MapChain[] }) => setChains(d.chains ?? []))
+      .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((text) => {
+        if (FEEDS.chains?.text === text) return;
+        const d = JSON.parse(text) as { chains?: MapChain[] };
+        FEEDS.chains = { text, value: d.chains ?? [] };
+        setChains(FEEDS.chains.value);
+      })
       .catch((e: Error) => {
         if (e.name !== "AbortError") setFailed(true);
       });
@@ -606,16 +615,23 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
 
   useEffect(() => {
     const controller = new AbortController();
-    // a failed flow feed is not fatal: the chains still draw, without traffic
-    fetch(`/api/icm-flow?days=${days}`, { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((d: { flows?: FlowRoute[] }) => {
-        setFlows(Array.isArray(d.flows) ? d.flows : []);
+    // a failed flow feed is not fatal: the chains still draw, without traffic. Both sides: each direction counted once,
+    // when sent or when delivered, so a way into a chain the index does not hold still drives its street
+    fetch(`/api/icm-flow?days=${days}&sides=both`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then((text) => {
+        if (FEEDS.flows.get(days)?.text === text) return;
+        const d = JSON.parse(text) as { flows?: FlowRoute[] };
+        const value = Array.isArray(d.flows) ? d.flows : [];
+        FEEDS.flows.set(days, { text, value });
+        setFlows(value);
       })
       .catch(() => {});
     return () => controller.abort();
   }, [days]);
 
+  // the heights count messages or validators; the versions lens only paints the windows, so its coming makes no new plan
+  const byMessages = sizeBy === "messages";
   const { nodes, routes, city } = useMemo(() => {
     const known = new Map((chains ?? []).map((c) => [String(c.chainId), c]));
     // only routes between mainnet chains the overview knows; the feed mixes in Fuji
@@ -717,8 +733,8 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
     }
     const base = [...listed.map((c) => (freshAt.has(c.id) ? { ...c, newAt: freshAt.get(c.id)! } : c)), ...guests];
 
-    const metric = (c: (typeof base)[number]) => (sizeBy === "messages" ? c.out + c.in : c.validators);
-    const top = Math.max(sizeBy === "messages" ? 1 : H_TOP_MIN, ...base.map(metric));
+    const metric = (c: (typeof base)[number]) => (byMessages ? c.out + c.in : c.validators);
+    const top = Math.max(byMessages ? 1 : H_TOP_MIN, ...base.map(metric));
     const height = (c: (typeof base)[number]) => H_MIN + (H_MAX - H_MIN) * Math.pow(metric(c) / top, H_POW);
 
     const hub = base.find((c) => c.id === HUB_ID);
@@ -761,7 +777,7 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
         return [{ key: `${r.from}>${r.to}`, from: r.from, to: r.to, messages: r.messages, d: street.d, width: 0.9 + 2.1 * heat, heat, crown: street.mid, length: street.length }];
       });
     return { nodes: placed, routes: drawn, city };
-  }, [chains, flows, sizeBy, newcomers, residents]);
+  }, [chains, flows, byMessages, newcomers, residents]);
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const summary = useMemo<IcmSummary>(
     () => ({

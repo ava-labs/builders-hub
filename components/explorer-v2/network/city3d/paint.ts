@@ -11,9 +11,10 @@ import type { RouteStreets } from "./lanes";
    outskirts' plots and parks, the boulevards run on to the ledger, the
    river and its banks, the streets the traffic drives paved as busy as
    they are, the blocks' tops with their plots and lawns, downtown's plaza
-   in its light, and a soft shadow at every building's foot. It is painted
-   once in the plan, into one canvas that the plate and every block's top
-   read at their own place. */
+   in its light, and a soft shadow at the foot of every outskirts house. It
+   is painted once in the plan, into one canvas that the plate and every
+   block's top read at their own place. The towers' own shades are a layer
+   apart (paintFeet), so each comes in with its tower's rise. */
 
 /** the paint's size in pixels: about two to a unit of the plan */
 export const PAINT_PX = 2048;
@@ -35,6 +36,68 @@ export interface PaintInput {
   trees?: { x: number; z: number; r: number }[];
 }
 
+
+/** a foot's outline, as the paint and the feet layer draw it: a box's corners or a drum's circle */
+function footPath(feet: { poly?: Pt[]; round?: [number, number, number] }[]): Path2D {
+  const p = new Path2D();
+  for (const f of feet) {
+    if (f.round) {
+      p.moveTo(f.round[0] + f.round[2], f.round[1]);
+      p.arc(f.round[0], f.round[1], f.round[2], 0, Math.PI * 2);
+    } else if (f.poly) {
+      p.moveTo(f.poly[0][0], f.poly[0][1]);
+      for (const q of f.poly.slice(1)) p.lineTo(q[0], q[1]);
+      p.closePath();
+    }
+  }
+  return p;
+}
+
+/** the blur of a foot's contact shade, in the plan's units: longer by day, so the towers sit on the ground */
+export const FOOT_BLUR: Record<Theme, number> = { light: 12, dark: 7 };
+
+/** the towers' contact shades' soft coverage, apart from the ground's paint (shaders.ts FEET_U), in the mask's alpha:
+    blurred by `blur` as the paint's shade is, one union, so two that meet are no darker. It lies over the plate as the
+    paint does, at its own size */
+export function paintFeetMask(mask: HTMLCanvasElement, feet: { poly?: Pt[]; round?: [number, number, number] }[], blur: number) {
+  const mx = mask.getContext("2d");
+  if (!mx) return;
+  const S = mask.width;
+  const k = S / (2 * PLATE);
+  const away = S * 1.5;
+  mx.setTransform(1, 0, 0, 1, 0, 0);
+  mx.clearRect(0, 0, S, S);
+  mx.save();
+  mx.setTransform(k, 0, 0, k, S / 2 - away, S / 2);
+  mx.shadowColor = "#000";
+  mx.shadowBlur = blur * k;
+  mx.shadowOffsetX = away;
+  mx.fillStyle = "#000";
+  mx.fill(footPath(feet));
+  mx.restore();
+}
+
+/** each tower's rise on the city's clock, as a gray (0 to 254 of `maxAt`, 255 none), over its contact shade's reach at
+    `blur`; the earliest drawn last, so that where two reaches meet the earlier one shows first */
+export function paintFeetTime(time: HTMLCanvasElement, feet: { poly?: Pt[]; round?: [number, number, number]; at: number }[], maxAt: number, blur: number) {
+  const tx = time.getContext("2d");
+  if (!tx) return;
+  const T = time.width;
+  const kt = T / (2 * PLATE);
+  tx.setTransform(1, 0, 0, 1, 0, 0);
+  tx.fillStyle = "#fff";
+  tx.fillRect(0, 0, T, T);
+  tx.setTransform(kt, 0, 0, kt, T / 2, T / 2);
+  tx.lineJoin = "round";
+  tx.lineWidth = blur * 2.6;
+  for (const f of [...feet].sort((a, b) => b.at - a.at)) {
+    const g = Math.round(Math.min(1, Math.max(0, f.at / Math.max(maxAt, 1e-3))) * 254);
+    tx.fillStyle = tx.strokeStyle = `rgb(${g},${g},${g})`;
+    const p = footPath([f]);
+    tx.fill(p);
+    tx.stroke(p);
+  }
+}
 
 /* a CSS color between two, by share */
 function mixHex(a: string, b: string, t: number): string {
@@ -114,7 +177,7 @@ export function paintGround(canvas: HTMLCanvasElement, input: PaintInput) {
   if (terrain.river) {
     lawn(terrain.river.banks, c(GROUND.banks));
     fill(terrain.river.water, c(GROUND.water));
-    stroke(terrain.river.water, c(GROUND.waterEdge), 0.9);
+    stroke(terrain.river.water, c(GROUND.waterEdge), theme === "dark" ? 1.6 : 1.2);
     // the current, a pale dashed line down the river's middle
     ctx.setLineDash([7, 11]);
     stroke(terrain.river.current, c(GROUND.current), 0.8);
@@ -216,19 +279,8 @@ export function paintGround(canvas: HTMLCanvasElement, input: PaintInput) {
   }
 
   // a soft shade at every building's foot, where its walls meet its lot, and under every tree
-  const footing = new Path2D();
-  for (const f of feet) {
-    if (f.round) {
-      footing.moveTo(f.round[0] + f.round[2], f.round[1]);
-      footing.arc(f.round[0], f.round[1], f.round[2], 0, Math.PI * 2);
-    }
-    else if (f.poly) {
-      footing.moveTo(f.poly[0][0], f.poly[0][1]);
-      for (const p of f.poly.slice(1)) footing.lineTo(p[0], p[1]);
-      footing.closePath();
-    }
-  }
-  shade(footing, c(GROUND.contact), 7);
+  // the outskirts houses' feet (the towers' are the feet layer's): by day the shade reaches further out, so they sit on the ground
+  shade(footPath(feet), c(GROUND.contact), FOOT_BLUR[theme]);
   const canopy = new Path2D();
   for (const t of trees) {
     canopy.moveTo(t.x + t.r * 1.05, t.z);

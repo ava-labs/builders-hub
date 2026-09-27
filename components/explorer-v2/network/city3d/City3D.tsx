@@ -17,7 +17,7 @@ import { TipPlate } from "@/components/explorer-v2/staking/bits";
 import { fmtCompact } from "@/components/explorer-v2/evm/metric-charts";
 import { ageShort } from "@/components/explorer-v2/format";
 import { cn } from "@/lib/utils";
-import { BLOCK_H, feetOf, groundTrees, modelOf, outskirtsOf, type CityModel } from "./model";
+import { BLOCK_H, groundTrees, modelOf, outskirtsOf, type CityModel } from "./model";
 import { streetsOf } from "./lanes";
 import { monoFamily } from "./paint";
 import { RISE_S, TIME } from "./shaders";
@@ -36,6 +36,8 @@ import { FOV, HOME_POLAR, Rig, type Shot } from "./Rig";
 import { Anchor, Badges, HALO, PLAQUE_LIFT, plaqueOf, TagLayout, type Keep, type Tag, type VeilState } from "./Labels";
 import { Marks } from "./Marks";
 import { Lighting } from "./Lighting";
+import { hurry, Rise, Stage, useSteady, Warmup, WARM } from "./warmup";
+import { webglProbe, webglSeen } from "@/components/explorer-v2/network/webgl-probe";
 
 /* The city in 3D: the same plan, towers, streets and traffic as the map
    (icm-map.tsx), drawn in WebGL so the reader can turn it, tilt it and
@@ -52,7 +54,13 @@ import { Lighting } from "./Lighting";
     from its ward's edge and a data tag over each of the eight sets with the most validators, as a presentation model is labelled */
 export type LabelStyle = "names" | "rules";
 
-export type City3DProps = CityViewProps & { labels?: LabelStyle };
+export type City3DProps = CityViewProps & {
+  labels?: LabelStyle;
+  /** the picked ICM route, as "fromId~toId": its towers, pods and lanes stay lit and the camera frames them */
+  route?: string | null;
+  /** a click on a route's lane or pod picks it, a second lets it go */
+  onRoute?: (pair: string | null) => void;
+};
 
 /** the words' style: the app's, else the page's ?labels= (so the option can be shown by its link), else the names */
 function useLabels(prop?: LabelStyle): LabelStyle {
@@ -104,9 +112,16 @@ const minorOf = (v: string) => /^v?(\d+\.\d+)/.exec(v)?.[1] ?? v;
 /** how many sets carry a data tag in the rules style: the most validators first */
 const LEADERS = 8;
 
-/* the page's theme, read off <html> and followed as it changes */
+/** how much deeper a lit set's full glass stands by day than a pick's, as a share of its color */
+const LIT_DEEPEN = 0.12;
+
+/** while a hover narrows a lit answer or search, its other sets hold this grade, about halfway between lit and the lit set's grey, so a run along its bars does not blink it */
+const HELD = { glass: 0.6, logo: 0.68 };
+
+/* the page's theme, read off <html> and followed as it changes; read at once on the first render (the scene is
+   client-only), so a dark page's scene mounts dark and paints its ground once */
 function useTheme(): Theme {
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(() => typeof document !== "undefined" && document.documentElement.classList.contains("dark"));
   useEffect(() => {
     const el = document.documentElement;
     const read = () => setDark(el.classList.contains("dark"));
@@ -134,26 +149,36 @@ function useMono(): string {
 /* how much the page's graphics can carry: a software renderer (no GPU) draws
    the city without antialiasing or shadows, at one pixel to a CSS pixel, and
    still, a frame only when what it shows changes */
-function useTier(): "high" | "low" | null {
-  const [tier, setTier] = useState<"high" | "low" | null>(null);
-  useEffect(() => {
-    const c = document.createElement("canvas");
-    const gl = c.getContext("webgl2") ?? c.getContext("webgl");
-    const info = gl?.getExtension("WEBGL_debug_renderer_info");
-    const name = gl && info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
-    if (gl && !gl.isContextLost()) gl.getExtension("WEBGL_lose_context")?.loseContext();
-    const low = /swiftshader|llvmpipe|software|basic render/i.test(name);
-    if (process.env.NODE_ENV !== "production") console.info(`[city3d] renderer: ${name || "unknown"}, tier: ${low ? "low (built and still)" : "high"}`);
-    setTier(low ? "low" : "high");
-  }, []);
-  return tier;
+function useTier(): ["high" | "low" | null, (tier: "high" | "low") => void] {
+  // the app's own probe answers (webgl-probe.ts): one throwaway context for the app and the city, kept for the tab and the next visit
+  const [tier, setTier] = useState<"high" | "low" | null>(() => {
+    if (typeof window === "undefined") return null;
+    const { renderer, low } = webglProbe();
+    if (process.env.NODE_ENV !== "production") console.info(`[city3d] renderer: ${renderer || "unknown"}, tier: ${low ? "low (built and still)" : "high"}`);
+    return low ? "low" : "high";
+  });
+  return [tier, setTier];
 }
 
 /** the city's clock: seconds since its plan came in; a still reader's city stands done */
 function Clock({ t0, still }: { t0: { current: number | null }; still: boolean }) {
   useFrame(() => {
-    TIME.value = still ? 1e5 : t0.current === null ? 0 : (performance.now() - t0.current) / 1000;
+    /* it holds at its start while the scene warms up and the column rises (warmup.tsx), so the towers rise from their first frame; a
+       city that opens standing starts it at WARM.from. One reading of the time a frame: two, a coarse tick apart, left a held clock
+       a hair past its start, and what waits for the clock showed for that frame */
+    const now = performance.now();
+    if (t0.current !== null && (WARM.held || now - t0.current < WARM.from * 1000)) t0.current = now - WARM.from * 1000;
+    TIME.value = still ? 1e5 : t0.current === null ? 0 : (now - t0.current) / 1000;
   }, -2);
+  return null;
+}
+
+/** the camera as it stands this frame, for all that reads it before the render: camera-controls moves it at priority -1 but
+    only sets its position and turns it with lookAt, which leaves its matrixWorld a turn behind; the words, the tooltip and
+    the veil read it at priority 0, and would trail the city by a frame through a drag */
+function CameraNow() {
+  const camera = useThree((s) => s.camera);
+  useFrame(() => camera.updateMatrixWorld(), -0.5);
   return null;
 }
 
@@ -164,7 +189,8 @@ function Shadows({ until, bump }: { until: number; bump: unknown }) {
     gl.shadowMap.needsUpdate = true;
   }, [bump, gl]);
   useFrame(() => {
-    if (TIME.value < until) gl.shadowMap.needsUpdate = true;
+    // while the clock holds, every caster stands still: the warm-up redraws the map as the column moves or what casts changes
+    if (TIME.value < until && !WARM.held) gl.shadowMap.needsUpdate = true;
   });
   return null;
 }
@@ -226,13 +252,15 @@ function flashesOf(model: CityModel, activity: Map<string, number> | null | unde
   return { ribbons, bands };
 }
 
-export default function City3D({ data, versions = null, target = "", sizeBy, paint, activity = null, windowLabel, selected, onSelect, focus, onFocus, lit: litSet = null, hovered = null, onHover, inset, cameraRef, labels: labelsProp }: City3DProps) {
+export default function City3D({ data: incoming, versions = null, target = "", sizeBy, paint, activity = null, windowLabel, selected, onSelect, focus, onFocus, lit: litSet = null, hovered = null, onHover, inset, cameraRef, labels: labelsProp, route = null, onRoute }: City3DProps) {
+  // a plan that comes in while the column rises waits until it has landed (warmup.tsx), so its mount holds no frame of the rise
+  const data = useSteady(incoming);
   const { nodes, routes, byId, city, pulse, sites } = data;
   const rules = useLabels(labelsProp) === "rules";
   const monoLogos = useMonoLogos();
   const regionRef = useRef<HTMLDivElement>(null);
   const hud = useHud(regionRef, rules);
-  const tier = useTier();
+  const [tier, setTier] = useTier();
   // a reader who asks for less motion, or a renderer with no GPU (6 to 11 fps), sees the city built and still, drawn on demand
   const still = useStill() || tier === "low";
   // a frame rate that keeps falling steps the pixels down, as far as one to a CSS pixel, and back up when it recovers
@@ -258,9 +286,8 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
       outskirts,
       streets,
       heats: routes.map((r) => r.heat),
-      // the buildings' feet and the outskirts' houses', and the trees on the ground
+      // the outskirts houses' feet (the towers' shades are a layer of their own, which comes in with them: Buildings.tsx), and the trees on the ground
       feet: [
-        ...feetOf(model),
         ...outskirts.masses.map((q) => ({
           poly: [
             [q.x - q.w, q.z],
@@ -317,7 +344,6 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
   /* what is lit: the building under the cursor or the app's list, the picked one, and the sets they talk with; else the app's search or cut */
   const [hover, setHover] = useState<string | null>(null);
   const [hoverDistrict, setHoverDistrict] = useState<District | null>(null);
-  const [hoverRim, setHoverRim] = useState(false);
   const [hoverSite, setHoverSite] = useState<Site | null>(null);
   // the route under the cursor, and where on it the cursor found it
   const [hoverRoute, setHoverRoute] = useState<{ key: string; at: Vector3 } | null>(null);
@@ -330,7 +356,6 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
   const holdHover = useCallback(() => {
     setHover(null);
     setHoverSite(null);
-    setHoverRim(false);
     setHoverRoute(null);
   }, []);
   const flyTimer = useRef<number | null>(null);
@@ -382,6 +407,19 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
   }, [dragging]);
   const pickedId = selected && byId.has(selected) ? selected : null;
   const closeUp = pickedId === HUB_ID && focus === null;
+  // the P wing picked: the P-Chain's own close-up, as the C wing has the C-Chain's
+  const pClose = selected === PCHAIN_PICK && focus === null;
+  // a picked ICM route: its two ends, and its ways by key, one each way it runs
+  const pair = useMemo(() => (route ? new Set(route.split("~")) : null), [route]);
+  const pairWays = useMemo(() => (pair ? routes.filter((r) => pair.has(r.from) && pair.has(r.to)).map((r) => r.key) : null), [pair, routes]);
+  // a click on a lane or a pod picks its route; a second click on the picked one lets it go
+  const pickRoute = useCallback(
+    (key: string) => {
+      const r = routes.find((x) => x.key === key);
+      if (r) onRoute?.(pair?.has(r.from) && pair.has(r.to) ? null : `${r.from}~${r.to}`);
+    },
+    [routes, pair, onRoute],
+  );
   const litId = hover ?? hovered ?? pickedId;
   const near = useMemo(() => {
     if (!litId) return null;
@@ -389,10 +427,19 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
     for (const r of routes) if (r.from === litId || r.to === litId) s.add(r.from).add(r.to);
     return s.size > 1 ? s : null;
   }, [litId, routes]);
-  const shown = near ?? litSet;
   // a hover lights the way a pick does, more lightly
   const byHover = !!(hover ?? hovered);
-  const faint = near && byHover ? { glass: 0.42, logo: 0.55 } : { glass: 0.18, logo: 0.35 };
+  /* with an answer or a search lit, every hover narrows it the same way, whether its set has routes or none: the hovered
+     set and those of its partners in it stay lit, the rest of the lit set holds a middle grade (HELD), every other set keeps
+     the lit set's grey. A pick keeps its own light: its set and all its partners */
+  const narrow = !!litSet && byHover && !!litId;
+  // a picked route lights its two ends only, as a pick does, whatever else is lit or hovered
+  const shown = useMemo(
+    () => pair ?? (narrow && litSet && litId ? new Set([litId, ...(near ? [...near].filter((id) => litSet.has(id)) : [])]) : (near ?? litSet)),
+    [pair, narrow, litSet, litId, near],
+  );
+  // the grey outside what is lit: with nothing else lit, a hover greys the rest more lightly than a pick
+  const faint = !pair && near && byHover && !litSet ? { glass: 0.42, logo: 0.55 } : { glass: 0.18, logo: 0.35 };
   // the routes the lit set drives, when it has any; a set with none lights no road and greys none
   const routesOf = near ? litId : null;
   useEffect(() => {
@@ -418,12 +465,27 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
     () =>
       Float32Array.from(model.buildings, (b) => {
         const away = focus !== null && b.n.role !== "hub" && b.n.district !== focus;
-        return away ? 0 : shown !== null && !shown.has(b.id) ? faint.glass : 1;
+        return away ? 0 : shown !== null && !shown.has(b.id) ? (narrow && litSet?.has(b.id) ? HELD.glass : faint.glass) : 1;
       }),
-    [model, focus, shown, faint.glass],
+    [model, focus, shown, faint.glass, narrow, litSet],
   );
   const flash = useMemo(() => flashesOf(model, activity, still), [model, activity, still]);
   const hoverAt = hover ?? hovered;
+  // a picked district's towers, a picked set's, and a picked route's two ends wear their district's glass at full color; the rest keep the calm grade
+  // by day an answer's or a search's towers wear their district glass whole and a shade deeper (the boost's excess over 1), so they read on the white model
+  const day = theme !== "dark";
+  const boost = useMemo(
+    () =>
+      Float32Array.from(model.buildings, (b) =>
+        day && !pair && litSet?.has(b.id) ? 1 + LIT_DEEPEN : (focus !== null && b.n.district === focus) || b.id === pickedId || pair?.has(b.id) ? 1 : 0,
+      ),
+    [model, focus, pickedId, pair, day, litSet],
+  );
+  // and the towers outside it, and outside whatever a hover, a pick or a route lights, recede into the haze
+  const recede = useMemo(
+    () => Float32Array.from(model.buildings, (b) => (day && litSet && !litSet.has(b.id) && !shown?.has(b.id) ? 1 : 0)),
+    [model, day, litSet, shown],
+  );
   const state = useMemo<BuildingsState>(
     () => ({
       rise: schedule.rise,
@@ -434,31 +496,35 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
       hover: hoverAt ? model.byId.get(hoverAt) ?? -1 : -1,
       pick: pickedId ? model.byId.get(pickedId) ?? -1 : -1,
       liveAt: still ? Infinity : schedule.liveAt,
+      boost,
+      recede,
     }),
-    [schedule, floors, dim, flash, hoverAt, pickedId, model, still],
+    [schedule, floors, dim, flash, hoverAt, pickedId, model, still, boost, recede],
   );
   const badgeAlpha = useMemo(
     () =>
       Float32Array.from(model.buildings, (b) => {
         const away = focus !== null && b.n.district !== focus;
-        return away ? 0 : shown !== null && !shown.has(b.id) ? faint.logo : 1;
+        return away ? 0 : shown !== null && !shown.has(b.id) ? (narrow && litSet?.has(b.id) ? HELD.logo : faint.logo) : 1;
       }),
-    [model, focus, shown, faint.logo],
+    [model, focus, shown, faint.logo, narrow, litSet],
   );
   // the buildings in front of the picked one, which veil; Buildings works it out as the camera moves
   const veil = useMemo<VeilState>(() => ({ b: new Float32Array(model.buildings.length).fill(1), version: 0 }), [model]);
 
-  /* the traffic: each route shown while one of its ends is in what the app shows, blue into the picked set */
+  /* the traffic: each route shown while one of its ends is in what the app shows, blue into the picked set; a picked
+     route's ways alone, blue, while its panel is open */
   const traffic = useMemo(
     () => ({
       on: routes.map((r) => {
+        if (pair) return pair.has(r.from) && pair.has(r.to);
         const mine = !focus || byId.get(r.from)?.district === focus || byId.get(r.to)?.district === focus;
         return mine && (routesOf ? r.from === routesOf || r.to === routesOf : !litSet || litSet.has(r.from) || litSet.has(r.to));
       }),
-      blue: routes.map((r) => !!pickedId && (r.from === pickedId || r.to === pickedId)),
+      blue: routes.map((r) => (pair ? pair.has(r.from) && pair.has(r.to) : !!pickedId && (r.from === pickedId || r.to === pickedId))),
       inks: routes.map((r) => byId.get(r.from)?.color ?? null),
     }),
-    [routes, focus, byId, routesOf, litSet, pickedId],
+    [routes, focus, byId, routesOf, litSet, pickedId, pair],
   );
 
   /* a pick, by any id: a building's, or one another part of the city names (the landmark's wings); a second click lets it go */
@@ -478,6 +544,30 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
   }, [model]);
   const shot = useMemo<Shot>(() => {
     const hub = model.buildings[model.hub];
+    // a picked route: its two towers, crest and foot, and the lanes it drives between them
+    if (pair) {
+      const points: Vector3[] = [];
+      for (const id of pair) {
+        const b = model.buildings[model.byId.get(id) ?? -1];
+        if (b) points.push(new Vector3(b.x, b.base + b.crest + 24, b.z), new Vector3(b.x, 0, b.z));
+      }
+      routes.forEach((r, i) => {
+        const lane = pair.has(r.from) && pair.has(r.to) ? streets[i]?.lane : null;
+        if (lane) for (let k = 0; k < lane.x.length; k += 16) points.push(new Vector3(lane.x[k], 0, lane.z[k]));
+      });
+      if (points.length) return { key: `route:${route}`, points, cap: 1 / 3.2, fill: 0.86 };
+    }
+    if (pClose && hub) {
+      // the P wing from the forecourt up past its pad, in the middle of the frame, the C wing beside it
+      const [px, py, pz] = padAt(model);
+      const r = hub.n.w * 1.5;
+      const points = [new Vector3(px, py + 12, pz)];
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        points.push(new Vector3(px + r * Math.cos(a), 0, pz + r * Math.sin(a)));
+      }
+      return { key: "p-chain", points, polar: 1.1, cap: 1 / 3.6, slow: true, fill: 0.86 };
+    }
     if (closeUp && hub) {
       const w = hub.n.w;
       // the landmark from its forecourt up to its spire's light, in the middle of the frame
@@ -513,7 +603,7 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
       if (points.length) return { key: `d:${focus}`, points, polar: 1.0, cap: 1 / 2.6, fill: 0.9 };
     }
     return home;
-  }, [closeUp, pickedId, focus, model, city, home]);
+  }, [pair, route, routes, streets, closeUp, pClose, pickedId, focus, model, city, home]);
 
   /* the tooltip: the building under the cursor, or a ledger tile, beside it on screen */
   const tipEl = useRef<HTMLDivElement>(null);
@@ -538,9 +628,13 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
     return null;
   }, [tipPchain, tipNode, tipSite, tipRoute, hoverRoute, model]);
 
-  // a click on the ground steps back: out of a set, then out of a district
-  const stepBack = () => (pickedId ? onSelect(null) : focus ? onFocus(null) : undefined);
+  // a click on the ground steps back: out of a route, out of a set, then out of a district
+  const stepBack = () => (route ? onRoute?.(null) : pickedId ? onSelect(null) : focus ? onFocus(null) : undefined);
   const down = useRef<[number, number] | null>(null);
+  // a pick, a deep link or a district asked for during the opening: the city stands at once, and the camera flies to it
+  useEffect(() => {
+    if (selected || focus || route) hurry();
+  }, [selected, focus, route]);
   const wardOn = hoverDistrict ?? focus;
   const sectorWard = wardOn ? city.wards.find((w) => w.district === wardOn) : null;
   const sectorArc: [number, number, number, number] = sectorWard
@@ -556,7 +650,7 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
     if (el) tagEls.current.set(key, el);
     else tagEls.current.delete(key);
   };
-  const namesOff = focus !== null || closeUp;
+  const namesOff = focus !== null || closeUp || pClose;
   const roofIds = useMemo(() => {
     const ward = focus ? city.wards.find((w) => w.district === focus) : null;
     return (ward?.ids ?? []).filter((id) => model.byId.has(id)).sort((a, b) => (byId.get(b)?.h ?? 0) - (byId.get(a)?.h ?? 0));
@@ -595,7 +689,8 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
     for (const id of roofIds) {
       const b = model.buildings[model.byId.get(id)!];
       // on its plaque's top, now the plaques stand on the roofs
-      out.push({ key: `r:${id}`, at: new Vector3(b.x, b.base + b.crest + PLAQUE_LIFT, b.z), lifts: [0, 16, 32, 48, 64, 80], fade: true, b: model.byId.get(id), clear: plaqueOf(b) });
+      // it comes in with its tower's rise, so no name stands on the plate before its tower does
+      out.push({ key: `r:${id}`, at: new Vector3(b.x, b.base + b.crest + PLAQUE_LIFT, b.z), lifts: [0, 16, 32, 48, 64, 80], fade: true, b: model.byId.get(id), clear: plaqueOf(b), from: schedule.rise[model.byId.get(id)!] + RISE_S });
     }
     return out;
   }, [city, namesOff, roofIds, model, focus, schedule, rules, leaders]);
@@ -629,7 +724,7 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
         }, new Map<string, number>())
         .entries(),
     ].sort((a, b) => b[1] - a[1])[0];
-  const pointer = !!(hover || hoverRim || hoverDistrict || hoverSite);
+  const pointer = !!(hover || hoverDistrict || hoverSite);
 
   let tip: ReactNode = null;
   if (tipNode) {
@@ -714,7 +809,11 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
     <div
       ref={regionRef}
       className={cn("absolute inset-0 isolate", dragging ? "cursor-grabbing" : pointer ? "cursor-pointer" : "cursor-grab")}
-      onPointerDown={(e) => (down.current = [e.clientX, e.clientY])}
+      onPointerDown={(e) => {
+        down.current = [e.clientX, e.clientY];
+        // any press during the opening is the reader's intent: the rest of it comes at once
+        hurry();
+      }}
       onPointerLeave={() => setHover(null)}
       role="region"
       aria-label="Avalanche L1s as a city in 3D: drag to turn it, scroll to zoom, right-drag to pan"
@@ -727,6 +826,10 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
         gl={{ antialias: tier === "high", alpha: true, powerPreference: "high-performance" }}
         camera={{ fov: FOV, near: 4, far: 14000, position: [0, 1400, 2400] }}
         frameloop={still ? "demand" : "always"}
+        // the city's own context has the last word: a kept yes from a GPU that has since gone reads as software here
+        onCreated={({ gl }) => {
+          if (webglSeen(gl.getContext()).low) setTier("low");
+        }}
         onPointerMissed={(e) => {
           const d = down.current;
           if (d && Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 6) return;
@@ -743,23 +846,21 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
           onIncline={() => setDpr((d) => Math.min(2, d + 0.5))}
         />
         <Clock t0={t0} still={still} />
+        <CameraNow />
+        <Warmup hold={!model.buildings.length} still={still} from={schedule.liveAt + 1} fade={regionRef} />
         <Redraw on={[state, badgeAlpha, traffic, hoverDistrict, hoverRoute, focus, theme, font]} />
         <Shadows until={schedule.until} bump={`${theme}|${model.buildings.length}|${nodes.length}`} />
         <Lighting theme={theme} rich={rich} />
         <Backdrop theme={theme} liveAt={schedule.liveAt} still={still} />
-        <Rig shot={shot} home={home} inset={inset} still={still} onDrag={onDrag} onFlight={onFlight} cameraRef={cameraRef} />
+        <Rig shot={shot} home={home} inset={inset} still={still} onDrag={onDrag} onFlight={onFlight} standsAt={schedule.liveAt} cameraRef={cameraRef} />
+        {/* the column, the plate and the city on it, which the opening lifts out of the cloud sea */}
+        <Rise>
         {/* the P-Chain under the city: a Doric column rising out of the clouds */}
         <Pillar theme={theme} />
         <Ground city={city} terrain={terrain} outskirts={outskirts} trees={trees} paint={paintInput} theme={theme} sector={{ arc: sectorArc, on: !!sectorWard }} onGround={stepBack} />
-        <Ledger
-          pulse={pulse}
-          theme={theme}
-          font={font}
-          onOpenChain={() => router.push("/explorer/mainnet/p-chain")}
-          onRim={(r) => {
-            if (!flyingRef.current) setHoverRim(r);
-          }}
-        />
+        <Ledger theme={theme} />
+        {/* the city's parts mount a frame apart, each in its own task (warmup.tsx), each set's pick with its meshes */}
+        <Stage at={1}>
         {model.buildings.length > 0 && (
           <Buildings
             model={model}
@@ -777,6 +878,8 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
             glow={rich}
           />
         )}
+        </Stage>
+        <Stage at={2}>
         {hub && (
           <HubTower
             hub={hub}
@@ -795,8 +898,10 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
             }}
           />
         )}
-        {model.buildings.length > 0 && <Helicopters model={model} pulse={pulse} theme={theme} still={still} liveAt={schedule.liveAt} />}
-        <Streetlights city={city} theme={theme} glow={rich} />
+        </Stage>
+        <Stage at={5}>{model.buildings.length > 0 && <Helicopters model={model} pulse={pulse} theme={theme} still={still} liveAt={schedule.liveAt} />}</Stage>
+        <Stage at={3}>
+        <Streetlights city={city} theme={theme} glow={rich} model={model} rise={schedule.rise} />
         <Sites
           model={model}
           outskirts={outskirts}
@@ -808,11 +913,31 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
           }}
           onOpenSite={(site) => router.push(`/explorer/mainnet/p-chain/chain/${site.blockchainId}`)}
         />
-        <Traffic routes={routes} streets={streets} city={city} inks={traffic.inks} on={traffic.on} blue={traffic.blue} theme={theme} still={still} liveAt={schedule.liveAt} hovered={hoverRoute?.key ?? null} onHoverRoute={onHoverRoute} frozen={flyingRef} />
+        </Stage>
+        <Stage at={4}>
+        <Traffic routes={routes} streets={streets} city={city} inks={traffic.inks} on={traffic.on} blue={traffic.blue} theme={theme} still={still} liveAt={schedule.liveAt} hovered={hoverRoute?.key ?? null} onHoverRoute={onHoverRoute} frozen={flyingRef} picked={pairWays} onPickRoute={onRoute ? pickRoute : undefined} />
         <Marks model={model} city={city} hover={state.hover} pick={state.pick} focus={focus} theme={theme} still={still} />
-        <Badges model={model} rise={schedule.rise} alpha={badgeAlpha} theme={theme} veil={veil} mono={monoLogos} lit={[state.hover, state.pick]} />
+        </Stage>
+        <Stage at={6}>
+        {/* a plaque is its tower's handle too: it picks and hovers the tower, as the words and the walls do */}
+        <Badges
+          model={model}
+          rise={schedule.rise}
+          alpha={badgeAlpha}
+          theme={theme}
+          veil={veil}
+          mono={monoLogos}
+          lit={[state.hover, state.pick]}
+          onPick={pickId}
+          onHover={(id) => {
+            // only a set the app knows lights: a plaque id the city's map lacks would turn the cursor with no tip to show
+            if (!flyingRef.current && (id === null || byId.has(id))) setHover(id);
+          }}
+        />
         <TagLayout tags={tags} els={tagEls} flying={flying} veil={veil} keep={keep} inset={inset} hud={hud} />
         <Anchor at={anchor} el={tipEl} inset={inset} />
+        </Stage>
+        </Rise>
       </Canvas>
       )}
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden">
@@ -889,11 +1014,17 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
             return (
               // a leader's figures in the page's mono, flown as a flag on a 1 px leader line from its plaque, out from the city's middle
               <div key={n.id} ref={tagRef(`t:${n.id}`)} className="group absolute left-0 top-0 transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ visibility: "hidden", opacity: 0 }}>
+                {/* the words are the tower's handle too: a click on them picks it, as a click on the tower does; a click beside them met the sky and stepped back */}
                 <span
                   className={cn(
-                    "block select-none whitespace-nowrap pl-1.5 font-mono text-[10px] uppercase leading-[1.25] tracking-[0.06em] tabular-nums group-data-[flag=beside-left]:pl-0 group-data-[flag=beside-left]:pr-1.5 group-data-[flag=beside-left]:text-right group-data-[flag=left]:pl-0 group-data-[flag=left]:pr-1.5 group-data-[flag=left]:text-right",
+                    "pointer-events-auto block cursor-pointer select-none whitespace-nowrap pl-1.5 font-mono text-[10px] uppercase leading-[1.25] tracking-[0.06em] tabular-nums group-data-[flag=beside-left]:pl-0 group-data-[flag=beside-left]:pr-1.5 group-data-[flag=beside-left]:text-right group-data-[flag=left]:pl-0 group-data-[flag=left]:pr-1.5 group-data-[flag=left]:text-right",
                     HALO,
                   )}
+                  onClick={() => pickId(n.id)}
+                  onPointerEnter={() => {
+                    if (!flyingRef.current) setHover(n.id);
+                  }}
+                  onPointerLeave={() => setHover(null)}
                 >
                   <span className="block font-semibold text-[#121212] dark:text-[#EBF0FA]">{name}</span>
                   <span className="block text-[#3B484B] dark:text-[#A2AFB2]">
@@ -923,10 +1054,15 @@ export default function City3D({ data, versions = null, target = "", sizeBy, pai
             <div key={id} ref={tagRef(`r:${id}`)} className="absolute left-0 top-0 transition-opacity duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ visibility: "hidden", opacity: 0 }}>
               <span
                 className={cn(
-                  "block select-none whitespace-nowrap font-mono text-[11px] font-medium uppercase tracking-[0.08em]",
+                  "pointer-events-auto block cursor-pointer select-none whitespace-nowrap font-mono text-[11px] font-medium uppercase tracking-[0.08em]",
                   HALO,
                   pickedId === id ? "text-[#0061E2] dark:text-[#5f9dff]" : hover === id ? "text-[#0061E2]/80 dark:text-[#5f9dff]/80" : "text-zinc-900 dark:text-zinc-50",
                 )}
+                onClick={() => pickId(id)}
+                onPointerEnter={() => {
+                  if (!flyingRef.current) setHover(id);
+                }}
+                onPointerLeave={() => setHover(null)}
               >
                 {name}
               </span>

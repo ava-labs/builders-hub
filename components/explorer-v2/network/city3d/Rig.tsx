@@ -3,8 +3,10 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { CameraControls, CameraControlsImpl } from "@react-three/drei";
-import { Box3, PerspectiveCamera, Vector3 } from "three";
+import { Box3, InstancedMesh, Matrix4, PerspectiveCamera, Raycaster, Spherical, Vector3, type Material } from "three";
 import { PLATE } from "@/components/explorer-v2/network/icm-map";
+import { TIME } from "./shaders";
+import { OPENING } from "./warmup";
 import type { CameraHandle, Inset } from "@/components/explorer-v2/network/icm-map";
 
 /* The camera: a lens on a model city, as a visitor holds it. It opens at
@@ -35,9 +37,47 @@ export const FOV = 28;
 /** the map's view: straight on at the plate's front, from 30 degrees up */
 export const HOME_POLAR = (60 * Math.PI) / 180;
 const UP = new Vector3(0, 1, 0);
-// scratch, for the frame loop's read of the camera
+// scratch, for the frame loop's read of the camera and a glide's pose
 const tmpPos = new Vector3();
 const tmpTarget = new Vector3();
+const sphA = new Spherical();
+const sphB = new Spherical();
+/** how long a flight takes: to a district or a set, and the slow one into the close-up */
+const FLIGHT_MS = 900;
+const FLIGHT_SLOW_MS = 1300;
+
+/* the brand's ease, cubic-bezier(0.16, 1, 0.3, 1): a fast attack and a long decay, solved for the curve's x */
+function ease(x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bx = (t: number) => 3 * (1 - t) * (1 - t) * t * 0.16 + 3 * (1 - t) * t * t * 0.3 + t * t * t;
+  const by = (t: number) => 3 * (1 - t) * (1 - t) * t + 3 * (1 - t) * t * t + t * t * t;
+  let lo = 0;
+  let hi = 1;
+  let t = x;
+  for (let i = 0; i < 24; i++) {
+    const v = bx(t);
+    if (Math.abs(v - x) < 1e-5) break;
+    if (v < x) lo = t;
+    else hi = t;
+    t = (lo + hi) / 2;
+  }
+  return by(t);
+}
+
+/** the first look: farther out and higher than the home fit, settling into it once the city stands */
+const SETTLE_OUT = 1.08;
+const SETTLE_UP = 0.06;
+const SETTLE_MS = 1400;
+/** the establishing shot while the column rises (load's opening): wider and lower than home, aimed down the shaft, so the
+    capital comes up through the haze with the cloud sea under the plate's place, and the landed city clear of the search
+    bar (the downtown tower's top a fifth down the frame, the plate from a quarter to a half). The push into the home fit
+    starts as the column nears its rest, and runs alongside the rise's tail and the paint, so the camera stands at home
+    before the downtown tower rises */
+const RISE_LOOK = { down: 250, polar: 1.22, out: 1.35 };
+const PUSH_AT = 0.9;
+/** the opening's own word that its column is rising (load sets it on a first visit); without it the first look is the still one above */
+const rising = () => OPENING.column.value < 1 && OPENING.rising;
 
 interface Room {
   x0: number;
@@ -109,6 +149,7 @@ export function Rig({
   still,
   onDrag,
   onFlight,
+  standsAt,
   cameraRef,
 }: {
   shot: Shot;
@@ -119,6 +160,8 @@ export function Rig({
   onDrag: (dragging: boolean) => void;
   /** a flight is under way (true), or it landed or the reader took the camera (false): the app holds hover while it flies */
   onFlight?: (flying: boolean) => void;
+  /** the city's clock time at which it stands (the schedule's liveAt): the first look settles into the home fit then */
+  standsAt?: number;
   /** the app's handle on the reader's camera, for its Escape */
   cameraRef?: RefObject<CameraHandle | null>;
 }) {
@@ -167,6 +210,18 @@ export function Rig({
       if (inFlight.current) settle();
     }, 4500);
   };
+  /* a glide: the camera's own tween between two poses on the brand's ease. It drives camera-controls pose by
+     pose, so it lands exactly where it aimed and on time, and the reader's drag or wheel ends it */
+  const glide = useRef<{ p0: Vector3; t0: Vector3; p1: Vector3; t1: Vector3; at: number; ms: number } | null>(null);
+  // the home pose the first look settles into once the city stands
+  const settleTo = useRef<{ pos: Vector3; target: Vector3; onColumn: boolean } | null>(null);
+  const glideTo = (pos: Vector3, target: Vector3, ms: number) => {
+    const c = ref.current;
+    if (!c) return;
+    glide.current = { p0: c.getPosition(new Vector3(), false), t0: c.getTarget(new Vector3(), false), p1: pos.clone(), t1: target.clone(), at: performance.now(), ms };
+    flight.current = null;
+    takeOff();
+  };
 
   // the room's centre is the lens's: the city stands in what the panels leave
   const offset = useRef<{ x: number; y: number } | null>(null);
@@ -179,6 +234,35 @@ export function Rig({
        flight they asked about could start */
     const c = ref.current;
     if (c) {
+      // a glide under way: the pose for this frame, and its exact landing
+      const g = glide.current;
+      if (g) {
+        const k = ease(Math.min(1, (performance.now() - g.at) / g.ms));
+        // the target moves straight; the eye orbits it, its distance and angles eased, the short way round
+        tmpTarget.lerpVectors(g.t0, g.t1, k);
+        sphA.setFromVector3(tmpPos.subVectors(g.p0, g.t0));
+        sphB.setFromVector3(tmpPos.subVectors(g.p1, g.t1));
+        let dTheta = sphB.theta - sphA.theta;
+        if (dTheta > Math.PI) dTheta -= 2 * Math.PI;
+        if (dTheta < -Math.PI) dTheta += 2 * Math.PI;
+        sphA.radius += (sphB.radius - sphA.radius) * k;
+        sphA.phi += (sphB.phi - sphA.phi) * k;
+        sphA.theta += dTheta * k;
+        tmpPos.setFromSpherical(sphA).add(tmpTarget);
+        void c.setLookAt(tmpPos.x, tmpPos.y, tmpPos.z, tmpTarget.x, tmpTarget.y, tmpTarget.z, false);
+        invalidate();
+        if (k >= 1) {
+          glide.current = null;
+          settle();
+          for (const s of settlers.current.splice(0)) s.done();
+        }
+      }
+      // the first look settles into the home fit once the city stands (or, through the column's rise, as the column nears its rest), unless the reader already has the camera or the app flew elsewhere
+      if (settleTo.current && (settleTo.current.onColumn ? OPENING.column.value >= PUSH_AT : standsAt !== undefined && TIME.value >= standsAt)) {
+        const s = settleTo.current;
+        settleTo.current = null;
+        if (!touched.current && shotWas.current === "home") glideTo(s.pos, s.target, SETTLE_MS);
+      }
       const q = pose.current;
       const rate = (c.getPosition(tmpPos, false).distanceTo(q.pos) + c.getTarget(tmpTarget, false).distanceTo(q.target)) / Math.max(dt, 1 / 240);
       q.pos.copy(tmpPos);
@@ -216,7 +300,7 @@ export function Rig({
   });
 
   /* a flight to a shot: from where the reader has turned the city, or straight from the map's view */
-  const fly = (to: Shot, animate: boolean, straight = false) => {
+  const fly = (to: Shot, animate: boolean, straight = false, settleIn = false) => {
     const c = ref.current;
     if (!c) return;
     c.smoothTime = to.slow ? 0.62 : 0.42;
@@ -227,9 +311,24 @@ export function Rig({
     const d = Math.max(fit, homeD * to.cap);
     const dir = new Vector3(Math.sin(polar) * Math.sin(az), Math.cos(polar), Math.sin(polar) * Math.cos(az));
     const pos = target.clone().addScaledVector(dir, d);
-    void c.setLookAt(pos.x, pos.y, pos.z, target.x, target.y, target.z, animate);
-    flight.current = animate ? () => fly(to, true, straight) : null;
-    if (animate) takeOff();
+    if (settleIn) {
+      // the first look stands farther out and higher than the fit, and settles into it once the city stands; through the
+      // column's rise it stands long and low instead, aimed down the shaft, and settles as the column lands
+      const onColumn = rising();
+      const up = onColumn ? RISE_LOOK.polar : Math.max(0.2, polar - SETTLE_UP);
+      const look = onColumn ? target.clone().setY(target.y - RISE_LOOK.down) : target;
+      const from = look.clone().addScaledVector(new Vector3(Math.sin(up) * Math.sin(az), Math.cos(up), Math.sin(up) * Math.cos(az)), d * (onColumn ? RISE_LOOK.out : SETTLE_OUT));
+      void c.setLookAt(from.x, from.y, from.z, look.x, look.y, look.z, false);
+      settleTo.current = { pos, target, onColumn };
+      invalidate();
+      return;
+    }
+    // a flight is the camera's own glide on the brand's ease; a still reader's camera stands there at once
+    if (animate) glideTo(pos, target, to.slow ? FLIGHT_SLOW_MS : FLIGHT_MS);
+    else {
+      void c.setLookAt(pos.x, pos.y, pos.z, target.x, target.y, target.z, false);
+      flight.current = null;
+    }
     invalidate();
   };
   // the app's Escape takes a moved camera home, to the map's own view
@@ -241,7 +340,10 @@ export function Rig({
       home: () => {
         mine.current = null;
         setMoved(false);
-        fly(home, !still, true);
+        // during the opening, Escape cuts straight home: no push, no flight
+        const cut = !!settleTo.current;
+        settleTo.current = null;
+        fly(home, !still && !cut, true);
       },
       settled: () => new Promise<void>((done) => settlers.current.push({ since: performance.now(), done })),
     }),
@@ -266,15 +368,20 @@ export function Rig({
     if (!sameShot) setMoved(shot.key === "home" && !!mine.current);
     shotWas.current = shot.key;
     roomWas.current = roomKey;
-    const animate = !first && !still;
+    // during the opening (its push still to come), a pick, a district, a search or a deep link cuts straight to its pose
+    const cut = !first && !!settleTo.current;
+    if (cut) settleTo.current = null;
+    const animate = !first && !still && !cut;
     if (shot.key === "home" && mine.current) {
       c.smoothTime = 0.42;
       const { pos, target } = mine.current;
-      void c.setLookAt(pos.x, pos.y, pos.z, target.x, target.y, target.z, animate);
-      flight.current = animate ? () => void c.setLookAt(pos.x, pos.y, pos.z, target.x, target.y, target.z, true) : null;
-      if (animate) takeOff();
+      if (animate) glideTo(pos, target, FLIGHT_MS);
+      else void c.setLookAt(pos.x, pos.y, pos.z, target.x, target.y, target.z, false);
       invalidate();
-    } else fly(shot, animate, first);
+    } else {
+      // the first look settles into the home fit once the city stands; a return in this tab opens standing, at its shot, with no settle and no flight
+      fly(shot, animate, first, first && shot.key === "home" && !still && !OPENING.returning);
+    }
     // the room is read with the shot
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shot, room, still]);
@@ -291,9 +398,74 @@ export function Rig({
   const glDebug = useThree((s) => s.gl);
   const sceneDebug = useThree((s) => s.scene);
   const frameloopDebug = useThree((s) => s.frameloop);
+  const eventsDebug = useThree((s) => s.events);
+  const raycasterDebug = useThree((s) => s.raycaster);
+  const internalDebug = useThree((s) => s.internal);
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") (window as unknown as { __city3d?: unknown }).__city3d = { controls: ref.current, gl: glDebug, scene: sceneDebug, frameloop: frameloopDebug, size, still };
+    if (process.env.NODE_ENV !== "production")
+      (window as unknown as { __city3d?: unknown }).__city3d = {
+        controls: ref.current,
+        gl: glDebug,
+        scene: sceneDebug,
+        frameloop: frameloopDebug,
+        events: eventsDebug,
+        raycaster: raycasterDebug,
+        internal: internalDebug,
+        opening: OPENING,
+        size,
+        still,
+        // the rig's own state, read live
+        state: () => ({ shot: shotWas.current, inFlight: inFlight.current, glide: !!glide.current, settleTo: !!settleTo.current, touched: touched.current, press: press.current, mine: !!mine.current, moved }),
+      };
   });
+
+  /* in development only, a watchdog for the pointer's reach. R3F tests only the objects in its interaction list that still
+     carry their tag (__r3f, with handlers) and stand in the scene; one that lost either takes no hits, and hover over it dies.
+     The towers' pick mesh also answers a ray from the camera to three of its own boxes each second; a miss is logged as it changes */
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const seen = new Set<string>();
+    const ray = new Raycaster();
+    const at = new Vector3();
+    const m = new Matrix4();
+    let was = "";
+    const id = window.setInterval(() => {
+      for (const o of internalDebug.interaction) {
+        const tag = (o as unknown as { __r3f?: { eventCount: number; root?: unknown } }).__r3f;
+        const why = !tag ? "no __r3f" : !tag.eventCount ? "eventCount 0" : !tag.root ? "no root" : !o.parent ? "no parent" : null;
+        if (why && !seen.has(o.uuid + why)) {
+          seen.add(o.uuid + why);
+          console.warn(`[city3d] pointer zombie: ${o.type} ${o.uuid.slice(0, 6)} ${why} (interaction ${internalDebug.interaction.length})`);
+        }
+      }
+      let pick: InstancedMesh | null = null;
+      sceneDebug.traverse((o) => {
+        const im = o as InstancedMesh;
+        if (im.isInstancedMesh && (im.material as Material).visible === false && (!pick || im.count > pick.count)) pick = im;
+      });
+      if (!pick) return;
+      const pm = pick as InstancedMesh;
+      let tested = 0;
+      let misses = 0;
+      for (let i = 0; i < pm.count && tested < 3; i++) {
+        pm.getMatrixAt(i, m);
+        // a folded box (the hub's) is not there to hit
+        if (m.elements[5] < 1) continue;
+        tested++;
+        at.setFromMatrixPosition(m).applyMatrix4(pm.matrixWorld);
+        at.y += m.elements[5] * 0.5;
+        ray.set(camera.position, at.clone().sub(camera.position).normalize());
+        if (ray.intersectObject(pm, false).length === 0) misses++;
+      }
+      const tag = !!(pm as unknown as { __r3f?: unknown }).__r3f;
+      const line = `${pm.uuid.slice(0, 6)}:${pm.count}:${internalDebug.interaction.includes(pm)}:${tag}:${misses}/${tested}`;
+      if (line !== was) {
+        was = line;
+        console.warn(`[city3d] pick self-test: mesh ${pm.uuid.slice(0, 6)} count ${pm.count} inInteraction ${internalDebug.interaction.includes(pm)} tag ${tag} misses ${misses} of ${tested} (sphere r ${pm.boundingSphere ? pm.boundingSphere.radius.toFixed(0) : "null"})`);
+      }
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [internalDebug, sceneDebug, camera]);
 
   const dom = useThree((s) => s.gl.domElement);
   useEffect(() => {
@@ -302,12 +474,19 @@ export function Rig({
     };
     const onMove = (e: PointerEvent) => {
       const p = press.current;
-      if (p && !p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 4) p.moved = true;
+      if (p && !p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) > 4) {
+        p.moved = true;
+        // the reader is dragging: a glide ends where it is, so the drag is not fought frame by frame
+        glide.current = null;
+        settleTo.current = null;
+      }
     };
     const onWheel = () => {
       touched.current = true;
-      // the reader has the camera: a halted flight is not resumed
+      // the reader has the camera: a halted flight is not resumed, a glide ends where it is, the first look does not settle
       flight.current = null;
+      glide.current = null;
+      settleTo.current = null;
       setMoved(true);
       onFlight?.(false);
     };
@@ -350,9 +529,10 @@ export function Rig({
     <CameraControls
       ref={ref}
       makeDefault
-      minDistance={70}
+      // the floor: no closer than a street's width from what it looks at, and never straight down on the roofs; every shot fits above it (the close-up lands near 800)
+      minDistance={140}
       maxDistance={5200}
-      minPolarAngle={0.06}
+      minPolarAngle={0.2}
       maxPolarAngle={1.42}
       smoothTime={0.42}
       draggingSmoothTime={0.14}
@@ -375,8 +555,10 @@ export function Rig({
           return;
         }
         touched.current = true;
-        // the reader took the camera: a halted flight is not resumed
+        // the reader took the camera: a halted flight is not resumed, a glide ends where it is, the first look does not settle
         flight.current = null;
+        glide.current = null;
+        settleTo.current = null;
         setMoved(true);
         onFlight?.(false);
         if (c && shotWas.current === "home") mine.current = { pos: c.getPosition(new Vector3()), target: c.getTarget(new Vector3()) };

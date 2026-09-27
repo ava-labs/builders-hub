@@ -5,6 +5,7 @@ import type { City } from "@/components/explorer-v2/network/city";
 import type { Ground } from "@/components/explorer-v2/network/ground";
 import type { Site } from "@/components/explorer-v2/network/newcomers";
 import { hubWindows } from "./HubTower";
+import { noShapes, plannerOf, type FormPart, type ShapeKey } from "./forms";
 
 /* The city as a model in three dimensions, worked out once per plan: the
    map's plan (city.ts) and its buildings' forms (icm-map.tsx) stood up in
@@ -93,6 +94,10 @@ export interface Building {
   /** its shaft's first and last lit storey */
   k0: number;
   k1: number;
+  /** where a drone sets a message down: a point on its roof */
+  drop: [number, number, number];
+  /** the radius of free roof round that point, where a district's plan knows it, for the drone's landing ring */
+  ring?: number;
 }
 
 export interface CityModel {
@@ -115,6 +120,8 @@ export interface CityModel {
   solar: Inst[];
   lamps: Lamp[];
   trees: Tree[];
+  /** the districts' own shapes (forms/), each drawn as one instanced mesh */
+  shapes: Record<ShapeKey, Inst[]>;
 }
 
 /* how far in from a face's ends its glass stops, as a share of the face, as the map's glassInset */
@@ -172,6 +179,7 @@ export function modelOf(nodes: Node[]): CityModel {
     solar: [],
     lamps: [],
     trees: [],
+    shapes: noShapes(),
   };
   // the three tallest after downtown are the skyline's landmarks, with spires
   const landmarks = new Set(
@@ -182,6 +190,8 @@ export function modelOf(nodes: Node[]): CityModel {
       .map((n) => n.id),
   );
   const order = new Map([...nodes].sort((a, b) => riseDelay(a) - riseDelay(b)).map((n, i) => [n.id, i]));
+  // each district's own architecture, where it has one (forms/)
+  const designOf = plannerOf(nodes);
   nodes.forEach((n) => {
     const b = m.buildings.length;
     const [x, z] = planOf(n.x, n.y);
@@ -189,7 +199,8 @@ export function modelOf(nodes: Node[]): CityModel {
     // the roofs are restrained, as a presentation model's: half the water tanks stay, and every mast and leg is a fine steel line
     const drawn = formOf(n, landmarks.has(n.id));
     const form: Form = drawn.roof === "water" && diceOf(`${n.id}:tank`)() < 0.5 ? { ...drawn, roof: "flat" } : drawn;
-    const parts = partsOf(n.w, n.h, form.kind, form.flip);
+    const plan = hub ? null : designOf(n);
+    const parts: FormPart[] = plan?.parts ?? partsOf(n.w, n.h, form.kind, form.flip);
     const base = hub ? 0 : BLOCK_H;
     const building: Building = {
       id: n.id,
@@ -199,14 +210,17 @@ export function modelOf(nodes: Node[]): CityModel {
       base,
       form,
       parts,
-      crest: hub ? n.h : crestOf(n.w, n.h, form),
+      crest: hub ? n.h : plan?.crest ?? crestOf(n.w, n.h, form),
       storeys: Math.max(1, Math.floor(n.h / FLOOR)),
       rise: order.get(n.id) ?? 0,
       light: lightDelayOf(n),
-      extent: hub ? n.w * 1.8 : n.w * (form.kind === "slab" ? 1.35 : 1.05),
+      extent: hub ? n.w * 1.8 : plan?.extent ?? n.w * (form.kind === "slab" ? 1.35 : 1.05),
       shaft: new Map(),
       k0: 0,
       k1: -1,
+      // a district's plan names its roof's landing point; else the ground point at the top part's height, or at the set's height where it has no parts
+      drop: plan?.drop ? [x + plan.drop.dx, base + plan.drop.z, z + plan.drop.dy / TILT] : [x, base + (parts.length ? Math.max(...parts.map((p) => p.z1)) : n.h), z],
+      ring: plan?.drop?.r,
     };
     m.byId.set(n.id, b);
     m.buildings.push(building);
@@ -216,20 +230,25 @@ export function modelOf(nodes: Node[]): CityModel {
       return;
     }
     // the part whose floors the set's transactions light: its longest run, over any podium
-    const shaftAt = parts.reduce((best, p, i) => (p.z1 <= n.h && p.z1 - p.z0 > parts[best].z1 - parts[best].z0 ? i : best), 0);
+    const shaftAt = plan?.shaft ?? parts.reduce((best, p, i) => (p.z1 <= n.h && p.z1 - p.z0 > parts[best].z1 - parts[best].z0 ? i : best), 0);
     const shaft = parts[shaftAt];
     building.k0 = Math.ceil((shaft.z0 - 1.3) / FLOOR);
     building.k1 = Math.floor((shaft.z1 - 5.3) / FLOOR);
     parts.forEach((p, pi) => {
       const px = x + (p.dx ?? 0);
       const pz = z + (p.dy ?? 0) / TILT;
+      // a district's part may carry its glass taller or shorter, on some storeys, or none; a drum may be an ellipse on the grid
+      const gh = p.glass?.h ?? 2.5;
+      const glazed = (k: number) => !p.glass?.none && (p.glass?.on?.(k) ?? true);
       if (p.round) {
-        m.drums.push({ b, x: px, y: base + p.z0, z: pz, sx: p.w, sy: p.z1 - p.z0, sz: p.w, yaw: 0 });
+        const d = p.d ?? p.w;
+        const yaw = p.d === undefined ? 0 : YAW;
+        m.drums.push({ b, x: px, y: base + p.z0, z: pz, sx: p.w, sy: p.z1 - p.z0, sz: d, yaw });
         for (let k = 0; k < building.storeys; k++) {
-          const za = k * FLOOR + 1.8;
-          if (za < p.z0 + 0.5 || za + 2.5 > p.z1 - 1) continue;
+          const za = k * FLOOR + 1.8 + (2.5 - gh) / 2;
+          if (!glazed(k) || za < p.z0 + 0.5 || za + gh > p.z1 - 1) continue;
           if (pi === shaftAt) building.shaft.set(k, [-1 - m.bands.length]);
-          m.bands.push({ b, x: px, y: base + za, z: pz, sx: p.w + PROUD, sy: 2.5, sz: p.w + PROUD, yaw: 0, k, tone: "floor" });
+          m.bands.push({ b, x: px, y: base + za, z: pz, sx: p.w + PROUD, sy: gh, sz: d + PROUD, yaw, k, tone: "floor" });
         }
         return;
       }
@@ -238,19 +257,20 @@ export function modelOf(nodes: Node[]): CityModel {
       m.boxes.push({ b, x: px, y: base + p.z0, z: pz, sx: l * R2, sy: p.z1 - p.z0, sz: r * R2, yaw: YAW });
       const faces = facesOf(l, r);
       for (let k = 0; k < building.storeys; k++) {
-        const za = k * FLOOR + 1.8;
-        const zb = za + 2.5;
-        if (za < p.z0 + 0.5 || zb > p.z1 - 1) continue;
+        const za = k * FLOOR + 1.8 + (2.5 - gh) / 2;
+        const zb = za + gh;
+        if (!glazed(k) || za < p.z0 + 0.5 || zb > p.z1 - 1) continue;
         const ids: number[] = [];
         for (const f of faces) {
           const d = f.depth + PROUD;
           ids.push(m.ribbons.length);
-          m.ribbons.push({ b, x: px + f.n[0] * d, y: base + za, z: pz + f.n[1] * d, sx: f.len * (1 - 2 * f.t), sy: 2.5, sz: 1, yaw: yawOf(f.n[0], f.n[1]), k, tone: "floor" });
+          m.ribbons.push({ b, x: px + f.n[0] * d, y: base + za, z: pz + f.n[1] * d, sx: f.len * (1 - 2 * f.t), sy: gh, sz: 1, yaw: yawOf(f.n[0], f.n[1]), k, tone: "floor" });
         }
         if (pi === shaftAt) building.shaft.set(k, ids);
       }
     });
-    roofOf(m, building);
+    if (plan) plan.dress(m, building, b);
+    else roofOf(m, building);
   });
   return m;
 }
@@ -406,20 +426,34 @@ export function groundTrees(city: City, terrain: Ground): Tree[] {
 }
 
 /** each building's foot on its lot, for the soft shadow the ground paints round it */
-export function feetOf(m: CityModel): { poly?: [number, number][]; round?: [number, number, number] }[] {
-  const out: { poly?: [number, number][]; round?: [number, number, number] }[] = [];
+/** each building's foot on its lot, and the building it is (b), for its contact shade */
+export function feetOf(m: CityModel): { poly?: [number, number][]; round?: [number, number, number]; b: number }[] {
+  const out: { poly?: [number, number][]; round?: [number, number, number]; b: number }[] = [];
   const onLot = (i: Inst) => i.b >= 0 && Math.abs(i.y - m.buildings[i.b].base) < 0.01;
   const ax: [number, number] = [Math.cos(YAW), -Math.sin(YAW)];
   const az: [number, number] = [Math.sin(YAW), Math.cos(YAW)];
   for (const i of m.boxes) {
     if (!onLot(i)) continue;
     const corner = (u: number, v: number): [number, number] => [i.x + ax[0] * u * i.sx * 0.5 + az[0] * v * i.sz * 0.5, i.z + ax[1] * u * i.sx * 0.5 + az[1] * v * i.sz * 0.5];
-    out.push({ poly: [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)] });
+    out.push({ poly: [corner(-1, -1), corner(1, -1), corner(1, 1), corner(-1, 1)], b: i.b });
   }
-  for (const i of m.drums) if (onLot(i)) out.push({ round: [i.x, i.z, i.sx] });
+  for (const i of m.drums) {
+    if (!onLot(i)) continue;
+    if (i.sx === i.sz) {
+      out.push({ round: [i.x, i.z, i.sx], b: i.b });
+      continue;
+    }
+    // an elliptical drum's foot is its outline, turned with it
+    const poly = Array.from({ length: 28 }, (_, k): [number, number] => {
+      const t = (2 * Math.PI * k) / 28;
+      const [u, v] = [i.sx * Math.cos(t), i.sz * Math.sin(t)];
+      return [i.x + u * Math.cos(i.yaw) + v * Math.sin(i.yaw), i.z - u * Math.sin(i.yaw) + v * Math.cos(i.yaw)];
+    });
+    out.push({ poly, b: i.b });
+  }
   // downtown's foot is its forecourt's outer step
   const hub = m.buildings[m.hub];
-  if (hub) out.push({ poly: chamferOf(hub.n.w * STEPS[0], STEP_CUT).map(([x, z]): [number, number] => [hub.x + x, hub.z + z]) });
+  if (hub) out.push({ poly: chamferOf(hub.n.w * STEPS[0], STEP_CUT).map(([x, z]): [number, number] => [hub.x + x, hub.z + z]), b: m.hub });
   return out;
 }
 

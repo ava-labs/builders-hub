@@ -10,6 +10,7 @@ import {
   Color,
   Float32BufferAttribute,
   LinearMipmapLinearFilter,
+  MathUtils,
   Mesh,
   PerspectiveCamera,
   Points,
@@ -17,7 +18,6 @@ import {
   ShaderMaterial,
   SphereGeometry,
   SRGBColorSpace,
-  TextureLoader,
   Vector2,
   Vector3,
   type Texture,
@@ -25,7 +25,10 @@ import {
 import { PLATE } from "@/components/explorer-v2/network/icm-map";
 import { diceOf } from "@/components/explorer-v2/network/city-geometry";
 import type { Theme } from "./palette";
+import { SUN } from "./Lighting";
 import { TIME } from "./shaders";
+import { loadTile } from "./tile";
+import { OPENING, RISE_DEPTH } from "./warmup";
 
 /* The backdrop: a cool, still atmosphere round the column, in the brand's
    greys. The sky is a gradient drawn here: by day from the brand's light
@@ -37,10 +40,24 @@ import { TIME } from "./shaders";
    noise so the tile never shows its repeat; it drifts very slowly, and the
    plate's shadow lies faint on it. By night the fog is barely there. Until
    the city stands the sea is a plain tile painted here; the image then
-   fades in, and where it cannot load the painted tile stays. A sparse,
-   slow fall of fine snow may drift across the city, left to right; it is
-   off unless asked for, and never shows to a reader who asks for less
-   motion. Two draw calls, three with the snow, all round the camera. */
+   fades in, and where it cannot load the painted tile stays. The sky's
+   lights are placed for the picture: the sun stands at the upper left of
+   the city's own view, on a bearing fixed in the world, so it moves as the
+   camera goes round, and always a few degrees under the frame's top edge,
+   so it stays in the band of haze at the top of the frame however the
+   camera tilts; it is a soft white disc with a wide, low glow that lights
+   the haze on its side. By night the moon stands in its place, pale, with
+   a faint glow and its seas on its face, and a sparse field of stars
+   stands in the same band, sized by their brightness, a few of them
+   twinkling slowly; they fade out down the band before the cloud tops
+   show. The sea's fog takes the sun, the moon and the stars wherever the
+   clouds show through it, so none of them ever sits over the clouds. A
+   theme's switch cross-fades them, the sun dimming into the moon. The key
+   light (Lighting.tsx) stays where it is, behind the city's view; the sun
+   at its upper left is the picture's. A sparse, slow fall of fine snow may drift across the
+   city, left to right; it is off unless asked for, and never shows to a
+   reader who asks for less motion. Three draw calls, four with the snow,
+   all round the camera. */
 
 /** the sky's radius round the camera, inside the lens's far plane */
 const SKY_R = 11000;
@@ -58,10 +75,9 @@ const SNOW_WIND = 5;
 /** how long the image takes to fade in over the painted tile */
 const FADE_S = 1.6;
 const SRC: Record<Theme, string> = { light: "/images/city3d/clouds-day.webp", dark: "/images/city3d/clouds-night.webp" };
-/** the sun, where the city's light stands (City3D.tsx) */
-const SUN = new Vector3(-0.46, 1, 0.18).normalize();
-/** the plate's shadow on the sea, along the sun's light */
-const SHADOW = new Vector2((-SUN.x * -SEA_Y) / SUN.y, (-SUN.z * -SEA_Y) / SUN.y);
+/** the plate's shadow on the sea, along the key light (Lighting.tsx), from the plate's height over the sea: at its place, and as the column rises (warmup.tsx) */
+const shadowAt = (plateY: number, out: Vector2) => out.set((-SUN.x * (plateY - SEA_Y)) / SUN.y, (-SUN.z * (plateY - SEA_Y)) / SUN.y);
+const SHADOW = shadowAt(0, new Vector2());
 
 /* each theme's sky and sea: the zenith, the sky, the haze at the horizon
    (the fog); and the clouds' tone: the tile's mean, their contrast round
@@ -72,13 +88,85 @@ const LOOK: Record<Theme, { zenith: string; sky: string; haze: string; mean: str
   dark: { zenith: "#1F1F1F", sky: "#161A21", haze: "#0D1118", mean: "#2D4A6A", contrast: 0.22, sat: 0.15, tint: 0.26, lift: 0.62, shade: 0.2, fog: 0.9e-4, flake: "#DCE4F0", flakeA: 0.55 },
 };
 
+/** the sun's and the moon's place: a bearing fixed in the world, 14 degrees left of the city's own view (its camera looks along -z), where that view shows it about a fifth of the way in from its left edge; a height a fixed angle under the frame's top edge, and never under the horizon when the frame shows it; and their size, as angles */
+const DISC_LEFT = (14 * Math.PI) / 180;
+const DISC_XZ = new Vector2(-Math.sin(DISC_LEFT), -Math.cos(DISC_LEFT));
+const DISC_BELOW = (3.2 * Math.PI) / 180;
+const DISC_R = (0.7 * Math.PI) / 180;
+/** the least height over the horizon the sun or the moon keeps once the frame shows a band of sky over it: the top edge's heights the lift comes in over, and how far under the top edge the disc may then come */
+const DISC_LIFT = (1 * Math.PI) / 180;
+const LIFT_BAND: [number, number] = [(1.5 * Math.PI) / 180, (3.5 * Math.PI) / 180];
+const LIFT_ROOM = (2.5 * Math.PI) / 180;
+/** the stars' band under the frame's top edge: they stand from its top down, fading out between these two angles */
+const STAR_BAND: [number, number] = [(3 * Math.PI) / 180, (5.5 * Math.PI) / 180];
+/* the sky's lights: the sun's face and the moon's, and each one's glow on the haze, a color at its strength */
+const LIGHTS = { sun: "#FFFFFF", moon: "#D6DEEA", sunGlow: ["#FFFFFF", 0.13] as const, moonGlow: ["#9AA6B8", 0.06] as const };
+/** the stars: how many, all round, and their color, a cool white */
+const STARS = 260;
+const STAR = "#E6ECF5";
+/** how fast a theme's switch cross-fades the sky's lights, a share a second */
+const FADE_RATE = 4;
+
 const HASH = /* glsl */ `
 float hash( vec2 p ) { return fract( sin( dot( p, vec2( 127.1, 311.7 ) ) ) * 43758.5453 ); }
 `;
 
-function skyMaterial(): ShaderMaterial {
+/* the sun or the moon, shared by the sky and the sea so they meet with no seam: a soft glow close round it, a wide, low one along the haze on its side, and its disc */
+const LIGHT = /* glsl */ `
+uniform vec3 uDisc;
+uniform float uDiscR;
+uniform vec3 uGlowDay;
+uniform vec3 uGlowNight;
+uniform vec3 uSunFace;
+uniform vec3 uMoonFace;
+uniform float uNight;
+vec3 glowAt( vec3 d ) {
+  float ang = acos( clamp( dot( d, uDisc ), -1.0, 1.0 ) );
+  float n = length( d.xz );
+  float dAz = n < 1e-5 ? 3.1416 : acos( clamp( dot( d.xz / n, normalize( uDisc.xz ) ), -1.0, 1.0 ) );
+  float dEl = asin( clamp( d.y, -1.0, 1.0 ) ) - asin( clamp( uDisc.y, -1.0, 1.0 ) );
+  float wide = exp( -dAz * dAz / 0.22 ) * exp( -dEl * dEl / 0.012 );
+  return mix( uGlowDay, uGlowNight, uNight ) * ( 1.2 * exp( -ang / 0.045 ) + wide );
+}
+// the disc's share of a direction, and its face: the sun's white, or the moon's, darker toward its edge, with its seas faint and uneven, the large ones to the upper left
+vec4 discAt( vec3 d ) {
+  float ang = acos( clamp( dot( d, uDisc ), -1.0, 1.0 ) );
+  float k = 1.0 - smoothstep( uDiscR * 0.9, uDiscR, ang );
+  if ( k <= 0.0 ) return vec4( 0.0 );
+  vec3 r = normalize( cross( vec3( 0.0, 1.0, 0.0 ), uDisc ) );
+  vec3 u = cross( uDisc, r );
+  vec2 q = vec2( dot( d, r ), dot( d, u ) ) / sin( uDiscR );
+  float limb = 1.0 - 0.2 * ( 1.0 - sqrt( max( 0.0, 1.0 - dot( q, q ) ) ) );
+  float seas = 1.0
+    - 0.09 * smoothstep( 0.55, 0.0, length( ( q - vec2( -0.42, 0.02 ) ) * vec2( 0.8, 1.2 ) ) )
+    - 0.08 * smoothstep( 0.34, 0.0, length( q - vec2( -0.14, 0.4 ) ) )
+    - 0.07 * smoothstep( 0.3, 0.0, length( q - vec2( 0.24, 0.16 ) ) )
+    - 0.06 * smoothstep( 0.18, 0.0, length( q - vec2( 0.6, 0.18 ) ) );
+  return vec4( mix( uSunFace, uMoonFace * limb * seas, uNight ), k );
+}
+`;
+
+/* the sky's lights' uniforms, one set shared by the sky and the sea */
+function lightUniforms(night: { value: number }, disc: { value: Vector3 }) {
+  return {
+    uDisc: disc,
+    uDiscR: { value: DISC_R },
+    uGlowDay: { value: new Color(LIGHTS.sunGlow[0]).multiplyScalar(LIGHTS.sunGlow[1]) },
+    uGlowNight: { value: new Color(LIGHTS.moonGlow[0]).multiplyScalar(LIGHTS.moonGlow[1]) },
+    uSunFace: { value: new Color(LIGHTS.sun) },
+    uMoonFace: { value: new Color(LIGHTS.moon) },
+    uNight: night,
+  };
+}
+
+function skyMaterial(night: { value: number }, disc: { value: Vector3 }): ShaderMaterial {
   return new ShaderMaterial({
-    uniforms: { uZenith: { value: new Color() }, uSky: { value: new Color() }, uHaze: { value: new Color() } },
+    uniforms: {
+      uZenith: { value: new Color() },
+      uSky: { value: new Color() },
+      uHaze: { value: new Color() },
+      ...lightUniforms(night, disc),
+    },
     vertexShader: /* glsl */ `
       varying vec3 vDir;
       void main() {
@@ -91,12 +179,17 @@ function skyMaterial(): ShaderMaterial {
       uniform vec3 uHaze;
       varying vec3 vDir;
       ${HASH}
+      ${LIGHT}
       void main() {
         vec3 d = normalize( vDir );
         // the haze at the horizon, the sky over it, the zenith; under the horizon the haze the sea fades into.
         // A low camera sees a few degrees of sky, so the sky comes in close over the haze
         vec3 c = mix( uHaze, uSky, smoothstep( -0.01, 0.12, d.y ) );
         c = mix( c, uZenith, smoothstep( 0.12, 0.8, d.y ) );
+        // the sun or the moon, and its glow on the haze
+        c += glowAt( d );
+        vec4 disc = discAt( d );
+        c = mix( c, disc.rgb, disc.a );
         gl_FragColor = vec4( c, 1.0 );
         #include <colorspace_fragment>
         // a grain under half a level of 8 bits, added after the color space so it stays that small in the dark, so the gradient does not band
@@ -106,6 +199,109 @@ function skyMaterial(): ShaderMaterial {
     depthTest: false,
     depthWrite: false,
   });
+}
+
+function starMaterial(night: { value: number }, disc: { value: Vector3 }, top: { value: number }): ShaderMaterial {
+  return new ShaderMaterial({
+    uniforms: {
+      uTime: TIME,
+      uDpr: { value: 1 },
+      uNight: night,
+      uColor: { value: new Color(STAR) },
+      uRadius: { value: SKY_R * 0.96 },
+      uDisc: disc,
+      uDiscR: { value: DISC_R },
+      uTop: top,
+      uBand: { value: new Vector2(...STAR_BAND) },
+      uCam: { value: new Vector3() },
+      uDensity: { value: 1e-4 },
+      uSkyBand: { value: new Vector2(...LIFT_BAND) },
+    },
+    vertexShader: /* glsl */ `
+      attribute float aAz;
+      attribute float aBelow;
+      attribute float aSize;
+      attribute float aAlpha;
+      attribute float aTwinkle;
+      attribute float aPhase;
+      uniform float uTime;
+      uniform float uDpr;
+      uniform float uNight;
+      uniform float uRadius;
+      uniform vec3 uDisc;
+      uniform float uDiscR;
+      uniform float uTop;
+      uniform vec2 uBand;
+      uniform vec3 uCam;
+      uniform float uDensity;
+      uniform vec2 uSkyBand;
+      varying float vAlpha;
+      void main() {
+        // its bearing fixed in the world, its height a fixed angle under the frame's top edge
+        float e = uTop - aBelow;
+        vec3 d = vec3( sin( aAz ) * cos( e ), sin( e ), cos( aAz ) * cos( e ) );
+        gl_Position = projectionMatrix * viewMatrix * vec4( uCam + d * uRadius, 1.0 );
+        gl_PointSize = aSize * uDpr;
+        // where it would stand over the sea, the sea's fog there: none over the clouds
+        float f = 1.0;
+        if ( d.y < 0.0 ) {
+          float t = ( ${SEA_Y.toFixed(1)} - uCam.y ) / d.y;
+          vec3 hit = uCam + d * t;
+          f = 1.0 - exp( -t * t * uDensity * uDensity );
+          f = max( f, smoothstep( ${(SEA_R * 0.62).toFixed(1)}, ${(SEA_R * 0.9).toFixed(1)}, length( hit.xz - uCam.xz ) ) );
+        }
+        // none in front of the moon, and fewer in its glow
+        float fromDisc = acos( clamp( dot( d, uDisc ), -1.0, 1.0 ) );
+        // the few that twinkle, slowly and a little
+        float twinkle = 1.0 - 0.18 * aTwinkle * ( 0.5 + 0.5 * sin( uTime * 0.5 + aPhase * 6.2832 ) );
+        // when the frame shows the horizon, none under it
+        float over = mix( 1.0, smoothstep( -0.004, 0.012, d.y ), smoothstep( uSkyBand.x, uSkyBand.y, uTop ) );
+        vAlpha = aAlpha * twinkle * uNight * over * ( 1.0 - smoothstep( uBand.x, uBand.y, aBelow ) ) * smoothstep( 0.9, 1.0, f ) * smoothstep( uDiscR * 1.2, uDiscR * 4.0, fromDisc );
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uColor;
+      varying float vAlpha;
+      void main() {
+        float a = smoothstep( 0.5, 0.18, length( gl_PointCoord - 0.5 ) ) * vAlpha;
+        if ( a < 0.01 ) discard;
+        gl_FragColor = vec4( uColor, a );
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+  });
+}
+
+/* the stars: all round, each on a bearing and at an angle under the frame's top edge, in the band, and each a magnitude, which sets its size and light; the brightest few twinkle */
+function starGeometry(): BufferGeometry {
+  const roll = diceOf("stars");
+  const az: number[] = [];
+  const below: number[] = [];
+  const size: number[] = [];
+  const alpha: number[] = [];
+  const twinkle: number[] = [];
+  const phase: number[] = [];
+  for (let i = 0; i < STARS; i++) {
+    az.push(roll() * Math.PI * 2);
+    below.push(((0.3 + roll() * 5) * Math.PI) / 180);
+    // magnitude 0 to 4, most of them faint; its light, as a star's is, 10^(-0.4 m)
+    const m = 4 * Math.sqrt(roll());
+    const light = Math.pow(10, -0.4 * m);
+    size.push(1 + 1.8 * Math.sqrt(light));
+    alpha.push(0.24 + 0.7 * Math.pow(light, 0.35));
+    twinkle.push(light > 0.3 ? 1 : 0);
+    phase.push(roll());
+  }
+  const g = new BufferGeometry();
+  // the positions are worked out in the shader; three wants one to count the points by
+  g.setAttribute("position", new Float32BufferAttribute(new Float32Array(STARS * 3), 3));
+  g.setAttribute("aAz", new Float32BufferAttribute(az, 1));
+  g.setAttribute("aBelow", new Float32BufferAttribute(below, 1));
+  g.setAttribute("aSize", new Float32BufferAttribute(size, 1));
+  g.setAttribute("aAlpha", new Float32BufferAttribute(alpha, 1));
+  g.setAttribute("aTwinkle", new Float32BufferAttribute(twinkle, 1));
+  g.setAttribute("aPhase", new Float32BufferAttribute(phase, 1));
+  return g;
 }
 
 function snowMaterial(): ShaderMaterial {
@@ -147,9 +343,10 @@ function snowMaterial(): ShaderMaterial {
   });
 }
 
-function seaMaterial(tile: Texture | null): ShaderMaterial {
+function seaMaterial(tile: Texture | null, night: { value: number }, disc: { value: Vector3 }): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: {
+      ...lightUniforms(night, disc),
       uMap: { value: tile },
       uNext: { value: tile },
       uMix: { value: 0 },
@@ -189,6 +386,7 @@ function seaMaterial(tile: Texture | null): ShaderMaterial {
       uniform float uDensity;
       varying vec3 vWorld;
       ${HASH}
+      ${LIGHT}
       float noise( vec2 p ) {
         vec2 i = floor( p );
         vec2 f = fract( p );
@@ -219,6 +417,11 @@ function seaMaterial(tile: Texture | null): ShaderMaterial {
         float f = 1.0 - exp( -d * d * uDensity * uDensity );
         f = max( f, smoothstep( ${(SEA_R * 0.62).toFixed(1)}, ${(SEA_R * 0.9).toFixed(1)}, distance( p, uCam.xz ) ) );
         vec3 c = mix( t, uHaze, f );
+        // the sun or the moon over the far fog, as the sky shows it, and none of it where the clouds show through
+        vec3 v = normalize( vWorld - uCam );
+        c += glowAt( v ) * f;
+        vec4 disc = discAt( v );
+        c = mix( c, disc.rgb, disc.a * smoothstep( 0.8, 1.0, f ) );
         gl_FragColor = vec4( c, 1.0 );
         #include <colorspace_fragment>
         // the same grain as the sky's, after the color space
@@ -307,20 +510,27 @@ export function Backdrop({
   const gl = useThree((s) => s.gl);
   const invalidate = useThree((s) => s.invalidate);
   const painted = useMemo(() => paintedTile(), []);
+  // how far the sky's lights stand toward the night's: the sun at 0, the moon and the stars at 1
+  const night = useMemo(() => ({ value: theme === "dark" ? 1 : 0 }), []);
+  // the sun's or the moon's direction, and the frame's top edge's height, both worked out each frame from the camera
+  const disc = useMemo(() => ({ value: new Vector3(0, 0, -1) }), []);
+  const top = useMemo(() => ({ value: 0 }), []);
   const parts = useMemo(() => {
-    const sky = new Mesh(new SphereGeometry(SKY_R, 48, 24), skyMaterial());
+    const sky = new Mesh(new SphereGeometry(SKY_R, 64, 32), skyMaterial(night, disc));
+    const stars = new Points(starGeometry(), starMaterial(night, disc, top));
     const flakes = new Points(snowGeometry(), snowMaterial());
-    const sea = new Mesh(new CircleGeometry(SEA_R, 96).rotateX(-Math.PI / 2), seaMaterial(painted));
-    // the sky first, under everything; the sea next; the snow with the other clear things, in the city's air
+    const sea = new Mesh(new CircleGeometry(SEA_R, 96).rotateX(-Math.PI / 2), seaMaterial(painted, night, disc));
+    // the sky first, under everything; the sea next; the stars and the snow with the other clear things, the stars behind all of it
     sky.renderOrder = -20;
     sea.renderOrder = -19;
+    stars.renderOrder = -18;
     flakes.renderOrder = 5;
-    for (const o of [sky, flakes, sea]) o.frustumCulled = false;
-    return { sky, flakes, sea };
-  }, [painted]);
+    for (const o of [sky, stars, flakes, sea]) o.frustumCulled = false;
+    return { sky, stars, flakes, sea };
+  }, [painted, night, disc, top]);
   useEffect(
     () => () => {
-      for (const o of [parts.sky, parts.flakes, parts.sea]) {
+      for (const o of [parts.sky, parts.stars, parts.flakes, parts.sea]) {
         o.geometry.dispose();
         (o.material as ShaderMaterial).dispose();
       }
@@ -345,13 +555,17 @@ export function Backdrop({
     sea.uLift.value = k.lift;
     sea.uShade.value = k.shade;
     sea.uDensity.value = k.fog;
+    (parts.stars.material as ShaderMaterial).uniforms.uDensity.value = k.fog;
     const f = (parts.flakes.material as ShaderMaterial).uniforms;
     f.uColor.value.set(k.flake);
     f.uAlpha.value = k.flakeA;
+    // for a reader who asks for less motion the sky's lights change at once
+    if (still) night.value = theme === "dark" ? 1 : 0;
     invalidate();
-  }, [theme, parts, invalidate]);
+  }, [theme, parts, night, still, invalidate]);
 
-  /* the images: each theme's loads once, after the city stands, and fades in over what the sea shows */
+  /* the images: each theme's loads once and fades in over what the sea shows once the city stands; the theme's own loads
+     as the city mounts, a bitmap decoded off the main thread and on the GPU in its own task (tile.ts), so no frame waits on it */
   const images = useRef(new Map<Theme, Texture | "missing" | "loading">());
   const fade = useRef<{ from: number } | null>(null);
   // the tile the sea shows or is fading to, so a fade starts once
@@ -366,7 +580,8 @@ export function Backdrop({
     if (fade.current) u.uMap.value = u.uNext.value;
     u.uNext.value = t;
     u.uMix.value = 0;
-    if (still) {
+    // a reader who asks for less motion, and a return to the page, which opens standing and lit, take the image at once
+    if (still || OPENING.returning) {
       u.uMap.value = t;
       fade.current = null;
       invalidate();
@@ -374,32 +589,53 @@ export function Backdrop({
     }
     fade.current = { from: performance.now() };
   };
-  const request = (t: Theme) => {
+  const request = (t: Theme, showIt = true) => {
     const have = images.current.get(t);
     if (have === "missing" || have === "loading") return;
-    if (have) return show(have);
+    if (have) return showIt ? show(have) : undefined;
     images.current.set(t, "loading");
-    new TextureLoader().load(
-      SRC[t],
-      (tex) => {
-        images.current.set(t, tileOf(tex));
-        if (want.current === t) show(tex);
-      },
-      undefined,
-      // no image: the painted tile stays
-      () => images.current.set(t, "missing"),
-    );
+    // no image: the painted tile stays; a frame after the city stands shows the one that came
+    void loadTile(gl, SRC[t], 4).then((tex) => {
+      images.current.set(t, tex ?? "missing");
+      invalidate();
+    });
   };
+  useEffect(() => request(theme, false));
+  useEffect(() => {
+    const kept = images.current;
+    return () => kept.forEach((t) => typeof t !== "string" && t.dispose());
+  }, []);
 
-  useFrame(() => {
+  const edge = useMemo(() => new Vector3(), []);
+  useFrame((_, dt) => {
     parts.sky.position.copy(camera.position);
+    /* the frame's top edge in the middle of the frame, as the lens and the rig's shift of it for the app's panels show it; the sun or the moon
+       a fixed angle under it, on its bearing, and lifted over the horizon as the frame comes to show it */
+    edge.set(0, 1, 0.5).unproject(camera).sub(camera.position).normalize();
+    top.value = Math.asin(Math.max(-1, Math.min(1, edge.y)));
+    const under = top.value - DISC_BELOW;
+    const lift = MathUtils.smoothstep(top.value, LIFT_BAND[0], LIFT_BAND[1]);
+    const e = under + (Math.max(under, Math.min(DISC_LIFT, top.value - LIFT_ROOM)) - under) * lift;
+    disc.value.set(DISC_XZ.x * Math.cos(e), Math.sin(e), DISC_XZ.y * Math.cos(e));
+    (parts.stars.material as ShaderMaterial).uniforms.uCam.value.copy(camera.position);
     parts.sea.position.set(camera.position.x, SEA_Y, camera.position.z);
+    // the sky's lights cross-fade to the theme's
+    const to = want.current === "dark" ? 1 : 0;
+    if (night.value !== to) {
+      night.value += (to - night.value) * Math.min(1, dt * FADE_RATE);
+      if (Math.abs(to - night.value) < 0.002) night.value = to;
+      invalidate();
+    }
+    parts.stars.visible = night.value > 0.01;
+    (parts.stars.material as ShaderMaterial).uniforms.uDpr.value = gl.getPixelRatio();
     // the flakes keep their size in CSS pixels as the pixel ratio steps, and as the lens is set
     const fu = (parts.flakes.material as ShaderMaterial).uniforms;
     fu.uDpr.value = gl.getPixelRatio();
     fu.uFocal.value = gl.domElement.clientHeight / 2 / Math.tan(((camera as PerspectiveCamera).fov * Math.PI) / 360);
     const u = (parts.sea.material as ShaderMaterial).uniforms;
     u.uCam.value.copy(camera.position);
+    // the plate's shadow comes out from under it as the column rises
+    shadowAt(-RISE_DEPTH * (1 - OPENING.column.value), u.uShadow.value);
     if (TIME.value >= liveAt) request(want.current);
     const f = fade.current;
     if (f) {
@@ -417,6 +653,7 @@ export function Backdrop({
     <group>
       <primitive object={parts.sky} />
       <primitive object={parts.sea} />
+      <primitive object={parts.stars} />
       {snow && !still && <primitive object={parts.flakes} />}
     </group>
   );

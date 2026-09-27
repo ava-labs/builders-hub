@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Component, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, PanelLeftOpen, Search, Sparkles, X } from "lucide-react";
+import { Component, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, PanelLeftOpen, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -22,8 +22,16 @@ import { useChainPulse } from "@/components/explorer-v2/network/chain-pulse";
 import { ValidatorList, blockchainIdOf } from "@/components/explorer-v2/network/chain-quick-info";
 import { ChainLive, useClock, type LiveTarget, type LiveTip } from "@/components/explorer-v2/network/chain-live";
 import { PChainLive } from "@/components/explorer-v2/network/pchain-live";
-import { PCHAIN_PICK } from "@/components/explorer-v2/network/city-model";
+import { RouteView, type RouteEnd } from "@/components/explorer-v2/network/route-view";
+import { Glyph } from "@/components/explorer-v2/evm/query/Glyph";
+import { EXAMPLES, PCHAIN_EXAMPLES, type Glyph as GlyphKind } from "@/lib/explorer-query/examples";
+import { NewsFeed } from "@/components/explorer-v2/network/news-feed";
+import { AskWindow, askChainsOf, queryHref, routeFor, useAskWidth, type AskThread } from "@/components/explorer-v2/network/ask-window";
+import { PCHAIN_LOGO, PCHAIN_PICK } from "@/components/explorer-v2/network/city-model";
+import type { PchainPulse } from "@/components/explorer-v2/network/pchain-pulse";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
+import { webglForget, webglProbe } from "@/components/explorer-v2/network/webgl-probe";
+import { onCityStood } from "@/components/explorer-v2/network/city-signal";
 import { toStatsChainId } from "@/lib/dedicated-stats";
 import type { L1Chain } from "@/types/stats";
 
@@ -45,6 +53,9 @@ const REQUEST_LISTING_URL = "https://forms.gle/N4QkRo9UR45xeTTp9";
 
 /* the city in 3D: WebGL, loaded only when the view is asked for */
 const City3D = dynamic(() => import("@/components/explorer-v2/network/city3d/City3D"), { ssr: false });
+// on a screen wide enough for the city, its chunk loads as the page hydrates, not once the app has mounted; the same
+// specifier as the dynamic() above, so both ask for one chunk; a chunk that fails is the fence's to show
+if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) import("@/components/explorer-v2/network/city3d/City3D").catch(() => {});
 
 /* where the box sends an identifier: the pages the network search sends it to */
 const SEARCH_TARGETS: EntityTargets = {
@@ -54,7 +65,7 @@ const SEARCH_TARGETS: EntityTargets = {
   evmAddressBase: "/explorer/mainnet/c-chain",
   evmAddressChainName: "C-Chain",
 };
-/* a question opens the network's Query page, which answers from the chain it names */
+/* on a phone a question opens the network's Query page, which answers from the chain it names; a large screen answers it over the city (ask-window.tsx) */
 const ASK_AT = "/explorer/mainnet/query";
 
 type Net = "mainnet" | "testnet";
@@ -233,7 +244,7 @@ function LastBlock({ live, pulseAt }: { live: LiveTip | null; pulseAt: number | 
 /* the lists                                                           */
 /* ------------------------------------------------------------------ */
 
-function RowButton({ row, metric, painted, on, onOpen, onHover }: { row: Row; metric: string; painted: boolean; on: boolean; onOpen: () => void; onHover?: (id: string | null) => void }) {
+function RowButton({ row, metric, painted, on, onOpen, onHover, tag }: { row: Row; metric: string; painted: boolean; on: boolean; onOpen: () => void; onHover?: (id: string | null) => void; tag?: string }) {
   return (
     <li>
       <button
@@ -250,6 +261,7 @@ function RowButton({ row, metric, painted, on, onOpen, onHover }: { row: Row; me
         <Logo uri={row.logo} name={row.name} />
         <span className={cn("min-w-0 flex-1 truncate text-[13px]", on ? "text-[#0061E2] dark:text-[#5f9dff]" : "text-zinc-800 dark:text-zinc-200")}>
           {row.node?.role === "hub" ? "C-Chain" : row.name}
+          {tag && <span className="ml-1.5 font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{tag}</span>}
         </span>
         {row.newAt !== null && <NewBadge />}
         <span className="shrink-0 font-mono text-[10.5px] tabular-nums text-zinc-400 dark:text-zinc-500">{metric}</span>
@@ -437,20 +449,152 @@ function ChainView({
   );
 }
 
+/* the questions under the search: Query's own suggestions, which its warm
+   job answers ahead of time, so a click shows its chart at once. Each asks
+   the chain its list is for, and wears the chart it draws in miniature */
+const SUGGESTED = (
+  [
+    ["L1s by validators", "L1s by active validators, with the balance left for fees"],
+    ["Stake per day", "AVAX staked on the Primary Network per day this month"],
+    ["Busiest senders", "Busiest senders in the last hour"],
+    ["AVAX burned", "Fees burned per 5 minutes"],
+  ] as const
+).flatMap(([label, q]) => {
+  for (const [list, on] of [
+    [PCHAIN_EXAMPLES, "p-chain"],
+    [EXAMPLES, "c-chain"],
+  ] as const)
+    // a ring is too small to read at a chip's size, so a share draws as its ranking
+    for (const g of list) for (const it of g.items) if (it.q === q) return [{ label, q, on, glyph: (!it.glyph || it.glyph === "donut" ? "hbar" : it.glyph) as GlyphKind }];
+  return [];
+});
+
+/* the P-Chain's view, in the chain view's grammar. It has no EVM network
+   to add, so its first door is Core, the wallet that holds P-Chain AVAX and
+   stakes it; then its explorer, its figures and its facts. Its validators
+   are the Primary Network's, the set that runs the C-Chain too */
+const CORE_DOWNLOAD = "https://core.app/download";
+const PCHAIN_RPC = "https://api.avax.network/ext/bc/P";
+
+function PChainView({
+  primary,
+  pulse,
+  target,
+  onBack,
+  backLabel,
+}: {
+  /** the Primary Network's row: its validators and their versions */
+  primary: Row | null;
+  pulse: PchainPulse;
+  target: string;
+  onBack?: () => void;
+  backLabel: string;
+}) {
+  const s = pulse.stats;
+  const head = pulse.txs[0] ?? null;
+  // the stats' tip when it is newer, else the newest tx's block, as the P wing's card reads it
+  const height = Math.max(s?.tipHeight ?? 0, head?.height ?? 0) || null;
+  const at = s && s.tipHeight >= (head?.height ?? 0) ? s.tipTimestamp : (head?.ts ?? null);
+  const pBase = "/explorer/mainnet/p-chain";
+  const behind = primary?.mix ? primary.mix.near + primary.mix.stale : 0;
+  const figure = (label: string, value: ReactNode, sub?: ReactNode) => (
+    <div className="flex min-w-0 flex-col gap-0.5 bg-white px-3 py-2.5 dark:bg-zinc-950">
+      <dt className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</dt>
+      <dd className="truncate font-mono text-[15px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-50">{value}</dd>
+      {sub && <dd className="truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{sub}</dd>}
+    </div>
+  );
+  const fact = (label: string, value: ReactNode) => (
+    <div className="flex items-center justify-between gap-4 py-2">
+      <dt className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</dt>
+      <dd className="flex min-w-0 justify-end">{value}</dd>
+    </div>
+  );
+  return (
+    <div className="px-4 pb-6 pt-3">
+      {onBack && <BackButton onClick={onBack}>{backLabel}</BackButton>}
+      <div className="mt-3 flex items-center gap-3">
+        <BigLogo uri={PCHAIN_LOGO} name="P-Chain" />
+        <div className="min-w-0">
+          <h2 className="truncate text-[20px] font-semibold leading-tight tracking-tight text-zinc-900 dark:text-zinc-50">P-Chain</h2>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 font-mono text-[10.5px] uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400">
+            <span>Downtown · Primary Network</span>
+          </p>
+        </div>
+      </div>
+      <p className="mt-3 line-clamp-4 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-300">
+        The P-Chain keeps the validator sets of Avalanche. It runs staking on the Primary Network, and it creates L1s and manages their validators.
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a
+          href={CORE_DOWNLOAD}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-xl bg-zinc-900 px-3 text-[13px] font-semibold text-white shadow-sm transition-all hover:bg-zinc-800 hover:shadow-md dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+        >
+          <Download className="h-4 w-4" />
+          Download Core
+        </a>
+        <Link
+          href={pBase}
+          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl border border-zinc-200 px-3 text-[13px] font-semibold text-zinc-800 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-700 dark:hover:bg-zinc-900"
+        >
+          Explorer
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-zinc-200 bg-zinc-200 dark:border-zinc-800 dark:bg-zinc-800">
+        {figure("Validators", primary ? primary.validators.toLocaleString("en-US") : "—", behind > 0 ? `${behind} behind ${target}` : undefined)}
+        {figure(
+          `On ${target}+`,
+          !primary || primary.pct === null ? "—" : <span className={pctInk(primary.mix, primary.pct)}>{primary.pct}%</span>,
+          primary?.mix ? `${primary.mix.on} of ${mixTotal(primary.mix)} nodes` : "not reported",
+        )}
+        {figure("Tx · 24H", s ? fmtCompact(s.txCount24h) : "—")}
+        {figure("Block", height === null ? "—" : height.toLocaleString("en-US"))}
+      </dl>
+
+      <dl className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-900">
+        {/* the P-Chain's ID is the empty ID, which is the Primary Network's subnet ID too */}
+        {fact("Blockchain ID", <CopyValue value={PRIMARY_SUBNET_ID} shown={truncate(PRIMARY_SUBNET_ID, 8)} href={pBase} />)}
+        {fact("Token", <span className="font-mono text-[11.5px] text-zinc-700 dark:text-zinc-300">AVAX</span>)}
+        {fact("Public RPC", <CopyValue value={PCHAIN_RPC} shown={PCHAIN_RPC.replace(/^https?:\/\//, "")} />)}
+        {at !== null && fact("Last block", <LastBlock live={null} pulseAt={at * 1000} />)}
+        {fact(
+          "Validators",
+          <Link href={`${pBase}/validators`} className="inline-flex items-center gap-1 font-mono text-[11.5px] text-zinc-700 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-zinc-50">
+            Stake and uptime
+            <ArrowRight className="h-3 w-3" />
+          </Link>,
+        )}
+      </dl>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* the app                                                             */
 /* ------------------------------------------------------------------ */
 
-/* the 3D city needs WebGL 2; a browser without it gets a note and the list. The probe's context is let go at once */
+/* the width each of the strip's figures holds, in characters of its figure's face and of the line under it: the widest of
+   its placeholder and its usual reading ("$10.76" over "▲ 1.51% · 24h"; the placeholder "fully diluted" and its dash before "FDV $7.75B") */
+function figureMin(label: string): [number, number] {
+  if (label === "AVAX") return [7, 13];
+  if (label === "Market cap") return [7, 15];
+  if (label === "Chains") return [3, 11];
+  if (label === "Validators") return [5, 16];
+  if (label.startsWith("ICM")) return [5, 16];
+  if (label.startsWith("Tx")) return [5, 15];
+  return [0, 0];
+}
+
+/* the 3D city needs WebGL 2; a browser without it gets a note and the list. One probe answers the app and the city
+   (webgl-probe.ts), and a yes is kept for the next visit */
 function hasWebGL2(): boolean {
   if (typeof document === "undefined") return false;
-  try {
-    const gl = document.createElement("canvas").getContext("webgl2");
-    gl?.getExtension("WEBGL_lose_context")?.loseContext();
-    return !!gl;
-  } catch {
-    return false;
-  }
+  return webglProbe().webgl2;
 }
 
 /* the 3D city, fenced: if its scene throws (a GPU its shaders do not suit, a chunk that does not load), a note takes its
@@ -460,6 +604,10 @@ class SceneFence extends Component<{ inset: Inset; children: ReactNode }, { fell
   state = { fell: false };
   static getDerivedStateFromError() {
     return { fell: true };
+  }
+  // a city that fell (no context, or a scene that threw) is asked about again on the next load
+  componentDidCatch() {
+    webglForget();
   }
   render() {
     if (!this.state.fell) return this.props.children;
@@ -525,8 +673,26 @@ export function CityApp({
   const [inactive, setInactive] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [focus, setFocus] = useState<District | null>(null);
+  // an ICM route picked on its street, as "fromId~toId": its panel takes the chain's place
+  const [route, setRoute] = useState<string | null>(null);
   // the list stays shut until it is asked for: the city opens whole, and a chain or a district opens the panel by itself
   const [panelOpen, setPanelOpen] = useState(false);
+  /* the closed panel's list of every chain (a hundred rows and their logos) comes in at the panel's first open, or once
+     the city stands and the browser is idle, and stays after: its render and its logos' requests stay out of the opening */
+  const [listed, setListed] = useState(false);
+  useEffect(() => {
+    if (listed) return;
+    let idle = 0;
+    const off = onCityStood(() => {
+      // a transition: React renders the list in slices between frames, so the city's traffic keeps moving
+      const list = () => startTransition(() => setListed(true));
+      idle = window.requestIdleCallback ? window.requestIdleCallback(list, { timeout: 2000 }) : window.setTimeout(list, 200);
+    });
+    return () => {
+      off();
+      if (idle) (window.cancelIdleCallback ?? window.clearTimeout)(idle);
+    };
+  }, [listed]);
   const [rowHover, setRowHover] = useState<string | null>(null);
   // the open chain's live view, shut by its close until another chain opens
   const [liveShut, setLiveShut] = useState(false);
@@ -577,6 +743,41 @@ export function CityApp({
   // the search's picks show while the box has the focus; the arrow keys walk them
   const [searching, setSearching] = useState(false);
   const [hi, setHi] = useState(-1);
+  /* a question asked here opens its answer in a window over the city, on a
+     large screen. The thread rides the URL (?ask=, one &then= per
+     follow-up, &on= the chain), so a reload or a link opens it again; n
+     counts the questions, so a new one opens a fresh window */
+  const [ask, setAsk] = useState<(AskThread & { n: number }) | null>(() => {
+    if (typeof window === "undefined" || !wide) return null;
+    const p = new URLSearchParams(window.location.search);
+    const q = p.get("ask");
+    return q ? { q, then: p.getAll("then"), on: p.get("on") ?? "c-chain", for: p.get("for"), n: 1 } : null;
+  });
+  const askSeq = useRef(1);
+  // the open question's number: a window that is closing, or was replaced, no longer lights the city
+  const askNow = useRef<number | null>(null);
+  askNow.current = ask?.n ?? null;
+  // the window keeps its answer while it slides away
+  const [shownAsk, setShownAsk] = useState(ask);
+  useEffect(() => {
+    if (ask) {
+      setShownAsk(ask);
+      return;
+    }
+    const t = setTimeout(() => setShownAsk(null), 320);
+    return () => clearTimeout(t);
+  }, [ask]);
+  // the towers the answer's rows name, and the one under its pointer
+  const [askLit, setAskLit] = useState<Set<string> | null>(null);
+  const [askHover, setAskHover] = useState<string | null>(null);
+  const askChains = useMemo(() => askChainsOf(catalog), [catalog]);
+  const askW = useAskWidth();
+  // shutting the window gives the city back whole
+  const closeAsk = () => {
+    setAsk(null);
+    setAskLit(null);
+    setAskHover(null);
+  };
   // the windows wear their districts' glass; the Versions lens, or the Behind cut, lights them by client version
   const [lens, setLens] = useState<Lens>("districts");
   const versionLens = lens === "versions" || cut === "behind";
@@ -639,6 +840,15 @@ export function CityApp({
   );
   const allRows = useMemo(() => [...cityRows, ...quietRows, ...fujiRows], [cityRows, quietRows, fujiRows]);
   const rowById = useMemo(() => new Map(allRows.map((r) => [r.id, r])), [allRows]);
+  // the P-Chain's view reads the Primary Network's validators from the C-Chain's row: one set runs both
+  const hubRow = useMemo(() => allRows.find((r) => r.node?.role === "hub") ?? null, [allRows]);
+  // two chains may share a name (a relaunch, a team's second L1): the lists tell them apart by their blockchain ID's start
+  const twinNames = useMemo(() => {
+    const count = new Map<string, number>();
+    for (const r of allRows) count.set(r.name, (count.get(r.name) ?? 0) + 1);
+    return new Set([...count].filter(([, n]) => n > 1).map(([name]) => name));
+  }, [allRows]);
+  const twinTag = (r: Row) => (twinNames.has(r.name) ? (r.chain?.blockchainId ?? r.id).replace(/^0x/, "").slice(0, 4) : undefined);
 
   /* the list the panel shows: the network, the search, and the cut */
   const trimmed = query.trim();
@@ -727,6 +937,7 @@ export function CityApp({
   /* opening and closing */
   const open = (r: Row, from: "list" | "district" = focus ? "district" : "list") => {
     setSelected(r.id);
+    setRoute(null);
     setOpenedFrom(from);
     // the camera flies to the chain's district; downtown and chains the city does not stand keep the camera where it is
     if (r.node && r.district) setFocus(r.district);
@@ -744,9 +955,10 @@ export function CityApp({
       setPanelOpen(true);
     }
   };
-  // Escape steps back without opening anything: a chain, a district, the search, a moved camera, then the list
+  // Escape steps back without opening anything: a route, a chain, a district, the search, a moved camera, then the list
   const escape = () => {
-    if (selected) {
+    if (route) setRoute(null);
+    else if (selected) {
       setSelected(null);
       if (openedFrom === "list") setFocus(null);
     } else if (focus) setFocus(null);
@@ -754,8 +966,9 @@ export function CityApp({
     else if (camera.current?.moved) camera.current.home();
     else setPanelOpen(false);
   };
-  // the panel's close: the chain, the district and the list, all at once
+  // the panel's close: the route, the chain, the district and the list, all at once
   const shut = () => {
+    setRoute(null);
     setSelected(null);
     setFocus(null);
     setPanelOpen(false);
@@ -828,6 +1041,12 @@ export function CityApp({
     const p = new URLSearchParams(window.location.search);
     const d = p.get("district") as District | null;
     const key = p.get("chain");
+    // a route's link opens it while a route still runs between its two ends
+    const ends = p.get("route")?.split("~") ?? [];
+    if (ends.length === 2 && ends[0] !== ends[1] && data.routes.some((x) => ends.includes(x.from) && ends.includes(x.to))) {
+      setRoute(ends.join("~"));
+      return;
+    }
     if (key === PCHAIN_PICK) {
       setSelected(PCHAIN_PICK);
       return;
@@ -852,19 +1071,52 @@ export function CityApp({
     else p.delete("chain");
     if (focus) p.set("district", focus);
     else p.delete("district");
+    if (route) p.set("route", route);
+    else p.delete("route");
     // the one view needs no name in the URL; an old link's view=model or view=3d is let go
     p.delete("view");
     const s = p.toString();
     const next = `${window.location.pathname}${s ? `?${s}` : ""}${window.location.hash}`;
-    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(window.history.state, "", next);
-  }, [selected, focus, rowById]);
+    // null, not history.state: state that carries Next's own mark is not synced into the router, which then writes its stale URL back
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(null, "", next);
+  }, [selected, focus, rowById, route]);
+  // the answer's thread, beside the chain and the district
+  useEffect(() => {
+    if (!wide) return;
+    const p = new URLSearchParams(window.location.search);
+    p.delete("ask");
+    p.delete("then");
+    p.delete("on");
+    p.delete("for");
+    if (ask) {
+      p.set("ask", ask.q);
+      for (const t of ask.then) p.append("then", t);
+      p.set("on", ask.on);
+      if (ask.for) p.set("for", ask.for);
+    }
+    const s = p.toString();
+    const next = `${window.location.pathname}${s ? `?${s}` : ""}${window.location.hash}`;
+    if (next !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.replaceState(null, "", next);
+  }, [ask, wide]);
+  // a link to an answer, opened on a phone: the Query page answers it, as the search there does
+  useEffect(() => {
+    if (wide) return;
+    const p = new URLSearchParams(window.location.search);
+    const q = p.get("ask");
+    if (q) router.replace(queryHref({ q, then: p.getAll("then"), on: p.get("on") ?? "c-chain", for: p.get("for") }, askChains));
+    // once, when the app opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Escape steps back; the slash key finds a chain */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = e.target instanceof HTMLElement && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable);
       if (e.key === "Escape") {
-        if (typing && query) setQuery("");
+        // an open answer shuts first, unless a sheet or a chart over it took this Escape
+        if (ask && !typing) {
+          if (!e.defaultPrevented) closeAsk();
+        } else if (typing && query) setQuery("");
         else if (typing) searchRef.current?.blur();
         else escape();
       } else if (e.key === "/" && !typing && wide) {
@@ -917,6 +1169,24 @@ export function CityApp({
     setPending(null);
     router.push(href);
   };
+  // where a question goes: the chain it names, the P-Chain for staking (for the L1 picked, when one is), the chain picked, else the C-Chain
+  const pickedAsk = selected === PCHAIN_PICK ? "p-chain" : selectedRow?.chain?.isTestnet ? null : selectedRow?.node?.role === "hub" ? "c-chain" : (selectedRow?.chain?.slug ?? null);
+  const askRoute = wide && canAsk ? routeFor(trimmed, pickedAsk, askChains) : null;
+  const askOn = askRoute ? (askChains.find((c) => c.slug === askRoute.on) ?? null) : null;
+  const askScope = askRoute?.for ? (askChains.find((c) => c.slug === askRoute.for) ?? null) : null;
+  // a question: a large screen answers it in a window over the city, a phone on the Query page
+  const askIt = () => {
+    if (!wide || !askOn) return go(askHref);
+    setQuery("");
+    setPending(null);
+    setHi(-1);
+    searchRef.current?.blur();
+    setAsk({ q: trimmed, then: [], on: askOn.slug, for: askScope?.slug ?? null, n: ++askSeq.current });
+    setAskLit(null);
+    setAskHover(null);
+    // the list gives the answer its room; an open chain or district stays
+    setPanelOpen(false);
+  };
   // Enter on a tx hash that is still racing every chain lands when the race does
   useEffect(() => {
     if (!pending || !entity || entity.id !== pending) return;
@@ -941,9 +1211,9 @@ export function CityApp({
     else if (entity) {
       if (entity.href) go(entity.href);
       else if (entity.status === "searching") setPending(trimmed);
-    } else if (question) go(askHref);
+    } else if (question) askIt();
     else if (hits[0]) pick(hits[0]);
-    else if (canAsk) go(askHref);
+    else if (canAsk) askIt();
   };
   const searchField = (
     <label className="relative flex w-full min-w-0 items-center">
@@ -1056,8 +1326,8 @@ export function CityApp({
     ...(versions ? [{ key: "behind" as const, label: "Behind", count: figures.behind, title: `Chains with validators behind ${target}; the windows show client versions` }] : []),
     ...(figures.fresh > 0 ? [{ key: "new" as const, label: "New", count: figures.fresh, title: `L1s that joined the P-Chain in the last ${NEW_DAYS} days` }] : []),
   ];
-  const cutChips = (
-    <div role="group" aria-label="Cut the city" className={cn("flex flex-wrap gap-1.5", wide && "justify-center")}>
+  const cutChipsOf = (floating: boolean) => (
+    <div role="group" aria-label="Cut the city" className={cn("flex flex-wrap gap-1.5", floating && "justify-center")}>
       {cuts.map((c) => {
         const on = cut === c.key;
         return (
@@ -1074,18 +1344,48 @@ export function CityApp({
             }}
             className={cn(
               "inline-flex h-7 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors",
-              wide && "shadow-[0_6px_18px_-12px_rgba(30,27,58,0.45)] backdrop-blur-xl",
+              floating && "shadow-[0_6px_18px_-12px_rgba(30,27,58,0.45)] backdrop-blur-xl",
               on
                 ? "border-[#0061E2]/35 bg-[#EEF4FE] text-[#0061E2] dark:border-[#5f9dff]/40 dark:bg-[#10213D] dark:text-[#5f9dff]"
                 : cn(
                     "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-50",
-                    wide ? "bg-white/[0.92] dark:bg-zinc-950/[0.88]" : "",
+                    floating ? "bg-white/[0.92] dark:bg-zinc-950/[0.88]" : "",
                   ),
             )}
           >
             {c.label}
             <span className={cn("font-mono text-[10.5px] tabular-nums", on ? "text-[#0061E2]/70 dark:text-[#5f9dff]/70" : "text-zinc-400 dark:text-zinc-500")}>{c.count}</span>
             {on && <X className="h-3 w-3" />}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  /* questions to ask, under the search: a click opens the answer over the city, a second click on the open one lets it go */
+  const askChips = (
+    <div role="group" aria-label="Questions to ask" className="flex flex-wrap justify-center gap-1.5">
+      {SUGGESTED.map((s) => {
+        const on = ask?.q === s.q && ask.then.length === 0;
+        return (
+          <button
+            key={s.q}
+            type="button"
+            title={s.q}
+            aria-label={`Ask: ${s.q}`}
+            aria-pressed={on}
+            onClick={() => (on ? closeAsk() : setAsk({ q: s.q, then: [], on: s.on, n: ++askSeq.current }))}
+            className={cn(
+              "inline-flex h-7 items-center gap-1.5 rounded-full border pl-2 pr-2.5 text-[12px] font-medium shadow-[0_6px_18px_-12px_rgba(30,27,58,0.45)] backdrop-blur-xl transition-colors",
+              on
+                ? "border-[#0061E2]/35 bg-[#EEF4FE] text-[#0061E2] dark:border-[#5f9dff]/40 dark:bg-[#10213D] dark:text-[#5f9dff]"
+                : "border-zinc-200 bg-white/[0.92] text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950/[0.88] dark:text-zinc-300 dark:hover:border-zinc-700 dark:hover:text-zinc-50",
+            )}
+          >
+            <span className="h-3 w-4 shrink-0">
+              <Glyph kind={s.glyph} hue="#0061E2" seed={s.q} className="h-full w-full" />
+            </span>
+            {s.label}
           </button>
         );
       })}
@@ -1149,6 +1449,8 @@ export function CityApp({
         <span className="flex-1" />
         {net === "mainnet" && sortControl}
       </div>
+      {/* the cuts: each lights the chains it names in the city, and cuts the list to them */}
+      {net === "mainnet" && <div className="px-4 pt-3">{cutChipsOf(false)}</div>}
       {(q || (cut && net === "mainnet")) && (
       <div className="flex items-center justify-between gap-3 px-4 pt-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-500 dark:text-zinc-400">
@@ -1174,7 +1476,7 @@ export function CityApp({
           {groupHead(g)}
           <ul>
             {g.rows.map((r) => (
-              <RowButton key={r.id} row={r} metric={metricOf(r)} painted={painted && net === "mainnet"} on={selected === r.id || mapHover === r.id} onOpen={() => open(r, "list")} onHover={setRowHover} />
+              <RowButton key={r.id} row={r} tag={twinTag(r)} metric={metricOf(r)} painted={painted && net === "mainnet"} on={selected === r.id || mapHover === r.id} onOpen={() => open(r, "list")} onHover={setRowHover} />
             ))}
           </ul>
         </section>
@@ -1191,25 +1493,52 @@ export function CityApp({
   );
 
   /* the search's picks, under the box: the page an identifier resolves to, a question to ask, then the chains the words name */
+  // the answer in miniature, as Query's suggestions draw it: the chart the words ask for, steady per question
+  const askGlyph: GlyphKind = /\b(per (day|hour|week|month)|daily|hourly|weekly|over time|trend|by (day|hour|week|month))\b/i.test(trimmed)
+    ? "area"
+    : /\b(share|split|breakdown|mix)\b/i.test(trimmed)
+      ? "donut"
+      : "hbar";
   const askRow = (
     <button
       type="button"
       onMouseDown={(e) => e.preventDefault()}
-      onClick={() => go(askHref)}
+      onClick={askIt}
       className={cn(
-        "group flex w-full items-center gap-3 border-b border-zinc-100 px-4 py-3 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900",
+        "group flex w-full items-center gap-3 border-b border-zinc-100 px-3 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-900 dark:hover:bg-zinc-900",
         question && "bg-zinc-50 dark:bg-zinc-900",
       )}
     >
-      <Sparkles className="h-3.5 w-3.5 shrink-0 text-[#E6212F]" />
-      <span className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-zinc-900 dark:text-zinc-100">
-        <span className="text-zinc-400 dark:text-zinc-500">Ask </span>
-        {trimmed}
+      <span className="h-9 w-12 shrink-0 overflow-hidden rounded-lg border border-zinc-200 bg-white px-1 pb-0.5 pt-1.5 dark:border-zinc-800 dark:bg-zinc-950">
+        <Glyph kind={askGlyph} hue="#0061E2" seed={trimmed} className="h-full w-full" />
       </span>
-      <span className="flex shrink-0 items-center gap-1 font-mono text-[9px] uppercase tracking-[0.16em] text-zinc-400 group-hover:text-[#E6212F] dark:text-zinc-500">
-        {question ? "Enter" : "Chart it"}
-        <ArrowUpRight className="h-3 w-3" />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-medium text-zinc-900 dark:text-zinc-50">{trimmed}</span>
+        <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
+          {askOn ? (
+            <>
+              Ask
+              <span className="flex items-center gap-1 text-zinc-500 dark:text-zinc-400 [&_img]:h-3 [&_img]:w-3">
+                <Logo uri={askOn.logo} name={askOn.label} />
+                {askOn.label}
+                {askScope && ` · for ${askScope.label}`}
+              </span>
+            </>
+          ) : (
+            "Ask in Query"
+          )}
+        </span>
       </span>
+      {askOn && question ? (
+        <kbd className="shrink-0 rounded-md border border-zinc-200 bg-white px-1.5 py-0.5 font-mono text-[10px] leading-none text-zinc-500 transition-colors group-hover:border-[#0061E2]/40 group-hover:text-[#0061E2] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400 dark:group-hover:border-[#5f9dff]/40 dark:group-hover:text-[#5f9dff]">
+          {"\u21B5"}
+        </kbd>
+      ) : (
+        (() => {
+          const Door = askOn ? ArrowRight : ArrowUpRight;
+          return <Door className="h-3.5 w-3.5 shrink-0 text-zinc-400 transition-colors group-hover:text-[#0061E2] dark:group-hover:text-[#5f9dff]" />;
+        })()
+      )}
     </button>
   );
   const whereOf = (r: Row) => (r.node?.role === "hub" ? "Downtown" : r.district ? districtLabel(r.district) : r.chain?.isTestnet ? "Fuji" : "Inactive");
@@ -1281,7 +1610,7 @@ export function CityApp({
         </div>
         <ul className="mt-2">
           {members.map((r) => (
-            <RowButton key={r.id} row={r} metric={r.validators > 0 ? `${r.validators}` : "—"} painted={painted} on={selected === r.id || mapHover === r.id} onOpen={() => open(r, "district")} onHover={setRowHover} />
+            <RowButton key={r.id} row={r} tag={twinTag(r)} metric={r.validators > 0 ? `${r.validators}` : "—"} painted={painted} on={selected === r.id || mapHover === r.id} onOpen={() => open(r, "district")} onHover={setRowHover} />
           ))}
         </ul>
         {d === "frontier" && (
@@ -1293,6 +1622,33 @@ export function CityApp({
           </p>
         )}
       </div>
+    );
+  };
+
+  const pchainView = () => (
+    <PChainView primary={hubRow} pulse={data.pulse} target={target} onBack={back} backLabel={openedFrom === "district" && focus ? districtLabel(focus) : "All chains"} />
+  );
+
+  // a picked route's two ends, as the panel names them; each opens its own chain's view
+  const routeEnd = (id: string): RouteEnd | null => {
+    const r = rowById.get(id);
+    return r ? { id: r.id, name: r.node?.role === "hub" ? "C-Chain" : r.name, logo: r.logo, explorer: r.chain ? explorerOf(r.chain) : null } : null;
+  };
+  const routeView = (pair: string) => {
+    const [a, b] = pair.split("~").map(routeEnd);
+    if (!a || !b) return null;
+    return (
+      <RouteView
+        key={pair}
+        a={a}
+        b={b}
+        onBack={() => setRoute(null)}
+        backLabel={focus ? districtLabel(focus) : "All chains"}
+        onChain={(id) => {
+          const r = rowById.get(id);
+          if (r) open(r);
+        }}
+      />
     );
   };
 
@@ -1319,21 +1675,27 @@ export function CityApp({
   );
 
   /* the figures, a strip at the city's foot */
-  const hudFigure = (label: string, value: string, sub: ReactNode, phone = false, className?: string, href?: string) => {
+  const hudFigure = (label: string, value: string, sub: ReactNode, phone = false, className?: string, href?: string, title?: string) => {
+    // each figure holds the width of its widest reading, its placeholder or its figure, so the strip does not move as they come in
+    const [valueCh, subCh] = figureMin(label);
     const body = (
       <>
         <span className="font-mono text-[9.5px] font-bold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{label}</span>
-        <span className="font-mono text-[17px] font-semibold tabular-nums leading-tight text-zinc-900 dark:text-zinc-50">{value}</span>
-        <span className="truncate font-mono text-[10px] text-zinc-500 dark:text-zinc-400">{sub}</span>
+        <span className="font-mono text-[17px] font-semibold tabular-nums leading-tight text-zinc-900 dark:text-zinc-50" style={{ minWidth: `${valueCh}ch` }}>
+          {value}
+        </span>
+        <span className="truncate font-mono text-[10px] tabular-nums text-zinc-500 dark:text-zinc-400" style={{ minWidth: `${subCh}ch` }}>
+          {sub}
+        </span>
       </>
     );
     const box = cn("flex min-w-0 flex-col items-start gap-0.5 px-4 py-2.5", phone && "rounded-xl border border-zinc-200 dark:border-zinc-800", className);
     return href ? (
-      <Link key={label} href={href} className={cn(box, "transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/60", !phone && "first:rounded-l-2xl")}>
+      <Link key={label} href={href} title={title} className={cn(box, "transition-colors hover:bg-zinc-50/80 dark:hover:bg-zinc-900/60", !phone && "first:rounded-l-2xl")}>
         {body}
       </Link>
     ) : (
-      <div key={label} className={box}>
+      <div key={label} title={title} className={box}>
         {body}
       </div>
     );
@@ -1364,7 +1726,15 @@ export function CityApp({
     ...marketCells(phone, narrow),
     hudFigure("Chains", figures.chains.toLocaleString("en-US"), `${figures.districts} districts`, phone, narrow ? "hidden xl:flex" : undefined),
     hudFigure("Validators", fmtCompact(figures.validators), figures.onShare === null ? "versions unknown" : `${figures.onShare.toFixed(0)}% on ${target}+`, phone, narrow ? "hidden xl:flex" : undefined),
-    hudFigure(`ICM · ${windowShort}`, fmtCompact(figures.icm), `${figures.talking} chains talking`, phone),
+    hudFigure(
+      `ICM · ${windowShort}`,
+      fmtCompact(figures.icm),
+      `${figures.talking} chains talking`,
+      phone,
+      undefined,
+      undefined,
+      `ICM messages between the city's chains in the last ${windowLabel}, each counted once: when sent, or when delivered where the index does not hold the sender's logs`,
+    ),
     hudFigure(`Tx · ${windowShort}`, figures.tx === null ? "—" : fmtCompact(figures.tx), `across ${figures.active} chains`, phone),
   ];
 
@@ -1412,7 +1782,11 @@ export function CityApp({
               // the Behind cut is the Versions lens's: leaving the lens lets go of it
               if (v === "districts" && cut === "behind") setCut(null);
             }}
-            options={[{ v: "districts" as Lens, label: "Districts" }, ...(versions ? [{ v: "versions" as Lens, label: "Versions" }] : [])]}
+            // the Versions option stands from the start, off until the validators' versions come in, so the row does not grow
+            options={[
+              { v: "districts" as Lens, label: "Districts" },
+              { v: "versions" as Lens, label: "Versions", disabled: !versions },
+            ]}
           />
           {painted ? (
           <>
@@ -1493,7 +1867,7 @@ export function CityApp({
         <div className="grid grid-cols-2 gap-2">{hud(true)}</div>
         <div className="flex flex-col gap-2.5">
           {searchField}
-          {net === "mainnet" && cutChips}
+          {net === "mainnet" && cutChipsOf(false)}
           <div className="flex items-center justify-between gap-2 border-b border-zinc-100 pb-2 dark:border-zinc-900">
             {netTabs}
             {net === "mainnet" && sortControl}
@@ -1640,16 +2014,26 @@ export function CityApp({
   const LIVE_W = 344;
   // the panel stands while the list is asked for, or while a chain or a district is open
   // without WebGL 2 the list stands open: it is the way to the chains while the city cannot
-  const showPanel = panelOpen || !webgl || !!selectedRow || (!!focus && net === "mainnet");
+  // the P-Chain picked (its wing downtown) opens its own view in the panel, and its newest txs at the right
+  const pchainOpen = net === "mainnet" && selected === PCHAIN_PICK;
+  // an ICM route picked on its street opens its own view in the panel
+  const routeOpen = net === "mainnet" && route !== null;
+  const showPanel = panelOpen || !webgl || !!selectedRow || pchainOpen || routeOpen || (!!focus && net === "mainnet");
+  if (showPanel && !listed) setListed(true);
   // an open chain with a feed shows its newest blocks and transactions at the right
   const liveTarget = liveShut ? null : liveOf(selectedRow);
-  // the P-Chain picked (its wing downtown, or its caption on the rim) shows its newest txs there instead
-  const pchainOpen = net === "mainnet" && selected === PCHAIN_PICK;
-  const paneOpen = !!liveTarget || pchainOpen;
+  // an answer asked in the city takes the right side while it is open; the live view waits under it
+  const paneOpen = !ask && (!!liveTarget || pchainOpen);
+  const rightW = ask ? askW : paneOpen ? LIVE_W : 0;
   // the camera keeps the city under the search and its chips, and clear of the panels
-  const inset: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: paneOpen ? LIVE_W + 28 : 20, top: 112, bottom: 92 };
+  const inset: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: rightW ? rightW + 28 : 20, top: 112, bottom: 92 };
+  // the sky under the canvas, matched to the city's first frame (its haze by rows, the sun's or the moon's glow at the upper left), so the canvas fades in on itself
   return (
-    <div ref={appRef} className="relative h-full w-full overflow-hidden bg-[linear-gradient(to_bottom,#EBF0FA_0%,#E1E7F0_45%,#D2D9E2_100%)] dark:bg-[linear-gradient(to_bottom,#1F1F1F_0%,#161A21_45%,#0D1118_100%)]">
+    <div
+      ref={appRef}
+      data-city-app
+      className="relative h-full w-full overflow-hidden bg-[radial-gradient(ellipse_420px_300px_at_21.5%_12.8%,rgba(255,255,255,0.55),rgba(255,255,255,0.28)_45%,rgba(255,255,255,0)_100%),linear-gradient(to_bottom,#D6DDE5_0%,#D4DBE4_26%,#D3DAE3_39%,#D2D9E2_51%,#D1D7E0_57%,#CED3DB_63%,#CCD1D8_75%,#CACFD6_88%,#C9CED5_100%)] dark:bg-[radial-gradient(ellipse_420px_300px_at_21.5%_12.8%,rgba(160,175,200,0.2),rgba(160,175,200,0.13)_45%,rgba(160,175,200,0)_100%),linear-gradient(to_bottom,#161A21_0%,#151920_26%,#11141B_39%,#0E1219_51%,#12161B_57%,#191B20_63%,#1B1E22_69%,#1C1E23_75%,#1D1F24_88%,#1D1F24_100%)]"
+    >
       {(() => {
         const mapProps = {
           data,
@@ -1662,6 +2046,7 @@ export function CityApp({
           selected: net === "mainnet" ? selected : null,
           onSelect: (id: string | null) => {
             if (id === PCHAIN_PICK) {
+              setRoute(null);
               setSelected(PCHAIN_PICK);
               return;
             }
@@ -1671,11 +2056,18 @@ export function CityApp({
           },
           focus,
           onFocus: (d: District | null) => {
+            setRoute(null);
             setFocus(d);
             setSelected(null);
           },
-          lit,
-          hovered: rowHover,
+          // a picked route lets the chain view go, and its own light replaces an answer's or a search's while it is open
+          route: net === "mainnet" ? route : null,
+          onRoute: (pair: string | null) => {
+            setRoute(pair);
+            if (pair) setSelected(null);
+          },
+          lit: route ? null : (lit ?? askLit),
+          hovered: askHover ?? rowHover,
           onHover: setMapHover,
           inset,
           cameraRef: camera,
@@ -1714,7 +2106,7 @@ export function CityApp({
           <X className="h-4 w-4" />
         </button>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {selectedRow ? (shownRow && shown ? chainView(shownRow) : null) : focus && net === "mainnet" ? districtView(focus) : directory}
+          {routeOpen && route ? routeView(route) : selectedRow ? (shownRow && shown ? chainView(shownRow) : null) : pchainOpen ? pchainView() : focus && net === "mainnet" ? districtView(focus) : listed || showPanel ? directory : null}
         </div>
       </aside>
 
@@ -1732,13 +2124,13 @@ export function CityApp({
       )}
 
       {/* the search, fixed over the city's top and centred on what the panel leaves of it; its chips under it */}
-      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center px-4 transition-[left,right] duration-300 ease-out" style={{ left: showPanel ? PANEL_W + 16 : 0, right: paneOpen ? LIVE_W + 16 : 0 }}>
+      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center px-4 transition-[left,right] duration-300 ease-out" style={{ left: showPanel ? PANEL_W + 16 : 0, right: rightW ? rightW + 16 : 0 }}>
         <div className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
           <div className="relative w-full">
             {searchField}
             {picksPanel}
           </div>
-          {cutChips}
+          {askChips}
         </div>
       </div>
 
@@ -1753,19 +2145,62 @@ export function CityApp({
         )}
         style={{ width: LIVE_W }}
       >
-        {liveTarget && shown && <ChainLive key={liveTarget.chainId} chain={liveTarget} armed={landed} onTip={tipOf(liveTarget.chainId)} onClose={() => setLiveShut(true)} />}
-        {pchainOpen && (
+        {liveTarget && shown && !ask && <ChainLive key={liveTarget.chainId} chain={liveTarget} armed={landed} onTip={tipOf(liveTarget.chainId)} onClose={() => setLiveShut(true)} />}
+        {pchainOpen && !ask && (
           <PChainLive pulse={data.pulse} l1Of={l1Of} onClose={() => setSelected(null)} onTarget={(subnet) => setRowHover(subnet ? (idBySubnet.get(subnet) ?? null) : null)} />
         )}
       </aside>
 
-      {/* the key, in the corner the search leaves free; the panel's views, the live pane in that corner and a narrow window need the room */}
-      <div data-city-hud className={cn("absolute right-4 top-[calc(1rem+var(--under,0px))] z-20", showPanel || paneOpen ? "hidden" : "hidden xl:block")}>{mapKey}</div>
+      {/* a question's answer, at the right over the city; the site's chat button keeps the corner under it */}
+      <aside
+        inert={!ask || undefined}
+        aria-hidden={!ask}
+        aria-label={shownAsk ? `Answer: ${shownAsk.q}` : undefined}
+        className={cn(
+          "absolute bottom-[5.5rem] right-4 top-[calc(1rem+var(--under,0px))] z-20 flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white/[0.94] shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] backdrop-blur-xl transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]",
+          ask ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-6 opacity-0",
+        )}
+        style={{ width: askW }}
+      >
+        {shownAsk &&
+          (() => {
+            const n = shownAsk.n;
+            return (
+              <AskWindow
+                key={n}
+                thread={shownAsk}
+                chains={askChains}
+                picked={pickedAsk}
+                nodes={data.nodes}
+                onThread={(t) => setAsk((prev) => (prev?.n === n ? { ...t, n } : prev))}
+                onClose={closeAsk}
+                onLit={(ids) => {
+                  if (askNow.current === n) setAskLit(ids);
+                }}
+                onHover={(id) => {
+                  if (askNow.current === n) setAskHover(id);
+                }}
+                // a mark that names a chain opens it here, as a pick in the city does
+                onOpen={(id) => {
+                  const r = rowById.get(id);
+                  if (r) open(r, "list");
+                }}
+              />
+            );
+          })()}
+      </aside>
 
-      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button */}
-      <div className="pointer-events-none absolute bottom-4 z-10 flex items-end justify-center" style={{ left: showPanel ? inset.left : 88, right: paneOpen ? LIVE_W + 32 : 88 }}>
+      {/* the key, in the corner the search leaves free; the panel's views, the live pane in that corner and a narrow window need the room */}
+      <div data-city-hud className={cn("absolute right-4 top-[calc(1rem+var(--under,0px))] z-20", showPanel || paneOpen || ask ? "hidden" : "hidden xl:block")}>{mapKey}</div>
+
+      {/* the news, in the corner the site's chat button keeps on other pages; the chat button stands down here */}
+      <NewsFeed className="absolute bottom-4 right-4 z-30" />
+
+      {/* the figures, centred at the city's foot in what the panels leave of it; both edges keep clear of the site's chat button.
+          A panel and an answer both open leave the city too narrow for them */}
+      <div className={cn("pointer-events-none absolute bottom-4 z-10 flex items-end justify-center", showPanel && ask && "hidden")} style={{ left: showPanel ? inset.left : 88, right: rightW ? rightW + 32 : 88 }}>
         <div className="pointer-events-auto flex divide-x divide-zinc-200/80 rounded-2xl border border-zinc-200/90 bg-white/[0.92] shadow-[0_12px_32px_-20px_rgba(30,27,58,0.35)] backdrop-blur-xl dark:divide-zinc-800 dark:border-zinc-800/90 dark:bg-zinc-950/[0.88]">
-          {hud(false, showPanel)}
+          {hud(false, showPanel || !!ask)}
         </div>
       </div>
     </div>

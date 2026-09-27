@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import {
   CanvasTexture,
   CircleGeometry,
@@ -10,6 +10,7 @@ import {
   InstancedMesh,
   MeshBasicMaterial,
   Matrix4,
+  NearestFilter,
   PlaneGeometry,
   type BufferGeometry,
   type Material,
@@ -20,11 +21,14 @@ import {
 } from "three";
 import type { Glass } from "@/components/explorer-v2/network/icm-map";
 import { GLASS3, GLASS_BASE, GROUND, HUB3, MASS3, ROOF, type Theme } from "./palette";
-import type { CityModel } from "./model";
+import { feetOf, type CityModel } from "./model";
+import { FOOT_BLUR, paintFeetMask, paintFeetTime, PAINT_PX } from "./paint";
 import type { VeilState } from "./Labels";
-import { EDGE_U, glassMaterial, glassUniforms, haloMaterial, lampGlowMaterial, massMaterial, RISE_S, TIME, type GlassUniforms } from "./shaders";
+import { boostEase, EDGE_U, FEET_U, glassMaterial, glassUniforms, haloMaterial, lampGlowMaterial, massMaterial, RECEDE_U, RISE_S, TIME, type GlassUniforms } from "./shaders";
 import { instanced, paintAll, perInstance, treesOf, placeAll } from "./instancing";
 import { standingBox, standingDrum } from "./geometry";
+import { SHAPE_KEYS, type ShapeKey } from "./forms";
+import { SHAPES } from "./forms/shapes";
 
 /* The city's buildings as a handful of instanced meshes: the massing's
    boxes and drums, the ribbons of glass on their faces and round their
@@ -49,6 +53,11 @@ export interface BuildingsState {
   pick: number;
   /** when the city moves, in its seconds: the floors flash from then; never for a still reader */
   liveAt: number;
+  /** each building's glass at its district's full color (1), as a picked district's or a picked set's, or at the calm grade (0);
+      past 1, whole and deepened by the excess, as a lit set's glass is by day */
+  boost?: Float32Array;
+  /** each building's share of the haze it recedes into by day while another set is lit (1), or whole (0) */
+  recede?: Float32Array;
 }
 
 const PLANE = new PlaneGeometry(1, 1).translate(0, 0.5, 0);
@@ -165,6 +174,7 @@ export function Buildings({
       perInstance(m, "aFlash", 2, 0);
       perInstance(m, "aDim", 1, 1);
       perInstance(m, "aHue", 1, 0.45);
+      perInstance(m, "aBoost", 3, 0);
     }
     const caps = instanced(CAP, mats.cap, model.caps, r, { cast: true });
     const domes = instanced(DOME, mats.mass, model.domes, r, { cast: true });
@@ -197,6 +207,10 @@ export function Buildings({
       { receive: false },
     );
     pick.visible = true;
+    // the districts' own shapes (forms/), one instanced mesh each
+    const shapes = Object.fromEntries(
+      SHAPE_KEYS.map((k) => [k, instanced(SHAPES[k].geo, mats[SHAPES[k].mat], model.shapes[k], r, { cast: SHAPES[k].cast, color: SHAPES[k].tint })]),
+    ) as Record<ShapeKey, InstancedMesh>;
     // each part that veils: its mesh, and the building of each of its instances
     const veiled: [InstancedMesh, number[]][] = [
       [boxes, model.boxes.map((it) => it.b)],
@@ -213,12 +227,16 @@ export function Buildings({
       [solar, model.solar.map((it) => it.b)],
       [crowns, model.trees.map((t) => t.b ?? -1)],
       [trunks, model.trees.map((t) => t.b ?? -1)],
+      ...SHAPE_KEYS.map((k): [InstancedMesh, number[]] => [shapes[k], model.shapes[k].map((it) => it.b)]),
     ];
-    for (const [m] of veiled) perInstance(m, "aFade", 1, 0);
+    for (const [m] of veiled) {
+      perInstance(m, "aFade", 1, 0);
+      perInstance(m, "aRecede", 3, 0);
+    }
     // the night's glow: a halo round every window, reading the window's own instances, and a disc round every lamp (shaders.ts)
     const halo = (src: InstancedMesh, geo: BufferGeometry, band: boolean) => {
       const g = geo.clone();
-      for (const name of ["aRise", "aLight", "aFlash", "aDim", "aFade", "aHue"]) g.setAttribute(name, src.geometry.getAttribute(name));
+      for (const name of ["aRise", "aLight", "aFlash", "aDim", "aFade", "aHue", "aBoost"]) g.setAttribute(name, src.geometry.getAttribute(name));
       const h = new InstancedMesh(g, haloMaterial(band, glassU.uPlain, glassU.uGlassBase), Math.max(1, src.count));
       h.count = src.count;
       h.instanceMatrix = src.instanceMatrix;
@@ -235,7 +253,7 @@ export function Buildings({
     glowLamps.instanceColor = lamps.instanceColor;
     glowLamps.frustumCulled = false;
     glowLamps.visible = false;
-    return { meshes: { boxes, drums, ribbons, bands, caps, domes, greens, tanks, cones, steel, pads, solar, crowns, trunks, lamps, pick, glowRibbons, glowBands, glowLamps }, veiled };
+    return { meshes: { boxes, drums, ribbons, bands, caps, domes, greens, tanks, cones, steel, pads, solar, crowns, trunks, lamps, ...shapes, pick, glowRibbons, glowBands, glowLamps }, veiled };
     // the rise changes with the plan, or for a reader who asks for less motion
   }, [model, mats, state.rise]);
   useEffect(
@@ -254,14 +272,20 @@ export function Buildings({
     for (const m of [meshes.glowRibbons, meshes.glowBands, meshes.glowLamps]) m.visible = glow && dark;
   }, [meshes, glow, dark]);
 
-  // each building's instances, for the light the cursor throws on it
+  // each building's instances, for the light the cursor throws on it: its massing's, and the districts' shapes that take it
   const partsOf = useMemo(() => {
-    const boxes = model.buildings.map(() => [] as number[]);
-    const drums = model.buildings.map(() => [] as number[]);
-    model.boxes.forEach((it, i) => it.b >= 0 && boxes[it.b].push(i));
-    model.drums.forEach((it, i) => it.b >= 0 && drums[it.b].push(i));
-    return { boxes, drums };
-  }, [model]);
+    const byBuilding = (list: { b: number }[]) => {
+      const out = model.buildings.map(() => [] as number[]);
+      list.forEach((it, i) => it.b >= 0 && out[it.b].push(i));
+      return out;
+    };
+    const tinted = SHAPE_KEYS.filter((k) => SHAPES[k].tint);
+    return {
+      boxes: byBuilding(model.boxes),
+      drums: byBuilding(model.drums),
+      shapes: tinted.map((k): [InstancedMesh, number[][]] => [meshes[k], byBuilding(model.shapes[k])]),
+    };
+  }, [model, meshes]);
 
   // the theme: the white model by day, graphite by night, crisp edges, and the curtain walls' glass and its light
   useEffect(() => {
@@ -289,6 +313,10 @@ export function Buildings({
     // a transaction lights its floor in white, in either theme
     glassU.uFlashColor.value.set("#FFFFFF");
     glassU.uFlashGlow.value = dark ? 0.9 : 0.6;
+    // by day each band takes the sky at its head and stands on a lit sill; the night keeps its lit rooms
+    glassU.uSky.value = dark ? 0 : 1;
+    // by day the sets outside a lit set recede three quarters of the way into the air; the night keeps its own grade
+    RECEDE_U.uRecedeK.value = dark ? 0 : 0.75;
   }, [theme, dark, mats, glassU]);
 
   /* the glass: each window's storey's color, and how much of it the curtain wall takes.
@@ -341,6 +369,132 @@ export function Buildings({
     }
   };
   useEffect(() => perBuilding("aLight", state.light, 0), [meshes, model, state.light]);
+  /* the boost and the recede: an instance whose building's target changes starts from where it stands now and eases to
+     the new target in the brand's motion; one that keeps its target is not written. A still reader's city changes at once */
+  const still = !Number.isFinite(state.liveAt);
+  const easeTo = (a: InstancedBufferAttribute, of: number[], target: Float32Array | undefined) => {
+    const now = TIME.value;
+    const v = a.array as Float32Array;
+    let changed = false;
+    of.forEach((b, i) => {
+      const to = b >= 0 ? (target?.[b] ?? 0) : 0;
+      if (v[i * 3 + 1] === to) return;
+      const at = boostEase(now - v[i * 3 + 2]);
+      v[i * 3] = still ? to : v[i * 3] + (v[i * 3 + 1] - v[i * 3]) * at;
+      v[i * 3 + 1] = to;
+      v[i * 3 + 2] = now;
+      changed = true;
+    });
+    if (changed) a.needsUpdate = true;
+  };
+  useEffect(() => {
+    for (const [mesh, list] of [
+      [meshes.ribbons, model.ribbons],
+      [meshes.bands, model.bands],
+    ] as const)
+      easeTo(
+        mesh.geometry.getAttribute("aBoost") as InstancedBufferAttribute,
+        list.map((it) => it.b),
+        state.boost,
+      );
+    // easeTo reads only its arguments and the still flag
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meshes, model, state.boost, still]);
+  // every part of a building recedes with it: its massing, its roof's furniture and its glass
+  useEffect(() => {
+    for (const [mesh, of] of veiled) easeTo(mesh.geometry.getAttribute("aRecede") as InstancedBufferAttribute, of, state.recede);
+    // easeTo reads only its arguments and the still flag
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [veiled, state.recede, still]);
+
+  /* the towers' contact shades: a layer over the ground's paint that the ground's material reads (FEET_U), each shade
+     coming in with its own tower's rise, so none lies on an empty lot. A still or returning city's clock stands past every
+     rise, so its shades show at once. The coverage is painted for both themes when the plan comes in, and each canvas goes
+     up to the GPU as it is painted, so a theme flip only swaps a uniform; the rises are painted again with the schedule */
+  const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
+  const feetLayer = useMemo(() => {
+    if (typeof document === "undefined") return null;
+    const canvas = (px: number) => {
+      const c = document.createElement("canvas");
+      c.width = c.height = px;
+      return c;
+    };
+    // laid over the plate as the ground's paint is (Ground.tsx: no flip); the rises read exact, never blended
+    const tex = (c: HTMLCanvasElement, exact = false) => {
+      const t = new CanvasTexture(c);
+      t.flipY = false;
+      if (exact) {
+        t.minFilter = t.magFilter = NearestFilter;
+        t.generateMipmaps = false;
+      }
+      return t;
+    };
+    const day = canvas(PAINT_PX / 2);
+    const night = canvas(PAINT_PX / 2);
+    const time = canvas(PAINT_PX / 4);
+    return { day, night, time, dayTex: tex(day), nightTex: tex(night), timeTex: tex(time, true) };
+  }, []);
+  // which theme's coverage stands painted for the plan: the shown theme's is painted at once, the other when the page is idle
+  const feetPainted = useRef<{ model: CityModel | null; light: boolean; dark: boolean }>({ model: null, light: false, dark: false });
+  const paintFeetFor = (t: Theme) => {
+    if (!feetLayer) return;
+    const [c, tex] = t === "dark" ? [feetLayer.night, feetLayer.nightTex] : [feetLayer.day, feetLayer.dayTex];
+    paintFeetMask(c, feetOf(model), FOOT_BLUR[t]);
+    tex.needsUpdate = true;
+    gl.initTexture(tex);
+    feetPainted.current[t] = true;
+  };
+  const themeNow = useRef(theme);
+  themeNow.current = theme;
+  useEffect(() => {
+    if (!feetLayer) return;
+    feetPainted.current = { model, light: false, dark: false };
+    const shown = themeNow.current;
+    paintFeetFor(shown);
+    invalidate();
+    const other: Theme = shown === "dark" ? "light" : "dark";
+    const later = () => {
+      if (feetPainted.current.model === model && !feetPainted.current[other]) paintFeetFor(other);
+    };
+    const idle = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(later, { timeout: 2000 }) : window.setTimeout(later, 400);
+    return () => (typeof window.cancelIdleCallback === "function" ? window.cancelIdleCallback(idle) : window.clearTimeout(idle));
+    // paintFeetFor reads the plan and the layer, as its dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feetLayer, model, gl, invalidate]);
+  useEffect(() => {
+    if (!feetLayer) return;
+    const feet = feetOf(model).map((f) => ({ ...f, at: f.b >= 0 ? Math.max(0, state.rise[f.b] ?? 0) : 0 }));
+    const maxAt = Math.max(1e-3, ...feet.map((f) => f.at));
+    paintFeetTime(feetLayer.time, feet, maxAt, FOOT_BLUR.light);
+    feetLayer.timeTex.needsUpdate = true;
+    gl.initTexture(feetLayer.timeTex);
+    FEET_U.uFeetTime.value = feetLayer.timeTex;
+    FEET_U.uFeetMax.value = maxAt;
+    invalidate();
+  }, [feetLayer, model, state.rise, gl, invalidate]);
+  useEffect(() => {
+    if (!feetLayer) return;
+    // a flip before the page was idle paints its coverage now
+    if (!feetPainted.current[theme]) paintFeetFor(theme);
+    const rgba = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/.exec(GROUND.contact[theme]);
+    FEET_U.uFeetShade.value.set(Number(rgba?.[1] ?? 0) / 255, Number(rgba?.[2] ?? 0) / 255, Number(rgba?.[3] ?? 0) / 255, Number(rgba?.[4] ?? 1));
+    FEET_U.uFeetMask.value = theme === "dark" ? feetLayer.nightTex : feetLayer.dayTex;
+    FEET_U.uFeetOn.value = 1;
+    invalidate();
+    // paintFeetFor reads the plan and the layer, as its dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feetLayer, theme, invalidate]);
+  useEffect(
+    () => () => {
+      FEET_U.uFeetOn.value = 0;
+      FEET_U.uFeetMask.value = FEET_U.uFeetTime.value = null;
+      feetLayer?.dayTex.dispose();
+      feetLayer?.nightTex.dispose();
+      feetLayer?.timeTex.dispose();
+    },
+    [feetLayer],
+  );
   useEffect(() => perBuilding("aDim", state.dim, 1), [meshes, model, state.dim]);
   useEffect(() => {
     const a = meshes.ribbons.geometry.getAttribute("aFlash") as InstancedBufferAttribute;
@@ -360,12 +514,12 @@ export function Buildings({
       if (b < 0) return;
       for (const i of partsOf.boxes[b] ?? []) meshes.boxes.setColorAt(i, c);
       for (const i of partsOf.drums[b] ?? []) meshes.drums.setColorAt(i, c);
+      for (const [mesh, of] of partsOf.shapes) for (const i of of[b] ?? []) mesh.setColorAt(i, c);
     };
     set(lastHover.current, plain);
     set(state.hover, tint);
     lastHover.current = state.hover;
-    if (meshes.boxes.instanceColor) meshes.boxes.instanceColor.needsUpdate = true;
-    if (meshes.drums.instanceColor) meshes.drums.instanceColor.needsUpdate = true;
+    for (const m of [meshes.boxes, meshes.drums, ...partsOf.shapes.map(([mesh]) => mesh)]) if (m.instanceColor) m.instanceColor.needsUpdate = true;
   }, [state.hover, meshes, partsOf, dark]);
 
   // the warning lights flash, the landmarks' white, downtown's in turn: each flash comes on at once and dies away long, as the brand's motion does
@@ -450,7 +604,9 @@ export function Buildings({
       {Object.entries(meshes).map(([key, m]) =>
         key === "pick" ? (
           <primitive
-            key={key}
+            // keyed by the mesh too: R3F 9 leaves a swapped primitive's handlers on its old object,
+            // so a rebuilt pick (new data, a new plan, a hot reload) would never take the cursor
+            key={`${key}:${m.uuid}`}
             object={m}
             onPointerOver={(e: ThreeEvent<PointerEvent>) => {
               e.stopPropagation();
@@ -458,7 +614,7 @@ export function Buildings({
             }}
             onPointerOut={() => onHover(null)}
             onClick={(e: ThreeEvent<MouseEvent>) => {
-              if (e.delta > 6) return;
+              if (e.delta > 12) return;
               e.stopPropagation();
               if (at(e) >= 0) onPick(at(e));
             }}

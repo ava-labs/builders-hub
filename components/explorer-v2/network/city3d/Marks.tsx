@@ -7,6 +7,7 @@ import type { District } from "@/components/explorer-v2/network/districts";
 import type { City } from "@/components/explorer-v2/network/city";
 import type { Theme } from "./palette";
 import type { CityModel } from "./model";
+import { WARM } from "./warmup";
 
 /* What the cursor and a pick mark on the ground, as the map marks them: a
    picked set's lot outlined in the explorer's blue, under
@@ -135,7 +136,9 @@ export function Marks({ model, city, hover, pick, focus, theme, still }: { model
 
   useFrame(() => {
     const t = (performance.now() - pickAt.current) / 1000;
-    const picked = markable(pick);
+    // nothing stands on the plate while the city's clock holds, as the column rises and the plate paints in
+    const on = !WARM.held;
+    const picked = on ? markable(pick) : null;
     parts.pickFill.visible = parts.pickLine.visible = !!picked;
     // the ring: out from the lot, bright at once, fading long to its run's end
     const run = (t - RIPPLE_AT) / RIPPLE_S;
@@ -146,13 +149,13 @@ export function Marks({ model, city, hover, pick, focus, theme, still }: { model
       parts.ripple.scale.set(r, 1, r);
       (parts.ripple.material as MeshBasicMaterial).opacity = a;
     }
-    const hovered = hover === pick ? null : markable(hover);
+    const hovered = !on || hover === pick ? null : markable(hover);
     parts.hoverFill.visible = parts.hoverLine.visible = !!hovered;
     // downtown picked: its two rings out across the plaza once the camera has landed
     const hub = model.buildings[pick];
     parts.hub.forEach((o, i) => {
       const run2 = (t - HUB_RING_AT - HUB_RINGS[i]) / HUB_RING_S;
-      o.visible = !still && !!hub && hub.n.role === "hub" && focus === null && run2 > 0 && run2 < 1;
+      o.visible = on && !still && !!hub && hub.n.role === "hub" && focus === null && run2 > 0 && run2 < 1;
       if (!o.visible) return;
       const [k, a] = spread(run2);
       const r = city.core * 0.96 * k;

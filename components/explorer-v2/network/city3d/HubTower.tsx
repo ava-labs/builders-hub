@@ -33,33 +33,38 @@ import type { Building, CityModel, Ribbon } from "./model";
 
 /* Downtown as the Primary Network, drawn as an institution's supertall:
    one landmark of three wings on one podium, the C-, P- and X-Chains.
-   The C wing stands in front and tallest, cut as a crystal: its square
-   is turned to the plate with its corners cut, the cuts deeper as it
-   rises and narrows. Its curtain wall is two reds: panes of deep red
+   The C wing stands in front, the tallest and the broadest, cut as a
+   crystal: its square is turned to the plate with its corners cut, the
+   cuts deeper as it rises and narrows. Its curtain wall is two reds: panes of deep red
    glass a storey tall on every face, between hairline mullions in the
-   brand's red, and a steel band at each floor. At its top a lantern of
-   the same glass behind close-set steel fins, a steel lid, and a
-   slender steel spire with one red aircraft light; the name is the
-   city's label, not the building's. The P wing, behind it to the
-   right, is the P-Chain's headquarters: slate glass with a steel
+   brand's red, and a steel band at each floor; at night it glows,
+   brighter toward its crown, and its steel and its lobbies' gaps go
+   into its own deep red, so nothing dark crosses it. At its top a lantern of the same glass
+   behind close-set steel fins, a steel lid with one lit red line along
+   its foot, and a slender steel spire with one red aircraft light; the
+   name is the city's label, not the building's. The P wing, behind it
+   to the right, is the P-Chain's headquarters: slate glass with a steel
    hairline at each floor, a flat roof with the P-Chain's letter set
    into it, where its helicopters fly from, and a small blue beacon;
    each P-Chain tx that lands lights a storey of it blue. The X wing,
    behind to the left, is the quietest and the lowest, in pale steel.
-   The wings step back at sky lobbies a third and half way up, and steel
-   bridges join them there. A transfer out of the P-Chain plays from the
-   P wing to the crown: its beacon flares, a light crosses the upper
-   bridge, the C wing's sky lobby lights, the light climbs its front and
-   the lantern's band flashes red; one into the P-Chain plays the other
+   The wings step back at sky lobbies a third and half way up, each a
+   recessed gap, slate by day and near black at night, so each wing
+   reads as one piece, and slate bridges join them there. A transfer out of the P-Chain plays from the P wing
+   to the crown: its beacon flares, a light crosses the upper bridge,
+   the C wing's sky lobby lights, the light climbs its front and the
+   lantern's band flashes red; one into the P-Chain plays the other
    way. Each light comes on fast and fades long, as the brand's motion
    does. The tower stands on a forecourt of two stone steps and a podium
    of pale glass behind steel fins, entered up a broad stair under a
-   flat steel canopy. It draws in four meshes, and a fifth while a
-   transfer plays: the massing, its stone and steel each in its own
-   color; the C wing's glass, which lights in the city's wave and
-   flashes with the C-Chain's transactions as the city's glass does; the
-   P wing's glass; and the lights. The X wing's glass, the podium's, the
-   lobbies' and the bridges' are the city's own (hubWindows). */
+   flat steel canopy. It draws in five meshes: the massing, its stone
+   and steel each in its own color; the C wing's glass, in its own red
+   from its rise, which the city's wave brightens and which flashes with
+   the C-Chain's transactions as the
+   city's glass does, with the lobbies' and the bridges' gap glass; the
+   P wing's glass; the lights; and the lines of light a transfer and the
+   lid draw. The X wing's glass and the podium's are the city's own
+   (hubWindows). */
 
 type Pt = [number, number];
 type Tone = Ribbon["tone"];
@@ -72,24 +77,24 @@ export { PCHAIN_PICK };
 
 /* each wing: its ground point on the podium and its size, over the tower's half-width; its top, over the tower's height; its corners' cut at its foot and at its top; how much it narrows as it rises */
 const WINGS: Record<WingKey, { at: Pt; size: number; top: number; cut: [number, number]; taper: number }> = {
-  c: { at: [0, 0.28], size: 0.58, top: 1, cut: [0.12, 0.26], taper: 0.88 },
-  p: { at: [0.86, -0.34], size: 0.48, top: 0.62, cut: [0.2, 0.2], taper: 0.96 },
-  x: { at: [-0.86, -0.34], size: 0.46, top: 0.42, cut: [0.2, 0.2], taper: 0.97 },
+  c: { at: [0, 0.28], size: 0.61, top: 1, cut: [0.12, 0.26], taper: 0.88 },
+  p: { at: [0.86, -0.34], size: 0.46, top: 0.62, cut: [0.2, 0.2], taper: 0.96 },
+  x: { at: [-0.86, -0.34], size: 0.44, top: 0.42, cut: [0.2, 0.2], taper: 0.97 },
 };
-/** the sky lobbies' heights over the tower's, and how far a lobby stands back, over the half-width */
+/** the sky lobbies' heights over the tower's, and how far a lobby stands back, over the half-width: deep enough to read as a shadow gap */
 const LOBBIES = [0.28, 0.46];
-const LOBBY_SET = 0.06;
+const LOBBY_SET = 0.08;
 /** the bridges between the wings: which join, and at which lobbies */
 const BRIDGES: { a: WingKey; b: WingKey; at: number[] }[] = [
   { a: "p", b: "c", at: [0, 1] },
   { a: "x", b: "c", at: [0] },
   { a: "x", b: "p", at: [0] },
 ];
-/** a bridge's width */
-const BRIDGE_W = 4.6;
-/** the podium's height, where the wings start; the C wing's lantern and its lid */
+/** a bridge's width, over the half-width */
+const BRIDGE = 0.24;
+/** the podium's height, where the wings start; the C wing's lantern, tall enough for its breadth, and its lid */
 const PODIUM = 20;
-const LANTERN = 13;
+const LANTERN = 17;
 const LID = 2;
 /** how far glass stands proud of its wall */
 const PROUD = 0.14;
@@ -99,29 +104,41 @@ const BAND = { rise: 0.36, out: 0.02 };
 const MULLION = { every: 2.3, wd: 0.2, d: 0.34, post: 0.36 };
 /** the lantern's fins: their spacing, width and depth */
 const FIN = { every: 1.2, wd: 0.16, d: 0.5 };
-/** the C wing's glass, light then dark: its panes and the mullions between them, how much each lights itself, and a flash's; a mullion's half-width, and a corner's over it (each never thinner than about a pixel) */
+/** the C wing's glass, light then dark: its panes and the mullions between them; the light the key light leaves on its lit face, made up so that face shows the brand's hexes; how much each lights itself, and a flash's; its glow at its foot and at its crown, over that, and the lantern's over that again; how bright it stands, in its own red, before the city's lights reach it; a mullion's half-width, and a corner's over it (each never thinner than a CSS pixel) */
 const C_GLASS = {
   pane: ["#B20F2A", "#820419"],
   mullion: ["#E6212F", "#E6212F"],
+  gain: [1.35, 1],
   glow: [0.05, 0.6],
   mullionGlow: [0.05, 0.9],
   flashGlow: [0.6, 0.9],
+  ramp: [0.5, 1.5],
+  lantern: 1.5,
+  dim: 0.6,
 } as const;
 const MULL_HALF = 0.12;
 const CORNER = 1.8;
-/** the C wing's storeys its glass can color, the last its lantern's; the storeys its transactions can light at once */
+/** the C wing's glass carries its storeys (below C_STOREYS), then the tower's steel and gaps, each in a slot of its own, then its lantern (C_TOP); the storeys its transactions can light at once */
 const C_SLOTS = 32;
+const C_STOREYS = 25;
+const SLOT = { steel: 25, sill: 26, bridge: 27, gapX: 28, gapP: 29, gapC: 30 } as const;
 const C_TOP = C_SLOTS - 1;
 const C_FLASHES = 6;
+/** the gaps by day: the lobbies' and the bridges' glass in the day palette's darkest tone, the P wing's slate. At night the C wing's steel, sills and gaps go into its own red, each a share of its night glass's light, so nothing near black crosses it; the P and X wings' gaps and the bridges' take a night tone of their own, lifted off black */
+const GAP_DAY = "#3B484B";
+const NIGHT_RED = { steel: 0.45, sill: 0.35, gap: 0.35 };
+const NIGHT_GAP = { p: "#252E3A", x: "#2A3038", bridge: "#252E3A" };
+/** the lit line along the lid's foot: its color, its half-height (never thinner than a CSS pixel), and the height of the band it is drawn in */
+const RIM = { color: new Color("#FF394A"), half: 0.15, band: 0.9 };
 /** the forecourt's steps: their reach over the half-width, their cut and their rise; the podium's reach and cut */
 const STEPS = [2.2, 1.95];
 const STEP_CUT = 0.2;
 const STEP_H = 1.6;
 const PODIUM_R = 1.8;
 const PODIUM_CUT = 0.24;
-/** the stair's half-width over the tower's; the canopy over its head: its height, its thickness and how far it reaches out from the podium */
+/** the stair's half-width over the tower's; the canopy over its head: its height, its thickness and how far it reaches out from the podium, over the half-width */
 const STAIR_W = 0.4;
-const CANOPY = { at: PODIUM - 7, t: 0.5, out: 5 };
+const CANOPY = { at: PODIUM - 7, t: 0.5, out: 0.26 };
 /** the C wing's spire, on its roof's middle: its footing's width and rise, its height from the footing, its radius at the foot and the tip, and its aircraft light's */
 const SPIRE_FOOT: [number, number] = [2.2, 1.2];
 const SPIRE_H = 22;
@@ -138,10 +155,11 @@ const LETTER = 0.061;
 const BEACON_MAST = 4.4;
 /** the P wing's hairline bands' half-width, never thinner than about a pixel */
 const P_HAIR = 0.12;
-/** the massing's own colors, which the theme then tints: the stone of the forecourt, the stair and the cornice; the slate of the cores, the lobbies' walls, the bridges' boxes and the P wing's roof; the brand's gray of the podium's fins, the canopy and the bridges' decks; the C wing's steel, the X wing's pale steel over its pale core */
+/** the massing's own colors, which the theme then tints: the stone of the forecourt, the stair and the cornice; the slate of the cores, the lobbies' walls, the bridges' decks and boxes and the P wing's roof; the sills under the lobbies, a step lighter than the slate (the night's tint takes both near black); the brand's gray of the podium's fins and the canopy; the C wing's steel, the X wing's pale steel over its pale core */
 const PAINT = {
   stone: "#EBF0FA",
   slate: "#3B484B",
+  sill: "#556265",
   gray: "#A2AFB2",
   cSteel: "#A2AFB2",
   xSteel: "#E1E6E9",
@@ -372,7 +390,7 @@ function curtainOf(f: Frame, key: WingKey, z0: number, z1: number, tone: Tone): 
   return out;
 }
 
-/** the tower's glass that the city draws, round its ground point: the podium's, the X wing's curtain wall, the lobbies' and the bridges'. The C wing's and the P wing's are the tower's own (hubTowerParts) */
+/** the tower's glass that the city draws, round its ground point: the podium's and the X wing's curtain wall. The C wing's, the gaps' and the P wing's are the tower's own (hubTowerParts) */
 export function windowsOf(w: number, h: number): HubWindow[] {
   const out: HubWindow[] = [];
   const f = frameOf(w, h);
@@ -384,25 +402,6 @@ export function windowsOf(w: number, h: number): HubWindow[] {
     out.push(faceWindow(a, b, base + 0.3, PODIUM - 1.5 - base - 0.5, Math.hypot(b[0] - a[0], b[1] - a[1]) - 0.6, -1, "crown", [0, 0], -0.1));
   });
   for (const [z0, z1] of f.runsOf("x")) out.push(...curtainOf(f, "x", z0, z1, "crown"));
-  // each wing's sky lobbies, set back, in pale glass all round
-  for (const key of ["c", "p", "x"] as WingKey[])
-    for (const z of f.lobbiesOf(key)) {
-      const L = f.plan(key, z, LOBBY_SET);
-      for (let i = 0; i < 8; i++) out.push(wallWindow(() => L, f.centre(key), i, z + 0.9, FLOOR - 1.8, (l) => l - 0.4, -1, "crown"));
-    }
-  // the bridges' glass, down each side between the wings
-  for (const br of BRIDGES)
-    for (const li of br.at) {
-      const z = f.lobbies[li];
-      const b = bridgeOf(f, br.a, br.b, z);
-      const n: Pt = [b.d[1], -b.d[0]];
-      const mid: Pt = [(b.from[0] + b.to[0]) / 2, (b.from[1] + b.to[1]) / 2];
-      const run = Math.hypot(b.to[0] - b.from[0], b.to[1] - b.from[1]);
-      for (const s of [1, -1]) {
-        const at: Pt = [mid[0] + n[0] * s * (BRIDGE_W / 2 + PROUD), mid[1] + n[1] * s * (BRIDGE_W / 2 + PROUD)];
-        out.push({ x: at[0], y: z + 1.4, z: at[1], sx: run, sy: FLOOR - 2.8, sz: 1, yaw: Math.atan2(n[0] * s, n[1] * s), k: -1, tone: "crown" });
-      }
-    }
   return out;
 }
 
@@ -459,15 +458,17 @@ function spineOf(f: Frame) {
   return { z0, z1, at };
 }
 
-/* a transfer's path on the C wing, where the home view sees it: a band round its upper sky lobby (aU -1), a strip up its front from the lobby to the lantern, clear of the steel (aU its share of the way up), and a band round the lantern, clear of its fins (aU -2) */
+/* a transfer's path on the C wing, where the home view sees it: a band round its upper sky lobby (aU -1), a strip up its front from the lobby to the lantern, clear of the steel (aU its share of the way up), and a band round the lantern, clear of its fins (aU -2); and the lit line along the lid's foot (aU -3), always drawn. aV runs up each quad */
 function transferOf(w: number, h: number): BufferGeometry {
   const f = frameOf(w, h);
   const pos: number[] = [];
   const us: number[] = [];
+  const vs: number[] = [];
   const quad = (a: Vector3, b: Vector3, c: Vector3, d: Vector3, ua: number, uc: number) => {
-    for (const [p, u] of [[a, ua], [b, ua], [c, uc], [a, ua], [c, uc], [d, uc]] as [Vector3, number][]) {
+    for (const [p, u, v] of [[a, ua, 0], [b, ua, 0], [c, uc, 1], [a, ua, 0], [c, uc, 1], [d, uc, 1]] as [Vector3, number, number][]) {
       pos.push(p.x, p.y, p.z);
       us.push(u);
+      vs.push(v);
     }
   };
   // the band: just proud of the lobby's glass, all round, as tall as the lobby
@@ -490,22 +491,43 @@ function transferOf(w: number, h: number): BufferGeometry {
     const b = C[(i + 1) % C.length];
     quad(V(a[0], f.crown + 0.6, a[1]), V(b[0], f.crown + 0.6, b[1]), V(b[0], h - LID - 0.4, b[1]), V(a[0], h - LID - 0.4, a[1]), -2, -2);
   });
+  // the lid's lit line: just proud of the lid's face, all round, along its foot
+  const R = f.plan("c", f.crown, -0.045 - 0.04 / w);
+  R.forEach((a, i) => {
+    const b = R[(i + 1) % R.length];
+    quad(V(a[0], h - LID, a[1]), V(b[0], h - LID, b[1]), V(b[0], h - LID + RIM.band, b[1]), V(a[0], h - LID + RIM.band, a[1]), -3, -3);
+  });
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(pos, 3));
   g.setAttribute("aU", new Float32BufferAttribute(us, 1));
+  g.setAttribute("aV", new Float32BufferAttribute(vs, 1));
   g.computeBoundingSphere();
   return g;
 }
-/* the transfer's light: the lobby's band and the crown's lit whole, the strip lit round its spark with a trail behind it, the way it runs */
+/* the transfer's light: the lobby's band and the crown's lit whole, the strip lit round its spark with a trail behind it, the way it runs; and the lid's lit line, a hairline never thinner than a CSS pixel, on with the city's lights */
 function transferMaterial() {
-  const u = { uBand: { value: 0 }, uCrown: { value: 0 }, uSpark: { value: -1 }, uDir: { value: 1 }, uBandColor: { value: new Color() }, uCrownColor: { value: new Color() }, uSparkColor: { value: new Color() } };
+  const u = {
+    uBand: { value: 0 },
+    uCrown: { value: 0 },
+    uSpark: { value: -1 },
+    uDir: { value: 1 },
+    uRim: { value: 0 },
+    uPx: { value: 1 },
+    uBandColor: { value: new Color() },
+    uCrownColor: { value: new Color() },
+    uSparkColor: { value: new Color() },
+    uRimColor: { value: RIM.color.clone() },
+  };
   const m = new ShaderMaterial({
     uniforms: u,
     vertexShader: /* glsl */ `
       attribute float aU;
+      attribute float aV;
       varying float vU;
+      varying float vV;
       void main() {
         vU = aU;
+        vV = aV;
         gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
       }`,
     fragmentShader: /* glsl */ `
@@ -513,14 +535,24 @@ function transferMaterial() {
       uniform float uCrown;
       uniform float uSpark;
       uniform float uDir;
+      uniform float uRim;
+      uniform float uPx;
       uniform vec3 uBandColor;
       uniform vec3 uCrownColor;
       uniform vec3 uSparkColor;
+      uniform vec3 uRimColor;
       varying float vU;
+      varying float vV;
       void main() {
         float a;
         vec3 c;
-        if ( vU < -1.5 ) {
+        if ( vU < -2.5 ) {
+          float d = abs( vV - 0.5 ) * ${RIM.band.toFixed(2)};
+          float fw = fwidth( d );
+          float hw = max( ${RIM.half.toFixed(2)}, fw * ( 0.5 * uPx + 0.25 ) );
+          a = uRim * ( 1.0 - smoothstep( hw - fw * 0.5, hw + fw * 0.5, d ) );
+          c = uRimColor;
+        } else if ( vU < -1.5 ) {
           a = uCrown;
           c = uCrownColor;
         } else if ( vU < -0.5 ) {
@@ -595,21 +627,22 @@ else diffuseColor.rgb = mix( diffuseColor.rgb, uBandC, band );`,
   return { m, u };
 }
 
-/* the C wing's glass: deep red panes between hairline mullions in the brand's red, each storey's colors its own (the Versions lens paints them as the city paints its glass), lighting in the city's wave, lighter at a pane's head, flashing white on the storeys its transactions light, a glow at night, and the sky at a glance as the city's glass takes it. Each vertex carries its storey (aK, the lantern the last), its face, how far across its face (aS) and up its pane (aV) it is, the face's length there, and the mullions' divisions of the face (none on the lantern, which its fins divide) */
-function cGlassMaterial(rise: { value: number }) {
+/* the C wing's glass: deep red panes between hairline mullions in the brand's red, each storey's colors its own (the Versions lens paints them as the city paints its glass), worn from its rise and brightened as the city's lights come on, never another hue, lighter at a pane's head, flashing white on the storeys its transactions light, a glow at night, and the sky at a glance as the city's glass takes it. Each vertex carries its storey (aK, the lantern the last), its face, how far across its face (aS) and up its pane (aV) it is, the face's length there, and the mullions' divisions of the face (none on the lantern, which its fins divide) */
+function cGlassMaterial(rise: { value: number }, top: number) {
   const u = {
     uTime: TIME,
     uRiseAt: rise,
     uPane: { value: Array.from({ length: C_SLOTS }, () => new Color()) },
     uLine: { value: Array.from({ length: C_SLOTS }, () => new Color()) },
     uFl: { value: Array.from({ length: C_FLASHES }, () => new Vector4()) },
-    uPlain: { value: new Color() },
     uFlashColor: { value: new Color("#FFFFFF") },
     uGlow: { value: 0 },
     uLineGlow: { value: 0 },
     uFlashGlow: { value: 0 },
     uLit: { value: 0 },
     uLive: { value: 0 },
+    uTop: { value: top },
+    uPx: { value: 1 },
   };
   const m = new MeshPhongMaterial({ color: 0xffffff, specular: new Color("#5A6070"), shininess: 90 });
   m.onBeforeCompile = (s) => {
@@ -624,6 +657,7 @@ uniform vec3 uPane[ ${C_SLOTS} ];
 uniform vec3 uLine[ ${C_SLOTS} ];
 uniform vec4 uFl[ ${C_FLASHES} ];
 uniform float uLive;
+uniform float uTop;
 attribute float aK;
 attribute float aFace;
 attribute float aS;
@@ -636,7 +670,10 @@ varying float vFlash;
 varying float vS;
 varying float vV;
 varying float vLen;
-varying float vDiv;`,
+varying float vDiv;
+varying float vRise;
+varying float vGlowK;
+varying float vWave;`,
       )
       .replace(
         "#include <begin_vertex>",
@@ -659,45 +696,56 @@ vFlash = flash * uLive;
 vS = aS;
 vV = aV;
 vLen = aLen;
-vDiv = aDiv;`,
+vDiv = aDiv;
+vRise = clamp( position.y / uTop, 0.0, 1.0 );
+vGlowK = slot == ${C_TOP} ? ${C_GLASS.lantern.toFixed(2)} : 1.0;
+vWave = aK < ${C_STOREYS}.0 - 0.5 || slot == ${C_TOP} ? 1.0 : 0.0;`,
       );
     s.fragmentShader = s.fragmentShader
       .replace(
         "#include <common>",
         /* glsl */ `#include <common>
-uniform vec3 uPlain;
 uniform vec3 uFlashColor;
 uniform float uGlow;
 uniform float uLineGlow;
 uniform float uFlashGlow;
 uniform float uLit;
+uniform float uPx;
 varying vec3 vPane;
 varying vec3 vLine;
 varying float vFlash;
 varying float vS;
 varying float vV;
 varying float vLen;
-varying float vDiv;`,
+varying float vDiv;
+varying float vRise;
+varying float vGlowK;
+varying float vWave;`,
       )
       .replace(
         "#include <color_fragment>",
         /* glsl */ `#include <color_fragment>
-// the mullions: a line at each of the face's divisions, heavier at its corners, never thinner than about a pixel
+// the mullions: a line at each of the face's divisions, heavier at its corners, never thinner than a CSS pixel
 float q = vS * vDiv;
 float fq = fract( q );
 float mullD = min( fq, 1.0 - fq ) * vLen / max( vDiv, 1.0 );
 float mullF = fwidth( mullD );
 float corner = min( 1.0, step( q, 0.5 ) + step( vDiv - 0.5, q ) );
-float mullH = max( ${MULL_HALF.toFixed(2)} * mix( 1.0, ${CORNER.toFixed(1)}, corner ), mullF * 0.8 );
+float mullH = max( ${MULL_HALF.toFixed(2)} * mix( 1.0, ${CORNER.toFixed(1)}, corner ), mullF * ( 0.5 * uPx + 0.25 ) );
 float mull = vDiv > 0.5 ? 1.0 - smoothstep( mullH - mullF * 0.5, mullH + mullF * 0.5, mullD ) : 0.0;
-// the glass takes its colors as the city's lights come on, lighter at its head where it takes the sky, and white as a transaction lands
+// the glass wears its own colors from its rise, and the city's lights only brighten them as they come on (the steel and the gaps stand as they are); lighter at its head where it takes the sky, and white as a transaction lands
 float lit = uLit >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * uLit );
-vec3 pane = mix( uPlain, vPane, lit ) * mix( 0.93, 1.05, vV );
+float bright = mix( 1.0, mix( ${C_GLASS.dim.toFixed(2)}, 1.0, lit ), vWave );
+vec3 pane = vPane * bright * mix( 0.93, 1.05, vV );
 pane = mix( pane, uFlashColor, vFlash );
-vec3 line = mix( uPlain, vLine, lit );
+vec3 line = vLine * bright;
 diffuseColor.rgb *= mix( pane, line, mull );`,
       )
-      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += ( pane * uGlow + uFlashColor * vFlash * uFlashGlow ) * ( 1.0 - mull ) + line * uLineGlow * mull;")
+      // the glow, brighter toward the crown, the lantern's brighter again
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>\nfloat ramp = mix( ${C_GLASS.ramp[0].toFixed(2)}, ${C_GLASS.ramp[1].toFixed(2)}, smoothstep( 0.1, 1.0, vRise ) ) * vGlowK;\ntotalEmissiveRadiance += ( pane * uGlow * ramp + uFlashColor * vFlash * uFlashGlow ) * ( 1.0 - mull ) + line * uLineGlow * ramp * mull;`,
+      )
       // the sky in the glass, as the city's glass takes it (Schlick's Fresnel, 4% face on)
       .replace(
         "#include <envmap_fragment>",
@@ -710,12 +758,19 @@ diffuseColor.rgb *= mix( pane, line, mull );`,
   return { m, u };
 }
 
-/* a wing's steel over one run of storeys: a band at each floor, out past the glass, and, on the X wing, a mullion every so often along each face with a heavier post at each corner, each leaning with the wall */
-function steelOf(g: Faces, f: Frame, key: WingKey, z0: number, z1: number, fins: boolean) {
+/* a wing's steel over one run of storeys: a band at each floor, out past the glass, the top of the last one a sill where a lobby's gap stands on it (ledge), and, on the X wing, a mullion every so often along each face with a heavier post at each corner, each leaning with the wall */
+function steelOf(g: Faces, f: Frame, key: WingKey, z0: number, z1: number, fins: boolean, ledge: boolean) {
   const c = f.centre(key);
   for (let y = Math.ceil(z0 / FLOOR) * FLOOR; y <= z1 + 0.01; y += FLOOR) {
     const B = f.plan(key, Math.min(y, z1), -BAND.out);
-    g.prism(B, B, y - BAND.rise / 2, y + BAND.rise / 2, { bottom: true, c });
+    const shelf = ledge && y >= z1 - 0.01;
+    g.prism(B, B, y - BAND.rise / 2, y + BAND.rise / 2, { bottom: true, top: !shelf, c });
+    if (shelf) {
+      const steel = g.color;
+      g.paint(PAINT.sill);
+      g.cap(B, y + BAND.rise / 2, 1);
+      g.color = steel;
+    }
   }
   if (!fins) return;
   const P0 = f.plan(key, z0);
@@ -732,7 +787,7 @@ function steelOf(g: Faces, f: Frame, key: WingKey, z0: number, z1: number, fins:
   }
 }
 
-/* the tower's massing, merged, each part in its own color: the forecourt, the stair, the podium, its fins, cornice and canopy; the C and X wings' cores and steel run by run, and every wing's lobbies; the C wing's lantern, fins, lid and spire; the X wing's roof, the P wing's roof and the beacon's mast; the bridges */
+/* the tower's massing, merged, each part in its own color: the forecourt, the stair, the podium, its fins, cornice and canopy; the C and X wings' cores and steel run by run, and every wing's lobbies and their sills; the C wing's lantern, fins, lid and spire; the X wing's roof, the P wing's roof and the beacon's mast; the bridges */
 function massOf(w: number, h: number): BufferGeometry {
   const g = new Faces();
   const f = frameOf(w, h);
@@ -765,34 +820,34 @@ function massOf(w: number, h: number): BufferGeometry {
       g.fin(p, p, base, PODIUM - 1.5, t, n, 0.28, 0.5);
     }
   });
-  g.box(0, CANOPY.at, pod[2][1] + CANOPY.out / 2, sw * 2.2, CANOPY.t, CANOPY.out);
-  // the C wing's slate core and the X wing's pale one under their glass, run by run, with each one's steel; the P wing's glass is its own mesh (pGlassOf). Each lobby is set back over the run under it
+  g.box(0, CANOPY.at, pod[2][1] + (w * CANOPY.out) / 2, sw * 2.2, CANOPY.t, w * CANOPY.out);
+  // the C wing's slate core and the X wing's pale one under their glass, run by run, with each one's steel; the P wing's glass is its own mesh (pGlassOf), with a sill under each lobby. Each lobby is a recessed gap set back over the run under it
   for (const key of ["c", "x", "p"] as WingKey[]) {
     const c = f.centre(key);
-    if (key !== "p")
-      for (const [z0, z1] of f.runsOf(key)) {
-        g.paint(key === "c" ? PAINT.slate : PAINT.xCore);
-        g.prism(f.plan(key, z0, 0.012), f.plan(key, z1, 0.012), z0, z1, { c });
-        g.paint(key === "c" ? PAINT.cSteel : PAINT.xSteel);
-        steelOf(g, f, key, z0, z1, key === "x");
+    for (const [z0, z1] of f.runsOf(key)) {
+      if (key === "p") {
+        if (z1 < f.top.p) {
+          g.paint(PAINT.sill);
+          g.cap(f.plan("p", z1, 0.004), z1, 1);
+        }
+        continue;
       }
+      g.paint(key === "c" ? PAINT.slate : PAINT.xCore);
+      g.prism(f.plan(key, z0, 0.012), f.plan(key, z1, 0.012), z0, z1, { c });
+      // the X wing's steel; the C wing's is drawn in its glass (cGlassOf), so the night can take it into the red
+      if (key === "x") {
+        g.paint(PAINT.xSteel);
+        steelOf(g, f, "x", z0, z1, true, z1 < f.top.x);
+      }
+    }
     g.paint(PAINT.slate);
     for (const z of f.lobbiesOf(key)) g.prism(f.plan(key, z, LOBBY_SET), f.plan(key, z + FLOOR, LOBBY_SET), z, z + FLOOR, { top: false, c });
   }
-  // the C wing's lantern behind its close-set fins, its lid, and the spire on the roof's middle: a square footing, then an eight-sided mast narrowing to its tip
+  // the C wing's lantern's core (its fins are in the C glass), its lid, and the spire on the roof's middle: a square footing, then an eight-sided mast narrowing to its tip
   const cc = f.centre("c");
   const Lc = f.plan("c", f.crown, 0.04);
   g.prism(Lc, Lc, f.crown, h - LID, { top: false, c: cc });
   g.paint(PAINT.cSteel);
-  for (let i = 0; i < 8; i++) {
-    const j = (i + 1) % 8;
-    const { t, n, len } = runOf(Lc[i], Lc[j], cc);
-    const count = Math.max(1, Math.round(len / FIN.every));
-    for (let m = 0; m < count; m++) {
-      const p: Pt = [lerp(Lc[i][0], Lc[j][0], m / count), lerp(Lc[i][1], Lc[j][1], m / count)];
-      g.fin(p, p, f.crown, h - LID, t, n, FIN.wd, FIN.d);
-    }
-  }
   const lid = f.plan("c", f.crown, -0.045);
   g.prism(lid, lid, h - LID, h, { bottom: true, c: cc });
   g.box(cc[0], h, cc[1], SPIRE_FOOT[0], SPIRE_FOOT[1], SPIRE_FOOT[0], -Math.PI / 4);
@@ -807,22 +862,21 @@ function massOf(w: number, h: number): BufferGeometry {
   g.prism(pr, pr, f.top.p, f.top.p + ROOF_SLAB, { c: f.centre("p"), top: false, bottom: true });
   const back = pr.reduce((a, b) => (b[1] < a[1] ? b : a));
   g.box(back[0], f.top.p + ROOF_SLAB, back[1] + 1.4, 0.4, BEACON_MAST, 0.4);
-  // the bridges: a gray deck and roof between the wings, a slate box between them behind the glass
+  // the bridges: a slate deck and roof between the wings, and a slate box between them behind the gaps' glass
   for (const br of BRIDGES)
     for (const li of br.at) {
       const z = f.lobbies[li];
       const b = bridgeOf(f, br.a, br.b, z);
       const [mx, mz] = [(b.ca[0] + b.cb[0]) / 2, (b.ca[1] + b.cb[1]) / 2];
-      g.paint(PAINT.gray);
-      g.box(mx, z + 0.6, mz, BRIDGE_W, 0.8, b.len, b.yaw);
-      g.box(mx, z + FLOOR - 1.4, mz, BRIDGE_W + 0.4, 0.8, b.len, b.yaw);
       g.paint(PAINT.slate);
-      g.box(mx, z + 1.4, mz, BRIDGE_W - 0.4, FLOOR - 2.8, b.len, b.yaw);
+      g.box(mx, z + 0.6, mz, w * BRIDGE, 0.8, b.len, b.yaw);
+      g.box(mx, z + FLOOR - 1.4, mz, w * BRIDGE + 0.4, 0.8, b.len, b.yaw);
+      g.box(mx, z + 1.4, mz, w * BRIDGE - 0.4, FLOOR - 2.8, b.len, b.yaw);
     }
   return g.build();
 }
 
-/* the P wing's slate glass, storey by storey, a ledge over each run under a lobby, the deck that is its roof's top, and the P-Chain's letter set into the deck, upright to the plate's front */
+/* the P wing's slate glass, storey by storey, the deck that is its roof's top, and the P-Chain's letter set into the deck, upright to the plate's front */
 function pGlassOf(w: number, h: number): BufferGeometry {
   const g = new Faces();
   const f = frameOf(w, h);
@@ -832,7 +886,6 @@ function pGlassOf(w: number, h: number): BufferGeometry {
     g.prism(f.plan("p", z0, 0.004), f.plan("p", z1, 0.004), z0, z1, { top: false, c: cp });
   });
   g.kind = -1;
-  for (const [, z1] of f.runsOf("p")) if (z1 < f.top.p) g.cap(f.plan("p", z1, 0.004), z1, 1);
   const y = f.top.p + ROOF_SLAB;
   g.cap(f.roof("p"), y, 1);
   g.kind = -2;
@@ -861,15 +914,15 @@ function pGlassOf(w: number, h: number): BufferGeometry {
   return g.build(true);
 }
 
-/* the C wing's glass: a pane a storey tall on each of its eight faces, storey by storey up each run, just proud of its core, and the lantern's all round; each face divided for its mullions as its run's foot divides it */
+/* the C wing's glass: a pane a storey tall on each of its eight faces, storey by storey up each run, just proud of its core, and the lantern's all round, each face divided for its mullions as its run's foot divides it; the C wing's steel, its floor bands, their sills and the lantern's fins; and the gaps' glass, round every wing's lobbies and down each side of each bridge */
 function cGlassOf(w: number, h: number): BufferGeometry {
   const f = frameOf(w, h);
   const c = f.centre("c");
   const pos: number[] = [];
   const nrm: number[] = [];
   const attrs: Record<"aK" | "aFace" | "aS" | "aV" | "aLen" | "aDiv", number[]> = { aK: [], aFace: [], aS: [], aV: [], aLen: [], aDiv: [] };
-  // one face's pane, wall i from plan P0 at y0 to plan P1 at y1, turned to face out
-  const pane = (P0: Pt[], P1: Pt[], y0: number, y1: number, i: number, k: number, div: number) => {
+  // one face's pane, wall i from plan P0 at y0 to plan P1 at y1, turned to face away from `inside`
+  const pane = (P0: Pt[], P1: Pt[], y0: number, y1: number, i: number, k: number, div: number, inside: Pt = c) => {
     const j = (i + 1) % P0.length;
     const a0 = V(P0[i][0], y0, P0[i][1]);
     const b0 = V(P0[j][0], y0, P0[j][1]);
@@ -877,7 +930,7 @@ function cGlassOf(w: number, h: number): BufferGeometry {
     const b1 = V(P1[j][0], y1, P1[j][1]);
     const n = new Vector3().subVectors(b0, a0).cross(new Vector3().subVectors(a1, a0)).normalize();
     const mid = a0.clone().add(b0).multiplyScalar(0.5);
-    const flip = n.x * (mid.x - c[0]) + n.z * (mid.z - c[1]) < 0;
+    const flip = n.x * (mid.x - inside[0]) + n.z * (mid.z - inside[1]) < 0;
     if (flip) n.negate();
     const [l0, l1] = [a0.distanceTo(b0), a1.distanceTo(b1)];
     const corners: [Vector3, number, number, number][] = [
@@ -898,6 +951,25 @@ function cGlassOf(w: number, h: number): BufferGeometry {
       attrs.aDiv.push(div);
     }
   };
+  // a flat plan at y, facing up, as the steel's tops
+  const cap = (P: Pt[], y: number, k: number) => {
+    const m = P.reduce<Pt>((s, p) => [s[0] + p[0] / P.length, s[1] + p[1] / P.length], [0, 0]);
+    P.forEach((p, i) => {
+      const q = P[(i + 1) % P.length];
+      const t = [V(m[0], y, m[1]), V(p[0], y, p[1]), V(q[0], y, q[1])];
+      const up = new Vector3().subVectors(t[1], t[0]).cross(new Vector3().subVectors(t[2], t[0])).y > 0;
+      for (const v of up ? t : [t[0], t[2], t[1]]) {
+        pos.push(v.x, v.y, v.z);
+        nrm.push(0, 1, 0);
+        attrs.aK.push(k);
+        attrs.aFace.push(-1);
+        attrs.aS.push(0);
+        attrs.aV.push(1);
+        attrs.aLen.push(1);
+        attrs.aDiv.push(0);
+      }
+    });
+  };
   const out = -PROUD / w;
   const runs = f.runsOf("c");
   // the mullions' divisions of each face, as its run's foot has room for them
@@ -910,7 +982,54 @@ function cGlassOf(w: number, h: number): BufferGeometry {
     for (let i = 0; i < 8; i++) pane(P0, P1, y0, y1, i, k, divs[run][i]);
   }
   const L = f.plan("c", f.crown, 0.04 + out);
-  for (let i = 0; i < 8; i++) pane(L, L, f.crown + 0.5, h - LID - 0.5, i, C_TOP, 0);
+  for (let i = 0; i < 8; i++) pane(L, L, f.crown + BAND.rise / 2, h - LID, i, C_TOP, 0);
+  // the C wing's steel: a band at each floor, out past the glass, its top the sill where a lobby stands on it, and the lantern's close-set fins
+  for (const [z0, z1] of runs)
+    for (let y = Math.ceil(z0 / FLOOR) * FLOOR; y <= z1 + 0.01; y += FLOOR) {
+      const B = f.plan("c", Math.min(y, z1), -BAND.out);
+      for (let i = 0; i < 8; i++) pane(B, B, y - BAND.rise / 2, y + BAND.rise / 2, i, SLOT.steel, 0);
+      cap(B, y + BAND.rise / 2, z1 < f.top.c && y >= z1 - 0.01 ? SLOT.sill : SLOT.steel);
+    }
+  const Lc = f.plan("c", f.crown, 0.04);
+  for (let i = 0; i < 8; i++) {
+    const j = (i + 1) % 8;
+    const { t, n, len } = runOf(Lc[i], Lc[j], c);
+    const count = Math.max(1, Math.round(len / FIN.every));
+    for (let m = 0; m < count; m++) {
+      const p: Pt = [lerp(Lc[i][0], Lc[j][0], m / count), lerp(Lc[i][1], Lc[j][1], m / count)];
+      const fin: Pt[] = [
+        [p[0] - (t[0] * FIN.wd) / 2, p[1] - (t[1] * FIN.wd) / 2],
+        [p[0] + (t[0] * FIN.wd) / 2, p[1] + (t[1] * FIN.wd) / 2],
+        [p[0] + (t[0] * FIN.wd) / 2 + n[0] * FIN.d, p[1] + (t[1] * FIN.wd) / 2 + n[1] * FIN.d],
+        [p[0] - (t[0] * FIN.wd) / 2 + n[0] * FIN.d, p[1] - (t[1] * FIN.wd) / 2 + n[1] * FIN.d],
+      ];
+      for (let e = 0; e < 4; e++) pane(fin, fin, f.crown, h - LID, e, SLOT.steel, 0, [p[0] + (n[0] * FIN.d) / 2, p[1] + (n[1] * FIN.d) / 2]);
+    }
+  }
+  // the gaps: glass round each wing's lobbies, between the bands over and under them (the P wing has none), and down each side of each bridge
+  const gapOf = { c: SLOT.gapC, p: SLOT.gapP, x: SLOT.gapX } as const;
+  for (const key of ["c", "p", "x"] as WingKey[])
+    for (const z of f.lobbiesOf(key)) {
+      const G = f.plan(key, z, LOBBY_SET + out);
+      const edge = key === "p" ? 0 : BAND.rise / 2;
+      for (let i = 0; i < 8; i++) pane(G, G, z + edge, z + FLOOR - edge, i, gapOf[key], 0, f.centre(key));
+    }
+  for (const br of BRIDGES)
+    for (const li of br.at) {
+      const z = f.lobbies[li];
+      const b = bridgeOf(f, br.a, br.b, z);
+      const n: Pt = [b.d[1], -b.d[0]];
+      const mid: Pt = [(b.from[0] + b.to[0]) / 2, (b.from[1] + b.to[1]) / 2];
+      const half = Math.hypot(b.to[0] - b.from[0], b.to[1] - b.from[1]) / 2;
+      const o = (w * BRIDGE) / 2 + PROUD;
+      for (const s of [1, -1]) {
+        const side: Pt[] = [
+          [mid[0] - b.d[0] * half + n[0] * s * o, mid[1] - b.d[1] * half + n[1] * s * o],
+          [mid[0] + b.d[0] * half + n[0] * s * o, mid[1] + b.d[1] * half + n[1] * s * o],
+        ];
+        pane(side, side, z + 1.4, z + FLOOR - 1.4, 0, SLOT.bridge, 0, mid);
+      }
+    }
   const g = new BufferGeometry();
   g.setAttribute("position", new Float32BufferAttribute(pos, 3));
   g.setAttribute("normal", new Float32BufferAttribute(nrm, 3));
@@ -919,7 +1038,7 @@ function cGlassOf(w: number, h: number): BufferGeometry {
   return g;
 }
 
-/** the meshes the tower draws on a half-width w and a height h, rising at `rise`: its massing, the C and P wings' glass, its lights (the spire's aircraft light, the beacon, the transfers' lights), and the transfer's path, drawn only while one plays; and the boxes the cursor catches */
+/** the meshes the tower draws on a half-width w and a height h, rising at `rise`: its massing, the C and P wings' glass, its lights (the spire's aircraft light, the beacon, the transfers' lights), and the lines of light (a transfer's path and the lid's line); and the boxes the cursor catches */
 export function hubTowerParts(w: number, h: number, rise: { value: number }) {
   const f = frameOf(w, h);
   const mass = massMaterial({ perInstance: false, riseAt: rise, key: "hub-tower", foot: 0.9 });
@@ -930,7 +1049,7 @@ export function hubTowerParts(w: number, h: number, rise: { value: number }) {
   body.receiveShadow = true;
   body.customDepthMaterial = riseDepth(false, rise);
   const cc = f.centre("c");
-  const cMat = cGlassMaterial(rise);
+  const cMat = cGlassMaterial(rise, h - LID);
   const cGlass = new Mesh(cGlassOf(w, h), cMat.m);
   cGlass.receiveShadow = true;
   const pMat = pGlassMaterial(rise);
@@ -948,10 +1067,9 @@ export function hubTowerParts(w: number, h: number, rise: { value: number }) {
   }
   const back = f.roof("p").reduce((a, b) => (b[1] < a[1] ? b : a));
   const run = bridgeOf(f, "p", "c", f.lobbies[1]);
-  // the transfer's path on the C wing, over the glass, casting nothing; and where its light climbs, from the lobby to the lantern
+  // the transfer's path on the C wing and the lid's lit line, over the glass, casting nothing; and where a transfer's light climbs, from the lobby to the lantern
   const flowMat = transferMaterial();
   const flow = new Mesh(transferOf(w, h), flowMat.m);
-  flow.visible = false;
   flow.renderOrder = 2;
   const spine = spineOf(f);
   const climb = Array.from({ length: 25 }, (_, i) => spine.at(lerp(spine.z0, spine.z1, i / 24), 0.5, 1.6));
@@ -991,15 +1109,28 @@ export function tintHubTower(parts: Parts, theme: Theme, floors: Glass[] = ["dow
   const t = dark ? 1 : 0;
   parts.mass.color.set(TINT[t]);
   (parts.mass.userData.foot as { value: number }).value = dark ? 0.8 : 0.9;
-  // each storey's glass: downtown's two reds, or the city's color for its storey and the city's frame
+  // each storey's glass: downtown's two reds, made up so its lit face shows them, or the city's color for its storey and the city's frame; the gaps' glass
   const c = parts.cMat.u;
   for (let k = 0; k < C_SLOTS; k++) {
+    if (k >= C_STOREYS && k !== C_TOP) continue;
     const g: Glass = !floors.length ? "plain" : floors[k === C_TOP ? floors.length - 1 : Math.min(k, floors.length - 1)];
     const own = g === "downtown";
-    c.uPane.value[k].set(own ? C_GLASS.pane[t] : GLASS3[g][theme]);
-    c.uLine.value[k].set(own ? C_GLASS.mullion[t] : MASS3.frame[theme]);
+    const gain = own ? C_GLASS.gain[t] : 1;
+    c.uPane.value[k].set(own ? C_GLASS.pane[t] : GLASS3[g][theme]).multiplyScalar(gain);
+    c.uLine.value[k].set(own ? C_GLASS.mullion[t] : MASS3.frame[theme]).multiplyScalar(gain);
   }
-  c.uPlain.value.set(GLASS3.plain[theme]);
+  // the steel and the gaps: by day steel, a sill a step lighter and slate gaps; at night the C wing's in its own deep red, the others lifted off black
+  const red = new Color(C_GLASS.pane[1]);
+  const slot = (k: number, day: string, night: Color) => {
+    c.uPane.value[k].copy(dark ? night : new Color(day));
+    c.uLine.value[k].copy(c.uPane.value[k]);
+  };
+  slot(SLOT.steel, PAINT.cSteel, red.clone().multiplyScalar(NIGHT_RED.steel));
+  slot(SLOT.sill, PAINT.sill, red.clone().multiplyScalar(NIGHT_RED.sill));
+  slot(SLOT.gapC, GAP_DAY, red.clone().multiplyScalar(NIGHT_RED.gap));
+  slot(SLOT.gapP, GAP_DAY, new Color(NIGHT_GAP.p));
+  slot(SLOT.gapX, GAP_DAY, new Color(NIGHT_GAP.x));
+  slot(SLOT.bridge, GAP_DAY, new Color(NIGHT_GAP.bridge));
   c.uGlow.value = C_GLASS.glow[t];
   c.uLineGlow.value = C_GLASS.mullionGlow[t];
   c.uFlashGlow.value = C_GLASS.flashGlow[t];
@@ -1078,7 +1209,7 @@ const _c = new Color();
 const _n = new Quaternion();
 
 /** the tower's motion, frame by frame: the C wing's glass as the lights come on, the aircraft light, the beacon, the P-Chain's storeys and each transfer's play */
-export function stepHubTower(parts: Parts, o: { dark: boolean; still: boolean; riseAt: number; lightAt: number; flashes: { storey: number; at: number }[]; runs: { at: number; out: boolean }[] }) {
+export function stepHubTower(parts: Parts, o: { dark: boolean; still: boolean; riseAt: number; lightAt: number; flashes: { storey: number; at: number }[]; runs: { at: number; out: boolean }[]; px?: number }) {
   const t = TIME.value;
   const lit = o.still ? 1 : clamp01((t - o.lightAt) / 1.1);
   parts.pMat.u.uLit.value = lit;
@@ -1114,7 +1245,10 @@ export function stepHubTower(parts: Parts, o: { dark: boolean; still: boolean; r
   fu.uDir.value = dir;
   // the spark is the brand's blue, pale, so it reads on the C wing's red; the crown's band answers in red
   fu.uSparkColor.value.copy(blue).lerp(WHITE, o.dark ? 0.4 : 0.25);
-  parts.flow.visible = band > 0.01 || crown > 0.01 || spark >= 0;
+  // the lid's line comes on with the lights; the hairlines keep a CSS pixel at the renderer's pixel ratio
+  fu.uRim.value = lit;
+  fu.uPx.value = o.px ?? 1;
+  parts.cMat.u.uPx.value = o.px ?? 1;
   // the whole P wing lights as a transfer leaves it or reaches it
   parts.pMat.u.uAll.value = signal * 0.7;
   const up = o.still ? 1 : clamp01((t - o.riseAt - RISE_S * 0.8) / 0.5);
@@ -1226,16 +1360,16 @@ export function HubTower({
       lag += 0.3;
     }
   }, [pulse, still]);
-  useFrame(() => {
+  useFrame(({ gl }) => {
     while (asked.length) {
       const dir = asked.shift();
       if (!still) runOut(dir === "toC", TIME.value);
     }
-    stepHubTower(parts, { dark, still, riseAt, lightAt, flashes: flashes.current, runs: runs.current });
+    stepHubTower(parts, { dark, still, riseAt, lightAt, flashes: flashes.current, runs: runs.current, px: gl.getPixelRatio() });
   });
 
   const pick = (id: string) => (e: ThreeEvent<MouseEvent>) => {
-    if (e.delta > 6) return;
+    if (e.delta > 12) return;
     e.stopPropagation();
     onPick?.(id);
   };
@@ -1249,9 +1383,10 @@ export function HubTower({
       {parts.meshes.map((o, i) => (
         <primitive key={i} object={o} />
       ))}
+      {/* each keyed by its mesh, as the city's picks are (Buildings.tsx) */}
       {onPick &&
         (["c", "p", "x", "base"] as const).map((k) => (
-          <primitive key={k} object={parts.picks[k]} onClick={pick(k === "p" ? PCHAIN_PICK : hub.id)} onPointerOver={over(k === "p" ? PCHAIN_PICK : hub.id)} onPointerOut={out} />
+          <primitive key={`${k}:${parts.picks[k].uuid}`} object={parts.picks[k]} onClick={pick(k === "p" ? PCHAIN_PICK : hub.id)} onPointerOver={over(k === "p" ? PCHAIN_PICK : hub.id)} onPointerOut={out} />
         ))}
     </group>
   );

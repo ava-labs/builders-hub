@@ -1,8 +1,9 @@
 /* the plan's shared measures, read by the map and by downtown's crown:
    the plate's tilt (how much a circle on the ground squashes on screen)
-   and the width of downtown's shaft */
+   and the half-width of downtown's tower, wide enough to anchor the city
+   (the plaza round it is fixed in city.ts, so this moves no lot) */
 export const TILT = 0.5;
-export const HUB_W = 19;
+export const HUB_W = 27;
 
 /** an annular sector in plan, angles in radians clockwise on screen */
 export function arcPath(a0: number, a1: number, r0: number, r1: number): string {

@@ -17,6 +17,7 @@ import {
   MeshLambertMaterial,
   MeshPhongMaterial,
   NearestFilter,
+  PlaneGeometry,
   RGBAFormat,
   ShaderMaterial,
   Vector3,
@@ -28,7 +29,7 @@ import {
 import { diceOf } from "@/components/explorer-v2/network/city-geometry";
 import { HUB_ID, type Route } from "@/components/explorer-v2/network/icm-map";
 import type { City } from "@/components/explorer-v2/network/city";
-import { FLEET, GLASS3, type Theme } from "./palette";
+import { GLASS3, type Theme } from "./palette";
 import { BLOCK_H } from "./model";
 import { countOf, durOf, type RouteStreets } from "./lanes";
 import { TIME } from "./shaders";
@@ -40,14 +41,17 @@ import { TIME } from "./shaders";
    along each flank, the only light it shows: its sender's district hue,
    or the brand's red on a route to or from the C-Chain. A busy route runs
    longer pods of the same family among them, for its buses and trucks.
-   A pod eases out of its sender's lot and settles into its receiver's
-   with the brand's ease, and drives the lane between at an even speed. The
-   whole fleet is two instanced meshes, its shells and its canopies, and the GPU
+   A pod rises out of its sender's lot and eases off, drives the lane at an
+   even speed, and settles and sinks into its receiver's lot, with the
+   brand's ease; a soft shadow under it keeps it on the road. The whole
+   fleet is three instanced meshes, its shells, its canopies and their
+   shadows, and the GPU
    drives it: each lane is a row of a float texture, and each part finds its
    place on its lane from the city's clock, so no frame moves a pod from
    script. The cursor finds a route by its lane or by one of its pods: the
    route lights its lane and its pods' strips in blue, and the rest drive
-   on, muted, as any hover leaves them. */
+   on, muted, as any hover leaves them; a click picks it, and a picked
+   route stays lit so while its panel is open. */
 
 type Kind = "car" | "van" | "bus" | "truck";
 /* each kind's pod, in widths of the pod: its length, and its canopy's length,
@@ -67,6 +71,8 @@ const UPPER = 0.25;
 const EQUATOR = CLEAR + LOWER;
 const ROOF = EQUATOR + UPPER;
 const CANOPY_H = 0.9;
+/** how deep a pod sinks into its lot, in its widths: under its canopy's top */
+const SINK = 0.8;
 /** a pod's width at a lot of 46, as the map's cars' */
 const WIDTH = 4.5;
 const LOT = 46;
@@ -147,7 +153,7 @@ attribute vec4 aRun;
 attribute vec4 aMove;
 attribute vec4 aBox;
 attribute vec3 aDim;
-varying float vFade;
+varying float vSink;
 vec3 vehAt;
 float vehCos;
 float vehSin;
@@ -170,7 +176,7 @@ void placeVehicle() {
   float t = uTime - uLiveAt - aRun.y;
   vehGone = t < 0.0 || head.x < 2.0 || aDim.x <= 0.0;
   if ( vehGone ) {
-    vFade = 0.0;
+    vSink = 1.0;
     return;
   }
   float tt = mod( t, aRun.z );
@@ -191,8 +197,11 @@ void placeVehicle() {
   float yaw = a.w + d * w;
   vehCos = cos( yaw );
   vehSin = sin( yaw );
-  // it comes in with a sharp attack as it leaves, and goes with a long decay as it settles
-  vFade = brandEase( tt / ( 0.45 * aMove.x ) ) * ( 1.0 - brandEase( ( tt - aRun.z + 0.55 * into ) / ( 0.55 * into ) ) );
+  // it rises out of the sender's lot with a sharp attack, and sinks into the receiver's with a long decay; its shadow stays on the road
+  vSink = max( 1.0 - brandEase( tt / ( 0.45 * aMove.x ) ), brandEase( ( tt - aRun.z + 0.55 * into ) / ( 0.55 * into ) ) );
+  #ifndef VEH_SHADOW
+  vehAt.y -= ${SINK.toFixed(2)} * aRun.w * vSink;
+  #endif
 }
 /* a part's scale on the pod, in the pod's widths */
 vec3 partScale() {
@@ -217,14 +226,6 @@ vec3 vehNormal( vec3 n ) {
   return vec3( n.x * vehCos - n.z * vehSin, n.y, n.x * vehSin + n.z * vehCos );
 }
 `;
-/* the fade: a fine dither of a part's pixels, as the towers' veil, so it needs no sorting */
-const FADE = /* glsl */ `
-varying float vFade;
-`;
-const FADE_DISCARD = /* glsl */ `
-if ( vFade < 0.999 && fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) ) > vFade ) discard;
-`;
-
 /* a stock material that draws the fleet's parts where the lanes put them; `more` edits the shaders after */
 function driven<T extends Material>(m: T, uniforms: Record<string, { value: unknown }>, key: string, defines: string[] = [], more?: (s: WebGLProgramParametersWithUniforms) => void): T {
   m.onBeforeCompile = (s: WebGLProgramParametersWithUniforms) => {
@@ -235,7 +236,6 @@ function driven<T extends Material>(m: T, uniforms: Record<string, { value: unkn
       .replace("void main() {", "void main() {\nplaceVehicle();")
       .replace("#include <begin_vertex>", "vec3 transformed = vehPoint( vec3( position ) );");
     if (lit) s.vertexShader = s.vertexShader.replace("#include <beginnormal_vertex>", "vec3 objectNormal = vehNormal( vec3( normal ) );");
-    s.fragmentShader = s.fragmentShader.replace("#include <common>", `#include <common>\n${FADE}`).replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>\n${FADE_DISCARD}`);
     more?.(s);
   };
   m.customProgramCacheKey = () => `city3d-traffic-${key}`;
@@ -256,12 +256,35 @@ function strip(s: WebGLProgramParametersWithUniforms) {
     .replace(
       "#include <color_fragment>",
       /* glsl */ `#include <color_fragment>
-float podEdge = fwidth( vPod.y ) * 1.2;
-float podBand = ( 1.0 - smoothstep( ${STRIP_HALF.toFixed(3)}, ${STRIP_HALF.toFixed(3)} + podEdge, abs( vPod.y - ${STRIP_Y.toFixed(3)} ) ) ) * ( 1.0 - smoothstep( 0.7, 0.8, abs( vPod.x ) ) );
+float podPx = fwidth( vPod.y );
+// never thinner than about a pixel on screen, so the strip still reads from the city's edge
+float podHalf = clamp( 0.55 * podPx, ${STRIP_HALF.toFixed(3)}, 0.07 );
+float podBand = ( 1.0 - smoothstep( podHalf, podHalf + podPx * 1.2, abs( vPod.y - ${STRIP_Y.toFixed(3)} ) ) ) * ( 1.0 - smoothstep( 0.7, 0.8, abs( vPod.x ) ) );
 diffuseColor.rgb = mix( diffuseColor.rgb, vGlow, podBand );`,
     )
     .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += vGlow * podBand;");
 }
+
+/* a pod's shadow: a soft ellipse flat on the road under it, a little wider and longer
+   than the pod, gone as the pod sinks into its lot */
+const SHADOW = {
+  vertexShader: /* glsl */ `
+    ${PLACE}
+    varying vec2 vUv;
+    void main() {
+      placeVehicle();
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4( vehPoint( position ), 1.0 );
+    }`,
+  fragmentShader: /* glsl */ `
+    uniform float uShade;
+    varying vec2 vUv;
+    varying float vSink;
+    void main() {
+      float r = length( ( vUv - 0.5 ) * 2.0 );
+      gl_FragColor = vec4( 0.0, 0.0, 0.0, ( 1.0 - smoothstep( 0.3, 1.0, r ) ) * uShade * ( 1.0 - vSink ) );
+    }`,
+};
 
 /** a texture's width every WebGL2 device takes: a longer lane is sampled more sparsely to fit */
 const MAX_SAMPLES = 2047;
@@ -346,20 +369,21 @@ function ribbonsOf(streets: RouteStreets[], heights: Float32Array[], half: numbe
   return { geometry: g, faces: Int32Array.from(faces) };
 }
 
-/* the lit lane: the hovered route's ribbon in blue, soft at its edges, a slow flow
-   running along it toward the receiver; every other route's ribbon folds away */
+/* the lit lane: the hovered route's ribbon in blue, and a picked route's, soft at its
+   edges, a slow flow running along it toward the receiver; every other ribbon folds away */
 const LIT_LANE = {
   vertexShader: /* glsl */ `
     attribute float aRoute;
     attribute float aSide;
     attribute float aAlong;
     uniform float uHot;
+    uniform vec2 uPicked;
     varying float vSide;
     varying float vAlong;
     void main() {
       vSide = aSide;
       vAlong = aAlong;
-      if ( abs( aRoute - uHot ) > 0.5 ) {
+      if ( abs( aRoute - uHot ) > 0.5 && abs( aRoute - uPicked.x ) > 0.5 && abs( aRoute - uPicked.y ) > 0.5 ) {
         gl_Position = vec4( 2.0, 2.0, 2.0, 1.0 );
         return;
       }
@@ -380,10 +404,13 @@ const LIT_LANE = {
 };
 
 /* where a pod is now, from the city's clock, as the shader finds it; null while it waits */
-function poseOf(v: Vehicle, t0: number, lane: RouteStreets["lane"] | undefined, h: Float32Array | undefined): { x: number; y: number; z: number; yaw: number } | null {
+function poseOf(v: Vehicle, t0: number, lane: RouteStreets["lane"] | undefined, h: Float32Array | undefined): { x: number; y: number; z: number; yaw: number; sink: number } | null {
   const t = t0 - v.begin;
   if (t < 0 || !lane || !h || lane.x.length < 2) return null;
-  const f = Math.min(1, Math.max(0, shareAt(v, t % v.period))) * (lane.x.length - 1);
+  const tt = t % v.period;
+  const into = v.period - v.out - v.cruise;
+  const sink = Math.max(1 - brandEase(tt / (0.45 * v.out)), brandEase((tt - v.period + 0.55 * into) / (0.55 * into)));
+  const f = Math.min(1, Math.max(0, shareAt(v, tt))) * (lane.x.length - 1);
   const k0 = Math.floor(f);
   const k1 = Math.min(k0 + 1, lane.x.length - 1);
   const w = f - k0;
@@ -394,6 +421,7 @@ function poseOf(v: Vehicle, t0: number, lane: RouteStreets["lane"] | undefined, 
     y: h[k0] + (h[k1] - h[k0]) * w,
     z: lane.z[k0] + (lane.z[k1] - lane.z[k0]) * w,
     yaw: lane.yaw[k0] + d * w,
+    sink,
   };
 }
 
@@ -431,6 +459,8 @@ export function Traffic({
   hovered = null,
   onHoverRoute,
   frozen,
+  picked = null,
+  onPickRoute,
 }: {
   routes: Route[];
   streets: RouteStreets[];
@@ -451,6 +481,10 @@ export function Traffic({
   onHoverRoute?: (key: string | null, at?: Vector3) => void;
   /** the hover holds while this is set: the camera flies, or the reader drags it */
   frozen?: { current: boolean };
+  /** the picked route's ways, by key: they stay lit, lane and pods, while it is open */
+  picked?: string[] | null;
+  /** a click on a route's lane or one of its pods, by key */
+  onPickRoute?: (key: string) => void;
 }) {
   const dark = theme === "dark";
   const scale = Math.min(1.25, Math.max(0.6, city.lot / LOT));
@@ -519,6 +553,16 @@ export function Traffic({
     () => ({
       body: driven(new MeshLambertMaterial({ color: 0xffffff }), shared, "pod-body", ["VEH_POD"], strip),
       canopy: driven(new MeshPhongMaterial({ color: new Color("#EBF0FA"), specular: new Color("#5C6674"), shininess: 60 }), shared, "pod-canopy", ["VEH_POD"]),
+      shadow: new ShaderMaterial({
+        uniforms: { ...shared, uShade: { value: 0.26 } },
+        defines: { VEH_SHADOW: "" },
+        ...SHADOW,
+        transparent: true,
+        depthWrite: false,
+        polygonOffset: true,
+        polygonOffsetFactor: -1,
+        polygonOffsetUnits: -1,
+      }),
     }),
     [shared],
   );
@@ -567,6 +611,7 @@ export function Traffic({
     body.geometry.setAttribute("aGlow", new InstancedBufferAttribute(new Float32Array(Math.max(1, n) * 3), 3));
     return {
       body,
+      shadow: make(new PlaneGeometry(1, 1).rotateX(-Math.PI / 2), mats.shadow, 1, (v) => ({ box: [0, 0.012, 0, 0], dim: [PODS[v.kind].length * 1.1, 1, 1.3] }), false),
       canopy: make(
         podGeometry(),
         mats.canopy,
@@ -592,28 +637,30 @@ export function Traffic({
   /* the fleet's paint: a matte shell, and strips in the sender's district hue, or
      the brand's red on a route to or from the C-Chain; blue for the hovered route
      and the picked set's. A route that is not lit drives on, its strips 70% toward
-     the road's grey and its shell a little */
+     a mid steel and its shell a little, so it recedes without washing out */
   useEffect(() => {
-    const road = new Color(FLEET.roadLo[theme]);
+    const steel = new Color(dark ? "#566268" : "#98A3A7");
     const shell = new Color(dark ? "#3B484B" : "#A2AFB2");
     const lifted = new Color(dark ? "#5f9dff" : "#0061E2");
-    const hot = hovered ? routes.findIndex((r) => r.key === hovered) : -1;
+    // the hovered route and the picked one's ways keep their paint, blue; else what the city lights
+    const lit = new Set(routes.flatMap((r, i) => (r.key === hovered || picked?.includes(r.key) ? [i] : [])));
     const glows = routes.map((r, i) => {
-      if (i === hot || blue[i]) return lifted;
+      if (lit.has(i) || blue[i]) return lifted;
       if (r.from === HUB_ID || r.to === HUB_ID) return RED;
       const d = city.lots.get(r.from)?.district ?? "frontier";
       return new Color(GLASS3[d][theme]);
     });
     const glow = meshes.body.geometry.getAttribute("aGlow") as InstancedBufferAttribute;
     fleet.forEach((v, i) => {
-      const lit = hot >= 0 ? v.route === hot : on[v.route];
-      meshes.body.setColorAt(i, shell.clone().lerp(road, lit ? 0 : 0.3));
-      const g = glows[v.route].clone().lerp(road, lit ? 0 : 0.7);
+      const bright = lit.size ? lit.has(v.route) : on[v.route];
+      meshes.body.setColorAt(i, shell.clone().lerp(steel, bright ? 0 : 0.3));
+      const g = glows[v.route].clone().lerp(steel, bright ? 0 : 0.7);
       glow.setXYZ(i, g.r, g.g, g.b);
     });
     glow.needsUpdate = true;
     if (meshes.body.instanceColor) meshes.body.instanceColor.needsUpdate = true;
-  }, [fleet, meshes, routes, city, blue, on, theme, dark, hovered]);
+    mats.shadow.uniforms.uShade.value = dark ? 0.42 : 0.26;
+  }, [fleet, meshes, mats, routes, city, blue, on, theme, dark, hovered, picked]);
 
   /* the pick surface: the lanes' ribbons, drawn only as the hovered route's lit lane. The
      cursor finds a route on them, or on one of its pods where that stands now; the pods
@@ -623,7 +670,7 @@ export function Traffic({
   const pick = useMemo(() => {
     const { geometry, faces } = ribbonsOf(streets, heights, RIBBON * city.lot);
     const material = new ShaderMaterial({
-      uniforms: { uHot: { value: -1 }, uColor: { value: new Color("#0061E2") }, uAlpha: { value: 0.5 }, uTime: TIME },
+      uniforms: { uHot: { value: -1 }, uPicked: { value: [-1, -1] }, uColor: { value: new Color("#0061E2") }, uAlpha: { value: 0.5 }, uTime: TIME },
       ...LIT_LANE,
       transparent: true,
       depthWrite: false,
@@ -645,7 +692,8 @@ export function Traffic({
       const t0 = TIME.value - at;
       for (const v of vs) {
         const q = poseOf(v, t0, ss[v.route]?.lane, hs[v.route]);
-        if (!q) continue;
+        // a pod mostly under its lot is not there to find
+        if (!q || q.sink > 0.4) continue;
         const c = Math.cos(q.yaw);
         const sn = Math.sin(q.yaw);
         // the ray in the pod's frame: +x ahead, +z to its right
@@ -670,11 +718,13 @@ export function Traffic({
   useEffect(() => {
     const m = pick.material as ShaderMaterial;
     const hot = hovered ? routes.findIndex((r) => r.key === hovered) : -1;
+    const ways = (picked ?? []).map((k) => routes.findIndex((r) => r.key === k)).filter((i) => i >= 0);
     m.uniforms.uHot.value = hot;
+    m.uniforms.uPicked.value = [ways[0] ?? -1, ways[1] ?? -1];
     m.uniforms.uColor.value.set(dark ? "#5f9dff" : "#0061E2");
     m.uniforms.uAlpha.value = dark ? 0.55 : 0.45;
-    m.visible = hot >= 0;
-  }, [pick, hovered, routes, dark]);
+    m.visible = hot >= 0 || ways.length > 0;
+  }, [pick, hovered, picked, routes, dark]);
   const hoveredKey = useRef(hovered);
   hoveredKey.current = hovered;
   // a route under the cursor, unless the hover holds; the same one again asks nothing
@@ -687,16 +737,25 @@ export function Traffic({
     const key = e.instanceId === undefined ? null : routes[e.instanceId]?.key ?? null;
     if (key && key === hoveredKey.current) onHoverRoute?.(null);
   };
+  // a click picks the route under it; a drag that moved more than the towers allow does not
+  const click = (e: ThreeEvent<MouseEvent>) => {
+    if (!onPickRoute || e.delta > 12 || e.instanceId === undefined) return;
+    const key = routes[e.instanceId]?.key;
+    if (!key) return;
+    e.stopPropagation();
+    onPickRoute(key);
+  };
 
   const shown = !still && fleet.length > 0;
   return (
     <>
       <group visible={shown}>
+        <primitive object={meshes.shadow} />
         <primitive object={meshes.body} />
         <primitive object={meshes.canopy} />
       </group>
-      {/* beside the fleet, so a still reader's lanes still answer the cursor */}
-      <primitive object={pick} onPointerOver={over} onPointerMove={over} onPointerOut={out} />
+      {/* beside the fleet, so a still reader's lanes still answer the cursor; keyed by the mesh, so new streets do too (Buildings.tsx) */}
+      <primitive key={pick.uuid} object={pick} onPointerOver={over} onPointerMove={over} onPointerOut={out} onClick={click} />
     </>
   );
 }

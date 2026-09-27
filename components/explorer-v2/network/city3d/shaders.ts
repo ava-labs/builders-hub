@@ -1,4 +1,4 @@
-import { AdditiveBlending, Color, MeshDepthMaterial, MeshLambertMaterial, MeshPhongMaterial, RGBADepthPacking, ShaderMaterial, type Texture, type WebGLProgramParametersWithUniforms } from "three";
+import { AdditiveBlending, Color, MeshDepthMaterial, MeshLambertMaterial, MeshPhongMaterial, RGBADepthPacking, ShaderMaterial, Vector4, type Texture, type WebGLProgramParametersWithUniforms } from "three";
 
 /* The city's materials: the map's white massing, its glass and its ground,
    each a stock three.js material with a few lines of its own. One clock
@@ -12,6 +12,10 @@ import { AdditiveBlending, Color, MeshDepthMaterial, MeshLambertMaterial, MeshPh
 export const TIME = { value: 0 };
 /** how long one building takes to rise, in seconds */
 export const RISE_S = 0.7;
+/** how long a building's glass takes to come to its district's full color, or back to the calm grade, in the brand's motion (fast attack, long decay) */
+export const BOOST_S = 0.8;
+/** the share of the full color a boost has reached, s seconds into it: the brand's ease, as the GLSL does it */
+export const boostEase = (s: number) => (s <= 0 ? 0 : s >= BOOST_S ? 1 : 1 - Math.pow(2, (-10 * s) / BOOST_S));
 
 type Shader = WebGLProgramParametersWithUniforms;
 
@@ -81,10 +85,25 @@ export function riseDepth(perInstance: boolean, riseAt?: { value: number }): Mes
    stands whole */
 const VEIL_VERTEX = /* glsl */ `
 attribute float aFade;
+attribute vec3 aRecede;
 varying float vVeil;
+varying float vRecede;
 `;
 const VEIL_FRAGMENT = /* glsl */ `
 varying float vVeil;
+varying float vRecede;
+uniform vec3 uHaze;
+uniform float uRecedeK;
+`;
+/* a building recedes into the air while another set is lit by day: its massing, its roof and its glass take uRecedeK of the
+   pale air over the plate, so its faces lose their contrast and it stands as a chalk ghost behind the lit ones (a darker
+   haze only greyed them, and kept their shading); eased in the brand's motion (aRecede runs from .x to .y from .z) */
+export const RECEDE_U = { uHaze: { value: new Color("#E6EBF3") }, uRecedeK: { value: 0 } };
+const RECEDE_BEGIN = /* glsl */ `
+{
+  float rc = clamp( ( uTime - aRecede.z ) / ${BOOST_S.toFixed(2)}, 0.0, 1.0 );
+  vRecede = mix( aRecede.x, aRecede.y, rc >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * rc ) );
+}
 `;
 const VEIL_DISCARD = /* glsl */ `
 #ifdef ALPHA_TO_COVERAGE
@@ -93,13 +112,18 @@ diffuseColor.a *= vVeil;
 if ( vVeil < 0.999 && fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) ) > vVeil ) discard;
 #endif
 `;
-/* reads a veil, where a material draws instances that have one */
+/* reads a veil and a recede, where a material draws instances that have them (the uTime they read is riseVertex's) */
 function veilOf(s: Shader) {
-  s.vertexShader = s.vertexShader.replace("#include <common>", `#include <common>\n${VEIL_VERTEX}`).replace("#include <begin_vertex>", "#include <begin_vertex>\nvVeil = 1.0 - aFade;");
-  s.fragmentShader = s.fragmentShader.replace("#include <common>", `#include <common>\n${VEIL_FRAGMENT}`).replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>\n${VEIL_DISCARD}`);
+  Object.assign(s.uniforms, RECEDE_U);
+  s.vertexShader = s.vertexShader.replace("#include <common>", `#include <common>\n${VEIL_VERTEX}`).replace("#include <begin_vertex>", `#include <begin_vertex>\nvVeil = 1.0 - aFade;\n${RECEDE_BEGIN}`);
+  s.fragmentShader = s.fragmentShader
+    .replace("#include <common>", `#include <common>\n${VEIL_FRAGMENT}`)
+    .replace("#include <clipping_planes_fragment>", `#include <clipping_planes_fragment>\n${VEIL_DISCARD}`)
+    .replace("#include <opaque_fragment>", "#include <opaque_fragment>\ngl_FragColor.rgb = mix( gl_FragColor.rgb, uHaze, vRecede * uRecedeK );");
 }
 
-/* the massing's foot darkens toward its lot, as a model's walls do where they meet the ground */
+/* the massing's foot darkens toward its lot, as a model's walls do where they meet the ground: a few percent
+   up through the lowest storeys, more at the ground, so each tower stands with some weight */
 const FOOT_PARS = /* glsl */ `
 varying float vFootY;
 uniform float uFoot;
@@ -157,7 +181,7 @@ export function massMaterial(opts: { perInstance?: boolean; riseAt?: { value: nu
     s.vertexShader = s.vertexShader.replace("#include <common>", `#include <common>\nvarying float vFootY;`).replace("gl_Position = projectionMatrix * mvPosition;", "gl_Position = projectionMatrix * mvPosition;\nvFootY = riseWorld.y;");
     s.fragmentShader = s.fragmentShader
       .replace("#include <common>", `#include <common>\n${FOOT_PARS}`)
-      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= mix( uFoot, 1.0, smoothstep( 1.0, 11.0, vFootY ) );");
+      .replace("#include <color_fragment>", "#include <color_fragment>\ndiffuseColor.rgb *= mix( uFoot, 1.0, smoothstep( 0.5, 18.0, vFootY ) );");
     if (opts.edges) {
       Object.assign(s.uniforms, EDGE_U);
       s.vertexShader = s.vertexShader
@@ -189,6 +213,10 @@ export interface GlassUniforms {
   uFlashGlow: { value: number };
   /** the city moves: flashes run once it stands */
   uLive: { value: number };
+  /** by day (1) each band takes the sky at its head and stands on a lit hairline sill; by night (0) neither */
+  uSky: { value: number };
+  uSkyTone: { value: Color };
+  uSill: { value: Color };
 }
 
 export function glassUniforms(): GlassUniforms {
@@ -203,6 +231,9 @@ export function glassUniforms(): GlassUniforms {
     uFlashColor: { value: new Color("#FFCB52") },
     uFlashGlow: { value: 0.8 },
     uLive: { value: 0 },
+    uSky: { value: 0 },
+    uSkyTone: { value: new Color("#EEF2F8") },
+    uSill: { value: new Color("#F7F9FC") },
   };
 }
 
@@ -218,12 +249,14 @@ attribute float aLight;
 attribute vec2 aFlash;
 attribute float aDim;
 attribute float aHue;
+attribute vec3 aBoost;
 uniform float uLive;
 uniform float uMull;
 varying float vLit;
 varying float vFlash;
 varying float vDim;
 varying float vHue;
+varying float vDeep;
 varying vec2 vPane;
 varying float vBandH;
 `;
@@ -238,7 +271,12 @@ vFlash = flash;
 float lit = clamp( ( uTime - aLight ) / 1.1, 0.0, 1.0 );
 vLit = lit >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * lit );
 vDim = aDim;
-vHue = aHue;
+// a picked district's or set's glass comes to its full color: the boost runs from aBoost.x to aBoost.y, starting at aBoost.z
+float boost = clamp( ( uTime - aBoost.z ) / ${BOOST_S.toFixed(2)}, 0.0, 1.0 );
+boost = mix( aBoost.x, aBoost.y, boost >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * boost ) );
+vHue = mix( aHue, 1.0, min( boost, 1.0 ) );
+// a boost past 1 also deepens the glass by its excess, the same hue a shade darker: a lit set's by day, so it reads on the white model
+vDeep = max( boost - 1.0, 0.0 );
 {
   float sx = length( instanceMatrix[ 0 ].xyz );
   vBandH = length( instanceMatrix[ 1 ].xyz );
@@ -259,10 +297,14 @@ uniform float uMullW;
 uniform float uGlow;
 uniform vec3 uFlashColor;
 uniform float uFlashGlow;
+uniform float uSky;
+uniform vec3 uSkyTone;
+uniform vec3 uSill;
 varying float vLit;
 varying float vFlash;
 varying float vDim;
 varying float vHue;
+varying float vDeep;
 varying vec2 vPane;
 varying float vBandH;
 `;
@@ -278,13 +320,23 @@ float transom = 1.0 - smoothstep( max( uMullW * 0.7, fwt * 0.6 ) - fwt, max( uMu
 float frame = max( mullion, transom * 0.8 );
 // the glass: the curtain wall's own, tinted by the district's hue as it lights, lighter at its head where it takes the sky
 vec3 tint = mix( uPlain, vColor, vLit );
-vec3 glassTone = mix( uGlassBase, tint, vHue ) * mix( 0.93, 1.05, vPane.y );
+vec3 glassTone = mix( uGlassBase, tint, vHue ) * mix( 0.93, 1.05, vPane.y ) * ( 1.0 - vDeep );
 glassTone = mix( glassTone, uFlashColor, vFlash );
 diffuseColor.rgb *= mix( uWall, mix( glassTone, uFrame, frame ), vDim );
+// by day, the sill: a lit hairline along the band's foot with its shadow line over it, a pixel each on screen, where the band stands tall enough to carry one
+float fws = fwidth( vPane.y );
+float tall = uSky * step( fws, 0.2 ) * vDim;
+float upPx = vPane.y / max( fws, 1e-4 );
+float sill = tall * ( 1.0 - smoothstep( 0.9, 1.5, upPx ) );
+float reveal = tall * ( smoothstep( 0.9, 1.5, upPx ) - smoothstep( 2.1, 2.7, upPx ) );
+diffuseColor.rgb *= 1.0 - 0.4 * reveal;
+diffuseColor.rgb = mix( diffuseColor.rgb, uSill, sill );
+// and the sky the glass takes at its head, fading down it: the calm glass takes it whole, a set's full color (a pick, the Versions lens, downtown) half
+float skyIn = uSky * pow( vPane.y, 2.4 ) * 0.24 * ( 1.0 - 0.5 * vHue ) * vDim * ( 1.0 - frame ) * ( 1.0 - sill ) * ( 1.0 - reveal );
 `;
 const GLASS_EMISSIVE = /* glsl */ `
 #include <emissivemap_fragment>
-totalEmissiveRadiance += ( glassTone * uGlow + uFlashColor * vFlash * uFlashGlow ) * vDim * ( 1.0 - frame );
+totalEmissiveRadiance += ( glassTone * uGlow + uFlashColor * vFlash * uFlashGlow ) * vDim * ( 1.0 - frame ) + uSkyTone * skyIn;
 `;
 /* the sky in the glass, as glass takes it (Schlick's Fresnel, 4% face on):
    a face that looks at the eye keeps its tint (a CIEDE2000 shift of 1.4 at
@@ -329,18 +381,58 @@ export function sectorUniforms(): SectorUniforms {
 }
 
 /** the ground's paint on the plate and on the blocks' tops, lit, shaded, and lit again under a district's light */
+/* the towers' contact shades, a layer apart from the ground's paint (Buildings paints it), so each shade comes in with its
+   own tower's rise and none lies on an empty lot: uFeetMask holds the shades' soft coverage in its alpha and uFeetTime each
+   shade's tower's rise on the city's clock (a gray: 0 to 254 of uFeetMax, 255 none), both laid over the plate as the paint
+   is. The ground mixes each into its paint as the paint's own shade was drawn, over its sRGB, in the theme's shade color */
+export const FEET_U = {
+  uFeetMask: { value: null as Texture | null },
+  uFeetTime: { value: null as Texture | null },
+  uFeetShade: { value: new Vector4(0, 0, 0, 0) },
+  uFeetMax: { value: 1 },
+  uFeetOn: { value: 0 },
+};
+
 export function groundMaterial(map: Texture, sector: SectorUniforms, key: string): MeshLambertMaterial {
   const m = new MeshLambertMaterial({ color: 0xffffff, map });
   m.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, sector);
+    Object.assign(s.uniforms, sector, FEET_U);
+    s.uniforms.uTime = TIME;
     s.vertexShader = s.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec2 vPlan;")
       .replace("#include <project_vertex>", "#include <project_vertex>\nvPlan = ( modelMatrix * vec4( transformed, 1.0 ) ).xz;");
     s.fragmentShader = s.fragmentShader
-      .replace("#include <common>", "#include <common>\nvarying vec2 vPlan;\nuniform vec4 uSector;\nuniform vec3 uSectorColor;\nuniform float uSectorAlpha;")
+      .replace(
+        "#include <common>",
+        /* glsl */ `#include <common>
+varying vec2 vPlan;
+uniform vec4 uSector;
+uniform vec3 uSectorColor;
+uniform float uSectorAlpha;
+uniform sampler2D uFeetMask;
+uniform sampler2D uFeetTime;
+uniform vec4 uFeetShade;
+uniform float uFeetMax;
+uniform float uFeetOn;
+uniform float uTime;
+vec3 feetToS( vec3 c ) { return mix( c * 12.92, 1.055 * pow( c, vec3( 1.0 / 2.4 ) ) - 0.055, step( 0.0031308, c ) ); }
+vec3 feetToL( vec3 c ) { return mix( c / 12.92, pow( ( c + 0.055 ) / 1.055, vec3( 2.4 ) ), step( 0.04045, c ) ); }`,
+      )
       .replace(
         "#include <color_fragment>",
         /* glsl */ `#include <color_fragment>
+#ifdef USE_MAP
+// a tower's shade at its foot, once its tower rises, in the brand's motion
+if ( uFeetOn > 0.5 ) {
+  float fm = texture2D( uFeetMask, vMapUv ).a;
+  if ( fm > 0.0 ) {
+    float fat = texture2D( uFeetTime, vMapUv ).r * ( 255.0 / 254.0 ) * uFeetMax;
+    float fu = clamp( ( uTime - fat ) / ${RISE_S.toFixed(2)}, 0.0, 1.0 );
+    float fup = fu >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * fu );
+    diffuseColor.rgb = feetToL( mix( feetToS( diffuseColor.rgb ), uFeetShade.rgb, fm * uFeetShade.a * fup ) );
+  }
+}
+#endif
 if ( uSectorAlpha > 0.0 ) {
   float r = length( vPlan );
   float d = mod( atan( vPlan.y, vPlan.x ) - uSector.x, 6.2831853 );
@@ -351,7 +443,7 @@ if ( uSectorAlpha > 0.0 ) {
 }`,
       );
   };
-  m.customProgramCacheKey = () => `city3d-ground-${key}`;
+  m.customProgramCacheKey = () => `city3d-ground-${key}-feet`;
   return m;
 }
 
@@ -486,6 +578,7 @@ export function haloMaterial(band: boolean, plain: { value: Color }, base: { val
       attribute float aDim;
       attribute float aFade;
       attribute float aHue;
+      attribute vec3 aBoost;
       uniform vec2 uPad;
       uniform vec3 uPlain;
       uniform vec3 uGlassBase;
@@ -511,7 +604,10 @@ export function haloMaterial(band: boolean, plain: { value: Color }, base: { val
         gl_Position = projectionMatrix * mv;
         float lit = clamp( ( uTime - aLight ) / 1.1, 0.0, 1.0 );
         lit = lit >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * lit );
-        vTone = mix( uGlassBase, mix( uPlain, instanceColor, lit ), aHue );
+        // the glass's boost, as the window's own
+        float boost = clamp( ( uTime - aBoost.z ) / ${BOOST_S.toFixed(2)}, 0.0, 1.0 );
+        boost = mix( aBoost.x, aBoost.y, boost >= 1.0 ? 1.0 : 1.0 - exp2( -10.0 * boost ) );
+        vTone = mix( uGlassBase, mix( uPlain, instanceColor, lit ), mix( aHue, 1.0, min( boost, 1.0 ) ) );
         vK = lit * aDim * ( 1.0 - aFade );
         float flash = 0.0;
         if ( aFlash.x > 0.0 ) {

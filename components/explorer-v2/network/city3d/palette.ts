@@ -58,7 +58,8 @@ export const GROUND = {
   park: P("#D9E0E8", "#22292D"),
   banks: P("#D9E0E8", "#22292D"),
   water: P("#B9C7D6", "#18212B"),
-  waterEdge: P("#9FB0C2", "#243240"),
+  /** the river's bank: a hairline in a darker steel by day, a steel line by night, so the water keeps its shape on the dark ground */
+  waterEdge: P("#8C9CAE", "#4F5B66"),
   current: P("rgba(255,255,255,0.5)", "rgba(120,140,160,0.35)"),
   bridge: P("#F4F6F9", "#2B3036"),
   bridgeEdge: P("#C9D3DF", "#3B484B"),
@@ -74,7 +75,7 @@ export const GROUND = {
   /** a building site's lot, fenced in hairline steel */
   fence: P("rgba(162,175,178,0.9)", "rgba(162,175,178,0.55)"),
   /** a building's soft shade at its foot, the street's at a block's curb, and the ground's under a tree */
-  contact: P("rgba(20,32,48,0.16)", "rgba(0,0,0,0.55)"),
+  contact: P("rgba(20,32,48,0.22)", "rgba(0,0,0,0.55)"),
   curb: P("rgba(20,32,48,0.18)", "rgba(0,0,0,0.6)"),
   canopy: P("rgba(20,32,48,0.2)", "rgba(0,0,0,0.5)"),
   /** the trees, as a white architectural model's: frost-grey crowns */
@@ -111,8 +112,6 @@ export const HUB3 = {
 /** the ledger's tiles by tx family: their tops, read from the map's */
 export type { Fam };
 export const FAM3 = Object.fromEntries(Object.entries(FAM).map(([f, v]) => [f, pair(v.top)])) as Record<Fam, Pair>;
-/** the P-Chain's own ink, for its words: the brand's block gray */
-export const P_INK = P("#A2AFB2", "#A2AFB2");
 
 /** the fleet's glass, lamps and paint */
 export const FLEET = {
