@@ -45,10 +45,13 @@ export type Series = z.infer<typeof seriesSchema>;
 export const panelSchema = z.object({
   title: z.string().max(60),
   /** hbar: a horizontal ranking; bar: buckets; line and area: continuous;
-   *  scatter: one numeric column against another; table: the rows */
-  kind: z.enum(["hbar", "bar", "line", "area", "scatter", "table"]),
-  /** the category or time column; for scatter, the numeric x column */
+   *  scatter: one numeric column against another; flow: where value went,
+   *  from x to target; table: the rows */
+  kind: z.enum(["hbar", "bar", "line", "area", "scatter", "flow", "table"]),
+  /** the category or time column; for scatter, the numeric x column; for flow, the column value comes from */
   x: z.string().optional(),
+  /** for flow: the column value goes to */
+  target: z.string().optional(),
   series: z.array(seriesSchema).max(6).default([]),
   /** vertical marks at x values: a peak, an upgrade, the start of a burst */
   markers: z.array(z.object({ x: z.union([z.string(), z.number()]), label: z.string().max(28) })).max(4).default([]),
@@ -234,6 +237,7 @@ Comparisons and overlays (use them whenever the rows hold more than one thing to
 - Running totals: transform "cumulative". Noisy per-minute series: add a "rolling" copy of the same column as a thin line over the raw bars.
 - A count and a rate together: bars (mark "bar") on the left axis, the rate as a line (mark "line") on the right axis.
 - Two numeric measures per group or per record (gas against fee, calls against callers): kind "scatter", x the first measure, one series the second.
+- Flows: when the question asks where value went, from whom or to whom, and each row is a pair (a column value comes from, a column it goes to, names or addresses, and the amount between them), use kind "flow" at full width: x is the column value comes from, target the column it goes to, and the one series the amount. The page draws the largest 30 flows and folds the rest into Other; a receiver that sends on becomes a second stage. A name stands in one row per partner, so never put an hbar or a pie over such rows: it would show one sender many times. Rows with one name each (who received the most) stay an hbar.
 - Markers: put one on the peak and on anything a callout names. Bands: shade the window the question compares.
 - A strong answer usually has one overlay panel that makes the comparison and one supporting panel that explains it.
 
@@ -494,10 +498,18 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
     execute: async (spec) => {
       const bad = [
         ...spec.stats.filter((s) => !cols.has(s.column)).map((s) => `stat ${s.label} -> ${s.column}`),
-        ...spec.panels.flatMap((p) => [...(p.x && !cols.has(p.x) ? [`panel x ${p.x}`] : []), ...p.series.filter((s) => !cols.has(s.column)).map((s) => `series ${s.column}`), ...(p.sortBy && !cols.has(p.sortBy) ? [`sortBy ${p.sortBy}`] : [])]),
+        ...spec.panels.flatMap((p) => [...(p.x && !cols.has(p.x) ? [`panel x ${p.x}`] : []), ...(p.target && !cols.has(p.target) ? [`panel target ${p.target}`] : []), ...p.series.filter((s) => !cols.has(s.column)).map((s) => `series ${s.column}`), ...(p.sortBy && !cols.has(p.sortBy) ? [`sortBy ${p.sortBy}`] : [])]),
       ];
       if (bad.length) return { error: `these columns are not in the rows: ${bad.join("; ")}. Columns: ${[...cols].join(", ")}` };
       if (spec.panels.some((p) => p.kind !== "table" && (!p.x || p.series.length === 0))) return { error: "every chart panel needs x and at least one series" };
+      // a flow runs from one column to another and draws one amount
+      const flows = spec.panels.filter((p) => p.kind === "flow");
+      if (flows.some((p) => !p.target || p.target === p.x || p.series.length !== 1)) return { error: "a flow panel needs x (the column value comes from), target (the column it goes to, not x) and one series (the amount)" };
+      const text = flows.map((p) => p.series[0].column).filter((c) => !NUMERIC.test(input.columns.find((k) => k.name === c)?.type ?? ""));
+      if (text.length) return { error: `a flow's series is the amount that moved: ${text.join(", ")} is not a number column` };
+      // a ranking draws one bar per row: a name that repeats in the rows (a sender with several partners) would stand there several times
+      const repeats = [...new Set(spec.panels.filter((p) => p.kind === "hbar" && p.x && new Set(input.rows.map((r) => String(r[p.x!]))).size < input.rows.length).map((p) => p.x!))];
+      if (repeats.length) return { error: `an hbar draws one bar per row, and ${repeats.join(", ")} repeats in these rows: rank a column that names each row once, or leave the ranking out` };
       // a callout's cap counts it as the page shows it, each full address and hash short
       const long = spec.callouts.map((c, i) => ({ i, n: shownLength(c) })).filter((c) => c.n > CALLOUT_SHOWN);
       if (long.length) return { error: `a callout holds ${CALLOUT_SHOWN} characters as the page shows it, with each address and hash counted as 11: ${long.map((c) => `callout ${c.i + 1} has ${c.n}`).join(", ")}. Shorten it and call design again.` };

@@ -14,6 +14,7 @@ import type { Format, Panel, Series, Stat, VisualSpec } from "@/lib/explorer-que
 import { CHART_MS, FADE_CLASS, MOTION, useNarrow, useReduced, useTween } from "./query/motion";
 import { rowCount } from "./query-client";
 import { statDoor } from "./stat-door";
+import { FlowChart } from "./query/FlowChart";
 
 /* Draws what the designer specified: a strip of headline figures, one
    to four panels, and the callouts. The chart is the index of the rows:
@@ -1089,6 +1090,8 @@ export function QueryVisual({ visual, rows, names, sym, canDrill, onPick, onZoom
                   </div>
                   {renderTable(p, idx)}
                 </section>
+              ) : p.kind === "flow" ? (
+                <FlowChart panel={p} rows={rows} names={names} sym={sym} fmt={fmt} base={base} live={live} canDrill={canDrill} onPick={onPick} compact={compact} action={panelAction?.(idx)} titled={titles} />
               ) : (
                 <PanelBlock
                   panel={p}

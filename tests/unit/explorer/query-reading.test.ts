@@ -76,6 +76,53 @@ describe('designVisual', () => {
     expect(out.visual.callouts).toEqual([three]);
   });
 
+  it('takes a flow panel from the column value comes from to the column it goes to, with one amount', async () => {
+    const a = (c: string) => `0x${c.repeat(40)}`;
+    const flowInput = {
+      ...input,
+      question: 'Where did USDC go yesterday?',
+      columns: [{ name: 'from_address', type: 'Nullable(String)' }, { name: 'to_address', type: 'Nullable(String)' }, { name: 'usdc_moved', type: 'Float64' }],
+      rows: [{ from_address: a('1'), to_address: a('2'), usdc_moved: 5 }],
+    };
+    const panel = { ...spec.panels[0], title: 'Where USDC went', kind: 'flow', x: 'from_address', series: [{ ...spec.panels[0].series[0], column: 'usdc_moved', label: 'USDC moved', format: 'number' }] };
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      for (const p of [panel, { ...panel, target: 'from_address' }, { ...panel, target: 'to_address', series: [{ ...panel.series[0], column: 'to_address' }] }, { ...panel, target: 'to_addr' }, { ...panel, target: 'to_address' }])
+        results.push(await opts.tools.design.execute({ ...spec, panels: [p] }));
+      return {};
+    }) as unknown as typeof generateText);
+    const out = await designVisual(flowInput);
+    expect(results.slice(0, 3)).toEqual([
+      { error: expect.stringContaining('target (the column it goes to') },
+      { error: expect.stringContaining('target (the column it goes to') },
+      { error: expect.stringContaining('to_address is not a number column') },
+    ]);
+    expect(results[3]).toMatchObject({ error: expect.stringContaining('panel target to_addr') });
+    expect(results[4]).toEqual({ ok: true });
+    expect(out.visual.panels[0]).toMatchObject({ kind: 'flow', x: 'from_address', target: 'to_address' });
+    expect(visualSpecSchema.safeParse({ ...spec, panels: [{ ...panel, target: 'to_address' }] }).success).toBe(true);
+  });
+
+  it('refuses a ranking whose names repeat in the rows, as a sender does in rows of pairs', async () => {
+    const a = (c: string) => `0x${c.repeat(40)}`;
+    const pairs = {
+      ...input,
+      question: 'Where did USDC go yesterday?',
+      columns: [{ name: 'from_address', type: 'Nullable(String)' }, { name: 'to_address', type: 'Nullable(String)' }, { name: 'usdc_moved', type: 'Float64' }],
+      rows: [{ from_address: a('1'), to_address: a('2'), usdc_moved: 5 }, { from_address: a('1'), to_address: a('3'), usdc_moved: 4 }],
+    };
+    const series = [{ ...spec.panels[0].series[0], column: 'usdc_moved', label: 'USDC moved', format: 'number' }];
+    const results: unknown[] = [];
+    vi.mocked(generateText).mockImplementationOnce((async (opts: DesignCall) => {
+      results.push(await opts.tools.design.execute({ ...spec, panels: [{ ...spec.panels[0], title: 'Senders', kind: 'hbar', x: 'from_address', series }] }));
+      results.push(await opts.tools.design.execute({ ...spec, panels: [{ ...spec.panels[0], title: 'Receivers', kind: 'hbar', x: 'to_address', series }] }));
+      return {};
+    }) as unknown as typeof generateText);
+    await designVisual(pairs);
+    expect(results[0]).toMatchObject({ error: expect.stringContaining('from_address repeats in these rows') });
+    expect(results[1]).toEqual({ ok: true });
+  });
+
   it('asks the designer for low effort on every call', async () => {
     vi.mocked(generateText).mockImplementationOnce(designs(false)).mockImplementationOnce(designs(true));
     await designVisual(input);
