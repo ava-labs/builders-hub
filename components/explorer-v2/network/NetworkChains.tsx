@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
 import { compareVersions, defaultVersionTarget, sortVersionsDesc } from "@/components/stats/VersionBreakdown";
+import { ViewSwitchFade } from "@/components/explorer-v2/view-switch";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { useCityData, type SizeBy, type VersionMix } from "@/components/explorer-v2/network/icm-map";
 import { CityApp, type Height, type Market } from "@/components/explorer-v2/network/city-app";
@@ -153,20 +154,22 @@ export function NetworkChains({ indexedChainIds = null }: { indexedChainIds?: st
 
   // on large screens the page is one window: the navbar is 3.5rem and its 1px rule
   return (
-    <main data-city-page className="relative flex flex-col bg-white lg:h-[calc(100dvh-var(--fd-banner-height,0px)-3.5rem-1px)] dark:bg-zinc-950">
-      {/* on large screens the app is the window and draws the sections on its own card, over the city;
-          below them the subnav stands over the page. The app's list switches networks, so the subnav names none */}
-      <div className="mx-auto w-full max-w-[90rem] shrink-0 px-5 pt-5 md:px-6 lg:hidden">
-        {/* the city reads one day, so the subnav shows no clock here */}
-        <ExplorerSubnav network="mainnet" hideNetwork className="lg:-mx-4 lg:px-4" />
-      </div>
-      {wide === null ? (
-        <div className="min-h-[60vh] flex-1 animate-pulse bg-zinc-50 dark:bg-zinc-900/40" />
-      ) : wide ? (
-        <div className="relative min-h-0 flex-1">{app(true)}</div>
-      ) : (
-        <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6">{app(false)}</div>
-      )}
-    </main>
+    <ViewSwitchFade>
+      <main data-city-page className="relative flex flex-col bg-white lg:h-[calc(100dvh-var(--fd-banner-height,0px)-3.5rem-1px)] dark:bg-zinc-950">
+        {/* on large screens the app is the window and draws the sections on its own card, over the city;
+            below them the subnav stands over the page. The app's list switches networks, so the subnav names none */}
+        <div className="mx-auto w-full max-w-[90rem] shrink-0 px-5 pt-5 md:px-6 lg:hidden">
+          {/* the city reads one day, so the subnav shows no clock here */}
+          <ExplorerSubnav network="mainnet" hideNetwork className="lg:-mx-4 lg:px-4" />
+        </div>
+        {wide === null ? (
+          <div className="min-h-[60vh] flex-1 animate-pulse bg-zinc-50 dark:bg-zinc-900/40" />
+        ) : wide ? (
+          <div className="relative min-h-0 flex-1">{app(true)}</div>
+        ) : (
+          <div className="mx-auto w-full max-w-[90rem] px-5 md:px-6">{app(false)}</div>
+        )}
+      </main>
+    </ViewSwitchFade>
   );
 }

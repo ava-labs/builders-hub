@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Component, memo, startTransition, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ArrowRight, ArrowUpDown, ArrowUpRight, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
-import { ChainSwitcher, buildTabs } from "@/components/explorer-v2/ExplorerSubnav";
 import { cn } from "@/lib/utils";
 import { AddToWalletButton } from "@/components/ui/add-to-wallet-button";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
@@ -2137,8 +2137,8 @@ export function CityApp({
   /* large screens: the city, and its panels over it                   */
   /* ---------------------------------------------------------------- */
   const PANEL_W = 372;
-  // the sections the card links to besides this one
-  const SECTIONS = buildTabs("mainnet", undefined).filter((t) => t.label !== "Chains");
+  // the card's other view: the 2D explorer of the whole network
+  const EXPLORER_2D = "/explorer/mainnet";
   const LIVE_W = 344;
   // the panel stands while the list is asked for, or while a chain or a district is open
   // without WebGL 2 the list stands open: it is the way to the chains while the city cannot
@@ -2153,6 +2153,11 @@ export function CityApp({
   // an answer asked in the city takes the right side while it is open; the live view waits under it
   const paneOpen = !ask && (!!liveTarget || pchainOpen);
   const rightW = ask ? askW : paneOpen ? LIVE_W : 0;
+  // the search's box: 34rem at most, centred on the window, its left edge held between the card's edge and what stands at the
+  // right: the open pane, else the key (hidden while the panel is open)
+  const searchRight = rightW ? `${rightW + 32}px` : showPanel ? "32px" : "calc(var(--key) + 32px)";
+  const searchW = `min(34rem, calc(100% - ${PANEL_W + 32}px - ${searchRight}))`;
+  const searchBox = { left: `clamp(${PANEL_W + 32}px, calc(50% - ${searchW} / 2), calc(100% - ${searchRight} - ${searchW}))`, width: searchW };
   // the camera keeps the city under the search and its chips, and clear of the panels
   const room: Inset = { left: showPanel ? PANEL_W + 28 : 20, right: rightW ? rightW + 28 : 20, top: 112, bottom: 92 };
   const was = insetWas.current;
@@ -2226,41 +2231,40 @@ export function CityApp({
         </div>
       </aside>
 
-      {/* the explorer's sections, on a card as the list's door was: the chain switcher, then Chains (this page, and the
-          list's door), then the other sections. It is as wide as the panel, which opens under it */}
-      <nav
-        aria-label="Explorer sections"
-        data-city-chrome
-        className="absolute left-4 top-[calc(1rem+var(--under,0px))] z-30 flex h-11 items-stretch rounded-2xl border border-zinc-200/90 bg-white/[0.94] text-[13px] font-medium shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]"
-        style={{ width: PANEL_W }}
-      >
-        <ChainSwitcher
-          network="mainnet"
-          compact
-          menuClassName="top-[calc(100%+0.5rem)] overflow-hidden rounded-2xl border-zinc-200/90 shadow-[0_24px_60px_-28px_rgba(30,27,58,0.35)] dark:border-zinc-800/90"
-        />
-        <span aria-hidden className="my-3 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />
+      {/* two cards over the city's top left, the panel opening under them: the list's door, and the toggle between the city
+          and the 2D explorer (the chain switcher lives on the 2D explorer's rail). Divs, not a nav: the site's navbar rules
+          (nav > div, nav button) would pad and underline them */}
+      <div className="absolute left-4 top-[calc(1rem+var(--under,0px))] z-30 flex items-center gap-2">
         <button
           type="button"
           onClick={() => (showPanel ? shut() : setPanelOpen(true))}
           aria-expanded={showPanel}
-          aria-current="page"
           title={showPanel ? "Close the list" : "Open the list"}
-          className="flex items-center gap-2 px-2.5 text-zinc-900 dark:text-zinc-50"
+          data-city-chrome
+          className="flex h-11 items-center gap-2 rounded-2xl border border-zinc-200/90 bg-white/[0.94] pl-3.5 pr-4 text-[13px] font-medium text-zinc-800 shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl transition-colors hover:text-zinc-950 dark:border-zinc-800/90 dark:bg-zinc-950/[0.9] dark:text-zinc-100 dark:hover:text-white"
         >
           {showPanel ? <PanelLeftClose className="h-4 w-4 text-zinc-500 dark:text-zinc-400" /> : <PanelLeftOpen className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />}
           Chains
           <span className="font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">{dimmed && cityHits ? `${cityHits.length} of ${cityRows.length}` : cityRows.length}</span>
         </button>
-        {SECTIONS.map((t) => (
-          <Link key={t.label} href={t.href} className="flex items-center px-2 text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
-            {t.label}
+        <div
+          role="group"
+          aria-label="Explorer view"
+          data-city-chrome
+          className="flex h-11 items-stretch gap-0.5 rounded-2xl border border-zinc-200/90 bg-white/[0.94] p-1 text-[13px] font-medium shadow-[0_12px_32px_-18px_rgba(30,27,58,0.45)] backdrop-blur-xl dark:border-zinc-800/90 dark:bg-zinc-950/[0.9]"
+        >
+          <span aria-current="page" className="flex items-center rounded-xl bg-zinc-100 px-3 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50">
+            City
+          </span>
+          <Link href={EXPLORER_2D} transitionTypes={VIEW_SWITCH} className="flex items-center rounded-xl px-3 text-zinc-500 transition-colors hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100">
+            Explorer
           </Link>
-        ))}
-      </nav>
+        </div>
+      </div>
 
-      {/* the search, fixed over the city's top and centred on what the panel leaves of it; its chips under it */}
-      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center px-4 transition-[left,right] duration-300 ease-out" style={{ left: PANEL_W + 16, right: rightW ? rightW + 16 : 0 }}>
+      {/* the search, fixed over the city's top and centred on the window: it moves only as far as the section card at the
+          left, and the open pane or the key at the right (the key shows from xl, 19rem wide), would need; its chips under it */}
+      <div className="pointer-events-none absolute top-[calc(1rem+var(--under,0px))] z-30 flex justify-center transition-[left,width] duration-300 ease-out [--key:0px] xl:[--key:19rem]" style={searchBox}>
         <div data-city-chrome className="pointer-events-auto flex w-full max-w-[34rem] flex-col items-center gap-2">
           <div className="relative w-full">
             {searchField}
