@@ -1,5 +1,6 @@
 import "server-only";
 import { anchored, runQuery, type QueryResult } from "./clickhouse";
+import type { SourceNote } from "./types";
 
 /* SQL with no model in front of it (a tile refreshing, a group opened
    into its records) reads the database through this. The same query on
@@ -14,6 +15,8 @@ export interface KeptRun {
   result: QueryResult;
   /** now() was read as this block time, because the index runs behind the clock */
   anchor: string | null;
+  /** the reference tables the SQL read, with their coverage */
+  sources: SourceNote[];
 }
 
 const kept = new Map<string, { at: number; run: Promise<KeptRun> }>();
@@ -24,7 +27,7 @@ export function runKept(sql: string, chainId: number): Promise<KeptRun> {
   if (hit && Date.now() - hit.at < TTL_MS) return hit.run;
   const run = (async () => {
     const a = await anchored(sql, chainId);
-    return { result: await runQuery(a.sql), anchor: a.anchor };
+    return { result: await runQuery(a.sql), anchor: a.anchor, sources: a.sources };
   })();
   kept.delete(key);
   kept.set(key, { at: Date.now(), run });

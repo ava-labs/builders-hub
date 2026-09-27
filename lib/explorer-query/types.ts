@@ -40,6 +40,23 @@ export interface Turn {
   title: string;
 }
 
+/** a reference table an answer read (sources.ts), and how much of its
+    set it knows. Made on every run, never kept with a recipe, so its
+    figures are always the rows' own */
+export interface SourceNote {
+  /** the table the SQL names */
+  table: string;
+  /** what the table is, for the reader, mid-sentence: "validator versions" */
+  label: string;
+  /** unix ms our server read the source */
+  at: number;
+  /** members of the set, and those the table's figure is known for */
+  total: number;
+  known: number;
+  /** the coverage and where the figure comes from, in plain sentences */
+  text: string;
+}
+
 /** one model step, timed: what the model spent thinking and what the database spent */
 export interface StepTiming {
   n: number;
@@ -66,6 +83,8 @@ export interface QueryAnswer {
   coverage: Coverage | null;
   /** now() was read as this block time, because the index runs behind the clock */
   anchor?: string | null;
+  /** the reference tables the SQL read, with their coverage */
+  sources?: SourceNote[];
   /** visual is the basic layout, drawn while the designer works */
   draftVisual?: boolean;
   /** the cache key of this answer's recipe; the layout is kept under it */
@@ -93,6 +112,7 @@ export interface QueryAnswer {
 export interface DrillAnswer {
   sql: string;
   anchor?: string | null;
+  sources?: SourceNote[];
   result: QueryResult;
   names: Names;
 }

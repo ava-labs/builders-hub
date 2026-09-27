@@ -24,6 +24,17 @@ export const PCHAIN_TABLES = [
   "p_exec_state_history",
 ] as const;
 
+/** tables our server builds and sends with the query (sources.ts); the
+    ClickHouse box does not hold them. The Data API counts the AVAX
+    supply on mainnet only, so Fuji has no p_avax_supply */
+export const PCHAIN_REFS = ["p_validator_versions", "p_avax_supply"] as const;
+const FUJI_REFS = PCHAIN_REFS.filter((r) => r !== "p_avax_supply");
+
+/** P-Chain tables that hold rows a re-ingest wrote twice, never merged:
+    every read of them goes through FINAL (sources.ts). Counted on
+    2026-09-27; the data fix belongs to the box */
+export const PCHAIN_FINAL = ["decoded_p_txs", "p_utxos_created", "p_utxos_spent"] as const;
+
 /** P-Chain table chain_id per network */
 export const PCHAIN_IDS: Record<string, number> = { mainnet: 1, fuji: 5 };
 
@@ -39,6 +50,10 @@ export interface Target {
   /** the chain_id the tables carry */
   chainId: number;
   tables: readonly string[];
+  /** reference tables: readable like tables, built by our server */
+  refs: readonly string[];
+  /** tables read through FINAL, for their duplicate rows */
+  final: readonly string[];
   /** a read of these tables must carry a time or height bound */
   wide: readonly string[];
   /** the column families a bound may use */
@@ -53,6 +68,8 @@ export function targetOf(chainId: number): Target {
       kind: "pchain",
       chainId,
       tables: PCHAIN_TABLES,
+      refs: chainId === PCHAIN_IDS.fuji ? FUJI_REFS : PCHAIN_REFS,
+      final: PCHAIN_FINAL,
       // the snapshot and UTXO tables run to hundreds of millions of rows
       wide: PCHAIN_TABLES.filter((t) => t !== "p_exec_state_history" && t !== "p_node_info"),
       bound: /\b(block_time|block_height|snapshot_time|created_time|spent_time|created_height|spent_height|observed_at)\s*(>=|>|<=|<|=|==|BETWEEN|IN)/i,
@@ -63,6 +80,8 @@ export function targetOf(chainId: number): Target {
     kind: "evm",
     chainId,
     tables: EVM_TABLES,
+    refs: [],
+    final: [],
     wide: ["raw_txs", "raw_logs", "raw_traces"],
     bound: /\b(block_time|block_number)\s*(>=|>|<=|<|=|==|BETWEEN|IN)/i,
   };

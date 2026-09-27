@@ -1,10 +1,13 @@
 /* Runs a guarded query against the read-only ClickHouse and describes
    the tables it may read. The schema card is read from the database
-   itself, so the model always sees the real columns and types. */
+   itself, so the model always sees the real columns and types; the
+   reference tables our server builds (sources.ts) add their own lines. */
 
 import { withQuerySlot } from "@/lib/clickhouse/client";
 import { MAX_ROWS } from "./guard";
+import { refSchema, withSources } from "./sources";
 import { targetOf } from "./target";
+import type { SourceNote } from "./types";
 
 export interface ColumnMeta {
   name: string;
@@ -236,11 +239,13 @@ export async function runQuery(sql: string): Promise<QueryResult> {
 const schemaCache = new Map<string, { at: number; text: string }>();
 const SCHEMA_TTL_MS = 60 * 60_000;
 
-/** the tables as the database describes them, one line per table */
+/** the tables as the database describes them, one line per table, then
+    the reference tables this network has (sources.ts) */
 export async function schemaCard(chainId: number): Promise<string> {
   const { kind, tables } = targetOf(chainId);
+  const refs = refSchema(chainId);
   const hit = schemaCache.get(kind);
-  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return hit.text;
+  if (hit && Date.now() - hit.at < SCHEMA_TTL_MS) return [hit.text, ...refs].join("\n");
   const list = tables.map((t) => `'${t}'`).join(", ");
   const r = await runQuery(
     `SELECT table, name, type FROM system.columns WHERE database = currentDatabase() AND table IN (${list}) ORDER BY table, position`,
@@ -255,7 +260,7 @@ export async function schemaCard(chainId: number): Promise<string> {
     .join("\n");
   if (!text) throw new Error("schema card empty");
   schemaCache.set(kind, { at: Date.now(), text });
-  return text;
+  return [text, ...refs].join("\n");
 }
 
 export interface Coverage {
@@ -318,11 +323,20 @@ export function coverageText(chainId: number, c: Coverage): string {
 /** how far behind the clock the index may run before "now" means its last block */
 const LAG_S = 15 * 60;
 
+/** a question's SQL as it goes to the database: now() as the data knows
+    it, and the reference tables it reads (sources.ts) defined in front of
+    it as they are now. Every path that runs a question's SQL comes here. */
+export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null; sources: SourceNote[] }> {
+  const a = await anchorNow(sql, chainId);
+  const s = await withSources(a.sql, chainId);
+  return { sql: s.sql, anchor: a.anchor, sources: s.sources };
+}
+
 /** "now" as the data knows it. When the index runs behind the clock, a
     window such as the last hour would end past the data and come back
     empty; so now() is read as the time of the last indexed block. The
     query as written keeps now(), so it stays right once the index is live. */
-export async function anchored(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
+async function anchorNow(sql: string, chainId: number): Promise<{ sql: string; anchor: string | null }> {
   if (!/\bnow\(\s*\)/i.test(sql)) return { sql, anchor: null };
   const c = await coverage(chainId);
   if (!c) return { sql, anchor: null };

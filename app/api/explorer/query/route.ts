@@ -10,6 +10,7 @@ import type { ChartSpec, Names } from "@/lib/explorer-query/types";
 import { answerQuestion, drillSql, type QueryEvent } from "@/lib/explorer-query/answer";
 import { getRecipe, putVisual } from "@/lib/explorer-query/cache";
 import { runKept } from "@/lib/explorer-query/run-cache";
+import { sourceNotes } from "@/lib/explorer-query/sources";
 import { targetOf } from "@/lib/explorer-query/target";
 import { checkChatRateLimit, formatResetTime, getClientIP } from "@/lib/chat/rateLimit";
 import { getAuthSession } from "@/lib/auth/authSession";
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
       const run = await runKept(d.sql, chainId);
       const result = run.result;
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-      return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor });
+      return NextResponse.json({ sql: d.sql, result, names, anchor: run.anchor, sources: run.sources });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "drill failed" }, { status: 400 });
     }
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
       const run = await runKept(g.sql, chainId);
       const result = run.result;
       const names = await nameRows(chainId, result.columns, result.rows, baseUrl);
-      return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor });
+      return NextResponse.json({ sql: g.sql, result, names, anchor: run.anchor, sources: run.sources });
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "query failed" }, { status: 400 });
     }
@@ -129,6 +130,11 @@ export async function POST(req: Request) {
 
   const prompt = String(body.prompt ?? "").trim().slice(0, 1500);
   if (!prompt) return NextResponse.json({ error: "empty prompt" }, { status: 400 });
+  // "??" or a row of digits is not a question: no model is asked, and no question is counted
+  if (!/\p{L}/u.test(prompt)) {
+    const example = targetOf(chainId).kind === "pchain" ? "AVAX staked per day" : "transactions per hour today";
+    return NextResponse.json({ error: `Ask a question in words, for example "${example}".` }, { status: 400 });
+  }
 
   // a chain with no indexed rows has nothing to read; no model is asked
   if ((await indexState(chainId)) === "empty") return NextResponse.json({ error: `${chain.chainName}'s history is not indexed yet, so Query has nothing to read.` }, { status: 404 });
@@ -157,6 +163,8 @@ export async function POST(req: Request) {
       const emit = (e: QueryEvent) => ctl.enqueue(enc.encode(JSON.stringify(e) + "\n"));
       try {
         const answer = await answerQuestion({ chainId, chainName: chain.chainName, symbol, prompt, history, baseUrl, emit });
+        // what the server's tables in the answer cover, for the page to state
+        if (answer?.sql && !answer.sources) answer.sources = await sourceNotes(answer.sql, chainId);
         if (answer) emit({ type: "answer", answer });
       } catch (e) {
         emit({ type: "error", error: e instanceof Error ? e.message : "the query failed", status: 500 });

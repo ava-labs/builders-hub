@@ -1,6 +1,8 @@
 /* The gate every model-written query passes before ClickHouse sees it.
-   One SELECT, over the raw tables only, on one chain, capped in rows.
-   The guard is the safety boundary; the prompt is only advice. */
+   One SELECT, over the raw tables and our reference tables only, on one
+   chain, capped in rows. The guard is the safety boundary; the prompt is
+   only advice. A reference table's rows are spliced in after this gate
+   (sources.ts), so what the gate reads is what the model wrote. */
 
 import { EVM_TABLES, targetOf } from "./target";
 
@@ -30,21 +32,31 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const fn = sql.match(TABLE_FUNCTIONS);
   if (fn) return { ok: false, error: `table function ${fn[1]}() is not allowed` };
   if (/\bsystem\b/i.test(sql) || /\binformation_schema\b/i.test(sql)) return { ok: false, error: "system tables are not readable here" };
+  // the server reads the tables that hold duplicate rows through FINAL itself (sources.ts), and
+  // ClickHouse refuses a FINAL over that read, so a query's own FINAL after one of them is dropped
+  if (target.final.length) sql = sql.replace(new RegExp(`\\b(${target.final.join("|")})\\b((?:\\s+(?:AS\\s+)?(?!FINAL\\b)[A-Za-z_]\\w*)?)\\s+FINAL\\b`, "gi"), "$1$2");
 
-  // every table read must be one of the raw tables
+  // every table read must be one of the raw tables, or a reference table our server builds (sources.ts)
   // names a WITH defines (WITH snaps AS (…)) are the query's own, not tables
   const ctes = new Set([...sql.matchAll(/(?:\bWITH|,)\s*([A-Za-z_]\w*)\s+AS\s*\(/gi)].map((m) => m[1].toLowerCase()));
+  // a WITH may not take the name of a table the server defines
+  const taken = [...target.refs, ...target.final].find((r) => ctes.has(r));
+  if (taken) return { ok: false, error: `${taken} is a table here; give the WITH another name` };
+  const readable = [...target.tables, ...target.refs];
   const tables = new Set<AllowedTable>();
-  const refs = sql.matchAll(/\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi);
+  // ORDER BY t WITH FILL FROM <expr> names a value, not a table
+  const refs = sql.matchAll(/(?<!\bFILL\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi);
   for (const m of refs) {
     const ident = m[2].replace(/^default\./i, "");
     if (ctes.has(ident.toLowerCase())) continue;
-    if (!target.tables.includes(ident)) {
-      return { ok: false, error: `table ${m[2]} is not readable here; use ${target.tables.join(", ")}` };
+    if (!readable.includes(ident)) {
+      return { ok: false, error: `table ${m[2]} is not readable here; use ${readable.join(", ")}` };
     }
+    // the server's definitions answer to the bare name only
+    if (ident !== m[2] && (target.refs.includes(ident) || target.final.includes(ident))) return { ok: false, error: `write ${ident} without a database name` };
     tables.add(ident as AllowedTable);
   }
-  if (tables.size === 0) return { ok: false, error: `the query reads no table; use ${target.tables.join(", ")}` };
+  if (tables.size === 0) return { ok: false, error: `the query reads no table; use ${readable.join(", ")}` };
 
   // one chain: the sort keys start with chain_id, so this is also what
   // keeps a query from scanning every chain in the partition

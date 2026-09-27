@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { createClient } from "redis";
+import { promptVersion } from "./prompt";
 import type { ChartSpec, Drill, Turn } from "./types";
 import type { VisualSpec } from "./visual";
 
@@ -8,7 +9,8 @@ import type { VisualSpec } from "./visual";
    layout, never the rows. A hit re-runs the SQL, so the figures are
    always fresh and only the model work is skipped. Recipes live in Redis
    so every instance shares them; without Redis each instance keeps its
-   own for as long as it lives. */
+   own for as long as it lives. A key names the prompt it was written
+   against, so a change to the prompt writes each question again. */
 
 export interface Recipe {
   /** the question as asked; the layout stage designs for it */
@@ -54,11 +56,11 @@ async function redis() {
   return connecting;
 }
 
-/** the same question on the same chain, however it was typed */
+/** the same question on the same chain, however it was typed, against the same prompt */
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
-  return createHash("sha256").update(`${chainId}\n${norm}\n${past}`).digest("hex").slice(0, 32);
+  return createHash("sha256").update(`${chainId}\n${promptVersion(chainId)}\n${norm}\n${past}`).digest("hex").slice(0, 32);
 }
 
 export async function getRecipe(key: string): Promise<Recipe | null> {
