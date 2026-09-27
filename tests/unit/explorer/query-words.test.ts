@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { ROW_CAP, progress, readerError, reads, rowsLabel, withEdges } from '@/components/explorer-v2/evm/query-client';
+import { ROW_CAP, noteParts, progress, readerError, reads, rowsLabel, withEdges } from '@/components/explorer-v2/evm/query-client';
 import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, readerSpec, sampleOf, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { codeWords, figures, plainLabel, plainWords, readerSpec, sampleOf, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });
 const result = (rows: Record<string, unknown>[], truncated = false) => ({ columns: [], rows, rowCount: rows.length, elapsedMs: 0, rowsRead: 0, bytesRead: 0, truncated, ranAt: '' });
@@ -51,6 +51,15 @@ describe('reads', () => {
 
   it('shortens a hash the way it shortens an address', () => {
     expect(reads([`Tx 0x${'ab'.repeat(32)} reverted`])).toBe('Tx 0xabab…abab reverted.');
+  });
+});
+
+describe('noteParts', () => {
+  it('cuts a note around each address or hash the writer named in full', () => {
+    const a = '0xB2F0B64B6AAD197151D7BCCA515E135C65039E12';
+    expect(noteParts(`Fees paid to ${a}.`)).toEqual([{ text: 'Fees paid to ' }, { text: '0xb2f0…9e12', hex: a.toLowerCase() }, { text: '.' }]);
+    expect(noteParts(`Tx 0x${'ab'.repeat(32)} reverted`)[1]).toEqual({ text: '0xabab…abab', hex: `0x${'ab'.repeat(32)}` });
+    expect(noteParts('No address here.')).toEqual([{ text: 'No address here.' }]);
   });
 });
 
@@ -133,6 +142,15 @@ describe('reader words', () => {
     expect(plainLabel('Settled txs')).toBe('Final txs');
   });
 
+  it('never flags a bucket, and reads it as a period in titles, notes, labels and callouts', () => {
+    expect(codeWords('The current 5-minute bucket is still in progress.')).toEqual([]);
+    expect(withoutCode('The current 5-minute bucket is still in progress.')).toBe('The current 5-minute period is still in progress.');
+    expect(readerSpec({ stats: [], panels: [], callouts: ['The 05:35 bucket burned 9.39 AVAX.'] }, []).callouts).toEqual(['The 05:35 period burned 9.39 AVAX.']);
+    expect(withoutCode('Fees burned per 5 minutes. The current 5-minute bucket is still in progress.')).toBe('Fees burned per 5 minutes. The current 5-minute period is still in progress.');
+    expect(plainLabel('Fees per bucket')).toBe('Fees per period');
+    expect(plainWords('Buckets of 5 minutes')).toBe('Periods of 5 minutes');
+  });
+
   it('writes a shortened address out from the rows, and leaves out a callout naming one the rows do not hold', () => {
     const a = `0xbe05${'1'.repeat(32)}3d8d`;
     expect(withFullHex('The same 300.1k USDT went to 0xbe05…3d8d.', [a])).toBe(`The same 300.1k USDT went to ${a}.`);
@@ -209,7 +227,7 @@ describe('figures', () => {
     const rows = [20, 21, 22, 23, 24, 25, 26, 27].map((d) => ({ t: `2026-09-${d}`, txs: d === 20 ? 964435 : 500000 }));
     const sql = 'SELECT toDate(block_time) AS t, count() AS txs FROM raw_txs WHERE block_time >= toStartOfDay(now()) - INTERVAL 7 DAY GROUP BY t ORDER BY t';
     const f = figures({ columns, rows, names: {}, x: 't', sql, anchor: '2026-09-27 06:10:00' });
-    expect(f).toContain('Edges: the first bucket, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
+    expect(f).toContain('Edges: the first period, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
   });
 
   it('names the row that holds a whole-result extreme the rows do not show', () => {

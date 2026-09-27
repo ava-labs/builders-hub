@@ -168,6 +168,22 @@ export function reads(callouts: string[]): string {
     .join(" ");
 }
 
+/** a note in pieces for the page to draw: its text, and each address or hash the writer named in full,
+    short as readings write it */
+export function noteParts(text: string): { text: string; hex?: string }[] {
+  const out: { text: string; hex?: string }[] = [];
+  let last = 0;
+  for (const m of text.matchAll(/\b0x(?:[0-9a-fA-F]{64}|[0-9a-fA-F]{40})\b/g)) {
+    const at = m.index ?? 0;
+    if (at > last) out.push({ text: text.slice(last, at) });
+    const hex = m[0].toLowerCase();
+    out.push({ text: truncate(hex, 6), hex });
+    last = at + m[0].length;
+  }
+  if (last < text.length) out.push({ text: text.slice(last) });
+  return out;
+}
+
 /* the selection rides along with a follow-up after this mark, so the
    question the reader sees stays the one they typed; the city's window
    scopes a P-Chain question to a picked L1 the same way */

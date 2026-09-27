@@ -13,6 +13,7 @@ import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { Format, Panel, VisualSpec } from "@/lib/explorer-query/visual";
 import { order } from "@/lib/explorer-query/selection";
 import { fmt, fmtX, nameFor, spanOf } from "./QueryVisual";
+import { noteParts } from "./query-client";
 
 /* The rows of a query answer, as the explorer reads them: the column
    words, the doors out of a cell and a row, the generic table, a table
@@ -76,6 +77,25 @@ export function doorFor(col: string, v: unknown, base: string): string | null {
   if (isHash(v)) return c.includes("block") ? null : `${base}/tx/${v}`;
   if (typeof v === "number" && Number.isInteger(v) && (c === "block_number" || c === "block" || c.endsWith("_block"))) return `${base}/block/${v}`;
   return null;
+}
+
+/** a note as the page draws it: an address or a hash the writer named in full reads short, as readings
+    write it, and opens its own page */
+export function NoteText({ text, base }: { text: string; base: string }) {
+  return (
+    <>
+      {noteParts(text).map((p, i) => {
+        const door = p.hex ? doorFor("", p.hex, base) : null;
+        return door ? (
+          <Link key={i} href={door} title={p.hex} className={cn("font-mono text-[0.92em]", idInk, "hover:text-[#E6212F]")}>
+            {p.text}
+          </Link>
+        ) : (
+          p.text
+        );
+      })}
+    </>
+  );
 }
 
 export function fillTitle(template: string, row: Row, names: Names): string {

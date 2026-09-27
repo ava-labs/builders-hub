@@ -113,13 +113,14 @@ const ALL_ROWS = 100;
 /* how a reading speaks, for the designer's callouts and the reader's sentences alike: in the reader's
    words, in the right units, with the right verbs */
 const READER_RULES =
-  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. Figures says under Edges whether the first and last buckets are complete: never call a partial or filling one a dip or a jump, and when one holds the highest value, name the highest complete bucket too; a bucket Edges calls complete is complete. With no Edges line, the first and last buckets can be partial: never call them a dip or a jump. A whole-result figure that Figures puts in a row not shown belongs to that row: never pin it on a row shown. Say every, only, never, all or none about the rows only when all the rows are shown or Figures says it, and take largest, highest and lowest from Figures. A step is the change between neighbouring rows: quote the largest rise or fall from Figures, and call a change across several rows a change over that span, never a step. A share names its base, the thing the rows count: 7.8% of method calls, never of all transactions unless the rows count every transaction. Chain transfers (A to B, then B to C) only when the amounts match and the times follow in order; else name each transfer on its own. The note carries the caveats: a callout adds none, and never words the note's caveat another way. Counts are not amounts: say how much AVAX or value moved only from a column that holds amounts, never from a count of transactions. Write each address and hash in a callout in full, as the rows give it, and never shorten one: the page shortens it.";
+  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. Figures says under Edges whether the first and last periods are complete: never call a partial or filling one a dip or a jump, and when one holds the highest value, name the highest complete period too; a period Edges calls complete is complete. With no Edges line, the first and last periods can be partial: never call them a dip or a jump. Call a span of time a period, an hour or a day, never a bucket. A whole-result figure that Figures puts in a row not shown belongs to that row: never pin it on a row shown. Say every, only, never, all or none about the rows only when all the rows are shown or Figures says it, and take largest, highest and lowest from Figures. A step is the change between neighbouring rows: quote the largest rise or fall from Figures, and call a change across several rows a change over that span, never a step. A share names its base, the thing the rows count: 7.8% of method calls, never of all transactions unless the rows count every transaction. Chain transfers (A to B, then B to C) only when the amounts match and the times follow in order; else name each transfer on its own. The note carries the caveats: a callout adds none, and never words the note's caveat another way. Counts are not amounts: say how much AVAX or value moved only from a column that holds amounts, never from a count of transactions. Write each address and hash in a callout in full, as the rows give it, and never shorten one: the page shortens it.";
 
 /* The reader never sees the SQL, so no reader text names its parts: a
    snake_case name (seen_7d, to_address, p_validator_versions), one of the
    query's own names that holds a digit (topic0), or a comparison it makes
    (balance > 0, version = 'Unknown'). Nor does it say settled: a transaction
-   on Avalanche is final. */
+   on Avalanche is final. A bucket is never flagged: it reads as a period
+   wherever reader text is written. */
 const SNAKE = /\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b/g;
 const DIGITED = /\b[A-Za-z]+\d[A-Za-z0-9]*\b/g;
 const COMPARISON = String.raw`[a-z_][a-z0-9_]*\s*(?:[<>]=?|!=|<>|=)\s*(?:-?\d+(?:\.\d+)?|'[^']*'|[a-z_][a-z0-9_]*)`;
@@ -127,6 +128,8 @@ const COMPARE = new RegExp(String.raw`\b${COMPARISON}`, "g");
 const IN_PARENS = new RegExp(String.raw`\s*\(\s*${COMPARISON}\s*\)`, "g");
 /** the word the page never says of a transaction */
 const SETTLED = /\bsettl(?:e|es|ed|ing)\b/gi;
+/** reader text with each bucket read as a period, the page's word for a span of time */
+export const plainWords = (s: string) => s.replace(/\b([Bb])ucket(s?)\b/g, (_, b: string, n: string) => `${b === "B" ? "P" : "p"}eriod${n}`);
 
 /** a query's own names that hold a digit (topic0), outside its quoted strings and comments */
 export function sqlNames(sql: string): string[] {
@@ -140,19 +143,20 @@ export function codeWords(text: string, names: readonly string[] = []): string[]
   return [...new Set([...(text.match(SNAKE) ?? []), ...(text.match(DIGITED) ?? []).filter((w) => own.has(w)), ...(text.match(COMPARE) ?? []), ...(text.match(SETTLED) ?? [])])];
 }
 
-/** reader text without the sentences that name the SQL's parts */
+/** reader text in the page's words: a bucket reads as a period, and a sentence with a word the page never shows is left out */
 export function withoutCode(text: string, names: readonly string[] = []): string {
-  if (codeWords(text, names).length === 0) return text;
+  const worded = plainWords(text);
+  if (codeWords(worded, names).length === 0) return worded;
   // a comparison in parentheses goes on its own, and the sentence around it stays
-  return text
+  return worded
     .replace(IN_PARENS, "")
     .split(/(?<=[.!?])\s+/)
     .filter((s) => codeWords(s, names).length === 0)
     .join(" ");
 }
 
-/** a label in the reader's words: seen_7d becomes seen 7d, and settled becomes final */
-export const plainLabel = (s: string) => s.replace(SNAKE, (w) => w.replace(/_/g, " ")).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final"));
+/** a label in the reader's words: seen_7d becomes seen 7d, settled becomes final, and a bucket a period */
+export const plainLabel = (s: string) => plainWords(s.replace(SNAKE, (w) => w.replace(/_/g, " ")).replace(/\b([Ss])ettled\b/g, (_, c: string) => (c === "S" ? "Final" : "final")));
 
 /* An address in a reading is one the rows hold, written in full: the page
    shortens it. One a model shortened is written out again from the rows,
@@ -198,7 +202,7 @@ export function readerSpec(v: VisualSpec, names: readonly string[], held?: reado
     ...v,
     stats: v.stats.map((s) => ({ ...worded(s), ...(s.sub ? { sub: plainLabel(s.sub) } : {}) })),
     panels: v.panels.map((p) => ({ ...p, title: plainLabel(p.title), series: p.series.map(worded), markers: p.markers.map(worded), bands: p.bands.map(worded), referenceLines: p.referenceLines.map(worded) })),
-    callouts: v.callouts.filter((c) => codeWords(c, names).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
+    callouts: v.callouts.map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => (held ? withFullHex(c, held) : c)).filter((c): c is string => c !== null),
   };
 }
 
@@ -206,7 +210,7 @@ const HOUSE_STYLE = `You design the visual for an answer on the Avalanche explor
 
 Rules of the sheet
 - Rankings (methods, contracts, senders) are horizontal bars (hbar) with the name on the axis, top 10 to 15, sorted by the figure that answers the question. A share or a reverted count that belongs to the same rows goes in a second half-width panel, not as a second series squeezed onto the same axis.
-- Time series are lines; counts over buckets are bars; parts of a whole over time are stacked areas or stacked bars. Never put a count and a percent on the same axis; use axis "right" or a second panel.
+- Time series are lines; counts per period are bars; parts of a whole over time are stacked areas or stacked bars. Never put a count and a percent on the same axis; use axis "right" or a second panel.
 - Gas reserved against a limit: a line with the limit as a reference line. Fees in AVAX use format avax. Gas figures use format gas (compact with the word gas). Percent columns use percent.
 - Two to four headline stats across the top, the figures a developer would quote: the total, the leader's share, the failure rate when reverts matter, how many distinct callers. Labels are the plain noun a person says ("Transactions", "Reverted", "Callers", "Fees burned"), never "Top 15 txs". Use agg over a column of the rows (sum for counts and fees, max for peaks, avg for rates, distinct for how many groups). The sub line gives the context in five words or fewer, with a name or figure where it helps ("sweep leads", "of all calls").
 - Callouts: at most three sentences a developer would act on, each with a name and a figure from the rows: concentration (one sender behind a method), failure (a method that always reverts), cost (who pays the most gas). No adjectives, no restating the chart title. Do not mention the data window or coverage; the page shows it. No em dashes. Never say "settled" or "waiting". Each callout is one full sentence that ends with a period. Write figures as people read them: 3.16M, 64.7k, 41.6%, Aug 30; never 3159411 or 1.395e+6.
@@ -216,7 +220,7 @@ Rules of the sheet
 Comparisons and overlays (use them whenever the rows hold more than one thing to compare)
 - Two groups or two periods in columns (usdc_*, usdt_*; current_*, previous_*): overlay them in ONE panel. The baseline or previous period is dashed.
 - Things of very different size (a token with 1,000x the volume of another): transform "indexed" rebases each to 100 at its first point, so shape is compared, not size. Say so in the panel title ("indexed to 100").
-- Parts of a whole over time: transform "share" on each part plus stacked area, so each bucket sums to 100%.
+- Parts of a whole over time: transform "share" on each part plus stacked area, so each period sums to 100%.
 - Running totals: transform "cumulative". Noisy per-minute series: add a "rolling" copy of the same column as a thin line over the raw bars.
 - A count and a rate together: bars (mark "bar") on the left axis, the rate as a line (mark "line") on the right axis.
 - Two numeric measures per group or per record (gas against fee, calls against callers): kind "scatter", x the first measure, one series the second.
@@ -303,7 +307,7 @@ export function figures(input: Seen): string[] {
   if (input.sql && label && TIME.test(label.type)) {
     const win = windowOf(input.sql, input.anchor);
     const edge = win && edgesOf(rows.map((r) => r[label.name]), win);
-    if (edge) out.push(`Edges: the first bucket, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? "still filling" : "complete"}.`);
+    if (edge) out.push(`Edges: the first period, ${at(rows[edge.lo])}, is ${edge.first ? "partial, since the window starts inside it" : "complete"}; the last, ${at(rows[edge.hi])}, is ${edge.last ? "still filling" : "complete"}.`);
   }
   for (const c of columns) {
     const nums: { r: Row; v: number }[] = [];
@@ -421,7 +425,7 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
       // a callout that names a column, or an address the rows do not hold, is left out
       const names = input.columns.map((c) => c.name);
       const held = heldHex(input);
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).slice(0, 3);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).slice(0, 3);
       return { ok: true };
     },
   });

@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import { QueryLoader } from "@/components/explorer-v2/evm/QueryLoader";
 import { CARD, QueryVisual, fmt, nameFor } from "@/components/explorer-v2/evm/QueryVisual";
-import { PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
+import { NoteText, PanelRows, fillTitle, formatOf, header, isAddress, isTxList, rowDoor, type Row } from "@/components/explorer-v2/evm/QueryRows";
 import { QueryInspector, RowsBody } from "@/components/explorer-v2/evm/QueryInspector";
 import { Crumbs, DrillView, ZoomStage, type OpenDrill } from "@/components/explorer-v2/evm/QueryZoom";
 import { NO_QUERY, QueryError, SQL_CAVEAT, cutLine, postQuery, progress, readerError, reads, rowCount, rowsLabel, sourceLines, streamQuery, withEdges } from "@/components/explorer-v2/evm/query-client";
@@ -493,7 +493,7 @@ export function AskWindow({
               {!laying && !reading && visual && visual.callouts.length > 0 ? (
                 <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400">{reads(visual.callouts)}</p>
               ) : (
-                !reading && answer.note && <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>
+                !reading && answer.note && <p className="text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>
               )}
               {/* what a table from our server covers, and how recent it is */}
               {sourceLines(answer).map((t) => (

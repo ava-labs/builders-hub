@@ -18,7 +18,7 @@ import type { Coverage, QueryResult } from "@/lib/explorer-query/clickhouse";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
 import { type Selection, applySelection, describe } from "@/lib/explorer-query/selection";
 import { CARD, QueryVisual, fmt, fmtX, nameFor } from "./QueryVisual";
-import { type Row, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, rowDoor, toUnix } from "./QueryRows";
+import { type Row, NoteText, PanelRows, downloadCsv, duration, fillTitle, formatOf, header, isAddress, isHash, isTime, isTxList, rowDoor, toUnix } from "./QueryRows";
 import { QueryHome } from "./QueryHome";
 import { PinToBoard } from "./QueryBoard";
 import { QueryInspector, RowsBody } from "./QueryInspector";
@@ -810,7 +810,7 @@ function QueryPage({
               {!laying && !reading && visual && visual.callouts.length > 0 ? (
                 <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{reads(visual.callouts)}</p>
               ) : (
-                !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>
+                !reading && answer.note && <p className="max-w-3xl text-[15px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>
               )}
               {/* what a table from our server covers, and how recent it is */}
               {sourceLines(answer).map((t) => (
@@ -951,7 +951,7 @@ function QueryPage({
                     className="overflow-hidden"
                   >
                     <div className="flex flex-col gap-5 pb-2 pl-5 pt-4">
-                      {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400">{answer.note}</p>}
+                      {visual && visual.callouts.length > 0 && answer.note && <p className="max-w-3xl text-[13.5px] leading-relaxed text-zinc-600 dark:text-zinc-400"><NoteText text={answer.note} base={base} /></p>}
                       <dl className="grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
                         <Fact label="Source" sub={answer.sources?.length ? `Indexed ClickHouse tables, read-only, with ${answer.sources.map((s) => s.label).join(" and ")} from our API` : "Indexed ClickHouse tables, read-only"}>
                           {tables.length ? tables.join(", ") : "none"}
