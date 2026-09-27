@@ -103,10 +103,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         await putRecipe(key, { ...recipe, sql });
       }
       // rows that stop at the query's own LIMIT are cut too, not only rows at the cap
-      result.truncated ||= !!cutOf(run.sql, result.rowCount);
+      result.truncated ||= !!cutOf(sql, result.rowCount);
       const cover = await coverage(a.chainId);
       // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-      const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(run.sql, result)]);
+      const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
       // rows that only reach their LIMIT leave nothing out
       if (totals && totals.rows <= result.rowCount) result.truncated = false;
       return {
@@ -160,7 +160,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
 
   const timings: StepTiming[] = [];
   const errors: string[] = [];
-  let ranSql: string | null = null;
+  // the SQL the final answer keeps, as written: its cut and its totals are read from it
+  let keptSql: string | null = null;
   let tries = 0;
   let steps = 0;
   let cacheRead = 0;
@@ -240,14 +241,14 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         };
         const g = guardSql(sql, a.chainId);
         if (!g.ok) return fail(g.error, 0);
-        // the reader never sees the SQL: a title, note or label that names its parts is written again once, then left out
+        // a title, note or label with words the page never shows (the SQL's parts, settled) is written again once, then left out
         const own = sqlNames(sql);
         const named = codeWords([title, note, ...chart.series.map((s) => s.label)].join("\n"), own);
         if (named.length && !wordsOnce) {
           wordsOnce = true;
           step("final", 0, false, `reader words: ${named.join(", ")}`);
           return {
-            error: `the title, note or a series label names ${named.join(", ")}, and the reader never sees the SQL or its columns. Say what each one counts in plain words ("seen in the last 7 days", not seen_7d), and call render_chart again with the same SQL.`,
+            error: `the title, note or a series label has ${named.join(", ")}, words the page never shows: the reader never sees the SQL or its columns, and a transaction is final, never settled. Say it in plain words ("seen in the last 7 days", not seen_7d; final, not settled), and call render_chart again with the same SQL.`,
           };
         }
         const q0 = Date.now();
@@ -289,9 +290,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
               return fail(`drill: ${e instanceof Error ? e.message : String(e)}`, Date.now() - q0);
             }
           }
-          rows.truncated ||= !!cutOf(ran.sql, rows.rowCount);
+          rows.truncated ||= !!cutOf(kept, rows.rowCount);
           final = { title: plainLabel(title), note: withoutCode(note, own), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
-          ranSql = ran.sql;
+          keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
         } catch (e) {
@@ -353,7 +354,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const done = final as QueryAnswer;
   if (done.result) {
     // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-    const [names, totals] = await Promise.all([nameRows(a.chainId, done.result.columns, done.result.rows, a.baseUrl), ranSql ? totalsOf(ranSql, done.result) : null]);
+    const [names, totals] = await Promise.all([nameRows(a.chainId, done.result.columns, done.result.rows, a.baseUrl), keptSql ? totalsOf(keptSql, done.result, a.chainId) : null]);
     done.names = names;
     done.totals = totals;
     // rows that only reach their LIMIT leave nothing out

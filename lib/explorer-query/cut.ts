@@ -1,5 +1,5 @@
 import "server-only";
-import { runQuery, type ColumnMeta, type QueryResult } from "./clickhouse";
+import { anchored, runQuery, type ColumnMeta, type QueryResult } from "./clickhouse";
 import { MAX_ROWS } from "./guard";
 import type { Totals } from "./types";
 
@@ -48,21 +48,27 @@ export function newestSql(sql: string, result: Pick<QueryResult, "columns" | "ro
   return `SELECT * FROM (SELECT * FROM (\n${cut.inner}\n) ORDER BY ${quote(x)} DESC LIMIT ${cut.limit}) ORDER BY ${quote(x)}`;
 }
 
-/** the whole result, read once past its limit: its size and each column's figures; null when nothing was cut */
-export async function totalsOf(sql: string, result: QueryResult): Promise<Totals | null> {
+/** the whole result, read once past its limit: its size, each column's figures, and the row that holds each
+    extreme. sql is the query as written, before anchored(): the totals read goes through anchored() itself,
+    so it reads the same tables the rows did (FINAL, the reference tables). Null when the rows did not reach a
+    limit or the read failed; a result that only reached its limit comes back with as many rows as it shows */
+export async function totalsOf(sql: string, result: QueryResult, chainId: number): Promise<Totals | null> {
   const cut = cutOf(sql, result.rowCount);
   if (!cut) return null;
   const cols = result.columns.map((c, i) => ({ name: c.name, i, num: NUMERIC.test(c.type) }));
+  // the column a row is known by: a time, else the first that is not a number
+  const label = result.columns.find((c) => TIME.test(c.type)) ?? result.columns.find((c) => !NUMERIC.test(c.type));
   const parts = ["count() AS __rows"];
   for (const { name, i, num } of cols) {
     const q = quote(name);
-    parts.push(...(num ? [`sum(${q}) AS s${i}`, `count(${q}) AS n${i}`, `min(${q}) AS lo${i}`, `max(${q}) AS hi${i}`] : [`uniqExact(${q}) AS d${i}`]));
+    const at = label ? [`argMax(${quote(label.name)}, ${q}) AS ha${i}`, `argMin(${quote(label.name)}, ${q}) AS la${i}`] : [];
+    parts.push(...(num ? [`sum(${q}) AS s${i}`, `count(${q}) AS n${i}`, `min(${q}) AS lo${i}`, `max(${q}) AS hi${i}`, ...at] : [`uniqExact(${q}) AS d${i}`]));
   }
   try {
-    const r = await runQuery(`SELECT ${parts.join(", ")} FROM (\n${cut.inner}\n)`);
+    const r = await runQuery((await anchored(`SELECT ${parts.join(", ")} FROM (\n${cut.inner}\n)`, chainId)).sql);
     const row = r.rows[0];
     if (!row) return null;
-    const w: Totals = { rows: Number(row.__rows), newest: cut.newest, sum: {}, count: {}, min: {}, max: {}, distinct: {} };
+    const w: Totals = { rows: Number(row.__rows), newest: cut.newest, sum: {}, count: {}, min: {}, max: {}, distinct: {}, ...(label ? { label: label.name, maxAt: {}, minAt: {} } : {}) };
     for (const { name, i, num } of cols) {
       if (!num) {
         w.distinct[name] = Number(row[`d${i}`]);
@@ -72,8 +78,12 @@ export async function totalsOf(sql: string, result: QueryResult): Promise<Totals
       w.count[name] = Number(row[`n${i}`]);
       w.min[name] = Number(row[`lo${i}`]);
       w.max[name] = Number(row[`hi${i}`]);
+      if (w.maxAt && w.minAt) {
+        w.maxAt[name] = String(row[`ha${i}`]);
+        w.minAt[name] = String(row[`la${i}`]);
+      }
     }
-    return w.rows > result.rowCount ? w : null;
+    return w;
   } catch {
     // the rows stand without their totals; the page says only what it knows
     return null;

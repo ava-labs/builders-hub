@@ -8,6 +8,7 @@ import { formatNumber, truncate } from "@/components/explorer-v2/format";
 import type { QueryEvent } from "@/lib/explorer-query/answer";
 import type { QueryAnswer } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
+import { edgesOf, windowOf } from "@/lib/explorer-query/edges";
 
 /** a failed ask; signIn marks the anonymous limit, which sign-in lifts */
 export class QueryError extends Error {
@@ -123,52 +124,44 @@ export function readerError(message: string): string {
   return "The database stopped before the answer was complete. Try again in a minute.";
 }
 
-const SPAN_MS: Record<string, number> = { MINUTE: 60_000, HOUR: 3_600_000, DAY: 86_400_000, WEEK: 604_800_000, MONTH: 2_592_000_000 };
-/** a UTC time as the rows write it (2026-09-27 00:30:00, or a day), in ms */
-const msOf = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? Date.parse(v.length > 10 ? `${v.replace(" ", "T")}Z` : `${v}T00:00:00Z`) : NaN);
-
 /** a time series' edge buckets that the window cuts through, labeled, so a short first bar never reads as a dip */
 export function withEdges(visual: VisualSpec | null, a: Pick<QueryAnswer, "sql" | "anchor" | "result"> | null): VisualSpec | null {
   const rows = a?.result?.rows;
-  const w = a ? /now\(\)\s*-\s*INTERVAL\s+(\d+)\s+(MINUTE|HOUR|DAY|WEEK|MONTH)S?\b/i.exec(a.sql) : null;
-  if (!visual || !a || !rows || rows.length < 3 || !w) return visual;
-  const end = a.anchor ? msOf(a.anchor) : Date.now();
-  const start = end - Number(w[1]) * SPAN_MS[w[2].toUpperCase()];
+  const win = a ? windowOf(a.sql, a.anchor) : null;
+  if (!visual || !rows || !win) return visual;
   let changed = false;
   const panels = visual.panels.map((p) => {
     if (!p.x || !["bar", "line", "area"].includes(p.kind)) return p;
     const xs = rows.map((r) => r[p.x!]);
-    const ms = xs.map(msOf);
-    if (ms.some((t) => !Number.isFinite(t))) return p;
-    // the bucket is the smallest step between rows
-    let step = Infinity;
-    for (let i = 1; i < ms.length; i++) if (ms[i] > ms[i - 1]) step = Math.min(step, ms[i] - ms[i - 1]);
-    if (!Number.isFinite(step)) return p;
-    const lo = ms.indexOf(Math.min(...ms));
-    const hi = ms.indexOf(Math.max(...ms));
-    const marks = [...p.markers];
-    if (ms[lo] < start - 1000 && ms[lo] + step > start) marks.push({ x: String(xs[lo]), label: "partial" });
-    if (ms[hi] + step > end + 1000) marks.push({ x: String(xs[hi]), label: "so far" });
-    if (marks.length === p.markers.length) return p;
+    const e = edgesOf(xs, win);
+    if (!e || (!e.first && !e.last)) return p;
     changed = true;
-    return { ...p, markers: marks };
+    return { ...p, markers: [...p.markers, ...(e.first ? [{ x: String(xs[e.lo]), label: "partial" }] : []), ...(e.last ? [{ x: String(xs[e.hi]), label: "so far" }] : [])] };
   });
   return changed ? { ...visual, panels } : visual;
 }
 
 const ordinal = (n: number) => `${n}${n % 10 === 2 && n % 100 !== 12 ? "nd" : n % 10 === 3 && n % 100 !== 13 ? "rd" : n % 10 === 1 && n % 100 !== 11 ? "st" : "th"}`;
 
-/** the callouts as one paragraph: every sentence closed, no 1.395e+6, short addresses */
+/* a year in a reading keeps its four digits: 2026 after a month, "in" or "since" */
+const YEAR = /^(199\d|20[0-3]\d)$/;
+const YEAR_BEFORE = /(?:\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?(?:\s+\d{1,2})?,?|\b(?:in|since))\s+$/i;
+
+/** the callouts as one paragraph: every sentence closed, no 1.395e+6, short addresses, figures and times as people read them */
 export function reads(callouts: string[]): string {
   return callouts
     .map((c) =>
       c
         .trim()
         .replace(/\b\d+(?:\.\d+)?e[+-]?\d+\b/gi, (m) => formatNumber(Number(m)))
-        // an address reads the way the charts write it
-        .replace(/\b0x[0-9a-fA-F]{40}\b/g, (m) => truncate(m.toLowerCase(), 6))
-        // a bare figure of five digits or more gets its separators: 14,302, never 14302
-        .replace(/(?<![\w.,#])\d{5,}(?:\.\d+)?(?![\w,])/g, (m) => formatNumber(Number(m))),
+        // an address or a hash reads the way the charts write it
+        .replace(/\b0x(?:[0-9a-fA-F]{64}|[0-9a-fA-F]{40})\b/g, (m) => truncate(m.toLowerCase(), 6))
+        // a long decimal reads to three figures: 9.39, never 9.39486
+        .replace(/(?<![\w.,])\d{1,4}\.\d{3,}(?![\w.])/g, (m) => (Number(m) >= 0.001 && m.replace(".", "").replace(/^0+/, "").length > 3 ? String(Number(Number(m).toPrecision(3))) : m))
+        // a bare figure of four digits or more gets its separators: 2,095 and 14,302; a year stays a year
+        .replace(/(?<![\w.,#…-])\d{4,}(?:\.\d+)?(?![\w,-])/g, (m: string, at: number, s: string) => (YEAR.test(m) && YEAR_BEFORE.test(s.slice(Math.max(0, at - 24), at)) ? m : formatNumber(Number(m))))
+        // a time reads to the minute: 05:35, never 05:35:00
+        .replace(/\b(\d{2}:\d{2}):00\b/g, "$1"),
     )
     .filter(Boolean)
     .map((c) => (/[.!?]$/.test(c) ? c : `${c}.`))

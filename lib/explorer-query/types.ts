@@ -68,6 +68,10 @@ export interface Totals {
   min: Record<string, number>;
   max: Record<string, number>;
   distinct: Record<string, number>;
+  /** the column the rows are known by, and its value in the row that holds each column's max and min */
+  label?: string;
+  maxAt?: Record<string, string>;
+  minAt?: Record<string, string>;
 }
 
 /** one model step, timed: what the model spent thinking and what the database spent */

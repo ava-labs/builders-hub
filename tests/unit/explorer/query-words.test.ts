@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { ROW_CAP, progress, readerError, reads, rowsLabel, withEdges } from '@/components/explorer-v2/evm/query-client';
+import { edgesOf, windowOf } from '@/lib/explorer-query/edges';
 import type { QueryEvent } from '@/lib/explorer-query/answer';
 import { MAX_ROWS } from '@/lib/explorer-query/guard';
 import type { Totals } from '@/lib/explorer-query/types';
-import { codeWords, figures, plainLabel, readerSpec, sampleOf, sqlNames, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
+import { codeWords, figures, plainLabel, readerSpec, sampleOf, sqlNames, withFullHex, withoutCode, type VisualSpec } from '@/lib/explorer-query/visual';
 
 const totals = (rows: number): Totals => ({ rows, newest: false, sum: {}, count: {}, min: {}, max: {}, distinct: {} });
 const result = (rows: Record<string, unknown>[], truncated = false) => ({ columns: [], rows, rowCount: rows.length, elapsedMs: 0, rowsRead: 0, bytesRead: 0, truncated, ranAt: '' });
@@ -39,7 +40,17 @@ describe('readerError', () => {
 describe('reads', () => {
   it('writes bare figures of five digits or more with separators, and leaves the rest', () => {
     expect(reads(['Validators moved 14302 txs in block 96233283 at 22:05 on 2026-09-27'])).toBe('Validators moved 14,302 txs in block 96,233,283 at 22:05 on 2026-09-27.');
-    expect(reads(['0x1234567890123456789012345678901234567890 sent 2810 txs'])).toBe('0x1234…7890 sent 2810 txs.');
+    expect(reads(['0x1234567890123456789012345678901234567890 sent 2810 txs'])).toBe('0x1234…7890 sent 2,810 txs.');
+  });
+
+  it('writes decimals to three figures, four digits with separators, and times to the minute; a year stays a year', () => {
+    expect(reads(['9.39486 AVAX burned at 05:35:00 on Sep 27 was the highest of 231.555 AVAX total', '2095 transactions at 00:05:00'])).toBe('9.39 AVAX burned at 05:35 on Sep 27 was the highest of 232 AVAX total. 2,095 transactions at 00:05.');
+    expect(reads(['Since Sep 27, 2026, 1405 senders paid 0.006 AVAX in 2026 under EIP-1559, at 05:36:38'])).toBe('Since Sep 27, 2026, 1,405 senders paid 0.006 AVAX in 2026 under EIP-1559, at 05:36:38.');
+    expect(reads(['Fees fell on September 27, 2026', 'The smallest fee was 0.00000012 AVAX'])).toBe('Fees fell on September 27, 2026. The smallest fee was 0.00000012 AVAX.');
+  });
+
+  it('shortens a hash the way it shortens an address', () => {
+    expect(reads([`Tx 0x${'ab'.repeat(32)} reverted`])).toBe('Tx 0xabab…abab reverted.');
   });
 });
 
@@ -57,6 +68,20 @@ describe('withEdges', () => {
   it('leaves a window with no now() alone', () => {
     expect(withEdges(visual, { ...answer, sql: answer.sql.replace('now() - INTERVAL 7 DAY', "'2026-09-20'") })).toBe(visual);
   });
+
+  it('labels only the last bucket of a window that starts on a bucket edge', () => {
+    const out = withEdges(visual, { ...answer, sql: answer.sql.replace('now() - INTERVAL 7 DAY', 'toStartOfDay(now()) - INTERVAL 7 DAY') })!;
+    expect(out.panels[0].markers).toEqual([{ x: day(27), label: 'so far' }]);
+  });
+
+  it('reads the window a query ends now: on a bucket edge, inside one, or none', () => {
+    const now = Date.parse('2026-09-27T06:10:00Z');
+    const days = [20, 21, 22, 23, 24, 25, 26, 27].map(day);
+    expect(edgesOf(days, windowOf('WHERE block_time >= toStartOfDay(now()) - INTERVAL 7 DAY', null, now)!)).toEqual({ lo: 0, hi: 7, first: false, last: true });
+    expect(edgesOf(days, windowOf('WHERE block_time >= now() - INTERVAL 7 DAY', null, now)!)).toEqual({ lo: 0, hi: 7, first: true, last: true });
+    expect(windowOf('WHERE toDate(block_time) >= today() - 7', null, now)!.start).toBe(Date.parse('2026-09-20T00:00:00Z'));
+    expect(windowOf('WHERE block_time >= now() - 7', null, now)).toBeNull();
+  });
 });
 
 describe('sampleOf', () => {
@@ -67,6 +92,14 @@ describe('sampleOf', () => {
     const at = s.rows.map((r) => rows.findIndex((x) => x.t === r.t));
     for (const i of [0, 4, 195, 199, 123, 77]) expect(at).toContain(i);
     expect([...at].sort((a, b) => a - b)).toEqual(at);
+  });
+
+  it('shows every row up to 100', () => {
+    const columns = [{ name: 'block_number', type: 'UInt32' }, { name: 'gas', type: 'UInt64' }];
+    const rows = Array.from({ length: 100 }, (_, i) => ({ block_number: 96_000_000 + i, gas: i }));
+    const s = sampleOf({ columns, rows, names: {}, x: 'block_number' });
+    expect(s.head).toBe('All 100 rows:');
+    expect(s.rows).toHaveLength(100);
   });
 });
 
@@ -85,6 +118,27 @@ describe('reader words', () => {
     expect(withoutCode('Seats per L1 by version line. seen_7d counts the seats seen in the last 7 days.', sqlNames(sql))).toBe('Seats per L1 by version line.');
     expect(withoutCode('Nothing to leave out.\nTwo lines stay two lines.')).toBe('Nothing to leave out.\nTwo lines stay two lines.');
     expect(plainLabel('Seats seen_7d')).toBe('Seats seen 7d');
+  });
+
+  it('finds a comparison, and leaves out only the parentheses around one', () => {
+    expect(codeWords('Active seats now (balance > 0), by L1.')).toEqual(['balance > 0']);
+    expect(codeWords("Seats where version = 'Unknown' stay in the set.")).toEqual(["version = 'Unknown'"]);
+    expect(withoutCode('Active L1 validator seats now (balance > 0), showing the AVAX left for fees.')).toBe('Active L1 validator seats now, showing the AVAX left for fees.');
+    expect(withoutCode('Seats count when balance > 0. The rest stay.')).toBe('The rest stay.');
+  });
+
+  it('flags settled, drops its sentence from a note, and reads it as final in a label', () => {
+    expect(codeWords('Count of all transactions settled each day.')).toEqual(['settled']);
+    expect(withoutCode('Count of all transactions settled each day. The current day is not over.')).toBe('The current day is not over.');
+    expect(plainLabel('Settled txs')).toBe('Final txs');
+  });
+
+  it('writes a shortened address out from the rows, and leaves out a callout naming one the rows do not hold', () => {
+    const a = `0xbe05${'1'.repeat(32)}3d8d`;
+    expect(withFullHex('The same 300.1k USDT went to 0xbe05…3d8d.', [a])).toBe(`The same 300.1k USDT went to ${a}.`);
+    expect(withFullHex('It went to 0xbe05...8d8d.', [a])).toBeNull();
+    expect(withFullHex(`It went to ${a}.`, [a])).toBe(`It went to ${a}.`);
+    expect(withFullHex(`It went to 0x${'f'.repeat(40)}.`, [a])).toBeNull();
   });
 
   it('keeps the columns out of a layout', () => {
@@ -138,5 +192,32 @@ describe('figures', () => {
     });
     expect(f).toContain('of_total (UInt64): 66 in every row');
     expect(f.find((l) => l.startsWith('validators'))).toContain('total 57');
+  });
+
+  it('gives the largest rise and fall between neighbouring rows, in time order', () => {
+    const columns = [{ name: 't', type: 'Date' }, { name: 'supply', type: 'Float64' }];
+    const rows = [{ t: '2026-09-16', supply: 390 }, { t: '2026-09-15', supply: 400 }, { t: '2026-09-14', supply: 100 }, { t: '2026-08-13', supply: 90 }];
+    const f = figures({ columns, rows, names: {}, x: 't' }).join('\n');
+    expect(f).toContain('largest rise between neighbouring rows +300 from t 2026-09-14 to t 2026-09-15');
+    expect(f).toContain('largest fall between neighbouring rows -10 from t 2026-09-15 to t 2026-09-16');
+    const shuffled = [rows[1], rows[3], rows[0], rows[2]];
+    expect(figures({ columns, rows: shuffled, names: {}, x: 't' }).join('\n')).not.toContain('between neighbouring rows');
+  });
+
+  it('says which edge buckets the window cuts', () => {
+    const columns = [{ name: 't', type: 'Date' }, { name: 'txs', type: 'UInt64' }];
+    const rows = [20, 21, 22, 23, 24, 25, 26, 27].map((d) => ({ t: `2026-09-${d}`, txs: d === 20 ? 964435 : 500000 }));
+    const sql = 'SELECT toDate(block_time) AS t, count() AS txs FROM raw_txs WHERE block_time >= toStartOfDay(now()) - INTERVAL 7 DAY GROUP BY t ORDER BY t';
+    const f = figures({ columns, rows, names: {}, x: 't', sql, anchor: '2026-09-27 06:10:00' });
+    expect(f).toContain('Edges: the first bucket, t 2026-09-20, is complete; the last, t 2026-09-27, is still filling.');
+  });
+
+  it('names the row that holds a whole-result extreme the rows do not show', () => {
+    const columns = [{ name: 'sender', type: 'String' }, { name: 'recipients', type: 'UInt64' }];
+    const rows = [{ sender: '0xc5f6', recipients: 1 }, { sender: '0xabd2', recipients: 10 }, { sender: '0x9ecf', recipients: 2 }];
+    const t: Totals = { rows: 1406, newest: false, sum: { recipients: 2060 }, count: { recipients: 1406 }, min: { recipients: 0 }, max: { recipients: 16 }, distinct: { sender: 1406 }, label: 'sender', maxAt: { recipients: '0x07b51ade' }, minAt: { recipients: '0x0000' } };
+    const f = figures({ columns, rows, names: {}, totals: t }).join('\n');
+    expect(f).toContain('max 10 at sender 0xabd2 (16 at sender 0x07b51ade, in a row not shown)');
+    expect(f).toContain('min 1 at sender 0xc5f6 (0 at sender 0x0000, in a row not shown)');
   });
 });

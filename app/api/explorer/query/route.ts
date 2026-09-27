@@ -96,8 +96,8 @@ export async function POST(req: Request) {
         const run = await anchored(recipe.sql, chainId);
         const result = await runQuery(run.sql);
         // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-        const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(run.sql, result)]);
-        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x });
+        const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(recipe.sql, result, chainId)]);
+        const callouts = await writeReading({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, totals, x: recipe.chart.x, sql: recipe.sql, anchor: run.anchor });
         return NextResponse.json({ callouts, ms: Date.now() - t0 });
       } catch (e) {
         return NextResponse.json({ error: e instanceof Error ? e.message : "reading failed" }, { status: 400 });
@@ -108,8 +108,8 @@ export async function POST(req: Request) {
       const run = await anchored(recipe.sql, chainId);
       const result = await runQuery(run.sql);
       // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-      const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(run.sql, result)]);
-      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals });
+      const [names, totals] = await Promise.all([nameRows(chainId, result.columns, result.rows, baseUrl), totalsOf(recipe.sql, result, chainId)]);
+      const out = await designVisual({ question: recipe.question, title: recipe.title, note: recipe.note, symbol, columns: result.columns, rows: result.rows, names, chart: recipe.chart, totals, sql: recipe.sql, anchor: run.anchor });
       if (out.fromDesigner) await putVisual(body.key, out.visual);
       return NextResponse.json({ visual: out.visual, designer: out.fromDesigner, ms: out.ms, error: out.fromDesigner ? undefined : out.error });
     } catch (e) {

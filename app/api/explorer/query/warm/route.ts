@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       report.push({ ...line, outcome: "kept", ms: Date.now() - s0 });
       continue;
     }
-    const d = await designVisual({ question: prompt, title: answer.title, note: answer.note, symbol: chain.symbol, columns: answer.result.columns, rows: answer.result.rows, names: answer.names, chart: answer.chart, totals: answer.totals });
+    const d = await designVisual({ question: prompt, title: answer.title, note: answer.note, symbol: chain.symbol, columns: answer.result.columns, rows: answer.result.rows, names: answer.names, chart: answer.chart, totals: answer.totals, sql: answer.sql, anchor: answer.anchor });
     if (d.fromDesigner) await putVisual(answer.key, d.visual);
     const how = answer.model?.cached ? "kept, laid out" : `answered by ${answer.model?.writer}`;
     report.push({ ...line, outcome: d.fromDesigner ? how : `${how}, layout failed`, ms: Date.now() - s0 });
