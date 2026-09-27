@@ -514,7 +514,8 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
         },
       ],
       tools: { design },
-      stopWhen: [stepCountIs(3)],
+      // the design call ends the run: the prose a model writes after it is read by nothing
+      stopWhen: [stepCountIs(3), () => visual !== null],
       maxRetries: 1,
     });
   } catch (e) {
@@ -529,7 +530,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
         system: HOUSE_STYLE,
         messages: [{ role: "user", content: `Question: ${input.question}\nColumns: ${[...cols].join(", ")}\nRows: ${input.rows.length}\nFirst rows:\n${sample.slice(0, 8).map((r) => JSON.stringify(r)).join("\n")}\nCall design once, using only these columns.` }],
         tools: { design },
-        stopWhen: [stepCountIs(2)],
+        stopWhen: [stepCountIs(2), () => visual !== null],
         maxRetries: 1,
       });
     } catch (e) {
