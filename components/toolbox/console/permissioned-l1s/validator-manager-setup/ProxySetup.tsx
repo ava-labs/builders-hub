@@ -45,6 +45,10 @@ const CONTRACT_SOURCES: ContractSource[] = [
   },
 ];
 
+/** viem's one-line message where it has one. */
+const errorText = (err: unknown) =>
+  (err as { shortMessage?: string })?.shortMessage ?? (err instanceof Error ? err.message : String(err));
+
 const metadata: ConsoleToolMetadata = {
   title: 'Proxy Setup',
   description: 'Upgrade or deploy the TransparentUpgradeableProxy for the ValidatorManager',
@@ -100,6 +104,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
   const [implementationError, setImplementationError] = useState<string | null>(null);
   const [isCheckingImplementation, setIsCheckingImplementation] = useState(false);
   const [deployImplementationError, setDeployImplementationError] = useState<string | null>(null);
+  const [txError, setTxError] = useState<string | null>(null);
 
   // Load proxy address from selected L1
   useEffect(() => {
@@ -268,6 +273,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
     if (!desiredImplementation || !proxyAddress || !proxyAdminAddress || !chainPublicClient) return;
 
     setIsUpgrading(true);
+    setTxError(null);
     try {
       const problem = await implementationProblem(chainPublicClient, proxyAddress, desiredImplementation);
       if (problem) {
@@ -287,7 +293,10 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       notify({ type: 'call', name: 'Upgrade Proxy' }, upgradePromise, viemChain ?? undefined);
 
       const hash = await upgradePromise;
-      await chainPublicClient.waitForTransactionReceipt({ hash });
+      const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== 'success') {
+        throw new Error('The upgrade transaction reverted. The proxy still points at its old implementation.');
+      }
       await readProxyInfo(proxyAddress);
       // Update BOTH stores with the PROXY address (not the implementation)
       // so downstream steps (Initialize, TransferOwnership) use the correct address.
@@ -296,6 +305,8 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       // createChainStore: used directly by permissioned Initialize step
       setCreateChainManagerAddress(proxyAddress);
       onSuccess?.();
+    } catch (err) {
+      setTxError(errorText(err));
     } finally {
       setIsUpgrading(false);
     }
@@ -306,6 +317,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
     setIsDeployingProxyAdmin(true);
     setNewProxyAdminAddress('');
+    setTxError(null);
 
     try {
       if (!walletClient) throw new Error('Wallet not connected');
@@ -321,9 +333,13 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
       const hash = await deployPromise;
       const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
-      if (receipt.contractAddress) {
-        setNewProxyAdminAddress(receipt.contractAddress);
+      // A reverted create still reports contractAddress, with no code behind it.
+      if (receipt.status !== 'success' || !receipt.contractAddress) {
+        throw new Error('The ProxyAdmin deployment reverted.');
       }
+      setNewProxyAdminAddress(receipt.contractAddress);
+    } catch (err) {
+      setTxError(errorText(err));
     } finally {
       setIsDeployingProxyAdmin(false);
     }
@@ -334,6 +350,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
     setIsDeployingProxy(true);
     setNewProxyAddress('');
+    setTxError(null);
 
     try {
       const problem = await implementationProblem(chainPublicClient, '', deployImplementationAddress);
@@ -354,16 +371,19 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
 
       const hash = await deployPromise;
       const receipt = await chainPublicClient.waitForTransactionReceipt({ hash });
-      if (receipt.contractAddress) {
-        setNewProxyAddress(receipt.contractAddress);
-        // Auto-fill the upgrade section with the new proxy
-        setProxyAddress(receipt.contractAddress);
-        setShowDeploySection(false);
-        // Persist the new proxy address to both stores so downstream steps
-        // (Initialize, TransferOwnership) use it and it survives navigation/refresh.
-        setValidatorManagerAddress(receipt.contractAddress);
-        setCreateChainManagerAddress(receipt.contractAddress);
+      if (receipt.status !== 'success' || !receipt.contractAddress) {
+        throw new Error('The proxy deployment reverted.');
       }
+      setNewProxyAddress(receipt.contractAddress);
+      // Auto-fill the upgrade section with the new proxy
+      setProxyAddress(receipt.contractAddress);
+      setShowDeploySection(false);
+      // Persist the new proxy address to both stores so downstream steps
+      // (Initialize, TransferOwnership) use it and it survives navigation/refresh.
+      setValidatorManagerAddress(receipt.contractAddress);
+      setCreateChainManagerAddress(receipt.contractAddress);
+    } catch (err) {
+      setTxError(errorText(err));
     } finally {
       setIsDeployingProxy(false);
     }
@@ -389,6 +409,7 @@ function ProxySetup({ onSuccess }: BaseConsoleToolProps) {
       <div className="flex flex-col rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
         {/* Content area */}
         <div className="p-4 space-y-3">
+          {txError && <p className="text-[11px] text-red-600 dark:text-red-400 px-1">{txError}</p>}
           {/* Upgrade Proxy Section (Primary) */}
           <div
             className={`p-3 rounded-xl border transition-colors ${
