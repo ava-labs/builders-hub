@@ -10,6 +10,7 @@ import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 import { useDapps } from "@/app/(home)/stats/dapps/_hooks/useDapps";
 import { OverviewLiveBoards, type LiveChain } from "./overview-live";
+import { L1Versions } from "./l1-versions";
 import {
   SPARK_MIN_DAYS,
   fmtCompact,
@@ -232,6 +233,10 @@ export function NetworkOverview() {
             spark={burnWin.spark}
           />
         </ReadoutRow>
+
+        {/* below lg the city is a district browser with no Versions lens:
+            each set's AvalancheGo versions stand here instead, one tap in */}
+        <L1Versions className="lg:hidden" />
 
         {/* the C-Chain home's live boards, merged across the busiest
             chains: each row wears the logo of the chain it came from */}

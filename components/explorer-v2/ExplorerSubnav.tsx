@@ -495,7 +495,7 @@ function NetworkControl({
     // there is nowhere to switch to. It still has to name the network actually
     // being viewed — a single message is network-agnostic and can be a Fuji one.
     return (
-      <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
+      <span className="self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
         {NETWORK_LABEL[network as PchainNetwork] ?? network}
       </span>
     );
@@ -556,7 +556,7 @@ function NetworkControl({
   }
 
   return (
-    <span className="hidden self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 sm:block dark:text-zinc-500">
+    <span className="self-center font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
       {NETWORK_LABEL[network as PchainNetwork] ?? network}
     </span>
   );
@@ -616,13 +616,15 @@ export function ExplorerSubnav({
     // content never peeks past its edges; z-[35] clears the page-level
     // sticky bars (z-30) but stays UNDER the global navbar (#nd-nav, z-40)
     // so its dropdown menus paint over this rail, not behind it.
+    // Below sm the rail wraps: the switcher and the tabs take the first
+    // row whole, the clock and the network ride a second one under it.
     <div
       className={cn(
-        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
+        "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex flex-wrap items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
         className,
       )}
     >
-      <div className="flex min-w-0 items-stretch gap-x-3 sm:gap-x-4 md:gap-x-5">
+      <div className="flex min-w-0 items-stretch gap-x-3 max-sm:w-full sm:gap-x-4 md:gap-x-5">
         <ChainSwitcher network={network} chainSlug={chainSlug} chainName={chainName} chainLogoURI={chainLogoURI} />
         {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
         {tabs.length > 0 && (
@@ -689,7 +691,7 @@ export function ExplorerSubnav({
           </nav>
         )}
       </div>
-      <div className="flex shrink-0 items-stretch gap-x-2 sm:gap-x-3">
+      <div className="flex shrink-0 items-stretch gap-x-2 empty:hidden max-sm:w-full max-sm:justify-between max-sm:border-t max-sm:border-zinc-100 max-sm:py-2 sm:gap-x-3 dark:max-sm:border-zinc-900">
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
         <ExplorerRangeControl className={rangeClassName} />
