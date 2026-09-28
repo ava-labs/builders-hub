@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import {
   BackSide,
@@ -8,16 +8,21 @@ import {
   CanvasTexture,
   CircleGeometry,
   Color,
+  DataTexture,
+  DoubleSide,
   Float32BufferAttribute,
+  LinearFilter,
   LinearMipmapLinearFilter,
   MathUtils,
   Mesh,
   PerspectiveCamera,
   Points,
+  RedFormat,
   RepeatWrapping,
   ShaderMaterial,
   SphereGeometry,
   SRGBColorSpace,
+  Uint16BufferAttribute,
   Vector2,
   Vector3,
   type Texture,
@@ -28,8 +33,9 @@ import { onCityStood } from "@/components/explorer-v2/network/city-signal";
 import type { Theme } from "./palette";
 import { SUN } from "./Lighting";
 import { TIME } from "./shaders";
-import { loadTile } from "./tile";
+import { loadTile, whiteTile } from "./tile";
 import { OPENING, RISE_DEPTH } from "./warmup";
+import { bakePeaks, type PeaksBakeCell, type PeaksBakeOutput, type PeaksBakeRange, type PeaksBakeShape } from "./peaks-bake";
 
 /* The backdrop: a cool, still atmosphere round the column, in the brand's
    greys. The sky is a gradient drawn here: by day from the brand's light
@@ -60,8 +66,17 @@ import { OPENING, RISE_DEPTH } from "./warmup";
    clouds show through it, so none of them ever sits over the clouds. A
    theme's switch cross-fades them, the sun dimming into the moon. A sparse, slow fall of fine snow may drift across the
    city, left to right; it is off unless asked for, and never shows to a
-   reader who asks for less motion. Three draw calls, four with the snow,
-   all round the camera. */
+   reader who asks for less motion. Behind ?peaks=1 (a look for review, off
+   by default) real Himalayan and Karakoram massifs stand out of the cloud
+   sea round the column, K2 whole in the home view: their heights from SRTM
+   at 30 m (scripts/city3d-peaks.mts), baked in workers the module starts as
+   it loads (peaks-bake.ts: the survey cleaned, the summits sharpened against
+   the flanks, gullies and ribs down the fall line, the snow where it lies,
+   the key's shadow and the sky's reach), each lit by its own low key from
+   the sun's side, which rakes the faces the camera sees, in air that is
+   bluer and paler with distance and under the sea's own fog at the foot.
+   In the opening each rises out of the cloud sea with the column, a stagger apart. Three draw calls, four with the snow, ten with the ranges (one each),
+   all round the camera but the ranges, which stand still in the world. */
 
 /** the sky's radius round the camera, inside the lens's far plane */
 const SKY_R = 11000;
@@ -441,6 +456,260 @@ function seaMaterial(tile: Texture | null, night: { value: number }, disc: { val
   });
 }
 
+/* the far ranges (?peaks=1): real Himalayan and Karakoram massifs (SRTM heights, public domain, from AWS Terrain Tiles; see
+   scripts/city3d-peaks.mts), one to a range, round the column: each on a bearing from the city's middle (degrees clockwise
+   from the home view's forward, -z), at a distance, with the real height the cloud sea stands at for it. K2 stands whole in
+   the home view's frame, right of the city and clear of the map key and the sun; the others show as the camera turns */
+const PEAKS: PeaksBakeRange[] = [
+  { at: 12, r: 8600, cloud: 6300 },
+  { at: 70, r: 7200, cloud: 6600 },
+  { at: 125, r: 7600, cloud: 6400 },
+  { at: 180, r: 7300, cloud: 6400 },
+  { at: -105, r: 6800, cloud: 5200 },
+  { at: -150, r: 7800, cloud: 6500 },
+];
+/** the heights' atlas (a cell of 368 x 276 samples 30 m apart to a range, stacked), and a cell's rows */
+const PEAK_DEM = "/images/city3d/peaks-dem.webp";
+const PEAK_ROWS = 276;
+/** how the bake shapes them (peaks-bake.ts): world units to a metre, the samples' spacing, the textures at twice their grid and
+    the mesh at every other sample; some of the survey's detail taken back, the summits sharpened against the flanks and the
+    relief lifted a quarter, most of the steep faces' own bumps smoothed, a sharp penumbra, and the snow's offset, which leaves
+    about two thirds of each upper massif under snow and the rock in ribs down its steep faces */
+const PEAK_SHAPE: PeaksBakeShape = { scale: 0.36, step: 30, up: 2, stride: 2, sharpen: 0.8, sigma: 2, relief: 1.6, lift: 1.25, smoothFaces: 0.85, hard: 40, snow: 0.3 };
+/** each range's key: low, from the sun's side of the range (Lighting.tsx), this far off its line from the city's middle, so it
+    rakes the faces the camera sees rather than lighting them flat from behind the camera or leaving them all in shade */
+const PEAK_KEY = { off: 100, up: 22 };
+/** the ranges' look by theme: the snow's and the rock's albedo, the key's color at its strength (warm by day, the moon's cool
+    by night) and the sky's, so the lit snow is a warm white and its shade a clear blue; and the air's color with distance */
+const PEAK_LOOK: Record<Theme, { snow: string; rock: string; key: [string, number]; sky: [string, number]; air: string }> = {
+  light: { snow: "#F6F8FC", rock: "#4E463F", key: ["#FFE0B8", 1.6], sky: ["#8DAAE0", 1.05], air: "#C3D0E3" },
+  dark: { snow: "#F6F8FC", rock: "#4E463F", key: ["#B8C6E6", 0.42], sky: ["#2E3F66", 0.16], air: "#1B2640" },
+};
+/** the air they stand in: how much of its color a massif takes, near and far by the camera's distance, so the nearest stands
+    crisp and the farthest bluer and paler; and how much of the sea's fog they shed over their foot, from where to where */
+const PEAK_AIR = { near: 0.04, far: 0.16, from: 8500, to: 13500, shed: 0.8, over: [60, 400] };
+/** Owen's rock tile (a seamless grey alpine face, cliffs upright), laid along each range and up its height, this many world units
+    to a tile: a bump for the closest camera, full on the rock and faint on the snow, gone between these distances */
+const PEAK_SRC = "/images/city3d/peaks.webp";
+const PEAK_TILE = 600;
+const PEAK_BUMP = 3;
+const PEAK_NEAR = [6500, 9500];
+/** the rise out of the cloud sea in the opening, as the column rises: how deep they start, how long each takes, and the stagger between them */
+const PEAK_RISE = { depth: 1300, ms: 1300, stagger: 60 };
+const PEAK_DETAIL_MS = 1200;
+
+/* the brand's ease, cubic-bezier(0.16, 1, 0.3, 1), solved for the curve's x */
+function brandEase(x: number): number {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  const bx = (t: number) => 3 * (1 - t) * (1 - t) * t * 0.16 + 3 * (1 - t) * t * t * 0.3 + t * t * t;
+  const by = (t: number) => 3 * (1 - t) * (1 - t) * t + 3 * (1 - t) * t * t + t * t * t;
+  let lo = 0;
+  let hi = 1;
+  let t = x;
+  for (let i = 0; i < 24; i++) {
+    const v = bx(t);
+    if (Math.abs(v - x) < 1e-5) break;
+    if (v < x) lo = t;
+    else hi = t;
+    t = (lo + hi) / 2;
+  }
+  return by(t);
+}
+
+/* a worker the bake runs in: the heights' image decoded exactly (no color conversion), then peaks-bake.ts's bakePeaks, whose
+   own source it carries; what it makes comes back as transferred buffers */
+function peaksWorker(): Worker {
+  const src = `const bakePeaks = ${bakePeaks.toString()};
+self.onmessage = async (e) => {
+  try {
+    const { blob, ...rest } = e.data;
+    const bmp = await createImageBitmap(blob, { colorSpaceConversion: "none", premultiplyAlpha: "none" });
+    const c = new OffscreenCanvas(bmp.width, bmp.height);
+    const g = c.getContext("2d", { willReadFrequently: true });
+    g.drawImage(bmp, 0, 0);
+    const out = bakePeaks({ rgba: g.getImageData(0, 0, bmp.width, bmp.height).data, width: bmp.width, ...rest });
+    self.postMessage(out, out.cells.flatMap((m) => [m.position.buffer, m.uv.buffer, m.along.buffer, m.index.buffer, m.light.buffer, m.sky.buffer]));
+  } catch (err) {
+    self.postMessage({ error: String(err) });
+  }
+};`;
+  return new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+}
+
+/* with ?peaks=1 the bake starts as this module loads, alongside the city's own data, so it is done before the scene can show:
+   the heights come down once, and a few workers (one to two cores, three at most) share the ranges. The canvas never waits
+   for it */
+const PEAKS_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("peaks") === "1";
+/** each range's key light (PEAK_KEY), toward the light */
+const PEAK_KEYS: [number, number, number][] = PEAKS.map(({ at }) => {
+  const sun = MathUtils.radToDeg(Math.atan2(SUN.x, -SUN.z));
+  const side = MathUtils.euclideanModulo(sun - at + 180, 360) - 180 < 0 ? -1 : 1;
+  const b = MathUtils.degToRad(at + side * PEAK_KEY.off);
+  const e = MathUtils.degToRad(PEAK_KEY.up);
+  return [Math.sin(b) * Math.cos(e), Math.sin(e), -Math.cos(b) * Math.cos(e)];
+});
+const PEAKS_BAKE: Promise<PeaksBakeOutput | null> | null = PEAKS_ON
+  ? fetch(PEAK_DEM)
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(`heights ${res.status}`))))
+      .then((blob) => {
+        const t0 = performance.now();
+        const n = Math.max(1, Math.min(3, Math.floor((navigator.hardwareConcurrency || 2) / 2)));
+        const jobs = Array.from({ length: n }, (_, w) => PEAKS.map((_, k) => k).filter((k) => k % n === w));
+        const one = (cells: number[]) =>
+          new Promise<PeaksBakeOutput>((done, fail) => {
+            const w = peaksWorker();
+            w.onmessage = (e: MessageEvent<PeaksBakeOutput | { error: string }>) => {
+              w.terminate();
+              if ("error" in e.data) fail(new Error(e.data.error));
+              else done(e.data);
+            };
+            w.onerror = (e) => {
+              w.terminate();
+              fail(e);
+            };
+            w.postMessage({ blob, rows: PEAK_ROWS, cells, ranges: PEAKS, seaY: SEA_Y, keys: PEAK_KEYS, ...PEAK_SHAPE });
+          });
+        return Promise.all(jobs.map(one)).then((outs) => ({ cells: outs.flatMap((o) => o.cells).sort((a, b) => a.k - b.k), ms: performance.now() - t0 }));
+      })
+      .catch(() => null)
+  : null;
+
+/* the ranges' look, from the bake: the fine normal against the range's own key, the key's baked shadow, and the sky's reach.
+   Shade = albedo x (key x shadow x N.L + sky x reach): a warm white where the key falls, a clear blue in its shade, the rock
+   dark and banded by height. The snow lies where the bake's score is over its middle, its edge a pixel wide at any distance,
+   so its streaks down the faces stay crisp. The closest camera takes Owen's rock tile as a bump. At the foot the clouds' own
+   tone, then the air, bluer and paler with distance, and the sea's fog: whole at the foot, so each shore meets the sea as the
+   sea shows there, and mostly shed above it. The finish's shading (N8AO, a reach of 5 units at half resolution) adds nothing
+   at their distance, and the night bloom's key sits over the moonlit snow: their depth is the bake's. The rise lifts each
+   range from under the cloud tops, under which nothing draws. The uniforms all six share, then each range's own material */
+function peaksLook(sea: ShaderMaterial, night: { value: number }, disc: { value: Vector3 }, tile: Texture) {
+  const u = sea.uniforms;
+  return {
+    ...lightUniforms(night, disc),
+    uCam: u.uCam,
+    uHaze: u.uHaze,
+    uMean: u.uMean,
+    uSat: u.uSat,
+    uTint: u.uTint,
+    uLift: u.uLift,
+    uDensity: u.uDensity,
+    uSnow: { value: new Color() },
+    uRockAlbedo: { value: new Color() },
+    uKeyLight: { value: new Color() },
+    uSkyLight: { value: new Color() },
+    uAir: { value: new Color() },
+    uRock: { value: tile },
+    uDetail: { value: 0 },
+    uRiseDepth: { value: PEAK_RISE.depth },
+  };
+}
+type PeaksLook = ReturnType<typeof peaksLook>;
+function peakMaterial(look: PeaksLook, cell: PeaksBakeCell): ShaderMaterial {
+  const b = MathUtils.degToRad(PEAKS[cell.k].at);
+  const tex = (data: Uint8Array, red: boolean) => {
+    const t = red ? new DataTexture(data, cell.width, cell.height, RedFormat) : new DataTexture(data, cell.width, cell.height);
+    t.magFilter = LinearFilter;
+    t.minFilter = LinearFilter;
+    t.needsUpdate = true;
+    return t;
+  };
+  return new ShaderMaterial({
+    uniforms: {
+      ...look,
+      uKey: { value: new Vector3(...PEAK_KEYS[cell.k]) },
+      uRight: { value: new Vector3(Math.cos(b), 0, Math.sin(b)) },
+      uLight: { value: tex(cell.light, false) },
+      uSky: { value: tex(cell.sky, true) },
+      uRise: { value: 0 },
+    },
+    vertexShader: /* glsl */ `
+      attribute float aAlong;
+      uniform float uRise;
+      uniform float uRiseDepth;
+      varying vec3 vWorld;
+      varying vec2 vUv;
+      varying float vAlong;
+      void main() {
+        vec3 p = position;
+        p.y -= uRiseDepth * ( 1.0 - uRise );
+        vec4 w = modelMatrix * vec4( p, 1.0 );
+        vWorld = w.xyz;
+        vUv = uv;
+        vAlong = aAlong;
+        gl_Position = projectionMatrix * viewMatrix * w;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 uCam;
+      uniform vec3 uHaze;
+      uniform vec3 uMean;
+      uniform float uSat;
+      uniform float uTint;
+      uniform float uLift;
+      uniform float uDensity;
+      uniform vec3 uKey;
+      uniform vec3 uRight;
+      uniform vec3 uSnow;
+      uniform vec3 uRockAlbedo;
+      uniform vec3 uKeyLight;
+      uniform vec3 uSkyLight;
+      uniform vec3 uAir;
+      uniform sampler2D uLight;
+      uniform sampler2D uSky;
+      uniform sampler2D uRock;
+      uniform float uDetail;
+      varying vec3 vWorld;
+      varying vec2 vUv;
+      varying float vAlong;
+      ${HASH}
+      ${LIGHT}
+      float grainOf( vec2 p ) {
+        return dot( texture2D( uRock, p ).rgb, vec3( 0.2126, 0.7152, 0.0722 ) );
+      }
+      void main() {
+        if ( vWorld.y < ${SEA_Y.toFixed(1)} ) discard;
+        vec4 L = texture2D( uLight, vUv );
+        float reach = texture2D( uSky, vUv ).r;
+        vec2 q = L.rg * 2.0 - 1.0;
+        vec3 n = vec3( q.x, sqrt( max( 0.0, 1.0 - dot( q, q ) ) ), q.y );
+        // the snow where the score is over its middle, its edge a pixel wide at any distance
+        float e = max( fwidth( L.a ), 1.0 / 255.0 );
+        float snow = smoothstep( 0.5 - e, 0.5 + e, L.a );
+        // the closest camera: Owen's rock tile as a bump along the range and up its height, full on the rock, faint on the snow
+        float d = distance( vWorld, uCam );
+        float near = uDetail * ( 1.0 - smoothstep( ${PEAK_NEAR[0].toFixed(1)}, ${PEAK_NEAR[1].toFixed(1)}, d ) );
+        if ( near > 0.0 ) {
+          vec2 t = vec2( vAlong, vWorld.y ) / ${PEAK_TILE.toFixed(1)};
+          float g0 = grainOf( t );
+          vec2 g = vec2( grainOf( t + vec2( 1.0 / 512.0, 0.0 ) ) - g0, grainOf( t + vec2( 0.0, 1.0 / 512.0 ) ) - g0 );
+          g *= near * mix( ${PEAK_BUMP.toFixed(1)}, ${(PEAK_BUMP * 0.25).toFixed(2)}, snow );
+          n = normalize( n - g.x * uRight - vec3( 0.0, g.y, 0.0 ) );
+        }
+        float ndl = max( dot( n, uKey ), 0.0 );
+        // the rock's strata: bands by height, broken along the range
+        float band = 0.5 + 0.5 * sin( ( vWorld.y - ${SEA_Y.toFixed(1)} ) / 38.0 + sin( vAlong / 260.0 ) * 1.3 );
+        vec3 albedo = mix( uRockAlbedo * ( 0.825 + 0.35 * band ), uSnow, snow );
+        vec3 c = albedo * ( uKeyLight * L.b * ndl + uSkyLight * reach );
+        // the foot in the clouds' own tone
+        vec3 mean = mix( vec3( dot( uMean, vec3( 0.2126, 0.7152, 0.0722 ) ) ), uMean, uSat ) * uTint;
+        mean = mix( mean, uHaze, uLift );
+        float foot = 1.0 - smoothstep( ${SEA_Y.toFixed(1)}, ${(SEA_Y + 260).toFixed(1)}, vWorld.y );
+        c = mix( c, mean, foot * foot * ( 3.0 - 2.0 * foot ) );
+        // the air, bluer and paler with distance; then the sea's fog, whole at the foot and mostly shed above it
+        c = mix( c, uAir, mix( ${PEAK_AIR.near.toFixed(2)}, ${PEAK_AIR.far.toFixed(2)}, smoothstep( ${PEAK_AIR.from.toFixed(1)}, ${PEAK_AIR.to.toFixed(1)}, d ) ) );
+        float f = 1.0 - exp( -d * d * uDensity * uDensity );
+        float shore = max( f, smoothstep( ${(SEA_R * 0.62).toFixed(1)}, ${(SEA_R * 0.9).toFixed(1)}, distance( vWorld.xz, uCam.xz ) ) );
+        f = mix( shore, f * ${(1 - PEAK_AIR.shed).toFixed(2)}, smoothstep( ${(SEA_Y + PEAK_AIR.over[0]).toFixed(1)}, ${(SEA_Y + PEAK_AIR.over[1]).toFixed(1)}, vWorld.y ) );
+        c = mix( c, uHaze, f );
+        c += glowAt( normalize( vWorld - uCam ) ) * f;
+        gl_FragColor = vec4( c, 1.0 );
+        #include <colorspace_fragment>
+        gl_FragColor.rgb += ( hash( gl_FragCoord.xy ) - 0.5 ) / 255.0;
+      }`,
+    side: DoubleSide,
+  });
+}
+
 /* the snow: flakes scattered through the box round the plate, most of them small and faint */
 function snowGeometry(): BufferGeometry {
   const roll = diceOf("snow");
@@ -548,6 +817,80 @@ export function Backdrop({
     [parts],
   );
   useEffect(() => () => painted?.dispose(), [painted]);
+  // the far ranges: a look behind ?peaks=1 (as City3D reads ?labels=rules); the uniforms they share, read as the scene mounts
+  const look = useMemo(() => (PEAKS_ON ? peaksLook(parts.sea.material as ShaderMaterial, night, disc, whiteTile()) : null), [parts, night, disc]);
+  const [peaks, setPeaks] = useState<Mesh[] | null>(null);
+  const peakRise = useRef<{ at: number | null; from: number | null; hurry: number | null; asked: boolean; detail: number | null; stood: boolean }>({ at: null, from: null, hurry: null, asked: false, detail: null, stood: false });
+  /* the bake's result, from the workers the module started: each range's mesh, its light's textures and its own material; the
+     rise waits until the warm-up has drawn them all. The bake's time lands in peaksBakeMs, for the load checks */
+  useEffect(() => {
+    if (!look || !PEAKS_BAKE) return;
+    let live = true;
+    void PEAKS_BAKE.then((o) => {
+      if (!live || !o) return;
+      const drawn = new Set<number>();
+      const meshes = o.cells.map((cell) => {
+        const g = new BufferGeometry();
+        g.setAttribute("position", new Float32BufferAttribute(cell.position, 3));
+        g.setAttribute("uv", new Float32BufferAttribute(cell.uv, 2));
+        g.setAttribute("aAlong", new Float32BufferAttribute(cell.along, 1));
+        g.setIndex(new Uint16BufferAttribute(cell.index, 1));
+        const m = new Mesh(g, peakMaterial(look, cell));
+        // after the sea, before the stars, which they hide; drawn in every view (the rise sinks them past their bounds), so each
+        // takes its textures up in the opening, not as the camera first turns to it
+        m.renderOrder = -18.5;
+        m.frustumCulled = false;
+        m.onAfterRender = () => {
+          if (drawn.has(cell.k)) return;
+          drawn.add(cell.k);
+          if (drawn.size === o.cells.length) {
+            peakRise.current.at = performance.now();
+            invalidate();
+          }
+        };
+        return m;
+      });
+      (window as unknown as { peaksBakeMs?: number }).peaksBakeMs = Math.round(o.ms);
+      setPeaks(meshes);
+      invalidate();
+    });
+    return () => {
+      live = false;
+    };
+  }, [look, invalidate]);
+  useEffect(() => () => (look?.uRock.value as Texture | undefined)?.dispose(), [look]);
+  useEffect(
+    () => () => {
+      for (const m of peaks ?? []) {
+        const u = (m.material as ShaderMaterial).uniforms;
+        (u.uLight.value as Texture).dispose();
+        (u.uSky.value as Texture).dispose();
+        (m.material as ShaderMaterial).dispose();
+        m.geometry.dispose();
+      }
+    },
+    [peaks],
+  );
+  useEffect(() => {
+    if (!look) return;
+    const k = PEAK_LOOK[theme];
+    look.uSnow.value.set(k.snow);
+    look.uRockAlbedo.value.set(k.rock);
+    look.uKeyLight.value.set(k.key[0]).multiplyScalar(k.key[1]);
+    look.uSkyLight.value.set(k.sky[0]).multiplyScalar(k.sky[1]);
+    look.uAir.value.set(k.air);
+    invalidate();
+  }, [look, theme, invalidate]);
+  /* the rise: each range out of the cloud sea as the column rises, on the brand's curve, a stagger apart, landing just after
+     it; a return and a reader who asks for less motion see them in place. The rock tile loads once the sea's clouds are in */
+  useEffect(() => {
+    if (!look) return;
+    if (still || OPENING.returning) peakRise.current.stood = true;
+    return onCityStood(() => {
+      peakRise.current.stood = true;
+      invalidate();
+    });
+  }, [look, still, invalidate]);
 
   // the theme's sky and the sea's tone
   useEffect(() => {
@@ -723,6 +1066,47 @@ export function Backdrop({
         fade.current = null;
       }
     }
+    // the ranges rise with the column; the rock tile loads once the sea's image is in (or 3 s after the city stands)
+    if (look) {
+      const pk = peakRise.current;
+      const now = performance.now();
+      if (peaks) {
+        const set = (m: Mesh, v: number) => {
+          const r = (m.material as ShaderMaterial).uniforms.uRise;
+          if (r.value === v) return;
+          r.value = v;
+          invalidate();
+        };
+        if (still || OPENING.returning || (pk.stood && pk.from === null)) for (const m of peaks) set(m, 1);
+        else {
+          // the rise starts with the column's, or once the warm-up has drawn every range if that is later
+          if (pk.from === null && OPENING.column.value > 0) pk.from = now;
+          if (pk.from !== null && pk.at !== null && pk.at > pk.from) pk.from = pk.at;
+          const from = pk.at === null ? null : pk.from;
+          if (pk.hurry === null && from !== null && OPENING.column.value >= 1 && now - from < PEAK_RISE.ms + PEAK_RISE.stagger * PEAKS.length) pk.hurry = now;
+          peaks.forEach((m, k) => {
+            let v = from === null ? 0 : brandEase((now - from - PEAK_RISE.stagger * k) / PEAK_RISE.ms);
+            // the reader asked for something: what is left of the rise goes in 300 ms, as the column's does
+            if (pk.hurry !== null) v = Math.max(v, Math.min(1, (now - pk.hurry) / 300));
+            set(m, v);
+          });
+        }
+      }
+      if (pk.stood && !pk.asked && ((!fade.current && shown.current) || still || OPENING.returning)) {
+        pk.asked = true;
+        void loadTile(gl, PEAK_SRC, 4).then((tex) => {
+          if (!tex) return;
+          (look.uRock.value as Texture).dispose();
+          look.uRock.value = tex;
+          pk.detail = performance.now();
+          invalidate();
+        });
+      }
+      if (pk.detail !== null && look.uDetail.value < 1) {
+        look.uDetail.value = Math.min(1, (now - pk.detail) / PEAK_DETAIL_MS);
+        invalidate();
+      }
+    }
   });
 
   return (
@@ -730,6 +1114,7 @@ export function Backdrop({
       <primitive object={parts.sky} />
       <primitive object={parts.sea} />
       <primitive object={parts.stars} />
+      {peaks?.map((m) => <primitive key={m.uuid} object={m} />)}
       {snow && !still && <primitive object={parts.flakes} />}
     </group>
   );
