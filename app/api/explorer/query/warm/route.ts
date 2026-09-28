@@ -4,6 +4,7 @@ import { getRecipe, putVisual, recipeKey } from "@/lib/explorer-query/cache";
 import { designVisual } from "@/lib/explorer-query/visual";
 import { EXAMPLE_PROMPTS, PCHAIN_EXAMPLES } from "@/lib/explorer-query/examples";
 import { siteBaseUrl } from "@/lib/chat/site-url";
+import { fixedRecipe } from "@/lib/explorer-query/fixed";
 
 /* Answers the suggested questions ahead of readers, so a first click on
    one only runs its SQL: the C-Chain's and the P-Chain's, since the
@@ -21,11 +22,11 @@ export const maxDuration = 300;
 const CCHAIN = { chainId: 43114, chainName: "Avalanche C-Chain", symbol: "AVAX" };
 const PCHAIN = { chainId: 1, chainName: "P-Chain", symbol: "AVAX" };
 const PCHAIN_PROMPTS = PCHAIN_EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
-/** the two chains' questions, in turns */
+/** the two chains' questions, in turns; a question with fixed SQL (fixed.ts) needs no warming */
 const QUEUE = Array.from({ length: Math.max(EXAMPLE_PROMPTS.length, PCHAIN_PROMPTS.length) }, (_, i) => [
   ...(i < EXAMPLE_PROMPTS.length ? [{ chain: CCHAIN, prompt: EXAMPLE_PROMPTS[i] }] : []),
   ...(i < PCHAIN_PROMPTS.length ? [{ chain: PCHAIN, prompt: PCHAIN_PROMPTS[i] }] : []),
-]).flat();
+]).flat().filter(({ chain, prompt }) => !fixedRecipe(chain.chainId, prompt));
 /** stop taking new questions after this long, so the slowest answer seen (about 160 s) still ends before the cutoff at 300 s */
 const BUDGET_MS = 140_000;
 /** the guard's refusal of a wide table read with no time or height bound */
