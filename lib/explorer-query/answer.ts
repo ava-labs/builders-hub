@@ -186,6 +186,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   // a run with no answer blames the database only when every query it sent failed there
   let ranFine = 0;
   let dbFailed = 0;
+  // the drill probes that found records in this request: a final sent back after its probe hands back the same drill
+  const probed = new Set<string>();
   // Fuji keeps the loop it had: no test budget, and every step may test
   const fuji = isFuji(a.chainId);
   // the server writes out the WITH a C-Chain shorthand stands for. A writer that writes it out itself spends about
@@ -377,9 +379,14 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             const d = drillSql(drill.sql, rows.rows[0], a.chainId);
             if (!d.ok) return fail(`drill: ${d.error}`, Date.now() - q0);
             try {
-              const probe = await runQuery((await anchored(d.sql, a.chainId)).sql.replace(/\bLIMIT\s+\d+\s*$/i, "LIMIT 1"));
-              // a drill that opens onto nothing is the "No records matched" a reader hits
-              if (probe.rowCount === 0) return fail("drill: it found no records for the first row. Keep the main query's window and filters, and filter on that row's own values (use :bytes for hex ids and addresses).", Date.now() - q0);
+              const probeSql = (await anchored(d.sql, a.chainId)).sql.replace(/\bLIMIT\s+\d+\s*$/i, "LIMIT 1");
+              // a probe byte for byte the same as one that found records in this request is not run again
+              if (fuji || !probed.has(probeSql)) {
+                const probe = await runQuery(probeSql);
+                // a drill that opens onto nothing is the "No records matched" a reader hits
+                if (probe.rowCount === 0) return fail("drill: it found no records for the first row. Keep the main query's window and filters, and filter on that row's own values (use :bytes for hex ids and addresses).", Date.now() - q0);
+                probed.add(probeSql);
+              }
             } catch (e) {
               return fail(`drill: ${e instanceof Error ? e.message : String(e)}`, Date.now() - q0);
             }
