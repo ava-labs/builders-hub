@@ -7,7 +7,8 @@
    $LIQUIDATIONS, $PRICES, $DEBTS or $MARKETS for a lending WITH
    (lending.ts). The guard writes it out before it reads the
    query, so what the guard checks, what runs and what the page shows is
-   the whole WITH, the one the prompt shows. Mainnet C-Chain only. */
+   the whole WITH. The prompt prints none of it, so the writer has no WITH
+   to copy. Mainnet C-Chain only. */
 
 import { debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
 import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, type DexFamily } from "./protocols";

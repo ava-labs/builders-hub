@@ -271,10 +271,11 @@ describe('DEX rules and worked examples', () => {
     for (const chainId of [43113, 432204]) expect(systemPrompt({ chainId, chainName: 'x', symbol: 'AVAX', schema: '', coverage: null, dex: true })).not.toContain('dex_factories');
   });
 
-  it('show the DEX WITH once, and are eight, each with a drill a row fills', () => {
+  it('print no DEX WITH to copy, and are eight, each with a drill a row fills', () => {
     expect(start).toBeGreaterThan(0);
     expect(prompt.split('uniqExact(tx, pool) AS swaps').length - 1).toBe(4);
-    expect(prompt.split('legs AS (SELECT').length - 1).toBe(1);
+    // the writer copied a printed WITH into its final: about 2,300 output tokens and 24 s a call
+    expect(prompt).not.toMatch(/legs AS \(SELECT|swap_logs AS \(|\$(START|END|PROTOCOL)\b/);
     expect(lines.filter(example)).toHaveLength(8);
     expect(lines.filter((l) => l.startsWith('drill: '))).toHaveLength(8);
     expect(sqls.filter((s) => s.startsWith('not filled'))).toEqual([]);
