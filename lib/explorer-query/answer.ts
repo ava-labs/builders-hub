@@ -348,8 +348,11 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             emptyOnce = true;
             return fail(`the query returned no rows. The data runs ${cover ? `${cover.since} to ${cover.until} UTC` : "to the last indexed block"}. Check the window and the filters; call render_chart again unchanged only if no rows is the true answer.`, Date.now() - q0);
           }
+          // an empty result comes back with no columns, so there is no chart to check it against: when no rows is the
+          // true answer the query ships with its own chart (L04 backed into SELECT 1 AS nothing ... LIMIT 0 before)
           const cols = new Set(result.columns.map((c) => c.name));
-          const missing = [chart.x, ...chart.series.map((s) => s.column)].filter((c): c is string => !!c && !cols.has(c));
+          const unchecked = !fuji && result.rowCount === 0 && !result.columns.length;
+          const missing = unchecked ? [] : [chart.x, ...chart.series.map((s) => s.column)].filter((c): c is string => !!c && !cols.has(c));
           if (missing.length) return fail(`chart refers to columns the query does not return: ${missing.join(", ")}`, Date.now() - q0);
           // a fee, a volume or a value in USD below zero is a sign or a price gone wrong: ask once
           const neg = negOnce ? null : negativeFigure(result, a.chainId);
