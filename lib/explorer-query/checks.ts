@@ -138,7 +138,8 @@ export function protocolScope(sql: string, questions: readonly string[], chainId
 }
 
 /** what the note of a query that answers one of the lending protocols its question names must say, or null: $DEBTS and
-    $MARKETS take one protocol per query, so the answer says which one it covers and offers the other as the next question */
+    $MARKETS take one protocol per query, so the answer says it covers that one only and offers the other as the next
+    question. The send-back gives both sentences to copy: it goes once, and a replay of L07 took the offer alone */
 export function oneProtocol(sql: string, note: string, questions: readonly string[], chainId: number): string | null {
   if (chainId !== DEX_CHAIN_ID) return null;
   const m = /\$(debts|markets)\s*\(\s*'([a-z0-9-]+)'\s*\)/.exec(sql.toLowerCase());
@@ -146,11 +147,14 @@ export function oneProtocol(sql: string, note: string, questions: readonly strin
   const name = (slug: string) => LENDING_PROTOCOLS[slug] ?? slug;
   const others = [...new Set(namedIn(questions).flatMap((g) => g.map((p) => SLUGS[p]).filter((slug) => slug && slug !== m[2] && Object.hasOwn(LENDING_PROTOCOLS, slug)).slice(0, 1)))];
   if (others.length === 0) return null;
-  const said = /\bonly\b/i.test(note) && others.every((slug) => note.toLowerCase().includes(name(slug).toLowerCase()));
-  if (said) return null;
   const covered = name(m[2]);
+  // "only" beside the protocol it covers ("covers Aave only", "Aave's markets only", "only the Aave reserves"); an only
+  // of another sense ("only priced tokens show values") says nothing of the protocol
+  const word = covered.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const only = new RegExp(`\\b${word}(?:['’]s)?(?:\\s+[\\w-]+){0,3}\\s+only\\b|\\bonly\\s+(?:[\\w-]+\\s+){0,2}${word}\\b`, "i").test(note);
+  if (only && others.every((slug) => note.toLowerCase().includes(name(slug).toLowerCase()))) return null;
   const next = `Ask for ${others.map((slug) => `${name(slug)}'s`).join(" and ")} ${m[1]} next.`;
-  return `the question names ${[covered, ...others.map(name)].join(" and ")}, and $${m[1].toUpperCase()} covers one protocol per query, so this answer covers ${covered} only. Say that in the note, and offer the other as the next question ("${next}"). Then call render_chart again with the same SQL.`;
+  return `the question names ${[covered, ...others.map(name)].join(" and ")}, and $${m[1].toUpperCase()} covers one protocol per query, so this answer covers ${covered} only. Add both of these sentences to the note, as they are: "This answer covers ${covered} only." and "${next}" Then call render_chart again with the same SQL.`;
 }
 
 /** the columns of a query's outer SELECT, each as its expression and its name */

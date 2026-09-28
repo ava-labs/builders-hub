@@ -370,9 +370,18 @@ describe('an answer for one of two protocols', () => {
 
   it('says in its note which protocol it covers, and offers the other next', () => {
     expect(oneProtocol(sql, 'Utilization of each market on Aave and Benqi.', q, 43114)).toBe(
-      `the question names Aave and Benqi, and $MARKETS covers one protocol per query, so this answer covers Aave only. Say that in the note, and offer the other as the next question ("Ask for Benqi's markets next."). Then call render_chart again with the same SQL.`,
+      `the question names Aave and Benqi, and $MARKETS covers one protocol per query, so this answer covers Aave only. Add both of these sentences to the note, as they are: "This answer covers Aave only." and "Ask for Benqi's markets next." Then call render_chart again with the same SQL.`,
     );
     expect(oneProtocol(sql, "Aave's markets only; ask for Benqi's markets next.", q, 43114)).toBeNull();
+    for (const note of ["This answer covers Aave only. Ask for Benqi's markets next.", "Only the Aave reserves are shown; ask for Benqi's markets next.", 'Aave v3 only. Benqi is next.'])
+      expect(oneProtocol(sql, note, q, 43114), note).toBeNull();
+    // a replay of L07 answered the send-back with the offer alone, and an only of another sense says nothing of the protocol
+    for (const note of [
+      "Aave v3 has 18 reserves. Supplied and borrowed are in USD at current prices. TVL (total value locked) is supplied less borrowed. Tokens with no price show no values. Ask for Benqi's markets next.",
+      "Only priced tokens show values. Ask for Benqi's markets next.",
+      "Aave's 18 reserves, with only priced tokens valued. Ask for Benqi's markets next.",
+    ])
+      expect(oneProtocol(sql, note, q, 43114), note).toMatch(/^the question names Aave and Benqi, and \$MARKETS covers one protocol per query/);
     expect(oneProtocol(sql, 'Utilization of each Aave market.', ['What is the utilization of each Aave market?'], 43114)).toBeNull();
     expect(oneProtocol(`$LEND(${today}) SELECT count() AS n FROM actions`, 'x', q, 43114)).toBeNull();
     expect(oneProtocol(sql, 'x', q, 43113)).toBeNull();
