@@ -21,6 +21,7 @@ vi.mock('@/lib/explorer-query/examples', () => ({ PCHAIN_EXAMPLES: [], examplesF
 import { generateText } from 'ai';
 import { answerQuestion } from '@/lib/explorer-query/answer';
 import { contradictions, withoutContradictions } from '@/lib/explorer-query/claims';
+import { cutOf } from '@/lib/explorer-query/cut';
 
 const one = (name: string, type: string, v: number) => ({ columns: [{ name, type }], rows: [{ [name]: v }], rowCount: 1 });
 
@@ -95,6 +96,59 @@ describe('a count or a total the note gives, held against the column that holds 
   });
 });
 
+// D16: a test step counted 4,978 swaps, and the final rows hold 4,981
+const D16_NOTE = 'Fees earned by liquidity providers in the Uniswap v3 WAVAX/USDC 0.05% pool this week (since Monday). The pool had 4,978 swaps with $2.42M in volume.';
+const d16 = { columns: [{ name: 'fees_usd', type: 'Float64' }, { name: 'swaps', type: 'UInt64' }, { name: 'priced_swaps', type: 'UInt64' }, { name: 'volume_usd', type: 'Float64' }], rows: [{ fees_usd: 1212.82, swaps: 4981, priced_swaps: 4981, volume_usd: 2425642.22 }], rowCount: 1 };
+const perProtocol = (truncated = false) => ({
+  columns: [{ name: 'protocol', type: 'String' }, { name: 'swaps', type: 'UInt64' }, { name: 'volume_usd', type: 'Float64' }, { name: 'share_pct', type: 'Float64' }],
+  rows: [{ protocol: 'uniswap', swaps: 3000, volume_usd: 1.5e6, share_pct: 60.2 }, { protocol: 'pharaoh', swaps: 1500, volume_usd: 7.2e5, share_pct: 30.1 }, { protocol: 'blackhole-dex', swaps: 481, volume_usd: 2.1e5, share_pct: 9.7 }],
+  rowCount: 3,
+  truncated,
+});
+
+describe('a total the note gives, held against the sum of a per-row column', () => {
+  it('reads a count two columns name from the one named for it alone, as D16\'s swaps and priced_swaps', () => {
+    // $2.42M is not 2,425,642.22 by the usual rule, which gives $2.43M
+    expect(contradictions(D16_NOTE, 'Uniswap v3 WAVAX/USDC 0.05% fees this week', d16)).toEqual([{
+      sentence: 'The pool had 4,978 swaps with $2.42M in volume.',
+      error: 'the note gives 4,978 ("The pool had 4,978 swaps with $2.42M in volume."), but the rows\' swaps is 4,981. the note gives $2.42M ("The pool had 4,978 swaps with $2.42M in volume."), but the rows\' volume_usd is $2,425,642.22.',
+      fix: 'The pool had 4,981 swaps with $2.43M in volume.',
+    }]);
+    expect(contradictions('The pool had 4,981 swaps with $2.43M in volume.', 'Uniswap v3 WAVAX/USDC 0.05% fees this week', d16)).toEqual([]);
+    // a measure after "in" is the figure's noun: the pool's volume is held against volume_usd
+    const later = { ...d16, rows: [{ ...d16.rows[0], swaps: 5436, priced_swaps: 5436, volume_usd: 2585517.58 }] };
+    expect(contradictions('The pool had 4,978 swaps with $2.42M in volume.', 'Uniswap v3 WAVAX/USDC 0.05% fees this week', later)[0]).toEqual({
+      sentence: 'The pool had 4,978 swaps with $2.42M in volume.',
+      error: 'the note gives 4,978 ("The pool had 4,978 swaps with $2.42M in volume."), but the rows\' swaps is 5,436. the note gives $2.42M ("The pool had 4,978 swaps with $2.42M in volume."), but the rows\' volume_usd is $2,585,517.58.',
+      fix: 'The pool had 5,436 swaps with $2.59M in volume.',
+    });
+    expect(contradictions('Fees came to $1.2M in the last week.', 'Uniswap v3 WAVAX/USDC 0.05% fees this week', later)).toEqual([]);
+  });
+
+  it('sends back a total of all the rows that their column sums to another figure', () => {
+    const [c] = contradictions('Swaps this week came to 4,978 in all.', 'Swaps per protocol this week', perProtocol());
+    expect(c.error).toBe('the note gives 4,978 ("Swaps this week came to 4,978 in all."), but the rows\' swaps sum to 4,981.');
+    expect(c.fix).toBe('Swaps this week came to 4,981 in all.');
+    expect(contradictions('There were 4,978 swaps on the three protocols this week.', 'Swaps per protocol this week', perProtocol())[0].fix).toBe('There were 4,981 swaps on the three protocols this week.');
+    expect(contradictions('Volume came to a total of $2.1M.', 'Swaps per protocol this week', perProtocol())[0].fix).toBe('Volume came to a total of $2.4M.');
+  });
+
+  it('passes a figure of one row, a rank, a statistic, a bound, a qualified count, a rounded total and cut rows', () => {
+    for (const note of [
+      'Uniswap had 3,100 swaps.',
+      'Blackhole DEX had 500 swaps.',
+      'The top protocol had 3,100 swaps.',
+      'Each protocol averaged 1,660 swaps.',
+      'Over 4,000 swaps this week.',
+      '4,978 swaps were over $1k.',
+      '3,000 swaps went through one venue.',
+      'There were 5k swaps in all.',
+      'There were 4,981 swaps in all.',
+    ]) expect(contradictions(note, 'Swaps per protocol this week', perProtocol())).toEqual([]);
+    expect(contradictions('Swaps this week came to 4,978 in all.', 'Swaps per protocol this week', perProtocol(true))).toEqual([]);
+  });
+});
+
 // a writer that hands render_chart the same answer on every step
 type Call = { tools: { render_chart: { execute: (input: unknown, o: unknown) => Promise<unknown> } }; stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[]; onStepFinish: (s: unknown) => void };
 const results: unknown[] = [];
@@ -134,6 +188,20 @@ describe('the writer is sent back a note its rows contradict', () => {
     expect(results[0]).toEqual({ error: 'the note gives 48,336 ("The 15 largest borrowers on Aave by debt, of 48,336 total borrowers on the protocol now."), but the rows\' of_total is 48,292. Write the note from these rows, and call render_chart again with the same SQL.' });
     expect(results).toHaveLength(2);
     expect(answer?.note).toBe('The 15 largest borrowers on Aave by debt, of 48,292 total borrowers on the protocol now.');
+  });
+
+  it('holds a total against a per-row sum only when the rows are whole', async () => {
+    runQuery.mockReset().mockImplementation(async () => ({ ...perProtocol(), elapsedMs: 1, rowsRead: 3 }));
+    const swaps = { ...FINAL, title: 'Swaps per protocol this week', note: 'Swaps this week came to 4,978 in all.', sql: 'SELECT protocol, swaps, volume_usd, share_pct FROM x LIMIT 3' };
+    vi.mocked(generateText).mockImplementation(writes(swaps));
+    expect((await ask(43114))?.note).toBe('Swaps this week came to 4,981 in all.');
+    expect(results[0]).toEqual({ error: 'the note gives 4,978 ("Swaps this week came to 4,978 in all."), but the rows\' swaps sum to 4,981. Write the note from these rows, and call render_chart again with the same SQL.' });
+    // rows cut at their LIMIT do not sum to the total
+    results.length = 0;
+    vi.mocked(cutOf).mockReturnValue({ inner: 'SELECT protocol, swaps, volume_usd, share_pct FROM x', limit: 3, newest: false });
+    expect((await ask(43114))?.note).toBe('Swaps this week came to 4,978 in all.');
+    expect(results).toHaveLength(1);
+    vi.mocked(cutOf).mockReturnValue(null);
   });
 
   it('leaves Fuji\'s note as it was', async () => {

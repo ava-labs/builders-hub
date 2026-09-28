@@ -7,7 +7,7 @@
 
 import type { ColumnMeta } from "./clickhouse";
 
-type Rows = { columns: readonly ColumnMeta[]; rows: readonly Record<string, unknown>[]; rowCount: number };
+type Rows = { columns: readonly ColumnMeta[]; rows: readonly Record<string, unknown>[]; rowCount: number; truncated?: boolean };
 
 const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
 /** columns that place, rank or size the rows rather than measure what they hold */
@@ -43,7 +43,8 @@ const shown = (v: number) => (Number.isInteger(v) ? String(v) : String(Number(v.
 
 /* A count or a total the note gives: a figure written as a total (of 48,336, a total of 48,336, 48,336 in
    all) or named for what it counts (1,234 swaps), held against the one column of the rows that holds such a
-   figure for all of them. A figure no column holds is left alone. */
+   figure for all of them, or else against the sum of a per-row column of that kind over all the rows. A
+   figure no column holds is left alone. */
 
 /** a column that holds a count or a total: of_total, total, total_borrowers, borrower_count */
 const TOTAL = /(?:^|_)(?:of_total|total|count|cnt)(?:_|$)/i;
@@ -66,9 +67,11 @@ const NOT_A_NOUN = new Set(["of", "total", "count", "cnt", "num", "number", "uni
 const FUNCTION = new Set(["on", "in", "at", "by", "for", "from", "with", "to", "of", "the", "a", "an", "this", "that", "now", "today", "and", "or", "as", "since", "across", "per", "so", "is", "are", "was", "were"]);
 const nounsOf = (name: string) => new Set(name.replace(/([a-z])([A-Z])/g, "$1_$2").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !NOT_A_NOUN.has(w)).map(stem));
 
+type Held = { name: string; value: number; usd: boolean; total: boolean; nouns: Set<string> };
+
 /** the columns that hold one count or total for all the rows: a count or a total column the same in every row, or
     any number column of a one-row answer */
-function heldTotals(r: Rows): { name: string; value: number; usd: boolean; total: boolean; nouns: Set<string> }[] {
+function heldTotals(r: Rows): Held[] {
   return r.columns
     .filter((c) => NUMERIC.test(c.type) && (r.rows.length === 1 || TOTAL.test(c.name)))
     .flatMap((c) => {
@@ -79,6 +82,30 @@ function heldTotals(r: Rows): { name: string; value: number; usd: boolean; total
     });
 }
 
+/** a per-row column whose figures do not add up to a total: a price, a rate, a share, a mean, a place or a time */
+const NOT_SUMMED = /(?:^|_)(?:price|prices|px|rate|rates|ratio|pct|percent|share|apy|apr|avg|average|mean|median|min|max|rank|block|height|number|id|time|timestamp|ts|decimals|tick|utilization|weight)(?:_|$)/i;
+/** a sentence about one row, a rank or a statistic of the rows, which their sum does not hold */
+const PER_ROW = /\b(?:each|per|average|averaged|avg|mean|median|typical|every|largest|biggest|top|most|highest|lowest|smallest|busiest|leading)\b/i;
+const plain = (s: string) => s.toLowerCase().replace(/[-_]/g, " ");
+
+/** the per-row columns of a many-row answer that add up to a total, with their sum and each row's figure; none when
+    the rows are cut, since their sum is then not the total */
+function summedColumns(r: Rows): (Held & { values: number[] })[] {
+  if (r.rows.length < 2 || r.truncated) return [];
+  return r.columns
+    .filter((c) => NUMERIC.test(c.type) && !TOTAL.test(c.name) && !PLACE.test(c.name) && !NOT_SUMMED.test(c.name))
+    .flatMap((c) => {
+      const values = r.rows.map((row) => Number(row[c.name] ?? 0));
+      if (values.some((v) => !Number.isFinite(v))) return [];
+      return [{ name: c.name, value: values.reduce((p, q) => p + q, 0), usd: /(?:^|_)usd(?:_|$)/i.test(c.name), total: false, nouns: nounsOf(c.name), values }];
+    });
+}
+
+/** of the columns a figure's noun names, the one named for it alone (swaps before priced_swaps), or any when they
+    hold the same figure; else none */
+const pick = <T extends Held>(named: T[]): T | null =>
+  named.length <= 1 ? (named[0] ?? null) : (named.find((h) => h.nouns.size === 1) ?? (named.every((h) => h.value === named[0].value) ? named[0] : null));
+
 /** the figure written the way the note wrote the one it stands for: 48292 as 48,292 after 48,336, 48.3k after 48.1k */
 function written(v: number, like: { usd: boolean; commas: boolean; decimals: number; suffix: string; space: string }): string {
   const scale = SCALE[like.suffix.toLowerCase()] ?? 1;
@@ -87,9 +114,13 @@ function written(v: number, like: { usd: boolean; commas: boolean; decimals: num
   return `${like.usd ? "$" : ""}${body}${like.suffix ? `${like.space}${like.suffix}` : ""}`;
 }
 
-/** each count or total a sentence gives that the column holding it contradicts, and the sentence with the column's
-    figures; count is the number of rows listed */
-function totalsAgainst(s: string, held: ReturnType<typeof heldTotals>, count: number, rowsKind: Set<string>): { said: string[]; fixed: string } | null {
+/** what a sentence's totals are held against: the columns that hold one figure for all the rows, the per-row columns'
+    sums, the number of rows listed, the words of the rows' kind, and the rows' own names */
+type Against = { held: Held[]; summed: (Held & { values: number[] })[]; count: number; rowsKind: Set<string>; labels: string[] };
+
+/** each count or total a sentence gives that the column holding it, or a per-row column's sum, contradicts, and the
+    sentence with the rows' figures */
+function totalsAgainst(s: string, { held, summed, count, rowsKind, labels }: Against): { said: string[]; fixed: string } | null {
   let fixed = "";
   let at = 0;
   const said: string[] = [];
@@ -108,7 +139,10 @@ function totalsAgainst(s: string, held: ReturnType<typeof heldTotals>, count: nu
     // half the last unit the note shows: 48,336 is exact to 0.5, 48.3k to 50, 48,000 to 500
     const unit = (dec ? 10 ** -dec.length : 10 ** (/0*$/.exec(digits)?.[0].length ?? 0)) * scale;
     const kind = held.filter((h) => h.usd === !!dollar);
-    const word = rest.replace(AS_TOTAL_AFTER, "").toLowerCase().split(/[^a-z]+/).filter(Boolean).find((w) => !BEFORE_NOUN.has(w));
+    const words = rest.replace(AS_TOTAL_AFTER, "").toLowerCase().split(/[^a-z]+/).filter(Boolean);
+    const first = words.findIndex((w) => !BEFORE_NOUN.has(w));
+    // a measure after "in" is what the figure counts: $2.42M in volume, $1.2k in fees
+    const word = words[first] === "in" && words[first + 1] && !FUNCTION.has(words[first + 1]) && !BEFORE_NOUN.has(words[first + 1]) ? words[first + 1] : words[first];
     const noun = word && !FUNCTION.has(word) ? stem(word) : undefined;
     const named = noun ? kind.filter((h) => h.nouns.has(noun)) : [];
     const asTotal = AS_TOTAL_BEFORE.test(before) || AS_TOTAL_AFTER.test(rest);
@@ -116,14 +150,25 @@ function totalsAgainst(s: string, held: ReturnType<typeof heldTotals>, count: nu
     const ofRows = kind.filter((h) => h.total && !h.nouns.size && (!noun || rowsKind.has(noun)));
     // written as a total, it is the total column it names, or else the one of the rows' kind; named for what it counts,
     // it is that column, unless its clause qualifies it (12 borrowers hold over $1M) or it counts the rows listed
-    const col = asTotal
-      ? named.length === 1 ? named[0] : !named.length && ofRows.length === 1 ? ofRows[0] : null
-      : named.length === 1 && !PART.test(rest.split(/[,;]/)[0]) && value !== count ? named[0] : null;
-    if (!col || Math.abs(col.value - value) <= unit / 2 + 1e-9 * Math.abs(value)) continue;
+    const qualified = PART.test(rest.split(/[,;]/)[0]);
+    const near = (v: number) => Math.abs(v - value) <= unit / 2 + 1e-9 * Math.abs(value);
+    let col = asTotal
+      ? named.length ? pick(named) : ofRows.length === 1 ? ofRows[0] : null
+      : named.length && !qualified && value !== count ? pick(named) : null;
+    // else a total of all the rows is a per-row column's sum: never in a sentence about one row it names (Uniswap had
+    // 1,200 swaps), a rank or a statistic of them (the top pool, each protocol), and never a figure one row holds
+    let sum = false;
+    if (!col && summed.length && !qualified && value !== count && !PER_ROW.test(s) && !labels.some((l) => plain(s).includes(l))) {
+      const sums = summed.filter((h) => h.usd === !!dollar);
+      const namedSums = noun ? sums.filter((h) => h.nouns.has(noun)) : [];
+      const c = namedSums.length ? pick(namedSums) : asTotal && !noun && sums.length === 1 ? sums[0] : null;
+      if (c && !c.values.some(near)) [col, sum] = [c, true];
+    }
+    if (!col || near(col.value)) continue;
     const like = { usd: !!dollar, commas: int.includes(","), decimals: dec?.length ?? 0, suffix: suffix ?? "", space: /\s[kKmMbB]$/.test(text) ? " " : "" };
     // a figure with its scale in words (1.8 million) keeps the words, and takes the column's figure in that scale
     const theirs = worded ? written(col.value / scale, like) : written(col.value, like);
-    said.push(`the note gives ${text.trim()}${worded ? ` ${worded[1]}` : ""} ("${s.trim()}"), but the rows' ${col.name} is ${written(col.value, { ...like, suffix: "", decimals: Number.isInteger(col.value) ? 0 : Math.max(like.decimals, 2), commas: true })}.`);
+    said.push(`the note gives ${text.trim()}${worded ? ` ${worded[1]}` : ""} ("${s.trim()}"), but the rows' ${col.name} ${sum ? "sum to" : "is"} ${written(col.value, { ...like, suffix: "", decimals: Number.isInteger(col.value) ? 0 : Math.max(like.decimals, 2), commas: true })}.`);
     fixed += s.slice(at, m.index) + theirs;
     at = m.index + text.length;
   }
@@ -136,8 +181,11 @@ export function contradictions(note: string, title: string, r: Rows): { sentence
   const held = heldTotals(r);
   if (!figures.length && !held.length && r.rowCount > 0) return [];
   const out: { sentence: string; error: string; fix?: string }[] = [];
-  // what the rows are: the words of their text columns (borrower_address) and of the title
-  const rowsKind = new Set([...r.columns.filter((c) => !NUMERIC.test(c.type)).flatMap((c) => [...nounsOf(c.name)]), ...wordsOf(title)]);
+  // what the rows are: the words of their text columns (borrower_address) and of the title, and their own names
+  const textCols = r.columns.filter((c) => !NUMERIC.test(c.type));
+  const rowsKind = new Set([...textCols.flatMap((c) => [...nounsOf(c.name)]), ...wordsOf(title)]);
+  const labels = [...new Set(r.rows.flatMap((row) => textCols.map((c) => plain(String(row[c.name] ?? "")))))].filter((v) => v.length >= 4 && !/^0x[0-9a-f]*$/.test(v) && !/^\d/.test(v));
+  const ctx: Against = { held, summed: summedColumns(r), count: r.rows.length, rowsKind, labels };
   const zero = r.rowCount === 0 || figures.every((f) => f.values.every((v) => v === 0));
   for (const s of sentences(note)) {
     const none = NONE.map((re) => re.exec(s)).find(Boolean);
@@ -157,7 +205,7 @@ export function contradictions(note: string, title: string, r: Rows): { sentence
       }
     }
     // a count or a total the column that holds it contradicts: the sentence comes back with the column's figure
-    const totals = held.length ? totalsAgainst(s, held, r.rows.length, rowsKind) : null;
+    const totals = held.length || ctx.summed.length ? totalsAgainst(s, ctx) : null;
     if (totals) {
       out.push({ sentence: s, error: totals.said.join(" "), fix: totals.fixed });
       continue;

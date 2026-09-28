@@ -401,15 +401,16 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
               return fail(`drill: ${e instanceof Error ? e.message : String(e)}`, Date.now() - q0);
             }
           }
-          // the note came with the query, before its rows: one that says none of what they hold, or gives a figure where
-          // they hold only zeros, is sent back once with their figures; a sentence still against them is left out
+          rows.truncated ||= !!cutOf(kept, rows.rowCount);
+          // the note came with the query, before its rows: one that says none of what they hold, gives a figure where
+          // they hold only zeros, or a total they hold another figure for (a per-row sum only over rows not cut), is
+          // sent back once with their figures; a sentence still against them is left out, or takes their figure
           const against = fuji ? [] : contradictions(note, title, rows);
           if (against.length && !noteOnce) {
             noteOnce = true;
             step("final", Date.now() - q0, false, "note against the rows");
             return { error: `${against.map((c) => c.error).join(" ")} Write the note from these rows, and call render_chart again with the same SQL.` };
           }
-          rows.truncated ||= !!cutOf(kept, rows.rowCount);
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, g.sql, rows.rows, chart.x, now);
