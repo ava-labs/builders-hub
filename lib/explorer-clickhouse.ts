@@ -186,13 +186,15 @@ function sqlDailyTxs(): string {
   `;
 }
 
-function buildPastDates(days: number = DAILY_WINDOW_DAYS): string[] {
+function buildPastDates(days: number = DAILY_WINDOW_DAYS, completeOnly = false): string[] {
   // YYYY-MM-DD entries for the last `days` days, oldest first, ending
-  // today (UTC). Used to pad zero-activity days so every chart always
-  // renders exactly its window's point count.
+  // today (UTC), or yesterday with `completeOnly` so a partial day never
+  // reads as a collapse. Used to pad zero-activity days so every chart
+  // always renders exactly its window's point count.
   const out: string[] = [];
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
+  if (completeOnly) today.setUTCDate(today.getUTCDate() - 1);
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setUTCDate(d.getUTCDate() - i);
@@ -679,9 +681,10 @@ export async function getCchainDailyActivity(
       if (!body?.activity) throw new Error("activity unavailable");
 
       // The endpoint returns only days that had traffic; pad to the full
-      // window so the chart keeps a stable x-axis.
+      // window so the chart keeps a stable x-axis. Complete UTC days only:
+      // the same window the chain-stats indexer sums, so the two agree.
       const byDay = new Map(body.activity.map((a) => [a.day, a]));
-      const data = buildPastDates(days).map((iso) => {
+      const data = buildPastDates(days, true).map((iso) => {
         const a = byDay.get(iso);
         return {
           date: formatDayLabel(iso),
@@ -757,6 +760,8 @@ export interface GasProtocol {
   slug: string | null;
   /** the contract address when the entry is a single unregistered contract */
   address: string | null;
+  /** the group's busiest contract in the window, where a click on the protocol lands */
+  topContract: string | null;
   gas: number;
   txs: number;
   senders: number;
@@ -1054,6 +1059,8 @@ function aggregateProtocols(
         category: info?.category ?? null,
         slug: info ? (PROTOCOL_SLUGS[info.protocol] ?? null) : null,
         address: info ? null : c.address,
+        // rows arrive busiest first, so the first contract seen leads the group
+        topContract: c.address,
         gas: c.gas,
         txs: c.txs,
         senders: c.senders,
@@ -1074,6 +1081,7 @@ function aggregateProtocols(
       category: null,
       slug: null,
       address: null,
+      topContract: null,
       gas: tail.reduce((s, p) => s + p.gas, 0),
       txs: tail.reduce((s, p) => s + p.txs, 0),
       senders: tail.reduce((s, p) => s + p.senders, 0),

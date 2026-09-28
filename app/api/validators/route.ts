@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
-const UPSTREAM_URL = 'https://52.203.183.9.sslip.io/api/validators';
+const UPSTREAM_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const FETCH_TIMEOUT = 15000;
 
@@ -48,6 +49,13 @@ export async function GET() {
     }
 
     const data: ValidatorP2P[] = await response.json();
+    // An empty array is a 200, but it is not an answer: it blanks the version,
+    // uptime, days-left and miss-rate columns at once. Treating it as success
+    // would also overwrite the last good cache and let the CDN serve nothing
+    // for 15 minutes after upstream recovers.
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('Upstream API returned an empty validator set');
+    }
     cachedData = { data, timestamp: Date.now() };
 
     return NextResponse.json(data, {
@@ -62,6 +70,9 @@ export async function GET() {
     if (cachedData) {
       return NextResponse.json(cachedData.data, {
         headers: {
+          // no-store: a degraded response must not be cached, or a brief
+          // upstream blip gets pinned at the edge long after it clears.
+          'Cache-Control': 'no-store',
           'X-Data-Source': 'error-fallback-cache',
         },
       });
@@ -69,7 +80,7 @@ export async function GET() {
 
     return NextResponse.json(
       { error: 'Failed to fetch validators data' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

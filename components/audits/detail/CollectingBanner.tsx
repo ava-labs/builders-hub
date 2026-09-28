@@ -6,6 +6,7 @@ import { formatIsoDate } from "@/components/audits/shared/format";
 
 /** The collecting-state banner (design 3b): wash, red clock, honest counts. */
 export function CollectingBanner({ detail }: { detail: OwnerRequestDetail }) {
+  const narrowed = detail.shortlist_auditor_ids.length > 0;
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
       <Clock aria-hidden className="h-4 w-4 shrink-0 text-brand dark:text-brand-soft" />
@@ -29,8 +30,10 @@ export function CollectingBanner({ detail }: { detail: OwnerRequestDetail }) {
           </>
         ) : (
           <span className="text-zinc-500 dark:text-zinc-400">
-            sent to <span className="font-medium">0 firms</span> · the whitelist was empty at
-            submission
+            sent to <span className="font-medium">0 firms</span> ·{" "}
+            {narrowed
+              ? "none of the firms you chose was still listed at approval"
+              : "the whitelist was empty at submission"}
           </span>
         )}
       </p>
@@ -38,7 +41,9 @@ export function CollectingBanner({ detail }: { detail: OwnerRequestDetail }) {
       <p className={MONO_LABEL_SM}>
         {detail.fanout_count > 0
           ? "Most quotes land in the final days"
-          : "Reopen after expiry re-notifies every active firm"}
+          : narrowed
+            ? "Reopen after expiry re-notifies the firms you chose"
+            : "Reopen after expiry re-notifies every active firm"}
       </p>
     </div>
   );

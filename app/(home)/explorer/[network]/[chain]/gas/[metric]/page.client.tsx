@@ -17,7 +17,7 @@ export function ChainGasMetricPageClient({
   metric: GasMetricKey;
 }) {
   const chain = useChainContext();
-  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === chainSlug);
+  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.chainId === chain.chainId);
 
   return (
     <ExplorerLayout

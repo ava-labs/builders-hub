@@ -32,7 +32,11 @@ export async function POST(request: NextRequest, context: RouteParams<{ id: stri
   }
 
   try {
-    const result = await addAuditorMember(id, parsed.data, { id: admin.userId, name: admin.name });
+    const result = await addAuditorMember(id, parsed.data, {
+      type: "admin",
+      id: admin.userId,
+      name: admin.name,
+    });
     if (!result.success && result.code === "not_found") {
       return NextResponse.json({ success: false, message: "Firm not found." }, { status: 404 });
     }

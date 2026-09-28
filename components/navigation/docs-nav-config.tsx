@@ -16,7 +16,8 @@ import {
   Eye,
   Bot,
   AppWindow,
-  Cloud
+  Cloud,
+  ShieldCheck
 } from 'lucide-react';
 
 export type NavOption = {
@@ -122,6 +123,13 @@ export const toolingOptions: NavOption[] = [
     badge: 'New',
     icon: <AppWindow className="w-5 h-5" />,
     url: '/console',
+  },
+  {
+    title: 'Contract Verification',
+    description: 'Verify contracts on any L1 from Hardhat or Foundry',
+    badge: 'New',
+    icon: <ShieldCheck className="w-5 h-5" />,
+    url: '/docs/tooling/contract-verification',
   },
   {
     title: 'Platform CLI',

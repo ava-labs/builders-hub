@@ -1,6 +1,6 @@
 import { Prisma, type Auditor, type AuditorMember } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
-import { logAuditEvent } from "@/server/services/audits/events";
+import { logAuditEvent, type AuditActor } from "@/server/services/audits/events";
 import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
 import type { AuditorCreateInput, AuditorUpdateInput } from "@/types/audits";
 
@@ -85,31 +85,51 @@ export type UpdateAuditorResult =
 export async function updateAuditor(
   auditorId: string,
   input: AuditorUpdateInput,
-  admin: { id: string; name: string },
+  actor: AuditActor,
 ): Promise<UpdateAuditorResult> {
   const current = await prisma.auditor.findUnique({ where: { id: auditorId } });
   if (!current) return { success: false, code: "not_found" };
 
-  const activeFlips = input.active !== undefined && input.active !== current.active;
+  // Defence in depth behind the self schema's strictObject (S-13): an auditor
+  // actor can never move active or firm_name even if the input carried them.
+  const isAuditor = actor.type === "auditor";
+  const wantFirmName = !isAuditor && input.firm_name !== undefined;
+  const wantActive = !isAuditor && input.active !== undefined;
+  const activeFlips = wantActive && input.active !== current.active;
+
   const auditor = await prisma.auditor.update({
     where: { id: auditorId },
     data: {
-      ...(input.firm_name !== undefined ? { firm_name: input.firm_name } : {}),
+      ...(wantFirmName ? { firm_name: input.firm_name } : {}),
       ...(input.services !== undefined ? { services: input.services } : {}),
-      ...(input.active !== undefined ? { active: input.active } : {}),
+      ...(input.website !== undefined ? { website: input.website } : {}),
+      ...(input.logo_url !== undefined ? { logo_url: input.logo_url } : {}),
+      ...(wantActive ? { active: input.active } : {}),
       ...(activeFlips ? { deactivated_at: input.active ? null : new Date() } : {}),
     },
   });
 
+  const fields = [
+    ...(wantFirmName ? ["firm_name"] : []),
+    ...(input.services !== undefined ? ["services"] : []),
+    ...(input.website !== undefined ? ["website"] : []),
+    ...(input.logo_url !== undefined ? ["logo_url"] : []),
+    ...(wantActive ? ["active"] : []),
+  ];
+
   await logAuditEvent(prisma, {
-    actor_type: "admin",
-    actor_id: admin.id,
+    actor_type: actor.type,
+    actor_id: actor.id,
     action: activeFlips
       ? input.active
         ? "auditor_reactivated"
         : "auditor_deactivated"
       : "auditor_updated",
-    meta: { firm_name: auditor.firm_name },
+    meta: {
+      firm_name: auditor.firm_name,
+      fields,
+      ...(isAuditor ? { actor_email: actor.email } : {}),
+    },
   });
 
   return { success: true, auditor };
@@ -180,26 +200,32 @@ export async function resolveAuditorByEmail(email: string): Promise<Auditor | nu
 
   const actorEmail = identity.member?.email ?? identity.auditor.quote_email;
   // Only an active firm's teammate counts as having accepted the invite; a
-  // deactivated firm's read-only visit must not flip the row to active.
+  // deactivated firm's read-only visit must not flip the row to active. Guard
+  // the teammate stamp so a race stamps once (S-27).
   if (identity.auditor.active && identity.member && !identity.member.first_login_at) {
-    await prisma.auditorMember.update({
-      where: { id: identity.member.id },
+    await prisma.auditorMember.updateMany({
+      where: { id: identity.member.id, first_login_at: null },
       data: { first_login_at: new Date() },
     });
   }
 
   if (identity.auditor.active && !identity.auditor.first_login_at) {
-    const updated = await prisma.auditor.update({
-      where: { id: identity.auditor.id },
+    // Guard on first_login_at: null so two concurrent first logins log the
+    // event exactly once (the winner's updateMany reports count 1; S-27).
+    const stamp = await prisma.auditor.updateMany({
+      where: { id: identity.auditor.id, first_login_at: null },
       data: { first_login_at: new Date() },
     });
-    await logAuditEvent(prisma, {
-      actor_type: "auditor",
-      actor_id: identity.auditor.id,
-      action: "auditor_first_login",
-      meta: { firm_name: identity.auditor.firm_name, actor_email: actorEmail },
-    });
-    return updated;
+    if (stamp.count === 1) {
+      await logAuditEvent(prisma, {
+        actor_type: "auditor",
+        actor_id: identity.auditor.id,
+        action: "auditor_first_login",
+        meta: { firm_name: identity.auditor.firm_name, actor_email: actorEmail },
+      });
+    }
+    // Return a stamped row for both the winner and the loser of the race.
+    return { ...identity.auditor, first_login_at: identity.auditor.first_login_at ?? new Date() };
   }
 
   return identity.auditor;

@@ -4,6 +4,7 @@ import {
   fromUtcCalendarDate,
   hostOf,
   isOutsideWindow,
+  monogramOf,
   parseWholeNumber,
   priceDeltaLabel,
   toUtcCalendarDate,
@@ -140,5 +141,17 @@ describe("isOutsideWindow", () => {
   it("never fires without a needed-by date", () => {
     expect(isOutsideWindow("2026-08-19", null)).toBe(false);
     expect(isOutsideWindow("2026-08-19", undefined)).toBe(false);
+  });
+});
+
+describe("monogramOf", () => {
+  it("takes the first letters of the first two words, or two of a single word", () => {
+    expect(monogramOf("Spearbit Labs")).toBe("SL");
+    expect(monogramOf("Open Zeppelin")).toBe("OZ");
+    expect(monogramOf("HackenProof")).toBe("HP");
+    expect(monogramOf("BlockSec")).toBe("BS");
+    expect(monogramOf("Halborn")).toBe("HA");
+    expect(monogramOf("shieldify")).toBe("SH");
+    expect(monogramOf("FYEO")).toBe("FY");
   });
 });

@@ -162,6 +162,10 @@ console.log("XP public key:", pubKeys.xp);
 
 Wait for a transaction to be confirmed on the network.
 
+<Callout type="warn">
+For C-Chain transactions (`chainAlias: "C"`), `waitForTxn` polls `avax.getAtomicTxStatus`. That method is deprecated, and the public API endpoints do not serve it after the Helicon upgrade. For C-Chain atomic transactions, poll [getAtomicTx](../public-methods/c-chain#getatomictx) until the response includes `blockHeight`.
+</Callout>
+
 **Function Signature:**
 
 ```typescript

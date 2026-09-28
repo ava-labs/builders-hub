@@ -11,9 +11,9 @@ const statsPages: DocumentRecord[] = [
   { title: 'AVAX Token', url: '/explorer/mainnet/token', _id: '/explorer/mainnet/token', structured: { headings: [], contents: [] }, description: 'AVAX token metrics', tag: 'stats' },
   { title: 'Network Metrics', url: '/stats/network-metrics', _id: '/stats/network-metrics', structured: { headings: [], contents: [] }, description: 'Network-wide metrics', tag: 'stats' },
   { title: 'C-Chain Gas Market', url: '/explorer/mainnet/c-chain/gas', _id: '/explorer/mainnet/c-chain/gas', structured: { headings: [], contents: [] }, description: 'Live gas market, fee history, and gas usage by protocol', tag: 'stats' },
-  { title: 'Interchain Messaging', url: '/explorer/mainnet/icm', _id: '/explorer/mainnet/icm', structured: { headings: [], contents: [] }, description: 'ICM statistics', tag: 'stats' },
+  { title: 'Interchain Messaging', url: '/explorer/mainnet/chains', _id: '/explorer/mainnet/chains#icm', structured: { headings: [], contents: [] }, description: 'The network map: ICM between Avalanche L1s', tag: 'stats' },
   { title: 'Chain List', url: '/explorer/mainnet/chains', _id: '/explorer/mainnet/chains', structured: { headings: [], contents: [] }, description: 'All Avalanche L1 chains', tag: 'stats' },
-  { title: 'Validators', url: '/explorer/mainnet/validators', _id: '/explorer/mainnet/validators', structured: { headings: [], contents: [] }, description: 'Validator dashboard', tag: 'stats' },
+  { title: 'Validators', url: '/explorer/mainnet/p-chain/validators', _id: '/explorer/mainnet/p-chain/validators', structured: { headings: [], contents: [] }, description: 'Primary Network validators and client versions', tag: 'stats' },
 ];
 
 // Generate per-L1 accounts pages from chain registry (the old per-chain

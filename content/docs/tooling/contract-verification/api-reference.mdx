@@ -1,0 +1,102 @@
+---
+title: Verification API Reference
+description: The Etherscan-compatible and Sourcify-compatible verification endpoints exposed by Builder Hub.
+---
+
+Builder Hub exposes two verification protocols over one verifier. They differ only in wire format — the same compile-and-compare runs behind both, and a contract verified through either shows up identically in the explorer.
+
+Use whichever your tooling already speaks. If you're writing your own integration, the Sourcify protocol is the nicer of the two: JSON in, JSON out, and no string matching.
+
+Every endpoint below is live. Expand one and use **Send Request** to call it against production.
+
+## Etherscan-compatible
+
+Two spellings of the same API, differing only in where the chain id goes: the path (`/api/verify/{chainId}/api`, what Hardhat 2's `customChains` and Foundry's `--verifier-url` expect) or the query (`/api/verify/v2/api?chainid=`, Etherscan's V2 shape).
+
+The `apikey` parameter is accepted and ignored; tooling requires the field to exist, so send any non-empty string.
+
+### Submit
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[{ "path": "/api/verify/{chainId}/api", "method": "post" }]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+### Poll and read
+
+One endpoint covers all three read actions. `checkverifystatus` reports `Pending in queue`, `Pass - Verified`, or `Fail - Unable to verify` with the reason appended — those exact strings are what `hardhat-verify` matches on.
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[{ "path": "/api/verify/{chainId}/api", "method": "get" }]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+### V2 shape
+
+Identical behaviour with the chain in a query parameter instead of the path.
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[
+    { "path": "/api/verify/v2/api", "method": "post" },
+    { "path": "/api/verify/v2/api", "method": "get" }
+  ]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+## Sourcify-compatible
+
+Base URL: `https://build.avax.network/api/verify/sourcify`
+
+These are the three v2 endpoints `@nomicfoundation/hardhat-verify` calls, so pointing `verify.sourcify.apiUrl` at that base is all the configuration Hardhat 3 needs.
+
+### Submit
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[{ "path": "/api/verify/sourcify/v2/verify/{chainId}/{address}", "method": "post" }]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+### Check a job
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[{ "path": "/api/verify/sourcify/v2/verify/{verificationId}", "method": "get" }]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+### Look up a contract
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[{ "path": "/api/verify/sourcify/v2/contract/{chainId}/{address}", "method": "get" }]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+<Callout type="info">
+This endpoint only reports contracts verified on Builder Hub. The explorer's own lookup at `/api/sourcify/{chainId}/{address}` merges our verifications with Sourcify's public archive, which is why a C-Chain contract verified on sourcify.dev still renders here.
+</Callout>
+
+## Compilers
+
+<APIPage
+  document={"./public/openapi/verification.json"}
+  operations={[{ "path": "/api/verify/compilers", "method": "get" }]}
+  webhooks={[]}
+  hasHead={false}
+/>
+
+## Rate limits
+
+Compilation is expensive and the endpoint is open, so submissions are throttled per caller and the number of simultaneous compilations across all callers is capped. A throttled request gets `429` with `Retry-After`.
+
+Two things make this mostly invisible in normal use: an address with no deployed code is rejected before anything compiles, and resubmitting a payload that was already tried returns the previous outcome instead of compiling it again. Reads are cached and not throttled.

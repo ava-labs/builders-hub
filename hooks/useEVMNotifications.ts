@@ -16,9 +16,10 @@ import { useNotificationPanelStore } from '@/components/console/notification-pan
 const EXPLORER_BASE_PATH = '/explorer';
 
 const getEVMExplorerUrl = (txHash: string, viemChain: Chain) => {
-  if (viemChain.id === 43114 || viemChain.id === 43113) {
-    return `${EXPLORER_BASE_PATH}/avalanche-c-chain/tx/${txHash}`;
-  }
+  // Both C-Chains hold the slug `c-chain`, so the network segment is the only
+  // thing telling them apart
+  if (viemChain.id === 43114) return `${EXPLORER_BASE_PATH}/mainnet/c-chain/tx/${txHash}`;
+  if (viemChain.id === 43113) return `${EXPLORER_BASE_PATH}/fuji/c-chain/tx/${txHash}`;
   const l1Chain = l1ChainsData.find((c) => c.chainId === String(viemChain.id));
   if (l1Chain?.slug) {
     return `${EXPLORER_BASE_PATH}/${l1Chain.slug}/tx/${txHash}`;

@@ -1,4 +1,8 @@
 import { cn } from "@/lib/utils";
+import { knownAddress } from "@/lib/evm-explorer";
+import { useVerifiedContracts, functionNameFromAbi } from "@/lib/sourcify-client";
+import { getFunctionBySelector } from "@/abi/event-signatures.generated";
+import { useSignatures } from "@/lib/token-list";
 
 /* Row-level garnish shared by the EVM home and list pages: what a tx DID
    (the 4-byte selector, named when it's a classic) and how full a block
@@ -45,6 +49,34 @@ export function methodLabel(t: { methodId?: string; to: string }): string {
   return SELECTOR_NAMES[sel] ?? sel;
 }
 
+export interface MethodName {
+  label: string;
+  /** false when the label is the bare selector */
+  named: boolean;
+}
+
+/** One resolver for every transaction table, so a selector reads the
+ *  same on the home board, the block page, the address page and the
+ *  list: the called contract's verified ABI first, then the generated
+ *  registry and the classics table, then the signature database for
+ *  whatever is left, then the selector itself. */
+export function useMethodNames(chainId: string | number, rows: { methodId?: string; to: string | null | undefined }[]): (t: { methodId?: string; to: string | null | undefined }) => MethodName {
+  const contracts = useVerifiedContracts(chainId, rows.map((t) => t.to));
+  const local = (t: { methodId?: string; to: string | null | undefined }): string | null => {
+    const sel = t.methodId?.toLowerCase() ?? "";
+    if (!sel) return null;
+    return functionNameFromAbi(t.to ? contracts.get(t.to.toLowerCase())?.abi : null, sel) ?? getFunctionBySelector(sel)?.name ?? SELECTOR_NAMES[sel] ?? null;
+  };
+  const unknown = rows.filter((t) => t.methodId && !local(t)).map((t) => t.methodId!.toLowerCase());
+  const sigs = useSignatures(unknown, []);
+  return (t) => {
+    const sel = t.methodId?.toLowerCase() ?? "";
+    if (!sel) return { label: t.to ? "transfer" : "create", named: true };
+    const name = local(t) ?? sigs.fn.get(sel)?.name.split("(")[0] ?? null;
+    return name ? { label: name, named: true } : { label: sel, named: false };
+  };
+}
+
 /** bordered mono chip — the tx row's "what happened" cell */
 export function MethodChip({ t, className }: { t: { methodId?: string; to: string }; className?: string }) {
   const label = methodLabel(t);
@@ -63,6 +95,24 @@ export function MethodChip({ t, className }: { t: { methodId?: string; to: strin
   );
 }
 
+/** Names an address that is a protocol fixture rather than an account */
+export function AddressTag({ addr, className }: { addr?: string; className?: string }) {
+  const known = knownAddress(addr);
+  if (!known) return null;
+  return (
+    <span
+      title={known.note}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1.5 border border-zinc-300 bg-zinc-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
+        className,
+      )}
+    >
+      <span className="size-1 shrink-0 bg-current opacity-80" aria-hidden />
+      {known.label}
+    </span>
+  );
+}
+
 /** how full the block ran — the tape's gas vessel, flattened into a row */
 export function GasFill({ used, limit }: { used: number; limit: number }) {
   const pct = limit > 0 ? Math.min(1, used / limit) * 100 : 0;
@@ -70,7 +120,7 @@ export function GasFill({ used, limit }: { used: number; limit: number }) {
     <span className="inline-flex items-center gap-2">
       <span className="h-1.5 w-12 shrink-0 bg-zinc-100 dark:bg-zinc-900">
         <span
-          className={cn("block h-full", pct >= 90 ? "bg-[#E6212F]" : "bg-[#A2AFB2] dark:bg-zinc-600")}
+          className={cn("block h-full", pct >= 90 ? "bg-zinc-800 dark:bg-zinc-300" : "bg-[#A2AFB2] dark:bg-zinc-600")}
           style={{ width: `${pct.toFixed(1)}%` }}
         />
       </span>

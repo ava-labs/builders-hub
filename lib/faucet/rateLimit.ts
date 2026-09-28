@@ -1,8 +1,10 @@
 import { prisma } from '@/prisma/prisma';
+import { acquireAdvisoryLock } from '@/lib/db/advisoryLock';
 
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_CLAIMS_PER_USER = 1;
 const MAX_CLAIMS_PER_DESTINATION = 2;
+
 
 interface RateLimitResult {
   allowed: boolean;
@@ -23,6 +25,19 @@ export async function checkAndReserveFaucetClaim(
   const normalizedChainId = chainId || null;
 
   return prisma.$transaction(async (tx) => {
+    // Serialise every concurrent claim that shares this user or this
+    // destination address before reading any counts. Without it the count and
+    // the insert below straddle a window in which another transaction does the
+    // same read, so N parallel requests all observe "under the limit" and all
+    // insert — the daily cap is enforced once per burst instead of once per
+    // day. Both limits are locked because they have different scopes: one is
+    // per user, the other per destination across users.
+    await acquireAdvisoryLock(
+      tx,
+      `faucet:user:${userId}:${faucetType}:${normalizedChainId ?? ''}`,
+      `faucet:addr:${normalizedAddress}:${faucetType}:${normalizedChainId ?? ''}`,
+    );
+
     const userClaimCount = await tx.faucetClaim.count({
       where: {
         user_id: userId,

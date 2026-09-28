@@ -314,15 +314,11 @@ type StepState = 'done' | 'active' | 'pending';
 
 /** Explorer URL for a P-Chain or C-Chain tx. L1 txs return null (we don't have
  *  the rpcUrl until the deploy completes — users see full interop addresses on
- *  the recap screen anyway). Our own explorer serves P-Chain on both networks
- *  and C-Chain on mainnet; Fuji C-Chain falls back to the subnets explorer. */
+ *  the recap screen anyway). Our own explorer serves the P-Chain and the
+ *  C-Chain on both networks, so nothing here leaves the site. */
 function txExplorerUrl(tx: TxRecord): string | null {
   if (tx.chain === 'p-chain') return `/explorer/${tx.network}/p-chain/tx/${tx.hash}`;
-  if (tx.chain === 'c-chain') {
-    return tx.network === 'fuji'
-      ? `https://explorer-test.avax.network/c-chain/tx/${tx.hash}`
-      : `/explorer/mainnet/c-chain/tx/${tx.hash}`;
-  }
+  if (tx.chain === 'c-chain') return `/explorer/${tx.network}/c-chain/tx/${tx.hash}`;
   return null;
 }
 

@@ -28,7 +28,7 @@ export async function sendNotSelectedNotice(
     body: "No further action is needed. Your quote stays private to the project and the program team, and new requests keep arriving in your inbox.",
     cta: { label: "Open the auditor portal", href: PORTAL_URL, variant: "neutral" },
     footerLines: [
-      "Your firm stays on the whitelist · every new request fans out to you automatically.",
+      "Your firm stays on the whitelist · nothing changes on your side.",
     ],
   });
 

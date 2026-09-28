@@ -11,6 +11,10 @@ import { useTheme } from 'next-themes';
  * Transparent background works on any page. Theme-aware text colors.
  */
 
+/* The image optimizer rejects SVG (dangerouslyAllowSVG is off), so chain
+   logos in that format load direct. Raster sources keep the optimizer. */
+const isSvgSource = (src: string) => /\.svg(?:[?#]|$)/i.test(src);
+
 export interface MiniChainData {
   id: string;
   chainId?: string; // blockchain chainId for ICM matching
@@ -166,6 +170,9 @@ export default function MiniNetworkDiagram({
     if (!url) return url;
     // Local images don't need proxying
     if (url.startsWith('/')) return url;
+    // The optimizer only ever 400s on SVG, which sent these through the
+    // onerror fallback to the same direct URL; go there first instead.
+    if (isSvgSource(url)) return url;
     // Use Next.js image optimization as a CORS proxy
     return `/_next/image?url=${encodeURIComponent(url)}&w=128&q=75`;
   }, []);

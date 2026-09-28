@@ -141,7 +141,7 @@ function buildL1Plan(args: Record<string, unknown>): ToolResult {
       '## Option 2 — platform-cli (scriptable)',
       '```bash',
       '# 0. Prerequisites: a funded P-Chain key and (fuji) testnet AVAX from the faucet.',
-      `${CLI.keysGenerate} --name myKey   # or: platform keys import`,
+      `${CLI.keysGenerate} --name myKey   # or: platform-cli keys import`,
       "SUBNET_ID='replace-after-step-1'",
       "MANAGER_ADDRESS='0x-replace-with-validator-manager-address'",
       "NODE_POP='replace-with-node-proof-of-possession-hex'",
@@ -336,7 +336,7 @@ function buildTransferPlan(args: Record<string, unknown>): ToolResult {
       '```',
       kind === 'send'
         ? 'Use `p-to-c` / `c-to-p` for cross-chain (P↔C) moves on the Primary Network.'
-        : 'Cross-chain transfers settle as an export then an import — the one-step command above does both legs. Manual equivalent: `platform transfer export --from c --to p --amount <n>` then `platform transfer import --from c --to p`.',
+        : 'Cross-chain transfers settle as an export then an import — the one-step command above does both legs. Manual equivalent: `platform-cli transfer export --from c --to p --amount <n>` then `platform-cli transfer import --from c --to p`.',
       '',
       NO_SIGN_NOTE,
     ].join('\n')

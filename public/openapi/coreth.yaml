@@ -2320,8 +2320,12 @@ paths:
   /ext/bc/C/avax#avax.getAtomicTxStatus:
     post:
       summary: avax.getAtomicTxStatus
-      description: Returns the status of the specified atomic transaction.
+      description: >-
+        Deprecated. Returns the status of the specified atomic transaction.
+        After the Helicon upgrade, the public API endpoints do not serve this method.
+        Use avax.getAtomicTx instead. When the transaction is accepted, avax.getAtomicTx returns blockHeight.
       operationId: avax_getAtomicTxStatus
+      deprecated: true
       tags:
         - Avalanche
       requestBody:

@@ -125,7 +125,7 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
             >
                 {/* Text annotation */}
                 <p 
-                    className="text-sm text-zinc-650 dark:text-zinc-100 max-w-[140px] leading-snug text-center font-medium"
+                    className="text-sm text-zinc-600 dark:text-zinc-100 max-w-[140px] leading-snug text-center font-medium"
                     style={{ fontFamily: "var(--font-handwritten), 'Caveat', cursive" }}
                 >
                     Switch between our academies!
@@ -143,7 +143,7 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
                         stroke="currentColor" 
                         strokeWidth="2"
                         strokeLinecap="round"
-                        className="text-zinc-650 dark:text-zinc-100"
+                        className="text-zinc-600 dark:text-zinc-100"
                         fill="none"
                     />
                     {/* Second stroke for sketchy effect */}
@@ -153,7 +153,7 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
                         strokeWidth="1"
                         strokeLinecap="round"
                         opacity="0.3"
-                        className="text-zinc-650 dark:text-zinc-100"
+                        className="text-zinc-600 dark:text-zinc-100"
                         fill="none"
                     />
                     {/* Arrow head pointing down */}
@@ -163,7 +163,7 @@ function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="text-zinc-650 dark:text-zinc-100"
+                        className="text-zinc-600 dark:text-zinc-100"
                         fill="none"
                     />
                 </svg>

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, AlertCircle, Loader2, ExternalLink, Check, Wallet } from "lucide-react";
-import { keccak256, toBytes, parseEther } from "viem";
-import { useWalletStore } from "@/components/toolbox/stores/walletStore";
+import { encodeFunctionData, parseEther } from "viem";
 import { useWalletConnect } from "@/components/toolbox/hooks/useWalletConnect";
 import { useExplorerNetwork } from "@/components/explorer/useExplorerNetwork";
 import { Button } from "@/components/ui/button";
@@ -34,32 +33,83 @@ function getWriteFunctions(abi: any[]): any[] {
   ).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 }
 
-// Simple ABI parameter encoder
-function encodeParameter(type: string, value: string): string {
-  try {
-    if (type === 'address') {
-      return value.toLowerCase().replace('0x', '').padStart(64, '0');
+/**
+ * Turn a form field into the JS value viem expects for an ABI type.
+ *
+ * Throws on anything it cannot make sense of, which is the point: the
+ * previous encoder answered a value it couldn't parse with 32 zero bytes,
+ * so a typo became a transaction that ran successfully and did the wrong
+ * thing. Refusing to send is the only safe failure here.
+ */
+function parseArgument(type: string, raw: string): unknown {
+  const value = raw.trim();
+
+  if (type.endsWith(']')) {
+    const element = type.slice(0, type.lastIndexOf('['));
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      throw new Error(`${type} needs a JSON array, for example ["1","2"]`);
     }
-    if (type.startsWith('uint') || type.startsWith('int')) {
-      const num = BigInt(value);
-      return num.toString(16).padStart(64, '0');
-    }
-    if (type === 'bool') {
-      return (value.toLowerCase() === 'true' || value === '1') ? '1'.padStart(64, '0') : '0'.padStart(64, '0');
-    }
-    if (type === 'bytes32') {
-      return value.replace('0x', '').padEnd(64, '0');
-    }
-    return value.replace('0x', '').padStart(64, '0');
-  } catch {
-    return '0'.padStart(64, '0');
+    if (!Array.isArray(parsed)) throw new Error(`${type} needs a JSON array`);
+    return parsed.map((item) => parseArgument(element, typeof item === 'string' ? item : JSON.stringify(item)));
   }
+
+  if (type.startsWith('tuple')) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      throw new Error(`${type} needs a JSON object`);
+    }
+  }
+
+  if (type.startsWith('uint') || type.startsWith('int')) {
+    try {
+      return BigInt(value);
+    } catch {
+      throw new Error(`"${value}" is not a whole number`);
+    }
+  }
+
+  if (type === 'bool') {
+    const lowered = value.toLowerCase();
+    if (['true', '1', 'false', '0'].includes(lowered)) return lowered === 'true' || lowered === '1';
+    throw new Error(`"${value}" is not true or false`);
+  }
+
+  if (type === 'address') {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(value)) throw new Error(`"${value}" is not an address`);
+    return value as `0x${string}`;
+  }
+
+  if (type.startsWith('bytes')) {
+    if (!/^0x[0-9a-fA-F]*$/.test(value)) throw new Error(`${type} needs 0x-prefixed hex`);
+    return value as `0x${string}`;
+  }
+
+  return value;
 }
 
-// Compute function selector using keccak256
-function getFunctionSelector(signature: string): string {
-  const hash = keccak256(toBytes(signature));
-  return hash.slice(2, 10); // First 4 bytes (8 hex chars)
+/**
+ * Providers reject with plain objects carrying `code` and `message`, not
+ * with Error instances, so an `instanceof Error` check throws the reason
+ * away and leaves the caller staring at "Transaction failed".
+ */
+function describeError(error: any): string {
+  if (error?.code === 4001 || error?.cause?.code === 4001) return 'Transaction rejected in wallet';
+
+  const detail =
+    error?.data?.message ??
+    error?.error?.message ??
+    error?.cause?.shortMessage ??
+    error?.cause?.message ??
+    error?.shortMessage ??
+    error?.message;
+
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  if (typeof error === 'string' && error.trim()) return error;
+  return 'Transaction failed';
 }
 
 export default function ContractWriteSection({
@@ -76,17 +126,56 @@ export default function ContractWriteSection({
   const [functionResults, setFunctionResults] = useState<Record<string, FunctionResult>>({});
   const [payableValues, setPayableValues] = useState<Record<string, string>>({});
 
-  // Wallet state
-  const walletEVMAddress = useWalletStore((s) => s.walletEVMAddress);
-  const walletChainId = useWalletStore((s) => s.walletChainId);
-  const coreWalletClient = useWalletStore((s) => s.coreWalletClient);
+  /* Wallet state comes from the injected provider and from nowhere else.
+     The console's wallet store is populated by WalletSync, mounted in the
+     console header and nowhere near the explorer, so here it reports
+     whatever it was left holding — an address with no way to sign, a chain
+     id of zero, an account the user has since disconnected. The provider is
+     what actually signs, so it is the only honest source: display, chain
+     check, and capability all read the same place. */
+  const [account, setAccount] = useState<string>('');
+  const [liveChainId, setLiveChainId] = useState<number | null>(null);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { connectWallet } = useWalletConnect();
 
+  useEffect(() => {
+    const provider = typeof window !== 'undefined' ? window.ethereum : undefined;
+    if (!provider?.request) return;
+
+    let cancelled = false;
+    const read = async () => {
+      try {
+        const [accounts, chainIdHex] = await Promise.all([
+          provider.request({ method: 'eth_accounts' }) as Promise<string[]>,
+          provider.request({ method: 'eth_chainId' }) as Promise<string>,
+        ]);
+        if (cancelled) return;
+        setAccount(accounts?.[0] ?? '');
+        setLiveChainId(chainIdHex ? parseInt(chainIdHex, 16) : null);
+      } catch {
+        /* a wallet that won't answer is treated as not connected */
+      }
+    };
+
+    void read();
+    const onAccounts = (accounts: string[]) => setAccount(accounts?.[0] ?? '');
+    const onChain = (chainIdHex: string) => setLiveChainId(parseInt(chainIdHex, 16));
+    provider.on?.('accountsChanged', onAccounts);
+    provider.on?.('chainChanged', onChain);
+
+    return () => {
+      cancelled = true;
+      provider.removeListener?.('accountsChanged', onAccounts);
+      provider.removeListener?.('chainChanged', onChain);
+    };
+  }, []);
+
+  const walletEVMAddress = account;
   const writeFunctions = getWriteFunctions(abi);
 
   // Check if user is on the correct chain
   const expectedChainId = parseInt(chainId);
-  const isOnCorrectChain = walletChainId === expectedChainId;
+  const isOnCorrectChain = liveChainId === expectedChainId;
 
   const toggleFunction = (funcKey: string) => {
     setExpandedFunctions(prev => {
@@ -117,6 +206,52 @@ export default function ContractWriteSection({
     }));
   };
 
+  /** Ask the provider where it stands, rather than waiting for an event
+   *  that some wallets don't emit. */
+  const refreshWalletState = async () => {
+    const provider = window.ethereum;
+    if (!provider?.request) return;
+    try {
+      const [accounts, chainIdHex] = await Promise.all([
+        provider.request({ method: 'eth_accounts' }) as Promise<string[]>,
+        provider.request({ method: 'eth_chainId' }) as Promise<string>,
+      ]);
+      setAccount(accounts?.[0] ?? '');
+      setLiveChainId(chainIdHex ? parseInt(chainIdHex, 16) : null);
+    } catch {
+      /* leave the last known state alone */
+    }
+  };
+
+  /** Open the wallet's account picker. `wallet_requestPermissions` is what
+   *  forces the chooser even when the site is already authorized, which is
+   *  the only way to switch accounts from here. */
+  const chooseAccount = async () => {
+    const provider = window.ethereum;
+    if (!provider?.request) return;
+    setAccountMenuOpen(false);
+    try {
+      await provider.request({ method: 'wallet_requestPermissions', params: [{ eth_accounts: {} }] });
+    } catch {
+      // Wallets that don't implement it still expose the picker this way.
+      await provider.request({ method: 'eth_requestAccounts' }).catch(() => undefined);
+    }
+    await refreshWalletState();
+  };
+
+  /** Forget the connection. Wallets that support revocation are told; the
+   *  rest simply stop being used until the user connects again. */
+  const disconnect = async () => {
+    const provider = window.ethereum;
+    setAccountMenuOpen(false);
+    try {
+      await provider?.request?.({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+    } catch {
+      /* not supported everywhere, and not required for the local reset */
+    }
+    setAccount('');
+  };
+
   const switchToCorrectChain = async () => {
     if (!rpcUrl) return;
     
@@ -126,6 +261,7 @@ export default function ContractWriteSection({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: chainIdHex }],
       });
+      await refreshWalletState();
     } catch (switchError: any) {
       // If chain not found, try to add it
       if (switchError.code === 4902 || switchError.code === -32603) {
@@ -145,7 +281,9 @@ export default function ContractWriteSection({
   };
 
   const writeFunction = async (func: any, funcKey: string) => {
-    if (!walletEVMAddress || !coreWalletClient) {
+    // Everything below signs through window.ethereum, so that — not any
+    // client held in a store — is what has to be present.
+    if (!walletEVMAddress || !window.ethereum?.request) {
       setFunctionResults(prev => ({
         ...prev,
         [funcKey]: { loading: false, error: 'Wallet not connected' }
@@ -170,23 +308,17 @@ export default function ContractWriteSection({
       const inputs = func.inputs || [];
       const inputValues = functionInputs[funcKey] || {};
 
-      // Build function signature
-      const inputTypes = inputs.map((i: any) => i.type).join(',');
-      const signature = `${func.name}(${inputTypes})`;
-
-      // Get selector using keccak256
-      const selector = getFunctionSelector(signature);
-
-      // Build call data
-      let callData = '0x' + selector;
-      
-      for (const input of inputs) {
-        const value = inputValues[input.name || `param${inputs.indexOf(input)}`];
-        if (value === undefined || value === '') {
-          throw new Error(`Missing value for: ${input.name || 'parameter'}`);
+      const args = inputs.map((input: any, index: number) => {
+        const raw = inputValues[input.name || `param${index}`];
+        if (raw === undefined || raw === '') {
+          throw new Error(`Missing value for ${input.name || `parameter ${index + 1}`}`);
         }
-        callData += encodeParameter(input.type, value);
-      }
+        return parseArgument(input.type, raw);
+      });
+
+      // Encoded against this one overload rather than the whole ABI, so a
+      // contract with several functions of the same name still resolves.
+      const callData = encodeFunctionData({ abi: [func], functionName: func.name, args });
 
       // Handle payable value
       let value: bigint = BigInt(0);
@@ -197,15 +329,31 @@ export default function ContractWriteSection({
         }
       }
 
+      // eth_accounts answers without granting anything, so an address in
+      // hand does not mean this origin may spend from it — sending then
+      // fails with 4100, "not been authorized by the user". Asking for
+      // accounts is silent when permission already exists and prompts when
+      // it doesn't, and its answer is the account the wallet will actually
+      // sign with.
+      const authorized = (await window.ethereum.request({
+        method: 'eth_requestAccounts',
+      })) as string[];
+      const from = authorized?.[0];
+      if (!from) throw new Error('No account authorized for this site');
+      if (from.toLowerCase() !== walletEVMAddress.toLowerCase()) setAccount(from);
+
       // Send transaction using the wallet
+      const request: Record<string, string> = {
+        from,
+        to: address,
+        data: callData,
+      };
+      // Only sent when non-zero: some wallets reject an explicit undefined.
+      if (value > 0) request.value = `0x${value.toString(16)}`;
+
       const txHash = await window.ethereum?.request({
         method: 'eth_sendTransaction',
-        params: [{
-          from: walletEVMAddress,
-          to: address,
-          data: callData,
-          value: value > 0 ? `0x${value.toString(16)}` : undefined,
-        }],
+        params: [request],
       });
 
       if (!txHash) {
@@ -220,16 +368,9 @@ export default function ContractWriteSection({
       // Optionally wait for confirmation
       // This could be enhanced to poll for transaction receipt
     } catch (err: any) {
-      let errorMessage = err instanceof Error ? err.message : 'Transaction failed';
-      
-      // Handle user rejection
-      if (err.code === 4001) {
-        errorMessage = 'Transaction rejected by user';
-      }
-
       setFunctionResults(prev => ({
         ...prev,
-        [funcKey]: { loading: false, error: errorMessage, status: 'failed' }
+        [funcKey]: { loading: false, error: describeError(err), status: 'failed' }
       }));
     }
   };
@@ -282,8 +423,14 @@ export default function ContractWriteSection({
               Connect your wallet to interact with this contract.
             </p>
           </div>
-          <Button onClick={connectWallet} style={{ backgroundColor: themeColor }}>
-            <img src="/core-logo.svg" alt="Core" className="mr-2 h-4 w-4 object-contain" />
+          <Button
+            onClick={async () => {
+              await connectWallet();
+              await refreshWalletState();
+            }}
+            style={{ backgroundColor: themeColor }}
+          >
+            <Wallet className="mr-2 h-4 w-4" />
             Connect Wallet
           </Button>
         </div>
@@ -320,6 +467,45 @@ export default function ContractWriteSection({
         <div className="flex items-center gap-2 text-sm text-green-700 dark:text-green-400">
           <div className="w-2 h-2 rounded-full bg-green-500" />
           <span>Connected: {walletEVMAddress.slice(0, 6)}...{walletEVMAddress.slice(-4)}</span>
+        </div>
+
+        {/* The wallet may hold several accounts, and the one it offers is
+            not always the one you meant to use. */}
+        <div className="relative">
+          <button
+            onClick={() => setAccountMenuOpen((open) => !open)}
+            aria-haspopup="menu"
+            aria-expanded={accountMenuOpen}
+            className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-300 rounded hover:bg-zinc-200/60 dark:hover:bg-zinc-700/60 transition-colors cursor-pointer"
+          >
+            Account
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {accountMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setAccountMenuOpen(false)} />
+              <div
+                role="menu"
+                className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+              >
+                <button
+                  role="menuitem"
+                  onClick={chooseAccount}
+                  className="block w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+                >
+                  Switch account
+                </button>
+                <button
+                  role="menuitem"
+                  onClick={disconnect}
+                  className="block w-full px-3 py-2 text-left text-xs text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+                >
+                  Disconnect
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

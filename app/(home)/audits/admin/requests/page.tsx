@@ -3,12 +3,15 @@ import { adminRequestFiltersSchema } from "@/types/audits";
 import { getAdminRequests } from "@/server/services/audits/visibility";
 import { RequestsFilters } from "@/components/audits/admin/RequestsFilters";
 import { RequestsTable } from "@/components/audits/admin/RequestsTable";
+import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 interface AdminRequestsPageProps {
   searchParams: Promise<{ status?: string; subsidy?: string; deadline_before?: string }>;
 }
 
 export default async function AuditAdminRequestsPage({ searchParams }: AdminRequestsPageProps) {
+  await denyIfNotAuditAdmin();
+
   const params = await searchParams;
   const parsed = adminRequestFiltersSchema.safeParse({
     status: params.status,

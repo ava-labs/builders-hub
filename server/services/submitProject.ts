@@ -8,6 +8,7 @@ import { REQUIRED_SUBMISSION_FIELDS, fieldComplete } from "@/lib/hackathons/subm
 import { revalidatePath } from "next/cache";
 import { ValidationError } from "./hackathons";
 import { prisma } from "@/prisma/prisma";
+import { acquireAdvisoryLock } from '@/lib/db/advisoryLock';
 import { MemberStatus, Project } from "@/types/project";
 import { Prisma, User } from "@prisma/client";
 import { sendSubmissionConfirmationMail } from "./registerForms";
@@ -106,6 +107,20 @@ export async function createProject(
 
   // Atomic transaction to prevent race conditions and duplication
   const savedProject = await prisma.$transaction(async (tx) => {
+    // The one-project-per-hackathon rule spans Project and Member, so it
+    // cannot be a unique constraint. Serialise this user's submissions for
+    // this hackathon before the lookup below: two concurrent requests
+    // otherwise both read "no existing project" and both create one, leaving
+    // the user with two confirmed entries. The re-check further down narrows
+    // that window but cannot close it — only holding a lock across the read
+    // and the write does.
+    if (projectData.hackaton_id && projectData.user_id) {
+      await acquireAdvisoryLock(
+        tx,
+        `project:create:${projectData.hackaton_id}:${projectData.user_id}`,
+      );
+    }
+
     if (!isDraft) {
       const errors = validateProject(projectData);
       console.log("errors", errors);

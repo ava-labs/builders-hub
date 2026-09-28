@@ -3,6 +3,7 @@ import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { type SimpleValidator, type ValidatorVersion, type SubnetStats } from '@/types/validator-stats';
 import { MAINNET_VALIDATOR_DISCOVERY_URL, FUJI_VALIDATOR_DISCOVERY_URL } from '@/constants/validator-discovery';
 import l1ChainsData from "@/constants/l1-chains.json";
+import { minorVersionLine } from "@/lib/node-version";
 
 // Minimal subnet shape consumed from our /v1 subnets endpoint (Glacier-shape).
 // blockchains is null (Go nil slice) for subnets that never created a chain.
@@ -10,23 +11,21 @@ type SubnetInfo = { subnetId: string; isL1: boolean; blockchains: { blockchainNa
 
 export const dynamic = 'force-dynamic';
 // The cold aggregate paginates all L1 validators + subnets (pageSize capped at
-// 100 upstream). Result is cached 24h with stale-while-revalidate, so only the
-// first request after expiry is slow — give it headroom so it can't 504 and
-// leave the cache empty.
+// 100 upstream). Those lists are cached 24h and the origin serves stale while
+// refreshing, so only a genuinely cold instance is slow — give it headroom so
+// it can't 504 and leave the cache empty.
 export const maxDuration = 60;
 
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-const VERSION_CACHE_DURATION = 24 * 60 * 60 * 1000;
+const LIST_CACHE_DURATION = 24 * 60 * 60 * 1000;
+const VERSION_CACHE_DURATION = 15 * 60 * 1000;
+const STATS_CACHE_DURATION = 15 * 60 * 1000;
 const PAGE_SIZE = 100;
 // Our /v1 validator/subnet endpoints have a heavy cold-start (validators ~10s,
 // subnets ~60s) before their state cache warms; give each page fetch generous
 // headroom so a cold window doesn't abort and blank the whole aggregate. The
 // warmer keeps them hot, so the steady-state path is sub-second.
 const FETCH_TIMEOUT = 60000;
-// max-age=0: the CDN holds the day-long copy (s-maxage); browsers must
-// revalidate every time, so one bad response cached during an outage can't
-// pin a client's dashboards to a dash for 24 hours
-const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=172800';
+const CACHE_CONTROL_HEADER = 'public, max-age=0, s-maxage=900, stale-while-revalidate=3600';
 
 const validatorsCached: Partial<Record<string, { data: SimpleValidator[]; timestamp: number; promise?: Promise<SimpleValidator[]> }>> = {};
 const subnetsCached: Partial<Record<string, { data: SubnetInfo[]; timestamp: number; promise?: Promise<SubnetInfo[]> }>> = {};
@@ -111,7 +110,7 @@ async function getAllValidators(network: "mainnet" | "fuji"): Promise<SimpleVali
   const cache = validatorsCached[network];
 
   // Return cached data if still valid
-  if (cache && (now - cache.timestamp) < CACHE_DURATION) {
+  if (cache && (now - cache.timestamp) < LIST_CACHE_DURATION) {
     return cache.data;
   }
 
@@ -157,7 +156,7 @@ async function getAllSubnets(network: "mainnet" | "fuji"): Promise<SubnetInfo[]>
   const now = Date.now();
   const cache = subnetsCached[network];
 
-  if (cache && (now - cache.timestamp) < CACHE_DURATION) {
+  if (cache && (now - cache.timestamp) < LIST_CACHE_DURATION) {
     return cache.data;
   }
 
@@ -202,36 +201,45 @@ async function getValidatorVersions(network: "mainnet" | "fuji"): Promise<Map<st
     return cache.data;
   }
 
-  const url = network === "mainnet" ? MAINNET_VALIDATOR_DISCOVERY_URL : FUJI_VALIDATOR_DISCOVERY_URL;
-  
+  const versionMap = new Map<string, string>();
+
+  // source: our own p_node_info snapshot, surfaced on the validators endpoint.
   try {
-    const response = await fetchWithTimeout(url);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch validator versions: ${response.status}`);
+    const res = await fetchWithTimeout(`${EXPLORER_API_BASE}/api/${network}/validators`);
+    if (res.ok) {
+      const j = await res.json();
+      for (const v of (Array.isArray(j?.validators) ? j.validators : [])) {
+        if (v?.nodeId && v.version) versionMap.set(v.nodeId, v.version);
+      }
     }
-
-    const data: ValidatorVersion[] = await response.json();
-    const versionMap = new Map<string, string>();
-
-    for (const validator of data) {
-      versionMap.set(validator.nodeId, validator.version || "Unknown");
-    }
-
-    // Update cache
-    validatorVersionsCached[network] = {
-      data: versionMap,
-      timestamp: now
-    };
-
-    return versionMap;
-  } catch (error: any) {
-    // Return cached data if available, even if stale
-    if (cache) {
-      return cache.data;
-    }
-    return new Map<string, string>();
+  } catch {
+    // discovery below still covers the set
   }
+
+  // discovery crawler reaches nodes we have not peered with, but reports
+  // whatever version it last connected to, which lags badly.
+  try {
+    const url = network === "mainnet" ? MAINNET_VALIDATOR_DISCOVERY_URL : FUJI_VALIDATOR_DISCOVERY_URL;
+    const response = await fetchWithTimeout(url);
+    if (response.ok) {
+      const data: ValidatorVersion[] = await response.json();
+      for (const validator of data) {
+        if (!validator.version) continue;
+        if (versionMap.has(validator.nodeId)) continue;
+        versionMap.set(validator.nodeId, validator.version);
+      }
+    }
+  } catch {
+    // both sources down, fall back to the last good map
+  }
+
+  // Nothing resolved: keep serving the previous map
+  if (versionMap.size === 0) {
+    return cache ? cache.data : new Map<string, string>();
+  }
+
+  validatorVersionsCached[network] = { data: versionMap, timestamp: now };
+  return versionMap;
 }
 
 async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<SubnetStats[]> {
@@ -279,7 +287,7 @@ async function getNetworkStatsInternal(network: "mainnet" | "fuji"): Promise<Sub
     const stake = BigInt(validator.weight);
     subnetAccumulators[subnetId].totalStake += stake;
 
-    const version = versionMap.get(validator.nodeId)?.replace("avalanchego/", "") || "Unknown";
+    const version = minorVersionLine(versionMap.get(validator.nodeId)) || "Unknown";
 
     if (!subnetAccumulators[subnetId].byClientVersion[version]) {
       subnetAccumulators[subnetId].byClientVersion[version] = {
@@ -336,7 +344,7 @@ async function getNetworkStats(network: "mainnet" | "fuji"): Promise<SubnetStats
   const now = Date.now();
   const cache = statsCached[network];
   const cacheAge = cache ? now - cache.timestamp : Infinity;
-  const isCacheValid = cacheAge < CACHE_DURATION;
+  const isCacheValid = cacheAge < STATS_CACHE_DURATION;
   const isCacheStale = cache && !isCacheValid;
 
   if (isCacheStale && !revalidatingKeys.has(network)) {
@@ -409,7 +417,7 @@ export async function GET(request: Request) {
     const fetchTime = Date.now() - startTime;
 
     const source = fetchTime < 50 && cache ? 
-      (cacheAge && cacheAge < CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 
+      (cacheAge && cacheAge < STATS_CACHE_DURATION ? 'cache' : 'stale-while-revalidate') : 
       'fresh';
     
     console.log(`[GET /api/validator-stats] Network: ${network}, Source: ${source}, fetchTime: ${fetchTime}ms`);

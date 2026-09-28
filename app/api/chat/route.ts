@@ -1,5 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { streamText, tool, stepCountIs } from 'ai';
+import { streamText, tool, stepCountIs, convertToModelMessages, type ModelMessage } from 'ai';
 import { z } from 'zod';
 import { captureAIGeneration, captureServerEvent } from '@/lib/posthog-server';
 import { searchCode, formatCodeContext } from '@/lib/code-search';
@@ -22,6 +22,8 @@ import {
   blockchainLookupValidator,
 } from '@/lib/chat/blockchain-tools';
 import l1Chains from '@/constants/l1-chains.json';
+import { parsePageRef, pageBrief, loadPageData, docPageText } from '@/lib/chat/page-context';
+import { siteBaseUrl } from '@/lib/chat/site-url';
 
 // Helper to extract text from v6 UIMessage
 function getTextFromMessage(message: any): string {
@@ -53,6 +55,9 @@ const anthropic = createAnthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// One model for both surfaces. Sonnet 5 is the current mid-tier model.
+const CHAT_MODEL = 'claude-sonnet-5';
+
 // Cache for documentation content
 let docsCache: string | null = null;
 let cacheTimestamp: number = 0;
@@ -72,9 +77,7 @@ async function getDocumentation(): Promise<string> {
   
   try {
     // Build the URL more reliably for both local and production
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
+    const baseUrl = siteBaseUrl();
     
     const url = new URL('/llms-full.txt', baseUrl);
     console.log(`Fetching documentation from: ${url.toString()}`);
@@ -107,9 +110,7 @@ async function getValidUrls(): Promise<string[]> {
   
   try {
     // Build the URL more reliably for both local and production
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                   'http://localhost:3000';
+    const baseUrl = siteBaseUrl();
     
     const url = new URL('/static.json', baseUrl);
     console.log(`Fetching valid URLs from: ${url.toString()}`);
@@ -133,7 +134,7 @@ async function getValidUrls(): Promise<string[]> {
   }
 }
 
-// Use MCP server for better search quality — calls the handler directly (no HTTP round-trip)
+// Use MCP server for better search quality: calls the handler directly (no HTTP round-trip)
 // Parses formatSearchResults output: numbered list `1. [Title](https://build.avax.network/path) (source[, chunk N])`
 async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; title: string; description?: string; source: string }>> {
   try {
@@ -167,7 +168,7 @@ async function searchDocsViaMcp(query: string): Promise<Array<{ url: string; tit
   }
 }
 
-// Fetch specific pages from search results — calls the handler directly (no HTTP round-trip)
+// Fetch specific pages from search results: calls the handler directly (no HTTP round-trip)
 async function fetchPageContent(url: string): Promise<string | null> {
   try {
     const toolResult = await docsTools.handlers.docs_fetch({ url });
@@ -225,8 +226,13 @@ function findRelevantSections(query: string, docs: string): string[] {
 }
 
 export async function POST(req: Request) {
-  const { messages, id: visitorId, source } = await req.json();
+  const { messages, id: visitorId, source, page } = await req.json();
   const isBubble = source === 'bubble';
+  // the page the visitor has open: identity for the prompt, data on demand
+  const pageRef = parsePageRef(page?.path);
+  const pageMode = !!pageRef && pageRef.kind !== 'site';
+  // what the reader picked out on the page, as the visual described it
+  const selection = pageRef && typeof page?.selection === 'string' ? page.selection.slice(0, 3000) : null;
   const startTime = Date.now();
   const traceId = `trace_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -283,9 +289,7 @@ export async function POST(req: Request) {
 
     if (intent.isCodeQuestion) {
       try {
-        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                       'http://localhost:3000';
+        const baseUrl = siteBaseUrl();
         console.log(`[CodeSearch] Using base URL: ${baseUrl}`);
 
         console.log(`[CodeSearch] Generating query embedding...`);
@@ -333,9 +337,7 @@ export async function POST(req: Request) {
   let youtubeContext = '';
   if (lastUserMessageText) {
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                     process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                     'http://localhost:3000';
+      const baseUrl = siteBaseUrl();
 
       const youtubeResponse = await fetch(`${baseUrl}/api/youtube/search?q=${encodeURIComponent(lastUserMessageText)}&limit=3`);
 
@@ -369,7 +371,7 @@ export async function POST(req: Request) {
     const relevantTools = searchTools(lastUserMessageText, 5);
     if (relevantTools.length > 0) {
       toolsContext = '\n\n=== RELEVANT CONSOLE TOOLS ===\n\n';
-      toolsContext += 'IMPORTANT: For tools marked "RENDER INLINE", you MUST call the render_component tool to show the interactive UI directly in the chat. Do NOT just provide a link — render the component so the user can interact with it immediately.\n\n';
+      toolsContext += 'IMPORTANT: For tools marked "RENDER INLINE", you MUST call the render_component tool to show the interactive UI directly in the chat. Do NOT just provide a link; render the component so the user can interact with it immediately.\n\n';
       toolsContext += formatToolsForContext(relevantTools);
       toolsContext += '\n\n=== END CONSOLE TOOLS ===\n';
       console.log(`Found ${relevantTools.length} relevant console tools`);
@@ -383,10 +385,23 @@ export async function POST(req: Request) {
     }
   }
 
+  // What the open page is, and for docs pages, what it says
+  let pageContext = '';
+  if (pageRef) {
+    const [brief, docText] = await Promise.all([
+      pageBrief(pageRef, siteBaseUrl()),
+      pageRef.kind === 'doc' ? docPageText(pageRef.path) : Promise.resolve(null),
+    ]);
+    pageContext = `\n\n${brief}\n`;
+    if (docText) pageContext += `\n=== CURRENT PAGE CONTENT ===\n${docText}\n=== END CURRENT PAGE CONTENT ===\n`;
+    if (selection) pageContext += `\n=== SELECTED ON THIS PAGE ===\n${selection}\n=== END SELECTED ===\n`;
+    console.log(`[PageContext] ${pageRef.kind} ${pageRef.path} (${pageContext.length} chars)`);
+  }
+
   // Search for relevant L1 chains by name/slug
   let l1Context = '';
   if (lastUserMessageText) {
-    // Generic terms that appear in many chain names/slugs — skip these for matching
+    // Generic terms that appear in many chain names/slugs; skip these for matching
     const l1Stopwords = new Set([
       'chain', 'network', 'mainnet', 'testnet', 'the', 'how', 'what', 'where',
       'show', 'stats', 'can', 'does', 'this', 'that', 'with', 'from', 'for',
@@ -481,7 +496,7 @@ export async function POST(req: Request) {
     }, visitorId);
   }
   
-  // Add valid URLs list — only include URLs relevant to the query to avoid blowing up context
+  // Add valid URLs list: only include URLs relevant to the query to avoid blowing up context
   // Full list is 1,300+ URLs (~28K tokens) which leaves no room for large messages
   let filteredUrls = validUrls;
   if (lastUserMessageText && validUrls.length > 100) {
@@ -520,6 +535,7 @@ export async function POST(req: Request) {
 
   // Allocate context by priority, truncating lower-priority items if over budget
   const contextParts: Array<{ key: string; text: string }> = [
+    { key: 'page', text: pageContext },
     { key: 'l1chains', text: l1Context },
     { key: 'tools', text: toolsContext },
     { key: 'docs', text: relevantContext },
@@ -545,27 +561,36 @@ export async function POST(req: Request) {
 
   console.log(`[Context Budget] conversation=${conversationSize} chars, system parts: ${contextParts.map(p => `${p.key}=${budgetedContext[p.key]?.length ?? 0}`).join(', ')}`);
 
-  // Convert UI messages to model messages format
-  // Handle both v6 (parts) and legacy (content) formats
-  const modelMessages = messages.map((m: any) => {
-    const text = getTextFromMessage(m);
-    return {
-      role: m.role,
-      content: text,
-    };
-  });
+  // UI messages -> model messages. The SDK conversion keeps earlier tool
+  // calls and their results in the history, so a follow-up question can
+  // build on data already loaded. Legacy content-only messages fall back
+  // to text.
+  let modelMessages: ModelMessage[];
+  try {
+    modelMessages = await convertToModelMessages(messages, { ignoreIncompleteToolCalls: true });
+  } catch {
+    modelMessages = messages.map((m: any) => ({ role: m.role, content: getTextFromMessage(m) }));
+  }
 
   let result;
   try {
   result = streamText({
-    model: anthropic('claude-sonnet-4-6'),
-    messages: modelMessages,
+    model: anthropic(CHAT_MODEL),
+    messages: [
+      {
+        role: 'system',
+        content: staticSystemPrompt(isBubble, pageMode),
+        providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
+      },
+      { role: 'system', content: dynamicContext(budgetedContext) },
+      ...modelMessages,
+    ],
     onFinish: async ({ text, usage }) => {
       // Capture LLM generation event to PostHog
       const latencyMs = Date.now() - startTime;
       await captureAIGeneration({
         distinctId: visitorId,
-        model: 'claude-sonnet-4-6',
+        model: CHAT_MODEL,
         input: userInput,
         output: text,
         inputTokens: usage?.inputTokens,
@@ -588,7 +613,7 @@ export async function POST(req: Request) {
 
           captureServerEvent('ai_chat_tool_used', {
             tool_name: toolCall.toolName,
-            tool_args: JSON.stringify(toolCall.args || {}).slice(0, 500),
+            tool_args: JSON.stringify(toolCall.input ?? toolCall.args ?? {}).slice(0, 500),
             success,
             has_result: !!toolResult,
           }, visitorId);
@@ -596,6 +621,21 @@ export async function POST(req: Request) {
       }
     },
     tools: {
+      ...(pageRef
+        ? {
+            page_data: tool({
+              description:
+                'Load what the page the user has open shows: for a transaction its decoded call tree, events, balance changes and gas; for a block its header, proposer and transactions; for an account its balance, code and recent activity; for the AVAX token page each figure with its definition; for a docs page its text. Call it before you explain anything about the current page.',
+              inputSchema: z.object({}),
+              execute: async () => {
+                const started = Date.now();
+                const text = await loadPageData(pageRef, siteBaseUrl());
+                console.log(`[PageContext] page_data ${pageRef.kind} ${text.length} chars in ${Date.now() - started} ms`);
+                return { page: pageRef.path, text };
+              },
+            }),
+          }
+        : {}),
       github_search_code: tool({
         description: 'Search for code in core Avalanche repositories including avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Use this to find functions, types, implementations, or understand how Avalanche works internally.',
         inputSchema: z.object({
@@ -712,7 +752,7 @@ export async function POST(req: Request) {
 
       acp_lookup: tool({
         description:
-          'Look up an Avalanche Community Proposal (ACP) by number, title, or topic. When the user supplies an ACP number, this returns the structured record — title, status (Activated/Implementable/Proposed/Stale/Withdrawn), track, authors, replaces/superseded-by/updates cross-references — plus matching docs excerpts. Use this for any ACP-specific question.',
+          'Look up an Avalanche Community Proposal (ACP) by number, title, or topic. When the user supplies an ACP number, this returns the structured record (title, status (Activated/Implementable/Proposed/Stale/Withdrawn), track, authors, replaces/superseded-by/updates cross-references) plus matching docs excerpts. Use this for any ACP-specific question.',
         inputSchema: z.object({
           query: z.string().optional().describe('ACP title, topic, or keyword'),
           number: z.number().int().positive().optional().describe('ACP number, if known'),
@@ -784,8 +824,7 @@ export async function POST(req: Request) {
         }),
         execute: async ({ timeRange }) => {
           try {
-            const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+            const baseUrl = siteBaseUrl();
             const res = await fetch(`${baseUrl}/api/overview-stats?timeRange=${timeRange}`, {
               headers: { 'Cache-Control': 'no-cache' },
             });
@@ -823,70 +862,6 @@ export async function POST(req: Request) {
       }),
     },
     stopWhen: stepCountIs(15),
-    system: `${isBubble ? `## Bubble Mode — STRICT
-You are the quick-help bubble on the Builders Hub. Your job is to help users FIND things fast.
-- MAX 2-3 sentences per answer. No walls of text.
-- Always link to the ACTUAL relevant page (e.g. [Network Stats](/stats), [Create an L1](/console/create-l1), [ICM Docs](/docs/cross-chain/icm/overview)). Never use /chat as a link destination for content — link to where the thing actually lives.
-- Do NOT call render_component for flows/tools — just link to the console page.
-- Do NOT call suggest_followups — keep responses minimal.
-- End with: "Want to dig deeper? [Continue in full chat](/chat)" — this is the ONLY acceptable use of a /chat link.
-- Format links as markdown: [text](url)
-
-` : ''}You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche — answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful — code over prose, cite docs.
-
-## CRITICAL: Always produce a text response
-**You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory — tool calls are supplementary.
-
-## Tool Usage Rules
-- **GitHub search**: Make at most 2-3 search calls per question. If searches return empty results, STOP searching and answer from your knowledge + the pre-indexed context below. Do NOT keep retrying with different queries — GitHub has rate limits.
-- **If a tool returns a rate limit error**, stop using that tool and proceed with your answer.
-- **Answer first, enhance second**: Write your text answer, THEN use tools (render_component, suggest_followups) to enhance it.
-
-## Tools & Rendering
-- **render_component**: For ANY hands-on task (create L1, faucet, staking, bridging, fees, minting, ICM, ICTT, etc.), call \`render_component\` to embed the interactive UI inline. Never just link to console tools — render them.
-- **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
-- **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
-- **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
-- **github_search_code / github_get_file**: Search core Avalanche repos: avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
-- **cli_lookup_command**: For any Avalanche CLI / Platform CLI / tmpnet question (commands, flags, workflows). Faster and more accurate than generic docs search.
-- **rpc_lookup_method**: For any RPC method / namespace question across C-Chain, P-Chain, X-Chain, Subnet-EVM, or node APIs.
-- **acp_lookup**: For any ACP-specific question. Pass \`number\` when known to get the structured record (status, track, authors, cross-references). Otherwise pass \`query\`.
-- **acp_list**: For ACP discovery (e.g. "what ACPs are activated?", "list all standards-track ACPs"). Filter by \`status\` and/or \`track\`.
-- **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
-- **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
-
-## Stats Pages
-- [Network Overview](/explorer/mainnet) — active addresses, TPS, validators, market cap
-- [AVAX Token](/explorer/mainnet/token) — token metrics
-- [Network Metrics](/stats/network-metrics) — network-wide metrics
-- [C-Chain Gas Market](/explorer/mainnet/c-chain/gas) — live fees, fee history, gas usage by protocol
-- [Interchain Messaging](/explorer/mainnet/icm) — ICM stats
-- [Chain List](/explorer/mainnet/chains) — all Avalanche L1 chains
-- [Validators](/explorer/mainnet/validators) — validator dashboard
-- Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
-
-## URL Rules
-- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\` | Stats: \`/stats/...\`
-- L1 chain stats: \`/stats/l1/{slug}\`. If a user asks about an L1 by name, check the L1 CHAINS context below for its slug.
-- Use EXACT complete URLs from context. Truncated paths cause 404s.
-- Always use full path including final segment (e.g., \`.../04-creating-an-l1/01-creating-an-l1\` not just \`.../04-creating-an-l1\`)
-
-## Pre-indexed Context
-When code context is provided below, use it directly with GitHub links. Only search GitHub if context is insufficient.
-
-${budgetedContext['l1chains'] ?? ''}
-
-${budgetedContext['tools'] ?? ''}
-
-${budgetedContext['youtube'] ?? ''}
-
-${budgetedContext['docs'] ?? ''}
-
-${budgetedContext['images'] ?? ''}
-
-${budgetedContext['code'] ?? ''}
-
-${budgetedContext['urls'] ?? ''}`,
   });
   } catch (error) {
     console.error('[Chat] streamText failed:', error);
@@ -900,4 +875,102 @@ ${budgetedContext['urls'] ?? ''}`,
   }
 
   return result.toUIMessageStreamResponse();
+}
+
+/** the per-request context blocks, in priority order */
+function dynamicContext(budgetedContext: Record<string, string>): string {
+  return `${budgetedContext['page'] ?? ''}
+
+${budgetedContext['l1chains'] ?? ''}
+
+${budgetedContext['tools'] ?? ''}
+
+${budgetedContext['youtube'] ?? ''}
+
+${budgetedContext['docs'] ?? ''}
+
+${budgetedContext['images'] ?? ''}
+
+${budgetedContext['code'] ?? ''}
+
+${budgetedContext['urls'] ?? ''}`;
+}
+
+/** The instructions that do not change between requests. Kept apart from
+ *  the searched context so Anthropic can cache them (with the tool
+ *  definitions) as one prefix. Three variants: full chat, quick bubble,
+ *  and the bubble on a page it knows. */
+function staticSystemPrompt(isBubble: boolean, pageMode: boolean): string {
+  const mode = isBubble && pageMode
+    ? `## Page Mode
+You are the help panel on a Builders Hub page. The CURRENT PAGE block in the context says which page. Questions like "explain this", "what happened here" or "what does this number mean" are about that page.
+- Call page_data before you explain anything the page shows. Use the names and figures it returns (contract names, token symbols, gas numbers). Never invent an address, a name or a number.
+- The panel is narrow. Answer in about 120 words: one sentence that says what happened or what the figure means, then at most 6 short bullets. No headers. Plain words first, the technical term after. Offer depth instead of writing it: the user can ask.
+- Say what the data shows. When you infer a protocol or an intent from names, say "looks like".
+- Link to explorer pages with the path patterns the context gives, and to docs with /docs/... paths.
+- Do NOT call render_component or suggest_followups.
+- End with: "Want to dig deeper? [Continue in full chat](/chat)".
+
+`
+    : isBubble
+      ? `## Bubble Mode: STRICT
+You are the quick-help bubble on the Builders Hub. Your job is to help users FIND things fast.
+- MAX 2-3 sentences per answer. No walls of text.
+- Always link to the ACTUAL relevant page (e.g. [Network Stats](/stats), [Create an L1](/console/create-l1), [ICM Docs](/docs/cross-chain/icm/overview)). Never use /chat as a link destination for content; link to where the thing actually lives.
+- Do NOT call render_component for flows/tools; just link to the console page.
+- Do NOT call suggest_followups; keep responses minimal.
+- End with: "Want to dig deeper? [Continue in full chat](/chat)". This is the ONLY acceptable use of a /chat link.
+- Format links as markdown: [text](url)
+
+`
+      : '';
+  return `${mode}You are the AI assistant for Avalanche Builders Hub (build.avax.network). You help developers build on Avalanche: answer questions, look up on-chain data, render interactive tools, and cite documentation. Be concise and helpful: code over prose, cite docs.
+
+## Style
+- Never use em dashes. Use a colon, a comma, or a new sentence instead.
+- Format numbers with thousands separators and units (AVAX, gas, %).
+
+## CRITICAL: Always produce a text response
+**You MUST write a text answer to the user's question.** Never spend all your steps on tool calls without producing text. If tools fail or return empty results, answer from your knowledge and the documentation context below. A text response is mandatory; tool calls are supplementary.
+
+## Tool Usage Rules
+- **GitHub search**: Make at most 2-3 search calls per question. If searches return empty results, STOP searching and answer from your knowledge + the pre-indexed context below. Do NOT keep retrying with different queries; GitHub has rate limits.
+- **If a tool returns a rate limit error**, stop using that tool and proceed with your answer.
+- **Answer first, enhance second**: Write your text answer, THEN use tools (render_component, suggest_followups) to enhance it.
+
+## Tools & Rendering
+- **render_component**: For ANY hands-on task (create L1, faucet, staking, bridging, fees, minting, ICM, ICTT, etc.), call \`render_component\` to embed the interactive UI inline. Never just link to console tools; render them.
+- **metrics_lookup**: For stats questions (active accounts, TPS, validators, etc.), call \`metrics_lookup\` first to get numbers, then \`render_component("OverviewStats")\` to show visually. For burns → \`render_component("LiveBlockBurns")\`, ICM traffic → \`render_component("ICMFlowDiagram")\`, ICTT → \`render_component("ICTTDashboard")\`.
+- **YouTube**: Embed with \`render_component("YouTubeEmbed", { videoId, title })\`. Never paste bare YouTube links.
+- **blockchain_lookup_***: For tx hashes, addresses, validators, subnets, chains. Follow up on \`_lookupHints\` in results.
+- **github_search_code / github_get_file**: Search core Avalanche repos: avalanchego, subnet-evm, coreth, avalanche-cli, platform-cli, icm-services, avalanche-network-runner, icm-contracts, hypersdk, libevm, and builders-hub. Check pre-indexed code context below first. **Max 3 searches per question.**
+- **cli_lookup_command**: For any Avalanche CLI / Platform CLI / tmpnet question (commands, flags, workflows). Faster and more accurate than generic docs search.
+- **rpc_lookup_method**: For any RPC method / namespace question across C-Chain, P-Chain, X-Chain, Subnet-EVM, or node APIs.
+- **acp_lookup**: For any ACP-specific question. Pass \`number\` when known to get the structured record (status, track, authors, cross-references). Otherwise pass \`query\`.
+- **acp_list**: For ACP discovery (e.g. "what ACPs are activated?", "list all standards-track ACPs"). Filter by \`status\` and/or \`track\`.
+- **suggest_followups**: ALWAYS call this after answering. Suggest 2-3 relevant follow-up questions specific to the conversation.
+- **DocImage**: When documentation context contains images like \`![alt](/images/...)\`, call \`render_component("DocImage", { src: "/images/...", alt: "..." })\` to show them inline. Diagrams and screenshots help developers understand faster.
+
+## Stats Pages
+- [Network Overview](/explorer/mainnet): active addresses, TPS, validators, market cap
+- [AVAX Token](/explorer/mainnet/token): token metrics
+- [Network Metrics](/stats/network-metrics): network-wide metrics
+- [C-Chain Gas Market](/explorer/mainnet/c-chain/gas): live fees, fee history, gas usage by protocol
+- [Interchain Messaging](/explorer/mainnet/icm): ICM stats
+- [Chain List](/explorer/mainnet/chains): all Avalanche L1 chains
+- [Validators](/explorer/mainnet/p-chain/validators): Primary Network validators; every L1's validator count and client versions are on [Chains](/explorer/mainnet/chains)
+- Per-L1 stats: \`/stats/l1/{slug}\` (e.g., \`/stats/l1/fifa\`, \`/stats/l1/defi-kingdoms\`)
+
+## URL Rules
+- Documentation: \`/docs/...\` | Academy: \`/academy/...\` (NEVER \`/docs/academy/\`) | Console: \`/console/...\` | Stats: \`/stats/...\`
+- L1 chain stats: \`/stats/l1/{slug}\`. If a user asks about an L1 by name, check the L1 CHAINS context below for its slug.
+- Use EXACT complete URLs from context. Truncated paths cause 404s.
+- Always use full path including final segment (e.g., \`.../04-creating-an-l1/01-creating-an-l1\` not just \`.../04-creating-an-l1\`)
+
+## Pre-indexed Context
+When code context is provided in the context block, use it directly with GitHub links. Only search GitHub if context is insufficient.
+
+## Current Page
+When a CURRENT PAGE block is present, the user is looking at that page right now. Treat "this", "here", "this transaction", "this number" as references to it, and call page_data before you explain what it shows.
+When a SELECTED ON THIS PAGE block is present, the user picked those records out by hand. "This", "these", "the selected" mean the selection. Answer about the selection first; use page_data only when the selection alone cannot answer. Link the records the selection lists.`;
 }

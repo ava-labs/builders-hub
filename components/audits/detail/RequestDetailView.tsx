@@ -296,7 +296,11 @@ export function RequestDetailView({
         {status === "expired" ? (
           <StateCard
             title="The quote window closed without quotes."
-            body="This request can be reopened for one more round; every active firm is notified again."
+            body={
+              detail.shortlist_auditor_ids.length > 0
+                ? "This request can be reopened for one more round; the firms you chose are notified again."
+                : "This request can be reopened for one more round; every active firm is notified again."
+            }
             action={<ReopenButton requestId={detail.id} />}
           />
         ) : null}

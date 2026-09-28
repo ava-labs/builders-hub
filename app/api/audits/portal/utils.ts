@@ -47,3 +47,12 @@ export function withAuditor<TContext = unknown>(
     return handler(request, context, auditor, email);
   };
 }
+
+/**
+ * The signed-in address is the firm's quote-email identity, the only identity
+ * allowed to manage teammates. Both sides are lowercase already: withAuditor
+ * lowercases the session email, the column is stored lowercase (S-16).
+ */
+export function isFirmOwner(auditor: Pick<Auditor, "quote_email">, actorEmail: string): boolean {
+  return actorEmail === auditor.quote_email;
+}

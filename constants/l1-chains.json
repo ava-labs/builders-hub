@@ -1750,7 +1750,7 @@
     "chainLogoURI": "https://images.ctfassets.net/gcj8jwzm6086/5VHupNKwnDYJvqMENeV7iJ/3e4b8ff10b69bfa31e70080a4b142cd0/avalanche-avax-logo.svg",
     "blockchainId": "0x7fc93d85c6d62c5b2ac0b519c87010ea5294012d1e407030d6acd0021cac10d5",
     "subnetId": "11111111111111111111111111111111LpoYY",
-    "slug": "avalanche-c-chain",
+    "slug": "c-chain",
     "description": "The Contract Chain on Avalanche's test subnet.",
     "rpcUrl": "https://api.avax-test.network/ext/bc/C/rpc",
     "networkToken": {

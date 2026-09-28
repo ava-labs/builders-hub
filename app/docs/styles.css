@@ -693,3 +693,8 @@ aside[aria-label*="On this page" i] > div:first-child,
 div [role="tablist"] button:first-child {
   padding-left: 0.5rem !important;
 }
+
+/* Reserve a gutter under the TOC footer so the chat bubble never covers it */
+body[data-layout="docs"] #nd-toc {
+  padding-bottom: 5.5rem;
+}

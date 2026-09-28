@@ -1,4 +1,12 @@
+import { cache } from "react";
 import { prisma } from "@/prisma/prisma";
+import {
+  parseStoredAttachments,
+  toAttachmentLinks,
+  type StoredAttachment,
+} from "@/lib/audits/attachments";
+import { isLegacyAttachmentSrc, isRequestAttachmentSrc } from "@/lib/audits/blobSrc";
+import { findAuditorByEmail } from "@/server/services/audits/auditors";
 import { firmContact, recipientsOf } from "@/server/services/audits/emails/recipients";
 import {
   deriveQuoteDisplayStatus,
@@ -148,18 +156,94 @@ export async function getOwnerRequestDetail(userId: string, requestId: string) {
       }
     : null;
 
+  // The chosen firms still active, by name; empty stored array means all.
+  const shortlistIds = row.shortlist_auditor_ids;
+  const shortlist_firms =
+    shortlistIds.length > 0
+      ? (
+          await prisma.auditor.findMany({
+            where: { id: { in: shortlistIds }, active: true },
+            select: { id: true, firm_name: true },
+          })
+        ).sort((a, b) =>
+          a.firm_name.localeCompare(b.firm_name, undefined, { sensitivity: "base" }),
+        )
+      : [];
+  const whitelist_count = await countActiveFirms();
+
   const { quotes: _quotes, subsidy_decisions: _decisions, _count, ...request } = row;
   return {
     ...request,
     display_status,
     quote_count: quotes.length,
     fanout_count: _count.fanout_deliveries,
+    shortlist_firms,
+    whitelist_count,
     quotes,
     subsidy,
   };
 }
 
 export type OwnerRequestDetail = NonNullable<Awaited<ReturnType<typeof getOwnerRequestDetail>>>;
+
+// ── Public scope ────────────────────────────────────────────────────────────
+// The only firm fields that reach a client without admin rights.
+
+export interface PublicFirm {
+  id: string;
+  firm_name: string;
+  services: string[];
+  website: string | null;
+  logo_url: string | null;
+}
+
+/**
+ * THE ONE read of firm fields that reaches a client without admin rights.
+ * Explicit select, never include, never a row spread (S-8). Sorted in code,
+ * case-insensitively, so the order is collation-independent.
+ */
+export async function getPublicFirms(): Promise<PublicFirm[]> {
+  const rows = await prisma.auditor.findMany({
+    where: { active: true },
+    select: { id: true, firm_name: true, services: true, website: true, logo_url: true },
+  });
+  return rows.sort((a, b) =>
+    a.firm_name.localeCompare(b.firm_name, undefined, { sensitivity: "base" }),
+  );
+}
+
+/** Active firms at this moment: the wizard and landing whitelist figure. */
+export async function countActiveFirms(): Promise<number> {
+  return prisma.auditor.count({ where: { active: true } });
+}
+
+/**
+ * A firm's own details for the portal firm page: identity, services, website,
+ * logo (the firm uploads it there through the portal logo route) and its
+ * teammates. Never attio_ref or created_by.
+ */
+export async function getOwnFirm(auditorId: string) {
+  return prisma.auditor.findUnique({
+    where: { id: auditorId },
+    select: {
+      id: true,
+      firm_name: true,
+      quote_email: true,
+      services: true,
+      website: true,
+      logo_url: true,
+      active: true,
+      invited_at: true,
+      first_login_at: true,
+      deactivated_at: true,
+      members: {
+        orderBy: { created_at: "asc" },
+        select: { id: true, email: true, invited_at: true, first_login_at: true },
+      },
+    },
+  });
+}
+export type OwnFirm = NonNullable<Awaited<ReturnType<typeof getOwnFirm>>>;
 
 // ── Auditor scope ───────────────────────────────────────────────────────────
 // Every function pins auditor_id unconditionally; an auditor's inbox is
@@ -217,7 +301,10 @@ export interface AuditorOwnQuote {
   updated_at: Date;
 }
 
-export async function getAuditorInbox(auditorId: string) {
+// React cache(): the portal layout (Inbox badge) and the inbox page both
+// read the inbox during one request; the second call is served from the
+// request cache. Outside a render (tests) cache() calls straight through.
+export const getAuditorInbox = cache(async (auditorId: string) => {
   const [deliveries, ownQuotes] = await Promise.all([
     prisma.auditFanoutDelivery.findMany({
       where: { auditor_id: auditorId },
@@ -246,7 +333,7 @@ export async function getAuditorInbox(auditorId: string) {
       window_open: isQuoteWindowOpen(delivery.request),
     };
   });
-}
+});
 
 export type AuditorInboxItem = Awaited<ReturnType<typeof getAuditorInbox>>[number];
 
@@ -302,6 +389,10 @@ export async function getRequestForAuditor(auditorId: string, requestId: string)
 
   return {
     ...request,
+    // The store URL never leaves the server: a blob URL is a bearer token and
+    // a firm that quoted once would keep it after the request closed, after
+    // the firm was deactivated, and after any forward of that link.
+    attachments: toAttachmentLinks(requestId, request.attachments),
     own_quote: own_quote
       ? {
           id: own_quote.id,
@@ -327,6 +418,75 @@ export async function getOwnQuote(auditorId: string, requestId: string) {
   return prisma.auditQuote.findUnique({
     where: { request_id_auditor_id: { request_id: requestId, auditor_id: auditorId } },
   });
+}
+
+// ── Attachment scope ────────────────────────────────────────────────────────
+
+export interface AttachmentViewer {
+  userId: string;
+  email: string;
+  isAdmin: boolean;
+}
+
+/**
+ * Authorize and resolve in ONE call, so a caller cannot do half of it: the
+ * read route has no other way to reach a stored attachment.
+ *
+ * Who may read a request's uploaded files:
+ *  - its owner, always (drafts included, they are the uploader);
+ *  - any firm the request actually reached, its AuditFanoutDelivery row being
+ *    the invitation exactly as in getRequestForAuditor (a deactivated firm
+ *    keeps its history, N-4);
+ *  - an audit admin, on anything past draft (drafts stay private to the owner,
+ *    the rule every admin read here already follows).
+ * Everyone else gets null, and the route answers 404 rather than 403 so the
+ * existence of a request is not confirmed to a stranger either.
+ */
+export async function readableAttachment(
+  requestId: string,
+  index: number,
+  viewer: AttachmentViewer,
+): Promise<StoredAttachment | null> {
+  const row = await prisma.auditRequest.findUnique({
+    where: { id: requestId },
+    select: { user_id: true, status: true, attachments: true },
+  });
+  if (!row) return null;
+
+  const isOwner = row.user_id === viewer.userId;
+  const asAdmin = viewer.isAdmin && row.status !== "draft";
+  let invited = false;
+  if (!isOwner && !asAdmin) {
+    // findAuditorByEmail, not resolveAuditorByEmail: a read must not stamp
+    // first_login_at as a side effect.
+    const identity = await findAuditorByEmail(viewer.email);
+    if (identity) {
+      const delivery = await prisma.auditFanoutDelivery.findUnique({
+        where: {
+          request_id_auditor_id: { request_id: requestId, auditor_id: identity.auditor.id },
+        },
+        select: { request_id: true },
+      });
+      invited = delivery !== null;
+    }
+  }
+  if (!isOwner && !asAdmin && !invited) return null;
+
+  const attachment = parseStoredAttachments(row.attachments)[index];
+  if (!attachment) return null;
+
+  // Authorizing the REQUEST is not enough: the row holds a URL, and a URL is
+  // a bearer string the owner typed in. Serve it only when the key belongs to
+  // this request, or is a legacy key that requests.ts no longer lets anyone
+  // add to a row they do not already hold.
+  if (
+    !isRequestAttachmentSrc(attachment.url, requestId) &&
+    !isLegacyAttachmentSrc(attachment.url)
+  ) {
+    console.error("[Audits] stored attachment URL is not bound to its request; refusing.");
+    return null;
+  }
+  return attachment;
 }
 
 // ── Admin scope ─────────────────────────────────────────────────────────────
@@ -533,10 +693,28 @@ export async function getAdminRequestDetail(requestId: string) {
   });
   if (!row) return null;
 
+  // Every stored id that resolves to a firm, carrying active (admins see the
+  // deactivated ones too); empty stored array means all.
+  const shortlistIds = row.shortlist_auditor_ids;
+  const shortlist_firms =
+    shortlistIds.length > 0
+      ? (
+          await prisma.auditor.findMany({
+            where: { id: { in: shortlistIds } },
+            select: { id: true, firm_name: true, active: true },
+          })
+        ).sort((a, b) =>
+          a.firm_name.localeCompare(b.firm_name, undefined, { sensitivity: "base" }),
+        )
+      : [];
+  const whitelist_count = await countActiveFirms();
+
   const display_status = deriveRequestStatus(row, row.quotes.length);
   return {
     ...row,
     display_status,
+    shortlist_firms,
+    whitelist_count,
     quotes: row.quotes.map((quote) => ({
       id: quote.id,
       price_usd: quote.price_usd,
@@ -574,6 +752,8 @@ export interface AdminAuditorRow {
   first_login_at: Date | null;
   deactivated_at: Date | null;
   attio_ref: string | null;
+  website: string | null;
+  logo_url: string | null;
   sent: number;
   quoted: number;
   won: number;
@@ -605,6 +785,8 @@ export async function getAdminAuditors(): Promise<AdminAuditorRow[]> {
     first_login_at: row.first_login_at,
     deactivated_at: row.deactivated_at,
     attio_ref: row.attio_ref,
+    website: row.website,
+    logo_url: row.logo_url,
     members: row.members,
     sent: row._count.fanout_deliveries,
     quoted: row.quotes.length,

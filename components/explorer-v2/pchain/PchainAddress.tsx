@@ -262,7 +262,7 @@ export function PchainAddress({ chain, network, addr }: { chain: string; network
           {/* balance composition, only when there is a split to show */}
           {isSplit && (
             <section className="flex flex-col gap-4">
-              <SectionHeader label="Balance composition" />
+              <SectionHeader label="Balance Composition" />
               <Board divide={false} className="flex flex-col gap-5 px-5 py-5 md:px-6">
                 <div className="flex h-2 w-full overflow-hidden" aria-hidden>
                   {composition

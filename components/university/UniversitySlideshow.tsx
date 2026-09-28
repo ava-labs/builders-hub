@@ -167,6 +167,7 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
                 size="icon"
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm transition-all duration-200"
                 onClick={prevImage}
+                aria-label="Previous image"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
@@ -175,6 +176,7 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
                 size="icon"
                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white backdrop-blur-sm transition-all duration-200"
                 onClick={nextImage}
+                aria-label="Next image"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
@@ -188,7 +190,7 @@ export default function UniversitySlideshow({ className = "" }: UniversitySlides
             {images.map((_, index) => (
               <button
                 key={index}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                className={`relative w-3 h-3 rounded-full transition-all duration-200 before:absolute before:-inset-1.5 before:content-[''] ${
                   index === currentIndex
                     ? 'bg-white shadow-lg scale-110'
                     : 'bg-white/60 hover:bg-white/80 hover:scale-105'

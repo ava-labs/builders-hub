@@ -8,6 +8,7 @@ import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorIn
 import { sendNotSelectedNotice } from "@/server/services/audits/emails/sendNotSelectedNotice";
 import { sendQuoteAcceptedNotice } from "@/server/services/audits/emails/sendQuoteAcceptedNotice";
 import { sendSubsidyDecisionNotice } from "@/server/services/audits/emails/sendSubsidyDecisionNotice";
+import { sendTeamChangeNotice } from "@/server/services/audits/emails/sendTeamChangeNotice";
 
 const AUDITOR = { firm_name: "Nordlicht Security", quote_email: "quotes@nordlicht.example" };
 const REQUEST = {
@@ -100,6 +101,45 @@ describe("sendNotSelectedNotice", () => {
 
     expect(htmlOf()).not.toContain("<script>");
     expect(htmlOf()).toContain("&lt;script&gt;");
+  });
+});
+
+describe("sendTeamChangeNotice", () => {
+  const base = {
+    quoteEmail: "quotes@nordlicht.example",
+    firmName: "Nordlicht Security",
+    changedEmail: "bob@nordlicht.example",
+    actorEmail: "alice@nordlicht.example",
+  };
+
+  it("notifies the quote email of an add, naming the address and the actor, no em dashes", async () => {
+    await sendTeamChangeNotice({ ...base, change: "added" });
+
+    const [to, html, subject, text] = sendMailMock.mock.calls[0] as [
+      string,
+      string,
+      string,
+      string,
+    ];
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+    expect(to).toBe("quotes@nordlicht.example");
+    expect(subject).toContain("added");
+    for (const part of [html, text]) {
+      expect(part).toContain("bob@nordlicht.example");
+      expect(part).toContain("alice@nordlicht.example");
+    }
+    for (const part of [subject, html, text]) {
+      expect(part).not.toContain("—");
+    }
+  });
+
+  it("notifies the quote email of a removal in the removed variant", async () => {
+    await sendTeamChangeNotice({ ...base, change: "removed" });
+
+    const [to, , subject, text] = sendMailMock.mock.calls[0] as [string, string, string, string];
+    expect(to).toBe("quotes@nordlicht.example");
+    expect(subject).toContain("removed");
+    expect(text).toContain("can no longer sign in");
   });
 });
 

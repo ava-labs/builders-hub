@@ -87,6 +87,22 @@ export function lowerFirst(text: string): string {
   return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
+/**
+ * Two-letter firm monogram for the fallback tile. Splits on whitespace and on
+ * lowercase->uppercase boundaries (so "HackenProof" is HP, "BlockSec" is BS),
+ * takes the first letter of the first two parts, uppercased; a single part
+ * takes its first two letters. Replaces the panel's and the shell's local
+ * initialsOf (Tasks 8 and 10).
+ */
+export function monogramOf(name: string): string {
+  const parts = name
+    .trim()
+    .split(/\s+|(?<=[a-z])(?=[A-Z])/)
+    .filter(Boolean);
+  const letters = parts.length >= 2 ? parts[0][0] + parts[1][0] : (parts[0] ?? "").slice(0, 2);
+  return letters.toUpperCase();
+}
+
 /** Display host for a proposal link ("docs.google.com"), so the reader knows
     where the click goes. Empty on an unparsable value: legacy data must never
     crash a view. */

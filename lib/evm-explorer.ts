@@ -45,6 +45,43 @@ export function classifyEvmLocally(
   return null;
 }
 
+/* every Avalanche EVM block (both coreth and subnet-evm, unless a chain turns on
+  `allowFeeRecipients`) carries the hardcoded blackhole coinbase, so the block's
+  "Fee Recipient" looks like a validator payout when in fact the fees are burned
+  and nobody is paid. */
+const WELL_KNOWN_ADDRESSES: Record<string, { label: string; note: string }> = {
+  "0x0100000000000000000000000000000000000000": {
+    label: "Burn Address",
+    note: "The blackhole coinbase every Avalanche EVM block names. Fees sent here are burned: no key controls this address, so nothing is paid out.",
+  },
+  "0x0000000000000000000000000000000000000000": {
+    label: "Null Address",
+    note: "The zero address: the counterparty for token mints and burns, and an unrecoverable sink for anything sent to it.",
+  },
+};
+
+/* code the C-Chain genesis itself allocates (mainnet and Fuji), verified
+   against avalanchego genesis/genesis_{mainnet,fuji}.json on 2026-09-24:
+   the blackhole address carries a 305-byte Solidity library (solc 0.6.10)
+   from launch. No transaction deployed it, so there is no creator and no
+   source to verify. */
+const GENESIS_CODE: Record<string, Set<string>> = {
+  "43114": new Set(["0x0100000000000000000000000000000000000000"]),
+  "43113": new Set(["0x0100000000000000000000000000000000000000"]),
+};
+
+/** true when the chain's genesis, not a transaction, put this code here */
+export function isGenesisCode(chainId: string | number, addr?: string): boolean {
+  return !!addr && !!GENESIS_CODE[String(chainId)]?.has(addr.toLowerCase());
+}
+
+/** name for a protocol-fixture address */
+export function knownAddress(
+  addr?: string,
+): { label: string; note: string } | undefined {
+  return addr ? WELL_KNOWN_ADDRESSES[addr.toLowerCase()] : undefined;
+}
+
 // --- response types (mirror stats-api/evmexplorer/handlers.go) ------------
 
 export interface StatsResponse {
@@ -66,6 +103,9 @@ export interface TxSummary {
   timestamp: number; // unix seconds
   /** 4-byte calldata selector; absent/"" for plain value transfers */
   methodId?: string;
+  /** wei actually paid (gasUsed × effectiveGasPrice); set only by the
+   *  RPC-sourced block reader, the indexer does not carry it */
+  feeWei?: string;
 }
 
 export interface TxListResponse {

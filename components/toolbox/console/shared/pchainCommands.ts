@@ -63,7 +63,7 @@ export const PCHAIN_COMMANDS = {
     network: 'fuji' | 'mainnet';
     keyName?: string;
   }) =>
-    `platform-cli subnet convert-to-l1 --subnet-id ${opts.subnetId} --chain-id ${opts.chainId} --contract-address ${opts.contractAddress} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
+    `platform-cli subnet convert-to-l1 --subnet-id ${opts.subnetId} --chain-id ${opts.chainId} --manager ${opts.contractAddress} --network ${opts.network}${opts.keyName ? ` --key-name ${opts.keyName}` : ''}`,
 
   /** IssueAddPermissionlessValidatorTx (Primary Network) */
   addValidator: (opts: {

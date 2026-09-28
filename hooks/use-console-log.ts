@@ -100,11 +100,8 @@ export const useConsoleLog = (autoFetch: boolean = false) => {
     if (chain === 'P') {
       return `/explorer/${network === 'mainnet' ? 'mainnet' : 'fuji'}/p-chain/${type}/${id}`;
     }
-    // C-Chain is only fully served by our explorer on mainnet.
-    if (network === 'mainnet') {
-      return `/explorer/mainnet/c-chain/${type}/${id}`;
-    }
-    return `https://explorer-test.avax.network/c-chain/${type}/${id}`;
+    // Both C-Chains are served by our own explorer now.
+    return `/explorer/${network === 'mainnet' ? 'mainnet' : 'fuji'}/c-chain/${type}/${id}`;
   };
 
   return {

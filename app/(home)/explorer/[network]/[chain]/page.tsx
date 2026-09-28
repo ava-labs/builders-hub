@@ -1,6 +1,5 @@
 import { Metadata } from "next";
-import l1ChainsData from "@/constants/l1-chains.json";
-import { L1Chain } from "@/types/stats";
+import { resolveCatalogChain } from "@/lib/explorer-catalog";
 import { ChainExplorerPageClient } from "./page.client";
 
 interface ChainExplorerPageProps {
@@ -11,10 +10,7 @@ export async function generateMetadata({ params }: ChainExplorerPageProps): Prom
   const resolvedParams = await params;
   const { network, chain: chainSlug } = resolvedParams;
 
-  // network-aware, mirroring the layout's resolution (same-slug pairs)
-  const wantTestnet = network === "fuji" || network === "testnet";
-  const candidates = l1ChainsData.filter((c) => c.slug === chainSlug) as L1Chain[];
-  const chain = candidates.find((c) => (c.isTestnet === true) === wantTestnet) ?? candidates[0];
+  const chain = resolveCatalogChain(network, chainSlug);
   
   // For custom chains, return generic metadata (actual name resolved client-side)
   if (!chain) {

@@ -2,8 +2,11 @@ import Link from "next/link";
 import { getAdminOverview, getAdminRequests } from "@/server/services/audits/visibility";
 import { OverviewTiles } from "@/components/audits/admin/OverviewTiles";
 import { RequestsTable } from "@/components/audits/admin/RequestsTable";
+import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 export default async function AuditAdminOverviewPage() {
+  await denyIfNotAuditAdmin();
+
   const [overview, requests] = await Promise.all([
     getAdminOverview(),
     getAdminRequests({ take: 8, skip: 0 }),

@@ -237,6 +237,9 @@ export const ROUTE_MANIFEST: Record<string, RouteConfig> = {
   "/api/validator-alerts/unsubscribe":     { public: true },
   "/api/validator-alerts/*":               { authOnly: true },
   "/api/faucet-rate-limit":                { authOnly: true },
+  "/api/retro9000-returning":              { authOnly: true },
+  "/api/explorer/boards":                  { authOnly: true },
+  "/api/explorer/boards/*":                { authOnly: true },
   "/console/utilities/data-api-keys":      { authOnly: true },
 } as const;
 

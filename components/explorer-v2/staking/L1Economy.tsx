@@ -586,7 +586,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
         </p>
       </div>
 
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={`Validator Seats${weekFloor}`}
           action={
@@ -667,7 +667,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
 
       {/* the ops ledger: every one of these is a transaction the P-Chain
           itself processed — the L1 machinery being used, daily */}
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         <ChartBoard
           label={`L1 Operations · last ${opsDays} days`}
           action={
@@ -693,7 +693,7 @@ export function L1Economy({ network = "mainnet" }: { network?: string }) {
         </ChartBoard>
       </div>
 
-      <div className="grid items-start gap-x-8 gap-y-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
         {/* the live tape of those operations, one by one */}
         <ChartBoard
           label="Recent L1 Operations"

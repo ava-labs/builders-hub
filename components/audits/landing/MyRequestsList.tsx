@@ -45,12 +45,14 @@ export function MyRequestsList({
   requests,
   isAdmin = false,
   isAuditor = false,
+  firmCount,
 }: {
   requests: OwnerRequestSummary[];
   /** Role doors ride here too, not only on first-run: an admin or auditor who
       files a single request would otherwise never see them again. */
   isAdmin?: boolean;
   isAuditor?: boolean;
+  firmCount: number;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
@@ -103,7 +105,14 @@ export function MyRequestsList({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Audit requests</h1>
           <p className="mt-1 text-sm text-zinc-600 dark:text-[#A2AFB2]">
-            Quotes from the Ava Labs whitelist, free and private to you.
+            Quotes from{" "}
+            <Link
+              href="/audits/firms"
+              className="underline decoration-1 underline-offset-4 decoration-zinc-300 hover:decoration-current"
+            >
+              {firmCount} vetted firms
+            </Link>{" "}
+            on the Ava Labs whitelist, free and private to you.
           </p>
         </div>
         {/* Doors first, red CTA last: the outline buttons keep "one red CTA

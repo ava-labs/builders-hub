@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import l1ChainsData from "@/constants/l1-chains.json";
 import { getCumulativeTxs, getDailyTxsByChain } from "@/lib/explorer-clickhouse";
 import { DEDICATED_STATS_BASE_URL, resolveDedicatedMetricsChain } from "@/lib/dedicated-stats";
-import { isValidRpcUrl } from "@/lib/rpcUrlValidator";
+import { assertPublicRpcTarget } from "@/lib/rpcUrlValidator";
 
 interface Block {
   number: string;
@@ -870,7 +870,7 @@ export async function GET(
     }
 
     // Validate custom RPC URL: must be https and must not point to private/loopback addresses.
-    if (customRpcUrl && !isValidRpcUrl(customRpcUrl)) {
+    if (customRpcUrl && !(await assertPublicRpcTarget(customRpcUrl))) {
       return NextResponse.json(
         { error: "Invalid rpcUrl: must use https and must not target private or loopback addresses." },
         { status: 400 }

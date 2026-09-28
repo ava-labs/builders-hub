@@ -111,7 +111,7 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
             return [
                 { text: 'Avalanche L1', isHighlight: true },
                 { text: ' Learning Tree\n', isHighlight: true },
-                { text: 'Deploy L1s, bridge tokens, run  and customize your own infrastructure' },
+                { text: 'Deploy L1s, bridge tokens, run and customize your own infrastructure' },
             ];
         } else if (pathType === 'blockchain') {
             return [
@@ -138,9 +138,9 @@ export function AcademyLearningPath({ pathType }: AcademyLearningPathProps) {
         <div id="learning-path-section" key={pathname} className="mb-20 scroll-mt-20">
             <div className="text-center mb-10">
                 {/* Title + description with typewriter effect */}
-                <p className="text-sm sm:text-base max-w-3xl mx-auto mb-8 px-4 sm:px-0 whitespace-pre-line leading-snug">
+                <h1 className="text-sm sm:text-base max-w-3xl mx-auto mb-8 px-4 sm:px-0 whitespace-pre-line leading-snug">
                     <TypewriterText key={pathType} segments={descriptionSegments} speed={25} />
-                </p>
+                </h1>
 
                 {/* Category legend */}
                 <div>

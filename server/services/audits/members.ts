@@ -1,8 +1,9 @@
 import { Prisma, type AuditorMember } from "@prisma/client";
 import { prisma } from "@/prisma/prisma";
 import { AUDITOR_MEMBER_LIMIT } from "@/lib/audits/constants";
-import { logAuditEvent } from "@/server/services/audits/events";
+import { logAuditEvent, type AuditActor } from "@/server/services/audits/events";
 import { sendAuditorInvite } from "@/server/services/audits/emails/sendAuditorInvite";
+import { sendTeamChangeNotice } from "@/server/services/audits/emails/sendTeamChangeNotice";
 import type { AuditorMemberCreateInput } from "@/types/audits";
 
 export type AddMemberResult =
@@ -11,17 +12,18 @@ export type AddMemberResult =
 
 type AddMemberTxOutcome =
   | { kind: "not_found" | "limit_reached" | "duplicate_email" }
-  | { kind: "ok"; member: AuditorMember; firm_name: string };
+  | { kind: "ok"; member: AuditorMember; firm_name: string; quote_email: string };
 
 /**
- * Approve one more sign-in address for a firm and invite it (Matthew's
- * 2026-09-01 ask, admin-managed by decision). Same shape as createAuditor: an
- * invite failure never loses the row, the response carries inviteSent.
+ * Approve one more sign-in address for a firm and invite it. Admins do it from
+ * the whitelist sheet; the firm's quote-email identity does it from the firm
+ * details page (v1.1). Same shape as createAuditor: an invite failure never
+ * loses the row, the response carries inviteSent.
  */
 export async function addAuditorMember(
   auditorId: string,
   input: AuditorMemberCreateInput,
-  admin: { id: string; name: string },
+  actor: AuditActor,
 ): Promise<AddMemberResult> {
   let outcome: AddMemberTxOutcome;
   try {
@@ -47,9 +49,20 @@ export async function addAuditorMember(
         if (firmClash) return { kind: "duplicate_email" };
 
         const member = await tx.auditorMember.create({
-          data: { auditor_id: auditor.id, email: input.email, added_by: admin.id },
+          data: {
+            auditor_id: auditor.id,
+            email: input.email,
+            // added_by is a real FK to User; an OTP session id "pending_<email>"
+            // is not a User row, so a portal (auditor) add stores null (5.5).
+            added_by: actor.type === "admin" ? actor.id : null,
+          },
         });
-        return { kind: "ok", member, firm_name: auditor.firm_name };
+        return {
+          kind: "ok",
+          member,
+          firm_name: auditor.firm_name,
+          quote_email: auditor.quote_email,
+        };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
@@ -63,7 +76,7 @@ export async function addAuditorMember(
     throw error;
   }
   if (outcome.kind !== "ok") return { success: false, code: outcome.kind };
-  const { member, firm_name } = outcome;
+  const { member, firm_name, quote_email } = outcome;
 
   let inviteSent = true;
   try {
@@ -74,11 +87,31 @@ export async function addAuditorMember(
   }
 
   await logAuditEvent(prisma, {
-    actor_type: "admin",
-    actor_id: admin.id,
+    actor_type: actor.type,
+    actor_id: actor.id,
     action: "auditor_member_added",
-    meta: { firm_name, email: member.email, invite_sent: inviteSent },
+    meta: {
+      firm_name,
+      email: member.email,
+      invite_sent: inviteSent,
+      ...(actor.type === "auditor" ? { actor_email: actor.email } : {}),
+    },
   });
+
+  if (actor.type === "auditor") {
+    try {
+      await sendTeamChangeNotice({
+        quoteEmail: quote_email,
+        firmName: firm_name,
+        changedEmail: member.email,
+        actorEmail: actor.email,
+        change: "added",
+      });
+    } catch (error) {
+      // A notice failure never loses the write (the invite's pattern).
+      console.error("[Audits] team-change notice failed:", error);
+    }
+  }
 
   return { success: true, member, inviteSent };
 }
@@ -94,20 +127,39 @@ export type RemoveMemberResult = { success: true } | { success: false; code: "no
 export async function removeAuditorMember(
   auditorId: string,
   memberId: string,
-  admin: { id: string; name: string },
+  actor: AuditActor,
 ): Promise<RemoveMemberResult> {
   const member = await prisma.auditorMember.findFirst({
     where: { id: memberId, auditor_id: auditorId },
-    include: { auditor: { select: { firm_name: true } } },
+    include: { auditor: { select: { firm_name: true, quote_email: true } } },
   });
   if (!member) return { success: false, code: "not_found" };
 
   await prisma.auditorMember.delete({ where: { id: member.id } });
   await logAuditEvent(prisma, {
-    actor_type: "admin",
-    actor_id: admin.id,
+    actor_type: actor.type,
+    actor_id: actor.id,
     action: "auditor_member_removed",
-    meta: { firm_name: member.auditor.firm_name, email: member.email },
+    meta: {
+      firm_name: member.auditor.firm_name,
+      email: member.email,
+      ...(actor.type === "auditor" ? { actor_email: actor.email } : {}),
+    },
   });
+
+  if (actor.type === "auditor") {
+    try {
+      await sendTeamChangeNotice({
+        quoteEmail: member.auditor.quote_email,
+        firmName: member.auditor.firm_name,
+        changedEmail: member.email,
+        actorEmail: actor.email,
+        change: "removed",
+      });
+    } catch (error) {
+      console.error("[Audits] team-change notice failed:", error);
+    }
+  }
+
   return { success: true };
 }

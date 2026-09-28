@@ -9,7 +9,12 @@ import { join, relative } from "node:path";
  * bypass, a route or service touching prisma.auditQuote directly, fails this
  * suite before it can ship.
  */
-const ROOTS = ["server/services/audits", "app/api/audits"];
+const ROOTS = [
+  "server/services/audits",
+  "app/api/audits",
+  "app/(home)/audits",
+  "app/(audit-portal)/audits",
+];
 const READ_RE = /auditQuote\s*\.\s*(findMany|findFirst|findUnique|count|aggregate|groupBy)/;
 const WRITE_RE = /auditQuote\s*\.\s*(create|createMany|update|updateMany|upsert|delete|deleteMany)/;
 const READ_ALLOWLIST = new Set(["server/services/audits/visibility.ts"]);
@@ -17,6 +22,24 @@ const WRITE_ALLOWLIST = new Set([
   "server/services/audits/quotes.ts",
   "server/services/audits/acceptance.ts",
 ]);
+
+// The Auditor fence (S-3): every read of firm rows lives in one of five
+// service files, so no route or page can widen the firm surface a client sees.
+const AUDITOR_READ_RE = /\bauditor\s*\.\s*(findMany|findFirst|findUnique|count|aggregate|groupBy)/;
+const AUDITOR_READ_ALLOW = new Set([
+  "server/services/audits/visibility.ts",
+  "server/services/audits/fanout.ts",
+  "server/services/audits/requests.ts",
+  "server/services/audits/auditors.ts",
+  "server/services/audits/members.ts",
+]);
+const MEMBER_READ_RE = /\bauditorMember\s*\.\s*(findMany|findFirst|findUnique|count|aggregate|groupBy)/;
+const MEMBER_READ_ALLOW = new Set([
+  "server/services/audits/auditors.ts",
+  "server/services/audits/members.ts",
+]);
+const INCLUDE_AUDITOR_RE = /auditor:\s*true/;
+const INCLUDE_AUDITOR_ALLOW = new Set(["server/services/audits/auditors.ts"]);
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
@@ -47,5 +70,34 @@ describe("AuditQuote source guard", () => {
       (file) => !WRITE_ALLOWLIST.has(file) && WRITE_RE.test(readFileSync(file, "utf8")),
     );
     expect(offenders).toEqual([]);
+  });
+
+  it("only the enumerated readers touch Auditor (S-3)", () => {
+    const offenders = files.filter(
+      (file) => !AUDITOR_READ_ALLOW.has(file) && AUDITOR_READ_RE.test(readFileSync(file, "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("only auditors.ts and members.ts read AuditorMember (S-3)", () => {
+    const offenders = files.filter(
+      (file) => !MEMBER_READ_ALLOW.has(file) && MEMBER_READ_RE.test(readFileSync(file, "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("only auditors.ts uses a full-row auditor include (S-3)", () => {
+    const offenders = files.filter(
+      (file) => !INCLUDE_AUDITOR_ALLOW.has(file) && INCLUDE_AUDITOR_RE.test(readFileSync(file, "utf8")),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it("both portal member route files reference isFirmOwner (S-16)", () => {
+    const memberRoutes = files.filter((file) =>
+      file.startsWith("app/api/audits/portal/me/members"),
+    );
+    expect(memberRoutes.length).toBeGreaterThanOrEqual(2);
+    for (const file of memberRoutes) expect(readFileSync(file, "utf8")).toContain("isFirmOwner");
   });
 });

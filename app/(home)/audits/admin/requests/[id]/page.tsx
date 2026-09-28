@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/prisma/prisma";
 import { getAdminRequestDetail } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
@@ -9,12 +8,15 @@ import { QuoteComparison } from "@/components/audits/admin/QuoteComparison";
 import { SubsidyWorksheet } from "@/components/audits/admin/SubsidyWorksheet";
 import { ReviewDecision } from "@/components/audits/admin/ReviewDecision";
 import { ActivityTrail } from "@/components/audits/admin/ActivityTrail";
+import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 export default async function AuditAdminDrilldownPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await denyIfNotAuditAdmin();
+
   const { id } = await params;
   const detail = await getAdminRequestDetail(id);
   if (!detail) notFound();
@@ -25,11 +27,10 @@ export default async function AuditAdminDrilldownPage({
   );
   const latestDecision = detail.subsidy_decisions[0] ?? null;
   // Pending requests have no delivery rows yet, so the panel counts the
-  // firms that WOULD be notified rather than the ones already notified.
+  // firms that WOULD be notified rather than the ones already notified. The
+  // projection's whitelist_count replaces the page's own auditor read (S-3).
   const activeAuditorCount =
-    detail.display_status === "pending_review"
-      ? await prisma.auditor.count({ where: { active: true } })
-      : 0;
+    detail.display_status === "pending_review" ? detail.whitelist_count : 0;
 
   return (
     <div className="mt-6">
@@ -93,7 +94,12 @@ export default async function AuditAdminDrilldownPage({
 
         <div>
           {detail.display_status === "pending_review" ? (
-            <ReviewDecision requestId={detail.id} fanoutTarget={activeAuditorCount} />
+            <ReviewDecision
+              requestId={detail.id}
+              fanoutTarget={activeAuditorCount}
+              shortlistFirms={detail.shortlist_firms}
+              whitelistCount={detail.whitelist_count}
+            />
           ) : accepted ? (
             <SubsidyWorksheet
               requestId={detail.id}

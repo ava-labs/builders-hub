@@ -108,7 +108,7 @@ For reference we list below the Primary Network parameters on Mainnet:
 - `UptimeRequirement = 0.8`, that is `80%`.
 
 <Callout type="info" title="Three of these parameters change with the Helicon upgrade">
-The Helicon upgrade is active on Fuji as of July 28, 2026 at 15:00 UTC and is not yet scheduled on Mainnet. The values above are the Mainnet values in effect today. Three of them change once Helicon activates on a network:
+The Helicon upgrade is active on Fuji as of July 28, 2026 at 15:00 UTC and is scheduled on Mainnet for September 22, 2026 at 15:00 UTC. The values above are the Mainnet values in effect until then. Three of them change once Helicon activates on a network:
 
 - **`MinConsumptionRate` drops from `0.10` to `0.075`** ([ACP-285](/docs/acps/285-reduce-minimum-consumption-rate)). The change is not applied at once: it ramps linearly over the 90 days following activation, and the rate used for a staking period is the one in effect at that period's **start time**. A stake that starts 45 days after activation therefore uses roughly `0.0875`.
 - **The effective uptime requirement rises from `80%` to `90%`** ([ACP-267](/docs/acps/267-uptime-requirement-increase)). This one is not a genesis parameter: `UptimeRequirement` above stays `0.8`, and the `90%` threshold is applied when deciding reward eligibility for any Primary Network validation whose **start time** is at or after Helicon activation. Validations that started earlier are still judged against `80%`, and Avalanche L1 validators keep the requirement set by their own subnet transformation.

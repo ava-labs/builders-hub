@@ -4,22 +4,19 @@ This document lists all external API calls made within the explorer scope, inclu
 
 ---
 
-## 1. Avalanche SDK (Glacier API)
+## 1. Glacier (AvaCloud Data API)
 
-All Glacier API calls use the `@avalanche-sdk/chainkit` SDK and authenticate automatically.
+The explorer is moving off Glacier onto stats-api. These are the calls that remain, each waiting on a stats-api equivalent.
 
-| File | Method | Purpose | Parameters |
-|------|--------|---------|------------|
-| `app/api/explorer/[chainId]/route.ts` | `avalanche.data.evm.chains.get()` | Check if chain is supported by Glacier | `chainId` |
-| `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.contracts.getMetadata()` | Get contract metadata (name, symbol, logo, etc.) | `address`, `chainId` |
-| `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.address.chains.list()` | Get multichain address info (all chains where address exists) | `address` |
-| `app/api/explorer/[chainId]/address/[address]/route.ts` | `avalanche.data.evm.address.transactions.list()` | Get address transactions with pagination (includes ERC-20, ERC-721, ERC-1155, internal txns) | `address`, `chainId`, `sortOrder: 'desc'`, `pageSize: 25`, `pageToken` |
-| `app/api/explorer/[chainId]/address/[address]/erc20-balances/route.ts` | `avalanche.data.evm.address.balances.listErc20()` | Get ERC-20 token balances (paginated) | `address`, `chainId`, `currency: 'usd'`, `filterSpamTokens: true`, `pageSize: 200`, `pageToken` |
-| `app/api/explorer/[chainId]/token/[tokenAddress]/metadata/route.ts` | `avalanche.data.evm.contracts.getMetadata()` | Get token metadata (logo URI, name, symbol) | `address`, `chainId` |
+| File | Call | Purpose |
+|------|------|---------|
+| `app/api/block-proposer/[chainId]/[block]/route.ts` | `GET /v1/networks/{network}/blockchains/c-chain/blocks/{id}` | The C-Chain block's proposer (Snowman++ `proposerDetails`) |
+| `app/api/pchain-validations/[network]/[nodeId]/route.ts` | `@avalanche-sdk/chainkit` `primaryNetwork.getValidatorDetails()` | A node's completed validation terms and their rewards |
+| `app/api/avax-supply/route.ts` | `GET /v1/avax/supply` | Circulating and total supply, burn per chain |
+| `app/api/chain-stats/[chainId]/route.ts` | `GET /v1/avax/supply` | Burn totals that correct the indexer's burn offset |
 
-**Base URL**: `https://data-api.avax.network`  
-**Authentication**: Automatic via SDK  
-**Rate Limits**: None (authenticated service)
+**Base URLs**: `https://data-api.avax.network`, `https://glacier-api.avax.network`
+**Authentication**: the SDK authenticates on its own; the proposer route sends `GLACIER_API_KEY` when it is set.
 
 ---
 
@@ -31,6 +28,7 @@ Used for fetching token prices and AVAX price data.
 |------|----------|---------|------------|
 | `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/simple/price?ids=avalanche-2&vs_currencies=usd` | Get AVAX price in USD | None |
 | `app/api/explorer/[chainId]/route.ts` | `api.coingecko.com/api/v3/coins/${coingeckoId}?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false` | Get token price data (USD, market cap, 24h change, etc.) | `coingeckoId` (from chain config) |
+| `app/api/market-history/[chainId]/route.ts` | `api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart?vs_currency=usd&days=N` | Daily price and market cap series for the home sparklines, 7 to 365 days (free tier stops at a year) | `coingeckoId` (from chain config), `days` |
 
 **Base URL**: `https://api.coingecko.com/api/v3`  
 **Authentication**: None (public API)  
@@ -75,16 +73,11 @@ Used for contract verification and source code retrieval.
 
 ### Server-side / API Routes
 
-No server-side Sourcify calls (verification is done client-side).
+`/api/sourcify` (verified sources and ABIs) and `/api/verify` (verification) proxy Sourcify, and `/api/signatures` reads its 4-byte signature database.
 
 ### Client-side (Components)
 
-| File | Endpoint | Purpose | Parameters |
-|------|----------|---------|------------|
-| `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}` | Check if contract is verified | `chainId`, `address` |
-| `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}?fields=all` | Get full verified contract details (ABI, source code, compilation info) | `chainId`, `address`, `fields=all` |
-| `components/explorer/AddressDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${implAddress}?fields=all` | Get proxy implementation ABI | `chainId`, `implAddress`, `fields=all` |
-| `components/explorer/TransactionDetailPage.tsx` | `sourcify.dev/server/v2/contract/${chainId}/${address}` | Check if "To" contract is verified (for badge display) | `chainId`, `address` |
+None: every explorer component goes through those routes.
 
 **Base URL**: `https://sourcify.dev/server/v2`  
 **Authentication**: None (public API)  
@@ -128,13 +121,6 @@ Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json` or query par
 | `eth_getLogs` | Get historical logs (for ICM messages) | `fromBlock`, `toBlock`, `topics` (SendCrossChainMessage, ReceiveCrossChainMessage) |
 | `eth_getTransactionByHash` | Get transaction details (for ICM processing) | `transactionHash` |
 
-#### Address Route (`app/api/explorer/[chainId]/address/[address]/route.ts`)
-
-| RPC Method | Purpose | Parameters |
-|------------|---------|------------|
-| `eth_getCode` | Check if address is a contract | `address`, `'latest'` |
-| `eth_getBalance` | Get native token balance | `address`, `'latest'` |
-
 #### Block Route (`app/api/explorer/[chainId]/block/[blockNumber]/route.ts`)
 
 | RPC Method | Purpose | Parameters |
@@ -159,13 +145,6 @@ Direct JSON-RPC calls to chain RPC endpoints (from `l1-chains.json` or query par
 
 ### Client-side (Components)
 
-#### Transaction Detail Page (`components/explorer/TransactionDetailPage.tsx`)
-
-| RPC Method | Purpose | Parameters |
-|------------|---------|------------|
-| `eth_call` | Get token symbol (`symbol()` - 0x95d89b41) | `to: tokenAddress`, `data: '0x95d89b41'` |
-| `eth_call` | Get token decimals (`decimals()` - 0x313ce567) | `to: tokenAddress`, `data: '0x313ce567'` |
-
 #### Contract Read Section (`components/explorer/ContractReadSection.tsx`)
 
 | RPC Method | Purpose | Parameters |
@@ -187,11 +166,6 @@ These are internal API endpoints called by frontend components (not external API
 
 | Component | Internal API | Purpose |
 |-----------|-------------|---------|
-| `AddressDetailPage.tsx` | `/api/explorer/${chainId}/address/${address}` | Fetch address data |
-| `AddressDetailPage.tsx` | `/api/explorer/${chainId}/address/${address}/erc20-balances` | Fetch ERC-20 balances (paginated) |
-| `AddressDetailPage.tsx` | `/api/dune/${address}` | Fetch Dune labels (polling) |
-| `TransactionDetailPage.tsx` | `/api/explorer/${chainId}/tx/${txHash}` | Fetch transaction details |
-| `TransactionDetailPage.tsx` | `/api/explorer/${chainId}/token/${tokenAddress}/metadata` | Fetch token metadata for ERC-20 transfers |
 | `L1ExplorerPage.tsx` | `/api/explorer/${chainId}` | Fetch chain explorer data (initial + incremental) |
 | `AllChainsExplorerPage.tsx` | `/api/explorer/${chainId}` | Fetch data for all supported chains |
 
@@ -201,7 +175,7 @@ These are internal API endpoints called by frontend components (not external API
 
 | Service | Total Calls | Rate Limited? | Cached? |
 |---------|-------------|---------------|---------|
-| **Glacier (Avalanche SDK)** | 6 | No | No (but SDK may cache) |
+| **Glacier (Data API)** | 4 | No | Proposer: 1 day; supply: 4 hours |
 | **CoinGecko** | 2 | Yes | Yes (60s in-memory) |
 | **Dune Analytics** | 3 | Yes | Yes (1 hour labels / 5 min pending) |
 | **Sourcify** | 4 (client-side) | No | No (client fetches per page load) |
@@ -219,13 +193,13 @@ These are internal API endpoints called by frontend components (not external API
 
 ## Notes
 
-1. **Glacier API**: All calls are authenticated via the SDK. No manual API key needed. Used for address info, contract metadata, and ERC-20 balances.
+1. **Glacier API**: four calls remain (section 1): the block proposer, completed validation terms and AVAX supply. Each moves to stats-api when it serves the same data.
 
 2. **Dune Analytics**: Uses a 3-step process (execute → poll → results) with caching to avoid duplicate queries. Labels are cached for 1 hour.
 
 3. **RPC Calls**: Timeout set to 10-15 seconds. Some chains may have rate limits depending on RPC provider.
 
-4. **Sourcify**: All calls are made client-side from `AddressDetailPage.tsx` and `TransactionDetailPage.tsx`. Only fetched when viewing a contract address with `sourcifySupport: true`.
+4. **Sourcify**: contract names, sources and verification, fetched through `/api/sourcify` and `/api/verify`.
 
 5. **Caching Summary**:
    - CoinGecko: 60 seconds (in-memory)

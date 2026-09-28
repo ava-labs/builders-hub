@@ -8,6 +8,7 @@ import { CountdownChip } from "@/components/audits/shared/CountdownChip";
 import { EmptyState } from "@/components/audits/shared/EmptyState";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
 import { DeactivatedBanner } from "@/components/audits/portal/DeactivatedBanner";
+import { bucketOf } from "@/components/audits/portal/inboxBuckets";
 import { CARD } from "@/components/audits/shared/classes";
 import { HOVER_LIFT, ROW_ENTER } from "@/components/audits/shared/motion";
 import { formatIsoDate, formatUsd, truncate } from "@/components/audits/shared/format";
@@ -16,14 +17,6 @@ import type { UrgencyOption } from "@/lib/audits/status";
 import { parseRepos } from "@/components/audits/wizard/types";
 
 type Tab = "all" | "awaiting" | "quoted" | "won";
-
-function bucketOf(item: AuditorInboxItem): Exclude<Tab, "all"> | "closed" {
-  if (item.own_quote?.status === "accepted") return "won";
-  if (item.own_quote && item.own_quote.status === "submitted" && item.window_open) return "quoted";
-  if (item.window_open && !item.own_quote) return "awaiting";
-  if (item.own_quote?.status === "submitted") return "quoted";
-  return "closed";
-}
 
 /** The meta strip's lead token (the service) renders brighter than the rest (1b). */
 function metaParts(item: AuditorInboxItem): { lead: string | null; rest: string } {
@@ -79,14 +72,30 @@ export function PortalInbox({
   items,
   notifyEmail,
   readOnly = false,
+  servicesEmpty = false,
 }: {
   items: AuditorInboxItem[];
   /** The signed-in address: quote email or approved teammate, both get the mail. */
   notifyEmail: string;
   /** Deactivated firms browse their history without action affordances (N-4). */
   readOnly?: boolean;
+  /** Active firm with no services tagged: a quiet pointer to the firm page. */
+  servicesEmpty?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("all");
+
+  // One quiet line, not a banner: gone the moment any service is saved (008 D-9).
+  const nudge = servicesEmpty ? (
+    <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+      Your services aren&apos;t listed yet ·{" "}
+      <Link
+        href="/audits/portal/firm"
+        className="underline underline-offset-2 hover:text-zinc-900 dark:hover:text-zinc-100"
+      >
+        list them on your firm details page
+      </Link>
+    </p>
+  ) : null;
 
   if (items.length === 0) {
     // A deactivated firm with no history still needs the banner (the plain
@@ -105,7 +114,16 @@ export function PortalInbox({
         footnote={readOnly ? undefined : "Nothing to check · the email is the trigger"}
       />
     );
-    if (!readOnly) return empty;
+    if (!readOnly) {
+      return nudge ? (
+        <div className="py-10">
+          {nudge}
+          {empty}
+        </div>
+      ) : (
+        empty
+      );
+    }
     return (
       <div className="py-10">
         <DeactivatedBanner />
@@ -132,6 +150,7 @@ export function PortalInbox({
   return (
     <div className="py-10">
       {readOnly ? <DeactivatedBanner /> : null}
+      {nudge}
       {/* Short nowrap labels keep the row on ONE line at 375 (board 1g); the
           full "Awaiting your quote" returns from md up. Targets stay 44px. */}
       <div

@@ -51,8 +51,20 @@ function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
       ]
         .filter(Boolean)
         .join(" · ");
-    case "fanout_created":
-      return `Fanned out to ${typeof meta.auditor_count === "number" ? meta.auditor_count : "all"} whitelisted firms${fanoutFirmsSuffix(fanoutFirms)}`;
+    case "fanout_created": {
+      const suffix = fanoutFirmsSuffix(fanoutFirms);
+      const auditorCount = typeof meta.auditor_count === "number" ? meta.auditor_count : null;
+      const whitelist = typeof meta.whitelist_count === "number" ? meta.whitelist_count : null;
+      const shortlist = typeof meta.shortlist_count === "number" ? meta.shortlist_count : 0;
+      // Pre-v1.1 events carry no whitelist_count: keep today's "all" line.
+      if (whitelist === null) {
+        return `Fanned out to ${auditorCount ?? "all"} whitelisted firms${suffix}`;
+      }
+      if (shortlist > 0) {
+        return `Fanned out to ${auditorCount} of ${whitelist} whitelisted firms · project chose ${shortlist}${suffix}`;
+      }
+      return `Fanned out to ${auditorCount} whitelisted firms${suffix}`;
+    }
     case "quote_submitted":
       return ["Quote submitted", firm, actor ? `by ${actor}` : null, price]
         .filter(Boolean)
@@ -81,8 +93,16 @@ function eventLine(event: TrailEvent, fanoutFirms: string[]): string {
       return ["Subsidy declined", admin ? `by ${admin}` : null].filter(Boolean).join(" · ");
     case "request_withdrawn":
       return "Request withdrawn by the project";
-    case "request_reopened":
-      return "Request reopened for one more round";
+    case "request_reopened": {
+      const auditorCount = typeof meta.auditor_count === "number" ? meta.auditor_count : null;
+      const whitelist = typeof meta.whitelist_count === "number" ? meta.whitelist_count : null;
+      const shortlist = typeof meta.shortlist_count === "number" ? meta.shortlist_count : 0;
+      // Pre-v1.1 events carry no whitelist_count: keep today's line.
+      if (whitelist === null) return "Request reopened for one more round";
+      return shortlist > 0
+        ? `Request reopened for one more round · ${auditorCount} of ${whitelist} whitelisted firms notified again · project chose ${shortlist}`
+        : `Request reopened for one more round · ${auditorCount} whitelisted firms notified again`;
+    }
     default:
       return event.action.replaceAll("_", " ");
   }

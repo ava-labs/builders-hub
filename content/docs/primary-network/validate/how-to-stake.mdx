@@ -16,14 +16,14 @@ Staking rewards are sent to your wallet address at the end of the staking term *
 
 - The minimum amount that a validator must stake is 2,000 AVAX
 - The minimum amount that a delegator must delegate is 25 AVAX
-- The minimum amount of time one can stake funds for validation is 2 weeks
+- The minimum amount of time one can stake funds for validation is 48 hours (it was 2 weeks before the [Helicon](/docs/primary-network/helicon-upgrade) upgrade, which activates on Mainnet on September 22, 2026)
 - The maximum amount of time one can stake funds for validation is 1 year
-- The minimum amount of time one can stake funds for delegation is 2 weeks
+- The minimum amount of time one can stake funds for delegation is 2 weeks. Helicon does not change this, so it is now longer than the 48-hour validator minimum. A delegation must also fit entirely inside the validator's staking period, which means **a validator staking for less than 2 weeks cannot receive delegations at all**
 - The maximum amount of time one can stake funds for delegation is 1 year
 - The minimum delegation fee rate is 2%
 - The maximum weight of a validator (their own stake + stake delegated to them) is the minimum of 3 million AVAX and 5 times the amount the validator staked. For example, if you staked 2,000 AVAX to become a validator, the maximum total weight is 10,000 AVAX (5 × 2,000), meaning up to 8,000 AVAX can be delegated to your node (not per delegator)
 
-A validator will receive a staking reward if they are online and response for more than 80% of their validation period, as measured by a majority of validators, weighted by stake. **You should aim for your validator be online and responsive 100% of the time.**
+A validator will receive a staking reward if they are online and responsive for more than 90% of their validation period, as measured by a majority of validators, weighted by stake. The threshold was 80% before the [Helicon](/docs/primary-network/helicon-upgrade) upgrade and applies per validation based on its **start time**, so a validation that began before activation is still judged against 80%. **You should aim for your validator be online and responsive 100% of the time.**
 
 You can call API method `info.uptime` on your node to learn its weighted uptime and what percentage of the network currently thinks your node has an uptime high enough to receive a staking reward. See [here.](/docs/rpcs/other/info-rpc#infouptime) You can get another opinion on your node's uptime from Avalanche's [Validator Health dashboard](https://stats.avax.network/dashboard/validator-health-check/). If your reported uptime is not close to 100%, there may be something wrong with your node setup, which may jeopardize your staking reward. If this is the case, please see [here](#why-is-my-uptime-low) or contact us on [Discord](https://discord.gg/avax/) so we can help you find the issue. Note that only checking the uptime of your validator as measured by non-staking nodes, validators with small stake, or validators that have not been online for the full duration of your validation period can provide an inaccurate view of your node's true uptime.
 
@@ -168,7 +168,7 @@ Yes, just enter your node's ID in the Avalanche Stats [Validator Health Dashboar
 
 ### How Is It Determined Whether a Validator Receives a Staking Reward?
 
-When a node leaves the validator set, the validators vote on whether the leaving node should receive a staking reward or not. If a validator calculates that the leaving node was responsive for more than the required uptime (currently 80%), the validator will vote for the leaving node to receive a staking reward. Otherwise, the validator will vote that the leaving node should not receive a staking reward. The result of this vote, which is weighted by stake, determines whether the leaving node receives a reward or not.
+When a node leaves the validator set, the validators vote on whether the leaving node should receive a staking reward or not. If a validator calculates that the leaving node was responsive for more than the required uptime (90% for validations started at or after [Helicon](/docs/primary-network/helicon-upgrade), 80% for older ones), the validator will vote for the leaving node to receive a staking reward. Otherwise, the validator will vote that the leaving node should not receive a staking reward. The result of this vote, which is weighted by stake, determines whether the leaving node receives a reward or not.
 
 Each validator only votes "yes" or "no." It does not share its data such as the leaving node's uptime.
 
@@ -176,7 +176,7 @@ Each validation period is considered separately. That is, suppose a node joins t
 
 ### How Are Delegation Fees Distributed To Validators?
 
-If a validator is online for 80% of a delegation period, they receive a % of the reward (the fee) earned by the delegator. The P-Chain used to distribute this fee as a separate UTXO per delegation period. After the [Cortina Activation](https://medium.com/avalancheavax/cortina-x-chain-linearization-a1d9305553f6), instead of sending a fee UTXO for each successful delegation period, fees are now batched during a node's entire validation period and are distributed when it is unstaked.
+If a validator meets the uptime requirement for a delegation period (90% post-[Helicon](/docs/primary-network/helicon-upgrade), 80% before it), they receive a % of the reward (the fee) earned by the delegator. The P-Chain used to distribute this fee as a separate UTXO per delegation period. After the [Cortina Activation](https://medium.com/avalancheavax/cortina-x-chain-linearization-a1d9305553f6), instead of sending a fee UTXO for each successful delegation period, fees are now batched during a node's entire validation period and are distributed when it is unstaked.
 
 ### Error: Couldn't Issue TX: Validator Would Be Over Delegated
 
