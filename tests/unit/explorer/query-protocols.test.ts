@@ -271,6 +271,18 @@ describe('DEX rules and worked examples', () => {
     for (const chainId of [43113, 432204]) expect(systemPrompt({ chainId, chainName: 'x', symbol: 'AVAX', schema: '', coverage: null, dex: true })).not.toContain('dex_factories');
   });
 
+  it("give WooSwap's fields by the byte each starts at, so the writer counts no words", () => {
+    // a replay of D19 took "swapVol word 4" for byte 161, which is swapFee: 0 USD on a day of 315,710
+    const woofi = prompt.split('\n').find((l) => l.startsWith('  - woofi: ')) ?? '';
+    // WooSwap(fromToken indexed, toToken indexed, fromAmount, toAmount, from, to indexed, rebateTo, swapVol, swapFee): its
+    // data is the six fields not indexed, a word each
+    const data = ['fromAmount', 'toAmount', 'from', 'rebateTo', 'swapVol', 'swapFee'];
+    for (const [k, name] of data.entries()) if (name !== 'from' && name !== 'rebateTo') expect(woofi).toContain(`${name} substring(data, ${1 + 32 * k}, 32)`);
+    expect(woofi).toContain("so WOOFi's volume is sum(toFloat64(reinterpretAsUInt256(reverse(substring(data, 129, 32))))) / 1e6 over every swap");
+    expect(woofi).toContain('swapFee is its fee, never its volume.');
+    expect(woofi).not.toMatch(/\bword \d/);
+  });
+
   it('print no DEX WITH to copy, and are eight, each with a drill a row fills', () => {
     expect(start).toBeGreaterThan(0);
     expect(prompt.split('uniqExact(tx, pool) AS swaps').length - 1).toBe(4);
