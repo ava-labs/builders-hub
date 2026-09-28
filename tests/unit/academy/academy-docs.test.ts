@@ -11,6 +11,7 @@ const read = (file: string) => readFileSync(path.join(process.cwd(), file), 'utf
 const SKIN = 'components/academy/theme/academy-docs.css';
 const LITERAL_COLOUR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix)\(/i;
 const CONTENT_LINK = /#nd-page article > \.prose a:not\(\[data-card\]\)/;
+const COURSE_BUTTON_TEXT = /button\[aria-haspopup="dialog"\] p\.text-sm\.font-medium$/;
 
 /** The content-link rules' selectors: the base rule, :hover and :focus-visible. */
 function contentLinkSelectors(): string[] {
@@ -49,6 +50,19 @@ describe('academy-docs.css', () => {
     const links = contentLinkSelectors();
     expect(links).toHaveLength(3);
     expect(links.filter((selector) => !selector.includes(':not(.bg-primary)'))).toEqual([]);
+  });
+
+  // app/global.css gives every #nd-sidebar p align-items: center !important, so without !important
+  // here the desktop sidebar centres "Course" over the course name again.
+  it('starts "Course" where the course name starts: the course button text aligns to the start, !important', () => {
+    const alignments: string[] = [];
+    postcss.parse(read(SKIN)).walkRules((rule) => {
+      if (!rule.selectors.some((selector) => COURSE_BUTTON_TEXT.test(selector))) return;
+      rule.walkDecls('align-items', (decl) => {
+        alignments.push(`${decl.value}${decl.important ? ' !important' : ''}`);
+      });
+    });
+    expect(alignments).toEqual(['flex-start !important']);
   });
 
   it('is loaded by the course pages right after the tokens', () => {

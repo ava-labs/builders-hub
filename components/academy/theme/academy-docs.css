@@ -28,11 +28,12 @@
 
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] > div:first-child { display: none; }
 
-/* app/global.css centres every #nd-sidebar p with !important; the drawer gets the same. */
+/* app/global.css gives every #nd-sidebar p align-items: center !important, which in this column
+   centres "Course" over the name; flex-start starts both lines at the button's left, in the drawer too. */
 [data-academy="docs"] :is(#nd-sidebar, #nd-sidebar-mobile) button[aria-haspopup="dialog"] p.text-sm.font-medium {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start !important;
   font-weight: 600;
   color: var(--ac-ink);
 }
