@@ -143,6 +143,17 @@ describe('the lending shorthand', () => {
     expect(px.ok && px.sql).toContain(`block_time >= toDate(${start}) AND block_time < ${end} AND has(price_pools, address)`);
   });
 
+  it("reads Aave's reserve tokens in the type of raw_logs.address, so a token that ends in a zero byte matches its logs", () => {
+    // aAvaUSDe ends in 00: as a String, joined to the FixedString address, it lost the zero and matched no Mint or Burn
+    for (const call of [`$MARKETS('${AAVE_SLUG}')`, `$DEBTS('${AAVE_SLUG}')`]) {
+      const x = expandMacros(`${call} SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR`, 43114);
+      expect(x.ok && x.sql, call).toContain('toFixedString(substring(data, 45, 20), 20)');
+    }
+    expect(marketsWith(AAVE_SLUG)).toContain('toFixedString(substring(topic2, 13, 20), 20), 1)');
+    // the registry's Benqi markets end in no zero byte, so lending_markets may hold them as a String
+    expect(LENDING_MARKETS.filter((m) => m.market.endsWith('00'))).toEqual([]);
+  });
+
   it("reads Benqi's reserves from its events, and both protocols' markets are too large for one query", async () => {
     expect(marketsWith(AAVE_SLUG)).toContain('greatest(supplied_usd - borrowed_usd, 0) AS tvl_usd');
     const benqi = marketsWith(BENQI);
@@ -181,7 +192,48 @@ describe('the lending worked examples', () => {
       const out = await withSources(g.sql, 43114);
       expect(Buffer.byteLength(out.sql)).toBeLessThanOrEqual(SQL_BUDGET);
       expect(SCREEN.test(out.sql), sql.slice(0, 80)).toBe(false);
+      expect(unitName(sql, 43114), sql.slice(0, 80)).toBeNull();
     }
+  });
+});
+
+describe('a hex literal typed wrong', () => {
+  const pool = "unhex('794a61358d6845594f94dc1db02a252b5b4814ad')";
+  const stray = "unhex('0bcc1e4a8a8f67e4518408a4438db1152b8b67e66d749fac196a92db5fbbda7a')";
+  const q = (address: string, topic: string, chainId = 43114) =>
+    `SELECT count() AS n FROM raw_logs WHERE chain_id = ${chainId} AND block_time >= toMonday(now()) AND address = ${address} AND topic0 = ${topic}`;
+  const refused = (sql: string, chainId = 43114) => {
+    const g = guardSql(sql, chainId);
+    return g.ok ? '' : g.error;
+  };
+
+  it('is refused with its reason: a digit short or over, a 0x, a letter past f', () => {
+    // L09's tests wrote Aave's Pool with 39 and 41 digits, which unhex pads or cuts into another address
+    expect(refused(q("unhex('794a61358D6845594f94dc1DB02A252b5b4D56E')", 'flash_loan_t'))).toBe("unhex('794a6135…b4D56E') has 39 hex digits, so it matches nothing: an address has 40, a topic or a hash 64");
+    expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4d56e7d')", 'flash_loan_t'))).toMatch(/ has 41 hex digits, /);
+    expect(refused(q("unhex('0x794a61358d6845594f94dc1db02a252b5b4814ad')", 'flash_loan_t'))).toMatch(/ starts with 0x, which unhex reads as a byte/);
+    expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4814az')", 'flash_loan_t'))).toMatch(/ has a character that is not a hex digit/);
+    // Fuji keeps its behavior
+    expect(refused(q("unhex('794a61358D6845594f94dc1DB02A252b5b4D56E')", 'flash_loan_t', 43113), 43113)).toBe('');
+  });
+
+  it('is refused on the lending contracts when it is none of their events, or an address a few digits off one our server names', () => {
+    // L09's answer: Aave's Pool right, a FlashLoan topic no log has, and "no flash loans this week"
+    expect(refused(q(pool, stray))).toMatch(/^unhex\('0bcc1e4a…bbda7a'\) is no event of Aave's or Benqi's contracts: a topic written from memory is often wrong, and this one reads no rows\. Write the name our server defines for the event, as it is: .*flash_loan_t/);
+    expect(refused(q('aave_pool', stray))).toMatch(/ is no event of /);
+    expect(refused(`SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND topic0 IN (supply_t, ${stray})`)).toMatch(/ is no event of /);
+    expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4d56e7')", 'flash_loan_t'))).toBe("unhex('794a6135…4d56e7') is not Aave's Pool, whose address our server names aave_pool: write aave_pool, as it is");
+    expect(refused(`$PRICES(toMonday(now())) SELECT count() AS loans FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = unhex('794a61ebc6b034efe7fcbffe3dc06fa48aeda4e1') AND topic0 = flash_loan_t`)).toMatch(/^unhex\('794a61eb…eda4e1'\) is not Aave's Pool, whose address our server names aave_pool/);
+    expect(refused(`$PRICES(toMonday(now())) SELECT count() AS loans FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND topic0 = ${stray}`)).toMatch(/ is no event of /);
+    // a replay of L09 read Ethereum's Pool: the Pool's events come from this chain's Pool alone, a market's from the markets
+    expect(refused(q("unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9')", 'flash_loan_t'))).toBe("unhex('7d2768de…ddc7a9') is not Aave's Pool on this chain, which writes these events: an address from memory is often another chain's, and reads no rows. Write aave_pool, as it is");
+    expect(refused(q("unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9')", 'qi_borrow_t'))).toMatch(/^unhex\('7d2768de…ddc7a9'\) is no Benqi market on this chain, where the markets write these events: read them from lending_markets, /);
+    expect(refused(`SELECT count() AS n FROM raw_logs AS f LEFT JOIN lending_tokens AS k ON substring(f.topic2, 13, 20) = k.token WHERE f.chain_id = 43114 AND f.block_time >= toMonday(now()) AND f.address = unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9') AND f.topic0 = unhex('afa23caa0d01ce7b5a41e18ffbee1db3ac88dda000d4d24c76a32da3e30e67cd')`)).toMatch(/^unhex\('afa23caa…0e67cd'\) is no event of /);
+    // right hex passes: a named event, another event of the Pool, a transaction hash, and any topic off the lending contracts
+    expect(refused(q(pool, "unhex('efefaba5e921573100900a3ad9cf29f222d995fb3b6045797eaea7521bd8d6f0')"))).toBe('');
+    expect(refused(q('aave_pool', "unhex('00058a56ea94653cdf4f152d227ace22d4c00ad99e2a43f58cb7d9e3feb295f2')"))).toBe('');
+    expect(refused(`SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND transaction_hash = ${stray.replace('0bcc', '0bcd')}`)).toBe('');
+    expect(refused(q("unhex('b97ef9ef8734c71904d8002f8b6bc66dd9c48a6e')", stray))).toBe('');
   });
 });
 
@@ -292,5 +344,30 @@ describe('a value column', () => {
     expect(unitName("SELECT sum(gas_used * gas_price) / 1e18 AS fees_avax FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY", 43114)).toBeNull();
     expect(unitName("SELECT 'price' AS label, count() AS n_avax FROM raw_txs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 DAY", 43114)).toBeNull();
     expect(unitName(d16, 43113)).toBeNull();
+  });
+
+  it('keeps the digits of a token amount, and only dollars round', () => {
+    // L05n: whole units showed Aave's net borrow of -0.13 BTC.b as 0
+    const net = (col: string) => `$LEND(toMonday(now())) SELECT lower(concat('0x', hex(asset))) AS token, protocol, ${col}, count() AS actions FROM actions GROUP BY token, protocol`;
+    const l05n = net("round(sum(if(action = 'supply', amount, 0)) - sum(if(action = 'withdraw', amount, 0))) AS net_supply, round(sum(if(action = 'borrow', amount, 0)) - sum(if(action = 'repay', amount, 0))) AS net_borrow");
+    expect(unitName(l05n, 43114)).toBe('net_supply rounds a token amount to whole units, so a small one reads 0 (-0.13 BTC.b showed as 0). Leave a token amount unrounded, since the page shows its significant digits; only a value in dollars rounds, to cents: round(x, 2). Then call render_chart again.');
+    expect(unitName(net('round(sum(amount), 0) AS supplied_units'), 43114)).toMatch(/^supplied_units rounds a token amount to whole units/);
+    expect(unitName(`$DEX(${today}) SELECT pool, round(sum(r0 / pow(10, 6))) AS usdc_moved FROM legs GROUP BY pool`, 43114)).toMatch(/^usdc_moved rounds /);
+    // an amount with its digits, a rounded dollar value, a percent and a count pass, and so does every other chain
+    expect(unitName(net("sumIf(if(action = 'borrow', amount, -amount), action IN ('borrow', 'repay')) AS net_borrow, round(sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')), 2) AS net_borrow_usd"), 43114)).toBeNull();
+    expect(unitName(net('round(sum(usd)) AS value_usd, round(sum(amount), 6) AS amount_units'), 43114)).toBeNull();
+    expect(unitName(`$MARKETS('${AAVE_SLUG}') SELECT asset, round(100 * borrowed / nullIf(supplied, 0)) AS utilization_pct FROM markets`, 43114)).toBeNull();
+    for (const chainId of [43113, 432204, 1]) expect(unitName(l05n, chainId)).toBeNull();
+  });
+
+  it('is never a net of two sums of USD that is NULL when one side has no rows', () => {
+    // a replay of L05n showed a net borrow of 3,000 USDt with no USD: the USDt repayments were none, and their sumIf NULL
+    const net = (col: string) => `$LEND(toMonday(now())) SELECT protocol, asset, ${col} FROM actions GROUP BY protocol, asset`;
+    expect(unitName(net("round(sumIf(usd, action = 'borrow') - sumIf(usd, action = 'repay'), 2) AS net_borrow_usd"), 43114)).toBe(
+      "net_borrow_usd is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign: sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')). Then call render_chart again.",
+    );
+    expect(unitName(net("round(sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')), 2) AS net_borrow_usd"), 43114)).toBeNull();
+    expect(unitName(net("round(ifNull(sumIf(usd, action = 'borrow'), 0) - ifNull(sumIf(usd, action = 'repay'), 0), 2) AS net_borrow_usd"), 43114)).toBeNull();
+    expect(unitName(net("round(100 * sumIf(usd, action = 'borrow') / nullIf(sum(usd), 0), 2) AS borrow_share_pct"), 43114)).toBeNull();
   });
 });

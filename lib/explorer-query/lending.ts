@@ -208,6 +208,101 @@ export function namesIn(query: string): string[] {
     .map(([name, value]) => `${value} AS ${name}`);
 }
 
+/* A query on the lending contracts writes our server's names for them
+   (aave_pool, flash_loan_t). A topic written out from memory is often
+   wrong, and a wrong one reads no rows: L09 wrote a FlashLoan topic no
+   log has and answered that Aave had no flash loans this week. */
+
+/** the lending contracts' other events, so a query that writes one out right passes: Aave's Pool (collateral on and off,
+    UserEModeSet, IsolationModeTotalDebtUpdated, MintedToTreasury, MintUnbacked, BackUnbacked, SwapBorrowRateMode,
+    RebalanceStableBorrowRate, DeficitCreated, DeficitCovered, PositionManagerApproved and Revoked), its tokens'
+    BalanceTransfer and BorrowAllowanceDelegated, an ERC-20's Transfer and Approval, and Benqi's Failure, NewComptroller,
+    NewMarketInterestRateModel, NewProtocolSeizeShare, NewAdmin and NewPendingAdmin. Keccak of each signature (viem);
+    Aave's Pool emitted none but these and the named ones on 2026-09-26 and 27 */
+const OTHER_TOPICS = [
+  "00058a56ea94653cdf4f152d227ace22d4c00ad99e2a43f58cb7d9e3feb295f2",
+  "44c58d81365b66dd4b1a7f36c25aa97b8c71c361ee4937adc1a00000227db5dd",
+  "d728da875fc88944cbf17638bcbe4af0eedaef63becd1d1c57cc097eb4608d84",
+  "aef84d3b40895fd58c561f3998000f0583abb992a52fbdc99ace8e8de4d676a5",
+  "bfa21aa5d5f9a1f0120a95e7c0749f389863cbdbfff531aa7339077a5bc919de",
+  "f25af37b3d3ec226063dc9bdc103ece7eb110a50f340fe854bb7bc1b0676d7d0",
+  "281596e92b2d974beb7d4f124df30a0b39067b096893e95011ce4bdad798b759",
+  "7962b394d85a534033ba2efcf43cd36de57b7ebeb3de0ca4428965d9b3ddc481",
+  "9f439ae0c81e41a04d3fdfe07aed54e6a179fb0db15be7702eb66fa8ef6f5300",
+  "2bccfb3fad376d59d7accf970515eb77b2f27b082c90ed0fb15583dd5a942699",
+  "84b203e49f1a4b553088061534231969a68ad1c81be192205e96d23a206cb26a",
+  "540e692f36c2fa13e7583c4deeffd91ce6bc04f91e7d84f295d9d858372875fc",
+  "08c92c3870d10c79e9673fecea8f4ff261f8e6b661067d9ca63fd777882bff15",
+  "4beccb90f994c31aced7a23b5611020728a23d8ec5cddd1a3e9d97b96fda8666",
+  "da919360433220e13b51e8c211e490d148e61a3bd53de8c097194e458b97f3e1",
+  "ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+  "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
+  "45b96fe442630264581b197e84bbada861235052c5a1aadfff9ea4e40a969aa0",
+  "7ac369dbd14fa5ea3f473ed67cc9d598964a77501540ba6751eb0b3decf5870d",
+  "edffc32e068c7c95dfd4bdfd5c4d939a084d6b11c4199eac8436ed234d72f926",
+  "f5815f353a60e815cce7553e4f60c533a59d26b1b5504ea4b6db8d60da3e4da2",
+  "f9ffabca9c8276e99321725bcb43fb076a6c66a54b7f21c4e8146d8519b417dc",
+  "ca4f2f25d0898edd99413412fb94012f9e54ec8142f9b093e7720646a95b16a9",
+];
+const LENDING_EVENTS = new Set<string>([...Object.values(LENDING_TOPICS), ...OTHER_TOPICS]);
+/** a query that reads Aave's or Benqi's contracts: by a lending shorthand, our names for them, their events or their
+    tables, or by their addresses */
+const READS_LENDING = new RegExp(
+  `\\$(LEND|LIQUIDATIONS|DEBTS|MARKETS|PRICES)\\b|\\b(aave_pool|aave_configurator|lending_markets|lending_tokens|(supply|withdraw|borrow|repay|liquidation|flash_loan|reserve_data|reserve_init|scaled_mint|scaled_burn|qi_[a-z]+|accrue|reserves_added|reserves_reduced|reserve_factor)_t)\\b|${[AAVE_POOL, AAVE_CONFIGURATOR, ...LENDING_MARKETS.map((m) => m.market)].map(bare).join("|")}`,
+  "i",
+);
+/** the events only Aave's Pool writes here, and those only Benqi's markets write, by our names and by topic */
+const POOL_EVENTS = ["supply", "withdraw", "borrow", "repay", "liquidation", "flashLoan", "reserveData"] as const;
+const MARKET_EVENTS = ["qiMint", "qiRedeem", "qiBorrow", "qiRepay", "qiLiquidate", "accrueInterest", "reservesAdded", "reservesReduced", "newReserveFactor"] as const;
+const nameOf = (event: string) => Object.entries(LENDING_NAMES).find(([, v]) => v === hexOf(LENDING_TOPICS[event as keyof typeof LENDING_TOPICS]))?.[0] ?? event;
+const writes = (sql: string, events: readonly string[]) =>
+  new RegExp(`\\b(${events.map(nameOf).join("|")})\\b`).test(sql) || literalsOf(sql, "topic0", 64).some((t) => events.some((e) => LENDING_TOPICS[e as keyof typeof LENDING_TOPICS] === t));
+/** the contracts our server names, for an address written with its first digits right and the others wrong (a replay of
+    L09 wrote 0x794a61eb… for Aave's Pool, 0x794a6135…) */
+const NAMED_CONTRACTS = [
+  ["aave_pool", "Aave's Pool", AAVE_POOL],
+  ["aave_configurator", "Aave's PoolConfigurator", AAVE_CONFIGURATOR],
+] as const;
+const shown = (h: string) => `${h.slice(0, 8)}…${h.slice(-6)}`;
+
+/** the literals of `digits` hex digits a query compares `column` with: column = unhex('…'), and each one in column IN (…) */
+function literalsOf(sql: string, column: string, digits: number): string[] {
+  const out: string[] = [];
+  for (const m of sql.matchAll(new RegExp(`\\b${column}\\s*(=|IN\\s*\\()`, "gi"))) {
+    const from = (m.index ?? 0) + m[0].length;
+    let to = from;
+    if (m[1] !== "=") for (let depth = 1; to < sql.length && depth > 0; to++) depth += sql[to] === "(" ? 1 : sql[to] === ")" ? -1 : 0;
+    const text = m[1] === "=" ? /^\s*unhex\s*\(\s*'[^']*'\s*\)/.exec(sql.slice(from))?.[0] ?? "" : sql.slice(from, to);
+    for (const lit of text.matchAll(new RegExp(`unhex\\s*\\(\\s*'([0-9a-f]{${digits}})'\\s*\\)`, "gi"))) out.push(lit[1].toLowerCase());
+  }
+  return out;
+}
+
+/** why a query on the lending contracts reads no rows by a literal of its own, or null: an address that starts as one
+    our server names and is not it, the Pool's or a market's events read at another address (a replay of L09 read
+    Ethereum's Aave Pool), or a topic that is none of their events. Mainnet C-Chain only, as the names are */
+export function strayHex(sql: string, chainId: number): string | null {
+  if (chainId !== LENDING_CHAIN_ID) return null;
+  for (const m of sql.matchAll(/unhex\s*\(\s*'([0-9a-f]{40})'\s*\)/gi)) {
+    const h = m[1].toLowerCase();
+    const near = NAMED_CONTRACTS.find(([, , a]) => bare(a) !== h && bare(a).slice(0, 6) === h.slice(0, 6));
+    if (near) return `unhex('${shown(h)}') is not ${near[1]}, whose address our server names ${near[0]}: write ${near[0]}, as it is`;
+  }
+  if (!READS_LENDING.test(sql)) return null;
+  // the Pool's events come from the Pool alone, and a market's from the markets
+  const addresses = literalsOf(sql, "address", 40);
+  const notPool = writes(sql, POOL_EVENTS) ? addresses.find((a) => a !== bare(AAVE_POOL)) : undefined;
+  if (notPool)
+    return `unhex('${shown(notPool)}') is not Aave's Pool on this chain, which writes these events: an address from memory is often another chain's, and reads no rows. Write aave_pool, as it is`;
+  const notMarket = writes(sql, MARKET_EVENTS) ? addresses.find((a) => !LENDING_MARKETS.some((m) => bare(m.market) === a)) : undefined;
+  if (notMarket)
+    return `unhex('${shown(notMarket)}') is no Benqi market on this chain, where the markets write these events: read them from lending_markets, address IN (SELECT market FROM lending_markets WHERE chain_id = ${LENDING_CHAIN_ID})`;
+  const topic = literalsOf(sql, "topic0", 64).find((t) => !LENDING_EVENTS.has(t));
+  return topic
+    ? `unhex('${shown(topic)}') is no event of Aave's or Benqi's contracts: a topic written from memory is often wrong, and this one reads no rows. Write the name our server defines for the event, as it is: supply_t, withdraw_t, borrow_t, repay_t, liquidation_t, flash_loan_t or reserve_data_t on aave_pool; qi_mint_t, qi_redeem_t, qi_borrow_t, qi_repay_t, qi_liquidate_t or accrue_t on a Benqi market`
+    : null;
+}
+
 const KINDS: readonly PriceKind[] = ["", "usd", "avax", "btc", "eth", "savax", "link", "eurc", "qi"];
 
 /** an asset's decimals and price kind; an asset the list lacks has neither, so a query counts it and never adds it up */
@@ -358,8 +453,13 @@ export function liquidationsWith(start: string, end?: string, slug?: string): st
   return `WITH ${parts.join(", ")}, liquidations AS (SELECT lq.*, ${usd("debt_amount", "dkind")} AS debt_usd, ${usd("collateral_amount", "ckind")} AS collateral_usd, collateral_usd * share AS received_usd FROM lq LEFT JOIN lpx AS x ON toStartOfHour(lq.t) = x.d)`;
 }
 
+/** an address read from a topic or a data word, as a FixedString(20) like raw_logs.address. A join or an IN of the
+    address against a String casts the address to a String, which drops its trailing zero bytes, so an address that
+    ends in 00 matches nothing: aAvaUSDe (0x6533…fb00) lost every Mint and Burn, and $MARKETS showed USDe at 0 supplied */
+const fixed = (bytes: string) => `toFixedString(${bytes}, 20)`;
+
 /** Aave's reserves: each asset's aToken and variable debt token, from the PoolConfigurator */
-const RESERVES = `res AS (SELECT substring(topic1, 13, 20) AS asset, substring(topic2, 13, 20) AS atoken, substring(data, 45, 20) AS vdebt FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND address = aave_configurator AND topic0 = reserve_init_t)`;
+const RESERVES = `res AS (SELECT substring(topic1, 13, 20) AS asset, ${fixed("substring(topic2, 13, 20)")} AS atoken, ${fixed("substring(data, 45, 20)")} AS vdebt FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND address = aave_configurator AND topic0 = reserve_init_t)`;
 /** a scaled balance's change in one aToken or debt token Mint or Burn: (value - balanceIncrease) / index, or -(value + balanceIncrease) / index */
 const SCALED = "if(topic0 = scaled_mint_t, X[1] - X[2], -(X[1] + X[2])) / X[3]";
 
@@ -390,7 +490,7 @@ export function marketsWith(slug?: string): string {
   const cols = "protocol, asset, supplied, borrowed, reserves, supply_apy_pct, borrow_apy_pct, dec, kind";
   const apy = (rate: string) => `round(100 * (pow(1 + ${rate} / 1e27 / 31536000, 31536000) - 1), 3)`;
   const aave = [
-    `ares AS (SELECT substring(topic1, 13, 20) AS asset, arrayJoin([(substring(topic2, 13, 20), 1), (substring(data, 45, 20), 0)]) AS ts FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND address = aave_configurator AND topic0 = reserve_init_t)`,
+    `ares AS (SELECT substring(topic1, 13, 20) AS asset, arrayJoin([(${fixed("substring(topic2, 13, 20)")}, 1), (${fixed("substring(data, 45, 20)")}, 0)]) AS ts FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND address = aave_configurator AND topic0 = reserve_init_t)`,
     `tot AS (SELECT r.asset AS asset, sumIf(l.s, r.ts.2 = 1) AS sa, sumIf(l.s, r.ts.2 = 0) AS sd FROM (SELECT address, ${WORDS(3)}, ${SCALED} AS s FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2022-03-01' AND topic0 IN (scaled_mint_t, scaled_burn_t)) AS l INNER JOIN ares AS r ON l.address = r.ts.1 GROUP BY asset)`,
     `idx AS (SELECT asset, argMax((X[1], X[3], X[4], X[5]), at) AS ix FROM (SELECT substring(topic1, 13, 20) AS asset, (block_number, log_index) AS at, ${WORDS(5)} FROM raw_logs WHERE chain_id = ${C} AND block_time >= now() - INTERVAL 180 DAY AND address = aave_pool AND topic0 = reserve_data_t) GROUP BY asset)`,
     `aave AS (SELECT '${AAVE_SLUG}' AS protocol, tot.asset AS asset, sa * ix.3 / pow(10, k.decimals) AS supplied, sd * ix.4 / pow(10, k.decimals) AS borrowed, nullIf(0., 0) AS reserves, ${apy("ix.1")} AS supply_apy_pct, ${apy("ix.2")} AS borrow_apy_pct, k.decimals AS dec, k.price AS kind FROM tot LEFT JOIN idx ON tot.asset = idx.asset LEFT JOIN ${TOK} AS k ON tot.asset = k.token)`,

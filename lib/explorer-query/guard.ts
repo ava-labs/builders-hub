@@ -5,6 +5,7 @@
    first (macros.ts), so the gate reads the whole text. A reference
    table's rows are spliced in after this gate (sources.ts). */
 
+import { strayHex } from "./lending";
 import { expandMacros } from "./macros";
 import { EVM_TABLES, isFuji, targetOf } from "./target";
 
@@ -115,10 +116,30 @@ export function shadowedAlias(sql: string, anywhere = false): string | null {
   return null;
 }
 
+/* ------------------------------------------------------------------ */
+/* unhex reads any text as bytes: it pads an odd count of digits with a
+   0 and turns 0x or a letter past f into a byte, so a literal typed
+   wrong matches no row, and the answer says there was nothing. */
+
+/** why a literal in unhex('…') is no address, topic or hash, or null */
+function badHex(sql: string): string | null {
+  for (const m of sql.matchAll(/\bunhex\s*\(\s*'([^']*)'\s*\)/gi)) {
+    const h = m[1];
+    const shown = h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
+    if (/^0x/i.test(h)) return `unhex('${shown}') starts with 0x, which unhex reads as a byte: write the hex digits alone`;
+    if (!/^[0-9a-f]*$/i.test(h)) return `unhex('${shown}') has a character that is not a hex digit, so it matches nothing`;
+    if (h.length % 2) return `unhex('${shown}') has ${h.length} hex digits, so it matches nothing: an address has 40, a topic or a hash 64`;
+  }
+  return null;
+}
+
 export function guardSql(raw: string, chainId: number): GuardResult {
   const target = targetOf(chainId);
   let sql = String(raw ?? "").trim().replace(/;+\s*$/, "").trim();
   if (!sql) return { ok: false, error: "empty query" };
+  // a literal typed wrong reads no rows: the writer's own text, before the shorthand is written out
+  const typed = isFuji(chainId) ? null : (badHex(sql) ?? strayHex(sql, chainId));
+  if (typed) return { ok: false, error: typed };
   // the shorthand is written out before any check, and the length counts the whole text
   const x = expandMacros(sql, chainId);
   if (!x.ok) return x;

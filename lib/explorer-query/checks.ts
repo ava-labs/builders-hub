@@ -3,7 +3,8 @@
    question that names a protocol our contract registry lists (Aave,
    Benqi, a DEX, a bridge) is answered from that protocol's contracts; an
    answer for one of the protocols a question names says so; and a value
-   column is named by the unit it holds. */
+   column is named by the unit it holds, and a token amount keeps its
+   digits. */
 
 import registryData from "@/data/contract-registry.json";
 import { AAVE_SLUG, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS } from "./lending";
@@ -178,12 +179,63 @@ function outerColumns(sql: string): { expr: string; name: string }[] {
     });
 }
 
-/** why a value column holds another unit than its name says, or null: a column named for AVAX made from a USD value
-    or a price in dollars (D16's fees_avax held dollars, and the table read it as AVAX). Every chain but Fuji */
+/** each call of `fn` in an expression: its arguments split at the commas outside parentheses, and where it ends */
+function callsOf(expr: string, fn: RegExp): { args: string[]; start: number; end: number }[] {
+  const calls: { args: string[]; start: number; end: number }[] = [];
+  for (const m of expr.matchAll(new RegExp(`\\b(?:${fn.source})\\s*\\(`, "gi"))) {
+    const args: string[] = [];
+    let from = (m.index ?? 0) + m[0].length;
+    let i = from;
+    for (let depth = 1; i < expr.length; i++) {
+      const c = expr[i];
+      if (c === "(") depth++;
+      else if (c === ")" && --depth === 0) break;
+      else if (c === "," && depth === 1) {
+        args.push(expr.slice(from, i).trim());
+        from = i + 1;
+      }
+    }
+    calls.push({ args: [...args, expr.slice(from, i).trim()], start: m.index ?? 0, end: i + 1 });
+  }
+  return calls;
+}
+const rounds = (expr: string) => callsOf(expr, /round/).map((c) => c.args);
+
+/** a sumIf of a USD value less another: over no rows a sumIf of a NULL-able value is NULL, and so is the difference */
+function nullNet(expr: string): boolean {
+  const sums = callsOf(expr, /sumIf/).filter((c) => /^(\w+\.)?(usd|\w+_usd)$/i.test(c.args[0] ?? ""));
+  return sums.some((a, i) => sums.slice(i + 1).some((b) => /^\s*-\s*$/.test(expr.slice(a.end, b.start))));
+}
+
+/** a token amount: a column of the lending shorthand, or an amount scaled by its decimals */
+const TOKEN_AMOUNT = /\b(amount|debt_amount|collateral_amount|supplied|borrowed|reserves|premium)\b|\bpow\s*\(\s*10\s*,|\b1e(6|8|18)\b/i;
+/** a value in dollars, or a price */
+const IN_USD = /\busd\b|_usd\b|\bprice\b|\bpx\s*\[/i;
+/** a column that is a count, a ratio or a rate, even when made from amounts */
+const NOT_AN_AMOUNT = /(pct|percent|share|ratio|rate|apy|apr|utili[sz]ation|count|loans|events|txs?)$/i;
+
+/** why a value column misstates what it holds, or null. A column named for AVAX made from a USD value or a price in
+    dollars (D16's fees_avax held dollars, and the table read it as AVAX), every chain but Fuji; on the mainnet C-Chain,
+    whose tables carry token amounts and USD values that may be NULL, a token amount rounded to whole units, which shows a
+    small one as 0 (L05n showed Aave's net borrow of -0.13 BTC.b as 0), and a net of two sumIfs of usd, NULL when one
+    side has no rows (a replay of L05n showed a net borrow of 3,000 USDt with no USD) */
 export function unitName(sql: string, chainId: number): string | null {
   if (isFuji(chainId)) return null;
-  const wrong = outerColumns(sql).find((c) => /(^|_)avax$/i.test(c.name) && /\busd\b|\bprice\b|\bpx\s*\[/i.test(c.expr));
-  return wrong
-    ? `${wrong.name} is named for AVAX, and it is made from a value in dollars (usd or a price). Name a value by its unit, _usd for dollars and _avax for AVAX, and make it hold that unit: ${wrong.name.replace(/avax$/i, "usd")} for this one. Then call render_chart again.`
-    : null;
+  const columns = outerColumns(sql);
+  const wrong = columns.find((c) => /(^|_)avax$/i.test(c.name) && /\busd\b|\bprice\b|\bpx\s*\[/i.test(c.expr));
+  const named = wrong
+    ? `${wrong.name} is named for AVAX, and it is made from a value in dollars (usd or a price). Name a value by its unit, _usd for dollars and _avax for AVAX, and make it hold that unit: ${wrong.name.replace(/avax$/i, "usd")} for this one.`
+    : "";
+  const whole =
+    chainId === DEX_CHAIN_ID
+      ? columns.find((c) => !IN_USD.test(c.name) && !NOT_AN_AMOUNT.test(c.name) && rounds(c.expr).some(([x, digits]) => (digits === undefined || /^0+$/.test(digits)) && TOKEN_AMOUNT.test(x) && !IN_USD.test(x)))
+      : undefined;
+  const rounded = whole
+    ? `${whole.name} rounds a token amount to whole units, so a small one reads 0 (-0.13 BTC.b showed as 0). Leave a token amount unrounded, since the page shows its significant digits; only a value in dollars rounds, to cents: round(x, 2).`
+    : "";
+  const net = chainId === DEX_CHAIN_ID ? columns.find((c) => nullNet(c.expr)) : undefined;
+  const netted = net
+    ? `${net.name} is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign: sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')).`
+    : "";
+  return named || rounded || netted ? `${[named, rounded, netted].filter(Boolean).join(" ")} Then call render_chart again.` : null;
 }
