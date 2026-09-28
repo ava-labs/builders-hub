@@ -7,9 +7,12 @@ import type { Totals } from "./types";
    ranking's top 20) or at the row cap, and a reader must see "100 of
    142", with each figure across the top counted over all 142. So when
    the rows come back exactly at the limit, one more read takes the totals
-   result's size, sums, extremes and distinct counts. A time series that
-   the cap cut from its latest end is written again to keep its newest
-   rows: a question about a window is about its latest part too. */
+   result's size, sums, extremes and distinct counts. A ranking that counts
+   its whole set in the same read (count() OVER () AS of_total) is not read
+   again: that count is the size, and a second read costs the query again
+   (D04's ran into the 45 s timeout and brought nothing back). A time
+   series that the cap cut from its latest end is written again to keep
+   its newest rows: a question about a window is about its latest part too. */
 
 /** a query that ends in its LIMIT, and the form newestSql writes */
 const TRAILING = /\sLIMIT\s+(\d+)\s*$/i;
@@ -18,6 +21,19 @@ const NUMERIC = /^(Nullable\()?(U?Int\d+|Float\d+|Decimal)/;
 const TIME = /^(Nullable\()?Date/;
 
 const quote = (name: string) => "`" + name.replace(/`/g, "") + "`";
+
+/** the whole set's size a ranking counts in the same read, before its LIMIT, in every row */
+const OF_TOTAL = /\bcount\(\s*\*?\s*\)\s+OVER\s*\(\s*\)\s+AS\s+`?of_total`?(?!\w)/i;
+
+/** the size the rows carry: one whole number in every row, never below the rows. A LIMIT BY keeps fewer rows than
+    the window counted, so its count is not the size */
+function ownCount(inner: string, result: QueryResult): number | null {
+  const c = result.columns.find((k) => k.name === "of_total");
+  if (!c || !/^(Nullable\()?U?Int\d+/.test(c.type) || !OF_TOTAL.test(inner) || /\bLIMIT\s+\d+(?:\s*,\s*\d+)?\s+BY\b/i.test(inner)) return null;
+  const counts = new Set(result.rows.map((r) => Number(r.of_total)));
+  const [n] = counts;
+  return counts.size === 1 && Number.isInteger(n) && n >= result.rowCount ? n : null;
+}
 
 /** where a query's rows stop, when they reached its limit: the query without the limit, and the limit */
 export function cutOf(sql: string, rowCount: number): { inner: string; limit: number; newest: boolean } | null {
@@ -51,10 +67,13 @@ export function newestSql(sql: string, result: Pick<QueryResult, "columns" | "ro
 /** the whole result, read once past its limit: its size, each column's figures, and the row that holds each
     extreme. sql is the query as written, before anchored(): the totals read goes through anchored() itself,
     so it reads the same tables the rows did (FINAL, the reference tables). Null when the rows did not reach a
-    limit or the read failed; a result that only reached its limit comes back with as many rows as it shows */
+    limit or the read failed; a result that only reached its limit comes back with as many rows as it shows. A
+    ranking's own count is its totals, with no figures beside it: nothing is read again */
 export async function totalsOf(sql: string, result: QueryResult, chainId: number): Promise<Totals | null> {
   const cut = cutOf(sql, result.rowCount);
   if (!cut) return null;
+  const own = ownCount(cut.inner, result);
+  if (own !== null) return { rows: own, newest: cut.newest, sum: {}, count: {}, min: {}, max: {}, distinct: {} };
   const cols = result.columns.map((c, i) => ({ name: c.name, i, num: NUMERIC.test(c.type) }));
   // the column a row is known by: a time, else the first that is not a number
   const label = result.columns.find((c) => TIME.test(c.type)) ?? result.columns.find((c) => !NUMERIC.test(c.type));

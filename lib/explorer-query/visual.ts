@@ -280,6 +280,9 @@ function shown(input: Pick<DesignInput, "names">, column: string, v: unknown): u
 /** a number as a model reads it: plain digits, six significant, never 1.2e+6 */
 const plain = (n: number) => (Number.isInteger(n) ? String(n) : String(Number(n.toPrecision(6))));
 
+/** totals that hold only the whole set's size, a ranking's own count (cut.ts), with no figures read beside it */
+const sizeOnly = (t: Totals) => !Object.keys(t.sum).length && !Object.keys(t.distinct).length;
+
 /** a share as a reading quotes it, one decimal by the usual rule: 0.45539 is 45.5% */
 const pct = (f: number) => `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
 /** a figure whose sum means nothing: a rate, a price, an average, a share already */
@@ -356,7 +359,7 @@ export function figures(input: Seen): string[] {
     out.push(
       totals.newest
         ? `The rows are the newest ${rows.length} of ${totals.rows}: the row cap cut the oldest.`
-        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. A sum over these rows is not the total; the total over all ${totals.rows} is given beside it.`,
+        : `The rows are the first ${rows.length} of ${totals.rows}: the query's LIMIT cut the rest. ${sizeOnly(totals) ? `A sum over these rows is not the total over all ${totals.rows}.` : `A sum over these rows is not the total; the total over all ${totals.rows} is given beside it.`}`,
     );
   }
   // which edge buckets the window cuts, from the same reading of the SQL as the chart's labels
@@ -468,8 +471,10 @@ export function sampleOf(input: Seen): { head: string; rows: Row[] } {
 /** what a model reads about the rows: the figures over all of them, then a sample */
 function rowsBrief(input: Seen): string[] {
   const s = sampleOf(input);
-  const cut = !!input.totals && input.totals.rows > input.rows.length;
-  const head = cut ? `Figures, computed over the ${input.rows.length} rows shown, with the whole result's beside them:` : `Figures, computed over all ${input.rows.length} rows:`;
+  const t = input.totals;
+  const cut = !!t && t.rows > input.rows.length;
+  const beside = t && sizeOnly(t) ? ` of ${t.rows}:` : ", with the whole result's beside them:";
+  const head = cut ? `Figures, computed over the ${input.rows.length} rows shown${beside}` : `Figures, computed over all ${input.rows.length} rows:`;
   return [head, ...figures(input).map((f) => `- ${f}`), s.head, ...s.rows.map((r) => JSON.stringify(r))];
 }
 
