@@ -121,14 +121,33 @@ export function shadowedAlias(sql: string, anywhere = false): string | null {
    0 and turns 0x or a letter past f into a byte, so a literal typed
    wrong matches no row, and the answer says there was nothing. */
 
-/** why a literal in unhex('…') is no address, topic or hash, or null */
+/** the hex digits of a column's bytes: an address's 20, a topic's or a hash's 32 */
+const DIGITS: [RegExp, number][] = [
+  [/^(address|tx_from|tx_to|from_address|to_address|contract_address)$/i, 40],
+  [/^(topic[0-3]|transaction_hash|block_hash|tx_hash)$/i, 64],
+];
+
+/** why a literal in unhex('…') is no address, topic or hash, or null: its text, or its length beside the column it is
+    compared with (column = unhex('…'), or each one in a list, column IN (…)). An IN over a subquery holds the column
+    against the subquery's rows, so the literals inside it are held against their own columns */
 function badHex(sql: string): string | null {
+  const shown = (h: string) => (h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h);
   for (const m of sql.matchAll(/\bunhex\s*\(\s*'([^']*)'\s*\)/gi)) {
     const h = m[1];
-    const shown = h.length > 16 ? `${h.slice(0, 8)}…${h.slice(-6)}` : h;
-    if (/^0x/i.test(h)) return `unhex('${shown}') starts with 0x, which unhex reads as a byte: write the hex digits alone`;
-    if (!/^[0-9a-f]*$/i.test(h)) return `unhex('${shown}') has a character that is not a hex digit, so it matches nothing`;
-    if (h.length % 2) return `unhex('${shown}') has ${h.length} hex digits, so it matches nothing: an address has 40, a topic or a hash 64`;
+    if (/^0x/i.test(h)) return `unhex('${shown(h)}') starts with 0x, which unhex reads as a byte: write the hex digits alone`;
+    if (!/^[0-9a-f]*$/i.test(h)) return `unhex('${shown(h)}') has a character that is not a hex digit, so it matches nothing`;
+    if (h.length % 2) return `unhex('${shown(h)}') has ${h.length} hex digits, so it matches nothing: an address has 40, a topic or a hash 64`;
+  }
+  for (const m of sql.matchAll(/\b(\w+)\s*(=|IN\s*\()/gi)) {
+    const digits = DIGITS.find(([name]) => name.test(m[1]))?.[1];
+    if (!digits) continue;
+    const from = (m.index ?? 0) + m[0].length;
+    let to = from;
+    if (m[2] !== "=") for (let depth = 1; to < sql.length && depth > 0; to++) depth += sql[to] === "(" ? 1 : sql[to] === ")" ? -1 : 0;
+    const text = m[2] === "=" ? /^\s*unhex\s*\(\s*'[^']*'\s*\)/.exec(sql.slice(from))?.[0] ?? "" : sql.slice(from, to);
+    if (m[2] !== "=" && /^[\s(]*(SELECT|WITH)\b/i.test(text)) continue;
+    const wrong = [...text.matchAll(/unhex\s*\(\s*'([0-9a-f]*)'\s*\)/gi)].map((l) => l[1]).find((h) => h.length !== digits);
+    if (wrong !== undefined) return `unhex('${shown(wrong)}') has ${wrong.length} hex digits, and ${m[1]} holds ${digits}, so it matches nothing`;
   }
   return null;
 }

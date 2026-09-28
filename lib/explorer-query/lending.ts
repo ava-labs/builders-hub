@@ -257,6 +257,8 @@ const MARKET_EVENTS = ["qiMint", "qiRedeem", "qiBorrow", "qiRepay", "qiLiquidate
 const nameOf = (event: string) => Object.entries(LENDING_NAMES).find(([, v]) => v === hexOf(LENDING_TOPICS[event as keyof typeof LENDING_TOPICS]))?.[0] ?? event;
 const writes = (sql: string, events: readonly string[]) =>
   new RegExp(`\\b(${events.map(nameOf).join("|")})\\b`).test(sql) || literalsOf(sql, "topic0", 64).some((t) => events.some((e) => LENDING_TOPICS[e as keyof typeof LENDING_TOPICS] === t));
+/** the lending names the DEX WITH defines as well */
+const SHARED_NAMES = new Set(["v2_swap", "v3_swap", "submitted_t", "price_pools"]);
 /** the contracts our server names, for an address written with its first digits right and the others wrong (a replay of
     L09 wrote 0x794a61eb… for Aave's Pool, 0x794a6135…) */
 const NAMED_CONTRACTS = [
@@ -283,6 +285,11 @@ function literalsOf(sql: string, column: string, digits: number): string[] {
     Ethereum's Aave Pool), or a topic that is none of their events. Mainnet C-Chain only, as the names are */
 export function strayHex(sql: string, chainId: number): string | null {
   if (chainId !== LENDING_CHAIN_ID) return null;
+  // a name of ours that the query defines itself takes the query's value, and namesIn leaves it out; the swap and stake
+  // topics and the price pools are the DEX WITH's names too, which a DEX query may write out
+  const ours = Object.keys(LENDING_NAMES).filter((n) => !SHARED_NAMES.has(n)).join("|");
+  const own = new RegExp(`\\bAS\\s+(${ours})\\b|\\b(${ours})\\s+AS\\s*\\(`, "i").exec(sql)?.slice(1).find(Boolean);
+  if (own) return `${own} is a name our server defines in front of the query; a WITH of your own may not define it. Write ${own} as it is, and leave its value to the server`;
   for (const m of sql.matchAll(/unhex\s*\(\s*'([0-9a-f]{40})'\s*\)/gi)) {
     const h = m[1].toLowerCase();
     const near = NAMED_CONTRACTS.find(([, , a]) => bare(a) !== h && bare(a).slice(0, 6) === h.slice(0, 6));

@@ -115,7 +115,7 @@ describe('the checks that stop a wrong answer', () => {
       expect(g.ok ? '' : g.error).toBe("hex(unhex(x)) garbles x: hashes, addresses and topics are bytes already, so write lower(concat('0x', hex(x)))");
     }
     expect(guardSql(HASH.replace('43114', '43113'), 43113).ok).toBe(true);
-    expect(guardSql("SELECT concat('0x', hex(transaction_hash)) AS tx_hash FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND topic0 = unhex('ddf252ad')", 43114).ok).toBe(true);
+    expect(guardSql("SELECT concat('0x', hex(transaction_hash)) AS tx_hash FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef')", 43114).ok).toBe(true);
   });
 
   it('name a fee, a volume, a price or a USD value below zero, but not a net, a flow or a change', () => {

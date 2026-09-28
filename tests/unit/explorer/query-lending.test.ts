@@ -222,6 +222,11 @@ describe('a hex literal typed wrong', () => {
     expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4d56e7d')", 'flash_loan_t'))).toMatch(/ has 41 hex digits, /);
     expect(refused(q("unhex('0x794a61358d6845594f94dc1db02a252b5b4814ad')", 'flash_loan_t'))).toMatch(/ starts with 0x, which unhex reads as a byte/);
     expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4814az')", 'flash_loan_t'))).toMatch(/ has a character that is not a hex digit/);
+    // an even count that is not the column's: an address has 40 digits, a topic 64 (the prompt shows a topic's first 8)
+    expect(refused(q("unhex('794a61358d6845594f94dc1db02a252b5b4814')", 'flash_loan_t'))).toBe("unhex('794a6135…5b4814') has 38 hex digits, and address holds 40, so it matches nothing");
+    expect(refused(q('aave_pool', "unhex('efefaba5')"))).toBe("unhex('efefaba5') has 8 hex digits, and topic0 holds 64, so it matches nothing");
+    expect(refused(`SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND topic0 IN (supply_t, unhex('efefaba5'))`)).toMatch(/ has 8 hex digits, and topic0 holds 64/);
+    expect(refused("SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND substring(topic1, 13, 20) = unhex('b97ef9ef8734c71904d8002f8b6bc66dd9c48a6e')")).toBe('');
     // Fuji keeps its behavior
     expect(refused(q("unhex('794a61358D6845594f94dc1DB02A252b5b4D56E')", 'flash_loan_t', 43113), 43113)).toBe('');
   });
@@ -238,6 +243,12 @@ describe('a hex literal typed wrong', () => {
     expect(refused(q("unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9')", 'flash_loan_t'))).toBe("unhex('7d2768de…ddc7a9') is not Aave's Pool on this chain, which writes these events: an address from memory is often another chain's, and reads no rows. Write aave_pool, as it is");
     expect(refused(q("unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9')", 'qi_borrow_t'))).toMatch(/^unhex\('7d2768de…ddc7a9'\) is no Benqi market on this chain, where the markets write these events: read them from lending_markets, /);
     expect(refused(`SELECT count() AS n FROM raw_logs AS f LEFT JOIN lending_tokens AS k ON substring(f.topic2, 13, 20) = k.token WHERE f.chain_id = 43114 AND f.block_time >= toMonday(now()) AND f.address = unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9') AND f.topic0 = unhex('afa23caa0d01ce7b5a41e18ffbee1db3ac88dda000d4d24c76a32da3e30e67cd')`)).toMatch(/^unhex\('afa23caa…0e67cd'\) is no event of /);
+    // a replay wrote its own flash_loan_t AS unhex('804c9b84'), which the server then left out
+    expect(refused(`WITH unhex('efefaba5e921573100900a3ad9cf29f222d995fb3b6045797eaea7521bd8d6f0') AS flash_loan_t SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND topic0 = flash_loan_t`)).toBe(
+      'flash_loan_t is a name our server defines in front of the query; a WITH of your own may not define it. Write flash_loan_t as it is, and leave its value to the server',
+    );
+    // and one wrote WITH aave_pool AS (SELECT unhex('7d2768de…')), Ethereum's Pool
+    expect(refused(`WITH aave_pool AS (SELECT unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9') AS addr) SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address IN (SELECT addr FROM aave_pool)`)).toMatch(/^aave_pool is a name our server defines in front of the query; a WITH of your own may not define it/);
     // right hex passes: a named event, another event of the Pool, a transaction hash, and any topic off the lending contracts
     expect(refused(q(pool, "unhex('efefaba5e921573100900a3ad9cf29f222d995fb3b6045797eaea7521bd8d6f0')"))).toBe('');
     expect(refused(q('aave_pool', "unhex('00058a56ea94653cdf4f152d227ace22d4c00ad99e2a43f58cb7d9e3feb295f2')"))).toBe('');
