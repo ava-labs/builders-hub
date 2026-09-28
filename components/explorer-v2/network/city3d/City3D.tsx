@@ -36,6 +36,7 @@ import { FOV, HOME_POLAR, Rig, type Shot } from "./Rig";
 import { Anchor, Badges, HALO, plaqueAt, plaqueOf, TagLayout, type Keep, type Tag, type VeilState } from "./Labels";
 import { Marks } from "./Marks";
 import { Lighting } from "./Lighting";
+import { Post } from "./Post";
 import { hurry, Rise, Stage, useSteady, Warmup, WARM } from "./warmup";
 import { webglProbe, webglSeen } from "@/components/explorer-v2/network/webgl-probe";
 
@@ -104,6 +105,13 @@ function useMonoLogos(): boolean {
   const [mono, setMono] = useState(false);
   useEffect(() => setMono(new URLSearchParams(window.location.search).get("logos") === "mono"), []);
   return mono;
+}
+
+/** the finish: the high tier takes the frame through passes of its own (Post.tsx), and ?fx=0 draws it straight to the
+    canvas, for a comparison. Read at the first render, since the canvas's context is made with its antialiasing on or off */
+function useFx(): boolean {
+  const [fx] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("fx") !== "0");
+  return fx;
 }
 
 /** a version's minor line, as the strip names it: 1.15 of v1.15.2 */
@@ -305,6 +313,8 @@ export default function City3D({ data: incoming, versions = null, target = "", s
   const regionRef = useRef<HTMLDivElement>(null);
   const hud = useHud(regionRef, rules);
   const [tier, setTier] = useTier();
+  // the finish multisamples the scene itself, so the canvas's own context takes no antialiasing under it
+  const fx = useFx() && tier === "high";
   // a reader who asks for less motion, or a renderer with no GPU (6 to 11 fps), sees the city built and still, drawn on demand
   const still = useStill() || tier === "low";
   // a frame rate that keeps falling steps the pixels down, as far as one to a CSS pixel, and back up when it recovers
@@ -899,7 +909,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
         shadows={tier === "high" ? { enabled: true, type: PCFSoftShadowMap, autoUpdate: false } : false}
         flat
         dpr={tier === "high" ? Math.min(dpr, typeof window === "undefined" ? 2 : window.devicePixelRatio) : 1}
-        gl={{ antialias: tier === "high", alpha: true, powerPreference: "high-performance" }}
+        gl={{ antialias: tier === "high" && !fx, alpha: true, powerPreference: "high-performance" }}
         camera={{ fov: FOV, near: 4, far: 14000, position: [0, 1400, 2400] }}
         frameloop={still ? "demand" : "always"}
         // the city's own context has the last word: a kept yes from a GPU that has since gone reads as software here
@@ -927,6 +937,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
         <Clock t0={t0} still={still} />
         <CameraNow />
         <Warmup hold={!model.buildings.length} still={still} from={schedule.liveAt + 1} fade={regionRef} />
+        {fx && <Post theme={theme} rich={rich} still={still} />}
         <Redraw on={[state, badgeAlpha, traffic, hoverDistrict, hoverRoute, focus, theme, font]} />
         <Shadows until={schedule.until} bump={`${theme}|${model.buildings.length}|${nodes.length}`} />
         <Lighting theme={theme} rich={rich} />

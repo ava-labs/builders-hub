@@ -53,6 +53,9 @@ import { TIME } from "./shaders";
     paints in it does not show either (a hundredth of its opacity), so a word may paint once there to make its pipelines */
 export const WARM = { held: true, from: 0, quiet: false, unseen: true };
 
+/** the frame's draw: the renderer's own, or, once it stands, a finish's (Post.tsx) that takes the frame through passes of its own */
+export const DRAW: { fn: ((scene: Scene, camera: Camera) => void) | null } = { fn: null };
+
 /** the opening, as the column, the plate and the camera read it: each value runs from 0 to 1 on the brand's curve */
 export const OPENING = {
   /** the column's rise out of the cloud sea, from the end of the canvas's fade in: 0 under the frame, 1 landed */
@@ -656,7 +659,8 @@ export function Warmup({ hold = false, still = false, from = 0, fade, words }: {
     /* while the canvas stands clear the map draws every frame: each caster's depth program draws before the city shows, and
        its first draw (a pipeline the GPU makes on a cold cache, a tenth of a second and more) holds no frame of the rise */
     if (st.shownAt === null && shadows) gl.shadowMap.needsUpdate = true;
-    gl.render(scene, camera);
+    if (DRAW.fn) DRAW.fn(scene, camera);
+    else gl.render(scene, camera);
     for (const o of hidden) o.visible = true;
     for (const o of unshadowed) o.castShadow = true;
     // a frame that left nothing out has drawn every program: the next may show

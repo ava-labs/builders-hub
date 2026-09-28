@@ -10273,6 +10273,11 @@ multiformats@^9.4.2:
   resolved "https://registry.npmjs.org/multiformats/-/multiformats-9.9.0.tgz"
   integrity sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==
 
+n8ao@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/n8ao/-/n8ao-2.0.1.tgz#b533890ab9d3d84ddfad3e3d5b0ce4a3b09a1287"
+  integrity sha512-MoP1QKUdj4/3cKEnhFl917t0eQwWGER1l43ckz5mNOPyYWGRDGQbVoTOQz/VBvy01in6QVNG+AL6Xxx5AjZBYA==
+
 nano-css@^5.6.2:
   version "5.6.2"
   resolved "https://registry.yarnpkg.com/nano-css/-/nano-css-5.6.2.tgz#584884ddd7547278f6d6915b6805069742679a32"
@@ -10935,6 +10940,11 @@ posthog-js@^1.266.0:
     fflate "^0.4.8"
     preact "^10.19.3"
     web-vitals "^4.2.4"
+
+postprocessing@^6.39.5:
+  version "6.39.5"
+  resolved "https://registry.yarnpkg.com/postprocessing/-/postprocessing-6.39.5.tgz#8979edf3ad672fbc2d41b7c498df26b68d6e7a90"
+  integrity sha512-YmH+t74J2X1lwYjKzK/tgs9C9kqWWPB9JwZiDF5mEf4BdCEAmEFbO8lXBA7NM0/j4g+x6FgD/Tt5/kT7ogbEDA==
 
 potpack@^1.0.1:
   version "1.0.2"
