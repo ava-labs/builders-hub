@@ -6,10 +6,11 @@
    runs its SQL again behind the reader, two at a time. Every mark and
    row opens what it is about (a transaction, a contract, the records
    behind a bar), and a tile's rows open in a sheet. Notes carry the
-   headings a dashboard needs. A board the account keeps opens for anyone
-   with its link: drawn and refreshed, not edited, with a way to keep a
-   copy. The board index, the canvas and the pin button all live here;
-   the store is lib/explorer-query/board.ts. */
+   headings a dashboard needs, and a metric tile draws the stats API's
+   daily series, as a Playground dashboard did. A board the account
+   keeps opens for anyone with its link: drawn and refreshed, not
+   edited, with a way to keep a copy. The board index, the canvas and
+   the pin button all live here; the store is lib/explorer-query/board.ts. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -69,6 +70,7 @@ import {
   boardScope,
   boardsHref,
   decodeBoard,
+  metricSnapshot,
   movedBoard,
   nextSize,
   noteTile,
@@ -80,10 +82,23 @@ import {
   useHydrated,
   type Board,
   type ChartTile,
+  type MetricTile,
   type NoteTile,
+  type Snapshot,
   type Tile,
   type TileSize,
 } from "@/lib/explorer-query/board";
+import {
+  METRIC_WINDOWS,
+  loadMetricTile,
+  metricChains,
+  metricColumns,
+  metricTitle,
+  metricVisual,
+  seriesLabels,
+  windowRows,
+  windowText,
+} from "@/lib/explorer-query/stats-metrics";
 import type { ColumnMeta } from "@/lib/explorer-query/clickhouse";
 import type { DrillAnswer, Names, QueryAnswer } from "@/lib/explorer-query/types";
 import type { VisualSpec } from "@/lib/explorer-query/visual";
@@ -236,8 +251,8 @@ interface TileCtx {
   api: BoardApi;
   /** a board the reader does not own: it draws and refreshes, nothing else */
   readOnly: boolean;
-  /** a tile's rows, in the sheet */
-  onRows: (tile: ChartTile) => void;
+  /** a tile's rows, in the sheet: the ones it kept, or the ones given */
+  onRows: (tile: ChartTile | MetricTile, snap?: Snapshot | null) => void;
   /** a mark or a row: the page of the thing it names, else its records */
   onMark: (tile: ChartTile, row: Row) => void;
   /** a row of a list: its records */
@@ -289,6 +304,25 @@ function TileMenu({ tile, ctx, onRename, onEdit }: { tile: Tile; ctx: TileCtx; o
           <Copy className="h-3.5 w-3.5" /> Duplicate
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {tile.kind === "metric" && (
+          <>
+            <DropdownMenuLabel className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-zinc-400">Days</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={tile.from && tile.to ? "dates" : String(tile.days ?? "all")}
+              onValueChange={(v) => {
+                if (v !== "dates") ctx.api.updateTile(ctx.boardId, tile.id, { days: v === "all" ? null : Number(v), from: null, to: null });
+              }}
+            >
+              {tile.from && tile.to && <DropdownMenuRadioItem value="dates">{windowText(tile)}</DropdownMenuRadioItem>}
+              {METRIC_WINDOWS.map((d) => (
+                <DropdownMenuRadioItem key={d ?? "all"} value={String(d ?? "all")}>
+                  {windowText({ days: d })}
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+          </>
+        )}
         <DropdownMenuLabel className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-zinc-400">Width</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={tile.size} onValueChange={(v) => ctx.api.updateTile(ctx.boardId, tile.id, { size: v as TileSize })}>
           {TILE_SIZES.map((s) => (
@@ -418,6 +452,131 @@ function ChartTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: Ch
   );
 }
 
+/* A metric tile (stats-metrics.ts): the stats API's days, not a query.
+   It draws at once from the days it kept, reads every day the API has
+   behind the reader (one read per chain and metric, kept by the route
+   and the browser for hours), and its window picks the days it shows. */
+function MetricTileCard({ tile, ctx, handle, overlay, refreshSignal }: { tile: MetricTile; ctx: TileCtx; handle?: Handle; overlay?: boolean; refreshSignal: number }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState(false);
+  // every day the API has of the tile's series, keyed by the series
+  const [all, setAll] = useState<{ key: string; rows: Row[]; at: number } | null>(null);
+  const now = useNow();
+  const { boardId, api, readOnly } = ctx;
+  const key = JSON.stringify(tile.series);
+  const win = `${tile.days ?? ""}|${tile.from ?? ""}|${tile.to ?? ""}`;
+  // held across the store's other writes, so the charts keep their layout
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const visual = useMemo(() => metricVisual(tile), [key, tile.stacked]);
+
+  const load = useCallback(async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setAll({ key, rows: await loadMetricTile(tile), at: Date.now() });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The stats API did not answer");
+    } finally {
+      setBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+
+  useEffect(() => {
+    if (!overlay) void load();
+  }, [overlay, load]);
+  const firstSignal = useRef(refreshSignal);
+  useEffect(() => {
+    if (overlay || refreshSignal === firstSignal.current) return;
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshSignal]);
+
+  // the window's days are kept for the next first paint; fresh rows are not an edit
+  useEffect(() => {
+    if (overlay || !all || all.key !== key) return;
+    api.updateTile(boardId, tile.id, { snapshot: metricSnapshot(tile, windowRows(all.rows, tile)) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all, win]);
+
+  const fresh = all?.key === key;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => (fresh ? windowRows(all.rows, tile) : (tile.snapshot?.rows ?? null)), [fresh, all, win, tile.snapshot]);
+  const at = fresh ? all.at : tile.snapshot?.at;
+  const snap: Snapshot | null = rows ? { columns: metricColumns(seriesLabels(tile.series)), rows, names: {}, at: at ?? Date.now() } : null;
+  const chains = metricChains(tile);
+
+  return (
+    <>
+      <div className="flex items-center gap-1.5">
+        {!readOnly && <Grip handle={handle} />}
+        {renaming ? (
+          <InlineName
+            value={metricTitle(tile)}
+            placeholder="Tile title"
+            onSave={(v) => {
+              api.updateTile(boardId, tile.id, { title: v.trim().slice(0, 80) || tile.title });
+              setRenaming(false);
+            }}
+            className="flex-1 px-1.5 py-0.5 text-[14.5px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50"
+          />
+        ) : (
+          <h3
+            onDoubleClick={readOnly ? undefined : () => setRenaming(true)}
+            className="min-w-0 flex-1 truncate text-[14.5px] font-medium tracking-tight text-zinc-900 dark:text-zinc-50"
+          >
+            {metricTitle(tile)}
+          </h3>
+        )}
+        {!!rows?.length && (
+          <button type="button" onClick={() => ctx.onRows(tile, snap)} className={iconBtn} aria-label={`Rows (${rows.length})`} title={`Rows (${formatNumber(rows.length)})`}>
+            <Rows3 className="h-3.5 w-3.5" />
+          </button>
+        )}
+        <button type="button" onClick={() => void load()} disabled={busy} className={iconBtn} aria-label="Refresh">
+          <RotateCw className={cn("h-3.5 w-3.5", busy && "animate-spin")} />
+        </button>
+        {!readOnly && <TileMenu tile={tile} ctx={ctx} onRename={() => setRenaming(true)} />}
+      </div>
+      <div className={cn("min-w-0 transition-opacity duration-300", busy && rows && "opacity-60")}>
+        {!rows && error && !busy ? (
+          <p className="flex h-56 items-center justify-center px-6 text-center font-mono text-[11px] text-zinc-400 dark:text-zinc-500">{error}</p>
+        ) : !rows ? (
+          <div aria-busy="true" className="flex h-56 flex-col justify-end gap-2 pb-2">
+            <span className="sr-only">Reading the stats API</span>
+            <div className="flex h-full items-end gap-2">
+              {[40, 62, 48, 80, 58, 72, 50, 66].map((h, i) => (
+                <span key={i} className="flex-1 animate-pulse rounded-sm bg-zinc-100 dark:bg-zinc-900" style={{ height: `${h}%`, animationDelay: `${i * 80}ms` }} />
+              ))}
+            </div>
+          </div>
+        ) : rows.length === 0 ? (
+          <p className="flex h-56 items-center justify-center font-mono text-[11px] text-zinc-400 dark:text-zinc-500">No days in this window</p>
+        ) : (
+          <QueryVisual visual={visual} rows={rows} names={{}} sym={ctx.sym} canDrill={false} onPick={() => {}} base={ctx.base} titles={false} cards={false} />
+        )}
+      </div>
+      <footer className="flex items-center justify-between gap-3 pr-6 font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">
+        {/* with no rows the error stands in the body */}
+        {error && !rows ? (
+          <span />
+        ) : error ? (
+          <span className="truncate text-[#E6212F]" title={error}>
+            {error}
+          </span>
+        ) : (
+          <span>{busy && !rows ? "Reading the stats API" : busy ? "Refreshing" : at ? `Refreshed ${ago(at, now)}` : "Waiting to read"}</span>
+        )}
+        <span className="shrink-0 truncate uppercase tracking-[0.14em]">
+          {chains ? `${chains} · ` : ""}
+          {windowText(tile)}
+        </span>
+      </footer>
+    </>
+  );
+}
+
 function NoteTileCard({ tile, ctx, handle, editing, onEditing }: { tile: NoteTile; ctx: TileCtx; handle?: Handle; editing: boolean; onEditing: (on: boolean) => void }) {
   const [draft, setDraft] = useState(tile.text);
   const ref = useRef<HTMLTextAreaElement>(null);
@@ -503,6 +662,8 @@ function TileFrame({
     >
       {tile.kind === "chart" ? (
         <ChartTileCard tile={tile} ctx={ctx} handle={handle} overlay={overlay} refreshSignal={refreshSignal} />
+      ) : tile.kind === "metric" ? (
+        <MetricTileCard tile={tile} ctx={ctx} handle={handle} overlay={overlay} refreshSignal={refreshSignal} />
       ) : (
         <NoteTileCard tile={tile} ctx={ctx} handle={handle} editing={editing && !overlay} onEditing={onEditing} />
       )}
@@ -629,11 +790,13 @@ function BoardCanvas({ board, props, api, sync, guest }: { board: Board; props: 
     base,
     api,
     readOnly,
-    onRows: (t) => {
-      const snap = t.snapshot;
+    onRows: (t, given) => {
+      const snap = given ?? t.snapshot;
       if (!snap) return;
       drillRun.current++;
-      setSheet([{ title: t.title || t.question, columns: snap.columns, rows: snap.rows, names: snap.names, visual: tileVisual(t), sql: t.sql, onOpen: t.drill && !isTxList(snap.columns) ? (r) => void drill(t, r, true) : undefined }]);
+      // the sheet shows a sub in place of the title and names the CSV by it, so the window rides in the title
+      if (t.kind === "metric") setSheet([{ title: `${metricTitle(t)} · ${windowText(t)}`, columns: snap.columns, rows: snap.rows, names: {}, visual: metricVisual(t) }]);
+      else setSheet([{ title: t.title || t.question, columns: snap.columns, rows: snap.rows, names: snap.names, visual: tileVisual(t), sql: t.sql, onOpen: t.drill && !isTxList(snap.columns) ? (r) => void drill(t, r, true) : undefined }]);
       setSheetOpen(true);
     },
     onMark: (t, row) => {
@@ -664,7 +827,7 @@ function BoardCanvas({ board, props, api, sync, guest }: { board: Board; props: 
     const t = api.addTile(board.id, noteTile());
     setEditing(t.id);
   };
-  const charts = tiles.filter((t) => t.kind === "chart").length;
+  const charts = tiles.filter((t) => t.kind !== "note").length;
   const frame = (t: Tile) => <TileFrame tile={t} ctx={ctx} editing={false} onEditing={() => {}} refreshSignal={refreshSignal} />;
 
   return (
@@ -785,7 +948,8 @@ function BoardCanvas({ board, props, api, sync, guest }: { board: Board; props: 
 
       {/* the quiet end of the board */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-900">
-        <p className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">Tiles run SQL written by an AI model; it may not be 100% accurate.</p>
+        {/* a metric tile reads the stats API, no model's SQL */}
+        {tiles.some((t) => t.kind === "chart") ? <p className="font-mono text-[10.5px] text-zinc-400 dark:text-zinc-500">Tiles run SQL written by an AI model; it may not be 100% accurate.</p> : <span />}
         {readOnly ? null : confirmDelete ? (
           <span className="flex items-center gap-3 font-mono text-[11px]">
             <span className="text-zinc-500">Delete this board?</span>

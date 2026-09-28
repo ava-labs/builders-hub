@@ -10,6 +10,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { useSession } from "next-auth/react";
 import { goneBoards, listBoards, mergeRemote, reidBoard, type Board, type MergeOut, type RemoteBoard } from "./board";
+import { bringPlaygrounds } from "./playground";
 
 export type SyncState = "off" | "loading" | "synced" | "error";
 
@@ -73,7 +74,7 @@ async function send(scope: string, s: ScopeSync, work: MergeOut): Promise<void> 
 
 /** a tile without its rows: the account keeps layouts, not results */
 function bare(t: Board["tiles"][number]) {
-  if (t.kind !== "chart") return t;
+  if (t.kind === "note") return t;
   const { snapshot: _rows, ...rest } = t;
   void _rows;
   return rest;
@@ -87,6 +88,9 @@ async function pull(scope: string, s: ScopeSync): Promise<void> {
     const { boards } = (await res.json()) as { boards: RemoteBoard[] };
     for (const r of boards) s.sent.set(r.id, Math.max(r.updatedAt, r.deletedAt ?? 0));
     const work = mergeRemote(scope, boards, true);
+    // the reader's Playground dashboards the account has never had come over, and go up with the rest
+    const known = new Set(boards.map((b) => b.id));
+    work.put.push(...(await bringPlaygrounds(scope, known).catch(() => [])));
     await send(scope, s, work);
     setState(s, "synced");
   } catch (e) {

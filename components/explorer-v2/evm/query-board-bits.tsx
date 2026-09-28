@@ -212,8 +212,9 @@ function Glyph({ tile }: { tile: Tile }) {
         <line x1="3" y1="16" x2="28" y2="16" className={ink} strokeWidth="1.2" strokeLinecap="round" />
       </svg>
     );
-  const panel = tile.panelIndex !== null ? tile.visual.panels[tile.panelIndex] : tile.visual.panels[0];
-  const kind = tile.view ?? panel?.kind ?? "table";
+  // a metric tile draws its first series' mark
+  const panel = tile.kind === "chart" ? (tile.panelIndex !== null ? tile.visual.panels[tile.panelIndex] : tile.visual.panels[0]) : undefined;
+  const kind = tile.kind === "metric" ? (tile.series[0]?.mark ?? "line") : (tile.view ?? panel?.kind ?? "table");
   if (kind === "flow")
     return (
       <svg viewBox="0 0 40 20" className="h-full w-full" preserveAspectRatio="none" aria-hidden>

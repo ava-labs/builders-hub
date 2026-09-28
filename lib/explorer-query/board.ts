@@ -10,6 +10,7 @@ import { useSyncExternalStore } from "react";
 import type { ColumnMeta } from "./clickhouse";
 import type { Drill, Names, QueryAnswer } from "./types";
 import type { Panel, VisualSpec } from "./visual";
+import { metricColumns, seriesLabels, type MetricKey } from "./stats-metrics";
 import { useBoardSync } from "./board-sync";
 // the gate lives with the targets, so a server page can read it too
 export { queryTarget } from "./target";
@@ -69,7 +70,37 @@ export interface NoteTile {
   order: number;
 }
 
-export type Tile = ChartTile | NoteTile;
+/** one daily series of a metric tile, as the stats API names it */
+export interface MetricSeries {
+  /** an EVM chain id, "all" (every chain at once) or "primary" (the Primary Network) */
+  chainId: string;
+  chainName: string;
+  metric: MetricKey;
+  mark: "bar" | "line" | "area";
+  axis: "left" | "right";
+}
+
+/** a chart of stats API series (stats-metrics.ts): what a Playground
+    dashboard's chart drew, brought over as a tile (playground.ts) */
+export interface MetricTile {
+  kind: "metric";
+  id: string;
+  title: string;
+  series: MetricSeries[];
+  stacked: boolean;
+  /** the last this many days; with neither this nor dates, every day there is */
+  days?: number | null;
+  /** fixed days, YYYY-MM-DD, both or neither; they win over days */
+  from?: string | null;
+  to?: string | null;
+  size: TileSize;
+  order: number;
+  snapshot?: Snapshot;
+}
+
+export type Tile = ChartTile | NoteTile | MetricTile;
+/** a change to one tile, of any kind */
+export type TilePatch = Partial<ChartTile> | Partial<NoteTile> | Partial<MetricTile>;
 
 export interface Board {
   id: string;
@@ -115,8 +146,9 @@ function parse(raw: string | null): Store {
 function write(store: Store): void {
   const attempts: ((t: Tile) => Tile)[] = [
     (t) => t,
-    (t) => (t.kind === "chart" && t.snapshot ? { ...t, snapshot: { ...t.snapshot, rows: t.snapshot.rows.slice(0, 100) } } : t),
-    (t) => (t.kind === "chart" ? { ...t, snapshot: undefined } : t),
+    // a chart's first rows lead; a metric tile's newest days are its last
+    (t) => (t.kind !== "note" && t.snapshot ? { ...t, snapshot: { ...t.snapshot, rows: t.kind === "metric" ? t.snapshot.rows.slice(-100) : t.snapshot.rows.slice(0, 100) } } : t),
+    (t) => (t.kind !== "note" ? { ...t, snapshot: undefined } : t),
   ];
   for (const shrink of attempts) {
     const next: Store = Object.fromEntries(Object.entries(store).map(([k, bs]) => [k, bs.map((b) => ({ ...b, tiles: b.tiles.map(shrink) }))]));
@@ -285,7 +317,9 @@ export function mergeRemote(scope: string, remote: RemoteBoard[], complete: bool
     const kept = new Map((l?.tiles ?? []).map((t) => [t.id, t]));
     const tiles = (r.tiles as Tile[]).map(normalTile).map((t) => {
       const old = kept.get(t.id);
-      return t.kind === "chart" && old?.kind === "chart" && old.snapshot && old.sql === t.sql ? { ...t, snapshot: old.snapshot } : t;
+      if (t.kind === "chart" && old?.kind === "chart" && old.snapshot && old.sql === t.sql) return { ...t, snapshot: old.snapshot };
+      if (t.kind === "metric" && old?.kind === "metric" && old.snapshot && sameMetrics(old, t)) return { ...t, snapshot: old.snapshot };
+      return t;
     });
     local.set(r.id, { id: r.id, name: r.name, createdAt: r.createdAt, updatedAt: r.updatedAt, tiles });
   }
@@ -301,6 +335,26 @@ export function mergeRemote(scope: string, remote: RemoteBoard[], complete: bool
   return out;
 }
 
+/** whether two metric tiles draw the same rows */
+function sameMetrics(a: MetricTile, b: MetricTile): boolean {
+  const key = (t: MetricTile) => JSON.stringify([t.series, t.days ?? null, t.from ?? null, t.to ?? null]);
+  return key(a) === key(b);
+}
+
+/* boards made elsewhere, as they are: their ids and times stay, so every
+   device that makes one makes the same board. One this device has, or
+   has deleted, is left out. Returns the boards it took in. */
+export function adoptBoards(scope: string, boards: Board[]): Board[] {
+  const store = parse(readRaw());
+  const have = new Set((store[scope] ?? []).map((b) => b.id));
+  const gone = goneBoards(scope);
+  const taken = boards.filter((b) => !have.has(b.id) && gone[b.id] === undefined);
+  if (!taken.length) return [];
+  store[scope] = [...(store[scope] ?? []), ...taken];
+  write(store);
+  return taken;
+}
+
 /** a tile goes to the end of the board */
 export function addTile(scope: string, boardId: string, tile: Tile): Tile {
   const placed = { ...tile, id: uid() };
@@ -308,7 +362,7 @@ export function addTile(scope: string, boardId: string, tile: Tile): Tile {
   return placed;
 }
 
-export function updateTile(scope: string, boardId: string, tileId: string, patch: Partial<ChartTile> | Partial<NoteTile>): void {
+export function updateTile(scope: string, boardId: string, tileId: string, patch: TilePatch): void {
   const apply = (b: Board): Board => ({ ...b, tiles: b.tiles.map((t) => (t.id === tileId ? ({ ...t, ...patch, id: t.id, kind: t.kind } as Tile) : t)) });
   // fresh rows are not an edit: the board keeps its time, and the account is not written
   if (Object.keys(patch).every((k) => k === "snapshot")) mutate(scope, (bs) => bs.map((b) => (b.id === boardId ? apply(b) : b)));
@@ -358,6 +412,11 @@ const TABLE_VISUAL: VisualSpec = {
 /** the rows a tile keeps, capped */
 export function snapshotOf(result: { columns: ColumnMeta[]; rows: Row[] }, names: Names, anchor?: string | null): Snapshot {
   return { columns: result.columns, rows: result.rows.slice(0, SNAPSHOT_ROWS), names, at: Date.now(), anchor: anchor ?? null };
+}
+
+/** the rows a metric tile keeps for its first paint: its window's newest days, capped as a chart's rows are */
+export function metricSnapshot(tile: MetricTile, rows: Row[]): Snapshot {
+  return { columns: metricColumns(seriesLabels(tile.series)), rows: rows.slice(-SNAPSHOT_ROWS), names: {}, at: Date.now() };
 }
 
 /** an answer, or one of its panels, as a tile; null when there is no SQL to run again */
@@ -420,7 +479,7 @@ function normalTile(t: Tile): Tile {
 
 /** tiles as another account keeps them (a shared board), in their order and drawable */
 export function sharedTiles(raw: unknown[]): Tile[] {
-  return (raw as Tile[]).filter((t) => t && (t.kind === "chart" || t.kind === "note")).map(normalTile).sort(byOrder);
+  return (raw as Tile[]).filter((t) => t && (t.kind === "chart" || t.kind === "note" || t.kind === "metric")).map(normalTile).sort(byOrder);
 }
 
 /* ------------------------------------------------------------------ */
@@ -519,7 +578,7 @@ export function useBoards(scope: string) {
     rename: (id: string, name: string) => renameBoard(scope, id, name),
     remove: (id: string) => deleteBoard(scope, id),
     addTile: (id: string, tile: Tile) => addTile(scope, id, tile),
-    updateTile: (id: string, tileId: string, patch: Partial<ChartTile> | Partial<NoteTile>) => updateTile(scope, id, tileId, patch),
+    updateTile: (id: string, tileId: string, patch: TilePatch) => updateTile(scope, id, tileId, patch),
     removeTile: (id: string, tileId: string) => removeTile(scope, id, tileId),
     duplicateTile: (id: string, tileId: string) => duplicateTile(scope, id, tileId),
     reorder: (id: string, ids: string[]) => reorderTiles(scope, id, ids),

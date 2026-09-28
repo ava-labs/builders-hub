@@ -20,3 +20,9 @@ export function askHref(network: string, chainSlug: string, q?: string, then: st
   for (const t of then) qs.append("then", t);
   return `${base}?${qs.toString().replace(/\+/g, "%20")}`;
 }
+
+/** the board a Playground dashboard becomes (playground.ts): the same id on every device */
+export const PLAYGROUND_PREFIX = "pg-";
+export function playgroundBoardId(dashboardId: string): string {
+  return `${PLAYGROUND_PREFIX}${dashboardId.replace(/[^A-Za-z0-9]/g, "")}`.slice(0, 40);
+}
