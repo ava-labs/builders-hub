@@ -50,15 +50,6 @@ export function LoginArtwork({ className = '', ...props }: React.SVGProps<SVGSVG
           opacity={layer.opacity}
         />
       ))}
-
-      <rect x="60" y="549" width="76" height="21" rx="10.5" fill="#FF838D" stroke="#FF394A" />
-      <text x="98" y="563" fill="#161617" fontSize="11" textAnchor="middle" fontFamily="Arial, sans-serif">
-        Avalanche
-      </text>
-      <rect x="471" y="119" width="87" height="21" rx="10.5" fill="#FF838D" stroke="#FF394A" />
-      <text x="514.5" y="133" fill="#161617" fontSize="11" textAnchor="middle" fontFamily="Arial, sans-serif">
-        Builders Hub
-      </text>
     </svg>
   );
 }
