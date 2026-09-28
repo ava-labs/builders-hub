@@ -58,7 +58,10 @@ export const UpdateExtendedProfileSchema = z
       .email("Invalid notification email.")
       .nullable()
       .optional(),
-    image: z.string().nullable().optional(),
+    image: z
+      .union([z.url({ protocol: /^https?$/ }), z.literal("")])
+      .nullable()
+      .optional(),
     country: z.string().nullable().optional(),
     linkedin_account: nullableProfileAccount(
       LINKEDIN_ACCOUNT_PATTERN,

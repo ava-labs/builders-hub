@@ -1,4 +1,5 @@
 import { HackathonEvaluationPhase } from "@prisma/client";
+import { z } from "zod";
 
 type EvaluationLike = {
   evaluator_id: string;
@@ -44,4 +45,18 @@ export function parseIsWinnerBody(body: {
   const value = body.isWinner ?? body.is_winner;
   if (typeof value === "boolean") return { ok: true, isWinner: value };
   return { ok: false, error: "is_winner (boolean) is required" };
+}
+
+/**
+ * Target phase for POST /api/events/[id]/evaluation-phase.
+ * A bodyless POST keeps its original meaning: advance to picking.
+ */
+const PhaseBody = z.object({
+  phase: z
+    .enum([HackathonEvaluationPhase.EVALUATION, HackathonEvaluationPhase.PICKING])
+    .default(HackathonEvaluationPhase.PICKING),
+});
+
+export function parsePhaseBody(body: unknown) {
+  return PhaseBody.safeParse(body ?? {});
 }

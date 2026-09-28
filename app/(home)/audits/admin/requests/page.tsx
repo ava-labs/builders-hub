@@ -10,8 +10,7 @@ interface AdminRequestsPageProps {
 }
 
 export default async function AuditAdminRequestsPage({ searchParams }: AdminRequestsPageProps) {
-  const denied = await denyIfNotAuditAdmin();
-  if (denied) return denied;
+  await denyIfNotAuditAdmin();
 
   const params = await searchParams;
   const parsed = adminRequestFiltersSchema.safeParse({

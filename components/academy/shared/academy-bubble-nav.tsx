@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { GraduationCap, Users } from 'lucide-react';
-import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 const AVALANCHE_LOGO_SRC =
     "https://qizat5l3bwvomkny.public.blob.vercel-storage.com/Avalanche_Logomark_Red.svg";
@@ -176,7 +176,7 @@ export function AcademyBubbleNav() {
     const pathname = usePathname();
     const router = useRouter();
     const { data: session } = useSession();
-    const canSeeTeam1 = hasTeam1AcademyAccess(session?.user?.custom_attributes);
+    const canSeeTeam1 = hasPermission(session, { resource: "academy:team1", action: "read" });
     const visibleAcademyItems = canSeeTeam1
         ? academyItems
         : academyItems.filter((item) => item.id !== "team1");

@@ -75,7 +75,7 @@ function buildSpecItems(view: AuditorRequestView): SpecItem[] {
                 ))}
                 {attachments.map((attachment) => (
                   <p key={attachment.href} className="break-all font-mono text-xs">
-                    <a href={attachment.href} rel="noreferrer" className="underline underline-offset-2">
+                    <a href={attachment.href} download rel="noreferrer" className="underline underline-offset-2">
                       {attachment.name}
                     </a>
                   </p>

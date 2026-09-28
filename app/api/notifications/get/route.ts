@@ -1,19 +1,13 @@
-import { getServerSession } from "next-auth";
-import { AuthOptions } from "@/lib/auth/authOptions";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { withAuth } from "@/lib/protectedRoute";
 
-type GetNotificationsBody = {
-  users: string[];
-};
 export const runtime: "nodejs" = "nodejs";
 
 const baseUrl: string | undefined = process.env.NEXT_PUBLIC_AVALANCHE_WORKERS_URL;
 const avalancheWokersApiKey: string | undefined =
   process.env.AVALANCHE_WORKERS_API_KEY;
 
-export async function POST(): Promise<Response> {
-  const session = await getServerSession(AuthOptions);
-  if (!session) return new Response("Unauthorized", { status: 401 });
+export const POST = withAuth(async (_req: NextRequest, _ctx: unknown, session) => {
   try {
     if (!baseUrl || !avalancheWokersApiKey) {
       return NextResponse.json({ error: "Failed" }, { status: 500 });
@@ -57,4 +51,4 @@ export async function POST(): Promise<Response> {
     }
     return NextResponse.json({}, { status: 200 });
   }
-}
+});

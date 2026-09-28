@@ -73,6 +73,10 @@ check_raw_anchors() {
       if echo "$line" | grep -q 'target='; then
         continue
       fi
+      # Skip file downloads (<a download>): not navigation, so <Link> is wrong
+      if echo "$line" | grep -q ' download[ >]'; then
+        continue
+      fi
       # Skip in-page fragment anchors (href="#..." or href={`#...`} / href={'#' ...})
       if echo "$line" | grep -q 'href="#\|href={`#\|href={'"'"'#'; then
         continue

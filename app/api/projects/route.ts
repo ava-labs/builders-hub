@@ -28,11 +28,20 @@ export const GET = withAuth(async (req: NextRequest, context: any, session: any)
 export const POST = withAuth(async (req: NextRequest, context: any, session: any) => {
   try {
     const body = await req.json();
-    
-    // Ensure the authenticated user is added as a member
-    const members = body.members || [];
+
+    // Only the caller's own entry may be CONFIRMED with a client-chosen role —
+    // anyone else listed is force-downgraded to a plain pending invite
+    // (matching what project/invite-member writes), so a caller can't
+    // silently attribute confirmed membership or an elevated role (e.g.
+    // "admin"/"lead") to another user without that user consenting.
+    const requestedMembers = body.members || [];
+    const members = requestedMembers.map((m: any) =>
+      m.user_id === session.user.id
+        ? { ...m, status: MemberStatus.CONFIRMED }
+        : { user_id: m.user_id, role: "Member", status: MemberStatus.PENDING }
+    );
     const userIsMember = members.some((m: any) => m.user_id === session.user.id);
-    
+
     if (!userIsMember) {
       // Add the authenticated user as a confirmed member
       members.push({
@@ -41,7 +50,7 @@ export const POST = withAuth(async (req: NextRequest, context: any, session: any
         status: MemberStatus.CONFIRMED,
       });
     }
-    
+
     const newProject = await createProjectWithMembers({
       ...body,
       members,

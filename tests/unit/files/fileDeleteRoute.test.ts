@@ -68,7 +68,7 @@ describe("DELETE /api/file", () => {
   });
 
   it("resolves a bare legacy key against BLOB_BASE_URL for admins", async () => {
-    sessionMock.mockResolvedValue({ user: { id: OWNER, custom_attributes: ["admin"] } });
+    sessionMock.mockResolvedValue({ user: { id: OWNER, custom_attributes: ["devrel"] } });
 
     const res = await remove({ fileName: "legacy-logo.png" });
 

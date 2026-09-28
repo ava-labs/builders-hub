@@ -4,6 +4,7 @@ import { HackathonHeader } from "@/types/hackathons";
 import { withAuth } from "@/lib/protectedRoute";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { canEditEvent } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 
 export async function GET(req: NextRequest, context: any) {
 
@@ -45,11 +46,25 @@ export const PUT = withAuth(async (req: NextRequest, context: any, session: any)
     const updateData = await req.json();
     const userId = session.user.id;
 
+    const existing = await getHackathon(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean' && Object.keys(updateData).length === 1) {
       const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
       return NextResponse.json(updatedHackathon);
     } else {
       const partialEditedHackathon = updateData as Partial<HackathonHeader>;
+      // Ownership fields: created_by is never client-settable; cohosts and
+      // organizers only by the creator or a platform admin, otherwise a cohost
+      // could take over the event and lock the creator out.
+      delete partialEditedHackathon.created_by;
+      const isOwner =
+        existing.created_by === userId || hasPermission(session, { resource: "platform", action: "admin" });
+      if (!isOwner) {
+        delete partialEditedHackathon.cohosts;
+        delete partialEditedHackathon.organizers;
+      }
       // Always use the URL path id — never let a body-supplied id redirect the
       // update to a different hackathon row or rename the primary key.
       const updatedHackathon = await updateHackathon(id, partialEditedHackathon, userId);
@@ -79,6 +94,10 @@ export const PATCH = withAuth(async (req: NextRequest, context: any, session: an
     const updateData = await req.json();
     const userId = session.user.id;
 
+    const existing = await getHackathon(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Hackathon not found" }, { status: 404 });
+    }
     if (updateData.hasOwnProperty('is_public') && typeof updateData.is_public === 'boolean') {
       const updatedHackathon = await updateHackathon(id, { is_public: updateData.is_public }, userId);
       return NextResponse.json(updatedHackathon);

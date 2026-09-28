@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/authSession";
 import { prisma } from "@/prisma/prisma";
 import {
-  canAccessEvaluationTools,
   canEvaluateHackathon,
   canReviewMiniGrants,
 } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/rolePermissions";
 import { MINI_GRANT_KEY } from "@/lib/grants/programs";
 import { VERDICTS as ALLOWED_VERDICTS, isVerdict } from "@/lib/evaluate/verdicts";
 
@@ -93,16 +93,30 @@ export async function POST(request: NextRequest) {
       // share this path but are scoped to devrel + assigned mini-grant judges.
       const formData = await prisma.formData.findUnique({
         where: { id: formDataId },
-        select: { origin: true },
+        select: { origin: true, project: { select: { hackaton_id: true } } },
       });
       if (!formData) {
         return NextResponse.json({ error: "Submission not found" }, { status: 404 });
       }
 
-      const allowed =
-        formData.origin === MINI_GRANT_KEY
-          ? await canReviewMiniGrants(session)
-          : canAccessEvaluationTools(session.user.custom_attributes);
+      // Scoped per-hackathon, mirroring the projectId path below: a judge's
+      // global "judge" custom_attribute is NOT sufficient on its own — they
+      // must be devrel or hold a HackathonJudge row for THIS submission's
+      // hackathon (see canEvaluateHackathon / lib/auth/routeManifest.ts).
+      let allowed: boolean;
+      if (formData.origin === MINI_GRANT_KEY) {
+        allowed = await canReviewMiniGrants(session);
+      } else if (formData.project.hackaton_id) {
+        allowed = await canEvaluateHackathon(session, formData.project.hackaton_id);
+      } else {
+        // Not attached to any hackathon — no per-resource judge assignment
+        // is possible, so only a platform admin (devrel) may
+        // evaluate it.
+        allowed = hasPermission(session, {
+          resource: "platform",
+          action: "admin",
+        });
+      }
       if (!allowed) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }

@@ -5,8 +5,7 @@ import { RequestsTable } from "@/components/audits/admin/RequestsTable";
 import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 export default async function AuditAdminOverviewPage() {
-  const denied = await denyIfNotAuditAdmin();
-  if (denied) return denied;
+  await denyIfNotAuditAdmin();
 
   const [overview, requests] = await Promise.all([
     getAdminOverview(),

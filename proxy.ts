@@ -1,14 +1,29 @@
 import { getToken } from "next-auth/jwt";
-import { NextRequestWithAuth, withAuth } from "next-auth/middleware";
-import { NextMiddlewareResult } from "next/dist/server/web/types";
 import { NextRequest, NextResponse } from "next/server";
-import { hasTeam1AcademyAccess } from "@/lib/auth/roles";
-import { PROTECTED_PATHS } from "@/lib/auth/protected-paths";
+import { matchRoute } from "@/lib/auth/routeManifest";
+import { actionFromMethod, rolesHavePermission } from "@/lib/auth/rolePermissions";
 
-export async function proxy(req: NextRequest) {
-  const pathname = req.nextUrl.pathname;
-  const response = NextResponse.next();
-  response.headers.set("Access-Control-Allow-Origin", "*");
+function appendVary(response: Response, value: string): void {
+  const current = response.headers.get("Vary");
+  if (!current) {
+    response.headers.set("Vary", value);
+    return;
+  }
+  const values = current.split(",").map((part) => part.trim());
+  if (!values.includes(value)) {
+    response.headers.set("Vary", `${current}, ${value}`);
+  }
+}
+
+function applyCorsHeaders(response: Response, requestOrigin: string | null): Response {
+  const allowedOrigin = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+
+  if (requestOrigin === allowedOrigin) {
+    response.headers.set("Access-Control-Allow-Origin", allowedOrigin);
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+    appendVary(response, "Origin");
+  }
+
   response.headers.set(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"
@@ -18,150 +33,108 @@ export async function proxy(req: NextRequest) {
     "Content-Type, Authorization"
   );
 
+  return response;
+}
+
+export async function proxy(req: NextRequest) {
+  const pathname = req.nextUrl.pathname;
+  const requestOrigin = req.headers.get("origin");
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204 });
+    return applyCorsHeaders(new Response(null, { status: 204 }), requestOrigin);
   }
 
-  // Team1 raw markdown API: the only branch we can't express through the
-  // canonical machinery below — it's an API (so it needs JSON responses
-  // instead of redirects/headers) and there is no client-side modal trigger
-  // in scope. Everything else for Team1 (HTML pages, markdown negotiation)
-  // is handled by adding /academy/team1 to PROTECTED_PATHS + the
-  // authenticated branch below.
-  if (pathname.startsWith('/api/raw/academy/team1')) {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const attrs = (token.custom_attributes as string[]) ?? [];
-    if (!hasTeam1AcademyAccess(attrs)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    // Access OK: fall through to the normal flow.
-  }
+  // ── Content negotiation: serve markdown when Accept: text/markdown ────────
+  const contentPrefixes = ["/docs/", "/academy/", "/blog/", "/integrations/"];
+  const isContentPath = contentPrefixes.some((prefix) =>
+    pathname.startsWith(prefix)
+  );
+  const acceptHeader = req.headers.get("accept") || "";
+  const wantsMarkdown = acceptHeader.includes("text/markdown");
 
-  // Content negotiation: serve markdown when Accept: text/markdown is requested
-  const contentPrefixes = ['/docs/', '/academy/', '/blog/', '/integrations/'];
-  const isContentPath = contentPrefixes.some(prefix => pathname.startsWith(prefix));
-  const acceptHeader = req.headers.get('accept') || '';
-  const wantsMarkdown = acceptHeader.includes('text/markdown');
-
-  // Paths that must not take the markdown bypass shortcut. They flow into
-  // the canonical auth machinery instead. We include /academy/team1 here so
-  // that an anonymous `curl -H "Accept: text/markdown" /academy/team1/...`
-  // does NOT get rewritten to /api/raw/...; it falls through and hits the
-  // protected-paths block which returns x-auth-required.
-  const protectedAcademySuffixes = ['/get-certificate', '/certificate'];
+  // NOT an auth check — this exists to stop the rewrite below from bypassing
+  // one. NextResponse.rewrite() resolves inside THIS middleware invocation and
+  // the target is never re-run through middleware, so rewriting
+  // /academy/team1/x -> /api/raw/academy/team1/x would skip the manifest check
+  // entirely, no matter how that raw path is declared. Refusing the rewrite is
+  // the only thing that prevents it. Same for the certificate suffixes.
+  const protectedAcademySuffixes = ["/get-certificate", "/certificate"];
   const isProtectedAcademyPath =
-    pathname.startsWith('/academy/team1') ||
-    (pathname.startsWith('/academy/') &&
-      protectedAcademySuffixes.some(suffix => pathname.endsWith(suffix)));
+    pathname.startsWith("/academy/team1") ||
+    (pathname.startsWith("/academy/") &&
+      protectedAcademySuffixes.some((suffix) => pathname.endsWith(suffix)));
 
   if (wantsMarkdown && isContentPath && !isProtectedAcademyPath) {
     const apiUrl = new URL(`/api/raw${pathname}`, req.url);
     const rewriteResponse = NextResponse.rewrite(apiUrl);
-    rewriteResponse.headers.set('Vary', 'Accept');
-    return rewriteResponse;
+    rewriteResponse.headers.set("Vary", "Accept");
+    return applyCorsHeaders(rewriteResponse, requestOrigin);
   }
 
-  // For content paths without markdown request, add Vary header and pass through
   if (isContentPath && !isProtectedAcademyPath) {
     const contentResponse = NextResponse.next();
-    contentResponse.headers.set('Vary', 'Accept');
-    return contentResponse;
+    contentResponse.headers.set("Vary", "Accept");
+    return applyCorsHeaders(contentResponse, requestOrigin);
   }
+
+  // ── Route manifest check ──────────────────────────────────────────────────
+  // Team1 Academy access is an ordinary academy:team1 permission and is
+  // declared in the manifest like everything else.
+  const matched = matchRoute(pathname);
+
+  // Public route, or one explicitly carved out of a wildcard gate because its
+  // handler authorizes by a mechanism the Edge cannot see (see RouteConfig.public).
+  if (!matched || matched.public) return applyCorsHeaders(NextResponse.next(), requestOrigin);
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
-  const isLoginPage = pathname === "/login";
-  const isShowCase = pathname.startsWith("/showcase");
-  const isSendNotifications = pathname.startsWith("/send-notifications");
-  const custom_attributes = token?.custom_attributes as string[] ?? []
+  const isApi = pathname.startsWith("/api/");
 
-  const isProtectedPath = PROTECTED_PATHS.some(path => pathname.startsWith(path));
-
-  // Protect routes: block unauthenticated access to protected paths without redirecting
-  // The client-side component (AutoLoginModalTrigger) will detect this and show the login modal
-  if (!isAuthenticated && !isLoginPage && isProtectedPath) {
-    // If it's /events/edit, redirect to home
-    if (pathname.startsWith("/hackathons/edit") || pathname.startsWith("/events/edit")) {
-      return NextResponse.redirect(new URL("/", req.url));
+  // ── Unauthenticated ───────────────────────────────────────────────────────
+  if (!isAuthenticated) {
+    if (isApi) {
+      return applyCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), requestOrigin);
     }
-    // Block access by setting a header, but allow the request to continue
-    // The page will render but the client will show the login modal
-    const blockedResponse = NextResponse.next();
-    blockedResponse.headers.set("x-auth-required", "true");
-    return blockedResponse;
+    // UI routes render as-is; the page shows a placeholder and the client
+    // opens the login modal on PROTECTED_PATHS (lib/auth/protected-paths.ts).
+    return applyCorsHeaders(NextResponse.next(), requestOrigin);
   }
 
-  if (isAuthenticated) {
-    if (isLoginPage)
-      return NextResponse.redirect(new URL("/", req.url));
+  // ── authOnly route — any session is enough ────────────────────────────────
+  if (matched.authOnly) return applyCorsHeaders(NextResponse.next(), requestOrigin);
 
-    if (isShowCase && !custom_attributes.includes('showcase'))
-      return NextResponse.redirect(new URL("/events", req.url))
+  // ── Permission check ──────────────────────────────────────────────────────
+  const action = matched.action ?? actionFromMethod(req.method);
+  const attrs = (token.custom_attributes as string[]) ?? [];
 
-    if (isSendNotifications && !(custom_attributes.includes('devrel') || custom_attributes.includes('notify_event')))
-      return NextResponse.redirect(new URL("/", req.url))
-
-    if (pathname.startsWith("/academy/team1") && !hasTeam1AcademyAccess(custom_attributes))
-      return NextResponse.redirect(new URL("/", req.url))
-
-    // Protect hackathons/edit and events/edit routes - only team1-admin and hackathonCreator can access
-    if (pathname.startsWith("/hackathons/edit") || pathname.startsWith("/events/edit")) {
-      const hasRequiredPermissions = custom_attributes.includes("team1-admin") ||
-                                   custom_attributes.includes("hackathonCreator")  ||
-                                   custom_attributes.includes("devrel");
-      if (!hasRequiredPermissions) {
-        return NextResponse.redirect(new URL("/", req.url));
-      }
+  // matched.scope is set on routes whose real check is a DB-backed policy
+  // helper in the handler; passing it keeps scoped roles from being 403'd here
+  // on objects they legitimately own. See RouteConfig.scope.
+  if (!rolesHavePermission(attrs, { resource: matched.resource!, action, scope: matched.scope })) {
+    if (isApi) {
+      return applyCorsHeaders(NextResponse.json(
+        { error: "Forbidden", required: `${matched.resource}:${action}` },
+        { status: 403 }
+      ), requestOrigin);
     }
-
-    // For authenticated users on protected paths, use withAuth to ensure protection
-    if (isProtectedPath) {
-      return withAuth(
-        (authReq: NextRequestWithAuth): NextMiddlewareResult => {
-          return NextResponse.next();
-        },
-        {
-          pages: {
-            signIn: "/login",
-          },
-          callbacks: {
-            authorized: ({ token }) => !!token,
-          }
-        }
-      )(req as NextRequestWithAuth, {} as any);
-    }
+    return applyCorsHeaders(NextResponse.redirect(new URL("/", req.url)), requestOrigin);
   }
 
-  // For non-protected paths or unauthenticated users on non-protected paths, allow access
-  return NextResponse.next();
+  return applyCorsHeaders(NextResponse.next(), requestOrigin);
 }
 
 export const config = {
   matcher: [
-    // Auth-protected paths
-    "/hackathons/registration-form/:path*",
-    "/hackathons/project-submission/:path*",
-    "/hackathons/edit/:path*",
-    "/events/registration-form/:path*",
-    "/events/project-submission/:path*",
-    "/events/edit/:path*",
-    "/showcase/:path*",
-    "/send-notifications/:path*",
-    "/login/:path*",
-    "/profile/:path*",
-    "/academy/:path*/get-certificate",
-    "/academy/:path*/certificate",
-    "/console/utilities/data-api-keys",
-    "/grants/:path+",
-    // Content paths for Accept: text/markdown negotiation
-    "/docs/:path*",
-    "/academy/:path*",
-    "/blog/:path*",
-    "/integrations/:path*",
-    // Team1 raw markdown API
-    "/api/raw/academy/team1/:path*",
+    /*
+     * Match all paths except:
+     *  - _next/static  (static assets)
+     *  - _next/image   (image optimisation)
+     *  - favicon.ico
+     *  - Files with an extension (e.g. .png, .js)
+     *
+     * Content paths (/docs, /academy, /blog, /integrations) are included so
+     * markdown content-negotiation can run before auth checks.
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)",
   ],
 };

@@ -25,6 +25,8 @@ const ATTACKER = 'bbbbbbbb-5555-6666-7777-888888888888';
 // Real User ids are Prisma cuids (`@default(cuid())`), not UUIDs.
 const CUID_OWNER = 'cmkd7xsmd0000k104ejq2x28i';
 // The host is never read: these helpers parse the path only.
+// Holds platform:admin (devrel is the only such role today).
+const ADMIN_SESSION = { user: { custom_attributes: ['devrel'] } };
 const VICTIM_URL = `https://example.com/${VICTIM}/9f8e7d6c.png`;
 
 beforeEach(() => {
@@ -79,7 +81,7 @@ describe('canUserDeleteFile', () => {
     projectFindFirst.mockResolvedValue({ id: 'attacker-project' });
     memberFindFirst.mockResolvedValue({ id: 'm1' });
 
-    const allowed = await canUserDeleteFile(VICTIM_URL, ATTACKER, []);
+    const allowed = await canUserDeleteFile(VICTIM_URL, ATTACKER, null);
 
     expect(allowed).toBe(false);
     // The spoofable lookup is not even consulted.
@@ -87,19 +89,19 @@ describe('canUserDeleteFile', () => {
   });
 
   it('allows the uploader to delete their own blob', async () => {
-    const allowed = await canUserDeleteFile(VICTIM_URL, VICTIM, []);
+    const allowed = await canUserDeleteFile(VICTIM_URL, VICTIM, null);
     expect(allowed).toBe(true);
     expect(projectFindFirst).not.toHaveBeenCalled();
   });
 
   it('allows a cuid-id uploader to delete their own blob', async () => {
     const url = `https://example.com/${CUID_OWNER}/a845fcb0-x.png`;
-    expect(await canUserDeleteFile(url, CUID_OWNER, [])).toBe(true);
-    expect(await canUserDeleteFile(url, 'cmkd7xsmd0000k104ejq2x99z', [])).toBe(false);
+    expect(await canUserDeleteFile(url, CUID_OWNER, null)).toBe(true);
+    expect(await canUserDeleteFile(url, 'cmkd7xsmd0000k104ejq2x99z', null)).toBe(false);
   });
 
   it('allows an admin', async () => {
-    const allowed = await canUserDeleteFile(VICTIM_URL, ATTACKER, ['admin']);
+    const allowed = await canUserDeleteFile(VICTIM_URL, ATTACKER, ADMIN_SESSION);
     expect(allowed).toBe(true);
   });
 
@@ -107,20 +109,20 @@ describe('canUserDeleteFile', () => {
   // stand in for one is exactly what an attacker can forge. Admin-only is the
   // only answer that cannot be spoofed.
   it('refuses a legacy unprefixed key for a non-admin', async () => {
-    const allowed = await canUserDeleteFile('legacy-logo.png', ATTACKER, []);
+    const allowed = await canUserDeleteFile('legacy-logo.png', ATTACKER, null);
     expect(allowed).toBe(false);
     // The spoofable lookup is not reached at all.
     expect(projectFindFirst).not.toHaveBeenCalled();
   });
 
   it('allows an admin to delete a legacy unprefixed key', async () => {
-    const allowed = await canUserDeleteFile('legacy-logo.png', ATTACKER, ['admin']);
+    const allowed = await canUserDeleteFile('legacy-logo.png', ATTACKER, ADMIN_SESSION);
     expect(allowed).toBe(true);
   });
 
   it('cannot be spoofed by planting a project row for a legacy key', async () => {
     projectFindFirst.mockResolvedValue({ id: 'attacker-project' });
     memberFindFirst.mockResolvedValue({ id: 'm1' });
-    expect(await canUserDeleteFile('legacy-logo.png', ATTACKER, [])).toBe(false);
+    expect(await canUserDeleteFile('legacy-logo.png', ATTACKER, null)).toBe(false);
   });
 });

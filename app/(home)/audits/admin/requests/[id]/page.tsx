@@ -15,8 +15,7 @@ export default async function AuditAdminDrilldownPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const denied = await denyIfNotAuditAdmin();
-  if (denied) return denied;
+  await denyIfNotAuditAdmin();
 
   const { id } = await params;
   const detail = await getAdminRequestDetail(id);
