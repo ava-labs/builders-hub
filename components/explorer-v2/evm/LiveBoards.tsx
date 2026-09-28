@@ -67,12 +67,12 @@ export function phaseOf(number: number, executedHeight: number | null, settledHe
 }
 
 const PHASE_TITLE: Record<Phase, string> = {
-  accepted: "final: accepted by consensus; state root pending",
-  executed: "final: state root pending, committed by a later block",
+  accepted: "final: accepted by consensus; executing",
+  executed: "final: executed; a later block commits the state root",
   settled: "final: state root committed",
 };
 
-/** The state root as one mark and one word. Pending: a light gray dot
+/** The state root as one mark and one word. Executing: a light gray dot
  *  that breathes, every dot on the page in the same phase, because they
  *  are all the same wait. Committed: the dot settles solid and darker and
  *  the word turns over. No bar, no fill: the commit lands whenever the
@@ -126,7 +126,7 @@ export function PhaseTrack({
       />
       {label && (
         <motion.span
-          key={committed ? "committed" : "pending"}
+          key={committed ? "committed" : "executing"}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: committed ? delayMs / 1000 : 0 }}
@@ -135,7 +135,7 @@ export function PhaseTrack({
             committed ? "text-zinc-500 dark:text-zinc-400" : "text-zinc-400 dark:text-zinc-500",
           )}
         >
-          {committed ? "committed" : "pending"}
+          {committed ? "committed" : "executing"}
         </motion.span>
       )}
     </span>
