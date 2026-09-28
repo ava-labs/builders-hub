@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { designVisual, visualSpecSchema, writeReading } from '@/lib/explorer-query/visual';
+import { designVisual, figures, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
 
 // a model call that hands the reading tool these callouts, as the model would
 type Call = { tools: { reading: { execute: (input: { callouts: string[] }) => Promise<unknown> } } };
@@ -189,5 +189,45 @@ describe('writeReading', () => {
     vi.mocked(generateText).mockImplementation(says(['Fees peaked at 9.39 AVAX.']));
     expect(await writeReading(input)).toEqual(['Fees peaked at 9.39 AVAX.']);
     expect(generateText).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('a share of the total', () => {
+  // L13b's hours: 10:00 and 11:00 hold 458,174 of 1,006,116, which is 45.54%
+  const values = [2268, 350250, 107924, 90000, 60000, 60000, 60000, 60000, 60000, 60000, 60000, 35674];
+  const hours = {
+    question: 'refine this: dollar value of deposits',
+    title: 'Aave deposit value, last 24 hours',
+    note: '',
+    symbol: 'AVAX',
+    columns: [{ name: 'hour', type: 'DateTime' }, { name: 'value_usd', type: 'Float64' }],
+    rows: values.map((v, i) => ({ hour: `2026-09-27 ${String(9 + i).padStart(2, '0')}:00:00`, value_usd: v })),
+    names: {},
+  };
+
+  it('is in Figures for the highest rows, one at a time and together, rounded by the usual rule', () => {
+    const line = figures(hours).find((f) => f.startsWith('value_usd'));
+    expect(line).toContain('share of the total: the highest 34.8%, then 10.7% and 8.9%; the highest two together 458174 (45.5%), the highest three 548174 (54.5%)');
+    // a rate's sum means nothing, so it has no share
+    expect(figures({ ...hours, columns: [hours.columns[0], { name: 'value_usd_rate', type: 'Float64' }], rows: hours.rows.map((r) => ({ hour: r.hour, value_usd_rate: r.value_usd })) }).join('\n')).not.toContain('share of the total');
+  });
+
+  it('a callout misses by less than its last digit reads the one Figures gives', () => {
+    const shares = sharesOf(hours);
+    expect(withShares('Hours 10:00 and 11:00 on Sep 27 together brought $458k, 45.6% of the total value.', shares)).toBe('Hours 10:00 and 11:00 on Sep 27 together brought $458k, 45.5% of the total value.');
+    expect(withShares('The 10:00 hour took in $350k, 34.8% of the $1.01M supplied.', shares)).toBe('The 10:00 hour took in $350k, 34.8% of the $1.01M supplied.');
+    // a share Figures does not give, and a percent that is no share of the total, stay as written
+    expect(withShares('Three wallets made 12.0% of the deposits.', shares)).toBe('Three wallets made 12.0% of the deposits.');
+    expect(withShares('Deposits rose 45.6% from 09:00.', shares)).toBe('Deposits rose 45.6% from 09:00.');
+  });
+
+  it('is brought to Figures\' rounding in the designer\'s callouts', async () => {
+    vi.mocked(generateText).mockReset();
+    vi.mocked(generateText).mockImplementationOnce((async (opts: { tools: { design: { execute: (input: unknown) => Promise<unknown> } } }) => {
+      await opts.tools.design.execute({ stats: [], panels: [{ title: 'Deposit value', kind: 'bar', x: 'hour', series: [{ column: 'value_usd', label: 'Deposit value', format: 'usd', axis: 'left', mark: 'auto', transform: 'none', dashed: false }], markers: [], bands: [], stacked: false, sortDir: 'desc', referenceLines: [], width: 'full' }], callouts: ['Hours 10:00 and 11:00 on Sep 27 together brought $458k, 45.6% of the total value.'] });
+      return {};
+    }) as unknown as typeof generateText);
+    const out = await designVisual({ ...hours, chart: { kind: 'bar' as const, x: 'hour', series: [{ column: 'value_usd', label: 'Deposit value' }] } });
+    expect(out.visual.callouts).toEqual(['Hours 10:00 and 11:00 on Sep 27 together brought $458k, 45.5% of the total value.']);
   });
 });

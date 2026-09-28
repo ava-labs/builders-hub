@@ -127,7 +127,7 @@ const ALL_ROWS = 100;
 /* how a reading speaks, for the designer's callouts and the reader's sentences alike: in the reader's
    words, in the right units, with the right verbs */
 const READER_RULES =
-  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. Figures says under Edges whether the first and last periods are complete: never call a partial or filling one a dip or a jump, and when one holds the highest value, name the highest complete period too; a period Edges calls complete is complete. With no Edges line, the first and last periods can be partial: never call them a dip or a jump. Call a span of time a period, an hour or a day, never a bucket. A whole-result figure that Figures puts in a row not shown belongs to that row: never pin it on a row shown. Say every, only, never, all or none about the rows only when all the rows are shown or Figures says it, and take largest, highest and lowest from Figures. A step is the change between neighbouring rows: quote the largest rise or fall from Figures, and call a change across several rows a change over that span, never a step. A share names its base, the thing the rows count: 7.8% of method calls, never of all transactions unless the rows count every transaction. Chain transfers (A to B, then B to C) only when the amounts match and the times follow in order; else name each transfer on its own. The note carries the caveats: a callout adds none, and never words the note's caveat another way. Counts are not amounts: say how much AVAX or value moved only from a column that holds amounts, never from a count of transactions. Write each address and hash in a callout in full, as the rows give it, and never shorten one: the page shortens it.";
+  "Write for a reader, not the database: no column names and no SQL words (rows displayed, first rows, sample, LIMIT, topic0, to_address), no 'hourly snapshot', and L1, never subnet. Units: an L1 validator's weight is a weight, never AVAX; gas_used summed over transactions is gas charged, not gas reserved; a total per day is not the size of one delegation. Verbs: an address pays or uses gas, it does not charge it; a validator sets a delegation fee. Figures says under Edges whether the first and last periods are complete: never call a partial or filling one a dip or a jump, and when one holds the highest value, name the highest complete period too; a period Edges calls complete is complete. With no Edges line, the first and last periods can be partial: never call them a dip or a jump. Call a span of time a period, an hour or a day, never a bucket. A whole-result figure that Figures puts in a row not shown belongs to that row: never pin it on a row shown. Say every, only, never, all or none about the rows only when all the rows are shown or Figures says it, and take largest, highest and lowest from Figures. A step is the change between neighbouring rows: quote the largest rise or fall from Figures, and call a change across several rows a change over that span, never a step. A share names its base, the thing the rows count: 7.8% of method calls, never of all transactions unless the rows count every transaction. Take a share of the total from Figures when it gives one, never from rounded figures, and round a percent to its last shown digit by the usual rule: 45.54% is 45.5%. Chain transfers (A to B, then B to C) only when the amounts match and the times follow in order; else name each transfer on its own. The note carries the caveats: a callout adds none, and never words the note's caveat another way. Counts are not amounts: say how much AVAX or value moved only from a column that holds amounts, never from a count of transactions. Write each address and hash in a callout in full, as the rows give it, and never shorten one: the page shortens it.";
 
 /* The reader never sees the SQL, so no reader text names its parts: a
    snake_case name (seen_7d, to_address, p_validator_versions), one of the
@@ -280,6 +280,43 @@ function shown(input: Pick<DesignInput, "names">, column: string, v: unknown): u
 /** a number as a model reads it: plain digits, six significant, never 1.2e+6 */
 const plain = (n: number) => (Number.isInteger(n) ? String(n) : String(Number(n.toPrecision(6))));
 
+/** a share as a reading quotes it, one decimal by the usual rule: 0.45539 is 45.5% */
+const pct = (f: number) => `${(Math.round(f * 1000) / 10).toFixed(1)}%`;
+/** a figure whose sum means nothing: a rate, a price, an average, a share already */
+const RATE = /(?:^|_)(?:pct|percent|rate|ratio|share|price|avg|average|median|mean|apr|apy|bps|index|decimals|of_total)(?:_|$)/i;
+
+/** the figures of one column a reading names most, each with its share of the column's total: the highest, the
+    next two, and the highest two and three together. None when a share means nothing: a rate, a figure below
+    zero, rows the LIMIT cut, the rows' own label */
+function topShares(c: ColumnMeta, nums: { v: number }[], label: ColumnMeta | null, cut: boolean): { v: number; share: number }[] {
+  const sum = nums.reduce((t, x) => t + x.v, 0);
+  if (cut || !(sum > 0) || nums.some((x) => x.v < 0) || RATE.test(c.name) || c.name === label?.name) return [];
+  const top = nums.map((x) => x.v).sort((p, q) => q - p).slice(0, 3);
+  const sums = top.length === 3 ? [top[0] + top[1], top[0] + top[1] + top[2]] : [];
+  return [...top, ...sums].map((v) => ({ v, share: v / sum }));
+}
+
+/** every share Figures gives, in percent, for a callout's share to be held against */
+export function sharesOf(input: Seen): number[] {
+  const label = labelOf(input);
+  const cut = !!input.totals && input.totals.rows > input.rows.length;
+  return input.columns.flatMap((c) => {
+    const nums = input.rows.map((r) => numOf(c, r[c.name])).filter((v): v is number => v !== null).map((v) => ({ v }));
+    return nums.length ? topShares(c, nums, label, cut).map((s) => s.share * 100) : [];
+  });
+}
+
+/** a callout's share of the total that misses one Figures gives by less than its last digit reads that share,
+    rounded to the same digits: 45.6% of the total, where the highest two hold 45.54%, reads 45.5% */
+export function withShares(callout: string, shares: readonly number[]): string {
+  return callout.replace(/(?<![\d.])(\d{1,3})(?:\.(\d{1,2}))?%(?=\s+of\s+(?:the|all)\b)/g, (m, whole: string, dec: string | undefined) => {
+    const digits = dec?.length ?? 0;
+    const said = Number(dec ? `${whole}.${dec}` : whole);
+    const near = shares.filter((s) => Math.abs(s - said) < 10 ** -digits).sort((p, q) => Math.abs(p - said) - Math.abs(q - said))[0];
+    return near === undefined ? m : `${(Math.round(near * 10 ** digits) / 10 ** digits).toFixed(digits)}%`;
+  });
+}
+
 /** the column a row is known by: the chart's x, else a time, else the first text column */
 function labelOf(input: Seen): ColumnMeta | null {
   const { columns } = input;
@@ -351,6 +388,8 @@ export function figures(input: Seen): string[] {
       }
       // the next highest rows too, for when the highest is a bucket still filling
       const next = nums.filter((t) => t !== hi).sort((p, q) => q.v - p.v).slice(0, 2);
+      // the shares of the total those rows hold, so a callout quotes a share rather than divides rounded figures
+      const shared = topShares(c, nums, label, cut).length > 0;
       // a whole-result extreme past the rows shown, named by its own row, so a reading never pins it on a row shown
       const hidden = (v: number, where: string | undefined) => ` (${plain(v)}${where !== undefined && all?.label ? ` at ${all.label} ${where},` : ""} in a row not shown)`;
       const parts = [
@@ -360,6 +399,10 @@ export function figures(input: Seen): string[] {
         `min ${plain(lo.v)} at ${at(lo.r)}${all && all.min[c.name] < lo.v ? hidden(all.min[c.name], all.minAt?.[c.name]) : ""}`,
         `first ${plain(nums[0].v)}, last ${plain(nums[nums.length - 1].v)}`,
       ];
+      if (shared && next.length === 2) {
+        const [two, three] = [hi.v + next[0].v, hi.v + next[0].v + next[1].v];
+        parts.push(`share of the total: the highest ${pct(hi.v / sum)}, then ${pct(next[0].v / sum)} and ${pct(next[1].v / sum)}; the highest two together ${plain(two)} (${pct(two / sum)}), the highest three ${plain(three)} (${pct(three / sum)})`);
+      }
       const run = along && label && c.name !== label.name ? runOf(nums, label.name) : 0;
       if (run && nums.length > 2) {
         const seq = run > 0 ? nums : [...nums].reverse();
@@ -444,7 +487,8 @@ export async function writeReading(input: Omit<DesignInput, "chart">, again = tr
       // a callout that names a column or an address the rows do not hold, or that runs past CALLOUT_SHOWN as shown, is left out
       const names = input.columns.map((c) => c.name);
       const held = heldHex(input);
-      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).slice(0, 3);
+      const shares = sharesOf(input);
+      out = callouts.map((c) => c.replace(/\u2014/g, ",")).map(plainWords).filter((c) => codeWords(c, names).length === 0).map((c) => withFullHex(c, held)).filter((c): c is string => c !== null).filter((c) => shownLength(c) <= CALLOUT_SHOWN).map((c) => withShares(c, shares)).slice(0, 3);
       return { ok: true };
     },
   });
@@ -493,6 +537,7 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
 
   const seen = { ...input, x: input.x ?? input.chart.x };
   const sample = sampleOf(seen).rows;
+  const shares = sharesOf(seen);
   const cols = new Set(input.columns.map((c) => c.name));
 
   let visual: VisualSpec | null = null;
@@ -530,7 +575,9 @@ export async function designVisual(input: DesignInput): Promise<{ visual: Visual
       relabeled = true;
       return { error: `the labels or callouts have ${named.join(", ")}, words the page never shows: the reader never sees the columns, and a transaction is final, never settled. Use plain words ("Seen in 7 days", not seen_7d; final, not settled) and call design again.` };
     }
-    visual = readerSpec(spec, [...cols], heldHex(input));
+    // a share a callout misses by less than its last digit reads the one Figures gives
+    const read = readerSpec(spec, [...cols], heldHex(input));
+    visual = { ...read, callouts: read.callouts.map((c) => withShares(c, shares)) };
     return { ok: true };
   };
   const design = tool({
