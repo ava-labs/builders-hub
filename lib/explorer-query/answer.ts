@@ -11,7 +11,8 @@ import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type T
 import { fillDrill, nameRows } from "./enrich";
 import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
 import { isCChain, isFuji, targetOf } from "./target";
-import { getRecipe, putRecipe, recipeKey } from "./cache";
+import { getRecipe, putRecipe, recipeKey, type Recipe } from "./cache";
+import { fixedRecipe, fixedRoute } from "./fixed";
 import { versionLines } from "./sources";
 import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
 import { cutOf, newestSql, totalsOf } from "./cut";
@@ -98,57 +99,79 @@ function noAnswer(a: Ask, steps: number, outOfSteps = false): string {
   return "The query kept failing on the database, so there is no answer. Try a shorter window, or one figure at a time.";
 }
 
+/** a kept or a fixed recipe, run again for fresh rows: no model is asked. A fixed one has no key, so the page asks
+    for no layout and no reading; null when it no longer runs or finds nothing */
+async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number): Promise<QueryAnswer | null> {
+  try {
+    let sql = recipe.sql;
+    let run = await anchored(sql, a.chainId);
+    let result = await runQuery(run.sql);
+    if (result.rowCount === 0) throw new Error("empty");
+    // a time series the row cap cut from its latest end keeps its newest rows, from now on
+    const newest = newestSql(sql, result, recipe.chart.x);
+    if (newest) {
+      sql = newest;
+      run = await anchored(sql, a.chainId);
+      result = await runQuery(run.sql);
+      if (key) await putRecipe(key, { ...recipe, sql });
+    }
+    // rows that stop at the query's own LIMIT are cut too, not only rows at the cap
+    result.truncated ||= !!cutOf(sql, result.rowCount);
+    const cover = await coverage(a.chainId);
+    // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
+    const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
+    // rows that only reach their LIMIT leave nothing out
+    if (totals && totals.rows <= result.rowCount) result.truncated = false;
+    // a kept note loses any sentence that names the SQL's parts, and a kept title and note name the window the query reads
+    const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
+    const said = isFuji(a.chainId) ? words : withWindow(words, sql, result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
+    return {
+      anchor: run.anchor,
+      sources: run.sources,
+      title: said.title,
+      note: said.note,
+      sql,
+      chart: recipe.chart,
+      drill: recipe.drill,
+      result,
+      totals,
+      names,
+      visual: recipe.visual ?? basicVisual(recipe.chart, result.columns),
+      draftVisual: !recipe.visual,
+      coverage: cover,
+      key: key ?? undefined,
+      model: { steps: 0, ms: Date.now() - t0, tries: 0, writer: recipe.writer, cached: true, timings: [] },
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** the answer, without its layout when none is kept: the page asks for that next */
 export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const key = recipeKey(a.chainId, a.prompt, a.history);
   const t0 = Date.now();
 
+  // a suggestion of the other chain's goes there, as the model would send it
+  const route = a.history.length === 0 ? fixedRoute(a.chainId, a.prompt) : null;
+  if (route) return { title: "", note: "", sql: "", chart: { kind: "none", series: [] }, drill: null, result: null, names: {}, visual: null, coverage: null, route };
+
+  // a suggested question runs its fixed SQL: no model writes it or lays it out
+  const fixed = a.history.length === 0 ? fixedRecipe(a.chainId, a.prompt) : null;
+  if (fixed) {
+    a.emit({ type: "stage", stage: "cached", writer: fixed.writer });
+    const done = await fromRecipe(a, fixed, null, t0);
+    if (done) return done;
+    // a fixed query that no longer runs is a bug to fix here; the reader still gets an answer from the model
+    console.warn("[explorer-query] fixed SQL failed:", a.chainId, a.prompt);
+  }
+
   const recipe = a.fresh ? null : await getRecipe(key);
   if (recipe) {
     a.emit({ type: "stage", stage: "cached", writer: recipe.writer });
-    try {
-      let sql = recipe.sql;
-      let run = await anchored(sql, a.chainId);
-      let result = await runQuery(run.sql);
-      if (result.rowCount === 0) throw new Error("empty");
-      // a time series the row cap cut from its latest end keeps its newest rows, from now on
-      const newest = newestSql(sql, result, recipe.chart.x);
-      if (newest) {
-        sql = newest;
-        run = await anchored(sql, a.chainId);
-        result = await runQuery(run.sql);
-        await putRecipe(key, { ...recipe, sql });
-      }
-      // rows that stop at the query's own LIMIT are cut too, not only rows at the cap
-      result.truncated ||= !!cutOf(sql, result.rowCount);
-      const cover = await coverage(a.chainId);
-      // the totals read follows the main query and runs beside no other query on stats-api: naming the rows runs none
-      const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
-      // rows that only reach their LIMIT leave nothing out
-      if (totals && totals.rows <= result.rowCount) result.truncated = false;
-      // a kept note loses any sentence that names the SQL's parts, and a kept title and note name the window the query reads
-      const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
-      const said = isFuji(a.chainId) ? words : withWindow(words, sql, result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
-      return {
-        anchor: run.anchor,
-        sources: run.sources,
-        title: said.title,
-        note: said.note,
-        sql,
-        chart: recipe.chart,
-        drill: recipe.drill,
-        result,
-        totals,
-        names,
-        visual: recipe.visual ?? basicVisual(recipe.chart, result.columns),
-        draftVisual: !recipe.visual,
-        coverage: cover,
-        key,
-        model: { steps: 0, ms: Date.now() - t0, tries: 0, writer: recipe.writer, cached: true, timings: [] },
-      };
-    } catch {
-      /* the recipe no longer runs (a schema change) or finds nothing now; write it again */
-    }
+    const done = await fromRecipe(a, recipe, key, t0);
+    if (done) return done;
+    /* the recipe no longer runs (a schema change) or finds nothing now; write it again */
   }
 
   let schema: string;
