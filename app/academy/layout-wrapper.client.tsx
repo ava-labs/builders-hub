@@ -10,6 +10,7 @@ import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { AcademyLayoutClient } from './layout.client';
 import { DecorativeGrid } from '@/components/ui/decorative-grid';
 import { withModuleNumbers } from '@/components/academy/sidebar/module-numbers';
+import { RevealActiveSidebarItem } from '@/components/academy/sidebar/reveal-active-sidebar-item';
 
 type Tree = DocsLayoutProps['tree'];
 
@@ -67,6 +68,7 @@ export function AcademyDocsLayoutWrapper({
             <ForceMobileSidebar />
             <AcademyLayoutClient />
             <DocsNavbarToggle />
+            <RevealActiveSidebarItem />
             <DocsLayout {...academyOptions}>
                 {/*<span
                     className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"
