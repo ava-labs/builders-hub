@@ -1,3 +1,4 @@
+import l1ChainsData from "@/constants/l1-chains.json";
 import type { Recipe } from "./cache";
 import type { ChartSpec, Drill } from "./types";
 import type { VisualSpec } from "./visual";
@@ -6,7 +7,8 @@ import type { VisualSpec } from "./visual";
    layout the model wrote for each one (captured 2026-09-28), kept here so a
    click on a suggestion runs its SQL at once and asks no model, for the
    layout either. A question typed another way, or a follow-up, still goes
-   to the model. */
+   to the model. Every mainnet L1 shares one set, filled in with its own
+   chain id and token. */
 
 interface Fixed {
   q: string;
@@ -170,6 +172,84 @@ const PCHAIN: Fixed[] = [
   },
 ];
 
+/* The L1s' suggestions (L1_EXAMPLES): one set for every mainnet L1, captured
+   from Gunzilla (2026-09-28), with its chain id as {chain} and its drills'
+   fee column as {fee}, which name the asked chain and its own token */
+const L1: Fixed[] = [
+  {
+    q: "Daily transactions over the last 30 days, with reverts",
+    title: "Daily transactions in the last 30 days",
+    note: "Transactions per day with reverted ones and the revert rate, over the last 30 days. The current day is not over, so its last count is partial.",
+    sql: "SELECT toDate(block_time) AS t, count() AS txs, countIf(NOT success) AS reverted, round(100 * countIf(NOT success) / count(), 2) AS revert_pct FROM raw_txs WHERE chain_id = {chain} AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY GROUP BY t ORDER BY t WITH FILL STEP 1\nLIMIT 2000",
+    chart: { kind: "bar", x: "t", series: [{ column: "txs", label: "Transactions", unit: "txs" }, { column: "reverted", label: "Reverted", unit: "txs" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(`from`))) AS from_address, lower(concat('0x', hex(`to`))) AS to_address, concat('0x', hex(substring(input, 1, 4))) AS method_id, gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS {fee}, toUInt8(success) AS status FROM raw_txs WHERE chain_id = {chain} AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY AND toDate(block_time) = {{t}} ORDER BY block_time DESC LIMIT 50", title: "Transactions on {{t}}" },
+    visual: { stats: [{ label: "Transactions", column: "txs", agg: "sum", format: "compact", sub: "31 days" }, { label: "Peak day", column: "txs", agg: "max", format: "compact", sub: "Sep 6" }, { label: "Reverted", column: "reverted", agg: "sum", format: "number", sub: "1,540 on Sep 28" }, { label: "Peak revert rate", column: "revert_pct", agg: "max", format: "percent", sub: "Sep 28, day filling" }], panels: [{ title: "Daily transactions", kind: "bar", x: "t", series: [{ column: "txs", label: "Transactions", format: "compact", axis: "left", mark: "bar", transform: "none", dashed: false }], markers: [{ x: "2026-09-06", label: "Peak 519.5k" }], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }, { title: "Reverted per day", kind: "bar", x: "t", series: [{ column: "reverted", label: "Reverted", format: "number", axis: "left", mark: "bar", transform: "none", dashed: false }], markers: [{ x: "2026-09-28", label: "1,540 reverted" }], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "half" }, { title: "Revert rate", kind: "line", x: "t", series: [{ column: "revert_pct", label: "Revert rate", format: "percent", axis: "left", mark: "line", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "half" }], callouts: [] },
+  },
+  {
+    q: "Daily active addresses over the last 30 days",
+    title: "Daily active addresses, last 30 days",
+    note: "Active addresses are the senders and recipients of transactions, and the explorer's own charts count more roles, so their figure is higher. The current day is not over.",
+    sql: "SELECT toDate(block_time) AS t, uniqExactArray([`from`, `to`]) AS active_addresses, uniqExact(`from`) AS senders, count() AS txs FROM raw_txs WHERE chain_id = {chain} AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY GROUP BY t ORDER BY t WITH FILL TO toDate(now()) + 1 STEP 1\nLIMIT 2000",
+    chart: { kind: "line", x: "t", series: [{ column: "active_addresses", label: "Active addresses", unit: "addresses" }, { column: "senders", label: "Senders", unit: "addresses" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(`from`))) AS from_address, lower(concat('0x', hex(`to`))) AS to_address, concat('0x', hex(substring(input, 1, 4))) AS method_id, gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS {fee}, toUInt8(success) AS status FROM raw_txs WHERE chain_id = {chain} AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY AND toDate(block_time) = {{t}} ORDER BY block_time DESC LIMIT 50", title: "Transactions on {{t}}" },
+    visual: { stats: [{ label: "Peak active addresses", column: "active_addresses", agg: "max", format: "number", sub: "Aug 31" }, { label: "Daily average", column: "active_addresses", agg: "avg", format: "number", sub: "active addresses per day" }, { label: "Low", column: "active_addresses", agg: "min", format: "number", sub: "Sep 24" }, { label: "Transactions", column: "txs", agg: "sum", format: "number", sub: "over 31 days" }], panels: [{ title: "Daily active addresses", kind: "line", x: "t", series: [{ column: "active_addresses", label: "Active addresses", format: "number", axis: "left", mark: "auto", transform: "none", dashed: false }, { column: "senders", label: "Senders", format: "number", axis: "left", mark: "auto", transform: "none", dashed: true }], markers: [{ x: "2026-08-31", label: "Peak 20.3k" }, { x: "2026-09-24", label: "Low 10.1k" }, { x: "2026-09-15", label: "-8.4k from prior day" }], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }, { title: "Daily transactions", kind: "bar", x: "t", series: [{ column: "txs", label: "Transactions", format: "compact", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [{ x: "2026-09-06", label: "Peak 519k" }], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] },
+  },
+  {
+    q: "Top contracts by calls this week",
+    title: "Top contracts by calls this week",
+    note: "Contracts ranked by transactions sent to them since Monday, top 15 only. The current week is not over.",
+    sql: "SELECT lower(concat('0x', hex(`to`))) AS address, count() AS txs, countIf(NOT success) AS reverted, uniqExact(`from`) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_txs WHERE chain_id = {chain} AND block_time >= toMonday(now()) AND `to` IS NOT NULL AND length(input) >= 4 GROUP BY `to` ORDER BY txs DESC LIMIT 15",
+    chart: { kind: "bar", x: "address", series: [{ column: "txs", label: "Calls", unit: "txs" }, { column: "reverted", label: "Reverted", unit: "txs" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(`from`))) AS from_address, lower(concat('0x', hex(`to`))) AS to_address, concat('0x', hex(substring(input, 1, 4))) AS method_id, gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS {fee}, toUInt8(success) AS status FROM raw_txs WHERE chain_id = {chain} AND block_time >= toMonday(now()) AND `to` = {{address:bytes}} AND length(input) >= 4 ORDER BY block_time DESC LIMIT 50", title: "Transactions calling {{address}} this week" },
+    visual: { stats: [{ label: "Transactions", column: "txs", agg: "sum", format: "compact", sub: "top 15 of 18 contracts" }, { label: "Leader share", column: "share_pct", agg: "max", format: "percent", sub: "0x7052…c145 leads" }, { label: "Reverted", column: "reverted", agg: "sum", format: "number", sub: "all at one contract" }, { label: "Most senders", column: "senders", agg: "max", format: "compact", sub: "at 0x1c69…270a" }], panels: [{ title: "Calls per contract", kind: "hbar", x: "address", series: [{ column: "txs", label: "Transactions", format: "compact", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "txs", sortDir: "desc", topN: 15, referenceLines: [], width: "full" }, { title: "Senders per contract", kind: "hbar", x: "address", series: [{ column: "senders", label: "Senders", format: "compact", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "txs", sortDir: "desc", topN: 15, referenceLines: [], width: "half" }, { title: "Reverted per contract", kind: "hbar", x: "address", series: [{ column: "reverted", label: "Reverted", format: "number", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "txs", sortDir: "desc", topN: 15, referenceLines: [], width: "half" }], callouts: [] },
+  },
+  {
+    q: "New contracts deployed per day this month",
+    title: "New contracts deployed per day this month",
+    note: "Contract creations counted from creation calls in traces, since the start of the month. Days with no deployments are absent, and the current day is not over.",
+    sql: "SELECT toDate(block_time) AS t, count() AS contracts_deployed, countIf(NOT tx_success) AS reverted, uniqExact(tx_from) AS deployers FROM raw_traces WHERE chain_id = {chain} AND block_time >= toStartOfMonth(now()) AND startsWith(call_type, 'C' || 'REATE') GROUP BY t ORDER BY t\nLIMIT 2000",
+    chart: { kind: "bar", x: "t", series: [{ column: "contracts_deployed", label: "Contracts deployed", unit: "contracts" }, { column: "reverted", label: "Reverted", unit: "contracts" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(tx_hash)) AS tx_hash, lower(concat('0x', hex(tx_from))) AS from_address, lower(concat('0x', hex(`to`))) AS to_address, toUInt8(tx_success) AS status FROM raw_traces WHERE chain_id = {chain} AND block_time >= toStartOfMonth(now()) AND startsWith(call_type, 'C' || 'REATE') AND toDate(block_time) = {{t}} ORDER BY block_time DESC LIMIT 50", title: "Contract deployments on {{t}}" },
+    visual: { stats: [{ label: "Contracts deployed", column: "contracts_deployed", agg: "sum", format: "number", sub: "on Sep 2" }, { label: "Deployers", column: "deployers", agg: "max", format: "number", sub: "one address" }, { label: "Reverted", column: "reverted", agg: "sum", format: "number", sub: "no failed creations" }], panels: [{ title: "Contracts per day", kind: "bar", x: "t", series: [{ column: "contracts_deployed", label: "Contracts deployed", format: "number", axis: "left", mark: "bar", transform: "none", dashed: false }], markers: [{ x: "2026-09-02", label: "2 contracts" }], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] },
+  },
+  {
+    q: "Gas used per day over the last 30 days",
+    title: "Gas used per day, last 30 days",
+    note: "Total gas used by blocks each day over the last 30 days. The current day is not over, so its last figure is partial.",
+    sql: "SELECT toDate(block_time) AS t, sum(gas_used) AS block_gas_used, count() AS blocks FROM raw_blocks WHERE chain_id = {chain} AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY GROUP BY t ORDER BY t WITH FILL STEP 1\nLIMIT 2000",
+    chart: { kind: "bar", x: "t", series: [{ column: "block_gas_used", label: "Gas used", unit: "gas" }] },
+    drill: { sql: "SELECT block_number, block_time AS t, gas_used AS block_gas_used, gas_limit FROM raw_blocks WHERE chain_id = {chain} AND block_time >= toStartOfDay(now()) - INTERVAL 30 DAY AND toDate(block_time) = {{t}} ORDER BY gas_used DESC LIMIT 50", title: "Busiest blocks on {{t}}" },
+    visual: { stats: [{ label: "Gas used", column: "block_gas_used", agg: "sum", format: "gas", sub: "31 days" }, { label: "Daily average", column: "block_gas_used", agg: "avg", format: "gas", sub: "per day" }, { label: "Peak day", column: "block_gas_used", agg: "max", format: "gas", sub: "Sep 6" }, { label: "Blocks", column: "blocks", agg: "sum", format: "compact", sub: "avg 41.9k per day" }], panels: [{ title: "Gas used per day", kind: "line", x: "t", series: [{ column: "block_gas_used", label: "Gas used", format: "gas", axis: "left", mark: "line", transform: "none", dashed: false }, { column: "blocks", label: "Blocks", format: "compact", axis: "right", mark: "bar", transform: "none", dashed: false }], markers: [{ x: "2026-09-06", label: "Peak 84.6B gas" }, { x: "2026-09-24", label: "Low 44.3B gas" }], bands: [], stacked: false, sortDir: "desc", referenceLines: [], width: "full" }], callouts: [] },
+  },
+  {
+    q: "Busiest hours of the day this week",
+    title: "Busiest hours of the day this week",
+    note: "Transactions grouped by hour of day (UTC) since Monday; the current hour is not over, so today's latest hour is partial.",
+    sql: "SELECT toHour(block_time) AS hour_of_day, count() AS txs, countIf(NOT success) AS reverted, uniqExact(`from`) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct FROM raw_txs WHERE chain_id = {chain} AND block_time >= toMonday(now()) GROUP BY hour_of_day ORDER BY txs DESC\nLIMIT 2000",
+    chart: { kind: "bar", x: "hour_of_day", series: [{ column: "txs", label: "Transactions", unit: "txs" }, { column: "reverted", label: "Reverted", unit: "txs" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(`from`))) AS from_address, lower(concat('0x', hex(`to`))) AS to_address, concat('0x', hex(substring(input, 1, 4))) AS method_id, gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS {fee}, toUInt8(success) AS status FROM raw_txs WHERE chain_id = {chain} AND block_time >= toMonday(now()) AND toHour(block_time) = {{hour_of_day}} ORDER BY block_time DESC LIMIT 50", title: "Transactions in hour {{hour_of_day}} since Monday" },
+    visual: { stats: [{ label: "Transactions", column: "txs", agg: "sum", format: "compact", sub: "since Monday" }, { label: "Peak hour", column: "txs", agg: "max", format: "compact", sub: "16:00 UTC" }, { label: "Reverted", column: "reverted", agg: "sum", format: "number", sub: "478 at 17:00" }, { label: "Top hour share", column: "share_pct", agg: "max", format: "percent", sub: "of transactions" }], panels: [{ title: "Transactions per hour", kind: "bar", x: "hour_of_day", series: [{ column: "txs", label: "Transactions", format: "compact", axis: "left", mark: "bar", transform: "none", dashed: false }, { column: "senders", label: "Senders", format: "compact", axis: "right", mark: "line", transform: "none", dashed: false }], markers: [{ x: 16, label: "Peak 44.4k" }, { x: 8, label: "Low 7.2k" }], bands: [{ from: 13, to: 17, label: "Busy window" }], stacked: false, sortBy: "hour_of_day", sortDir: "asc", referenceLines: [], width: "full" }, { title: "Reverts per hour", kind: "bar", x: "hour_of_day", series: [{ column: "reverted", label: "Reverted", format: "number", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [{ x: 17, label: "Peak 478" }], bands: [], stacked: false, sortBy: "hour_of_day", sortDir: "asc", referenceLines: [], width: "full" }], callouts: [] },
+  },
+  {
+    q: "Token contracts by transfers this week",
+    title: "Token contracts by transfers this week",
+    note: "Transfer events since Monday, the top 15 token contracts by transfer count. ERC-20 and ERC-721 tokens share the event. The current week is not over.",
+    sql: "SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, uniqExact(tx_from) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = {chain} AND block_time >= toMonday(now()) AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15",
+    chart: { kind: "bar", x: "token", series: [{ column: "transfers", label: "Transfers", unit: "transfers" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_hash, lower(concat('0x', hex(substring(topic1, 13, 20)))) AS from_address, lower(concat('0x', hex(substring(topic2, 13, 20)))) AS to_address, lower(concat('0x', hex(raw_logs.address))) AS token FROM raw_logs WHERE chain_id = {chain} AND block_time >= toMonday(now()) AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') AND raw_logs.address = {{token:bytes}} ORDER BY block_time DESC LIMIT 50", title: "Transfers of {{token}} since Monday" },
+    visual: { stats: [{ label: "Transfers", column: "transfers", agg: "sum", format: "compact", sub: "since Monday" }, { label: "Leader share", column: "share_pct", agg: "max", format: "percent", sub: "of token transfers" }, { label: "Token contracts", column: "token", agg: "distinct", format: "number", sub: "with transfers" }, { label: "Senders", column: "senders", agg: "max", format: "compact", sub: "on leading token" }], panels: [{ title: "Transfers per token", kind: "hbar", x: "token", series: [{ column: "transfers", label: "Transfers", format: "compact", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "transfers", sortDir: "desc", referenceLines: [], width: "half" }, { title: "Senders per token", kind: "hbar", x: "token", series: [{ column: "senders", label: "Senders", format: "compact", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "transfers", sortDir: "desc", referenceLines: [], width: "half" }], callouts: [] },
+  },
+  {
+    q: "Busiest senders this week",
+    title: "Busiest senders since Monday",
+    note: "Top 15 sending accounts by transaction count since Monday, with reverted transactions and share of all transactions counted in that period. The current week is not over.",
+    sql: "SELECT lower(concat('0x', hex(`from`))) AS address, count() AS txs, countIf(NOT success) AS reverted, uniqExact(`to`) AS contracts, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_txs WHERE chain_id = {chain} AND block_time >= toMonday(now()) GROUP BY `from` ORDER BY txs DESC LIMIT 15",
+    chart: { kind: "bar", x: "address", series: [{ column: "txs", label: "Transactions", unit: "txs" }, { column: "reverted", label: "Reverted", unit: "txs" }] },
+    drill: { sql: "SELECT block_time AS t, block_number, concat('0x', hex(hash)) AS tx_hash, lower(concat('0x', hex(`from`))) AS from_address, lower(concat('0x', hex(`to`))) AS to_address, concat('0x', hex(substring(input, 1, 4))) AS method_id, gas_used AS gas_charged, toFloat64(gas_used) * gas_price / 1e18 AS {fee}, toUInt8(success) AS status FROM raw_txs WHERE chain_id = {chain} AND block_time >= toMonday(now()) AND `from` = {{address:bytes}} ORDER BY block_time DESC LIMIT 50", title: "Transactions from {{address}} since Monday" },
+    visual: { stats: [{ label: "Senders", column: "of_total", agg: "max", format: "compact", sub: "active since Monday" }, { label: "Transactions", column: "txs", agg: "sum", format: "compact", sub: "top 15 senders only" }, { label: "Share", column: "share_pct", agg: "sum", format: "percent", sub: "top 15, of all transactions" }, { label: "Reverted", column: "reverted", agg: "sum", format: "number", sub: "all from one sender" }], panels: [{ title: "Transactions per sender", kind: "hbar", x: "address", series: [{ column: "txs", label: "Transactions", format: "compact", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "txs", sortDir: "desc", topN: 15, referenceLines: [], width: "full" }, { title: "Share of transactions", kind: "hbar", x: "address", series: [{ column: "share_pct", label: "Share", format: "percent", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "share_pct", sortDir: "desc", topN: 15, referenceLines: [], width: "half" }, { title: "Reverted per sender", kind: "hbar", x: "address", series: [{ column: "reverted", label: "Reverted", format: "number", axis: "left", mark: "auto", transform: "none", dashed: false }], markers: [], bands: [], stacked: false, sortBy: "reverted", sortDir: "desc", topN: 15, referenceLines: [], width: "half" }], callouts: [] },
+  },
+];
+
 /** a question as recipeKey reads it: case, spacing and a closing mark do not matter */
 const norm = (q: string) => q.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
 
@@ -177,11 +257,26 @@ const BY_CHAIN = new Map<number, Map<string, Fixed>>([
   [43114, new Map(CCHAIN.map((f) => [norm(f.q), f]))],
   [1, new Map(PCHAIN.map((f) => [norm(f.q), f]))],
 ]);
+const BY_L1 = new Map(L1.map((f) => [norm(f.q), f]));
 
-/** a suggestion's fixed answer on mainnet, as a recipe; null for any other question or chain */
-export function fixedRecipe(chainId: number, prompt: string): Recipe | null {
-  const f = BY_CHAIN.get(chainId)?.get(norm(prompt));
-  return f ? { question: f.q, title: f.title, note: f.note, sql: f.sql, chart: f.chart, drill: f.drill, visual: f.visual, writer: "fixed SQL", at: 0 } : null;
+/* the chains the L1 set answers: each numeric chain id the catalog lists on mainnet and never on Fuji, but the
+   C-Chain's. A Fuji L1's suggestions go to the model as they did */
+const idsOn = (testnet: boolean) =>
+  new Set((l1ChainsData as { chainId: string | number; isTestnet?: boolean }[]).filter((c) => (c.isTestnet === true) === testnet && /^\d+$/.test(String(c.chainId))).map((c) => Number(c.chainId)));
+const FUJI_IDS = idsOn(true);
+const MAINNET_L1S = new Set([...idsOn(false)].filter((id) => id !== 43114 && !FUJI_IDS.has(id)));
+
+/** a drill's fee column, in the chain's own token: fee_gun on Gunzilla */
+const feeColumn = (symbol: string) => `fee_${symbol.toLowerCase().replace(/[^a-z0-9]/g, "") || "native"}`;
+
+/** a suggestion's fixed answer on mainnet, as a recipe; null for any other question or chain. An L1's is filled in
+    with the asked chain's id and token */
+export function fixedRecipe(chainId: number, prompt: string, symbol = ""): Recipe | null {
+  const own = BY_CHAIN.get(chainId)?.get(norm(prompt));
+  const f = own ?? (MAINNET_L1S.has(chainId) ? BY_L1.get(norm(prompt)) : undefined);
+  if (!f) return null;
+  const fill = (sql: string) => (own ? sql : sql.replaceAll("{chain}", String(chainId)).replaceAll("{fee}", feeColumn(symbol)));
+  return { question: f.q, title: f.title, note: f.note, sql: fill(f.sql), chart: f.chart, drill: f.drill && { ...f.drill, sql: fill(f.drill.sql) }, visual: f.visual, writer: "fixed SQL", at: 0 };
 }
 
 /** the chain a suggestion's fixed answer belongs to, when it is the other one: a P-Chain suggestion asked of the C-Chain */

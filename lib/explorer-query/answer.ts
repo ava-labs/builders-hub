@@ -122,13 +122,14 @@ function noAnswer(a: Ask, steps: number, outOfSteps = false): string {
 }
 
 /** a kept or a fixed recipe, run again for fresh rows: no model is asked. A fixed one has no key, so the page asks
-    for no layout and no reading; null when it no longer runs or finds nothing */
-async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number): Promise<QueryAnswer | null> {
+    for no layout and no reading; null when it no longer runs, or when a kept one finds nothing */
+async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number, emptyOk = false): Promise<QueryAnswer | null> {
   try {
     let sql = recipe.sql;
     let run = await anchored(sql, a.chainId);
     let result = await runQuery(run.sql);
-    if (result.rowCount === 0) throw new Error("empty");
+    // a kept recipe that finds nothing is written again; a suggestion's fixed SQL says it found nothing, and asks no model
+    if (result.rowCount === 0 && !emptyOk) throw new Error("empty");
     // a time series the row cap cut from its latest end keeps its newest rows, from now on
     const newest = newestSql(sql, result, recipe.chart.x);
     if (newest) {
@@ -179,10 +180,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   if (route) return { title: "", note: "", sql: "", chart: { kind: "none", series: [] }, drill: null, result: null, names: {}, visual: null, coverage: null, route };
 
   // a suggested question runs its fixed SQL: no model writes it or lays it out
-  const fixed = a.history.length === 0 ? fixedRecipe(a.chainId, a.prompt) : null;
+  const fixed = a.history.length === 0 ? fixedRecipe(a.chainId, a.prompt, a.symbol) : null;
   if (fixed) {
     a.emit({ type: "stage", stage: "cached", writer: fixed.writer });
-    const done = await fromRecipe(a, fixed, null, t0);
+    const done = await fromRecipe(a, fixed, null, t0, true);
     if (done) return done;
     // a fixed query that no longer runs is a bug to fix here; the reader still gets an answer from the model
     console.warn("[explorer-query] fixed SQL failed:", a.chainId, a.prompt);

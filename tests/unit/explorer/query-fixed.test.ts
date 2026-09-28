@@ -16,12 +16,17 @@ vi.mock('@/lib/explorer-query/sources', () => ({ versionLines: vi.fn(async () =>
 
 import { generateText } from 'ai';
 import { answerQuestion } from '@/lib/explorer-query/answer';
-import { EXAMPLES, PCHAIN_EXAMPLES } from '@/lib/explorer-query/examples';
+import { EXAMPLES, L1_EXAMPLES, PCHAIN_EXAMPLES } from '@/lib/explorer-query/examples';
 import { fixedRecipe, fixedRoute } from '@/lib/explorer-query/fixed';
 import { guardSql } from '@/lib/explorer-query/guard';
 
 const CCHAIN = EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
 const PCHAIN = PCHAIN_EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
+const L1 = L1_EXAMPLES.flatMap((g) => g.items.map((i) => i.q));
+// Gunzilla and Dexalot on mainnet, and Dexalot's L1 on Fuji
+const GUNZILLA = 43419;
+const DEXALOT = 432204;
+const DEXALOT_FUJI = 432201;
 const ROWS = { columns: [{ name: 'n', type: 'UInt64' }], rows: [{ n: 1 }], rowCount: 1, elapsedMs: 1, rowsRead: 1, truncated: false };
 const ask = (chainId: number, prompt: string) =>
   answerQuestion({ chainId, chainName: chainId === 1 ? 'P-Chain' : 'Avalanche C-Chain', symbol: 'AVAX', prompt, history: [], baseUrl: 'http://localhost:3000', emit: () => {} });
@@ -46,6 +51,29 @@ describe('the suggested questions', () => {
     expect(fixedRoute(1, CCHAIN[0])).toBe('c-chain');
     expect(fixedRoute(43114, CCHAIN[0])).toBeNull();
   });
+
+  it('on an L1 are one set, filled in with the asked chain and its token', () => {
+    for (const [chainId, symbol] of [[GUNZILLA, 'GUN'], [DEXALOT, 'ALOT']] as const) {
+      for (const q of L1) {
+        const r = fixedRecipe(chainId, q, symbol);
+        expect(r, q).not.toBeNull();
+        expect(guardSql(r!.sql, chainId).ok, q).toBe(true);
+        expect(r!.sql, q).toContain(`chain_id = ${chainId}`);
+        for (const sql of [r!.sql, r!.drill?.sql ?? '']) expect(sql, q).not.toMatch(/\{chain\}|\{fee\}/);
+        // a layout made on one chain says nothing of its figures on another
+        expect(r!.visual?.callouts, q).toEqual([]);
+      }
+    }
+    expect(fixedRecipe(DEXALOT, 'Busiest senders this week', 'ALOT')!.drill!.sql).toContain(' AS fee_alot,');
+    expect(fixedRecipe(DEXALOT, 'Busiest senders this week')!.drill!.sql).toContain(' AS fee_native,');
+  });
+
+  it('leave a Fuji L1, an unknown chain and the C-Chain to their own questions', () => {
+    expect(fixedRecipe(DEXALOT_FUJI, L1[0], 'ALOT')).toBeNull();
+    expect(fixedRecipe(999_999_999, L1[0])).toBeNull();
+    expect(fixedRecipe(43114, L1[0])).toBeNull();
+    expect(fixedRecipe(1, L1[0])).toBeNull();
+  });
 });
 
 describe('a suggestion asked', () => {
@@ -55,7 +83,7 @@ describe('a suggestion asked', () => {
   });
 
   it('runs its fixed SQL and asks no model, for the layout either', async () => {
-    for (const [chainId, qs] of [[43114, CCHAIN], [1, PCHAIN]] as const) {
+    for (const [chainId, qs] of [[43114, CCHAIN], [1, PCHAIN], [GUNZILLA, L1]] as const) {
       for (const q of qs) {
         const a = await ask(chainId, q);
         expect(a?.sql, q).toBe(fixedRecipe(chainId, q)!.sql);
@@ -75,12 +103,17 @@ describe('a suggestion asked', () => {
     expect(generateText).not.toHaveBeenCalled();
   });
 
-  it('goes to the model when its fixed SQL finds nothing, and a free question always does', async () => {
+  // a model runs only for what a reader typed: a suggestion that finds nothing says so
+  it('answers with no rows when its fixed SQL finds nothing, and a free question goes to the model', async () => {
     runQuery.mockResolvedValue({ ...ROWS, rows: [], rowCount: 0 });
-    await ask(43114, CCHAIN[0]);
-    expect(generateText).toHaveBeenCalledTimes(1);
+    for (const [chainId, q] of [[43114, CCHAIN[0]], [DEXALOT, L1[0]]] as const) {
+      const a = await ask(chainId, q);
+      expect(a?.result?.rowCount, q).toBe(0);
+      expect(a?.model?.writer, q).toBe('fixed SQL');
+    }
+    expect(generateText).not.toHaveBeenCalled();
     runQuery.mockResolvedValue(ROWS);
     await ask(43114, 'Transactions per hour today');
-    expect(generateText).toHaveBeenCalledTimes(2);
+    expect(generateText).toHaveBeenCalledTimes(1);
   });
 });
