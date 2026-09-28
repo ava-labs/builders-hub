@@ -11,7 +11,7 @@ import { RANGE_LABEL, type ExplorerRange } from "@/components/explorer-v2/time-r
 import l1ChainsData from "@/constants/l1-chains.json";
 import type { L1Chain } from "@/types/stats";
 
-/* The chains tab is the city, and the explorer's front door: one app
+/* The chains tab is the city, one tab from the explorer's front door: one app
    under the explorer's subnav, the network map as its canvas and the
    search, the directory, the figures and every chain's links and wallet
    setup inside it (city-app.tsx). On large screens it fills the window

@@ -67,8 +67,8 @@ interface ExplorerSubnavProps {
 
 /* The network scope's home — every ecosystem-wide facet hangs off it. */
 const NETWORK_HOME = "/explorer/mainnet";
-/* the explorer's front door: the city of every chain, with the explorer's search */
-const NETWORK_FRONT = `${NETWORK_HOME}/chains`;
+/* the city of every chain, with the explorer's search: one tab from the front door */
+const NETWORK_CITY = `${NETWORK_HOME}/chains`;
 
 /* Chain switcher — the dropdown that holds the whole ecosystem. The two
    system chains are pinned; the L1 list is validated against the P-Chain
@@ -115,7 +115,7 @@ function ChainSwitcher({
     {
       slug: "all-networks",
       name: "All Networks",
-      href: NETWORK_FRONT,
+      href: NETWORK_HOME,
     },
     {
       slug: "c-chain",
@@ -300,20 +300,20 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
   if (!chainSlug) {
     return [
       {
-        // the city leads: it is the explorer's front door, and the city's card names the two views City and Explorer
-        label: "City",
-        href: NETWORK_FRONT,
-        view: true,
-        // the network map, ICM and validator versions live on the chains tab; message pages light it too
-        isActive: (p) =>
-          p.startsWith(NETWORK_FRONT) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
-      },
-      {
+        // the explorer leads: it is the front door, and the city's card names the two views Explorer and City
         label: "Explorer",
         href: NETWORK_HOME,
         view: true,
         // the network stats live on the overview now
         isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
+      },
+      {
+        label: "City",
+        href: NETWORK_CITY,
+        view: true,
+        // the network map, ICM and validator versions live on the chains tab; message pages light it too
+        isActive: (p) =>
+          p.startsWith(NETWORK_CITY) || p.startsWith("/explorer/chains") || p.startsWith(`${NETWORK_HOME}/icm`) || p.startsWith(`${NETWORK_HOME}/validators`),
       },
       {
         label: "AVAX",

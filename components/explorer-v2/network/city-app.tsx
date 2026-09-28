@@ -36,7 +36,7 @@ import { onCityStood } from "@/components/explorer-v2/network/city-signal";
 import { toStatsChainId } from "@/lib/dedicated-stats";
 import type { L1Chain } from "@/types/stats";
 
-/* The Chains page as one app, and the explorer's front door: the city is
+/* The Chains page as one app, one tab from the explorer's front door: the city is
    the canvas, and everything a builder needs from a list of chains lives
    in it. The explorer's search stands over the city's top, its chips
    under it cutting the city to what they name. A panel at the left holds
