@@ -1,4 +1,4 @@
-import { CX, CY, TALL, type Node } from "@/components/explorer-v2/network/icm-map";
+import { CX, CY, H_TOP_MIN, TALL, validatorHeight, type Node } from "@/components/explorer-v2/network/icm-map";
 import { diceOf, TILT } from "@/components/explorer-v2/network/city-geometry";
 import { financePlan, type Front } from "./finance";
 import { civicPlan, stadiumPlan, STADIUMS } from "./culture";
@@ -20,11 +20,6 @@ export { noShapes, SHAPE_KEYS, type FormPart, type Plan, type ShapeKey } from ".
 /** the share of its lot a set's square reaches, as the map sizes it (icm-map.tsx): a talking set's, and a quiet one's */
 const LOT_TALKER = 0.4;
 const LOT_QUIET = 0.31;
-/** the map's validator scale (icm-map.tsx), so the choices that read a set's height hold when the Height switch turns */
-const H_MIN = 14;
-const H_MAX = 165;
-const H_POW = 0.4;
-const H_TOP_MIN = 100;
 /** the home camera looks straight on at the plate's front from 30 degrees up (Rig.tsx's HOME_POLAR): a line of sight to it runs to the front and rises this much a unit */
 const HOME_RISE = Math.tan(Math.PI / 6);
 /** the full temple front needs a set this tall on the validator scale and this wide: two storeys and six columns */
@@ -45,9 +40,10 @@ export function plannerOf(nodes: Node[]): (n: Node) => Plan | null {
     const near = Math.min(...nodes.filter((o) => o !== n).map((o) => Math.hypot(at(o)[0] - x, at(o)[1] - z)));
     return { lot, room: near - lot * LOT_TALKER * 1.05 - 2 };
   };
-  // the height a set stands at on the validator scale, whichever metric the Height switch draws
+  // the height a set stands at on the map's validator scale (icm-map.tsx), whichever metric the Height switch draws, so the
+  // choices that read a set's height hold when the switch turns
   const top = Math.max(H_TOP_MIN, ...nodes.map((n) => n.validators));
-  const standOf = (n: Node) => H_MIN + (H_MAX - H_MIN) * Math.pow(n.validators / top, H_POW);
+  const standOf = (n: Node) => validatorHeight(n.validators, top);
   // the skyline's landmarks, as the model counts them (the three tallest over TALL), on the validator scale
   const landmarks = new Set(
     ranked

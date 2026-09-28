@@ -109,11 +109,19 @@ export const PLATE_T = 12;
 export const CITY_REACH = PLATE - 96;
 const H_MIN = 14;
 const H_MAX = 165;
-/** height grows as the 0.4 power: 600 validators stands about 7x a set of 5, not 120x */
+/** on the ICM messages scale height grows as the 0.4 power, so the busiest set does not dwarf the rest */
 const H_POW = 0.4;
+/** on the validator scale each doubling of a set's validators adds about the same height, on a log curve with its knee
+    at 4: a set of 10 stands a third over a set of 5 (two storeys more, not one), and downtown still tops the city */
+const H_KNEE = 4;
 /** the validator scale's top is never under this: when the P-Chain's counts are
     missing, a new L1's stand-in count of 1 must not stand as the city's tallest */
-const H_TOP_MIN = 100;
+export const H_TOP_MIN = 100;
+
+/** a set's height on the validator scale, whose top is `top` validators; the 3D forms read it too (forms/index.ts) */
+export function validatorHeight(validators: number, top: number): number {
+  return H_MIN + ((H_MAX - H_MIN) * Math.log1p(Math.max(0, validators) / H_KNEE)) / Math.log1p(top / H_KNEE);
+}
 export const HUB_ID = "43114";
 /** the Primary Network's subnet, whose set is downtown's */
 const PRIMARY_SUBNET = "11111111111111111111111111111111LpoYY";
@@ -735,7 +743,7 @@ export function useCityData({ days, sizeBy }: { days: number; sizeBy: SizeBy }):
 
     const metric = (c: (typeof base)[number]) => (byMessages ? c.out + c.in : c.validators);
     const top = Math.max(byMessages ? 1 : H_TOP_MIN, ...base.map(metric));
-    const height = (c: (typeof base)[number]) => H_MIN + (H_MAX - H_MIN) * Math.pow(metric(c) / top, H_POW);
+    const height = (c: (typeof base)[number]) => (byMessages ? H_MIN + (H_MAX - H_MIN) * Math.pow(metric(c) / top, H_POW) : validatorHeight(metric(c), top));
 
     const hub = base.find((c) => c.id === HUB_ID);
     const hubH = hub ? height(hub) : 0;
