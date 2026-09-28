@@ -255,6 +255,30 @@ describe('a hex literal typed wrong', () => {
     expect(refused(`SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) AND address = aave_pool AND transaction_hash = ${stray.replace('0bcc', '0bcd')}`)).toBe('');
     expect(refused(q("unhex('b97ef9ef8734c71904d8002f8b6bc66dd9c48a6e')", stray))).toBe('');
   });
+
+  it("is held against the events of its own SELECT, so a price pool or sAVAX read by its address beside the Pool's events passes", () => {
+    // qaudit: the addresses were read over the whole query, so a lending query that read the WAVAX price pool in a WITH
+    // of its own was sent back as if it read the Pool's events there
+    const week = 'chain_id = 43114 AND block_time >= toMonday(now())';
+    const px = `px AS (SELECT toStartOfHour(block_time) AS h, count() AS swaps FROM raw_logs WHERE ${week} AND address = unhex('fae3f424a0a47706811521e3ee268f00cfb5c45e') AND topic0 = v3_swap GROUP BY h)`;
+    const savax = "unhex('2b2c81e08f1af8835a78bb2a90ae924ace0ea4be')";
+    const lb = "unhex('d446eb1660f766d533beceef890df7a69d26f7d1')";
+    for (const sql of [
+      `WITH ${px}, s AS (SELECT count() AS stakes FROM raw_logs WHERE ${week} AND address = ${savax} AND topic0 = submitted_t) SELECT toStartOfHour(block_time) AS t, count() AS supplies, any(s.stakes) AS stakes FROM raw_logs CROSS JOIN s WHERE ${week} AND address = aave_pool AND topic0 = supply_t GROUP BY t`,
+      `WITH ${px} SELECT count() AS mints FROM raw_logs WHERE ${week} AND address IN (SELECT market FROM lending_markets WHERE chain_id = 43114) AND topic0 = qi_mint_t`,
+      // one scan of the Pool's logs and sAVAX's, and an lb pool's Swap by its topic in a SELECT that reads no lending contract
+      `SELECT countIf(topic0 = supply_t) AS supplies, countIf(topic0 = submitted_t) AS stakes FROM raw_logs WHERE ${week} AND address IN (aave_pool, ${savax}) AND topic0 IN (supply_t, submitted_t)`,
+      `WITH b AS (SELECT count() AS swaps FROM raw_logs WHERE ${week} AND address = ${lb} AND topic0 = unhex('ad7d6f97abf51ce18e17a38f4d70e975be9c0708474987bb3e26ad21bd93ca70')) SELECT count() AS borrows, any(b.swaps) AS swaps FROM raw_logs CROSS JOIN b WHERE ${week} AND address = aave_pool AND topic0 = borrow_t`,
+      // each side of a UNION is a SELECT of its own
+      `SELECT 'swaps' AS what, count() AS n FROM raw_logs WHERE ${week} AND address = unhex('fae3f424a0a47706811521e3ee268f00cfb5c45e') AND topic0 = v3_swap UNION ALL SELECT 'supplies' AS what, count() AS n FROM raw_logs WHERE ${week} AND topic0 = supply_t`,
+    ])
+      expect(refused(sql), sql).toBe('');
+    // the Pool's events read at another address are sent back still, by that SELECT's own literal, and so is a topic no
+    // lending contract writes in a SELECT that reads the Pool
+    expect(refused(`WITH ${px} SELECT count() AS loans FROM raw_logs WHERE ${week} AND address = unhex('7d2768de32b0b80b7a3454c06bdac94a69ddc7a9') AND topic0 = flash_loan_t`)).toMatch(/^unhex\('7d2768de…ddc7a9'\) is not Aave's Pool on this chain/);
+    expect(refused(`WITH ${px} SELECT count() AS n FROM raw_logs WHERE ${week} AND address IN (SELECT market FROM lending_markets WHERE chain_id = 43114) AND topic0 = ${stray}`)).toMatch(/^unhex\('0bcc1e4a…bbda7a'\) is no event of /);
+    expect(refused(`SELECT count() AS n FROM raw_logs WHERE ${week} AND address = ${lb} AND topic0 = qi_borrow_t UNION ALL SELECT count() AS n FROM raw_logs WHERE ${week} AND address = aave_pool AND topic0 = borrow_t`)).toMatch(/^unhex\('d446eb16…26f7d1'\) is no Benqi market on this chain/);
+  });
 });
 
 describe('a lending answer', () => {

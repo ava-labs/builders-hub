@@ -320,9 +320,40 @@ function literalsOf(sql: string, column: string, digits: number): string[] {
   return out;
 }
 
+/** each SELECT of a query as the text of its own clauses, so a WHERE's literals are held against the events it reads:
+    a subquery in FROM, a JOIN, a WITH or a scalar is a SELECT of its own, and so is each side of a UNION; an IN (SELECT …)
+    stays in the WHERE it filters */
+function selectsOf(sql: string): string[] {
+  // strings are blanked, so a parenthesis or a SELECT in one is text
+  const blank = sql.replace(/'(?:[^'\\]|\\.)*'/g, (q) => `'${" ".repeat(q.length - 2)}'`);
+  const texts = [""];
+  const stack = [{ id: 0, depth: 0, selects: 0 }];
+  for (let i = 0; i < sql.length; i++) {
+    const f = stack[stack.length - 1];
+    const c = blank[i];
+    if (c === "(" && /^\(\s*(SELECT|WITH)\b/i.test(blank.slice(i, i + 16)) && !/\bIN\s*$/i.test(blank.slice(Math.max(0, i - 10), i))) {
+      texts[f.id] += "()";
+      stack.push({ id: texts.push("") - 1, depth: 0, selects: 0 });
+      continue;
+    }
+    if (c === ")" && f.depth === 0 && stack.length > 1) {
+      stack.pop();
+      continue;
+    }
+    if (c === "(") f.depth++;
+    else if (c === ")") f.depth--;
+    // the SELECT after a UNION or an EXCEPT starts a SELECT of its own
+    else if (f.depth === 0 && /^SELECT\b/i.test(blank.slice(i, i + 7)) && !/\w/.test(blank[i - 1] ?? "") && f.selects++ > 0) f.id = texts.push("") - 1;
+    texts[f.id] += sql[i];
+  }
+  return texts;
+}
+
 /** why a query on the lending contracts reads no rows by a literal of its own, or null: an address that starts as one
-    our server names and is not it, the Pool's or a market's events read at another address (a replay of L09 read
-    Ethereum's Aave Pool), or a topic that is none of their events. Mainnet C-Chain only, as the names are */
+    our server names and is not it, the Pool's or a market's events read in a SELECT at other addresses only (a replay
+    of L09 read Ethereum's Aave Pool), or a topic that is none of their events. Each SELECT is held on its own, so one
+    that reads a price pool or sAVAX by its address passes beside one that reads the Pool. Mainnet C-Chain only, as the
+    names are */
 export function strayHex(sql: string, chainId: number): string | null {
   if (chainId !== LENDING_CHAIN_ID) return null;
   // a name of ours that the query defines itself takes the query's value, and namesIn leaves it out; the swap and stake
@@ -336,15 +367,23 @@ export function strayHex(sql: string, chainId: number): string | null {
     if (near) return `unhex('${shown(h)}') is not ${near[1]}, whose address our server names ${near[0]}: write ${near[0]}, as it is`;
   }
   if (!READS_LENDING.test(sql)) return null;
-  // the Pool's events come from the Pool alone, and a market's from the markets
-  const addresses = literalsOf(sql, "address", 40);
-  const notPool = writes(sql, POOL_EVENTS) ? addresses.find((a) => a !== bare(AAVE_POOL)) : undefined;
-  if (notPool)
-    return `unhex('${shown(notPool)}') is not Aave's Pool on this chain, which writes these events: an address from memory is often another chain's, and reads no rows. Write aave_pool, as it is`;
-  const notMarket = writes(sql, MARKET_EVENTS) ? addresses.find((a) => !LENDING_MARKETS.some((m) => bare(m.market) === a)) : undefined;
-  if (notMarket)
-    return `unhex('${shown(notMarket)}') is no Benqi market on this chain, where the markets write these events: read them from lending_markets, address IN (SELECT market FROM lending_markets WHERE chain_id = ${LENDING_CHAIN_ID})`;
-  const topic = literalsOf(sql, "topic0", 64).find((t) => !LENDING_EVENTS.has(t));
+  // the Pool's events come from the Pool alone, and a market's from the markets: a SELECT that reads them at other
+  // addresses only reads no rows
+  const selects = selectsOf(sql);
+  const markets = LENDING_MARKETS.map((m) => bare(m.market));
+  for (const s of selects) {
+    const addresses = literalsOf(s, "address", 40);
+    const notPool = writes(s, POOL_EVENTS) && !/\baave_pool\b/.test(s) && !addresses.includes(bare(AAVE_POOL)) ? addresses[0] : undefined;
+    if (notPool)
+      return `unhex('${shown(notPool)}') is not Aave's Pool on this chain, which writes these events: an address from memory is often another chain's, and reads no rows. Write aave_pool, as it is`;
+    const notMarket = writes(s, MARKET_EVENTS) && !/\blending_markets\b/.test(s) && !addresses.some((a) => markets.includes(a)) ? addresses[0] : undefined;
+    if (notMarket)
+      return `unhex('${shown(notMarket)}') is no Benqi market on this chain, where the markets write these events: read them from lending_markets, address IN (SELECT market FROM lending_markets WHERE chain_id = ${LENDING_CHAIN_ID})`;
+  }
+  const topic = selects
+    .filter((s) => READS_LENDING.test(s))
+    .flatMap((s) => literalsOf(s, "topic0", 64))
+    .find((t) => !LENDING_EVENTS.has(t));
   return topic
     ? `unhex('${shown(topic)}') is no event of Aave's or Benqi's contracts: a topic written from memory is often wrong, and this one reads no rows. Write the name our server defines for the event, as it is: supply_t, withdraw_t, borrow_t, repay_t, liquidation_t, flash_loan_t or reserve_data_t on aave_pool; qi_mint_t, qi_redeem_t, qi_borrow_t, qi_repay_t, qi_liquidate_t or accrue_t on a Benqi market`
     : null;
