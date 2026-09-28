@@ -4,7 +4,7 @@ import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { oneProtocol, protocolScope, unitName } from "./checks";
-import { lendingQuestion } from "./lending";
+import { lendingQuestion, zeroUsd } from "./lending";
 import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
@@ -205,6 +205,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let wordsOnce = false;
     let negOnce = false;
     let bigOnce = false;
+    let zeroOnce = false;
     let datedOnce = false;
     let windowOnce = false;
     let scopeOnce = false;
@@ -361,6 +362,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           if (big) {
             bigOnce = true;
             return fail(big, Date.now() - q0);
+          }
+          // a USD figure NULL where its amount is 0 is a sum over no rows, not a missing price: ask once
+          const zero = zeroOnce ? null : zeroUsd(g.sql, note, result, a.chainId);
+          if (zero) {
+            zeroOnce = true;
+            return fail(zero, Date.now() - q0);
           }
           // a time series the row cap cut from its latest end runs again for its newest rows, and is kept that way
           let kept = g.sql;

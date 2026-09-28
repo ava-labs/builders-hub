@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
 import { enrichNames, fillDrill } from '@/lib/explorer-query/enrich';
 import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
-import { AAVE_ASSETS, AAVE_SLUG, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS, lendingQuestion, marketsWith, namesIn } from '@/lib/explorer-query/lending';
+import { AAVE_ASSETS, AAVE_SLUG, LENDING_MARKETS, LENDING_NAMES, LENDING_PROTOCOLS, LENDING_TOKENS, lendingQuestion, marketsWith, namesIn, zeroUsd } from '@/lib/explorer-query/lending';
 import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
 import { dexQuestion, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
 import { namedIn, oneProtocol, protocolScope, unitName } from '@/lib/explorer-query/checks';
@@ -384,10 +384,40 @@ describe('a value column', () => {
     // a replay of L05n showed a net borrow of 3,000 USDt with no USD: the USDt repayments were none, and their sumIf NULL
     const net = (col: string) => `$LEND(toMonday(now())) SELECT protocol, asset, ${col} FROM actions GROUP BY protocol, asset`;
     expect(unitName(net("round(sumIf(usd, action = 'borrow') - sumIf(usd, action = 'repay'), 2) AS net_borrow_usd"), 43114)).toBe(
-      "net_borrow_usd is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign: sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')). Then call render_chart again.",
+      "net_borrow_usd is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign that is 0 where neither action happened: if(countIf(action IN ('borrow', 'repay')) = 0, 0, sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay'))). Then call render_chart again.",
     );
     expect(unitName(net("round(sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')), 2) AS net_borrow_usd"), 43114)).toBeNull();
     expect(unitName(net("round(ifNull(sumIf(usd, action = 'borrow'), 0) - ifNull(sumIf(usd, action = 'repay'), 0), 2) AS net_borrow_usd"), 43114)).toBeNull();
     expect(unitName(net("round(100 * sumIf(usd, action = 'borrow') / nullIf(sum(usd), 0), 2) AS borrow_share_pct"), 43114)).toBeNull();
+  });
+
+  it('holds a USD figure NULL where its amount is 0, and a note that says an asset has no price, against the rows', () => {
+    // a replay of L05n: net_borrow_usd NULL where net_borrow was 0, and a note that read it as a missing price
+    const sql = "$LEND(toMonday(now())) SELECT protocol, lower(concat('0x', hex(asset))) AS token, net_supply, net_supply_usd, net_borrow, net_borrow_usd FROM actions";
+    const columns = ['protocol', 'token', 'net_supply', 'net_supply_usd', 'net_borrow', 'net_borrow_usd'].map((name) => ({ name }));
+    const WETH = '0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab';
+    const row = (token: string, borrow: number, borrowUsd: number | null) => ({ protocol: 'aave', token, net_supply: 1.2, net_supply_usd: 2349.79, net_borrow: borrow, net_borrow_usd: borrowUsd });
+    const L05N = { columns, rows: [row(WETH, 0, null), row('0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e', -40, -40)] };
+    const form = "if(countIf(action IN ('borrow', 'repay')) = 0, 0, sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')))";
+    expect(zeroUsd(sql, 'Net supply and borrow per asset since Monday. Some assets lack USD prices.', L05N, 43114)).toBe(
+      `net_borrow_usd is NULL in 1 row where net_borrow is 0, such as WETH.e: a sum of usd over no rows, not a missing price. Write it so it is 0 where no event counts, as in ${form}. The note says an asset has no USD price, but WETH.e is priced: say it only of an asset whose usd is NULL where its amount is not 0. Then call render_chart again.`,
+    );
+    expect(zeroUsd(sql, 'Net supply and borrow per asset since Monday.', L05N, 43114)).toMatch(/^net_borrow_usd is NULL in 1 row where net_borrow is 0, such as WETH\.e: .* as in .*\)\)\)\. Then call render_chart again\.$/);
+    // an amount with no USD is an asset with no price, as the note may say
+    const AAVE_E = '0x63a72806098bd3d9520cc43356dd78afe5d386d9';
+    expect(zeroUsd(sql, 'AAVE.e lacks a USD price.', { columns, rows: [row(AAVE_E, 5, null)] }, 43114)).toBeNull();
+    expect(zeroUsd(sql, 'AAVE.e lacks a USD price.', { columns, rows: [row(AAVE_E, 0, null)] }, 43114)).toBeNull();
+    // a note that says none is priced over rows that all are
+    expect(zeroUsd(sql, 'Some assets lack USD prices.', { columns, rows: [row(WETH, 2, 5000)] }, 43114)).toBe(
+      'The note says an asset has no USD price, but every row has its USD figures and no event is unpriced: leave that out, and call render_chart again with the same SQL.',
+    );
+    expect(zeroUsd(sql, 'Some events lack USD prices.', { columns: [...columns, { name: 'unpriced' }], rows: [{ ...row(WETH, 2, 5000), unpriced: 3 }] }, 43114)).toBeNull();
+    // rows of an asset with no price kind leave the note alone, even with its USD figures
+    expect(zeroUsd(sql, 'Some assets lack USD prices.', { columns, rows: [row(WETH, 2, 5000), row(AAVE_E, 0, 0)] }, 43114)).toBeNull();
+    // the right form reads 0, and every other chain, and a query that reads no lending contract, is left alone
+    expect(zeroUsd(sql, 'Some assets lack USD prices.', { columns, rows: [row(WETH, 0, 0)] }, 43114)).toMatch(/^The note says an asset has no USD price/);
+    expect(zeroUsd(sql, '', { columns, rows: [row(WETH, 0, 0)] }, 43114)).toBeNull();
+    for (const chainId of [43113, 432204]) expect(zeroUsd(sql, 'Some assets lack USD prices.', L05N, chainId)).toBeNull();
+    expect(zeroUsd("$DEX(toMonday(now())) SELECT pool, sum(r0) AS volume, sum(usd) AS volume_usd FROM legs GROUP BY pool", '', { columns: [{ name: 'volume' }, { name: 'volume_usd' }], rows: [{ volume: 0, volume_usd: null }] }, 43114)).toBeNull();
   });
 });

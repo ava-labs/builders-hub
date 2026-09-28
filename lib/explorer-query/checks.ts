@@ -235,7 +235,7 @@ export function unitName(sql: string, chainId: number): string | null {
     : "";
   const net = chainId === DEX_CHAIN_ID ? columns.find((c) => nullNet(c.expr)) : undefined;
   const netted = net
-    ? `${net.name} is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign: sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay')).`
+    ? `${net.name} is one sumIf of usd less another, and a sumIf over no rows is NULL, so it is NULL for an asset with only one of the two actions. Write it as one sum with a sign that is 0 where neither action happened: if(countIf(action IN ('borrow', 'repay')) = 0, 0, sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay'))).`
     : "";
   return named || rounded || netted ? `${[named, rounded, netted].filter(Boolean).join(" ")} Then call render_chart again.` : null;
 }

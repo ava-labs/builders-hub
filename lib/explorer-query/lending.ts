@@ -251,6 +251,46 @@ const READS_LENDING = new RegExp(
   `\\$(LEND|LIQUIDATIONS|DEBTS|MARKETS|PRICES)\\b|\\b(aave_pool|aave_configurator|lending_markets|lending_tokens|(supply|withdraw|borrow|repay|liquidation|flash_loan|reserve_data|reserve_init|scaled_mint|scaled_burn|qi_[a-z]+|accrue|reserves_added|reserves_reduced|reserve_factor)_t)\\b|${[AAVE_POOL, AAVE_CONFIGURATOR, ...LENDING_MARKETS.map((m) => m.market)].map(bare).join("|")}`,
   "i",
 );
+/* A priced asset's USD figure NULL in a row where the amount beside it is 0 (net_borrow_usd beside a net_borrow of 0)
+   is a sum of usd over no rows, and it reads as an asset with no price: a replay of L05n showed WETH.e so, and its note said "Some
+   assets lack USD prices", though WETH.e is priced. A note that says an asset has no price is held against the rows too:
+   an asset has none only where its usd is NULL and its amount is not 0, or where the rows count unpriced events. */
+
+/** the words of a note for an asset with no price: lack USD prices, has no price, is unpriced */
+const NO_PRICE = /\b(?:lacks?|lacking|without|missing|no)\s+(?:a\s+)?(?:usd\s+|dollar\s+)?(?:prices?|usd\s+values?)\b|\bunpriced\b|\bnot\s+priced\b/i;
+/** a row's asset as the reader knows it: the symbol of the first lending token among its values, else its first text */
+function assetOf(row: Record<string, unknown>): { label: string; priced: boolean | null } {
+  const values = Object.values(row).filter((v): v is string => typeof v === "string");
+  for (const v of values) {
+    const t = LENDING_TOKENS.find((x) => x.token === v.toLowerCase() || x.symbol === v);
+    if (t) return { label: t.symbol, priced: t.price !== "" };
+  }
+  return { label: values[0] ?? "its first row", priced: null };
+}
+
+/** why a lending answer's USD figures misread as unpriced, or null: a priced asset's USD column NULL where its amount
+    is 0, or a note that says an asset has no price over rows of priced assets, each with its USD figures and no unpriced
+    event. Mainnet C-Chain only */
+export function zeroUsd(sql: string, note: string, result: { columns: readonly { name: string }[]; rows: readonly Record<string, unknown>[] }, chainId: number): string | null {
+  if (chainId !== LENDING_CHAIN_ID || !READS_LENDING.test(sql)) return null;
+  const names = new Set(result.columns.map((c) => c.name));
+  const usd = result.columns.map((c) => c.name).filter((n) => /(^|_)usd$/i.test(n));
+  const says = NO_PRICE.test(note);
+  for (const name of usd) {
+    const amount = name.replace(/_usd$/i, "");
+    if (amount === name || !names.has(amount)) continue;
+    const empty = result.rows.filter((r) => r[name] === null && Number(r[amount]) === 0 && assetOf(r).priced === true);
+    if (!empty.length) continue;
+    const { label } = assetOf(empty[0]);
+    const held = says ? ` The note says an asset has no USD price, but ${label} is priced: say it only of an asset whose usd is NULL where its amount is not 0.` : "";
+    return `${name} is NULL in ${empty.length} ${empty.length === 1 ? "row" : "rows"} where ${amount} is 0, such as ${label}: a sum of usd over no rows, not a missing price. Write it so it is 0 where no event counts, as in if(countIf(action IN ('borrow', 'repay')) = 0, 0, sumIf(if(action = 'borrow', usd, -usd), action IN ('borrow', 'repay'))).${held} Then call render_chart again.`;
+  }
+  const unpriced = result.columns.some((c) => /unpriced/i.test(c.name) && result.rows.some((r) => Number(r[c.name]) > 0));
+  if (says && usd.length && !unpriced && result.rows.every((r) => assetOf(r).priced === true && usd.every((n) => r[n] !== null)))
+    return "The note says an asset has no USD price, but every row has its USD figures and no event is unpriced: leave that out, and call render_chart again with the same SQL.";
+  return null;
+}
+
 /** the events only Aave's Pool writes here, and those only Benqi's markets write, by our names and by topic */
 const POOL_EVENTS = ["supply", "withdraw", "borrow", "repay", "liquidation", "flashLoan", "reserveData"] as const;
 const MARKET_EVENTS = ["qiMint", "qiRedeem", "qiBorrow", "qiRepay", "qiLiquidate", "accrueInterest", "reservesAdded", "reservesReduced", "newReserveFactor"] as const;
