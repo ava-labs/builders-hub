@@ -160,6 +160,44 @@ function useSettledSeat(network: string, validationID: string | undefined): Sett
   return seat;
 }
 
+/* An L1 node's AvalancheGo version: the indexer's node document carries
+   none for nodes off the Primary Network, so it comes from the same
+   per-subnet roster the L1 Validators tab reads (/api/chain-validators,
+   the discovery crawler's versions). The string is shown as reported, so a
+   custom build keeps its own name. The version belongs to the node, not
+   the seat, so every L1 it validates is asked in turn: the page's seat can
+   be one the node has since left, whose roster no longer lists it.
+   undefined while reading; null when no roster has a version for it. */
+function useL1NodeVersion(network: string, subnetIds: string[], nodeId: string): string | null | undefined {
+  const [version, setVersion] = useState<string | null | undefined>(undefined);
+  const key = subnetIds.join(",");
+  useEffect(() => {
+    let cancelled = false;
+    setVersion(undefined);
+    (async () => {
+      for (const subnetId of key.split(",").filter(Boolean)) {
+        try {
+          const res = await fetch(`/api/chain-validators/${subnetId}?network=${network}`);
+          if (!res.ok) continue;
+          const data: { validators?: { nodeId: string; version?: string }[] } = await res.json();
+          const v = data.validators?.find((x) => x.nodeId === nodeId)?.version?.trim();
+          if (v && v !== "Unknown") {
+            if (!cancelled) setVersion(v);
+            return;
+          }
+        } catch {
+          // the next roster may still know it
+        }
+      }
+      if (!cancelled) setVersion(null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [network, key, nodeId]);
+  return version;
+}
+
 /* Primary Network staking rules: a validator can carry delegations up to
    5x its own stake, capped at 3M AVAX total. What's left of that headroom
    is the number a would-be delegator actually cares about. */
@@ -362,6 +400,7 @@ export function PchainNode({
           network={network}
           nodeId={nodeId}
           subnetId={l1Subnet}
+          otherSubnets={n?.validations?.filter((x) => x.kind === "l1").map((x) => x.subnetId)}
           v={(l1 ?? l1FromDoc)!}
           live={!!l1}
           base={base}
@@ -956,6 +995,7 @@ function L1ValidatorView({
   network,
   nodeId,
   subnetId,
+  otherSubnets = [],
   v,
   live = true,
   base,
@@ -963,6 +1003,8 @@ function L1ValidatorView({
   network: string;
   nodeId: string;
   subnetId: string;
+  /** the node's other L1 seats: where to find its version when this seat's roster has it not */
+  otherSubnets?: string[];
   v: CurrentValidator;
   /** false when the record came from the indexer snapshot instead of the node */
   live?: boolean;
@@ -972,6 +1014,7 @@ function L1ValidatorView({
   // the balance the chain will debit at its next block, a second at a time
   const now = useSecondClock(!!seat);
   const balance = seat ? balanceAt(seat, now) : v.balance;
+  const version = useL1NodeVersion(network, [subnetId, ...otherSubnets.filter((s) => s !== subnetId)], nodeId);
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-4">
@@ -1011,6 +1054,15 @@ function L1ValidatorView({
                 </SpecRow>
               )}
               {v.startTime && <SpecRow label="Start">{formatTime(Number(v.startTime))}</SpecRow>}
+              {version !== undefined && (
+                <SpecRow label="AvalancheGo">
+                  {version ?? (
+                    <span className="text-zinc-400 dark:text-zinc-500" title="No version reported for this node">
+                      -
+                    </span>
+                  )}
+                </SpecRow>
+              )}
               {v.publicKey && (
                 <SpecRow label="BLS Public Key">
                   <HashChip value={v.publicKey} len={24} />
