@@ -72,7 +72,7 @@ const ASK_AT = "/explorer/mainnet/query";
 
 type Net = "mainnet" | "testnet";
 /** what a chip, or a figure in the strip, cuts the list to */
-type Cut = "talking" | "live" | "behind" | "new" | null;
+type Cut = "talking" | "indexed" | "behind" | "new" | null;
 type Sort = "district" | "validators" | "tx" | "icm" | "name";
 /** what the windows show: each district's glass, or the validators' client versions */
 type Lens = "districts" | "versions";
@@ -830,10 +830,9 @@ export function CityApp({
     return p?.ok && p.lastBlockAt ? p.lastBlockAt : null;
   };
   const indexedSet = useMemo(() => (indexedChainIds ? new Set(indexedChainIds) : null), [indexedChainIds]);
-  const explorerOf = (c: L1Chain) => {
-    const on = indexedSet ? indexedSet.has(toStatsChainId(String(c.chainId))) : c.isIndexed !== false;
-    return on ? `/explorer/${c.isTestnet ? "fuji" : "mainnet"}/${c.slug}` : null;
-  };
+  // indexed: the explorer indexes it, so it has its own explorer page
+  const indexedOf = (c: L1Chain) => (indexedSet ? indexedSet.has(toStatsChainId(String(c.chainId))) : c.isIndexed !== false);
+  const explorerOf = (c: L1Chain) => (indexedOf(c) ? `/explorer/${c.isTestnet ? "fuji" : "mainnet"}/${c.slug}` : null);
   const mainnetById = useMemo(() => new Map(catalog.filter((c) => c.isTestnet !== true).map((c) => [String(c.chainId), c])), [catalog]);
   const bySubnet = useMemo(() => new Map(catalog.filter((c) => c.isTestnet !== true && c.subnetId).map((c) => [String(c.subnetId), c])), [catalog]);
 
@@ -901,11 +900,10 @@ export function CityApp({
     (r.chain?.category ?? "").toLowerCase().includes(q) ||
     (r.district ? districtLabel(r.district).toLowerCase().includes(q) : false) ||
     (r.node?.role === "hub" && "c-chain".includes(q));
-  // live: its RPC shows a block in the last hour
-  const isLive = (r: Row) => r.lastBlockAt !== null && Date.now() - r.lastBlockAt < 3_600_000;
+  const isIndexed = (r: Row) => !!r.chain && indexedOf(r.chain);
   const cutOk = (r: Row) =>
     !cut ||
-    (cut === "talking" ? r.out + r.in > 0 : cut === "live" ? isLive(r) : cut === "new" ? r.newAt !== null : r.mix ? r.mix.near + r.mix.stale > 0 : false);
+    (cut === "talking" ? r.out + r.in > 0 : cut === "indexed" ? isIndexed(r) : cut === "new" ? r.newAt !== null : r.mix ? r.mix.near + r.mix.stale > 0 : false);
   const rows = useMemo(() => {
     // a search reaches the chains the list hides, so any chain in the directory can be found
     const base =
@@ -969,7 +967,7 @@ export function CityApp({
       talking: cityRows.filter((r) => r.out + r.in > 0).length,
       tx: withTx.length ? withTx.reduce((a, r) => a + (r.tx ?? 0), 0) : null,
       active: cityRows.filter((r) => (r.tx ?? 0) > 0).length,
-      live: cityRows.filter(isLive).length,
+      indexed: cityRows.filter(isIndexed).length,
       fresh: cityRows.filter((r) => r.newAt !== null).length,
     };
   }, [cityRows, data.summary]);
@@ -1408,12 +1406,13 @@ export function CityApp({
     </label>
   );
 
-  /* the cuts, as chips under the search: each lights the chains it names in the city, and cuts the list to them */
+  /* the cuts, as chips under the search: each lights the chains it names in the city, and cuts the list to them. Behind
+     stands only in the Versions lens, last, so the chips before it keep their places */
   const cuts: { key: Exclude<Cut, null>; label: string; count: number; title: string }[] = [
-    { key: "talking", label: "Talking", count: figures.talking, title: `Chains that sent or received ICM messages · ${windowLabel}` },
-    { key: "live", label: "Live", count: figures.live, title: "Chains that made a block in the last hour, read from their public RPC" },
-    ...(versions ? [{ key: "behind" as const, label: "Behind", count: figures.behind, title: `Chains with validators behind ${target}; the windows show client versions` }] : []),
+    { key: "talking", label: "ICM", count: figures.talking, title: `Chains that sent or received ICM messages · ${windowLabel}` },
+    { key: "indexed", label: "Indexed", count: figures.indexed, title: "Chains the explorer indexes, each with its own explorer page" },
     ...(figures.fresh > 0 ? [{ key: "new" as const, label: "New", count: figures.fresh, title: `L1s that joined the P-Chain in the last ${NEW_DAYS} days` }] : []),
+    ...(lens === "versions" && versions ? [{ key: "behind" as const, label: "Behind", count: figures.behind, title: `Chains with validators behind ${target}; the windows show client versions` }] : []),
   ];
   const cutChipsOf = (floating: boolean) => (
     <div role="group" aria-label="Cut the city" className={cn("flex flex-wrap gap-1.5", floating && "justify-center")}>
