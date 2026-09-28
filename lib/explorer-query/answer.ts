@@ -6,7 +6,7 @@ import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { oneProtocol, protocolScope, unitName } from "./checks";
 import { lendingQuestion } from "./lending";
 import { collapseMacros } from "./macros";
-import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
+import { runQuery, schemaCard, coverage, coverageText, anchored, type QueryResult } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
 import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
@@ -17,6 +17,7 @@ import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./vis
 import { cutOf, newestSql, totalsOf } from "./cut";
 import { msOf } from "./edges";
 import { scopeError, sqlWindow, withWindow } from "./scope";
+import { contradictions, withoutContradictions } from "./claims";
 import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 
 /* A question in, an answer out. A cached recipe answers at once: its SQL
@@ -199,7 +200,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let scopeOnce = false;
     let coverOnce = false;
     let unitOnce = false;
+    let noteOnce = false;
     let tested = 0;
+    // the rows of the last final query: a final sent back for its words reads them again rather than the database
+    let lastRun: { sql: string; result: QueryResult } | null = null;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
     const step = (kind: StepTiming["kind"], sqlMs: number, ok: boolean, detail: string) => {
@@ -325,7 +329,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             step("final", Date.now() - q0, false, "window words");
             return { error: unnamed };
           }
-          const result = await runQuery(run.sql);
+          const result = !fuji && lastRun?.sql === run.sql ? lastRun.result : await runQuery(run.sql);
+          lastRun = { sql: run.sql, result };
           ranFine += 1;
           // an empty answer is usually a window that misses the data; ask once
           if (result.rowCount === 0 && !emptyOnce) {
@@ -368,9 +373,17 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
               return fail(`drill: ${e instanceof Error ? e.message : String(e)}`, Date.now() - q0);
             }
           }
+          // the note came with the query, before its rows: one that says none of what they hold, or gives a figure where
+          // they hold only zeros, is sent back once with their figures; a sentence still against them is left out
+          const against = fuji ? [] : contradictions(note, title, rows);
+          if (against.length && !noteOnce) {
+            noteOnce = true;
+            step("final", Date.now() - q0, false, "note against the rows");
+            return { error: `${against.map((c) => c.error).join(" ")} Write the note from these rows, and call render_chart again with the same SQL.` };
+          }
           rows.truncated ||= !!cutOf(kept, rows.rowCount);
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
-          const words = { title: plainLabel(title), note: withoutCode(note, own) };
+          const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
           const said = fuji ? words : withWindow(words, g.sql, rows.rows, chart.x, now);
           final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
