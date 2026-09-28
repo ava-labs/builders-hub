@@ -124,7 +124,7 @@ async function fromRecipe(a: Ask, recipe: Recipe, key: string | null, t0: number
     if (totals && totals.rows <= result.rowCount) result.truncated = false;
     // a kept note loses any sentence that names the SQL's parts, and a kept title and note name the window the query reads
     const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
-    const said = isFuji(a.chainId) ? words : withWindow(words, sql, result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
+    const said = isFuji(a.chainId) ? words : withWindow(words, collapseMacros(sql, a.chainId), result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
     return {
       anchor: run.anchor,
       sources: run.sources,
@@ -357,7 +357,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           const run = await anchored(g.sql, a.chainId);
           // a title or a note that names a window the query does not read is written again once, before the query runs
           const now = run.anchor ? msOf(run.anchor) : Date.now();
-          const win = fuji ? null : sqlWindow(g.sql, now);
+          // a shorthand's window is its own start and end, so the window is read with the guard's WITH written back into it
+          const read = collapseMacros(g.sql, a.chainId);
+          const win = fuji ? null : sqlWindow(read, now);
           const unnamed = win && win !== "unknown" && !windowOnce ? scopeError(title, note, win, now) : null;
           if (unnamed) {
             windowOnce = true;
@@ -440,7 +442,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           }
           // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
           const words = { title: plainLabel(title), note: withoutCode(against.length ? withoutContradictions(note, title, rows) : note, own) };
-          const said = fuji ? words : withWindow(words, g.sql, rows.rows, chart.x, now);
+          const said = fuji ? words : withWindow(words, read, rows.rows, chart.x, now);
           final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);

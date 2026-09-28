@@ -20,6 +20,8 @@ vi.mock('@/lib/explorer-query/examples', () => ({ PCHAIN_EXAMPLES: [], examplesF
 
 import { generateText } from 'ai';
 import { answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
+import { guardSql } from '@/lib/explorer-query/guard';
+import { collapseMacros, expandMacros } from '@/lib/explorer-query/macros';
 import { rowsWindow, scopeError, scoped, sqlWindow, windowWords, type Window } from '@/lib/explorer-query/scope';
 
 // Monday September 28, 2026, an hour into the week
@@ -33,6 +35,23 @@ describe('the window a query reads', () => {
   it('is the DEX window, not the pools read since the first day or the price read from the hour before', () => {
     const dex = `WITH pools AS (SELECT l.address AS pool FROM raw_logs AS l WHERE l.chain_id = 43114 AND l.block_time >= '2020-09-23' AND l.topic0 = x), swap_logs AS (SELECT address AS pool ${WEEK_OF_21} AND topic0 IN (a, b)), px AS (SELECT toStartOfHour(block_time) AS hour ${LOGS} AND block_time >= toDateTime('2026-09-21 00:00:00') - INTERVAL 1 HOUR AND topic0 = a GROUP BY hour) SELECT pool FROM swap_logs`;
     expect(sqlWindow(dex, NOW)).toEqual({ start: at('2026-09-21T00:00:00'), end: at('2026-09-28T00:00:00'), open: false, rolling: false });
+  });
+
+  it("is a shorthand's own start and end, not the WITH it stands for, which reads further back", () => {
+    expect(win('$LIQUIDATIONS(toMonday(now())) SELECT protocol, count() AS n FROM liquidations GROUP BY protocol')).toEqual({ start: at('2026-09-28T00:00:00'), end: NOW, open: true, rolling: false });
+    expect(win("$LEND(now() - INTERVAL 24 HOUR, 'aave-v3') SELECT count() AS n FROM actions")).toMatchObject({ start: NOW - 86_400_000, open: true, rolling: true });
+    expect(win("$DEX(toDateTime('2026-09-21 00:00:00'), toDateTime('2026-09-28 00:00:00'), 'pharaoh') SELECT sum(usd) AS v FROM legs")).toEqual({ start: at('2026-09-21T00:00:00'), end: at('2026-09-28T00:00:00'), open: false, rolling: false });
+    expect(win('$PRICES(toStartOfDay(now())), fl AS (SELECT 1 AS x) SELECT x FROM fl')).toMatchObject({ start: at('2026-09-28T00:00:00'), open: true });
+    // a shorthand with no window: the query's own bounds, or none
+    expect(sqlWindow("$DEBTS('aave-v3') SELECT count() AS n FROM debts", NOW)).toBeNull();
+    expect(win(`$POOLS() SELECT pool ${LOGS} AND block_time >= toMonday(now())`)).toMatchObject({ start: at('2026-09-28T00:00:00'), open: true });
+    // the lending WITHs the guard writes out read as their shorthand once it is written back
+    for (const short of ['$LIQUIDATIONS(toMonday(now())) SELECT protocol, count() AS n FROM liquidations GROUP BY protocol', "$LEND(toMonday(now()), 'benqi') SELECT action, count() AS n FROM actions GROUP BY action", '$PRICES(toMonday(now())) SELECT count() AS n FROM prices']) {
+      const x = expandMacros(short, 43114);
+      if (!x.ok) throw new Error(x.error);
+      expect(collapseMacros(x.sql, 43114)).toBe(short);
+      expect(win(collapseMacros(x.sql, 43114)), short).toMatchObject({ start: at('2026-09-28T00:00:00'), open: true });
+    }
   });
 
   it('reads calendar and rolling windows that run to now', () => {
@@ -159,6 +178,32 @@ describe('the writer names the window its query reads', () => {
     // the turned-back answer ran no query
     expect(runQuery).toHaveBeenCalledOnce();
     expect(answer).toMatchObject({ title: 'Top pools by volume in the week of September 21', note: 'Volume in USD.' });
+  });
+
+  it("turns back a lending note's wrong date, read off its shorthand under the WITH the guard writes out", async () => {
+    vi.mocked(guardSql).mockImplementation((sql: string) => {
+      const x = expandMacros(sql, 43114);
+      return x.ok ? { ok: true, sql: x.sql, tables: [] } : { ok: false, error: x.error };
+    });
+    runQuery.mockResolvedValue({ ...ROWS, columns: [{ name: 'protocol', type: 'String' }, { name: 'liquidations', type: 'UInt64' }], rows: [{ protocol: 'aave-v3', liquidations: 3 }, { protocol: 'benqi', liquidations: 1 }], rowCount: 2 });
+    const l04 = { title: 'Liquidations per protocol this week', note: 'Liquidations on Aave and Benqi. Since Monday 2026-09-23.', sql: '$LIQUIDATIONS(toMonday(now())) SELECT protocol, count() AS liquidations FROM liquidations GROUP BY protocol', chart: { kind: 'bar', x: 'protocol', series: [{ column: 'liquidations', label: 'Liquidations' }] } };
+    vi.mocked(generateText).mockImplementation(writes(l04));
+    try {
+      const answer = await answerQuestion({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', prompt: 'Liquidations per protocol this week', history: [], baseUrl: 'http://localhost:3000', emit: () => {} });
+      expect(results[0]).toEqual({ error: expect.stringContaining('the note says "Since Monday 2026-09-23", but the query reads 2026-09-28 00:00 UTC to now') });
+      expect(answer).toMatchObject({ title: 'Liquidations per protocol this week', note: 'Liquidations on Aave and Benqi.' });
+    } finally {
+      vi.mocked(guardSql).mockReset();
+    }
+  });
+
+  it("names a kept lending answer's window off its shorthand too", async () => {
+    const x = expandMacros('$LIQUIDATIONS(toMonday(now())) SELECT protocol, count() AS liquidations FROM liquidations GROUP BY protocol', 43114);
+    if (!x.ok) throw new Error(x.error);
+    runQuery.mockResolvedValue({ ...ROWS, columns: [{ name: 'protocol', type: 'String' }, { name: 'liquidations', type: 'UInt64' }], rows: [{ protocol: 'aave-v3', liquidations: 3 }, { protocol: 'benqi', liquidations: 1 }], rowCount: 2 });
+    getRecipe.mockResolvedValue({ question: 'q', title: 'Liquidations per protocol this week', note: 'Liquidations on Aave and Benqi. Since Monday 2026-09-23.', sql: x.sql, chart: { kind: 'bar', x: 'protocol', series: [{ column: 'liquidations', label: 'Liquidations' }] }, drill: null, visual: null, writer: 'Haiku 4.5', at: 0 });
+    const { answer } = await ask(43114);
+    expect(answer).toMatchObject({ title: 'Liquidations per protocol this week', note: 'Liquidations on Aave and Benqi.', model: { cached: true } });
   });
 
   it('names it in a kept answer too', async () => {

@@ -108,12 +108,38 @@ const wholeDay = (expr: string) => /^(?:'\d{4}-\d{2}-\d{2}'|toDate\(\s*'\d{4}-\d
 /** an end at now, or an hour or less before it, only keeps clear of the newest rows: it is no end */
 const nearNow = (expr: string) => /^now\(\s*\)(?:\s*-\s*INTERVAL\s+(?:\d+\s+(?:SECOND|MINUTE)S?|1\s+HOURS?))?\s*$/i.test(expr.trim());
 
+/** a shorthand the query opens with (macros.ts), a quoted slug among its arguments, and those that take a window */
+const HEAD = /^\s*(?:WITH\s+)?\$([A-Za-z]+)\s*\(/;
+const SLUG = /^'[a-z][\w-]*'$/i;
+const WINDOWED = /^(?:DEX|LEND|LIQUIDATIONS|PRICES)$/i;
+
+/** the query with a window shorthand's start and end written as bounds in its place: the WITH it stands for reads
+    further back than its window (a price from the hour before, a debt's last 30 days), in forms this cannot read */
+function unshort(code: string): string {
+  const head = HEAD.exec(code);
+  if (!head) return code;
+  // its arguments run to the parenthesis that closes the first one, split at its own commas, outside strings
+  const blank = code.replace(/'(?:[^'\\]|\\.)*'/g, (s) => `'${" ".repeat(s.length - 2)}'`);
+  const open = head[0].length - 1;
+  const cuts: number[] = [];
+  let close = -1;
+  for (let i = open, depth = 0; i < blank.length && close < 0; i++) {
+    if (blank[i] === "(") depth++;
+    else if (blank[i] === ")" && --depth === 0) close = i;
+    else if (blank[i] === "," && depth === 1) cuts.push(i);
+  }
+  if (close < 0) return code;
+  const args = [open, ...cuts].map((at, j) => code.slice(at + 1, cuts[j] ?? close).trim());
+  const [start, end] = WINDOWED.test(head[1]) ? args.filter((a) => a && !SLUG.test(a)) : [];
+  return [start && `block_time >= ${start}`, end && `block_time < ${end}`, code.slice(close + 1)].filter(Boolean).join(" AND ");
+}
+
 /** the window the query reads, from its own bounds on time: null when it has none; "unknown" when it reads one of
     them in a form this cannot read, or reads several windows (a comparison of two periods). A bound an hour before
     another is padding (the price of the hour before), and a bound at the chain's first day beside a later one reads
-    the DEX pools' history, not the answer's window */
+    the DEX pools' history, not the answer's window. A window shorthand's window is its own start and end */
 export function sqlWindow(sql: string, now: number): Window | "unknown" | null {
-  const code = sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "");
+  const code = unshort(sql.replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, ""));
   for (const m of code.matchAll(TIME_COLUMN)) if (!TIME_AT.test(code.slice((m.index ?? 0) + m[0].length)) && !/^BETWEEN\b/i.test(code.slice((m.index ?? 0) + m[0].length))) return "unknown";
   const lows: { t: number; rolling: boolean }[] = [];
   const highs: number[] = [];
