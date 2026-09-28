@@ -7,7 +7,7 @@ import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickh
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
 import { dexQuestion, pchainPrompt, systemPrompt, userTurn } from "./prompt";
-import { isCChain, targetOf } from "./target";
+import { isCChain, isFuji, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey } from "./cache";
 import { versionLines } from "./sources";
 import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
@@ -27,6 +27,11 @@ export const WRITERS = {
   full: { id: "claude-sonnet-5", label: "Sonnet 5", steps: 14 },
 } as const;
 type Writer = keyof typeof WRITERS;
+
+/** the tests (run_sql) each writer may run before it must answer from what they showed. Of the 147 writer runs
+    that answered in the audits, 141 tested 4 times or fewer; the runs past that made the slow tail (10 tests and
+    151 s on one DEX question, 14 tests and no answer on a lending one). Fuji keeps its loop as it was */
+export const TESTS = 4;
 
 /** the most records one drill lists */
 export const DRILL_ROWS = 100;
@@ -71,13 +76,15 @@ interface Ask {
 }
 
 /** what a reader is told when no answer came: a question with no words, one the chain's records cannot
-    answer, or SQL that kept failing; each with a next step, never the database's own words */
-function noAnswer(a: Ask, steps: number): string {
+    answer, a writer that ran out of steps, or SQL that kept failing on the database; each with a next step,
+    never the database's own words */
+function noAnswer(a: Ask, steps: number, outOfSteps = false): string {
   const pchain = targetOf(a.chainId).kind === "pchain";
   const example = (pchain ? PCHAIN_EXAMPLES : examplesFor(a.chainId))[0]?.items[0]?.q;
   const tryThis = example ? ` For example: “${example}”.` : "";
   if (!/\p{L}/u.test(a.prompt)) return `Ask a question in words.${tryThis}`;
   if (steps === 0) return `Query reads the ${a.chainName} records (${pchain ? "validators, stake, L1s and P-Chain transactions" : "transactions, blocks, contracts and tokens"}) and could not turn this question into a query.${tryThis}`;
+  if (outOfSteps) return "Query ran out of steps before it could write an answer. Try a narrower question: one figure, over a shorter window.";
   return "The query kept failing on the database, so there is no answer. Try a shorter window, or one figure at a time.";
 }
 
@@ -166,6 +173,11 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   let steps = 0;
   let cacheRead = 0;
   let inputTokens = 0;
+  // a run with no answer blames the database only when every query it sent failed there
+  let ranFine = 0;
+  let dbFailed = 0;
+  // Fuji keeps the loop it had: no test budget, and every step may test
+  const fuji = isFuji(a.chainId);
 
   const loop = async (writer: Writer): Promise<QueryAnswer | null> => {
     const w = WRITERS[writer];
@@ -175,6 +187,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let wordsOnce = false;
     let negOnce = false;
     let datedOnce = false;
+    let tested = 0;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
     const step = (kind: StepTiming["kind"], sqlMs: number, ok: boolean, detail: string) => {
@@ -188,24 +201,34 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       description: "Test a query you are unsure of: the first rows and column types, or the database error. Skip it when a worked example fits.",
       inputSchema: z.object({ sql: z.string() }),
       execute: async ({ sql }) => {
+        // a writer past its tests answers from what they showed: a test it still calls runs nothing
+        if (!fuji && tested >= TESTS) {
+          step("test", 0, false, "no tests left");
+          return { error: `No tests are left for this question. Call render_chart with the final query, from what the ${TESTS} tests showed.` };
+        }
+        tested += 1;
         tries += 1;
+        // each result says how many tests are left
+        const left = fuji ? {} : { testsLeft: TESTS - tested };
         const g = guardSql(sql, a.chainId);
         if (!g.ok) {
           errors.push(g.error);
           step("test", 0, false, g.error);
-          return { error: g.error };
+          return { error: g.error, ...left };
         }
         const q0 = Date.now();
         try {
           const run = await anchored(`SELECT * FROM (${g.sql.replace(/\nLIMIT \d+$/, "")}) LIMIT 20`, a.chainId);
           const r = await runQuery(run.sql);
+          ranFine += 1;
           step("test", Date.now() - q0, true, `${r.rowCount} rows`);
-          return { columns: r.columns, rows: r.rows, rowCount: r.rowCount, elapsedMs: r.elapsedMs, rowsRead: r.rowsRead };
+          return { columns: r.columns, rows: r.rows, rowCount: r.rowCount, elapsedMs: r.elapsedMs, rowsRead: r.rowsRead, ...left };
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
+          dbFailed += 1;
           errors.push(msg);
           step("test", Date.now() - q0, false, msg);
-          return { error: msg };
+          return { error: msg, ...left };
         }
       },
     });
@@ -263,6 +286,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         try {
           const run = await anchored(g.sql, a.chainId);
           const result = await runQuery(run.sql);
+          ranFine += 1;
           // an empty answer is usually a window that misses the data; ask once
           if (result.rowCount === 0 && !emptyOnce) {
             emptyOnce = true;
@@ -310,6 +334,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
         } catch (e) {
+          dbFailed += 1;
           return fail(e instanceof Error ? e.message : String(e), Date.now() - q0);
         }
       },
@@ -331,8 +356,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         const m = [...sent];
         const last = m[m.length - 1];
         if (last && last.role !== "system") m[m.length - 1] = { ...last, providerOptions: { ...last.providerOptions, ...CACHE } } as ModelMessage;
-        // near the end of the budget the only move left is to answer
-        return { messages: m, ...(stepNumber >= w.steps - 2 && !final ? { activeTools: ["render_chart" as const] } : {}) };
+        // near the end of the budget, or once the tests are spent, the only move left is to answer. The SDK still
+        // runs a tool that activeTools leaves out when the model calls it, so on mainnet the call itself is forced
+        if (final || (stepNumber < w.steps - 2 && (fuji || tested < TESTS))) return { messages: m };
+        return { messages: m, activeTools: ["render_chart" as const], ...(fuji ? {} : { toolChoice: { type: "tool" as const, toolName: "render_chart" as const } }) };
       },
       onStepFinish: () => {
         steps += 1;
@@ -362,7 +389,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   if (!final) {
     // the database's own words stay in the log; the reader gets what to do next
     if (errors.length) console.warn("[explorer-query] no answer:", errors.slice(-3).join(" | ").slice(0, 900));
-    a.emit({ type: "error", error: noAnswer(a, timings.length), status: 422 });
+    // on mainnet a writer with no answer ran out of steps, and says so unless every query it sent failed on the database
+    a.emit({ type: "error", error: noAnswer(a, timings.length, !fuji && (ranFine > 0 || dbFailed === 0)), status: 422 });
     return null;
   }
   const done = final as QueryAnswer;
