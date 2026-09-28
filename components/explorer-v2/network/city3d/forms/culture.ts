@@ -4,7 +4,8 @@ import { boxAt, boxPart, dropAt, pickReach, planAt, shapeAt, storeyAt, YAW, type
 /* Culture's civic buildings. FIFA's chain is a stadium: a pitch in its
    markings, tiers of seats rising from it to a rounded back, a finned
    skin carrying a thin roof ring open over the pitch, and a floodlight
-   pylon off each corner, its lamps at the set's height; every other set
+   pylon off each corner, its lamps about twice the roof ring's height; it
+   takes its whole block (city.ts WHOLE_BLOCK); every other set
    is a civic house of some kind: a museum (a glazed lobby under its
    galleries, boxes shifted off each other), a theatre (a glazed foyer
    before its hall, the fly tower over the stage), a concert hall (its
@@ -38,8 +39,8 @@ export const STAND_TOP = FRONT + TIERS * RISER;
 
 export function stadiumPlan(n: Node, { lot, room }: { lot: number; room: number }): Plan {
   const { h } = n;
-  // the stadium takes half its lot's pitch along u, short of a street from its neighbours' reach
-  const A = Math.max(n.w, Math.min(lot * 0.5, room));
+  // the stadium stands alone on its block (city.ts): it takes most of a lot's pitch each way along u, short of a street from its neighbours' reach
+  const A = Math.max(n.w, Math.min(lot * 0.95, room));
   const B = A * STAND_B;
   const D = A * STAND_D;
   // the pitch's edge, where the stands begin, and the stands' height
@@ -52,6 +53,8 @@ export function stadiumPlan(n: Node, { lot, room }: { lot: number; room: number 
   const roofIn = 3.8;
   const roofOut = D + 1.2;
   const roofMid = (roofIn + roofOut) / 2;
+  // the pylons' lamps: about twice the roof ring's height, never under it, and never over the set's own height
+  const lamps = Math.max(zR + 4, Math.min(h, zR * 2.2));
   // the pitch, inset from the stands' front wall, with the game's own proportions for its markings
   const L = 2 * (iu - 1);
   const W = 2 * (iv - 1);
@@ -67,7 +70,7 @@ export function stadiumPlan(n: Node, { lot, room }: { lot: number; room: number 
   ];
   return {
     parts,
-    crest: h,
+    crest: lamps,
     // the pick holds the bowl, its roof's overhang and the pylons' lamps
     extent: (A + 1.4) / 0.75,
     shaft: 0,
@@ -164,18 +167,18 @@ export function stadiumPlan(n: Node, { lot, room }: { lot: number; room: number 
         trim.push({ ...shapeAt(bd, bi, Math.cos(a) * rc, Math.sin(a) * rc, 0.25, 2 * lw, 0.03, 2 * rc * Math.tan(Math.PI / 16), -a), paint: "line" });
       }
       /* a floodlight pylon off each corner of the bowl, clear of the roof ring: a slim mast, and a bank of lamps at its head,
-         its top at the set's height. Each bank aims down the pitch's length, so from any side of the city its glass shows */
+         its top at the lamps' height. Each bank aims down the pitch's length, so from any side of the city its glass shows */
       for (const [su, sv] of [[1, 1], [-1, 1], [-1, -1], [1, -1]]) {
         const out = Math.atan2(sv, su);
         const [cu, cv] = [su * iu + Math.cos(out) * (D + 1.9), sv * iv + Math.sin(out) * (D + 1.9)];
         const aim = su > 0 ? Math.PI : 0;
-        m.shapes.column.push(shapeAt(bd, bi, cu, cv, 0, 0.5, h - 1.7, 0.5));
+        m.shapes.column.push(shapeAt(bd, bi, cu, cv, 0, 0.5, lamps - 1.7, 0.5));
         // the bank: its local x across the aim, its local z along it
-        trim.push(shapeAt(bd, bi, cu, cv, h - 3.4, 5.6, 3.4, 1.4, -(aim + Math.PI / 2)));
+        trim.push(shapeAt(bd, bi, cu, cv, lamps - 3.4, 5.6, 3.4, 1.4, -(aim + Math.PI / 2)));
         // the lamps' glass on both of its faces, lit at night
         for (const way of [aim, aim + Math.PI]) {
           const [wx, wz] = planAt(cu + Math.cos(way) * 0.73, cv + Math.sin(way) * 0.73);
-          m.ribbons.push({ b: bi, x: bd.x + wx, y: bd.base + h - 3.1, z: bd.z + wz, sx: 5.2, sy: 2.8, sz: 1, yaw: YAW + Math.PI / 2 - way, k: -1, tone: "white" });
+          m.ribbons.push({ b: bi, x: bd.x + wx, y: bd.base + lamps - 3.1, z: bd.z + wz, sx: 5.2, sy: 2.8, sz: 1, yaw: YAW + Math.PI / 2 - way, k: -1, tone: "white" });
         }
       }
     },

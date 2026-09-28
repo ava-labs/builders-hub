@@ -154,7 +154,8 @@ function arcsOf(counts: { key: District; n: number }[]): { key: District; a0: nu
 
 interface Plot {
   blocks: Arc[];
-  lots: { r: number; a: number; road: number }[];
+  /** each lot, with the ring and the block in that ring it stands in */
+  lots: { r: number; a: number; road: number; ring: number; block: number }[];
 }
 
 /* the lots one row of a ring gives a ward: as many as its arc holds, in
@@ -177,7 +178,7 @@ function rowOf(arc: number, lot: number): number[] {
    or null when it will not fit inside the reach */
 function plotWard(n: number, a0: number, a1: number, lot: number, core: number, reach: number): Plot | null {
   const blocks: Arc[] = [];
-  const lots: { r: number; a: number; road: number }[] = [];
+  const lots: Plot["lots"] = [];
   const mid = (a0 + a1) / 2;
   for (let p = 0; lots.length < n; p++) {
     const r0 = core + ROAD * lot + p * (2 + ROAD) * lot;
@@ -190,13 +191,13 @@ function plotWard(n: number, a0: number, a1: number, lot: number, core: number, 
     const c = sizes.reduce((a, b) => a + b, 0);
     const used = (c + (sizes.length - 1) * LANE) * lot;
     let at = mid - used / 2 / m;
-    const ring: { r: number; a: number; road: number; row: number; block: number }[] = [];
+    const ring: (Plot["lots"][number] & { row: number })[] = [];
     const arcs: Arc[] = [];
     sizes.forEach((size, b) => {
       arcs.push({ a0: at, a1: at + (size * lot) / m, r0, r1 });
       // the inner row fronts the ring road inside the ring, the outer row the one outside it
       for (let row = 0; row < 2; row++)
-        for (let l = 0; l < size; l++) ring.push({ r: r0 + lot * (row + 0.5), a: at + ((l + 0.5) * lot) / m, road: row ? r1 + (ROAD * lot) / 2 : r0 - (ROAD * lot) / 2, row, block: b });
+        for (let l = 0; l < size; l++) ring.push({ r: r0 + lot * (row + 0.5), a: at + ((l + 0.5) * lot) / m, road: row ? r1 + (ROAD * lot) / 2 : r0 - (ROAD * lot) / 2, row, block: b, ring: p });
       at += ((size + LANE) * lot) / m;
     });
     // the ring's inner row first, from the ward's middle out, so a part-built ring stays compact
@@ -213,6 +214,49 @@ function plotWard(n: number, a0: number, a1: number, lot: number, core: number, 
 /* pairs of sets in one ward whose lots trade places by hand, the first taking the lot in front: FIFA's stadium is
    low, so it stands on Numi's lot, where Numi's tower does not hide it */
 const FRONT_OF: [string, string][] = [["13322", "8021"]];
+
+/** the sets whose form takes its whole block: FIFA's stadium (STADIUMS in city3d/forms/culture.ts) */
+const WHOLE_BLOCK = new Set(["13322"]);
+
+/* a set that takes its whole block: the block's other sets move to lots added at the ward's end, outside the block, every
+   other set keeps its lot, and the set stands at the block's middle. The ward's plot with the added lots, or null when
+   nothing needs to move or the ward has no room */
+function wholeBlock(
+  id: string,
+  plot: Plot,
+  members: CityChain[],
+  lots: Map<string, CityLot>,
+  replot: (n: number) => Plot | null,
+  screen: (r: number, a: number) => [number, number],
+): Plot | null {
+  const own = lots.get(id)!;
+  const mine = plot.lots.find((l) => l.r === own.r && l.a === own.a);
+  if (!mine) return null;
+  const inBlock = (l: Plot["lots"][number]) => l.ring === mine.ring && l.block === mine.block;
+  const on = (c: CityChain, l: Plot["lots"][number]) => lots.get(c.id)?.r === l.r && lots.get(c.id)?.a === l.a;
+  const movers = members.filter((c) => c.id !== id && plot.lots.some((l) => l !== mine && inBlock(l) && on(c, l)));
+  if (!movers.length) return null;
+  // the ward plotted again with room for the movers outside the block: its first lots are the ones it had
+  for (let extra = movers.length; extra <= movers.length + 6; extra++) {
+    const more = replot(plot.lots.length + extra);
+    if (!more) return null;
+    const spare = more.lots.slice(plot.lots.length).filter((l) => !inBlock(l));
+    if (spare.length < movers.length) continue;
+    // the movers take the added lots back to front, the largest first, as the group photo stands
+    spare.sort((p, q) => screen(p.r, p.a)[1] - screen(q.r, q.a)[1] || p.a - q.a);
+    movers.forEach((c, j) => {
+      const [x, y] = screen(spare[j].r, spare[j].a);
+      lots.set(c.id, { ...lots.get(c.id)!, x, y, r: spare[j].r, a: spare[j].a, road: spare[j].road });
+    });
+    const block = more.lots.filter(inBlock);
+    const r = block.reduce((t, l) => t + l.r, 0) / block.length;
+    const a = block.reduce((t, l) => t + l.a, 0) / block.length;
+    const [x, y] = screen(r, a);
+    lots.set(id, { ...own, x, y, r, a });
+    return more;
+  }
+  return null;
+}
 
 export function planCity(chains: CityChain[], g: CityGeometry): City {
   // each ward's sets, largest first, the week's new L1s last
@@ -259,11 +303,8 @@ export function planCity(chains: CityChain[], g: CityGeometry): City {
   const blocks: Block[] = [];
   let edge = core;
   order.forEach((k, i) => {
-    const plot = plots[i]!;
+    let plot = plots[i]!;
     const members = groups.get(k)!;
-    for (const b of plot.blocks) blocks.push({ ...b, district: k });
-    const r1 = Math.max(...plot.blocks.map((b) => b.r1));
-    edge = Math.max(edge, r1);
     // the group photo: the tallest sets on the lots farthest back, the lowest and the newest in front
     const spots = plot.lots.map((l) => ({ ...l, y: screen(l.r, l.a)[1] })).sort((a, b) => a.y - b.y || a.a - b.a);
     members.forEach((c, rank) => {
@@ -272,15 +313,20 @@ export function planCity(chains: CityChain[], g: CityGeometry): City {
       const [x, y] = screen(s.r, s.a);
       lots.set(c.id, { x, y, district: k, rank, reach: 0, r: s.r, a: s.a, road: s.road, span: [arcs[i].a0, arcs[i].a1] });
     });
+    for (const [front, back] of FRONT_OF) {
+      const a = lots.get(front);
+      const b = lots.get(back);
+      if (!a || !b || a.district !== k || b.district !== k || a.y >= b.y) continue;
+      lots.set(front, b);
+      lots.set(back, a);
+    }
+    for (const id of WHOLE_BLOCK)
+      if (lots.get(id)?.district === k) plot = wholeBlock(id, plot, members, lots, (n) => plotWard(n, arcs[i].a0, arcs[i].a1, lot, core, g.reach), screen) ?? plot;
+    for (const b of plot.blocks) blocks.push({ ...b, district: k });
+    const r1 = Math.max(...plot.blocks.map((b) => b.r1));
+    edge = Math.max(edge, r1);
     wards.push({ district: k, label: districtLabel(k), ids: members.map((c) => c.id), a0: arcs[i].a0, a1: arcs[i].a1, r0: core, r1 });
   });
-  for (const [front, back] of FRONT_OF) {
-    const a = lots.get(front);
-    const b = lots.get(back);
-    if (!a || !b || a.district !== b.district || a.y >= b.y) continue;
-    lots.set(front, b);
-    lots.set(back, a);
-  }
   for (const l of lots.values()) l.reach = Math.min(1, l.r / edge);
   const pairs = Math.round((edge - core - ROAD * lot) / ((2 + ROAD) * lot)) + 1;
   const rings = Array.from({ length: Math.max(1, pairs) }, (_, p) => core + (ROAD * lot) / 2 + p * (2 + ROAD) * lot);
