@@ -2,7 +2,7 @@ import "server-only";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
-import { MAX_ROWS, guardSql, negativeFigure } from "./guard";
+import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
 import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
@@ -174,6 +174,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let capOnce = false;
     let wordsOnce = false;
     let negOnce = false;
+    let datedOnce = false;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
     const step = (kind: StepTiming["kind"], sqlMs: number, ok: boolean, detail: string) => {
@@ -251,6 +252,12 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
           return {
             error: `the title, note or a series label has ${named.join(", ")}, words the page never shows: the reader never sees the SQL or its columns, and a transaction is final, never settled. Say it in plain words ("seen in the last 7 days", not seen_7d; final, not settled), and call render_chart again with the same SQL.`,
           };
+        }
+        // a relative window written as a date reads the same days on every later run of a kept answer: ask once
+        const dated = datedOnce ? null : literalWindow(sql, [a.prompt, ...a.history.map((t) => String(t?.prompt ?? ""))].join("\n"), a.chainId);
+        if (dated) {
+          datedOnce = true;
+          return fail(dated, 0);
         }
         const q0 = Date.now();
         try {

@@ -212,7 +212,25 @@ export function negativeFigure(result: { columns: readonly { name: string }[]; r
     if (!NEVER_NEGATIVE.test(name) || SIGNED.test(name)) continue;
     const i = result.rows.findIndex((r) => Number(r[name]) < 0);
     if (i >= 0)
-      return `${name} is ${String(result.rows[i][name])} in row ${i + 1}, and a fee, a volume, a price or a value in USD is never below zero. Check the signs of what it is made of: take a swap's amounts as absolute values, and in a DEX query take a swap's value from usd in legs and the WAVAX price from px. Then call render_chart again.`;
+      return `${name} is ${String(result.rows[i][name])} in row ${i + 1}, and a fee, a volume, a price or a value in USD is never below zero, so a sign in the query is wrong. Do not hide it with abs(): find the step that turns it negative. A univ3 Swap's amount0 and amount1 have opposite signs, so a price from them is -amount1 / amount0. In a DEX query, a swap's value is usd in legs, the WAVAX price of an hour is price in px, and a pair's own price is the ratio of r0 and r1 over that pair's legs only. Then call render_chart again.`;
   }
   return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* A relative window ("today", "this week") written as a date reads the
+   same days on every later run of a kept answer. A date the question
+   names stays a date. */
+
+/** a question that names a date, a month or a year, whose days the query may write out */
+const NAMED_DATE = /\b(\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|20\d{2}|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i;
+const DAY = 86_400_000;
+
+/** why a query that writes out a date of the last five weeks must use now(), when its question (and the turns before it) name no date; or null */
+export function literalWindow(sql: string, question: string, chainId: number, now = new Date()): string | null {
+  if (isFuji(chainId) || NAMED_DATE.test(question)) return null;
+  const recent = [...sql.matchAll(/'(\d{4}-\d{2}-\d{2})(?:[ T][\d:.]*)?'/g)].map((m) => m[1]).find((d) => Math.abs(now.getTime() - Date.parse(`${d}T00:00:00Z`)) < 35 * DAY);
+  return recent
+    ? `the query writes the date ${recent} out, and the question names no date. Write its window with now(): today is toStartOfDay(now()), this week toMonday(now()), this month toStartOfMonth(now()), the last 7 days now() - INTERVAL 7 DAY. A kept answer runs again on later days, and a date written out would read the same days. Then call render_chart again.`
+    : null;
 }
