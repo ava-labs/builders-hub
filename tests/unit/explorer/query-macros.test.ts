@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { guardSql, literalWindow, negativeFigure } from '@/lib/explorer-query/guard';
 import { DEX_WITH, expandMacros } from '@/lib/explorer-query/macros';
 import { pchainPrompt, systemPrompt, userTurn } from '@/lib/explorer-query/prompt';
-import { DEX_PROTOCOLS } from '@/lib/explorer-query/protocols';
+import { DEX_FACTORIES, DEX_PROTOCOLS } from '@/lib/explorer-query/protocols';
 
 const today = 'toStartOfDay(now())';
 const OWN = ' SELECT protocol, round(sum(usd), 2) AS volume_usd FROM legs GROUP BY protocol';
@@ -78,6 +78,18 @@ describe('the DEX shorthand', () => {
       const g = guardSql(sql, chainId);
       expect(g.ok ? '' : g.error).toBe(OLD);
     }
+  });
+
+  it("keeps a factory that ends in a zero byte, and the registry has no factory or positions contract a query's own join would miss", () => {
+    // a String joined to raw_logs.address (a FixedString) loses its trailing zero bytes: aAvaUSDe (…fb00) matched no log
+    for (const call of [`$DEX(${today})`, '$POOLS()']) {
+      const sql = expanded(`${call} SELECT count() AS n FROM pools`);
+      expect(sql, call).toContain('INNER JOIN dex_factories AS f ON l.address = toFixedString(f.factory, 20)');
+      expect(sql, call).toContain('l.address IN (SELECT toFixedString(factory, 20) FROM dex_factories WHERE chain_id = 43114');
+    }
+    // a query of its own reads dex_factories as the table sends it, a String: no listed address may end in 00
+    expect(DEX_FACTORIES.filter((f) => f.factory.endsWith('00')).map((f) => f.factory)).toEqual([]);
+    expect(DEX_FACTORIES.flatMap((f) => f.positions).filter((a) => a.endsWith('00'))).toEqual([]);
   });
 
   it('runs through the guard as the whole WITH, and a query too long says what its own part may take', () => {

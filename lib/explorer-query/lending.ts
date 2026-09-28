@@ -376,7 +376,13 @@ const W = (at: number | string, src = "data") => `toFloat64(reinterpretAsUInt256
 /** a log's first n data words, as X */
 const WORDS = (n: number) => `arrayMap(k -> toFloat64(reinterpretAsUInt256(reverse(substring(data, k, 32)))), [${[1, 33, 65, 97, 129].slice(0, n).join(", ")}]) AS X`;
 const TOK = `(SELECT token, decimals, price FROM lending_tokens WHERE chain_id = ${C})`;
-const CORE = `(SELECT * FROM lending_markets WHERE chain_id = ${C} AND version = 'core')`;
+/** Benqi's core markets, read once in each WITH that reads them: each market a FixedString(20) like raw_logs.address, so
+    a join or an IN on the address keeps a market that ends in 00 (see fixed below); asset stays a String, like an address
+    read from a log */
+const CORE = "qi_core";
+const CORE_CTE = `${CORE} AS (SELECT * REPLACE (toFixedString(market, 20) AS market) FROM lending_markets WHERE chain_id = ${C} AND version = 'core')`;
+/** the core markets' WITH, for a side that reads Benqi */
+const core = (side: Side) => (side === "aave" ? "" : `${CORE_CTE}, `);
 const med = (n: number) => `ifNotFinite(quantileExactIf(0.5)(q, p = ${n}), NULL)`;
 const SWAPPED = (at: number) => `abs(toFloat64(reinterpretAsInt256(reverse(substring(data, ${at}, 32)))))`;
 /** the prices of now: one row of medians over the last 24 hours, so a kind with no swap yet today still has one */
@@ -428,7 +434,7 @@ export function lendWith(start: string, end?: string, slug?: string): string {
   // the kind's last ratio at or before the event (ASOF), times the AVAX price of the event's hour for a kind quoted in AVAX;
   // the prices start a day before the window (a start such as toMonday(now()) is a Date, which toStartOfHour does not take)
   return (
-    `WITH ${hourPricesCte(`toStartOfHour(toDateTime(${start})) - INTERVAL 1 DAY`, until("block_time", end))}, ev AS (${join(sideOf(slug), aave, benqi)}), ` +
+    `WITH ${hourPricesCte(`toStartOfHour(toDateTime(${start})) - INTERVAL 1 DAY`, until("block_time", end))}, ${core(sideOf(slug))}ev AS (${join(sideOf(slug), aave, benqi)}), ` +
     `actions AS (SELECT e.*, e.amount * nullIf(r.v, 0) * if(e.kind IN ${IN_AVAX}, nullIf(x.avax, 0), 1) AS usd FROM ev AS e ASOF LEFT JOIN lp AS r ON e.kind = r.k AND e.t >= r.d LEFT JOIN lpx AS x ON toStartOfHour(e.t) = x.d)`
   );
 }
@@ -448,8 +454,8 @@ export function liquidationsWith(start: string, end?: string, slug?: string): st
   const benqi =
     `SELECT l.block_time AS t, m.protocol AS protocol, substring(l.data, 45, 20) AS borrower, substring(l.data, 13, 20) AS liquidator, m.asset AS debt_asset, ${W(65, "l.data")} / pow(10, m.decimals) AS debt_amount, m.price AS dkind, ` +
     `c.asset AS collateral_asset, ${W(129, "l.data")} * xr.rate / pow(10, c.decimals) AS collateral_amount, c.price AS ckind, ${BENQI_LIQUIDATOR_SHARE} AS share, l.transaction_hash AS tx ` +
-    `FROM raw_logs AS l INNER JOIN ${CORE} AS m ON l.address = m.market INNER JOIN ${CORE} AS c ON substring(l.data, 109, 20) = c.market LEFT JOIN xr ON c.market = xr.mk WHERE l.chain_id = ${C} AND l.block_time >= ${start}${until("l.block_time", end)} AND l.topic0 = qi_liquidate_t`;
-  const parts = [pricesCte(`toStartOfDay(${start})`, "toStartOfHour(block_time)"), ...(side === "aave" ? [] : [xr]), `lq AS (${join(side, aave, benqi)})`];
+    `FROM raw_logs AS l INNER JOIN ${CORE} AS m ON l.address = m.market INNER JOIN ${CORE} AS c ON toFixedString(substring(l.data, 109, 20), 20) = c.market LEFT JOIN xr ON c.market = xr.mk WHERE l.chain_id = ${C} AND l.block_time >= ${start}${until("l.block_time", end)} AND l.topic0 = qi_liquidate_t`;
+  const parts = [pricesCte(`toStartOfDay(${start})`, "toStartOfHour(block_time)"), ...(side === "aave" ? [] : [CORE_CTE, xr]), `lq AS (${join(side, aave, benqi)})`];
   return `WITH ${parts.join(", ")}, liquidations AS (SELECT lq.*, ${usd("debt_amount", "dkind")} AS debt_usd, ${usd("collateral_amount", "ckind")} AS collateral_usd, collateral_usd * share AS received_usd FROM lq LEFT JOIN lpx AS x ON toStartOfHour(lq.t) = x.d)`;
 }
 
@@ -476,7 +482,7 @@ export function debtsWith(slug: string): string {
   const acts = `acts AS (SELECT address AS mk, if(topic0 = qi_borrow_t, substring(data, 13, 20), substring(data, 45, 20)) AS who, argMax(if(topic0 = qi_borrow_t, ${W(65)}, ${W(97)}), (block_number, log_index)) AS ab, max(block_number) AS bn FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2021-08-01' AND address IN (SELECT market FROM ${CORE}) AND topic0 IN (qi_borrow_t, qi_repay_t) GROUP BY mk, who HAVING ab > 0)`;
   const acc = `acc AS (SELECT address AS mk, block_number AS bn, ${W(65)} AS bi FROM raw_logs WHERE chain_id = ${C} AND block_time >= '2021-08-01' AND address IN (SELECT market FROM ${CORE}) AND topic0 = accrue_t)`;
   return (
-    `WITH ${pricesCte(NOW_PRICES, "toDate(now())")}, ${acts}, ${acc}, debts AS (SELECT m.protocol AS protocol, a.who AS borrower, m.asset AS asset, a.ab * cur.bnow / nullIf(z.bi, 0) / pow(10, m.decimals) AS amount, ${usd("amount", "m.price")} AS usd ` +
+    `WITH ${pricesCte(NOW_PRICES, "toDate(now())")}, ${CORE_CTE}, ${acts}, ${acc}, debts AS (SELECT m.protocol AS protocol, a.who AS borrower, m.asset AS asset, a.ab * cur.bnow / nullIf(z.bi, 0) / pow(10, m.decimals) AS amount, ${usd("amount", "m.price")} AS usd ` +
     `FROM acts AS a ASOF LEFT JOIN acc AS z ON a.mk = z.mk AND a.bn >= z.bn INNER JOIN (SELECT mk, argMax(bi, bn) AS bnow FROM acc GROUP BY mk) AS cur ON a.mk = cur.mk INNER JOIN ${CORE} AS m ON a.mk = m.market ${NOW})`
   );
 }
@@ -506,7 +512,7 @@ export function marketsWith(slug?: string): string {
       `any(la.base) + any(la.int_after) * any(la.rf) AS reserves_raw, any(m.decimals) AS dec, any(m.price) AS kind, (cash_raw + borrowed_raw - reserves_raw) / pow(10, dec) AS supplied, borrowed_raw / pow(10, dec) AS borrowed, toNullable(reserves_raw / pow(10, dec)) AS reserves, ` +
       `nullIf(0., 0) AS supply_apy_pct, nullIf(0., 0) AS borrow_apy_pct FROM la LEFT JOIN tail AS t ON la.mk = t.mk INNER JOIN ${CORE} AS m ON la.mk = m.market GROUP BY m.protocol, m.asset)`,
   ];
-  const parts = [pricesCte(NOW_PRICES, "toDate(now())"), ...(side === "benqi" ? [] : aave), ...(side === "aave" ? [] : benqi)];
+  const parts = [pricesCte(NOW_PRICES, "toDate(now())"), ...(side === "benqi" ? [] : aave), ...(side === "aave" ? [] : [CORE_CTE, ...benqi])];
   const union = join(side, `SELECT ${cols} FROM aave`, `SELECT ${cols} FROM benqi`);
   return (
     `WITH ${parts.join(", ")}, markets AS (SELECT u.protocol AS protocol, u.asset AS asset, u.supplied AS supplied, u.borrowed AS borrowed, u.reserves AS reserves, ${usd("u.supplied", "u.kind")} AS supplied_usd, ${usd("u.borrowed", "u.kind")} AS borrowed_usd, ` +

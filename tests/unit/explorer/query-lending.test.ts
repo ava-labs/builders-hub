@@ -150,7 +150,16 @@ describe('the lending shorthand', () => {
       expect(x.ok && x.sql, call).toContain('toFixedString(substring(data, 45, 20), 20)');
     }
     expect(marketsWith(AAVE_SLUG)).toContain('toFixedString(substring(topic2, 13, 20), 20), 1)');
-    // the registry's Benqi markets end in no zero byte, so lending_markets may hold them as a String
+    // Benqi's markets too, in every WITH that reads them, and a collateral market read from a log
+    const core = "(SELECT * REPLACE (toFixedString(market, 20) AS market) FROM lending_markets WHERE chain_id = 43114 AND version = 'core')";
+    for (const call of [`$LEND(${today}, '${BENQI}')`, `$LIQUIDATIONS(${today}, '${BENQI}')`, `$DEBTS('${BENQI}')`, `$MARKETS('${BENQI}')`]) {
+      const x = expandMacros(`${call} SELECT count() AS n FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR`, 43114);
+      const sql = x.ok ? x.sql : '';
+      expect(sql, call).toContain(core);
+      expect(sql.split('lending_markets').length - 1, call).toBe(sql.split(core).length - 1);
+    }
+    expect(expandMacros(`$LIQUIDATIONS(${today}, '${BENQI}') SELECT 1 AS n FROM liquidations`, 43114)).toMatchObject({ sql: expect.stringContaining('ON toFixedString(substring(l.data, 109, 20), 20) = c.market') });
+    // a query of its own reads lending_markets as the table sends it, a String: no listed market may end in 00
     expect(LENDING_MARKETS.filter((m) => m.market.endsWith('00'))).toEqual([]);
   });
 
