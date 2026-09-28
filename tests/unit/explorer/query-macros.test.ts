@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { guardSql, literalWindow, negativeFigure } from '@/lib/explorer-query/guard';
 import { collapseMacros, DEX_WITH, expandMacros } from '@/lib/explorer-query/macros';
 import { pchainPrompt, systemPrompt, userTurn } from '@/lib/explorer-query/prompt';
-import { DEX_FACTORIES, DEX_PROTOCOLS, V2_FEE_PROTOCOLS } from '@/lib/explorer-query/protocols';
+import { DEX_FACTORIES, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS } from '@/lib/explorer-query/protocols';
 import { SQL_BUDGET, withSources } from '@/lib/explorer-query/sources';
 
 const today = 'toStartOfDay(now())';
@@ -170,6 +170,37 @@ describe('the checks that stop a wrong answer', () => {
     }
     expect(guardSql(HASH.replace('43114', '43113'), 43113).ok).toBe(true);
     expect(guardSql("SELECT concat('0x', hex(transaction_hash)) AS tx_hash FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef')", 43114).ok).toBe(true);
+  });
+
+  it('refuse a $DEX query that reads the Swap logs from raw_logs again or joins raw_logs to legs, and pass a read of another event', () => {
+    const error = (sql: string) => {
+      const g = guardSql(sql, 43114);
+      return g.ok ? '' : g.error;
+    };
+    const t = (k: keyof typeof DEX_TOPICS) => `unhex('${DEX_TOPICS[k]}')`;
+    const from = `l.chain_id = 43114 AND l.block_time >= ${today}`;
+    // a replay of D07 ("The largest swaps today") joined the Swap logs back to legs on tx and pool, so an lb swap that
+    // crossed n bins came back n times n
+    const d07 = `$DEX(${today}) SELECT lower(concat('0x', hex(l.transaction_hash))) AS tx_hash, l.block_time AS t, l.block_number, lower(concat('0x', hex(l.tx_from))) AS trader, lower(concat('0x', hex(l.address))) AS pool, legs.protocol, legs.version, legs.usd AS volume_usd FROM raw_logs AS l INNER JOIN legs ON l.transaction_hash = legs.tx AND l.address = legs.pool WHERE ${from} AND l.topic0 IN (${t('v2Swap')}, ${t('v3Swap')}, ${t('lbSwap')}, ${t('v4Swap')}) ORDER BY legs.usd DESC LIMIT 20`;
+    const again = error(d07);
+    expect(again).toMatch(/^this \$DEX query reads the window's Swap logs from raw_logs again, and legs holds them already, one row per log\. /);
+    expect(again).toContain("legs has pool, block_time, block_number, tx (the log's transaction_hash), trader (its tx_from), router (its tx_to), protocol, version, t0, t1, k, r0, r1 and usd: read them FROM legs alone");
+    expect(error(`$DEX(${today}) SELECT count() AS logs FROM raw_logs AS l WHERE ${from} AND l.topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap)`)).toBe(again);
+    // a join of another event's logs to legs repeats each swap as well
+    const joined = error(`$DEX(${today}) SELECT legs.tx, round(sum(legs.usd), 2) AS volume_usd FROM legs INNER JOIN raw_logs AS l ON l.transaction_hash = legs.tx WHERE ${from} AND l.topic0 = ${t('transfer')} GROUP BY legs.tx`);
+    expect(joined).toMatch(/^this \$DEX query joins raw_logs to legs, so each swap comes back once for every log it matches .* filter legs with tx IN \(SELECT transaction_hash FROM raw_logs WHERE …\) or pool IN \(SELECT …\)$/);
+    expect(error(`$DEX(${today}) SELECT count() AS n FROM default.raw_logs AS l INNER JOIN swap_logs AS s ON l.transaction_hash = s.tx WHERE ${from} AND l.topic0 = ${t('transfer')}`)).toBe(joined);
+    for (const ok of [
+      // WOOFi's WooSwap, which legs lacks, beside the other protocols
+      `$DEX(${today}) SELECT protocol, round(sum(usd), 2) AS volume_usd FROM legs GROUP BY protocol UNION ALL SELECT 'woofi' AS protocol, round(sum(toFloat64(reinterpretAsUInt256(reverse(substring(l.data, 129, 32)))) / 1e6), 2) AS volume_usd FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('wooSwap')}`,
+      // the swaps of the transactions another event names, and a count per pool of another event joined on the pool
+      `$DEX(${today}) SELECT count() AS swaps FROM legs WHERE tx IN (SELECT transaction_hash FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('transfer')})`,
+      `$DEX(${today}), syncs AS (SELECT l.address AS pool_address, count() AS n FROM raw_logs AS l WHERE ${from} AND l.topic0 = ${t('v2Sync')} GROUP BY pool_address) SELECT g.pool, round(sum(g.usd), 2) AS volume_usd, any(y.n) AS syncs FROM legs AS g INNER JOIN syncs AS y ON g.pool = y.pool_address GROUP BY g.pool`,
+      // a drill into the Swap logs themselves, and legs joined to itself
+      `$POOLS() SELECT l.block_time AS t FROM raw_logs AS l WHERE ${from} AND l.topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap) AND if(l.topic0 = v4_swap, l.topic1, l.address) IN (SELECT pool FROM pools) ORDER BY l.block_time DESC LIMIT 50`,
+      `$DEX(${today}) SELECT a.tx, count() AS hops FROM legs AS a INNER JOIN legs AS b ON a.tx = b.tx GROUP BY a.tx`,
+    ])
+      expect(error(ok), ok).toBe('');
   });
 
   it('name a fee, a volume, a price or a USD value below zero, but not a net, a flow or a change', () => {

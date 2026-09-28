@@ -7,6 +7,7 @@
 
 import { strayHex } from "./lending";
 import { expandMacros } from "./macros";
+import { DEX_TOPICS } from "./protocols";
 import { EVM_TABLES, isFuji, targetOf } from "./target";
 
 /** the EVM chains' tables; each target carries its own list (target.ts) */
@@ -152,6 +153,36 @@ function badHex(sql: string): string | null {
   return null;
 }
 
+/* ------------------------------------------------------------------ */
+/* legs holds the window's Swap logs, one row each, with every figure a
+   query reads of a swap. A DEX query that reads those logs from raw_logs
+   again, or joins raw_logs to legs, gets each swap back once for every
+   log it matches: an lb swap that crosses n bins is n logs. */
+
+/** the Swap topics legs is made from, by the names the DEX WITH gives them or as literals */
+const LEGS_SWAPS = new RegExp(`\\b(v2_swap|v3_swap|lb_swap|v4_swap)\\b|unhex\\s*\\(\\s*'(${[DEX_TOPICS.v2Swap, DEX_TOPICS.v3Swap, DEX_TOPICS.lbSwap, DEX_TOPICS.v4Swap].join("|")})'\\s*\\)`, "i");
+const LEGS_HAS = "legs has pool, block_time, block_number, tx (the log's transaction_hash), trader (its tx_from), router (its tx_to), protocol, version, t0, t1, k, r0, r1 and usd: read them FROM legs alone";
+
+/** why the query after the $DEX shorthand reads raw_logs where legs holds the rows, or null. A read of another event (a
+    Transfer, a Sync, or WOOFi's WooSwap, which legs lacks) passes, and so does a filter by its transactions or pools */
+function legsAgain(own: string): string | null {
+  const toks = tokenize(own);
+  // the tables each SELECT reads by name; a subquery, an ARRAY JOIN and a WITH FILL FROM name none
+  const reads = new Map<number, Set<string>>();
+  toks.forEach((t, i) => {
+    if (t.depth !== 0 || !keyword(t, "FROM", "JOIN") || keyword(toks[i - 1], "ARRAY", "FILL")) return;
+    const name = toks[i + 2]?.v === "." ? toks[i + 3] : toks[i + 1];
+    if (name?.word) reads.set(t.select, (reads.get(t.select) ?? new Set<string>()).add(name.v.toLowerCase()));
+  });
+  const selects = [...reads.values()];
+  if (!selects.some((s) => s.has("raw_logs"))) return null;
+  if (LEGS_SWAPS.test(own))
+    return `this $DEX query reads the window's Swap logs from raw_logs again, and legs holds them already, one row per log. ${LEGS_HAS}. A drill into the Swap logs themselves opens with $POOLS(), as the worked examples do`;
+  if (selects.some((s) => s.has("raw_logs") && (s.has("legs") || s.has("swap_logs"))))
+    return `this $DEX query joins raw_logs to legs, so each swap comes back once for every log it matches (an lb swap that crosses n bins is n logs). ${LEGS_HAS}. For the swaps of the transactions or pools another event names, filter legs with tx IN (SELECT transaction_hash FROM raw_logs WHERE …) or pool IN (SELECT …)`;
+  return null;
+}
+
 export function guardSql(raw: string, chainId: number): GuardResult {
   const target = targetOf(chainId);
   let sql = String(raw ?? "").trim().replace(/;+\s*$/, "").trim();
@@ -163,6 +194,9 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   const x = expandMacros(sql, chainId);
   if (!x.ok) return x;
   sql = x.sql;
+  // what the writer typed after $DEX reads the Swap logs from legs, never from raw_logs a second time
+  const again = x.macro?.name === "DEX" ? legsAgain(sql.slice(x.macro.size)) : null;
+  if (again) return { ok: false, error: again };
   if (sql.length > 6000) {
     const m = x.macro;
     return { ok: false, error: m ? `query too long: ${sql.length} characters with $${m.name} written out, 6000 at most. Its WITH takes ${m.size}, so what follows it may take ${6000 - m.size}` : "query too long (6000 chars max)" };
