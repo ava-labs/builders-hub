@@ -2,12 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminRequestDetail } from "@/server/services/audits/visibility";
 import { StatusBadge } from "@/components/audits/shared/StatusBadge";
-import { MONO_LABEL, MONO_LABEL_SM } from "@/components/audits/shared/classes";
+import { MONO_LABEL } from "@/components/audits/shared/classes";
 import { formatIsoDate } from "@/components/audits/shared/format";
 import { QuoteComparison } from "@/components/audits/admin/QuoteComparison";
 import { SubsidyWorksheet } from "@/components/audits/admin/SubsidyWorksheet";
 import { ReviewDecision } from "@/components/audits/admin/ReviewDecision";
 import { ActivityTrail } from "@/components/audits/admin/ActivityTrail";
+import { SubmissionDetails } from "@/components/audits/admin/SubmissionDetails";
 import { denyIfNotAuditAdmin } from "@/app/(home)/audits/admin/require-admin";
 
 export default async function AuditAdminDrilldownPage({
@@ -73,18 +74,7 @@ export default async function AuditAdminDrilldownPage({
             neededBy={detail.needed_by}
           />
 
-          <div className="rounded-xl border border-zinc-200 p-5 text-sm dark:border-white/10">
-            <p className={MONO_LABEL_SM}>Scope</p>
-            <p className="mt-2 whitespace-pre-line text-zinc-700 dark:text-zinc-300">
-              {detail.scope || "·"}
-            </p>
-            <p className={`${MONO_LABEL_SM} mt-4`}>Contact</p>
-            <p className="mt-1 text-zinc-700 dark:text-zinc-300">
-              {[detail.contact_name, detail.contact_email, detail.contact_handle]
-                .filter(Boolean)
-                .join(" · ") || "·"}
-            </p>
-          </div>
+          <SubmissionDetails detail={detail} />
 
           <ActivityTrail
             events={detail.events}
