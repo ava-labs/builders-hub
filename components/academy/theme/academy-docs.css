@@ -253,22 +253,24 @@
 
 [data-academy="docs"] #nd-page article > .prose > h3 { font-family: var(--ac-display); font-weight: 500; font-size: 19px; color: var(--ac-ink); }
 
-/* Content links. Console tools keep their own links, and so does the certificate block (the
-   CertificatePage root, [data-certificate-page] in components/quizzes/certificates.tsx), which the
-   certificate pages restyle. */
-[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a) {
+/* Content links. A link styled as a button keeps the button's own colours and focus ring: <Button
+   asChild> marks it with data-slot="button" (components/ui/button.tsx), and a link that takes
+   buttonVariants' classes directly is known by the filled button's bg-primary. Console tools keep their
+   own links, and so does the certificate block (the CertificatePage root, [data-certificate-page] in
+   components/quizzes/certificates.tsx), which the certificate pages restyle. */
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-slot="button"]):not(.bg-primary):not([data-console-frame] a):not([data-certificate-page] a) {
   color: var(--ac-ink);
   text-decoration-color: var(--ac-rule-2);
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 
-[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a):hover { text-decoration-color: var(--ac-red); }
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-slot="button"]):not(.bg-primary):not([data-console-frame] a):not([data-certificate-page] a):hover { text-decoration-color: var(--ac-red); }
 [data-academy="docs"] #nd-page article > .prose li:not([data-console-frame] li)::marker { color: var(--ac-ink-3); }
 
 /* Keyboard focus: a 2 px ink ring outside the text, on links and on the section headings' anchors.
    An outline never moves a box. */
-[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-console-frame] a):not([data-certificate-page] a):focus-visible,
+[data-academy="docs"] #nd-page article > .prose a:not([data-card]):not([data-slot="button"]):not(.bg-primary):not([data-console-frame] a):not([data-certificate-page] a):focus-visible,
 [data-academy="docs"] #nd-page article > .prose > :is(h2, h3) > a[data-card]:focus-visible {
   outline: 2px solid var(--ac-ink);
   outline-offset: 2px;

@@ -10,6 +10,16 @@ import { describe, expect, it } from 'vitest';
 const read = (file: string) => readFileSync(path.join(process.cwd(), file), 'utf8');
 const SKIN = 'components/academy/theme/academy-docs.css';
 const LITERAL_COLOUR = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color-mix)\(/i;
+const CONTENT_LINK = /#nd-page article > \.prose a:not\(\[data-card\]\)/;
+
+/** The content-link rules' selectors: the base rule, :hover and :focus-visible. */
+function contentLinkSelectors(): string[] {
+  const links: string[] = [];
+  postcss.parse(read(SKIN)).walkRules((rule) => {
+    links.push(...rule.selectors.filter((selector) => CONTENT_LINK.test(selector)));
+  });
+  return links;
+}
 
 describe('academy-docs.css', () => {
   it('starts every selector with [data-academy="docs"]', () => {
@@ -27,6 +37,18 @@ describe('academy-docs.css', () => {
       if (LITERAL_COLOUR.test(decl.value)) literal.push(`${decl.prop}: ${decl.value}`);
     });
     expect(literal).toEqual([]);
+  });
+
+  it('leaves button-styled links their own colours: every content-link rule excludes [data-slot="button"]', () => {
+    const links = contentLinkSelectors();
+    expect(links).toHaveLength(3);
+    expect(links.filter((selector) => !selector.includes(':not([data-slot="button"])'))).toEqual([]);
+  });
+
+  it('leaves links given buttonVariants classes their own colours: every content-link rule excludes .bg-primary', () => {
+    const links = contentLinkSelectors();
+    expect(links).toHaveLength(3);
+    expect(links.filter((selector) => !selector.includes(':not(.bg-primary)'))).toEqual([]);
   });
 
   it('is loaded by the course pages right after the tokens', () => {
