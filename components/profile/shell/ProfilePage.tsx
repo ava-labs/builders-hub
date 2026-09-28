@@ -227,11 +227,14 @@ export default function ProfilePage({ teamLabel }: Props) {
     };
   }, [session?.user?.id]);
 
-  // Builder Insights is heavy (PostHog HogQL queries take a few seconds each),
-  // so we lazy-load it in the background only for DevRel users who have the
-  // `builder_insights` attribute. Tab is hidden for everyone else.
+  // Builder Insights is heavy (~20 Postgres queries + 7 PostHog roundtrips),
+  // so it loads only when the tab is actually opened, and only for users with
+  // the `builder_insights` attribute — the tab is hidden for everyone else.
+  // The server caches the shared part, so re-opening the tab is cheap.
+  // (The Insights tab's count badge stays empty until first opened as a
+  // result — cheap trade for not paying the fan-out on every profile visit.)
   React.useEffect(() => {
-    if (!showInsightsTab) return;
+    if (!showInsightsTab || tab !== "insights" || insightsData) return;
     let cancelled = false;
     setInsightsLoading(true);
     setInsightsError(null);
@@ -255,7 +258,7 @@ export default function ProfilePage({ teamLabel }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [showInsightsTab]);
+  }, [showInsightsTab, tab, insightsData]);
 
   const pushToast = React.useCallback((message: string, kind: "success" | "error" = "success") => {
     if (kind === "error") {

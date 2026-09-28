@@ -2567,15 +2567,27 @@
   cursor: not-allowed;
 }
 
-/* Referral leaderboard controls (tab switch + month filter) */
-.profile .pr-leaderboard__controls {
+/* Leaderboard controls (tab switch + month/day filter) and the chart's
+   metric + granularity switches — same flex row, first control takes the
+   slack. */
+.profile .pr-leaderboard__controls,
+.profile .pr-chart-controls {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
-.profile .pr-leaderboard__controls .pr-seg {
-  flex: 1;
+.profile .pr-leaderboard__controls > .pr-seg:first-child,
+.profile .pr-chart-controls > .pr-seg:first-child {
+  flex: 1 1 180px;
   min-width: 0;
+}
+/* .pr-seg is width:100% on its own, which as a flex item resolves to a
+   full-container flex basis and starves whatever sits next to it — size
+   trailing segmented controls to their content instead. */
+.profile .pr-chart-controls > .pr-seg:not(:first-child) {
+  flex: 0 0 auto;
+  width: auto;
 }
 .profile .pr-month-select {
   appearance: none;
@@ -2597,4 +2609,14 @@
 }
 .profile .pr-month-select:hover {
   border-color: var(--pr-g-700);
+}
+/* Day filter reuses the select's box, minus the chevron (the native date
+   input draws its own calendar picker indicator). */
+.profile .pr-day-input {
+  background-image: none;
+  padding: 0 10px;
+}
+.profile .pr-day-input::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
 }

@@ -1,12 +1,14 @@
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/prisma/prisma";
-import { listReferralLinksForUser } from "./referrals";
+import { BUILD_GAMES_HACKATHON_ID } from "@/constants/build-games";
 import {
-  ACTIVE_GRANT_TARGETS,
-  BUILDER_HUB_SIGNUP_TARGET,
-  type ReferralTargetPreset,
-} from "@/lib/referrals/targets";
-import { runHogQL } from "@/lib/posthog-query";
+  BUILDER_HUB_PROJECT_ID,
+  HOGQL_HOST_FILTER,
+  runHogQL,
+} from "@/lib/posthog-query";
 import { REFERRAL_TEAM_LABELS } from "@/lib/referrals/team-labels";
+import { getDateWithTimezone, isSupportedTimeZone } from "./date-parser";
 import {
   getTopHackathonTrafficSourcesBatch,
   type HackathonTrafficSource,
@@ -15,7 +17,6 @@ import {
 export interface MonthlySignupPoint {
   month: string;
   signups: number;
-  cumulative: number;
 }
 
 export interface MonthlyVisitPoint {
@@ -23,10 +24,19 @@ export interface MonthlyVisitPoint {
   visitors: number;
 }
 
-export interface ReferrerSignupPoint {
-  referrerId: string;
-  referrer: string;
-  signups: number;
+/** One trailing-90-day bucket. `date` is an ISO YYYY-MM-DD UTC day. */
+export interface DailyPoint {
+  date: string;
+  value: number;
+}
+
+export interface ReferralPeriodData {
+  /** Echo of the requested period: "YYYY-MM-DD" (a day) or "YYYY-MM" (a month). */
+  period: string;
+  /** IANA zone the period boundaries were resolved in (may differ if the request's was unknown). */
+  timeZone: string;
+  people: TopReferrerRow[];
+  teams: TopTeamReferrerRow[];
 }
 
 export interface EventParticipantPoint {
@@ -46,26 +56,6 @@ export interface TopReferrerRow {
   teamId: string | null;
   team: string;
   country: string | null;
-  builderHubSignups: number;
-  eventRegistrations: number;
-  hackathonRegistrations: number;
-  grantApplications: number;
-  totalReferrals: number;
-}
-
-export interface ReferrerMonthlyRow {
-  referrerId: string;
-  month: string;
-  builderHubSignups: number;
-  eventRegistrations: number;
-  hackathonRegistrations: number;
-  grantApplications: number;
-  totalReferrals: number;
-}
-
-export interface TeamReferrerMonthlyRow {
-  teamId: string;
-  month: string;
   builderHubSignups: number;
   eventRegistrations: number;
   hackathonRegistrations: number;
@@ -121,13 +111,12 @@ export interface BuilderInsightsData {
   monthlySignups: MonthlySignupPoint[];
   monthlyVisits: MonthlyVisitPoint[];
   monthlyConsoleUsers: MonthlyVisitPoint[];
-  signupsByReferrer: ReferrerSignupPoint[];
+  dailySignups: DailyPoint[];
+  dailyVisits: DailyPoint[];
+  dailyConsoleUsers: DailyPoint[];
   eventParticipants: EventParticipantPoint[];
   topReferrers: TopReferrerRow[];
-  topReferrersMonthly: ReferrerMonthlyRow[];
   topTeamReferrers: TopTeamReferrerRow[];
-  topTeamReferrersMonthly: TeamReferrerMonthlyRow[];
-  referralTargets: ReferralTargetPreset[];
   socialCompletion: SocialCompletionStat[];
   socialCompletionDepth: SocialCompletionDepthRow[];
 }
@@ -137,15 +126,15 @@ function toNumber(value: bigint | number | null | undefined): number {
   return value ?? 0;
 }
 
-function formatMonth(value: Date | string): string {
+/** ISO YYYY-MM-DD UTC day for a timestamp or date string. */
+export function formatDay(value: Date | string): string {
   const date = value instanceof Date ? value : new Date(value);
-  return date.toISOString().slice(0, 7);
+  return date.toISOString().slice(0, 10);
 }
 
-function getEventStatus(startDate: Date, endDate: Date): string {
-  const now = Date.now();
-  if (startDate.getTime() <= now && endDate.getTime() >= now) return "Active";
-  return "Upcoming";
+/** ISO YYYY-MM UTC month for a timestamp or date string. */
+export function formatMonth(value: Date | string): string {
+  return formatDay(value).slice(0, 7);
 }
 
 function formatTeamLabel(teamId: string): string {
@@ -156,9 +145,84 @@ function getReferrerTeamLabel(teamId: string | null): string {
   return teamId ? formatTeamLabel(teamId) : "Community";
 }
 
-const POSTHOG_BUILDER_HUB_PROJECT_ID = process.env.POSTHOG_PROJECT_ID;
+interface RawReferrerRow {
+  referrerId: string;
+  referrer: string | null;
+  teamId: string | null;
+  country: string | null;
+  builderHubSignups: bigint;
+  eventRegistrations: bigint;
+  hackathonRegistrations: bigint;
+  grantApplications: bigint;
+  totalReferrals: bigint;
+}
 
-const HOGQL_HOST_FILTER = "properties.$host IN ('build.avax.network', 'www.build.avax.network')";
+interface RawTeamReferrerRow {
+  teamId: string;
+  builderHubSignups: bigint;
+  eventRegistrations: bigint;
+  hackathonRegistrations: bigint;
+  grantApplications: bigint;
+  totalReferrals: bigint;
+}
+
+/**
+ * Referrers without a profile name fall back to their email. Show enough to
+ * recognise a colleague, not enough to hand out a reachable address — this
+ * dashboard gets screenshotted and pasted into chat.
+ */
+export function maskEmailFallback(value: string): string {
+  const at = value.indexOf("@");
+  return at > 0 && value.includes(".", at) ? `${value.slice(0, at)}@…` : value;
+}
+
+function toTopReferrerRow(row: RawReferrerRow): TopReferrerRow {
+  return {
+    referrerId: row.referrerId,
+    referrer: maskEmailFallback(row.referrer ?? "Unknown"),
+    teamId: row.teamId ?? null,
+    team: getReferrerTeamLabel(row.teamId ?? null),
+    country: row.country ?? null,
+    builderHubSignups: toNumber(row.builderHubSignups),
+    eventRegistrations: toNumber(row.eventRegistrations),
+    hackathonRegistrations: toNumber(row.hackathonRegistrations),
+    grantApplications: toNumber(row.grantApplications),
+    totalReferrals: toNumber(row.totalReferrals),
+  };
+}
+
+function toTopTeamReferrerRow(row: RawTeamReferrerRow): TopTeamReferrerRow {
+  return {
+    teamId: row.teamId,
+    team: formatTeamLabel(row.teamId),
+    builderHubSignups: toNumber(row.builderHubSignups),
+    eventRegistrations: toNumber(row.eventRegistrations),
+    hackathonRegistrations: toNumber(row.hackathonRegistrations),
+    grantApplications: toNumber(row.grantApplications),
+    totalReferrals: toNumber(row.totalReferrals),
+  };
+}
+
+// Conversion buckets shared by every referral aggregation (all-time, per
+// month, per day; by person and by team). Requires the query to alias
+// "ReferralAttribution" as `attribution` and LEFT JOIN "Hackathon" as
+// `hackathon` — the event/hackathon split keys off hackathon."event".
+const REFERRAL_BUCKET_COLUMNS = Prisma.sql`
+  COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
+  COUNT(*) FILTER (
+    WHERE attribution."target_type" = 'hackathon_registration'
+      AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
+  )::bigint AS "eventRegistrations",
+  COUNT(*) FILTER (
+    WHERE attribution."target_type" = 'build_games_application'
+       OR (
+         attribution."target_type" = 'hackathon_registration'
+         AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
+       )
+  )::bigint AS "hackathonRegistrations",
+  COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
+  COUNT(*)::bigint AS "totalReferrals"
+`;
 
 const ROLLING_VISITS_HOGQL = `
   SELECT
@@ -199,6 +263,33 @@ const MONTHLY_CONSOLE_USERS_HOGQL = `
   ORDER BY month ASC
 `.trim();
 
+const DAILY_WINDOW_DAYS = 90;
+
+const DAILY_VISITS_HOGQL = `
+  SELECT
+    toDate(timestamp) AS day,
+    count(DISTINCT distinct_id) AS visitors
+  FROM events
+  WHERE event = '$pageview'
+    AND ${HOGQL_HOST_FILTER}
+    AND timestamp >= now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY
+  GROUP BY day
+  ORDER BY day ASC
+`.trim();
+
+const DAILY_CONSOLE_USERS_HOGQL = `
+  SELECT
+    toDate(timestamp) AS day,
+    count(DISTINCT distinct_id) AS users
+  FROM events
+  WHERE event = '$pageview'
+    AND ${HOGQL_HOST_FILTER}
+    AND startsWith(properties.$pathname, '/console')
+    AND timestamp >= now() - INTERVAL ${DAILY_WINDOW_DAYS} DAY
+  GROUP BY day
+  ORDER BY day ASC
+`.trim();
+
 const CONSOLE_USERS_ROLLING_HOGQL = `
   SELECT
     countDistinctIf(distinct_id, timestamp >= now() - INTERVAL 30 DAY) AS latest,
@@ -229,6 +320,13 @@ const TOP_COUNTRY_30D_HOGQL = `
   LIMIT 1
 `.trim();
 
+/**
+ * "Returning" = first seen before the window opened, measured over a rolling
+ * 12 months. The bound matters: unbounded, this groups every pageview ever
+ * recorded by distinct_id and gets slower every month. The cost is that a
+ * visitor dormant for more than a year reads as new again — which is the more
+ * useful definition here anyway.
+ */
 const RETURNING_VISITORS_HOGQL = `
   SELECT
     countIf(seen_current) AS total_current,
@@ -247,28 +345,76 @@ const RETURNING_VISITORS_HOGQL = `
     FROM events
     WHERE event = '$pageview'
       AND ${HOGQL_HOST_FILTER}
+      AND timestamp >= now() - INTERVAL 12 MONTH
       AND timestamp < now()
     GROUP BY distinct_id
   )
 `.trim();
 
-export async function getBuilderInsightsData(currentUserId: string): Promise<BuilderInsightsData> {
+/**
+ * Everything on the dashboard except the viewer's own referral count — i.e.
+ * identical for every user who can see it. ~20 Postgres queries and 7 PostHog
+ * roundtrips, so it is cached process-wide rather than recomputed per request.
+ */
+type GlobalInsights = Omit<BuilderInsightsData, "userGeneratedReferralImpact">;
+
+// Every figure here is a 30d/90d/12m rolling window, so minutes of staleness
+// are invisible. Same in-process Map + in-flight dedupe as
+// lib/explorer-clickhouse.ts — no extra infrastructure, and it also collapses
+// concurrent first-loads into one fan-out.
+const INSIGHTS_TTL_MS = 5 * 60 * 1000;
+let insightsCache: { data: GlobalInsights; fetchedAt: number } | null = null;
+let insightsInFlight: Promise<GlobalInsights> | null = null;
+
+function getGlobalInsights(): Promise<GlobalInsights> {
+  if (insightsCache && Date.now() - insightsCache.fetchedAt < INSIGHTS_TTL_MS) {
+    return Promise.resolve(insightsCache.data);
+  }
+  if (insightsInFlight) return insightsInFlight;
+  insightsInFlight = loadGlobalInsights()
+    .then((data) => {
+      insightsCache = { data, fetchedAt: Date.now() };
+      return data;
+    })
+    .finally(() => {
+      insightsInFlight = null;
+    });
+  return insightsInFlight;
+}
+
+export async function getBuilderInsightsData(
+  currentUserId: string,
+): Promise<BuilderInsightsData> {
+  const [global, userGeneratedRows] = await Promise.all([
+    getGlobalInsights(),
+    prisma.$queryRaw<Array<{ referrals: bigint }>>`
+      SELECT COUNT(*)::bigint AS "referrals"
+      FROM "ReferralAttribution" attribution
+      WHERE attribution."user_id_referrer" = ${currentUserId}
+    `,
+  ]);
+  return {
+    ...global,
+    userGeneratedReferralImpact: toNumber(userGeneratedRows[0]?.referrals),
+  };
+}
+
+async function loadGlobalInsights(): Promise<GlobalInsights> {
   const [
     totalAccounts,
     monthlyRows,
     rollingSignupRows,
-    referrerRows,
     eventParticipantRows,
-    userGeneratedRows,
-    activeEventRows,
+    hackathonTotalsRows,
     topReferrerRows,
-    referrerMonthlyRows,
     topTeamReferrerRows,
-    teamMonthlyRows,
     rollingVisitsRows,
     monthlyVisitsRows,
     consoleUsersRows,
     monthlyConsoleUsersRows,
+    dailySignupRows,
+    dailyVisitsRows,
+    dailyConsoleUsersRows,
     totalHackathonSubmissions,
     topCountryRows,
     returningVisitorsRows,
@@ -276,9 +422,15 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     socialDepthRows,
   ] = await Promise.all([
     prisma.user.count(),
+    // date_trunc on a timestamptz buckets in the DB session's timezone, so the
+    // AT TIME ZONE 'UTC' is load-bearing: without it the buckets silently shift
+    // on any server not configured to UTC, while formatMonth/formatDay below
+    // always read them back as UTC. Window matches the 12-month HogQL series.
     prisma.$queryRaw<Array<{ month: Date; signups: bigint }>>`
-      SELECT date_trunc('month', "created_at")::date AS "month", COUNT(*)::bigint AS "signups"
+      SELECT date_trunc('month', "created_at" AT TIME ZONE 'UTC')::date AS "month",
+             COUNT(*)::bigint AS "signups"
       FROM "User"
+      WHERE "created_at" >= NOW() - INTERVAL '12 months'
       GROUP BY 1
       ORDER BY 1 ASC
     `,
@@ -292,17 +444,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
             AND "created_at" >= NOW() - INTERVAL '60 days'
         )::bigint AS "previous30Days"
       FROM "User"
-    `,
-    prisma.$queryRaw<Array<{ referrerId: string; referrer: string | null; signups: bigint }>>`
-      SELECT owner."id" AS "referrerId",
-             COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
-             COUNT(*)::bigint AS "signups"
-      FROM "ReferralAttribution" attribution
-      INNER JOIN "User" owner ON owner."id" = attribution."user_id_referrer"
-      WHERE attribution."target_type" = 'bh_signup'
-      GROUP BY owner."id", owner."name", owner."email"
-      ORDER BY "signups" DESC
-      LIMIT 20
     `,
     prisma.$queryRaw<
       Array<{
@@ -345,7 +486,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
           FROM "RegisterForm"
           GROUP BY "hackathon_id"
           UNION ALL
-          SELECT '249d2911-7931-4aa0-a696-37d8370b79f9' AS "eventId",
+          SELECT ${BUILD_GAMES_HACKATHON_ID} AS "eventId",
                  COUNT(*)::bigint AS "registrations"
           FROM "BuildGamesApplication"
         ) combined
@@ -363,56 +504,25 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ORDER BY ep."startDate" DESC
       LIMIT 25
     `,
-    prisma.$queryRaw<Array<{ referrals: bigint }>>`
-      SELECT COUNT(*)::bigint AS "referrals"
-      FROM "ReferralAttribution" attribution
-      WHERE attribution."user_id_referrer" = ${currentUserId}
-    `,
-    prisma.hackathon.findMany({
-      where: {
-        end_date: { gte: new Date() },
-        OR: [{ is_public: true }, { is_public: null }],
-      },
-      select: {
-        id: true,
-        title: true,
-        start_date: true,
-        end_date: true,
-      },
-      orderBy: [{ start_date: "asc" }],
-      take: 25,
-    }),
+    // The table above is capped at 25 rows; the headline totals must not be.
     prisma.$queryRaw<
-      Array<{
-        referrerId: string;
-        referrer: string | null;
-        teamId: string | null;
-        country: string | null;
-        builderHubSignups: bigint;
-        eventRegistrations: bigint;
-        hackathonRegistrations: bigint;
-        grantApplications: bigint;
-        totalReferrals: bigint;
-      }>
+      Array<{ hackathons: bigint; participants: bigint; projects: bigint }>
     >`
+      SELECT COUNT(DISTINCT h."id")::bigint AS "hackathons",
+             COUNT(DISTINCT m."id")::bigint AS "participants",
+             COUNT(DISTINCT p."id")::bigint AS "projects"
+      FROM "Hackathon" h
+      LEFT JOIN "Project" p ON p."hackaton_id" = h."id"
+      LEFT JOIN "Member" m ON m."project_id" = p."id"
+      WHERE COALESCE(h."event", 'hackathon') = 'hackathon'
+        AND (h."is_public" IS TRUE OR h."is_public" IS NULL)
+    `,
+    prisma.$queryRaw<RawReferrerRow[]>`
       SELECT owner."id" AS "referrerId",
              COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
              owner."team_id" AS "teamId",
              owner."country" AS "country",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'hackathon_registration'
-                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
-             )::bigint AS "eventRegistrations",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'build_games_application'
-                  OR (
-                    attribution."target_type" = 'hackathon_registration'
-                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
-                  )
-             )::bigint AS "hackathonRegistrations",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
-             COUNT(*)::bigint AS "totalReferrals"
+             ${REFERRAL_BUCKET_COLUMNS}
       FROM "ReferralAttribution" attribution
       INNER JOIN "User" owner ON owner."id" = attribution."user_id_referrer"
       LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
@@ -420,64 +530,9 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ORDER BY "totalReferrals" DESC
       LIMIT 100
     `,
-    prisma.$queryRaw<
-      Array<{
-        referrerId: string;
-        month: Date;
-        builderHubSignups: bigint;
-        eventRegistrations: bigint;
-        hackathonRegistrations: bigint;
-        grantApplications: bigint;
-        totalReferrals: bigint;
-      }>
-    >`
-      SELECT attribution."user_id_referrer" AS "referrerId",
-             date_trunc('month', attribution."created_at")::date AS "month",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'hackathon_registration'
-                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
-             )::bigint AS "eventRegistrations",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'build_games_application'
-                  OR (
-                    attribution."target_type" = 'hackathon_registration'
-                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
-                  )
-             )::bigint AS "hackathonRegistrations",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
-             COUNT(*)::bigint AS "totalReferrals"
-      FROM "ReferralAttribution" attribution
-      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
-      WHERE attribution."user_id_referrer" IS NOT NULL
-      GROUP BY 1, 2
-      ORDER BY 2 DESC
-    `,
-    prisma.$queryRaw<
-      Array<{
-        teamId: string;
-        builderHubSignups: bigint;
-        eventRegistrations: bigint;
-        hackathonRegistrations: bigint;
-        grantApplications: bigint;
-        totalReferrals: bigint;
-      }>
-    >`
+    prisma.$queryRaw<RawTeamReferrerRow[]>`
       SELECT attribution."team_id_referrer" AS "teamId",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'hackathon_registration'
-                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
-             )::bigint AS "eventRegistrations",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'build_games_application'
-                  OR (
-                    attribution."target_type" = 'hackathon_registration'
-                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
-                  )
-             )::bigint AS "hackathonRegistrations",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
-             COUNT(*)::bigint AS "totalReferrals"
+             ${REFERRAL_BUCKET_COLUMNS}
       FROM "ReferralAttribution" attribution
       LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
       WHERE attribution."team_id_referrer" IS NOT NULL
@@ -485,58 +540,41 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       ORDER BY "totalReferrals" DESC
       LIMIT 20
     `,
-    prisma.$queryRaw<
-      Array<{
-        teamId: string;
-        month: Date;
-        builderHubSignups: bigint;
-        eventRegistrations: bigint;
-        hackathonRegistrations: bigint;
-        grantApplications: bigint;
-        totalReferrals: bigint;
-      }>
-    >`
-      SELECT attribution."team_id_referrer" AS "teamId",
-             date_trunc('month', attribution."created_at")::date AS "month",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'bh_signup')::bigint AS "builderHubSignups",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'hackathon_registration'
-                 AND COALESCE(hackathon."event", 'hackathon') <> 'hackathon'
-             )::bigint AS "eventRegistrations",
-             COUNT(*) FILTER (
-               WHERE attribution."target_type" = 'build_games_application'
-                  OR (
-                    attribution."target_type" = 'hackathon_registration'
-                    AND COALESCE(hackathon."event", 'hackathon') = 'hackathon'
-                  )
-             )::bigint AS "hackathonRegistrations",
-             COUNT(*) FILTER (WHERE attribution."target_type" = 'grant_application')::bigint AS "grantApplications",
-             COUNT(*)::bigint AS "totalReferrals"
-      FROM "ReferralAttribution" attribution
-      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
-      WHERE attribution."team_id_referrer" IS NOT NULL
-      GROUP BY 1, 2
-      ORDER BY 2 DESC
-    `,
     runHogQL<{ latest: number | null; previous: number | null }>({
-      projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+      projectId: BUILDER_HUB_PROJECT_ID,
       query: ROLLING_VISITS_HOGQL,
     }),
     runHogQL<{ month: string; visitors: number | null }>({
-      projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+      projectId: BUILDER_HUB_PROJECT_ID,
       query: MONTHLY_VISITS_HOGQL,
     }),
     runHogQL<{ latest: number | null; previous: number | null }>({
-      projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+      projectId: BUILDER_HUB_PROJECT_ID,
       query: CONSOLE_USERS_ROLLING_HOGQL,
     }),
     runHogQL<{ month: string; users: number | null }>({
-      projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+      projectId: BUILDER_HUB_PROJECT_ID,
       query: MONTHLY_CONSOLE_USERS_HOGQL,
+    }),
+    prisma.$queryRaw<Array<{ day: Date; signups: bigint }>>`
+      SELECT date_trunc('day', "created_at" AT TIME ZONE 'UTC')::date AS "day",
+             COUNT(*)::bigint AS "signups"
+      FROM "User"
+      WHERE "created_at" >= NOW() - MAKE_INTERVAL(days => ${DAILY_WINDOW_DAYS}::int)
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `,
+    runHogQL<{ day: string; visitors: number | null }>({
+      projectId: BUILDER_HUB_PROJECT_ID,
+      query: DAILY_VISITS_HOGQL,
+    }),
+    runHogQL<{ day: string; users: number | null }>({
+      projectId: BUILDER_HUB_PROJECT_ID,
+      query: DAILY_CONSOLE_USERS_HOGQL,
     }),
     prisma.project.count({ where: { hackaton_id: { not: null } } }),
     runHogQL<{ country: string | null; country_code: string | null; visitors: number | null }>({
-      projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+      projectId: BUILDER_HUB_PROJECT_ID,
       query: TOP_COUNTRY_30D_HOGQL,
     }),
     runHogQL<{
@@ -545,7 +583,7 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
       returning_current: number | null;
       returning_previous: number | null;
     }>({
-      projectId: POSTHOG_BUILDER_HUB_PROJECT_ID,
+      projectId: BUILDER_HUB_PROJECT_ID,
       query: RETURNING_VISITORS_HOGQL,
     }),
     prisma.$queryRaw<
@@ -574,16 +612,10 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     `,
   ]);
 
-  let cumulative = 0;
-  const monthlySignups = monthlyRows.map((row) => {
-    const signups = toNumber(row.signups);
-    cumulative += signups;
-    return {
-      month: formatMonth(row.month),
-      signups,
-      cumulative,
-    };
-  });
+  const monthlySignups: MonthlySignupPoint[] = monthlyRows.map((row) => ({
+    month: formatMonth(row.month),
+    signups: toNumber(row.signups),
+  }));
 
   const trafficSourcesByEvent = await getTopHackathonTrafficSourcesBatch(
     eventParticipantRows.map((row) => row.eventId),
@@ -600,17 +632,11 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     topTrafficSources: trafficSourcesByEvent.get(row.eventId) ?? [],
   }));
 
-  const totalHackathonsHosted = eventParticipants.length;
-  const totalHackathonParticipants = eventParticipants.reduce(
-    (sum, row) => sum + row.participants,
-    0,
-  );
-  const totalHackathonProjects = eventParticipants.reduce(
-    (sum, row) => sum + row.projects,
-    0,
-  );
+  const hackathonTotals = hackathonTotalsRows[0];
+  const totalHackathonsHosted = toNumber(hackathonTotals?.hackathons);
+  const totalHackathonParticipants = toNumber(hackathonTotals?.participants);
+  const totalHackathonProjects = toNumber(hackathonTotals?.projects);
 
-  const userGeneratedReferralImpact = toNumber(userGeneratedRows[0]?.referrals);
   const latest30DaySignups = toNumber(rollingSignupRows[0]?.latest30Days);
   const previous30DaySignups = toNumber(rollingSignupRows[0]?.previous30Days);
   const rollingSignupDeltaPercent =
@@ -637,6 +663,21 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
   const monthlyConsoleUsers: MonthlyVisitPoint[] = monthlyConsoleUsersRows.map((row) => ({
     month: formatMonth(row.month),
     visitors: Number(row.users ?? 0),
+  }));
+
+  const dailySignups: DailyPoint[] = dailySignupRows.map((row) => ({
+    date: formatDay(row.day),
+    value: toNumber(row.signups),
+  }));
+
+  const dailyVisits: DailyPoint[] = dailyVisitsRows.map((row) => ({
+    date: formatDay(row.day),
+    value: Number(row.visitors ?? 0),
+  }));
+
+  const dailyConsoleUsers: DailyPoint[] = dailyConsoleUsersRows.map((row) => ({
+    date: formatDay(row.day),
+    value: Number(row.users ?? 0),
   }));
 
   const consoleUsers30d = Number(consoleUsersRows[0]?.latest ?? 0);
@@ -676,18 +717,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
           returningVisitorPctPrevious30d) *
         100;
 
-  const activeEventTargets: ReferralTargetPreset[] = activeEventRows.map((event) => {
-    return {
-      key: `event-${event.id}`,
-      group: "event",
-      label: event.title,
-      detail: `${getEventStatus(event.start_date, event.end_date)} event`,
-      targetType: "hackathon_registration",
-      targetId: event.id,
-      destinationUrl: `/events/${event.id}`,
-    };
-  });
-
   const pctOfTotal = (n: number) => (totalAccounts > 0 ? (n / totalAccounts) * 100 : 0);
 
   const socialCounts = socialCompletionRows[0];
@@ -713,7 +742,6 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
 
   return {
     totalAccounts,
-    userGeneratedReferralImpact,
     latest30DaySignups,
     previous30DaySignups,
     rollingSignupDeltaPercent,
@@ -734,61 +762,92 @@ export async function getBuilderInsightsData(currentUserId: string): Promise<Bui
     monthlySignups,
     monthlyVisits,
     monthlyConsoleUsers,
-    signupsByReferrer: referrerRows.map((row) => ({
-      referrerId: row.referrerId,
-      referrer: row.referrer ?? "Unknown",
-      signups: toNumber(row.signups),
-    })),
+    dailySignups,
+    dailyVisits,
+    dailyConsoleUsers,
     eventParticipants,
-    topReferrers: topReferrerRows.map((row) => ({
-      referrerId: row.referrerId,
-      referrer: row.referrer ?? "Unknown",
-      teamId: row.teamId ?? null,
-      team: getReferrerTeamLabel(row.teamId ?? null),
-      country: row.country ?? null,
-      builderHubSignups: toNumber(row.builderHubSignups),
-      eventRegistrations: toNumber(row.eventRegistrations),
-      hackathonRegistrations: toNumber(row.hackathonRegistrations),
-      grantApplications: toNumber(row.grantApplications),
-      totalReferrals: toNumber(row.totalReferrals),
-    })),
-    topReferrersMonthly: referrerMonthlyRows.map((row) => ({
-      referrerId: row.referrerId,
-      month: formatMonth(row.month),
-      builderHubSignups: toNumber(row.builderHubSignups),
-      eventRegistrations: toNumber(row.eventRegistrations),
-      hackathonRegistrations: toNumber(row.hackathonRegistrations),
-      grantApplications: toNumber(row.grantApplications),
-      totalReferrals: toNumber(row.totalReferrals),
-    })),
-    topTeamReferrers: topTeamReferrerRows.map((row) => ({
-      teamId: row.teamId,
-      team: formatTeamLabel(row.teamId),
-      builderHubSignups: toNumber(row.builderHubSignups),
-      eventRegistrations: toNumber(row.eventRegistrations),
-      hackathonRegistrations: toNumber(row.hackathonRegistrations),
-      grantApplications: toNumber(row.grantApplications),
-      totalReferrals: toNumber(row.totalReferrals),
-    })),
-    topTeamReferrersMonthly: teamMonthlyRows.map((row) => ({
-      teamId: row.teamId,
-      month: formatMonth(row.month),
-      builderHubSignups: toNumber(row.builderHubSignups),
-      eventRegistrations: toNumber(row.eventRegistrations),
-      hackathonRegistrations: toNumber(row.hackathonRegistrations),
-      grantApplications: toNumber(row.grantApplications),
-      totalReferrals: toNumber(row.totalReferrals),
-    })),
-    referralTargets: [
-      BUILDER_HUB_SIGNUP_TARGET,
-      ...activeEventTargets,
-      ...ACTIVE_GRANT_TARGETS,
-    ],
+    topReferrers: topReferrerRows.map(toTopReferrerRow),
+    topTeamReferrers: topTeamReferrerRows.map(toTopTeamReferrerRow),
     socialCompletion,
     socialCompletionDepth,
   };
 }
 
-export async function getBuilderInsightsReferralLinks(userId: string) {
-  return listReferralLinksForUser(userId);
+/**
+ * Half-open [start, end) instants covering one period — an ISO "YYYY-MM-DD"
+ * day or "YYYY-MM" month — as that period is experienced in `timeZone`.
+ *
+ * Timezone matters here: "the referrals from our event on the 15th" means the
+ * 15th where the event happened, and an evening sign-up in Istanbul or São
+ * Paulo lands on a different UTC day. Boundaries go through the shared
+ * `getDateWithTimezone` helper so DST transitions resolve correctly rather
+ * than being hand-rolled. Half-open so midnight belongs to one period only.
+ */
+export function periodRange(
+  period: string,
+  timeZone: string,
+): { start: Date; end: Date } {
+  const isDay = period.length === 10;
+  const startDay = isDay ? period : `${period}-01`;
+  const [year, month, day] = startDay.split("-").map(Number);
+  // Date.UTC normalises the rollover (Dec 31 → Jan 1, Feb 28 → Mar 1) for us.
+  const nextDay = new Date(
+    isDay ? Date.UTC(year, month - 1, day + 1) : Date.UTC(year, month, 1),
+  )
+    .toISOString()
+    .slice(0, 10);
+  return {
+    start: getDateWithTimezone(`${startDay}T00:00`, timeZone),
+    end: getDateWithTimezone(`${nextDay}T00:00`, timeZone),
+  };
+}
+
+/**
+ * Referral conversions attributed within one period, broken down by referrer
+ * and by team — the "who brought people in around the event" view.
+ *
+ * Fetched on demand rather than shipped with the main payload: every
+ * referrer × period pair ever recorded would dwarf the rest of the dashboard,
+ * and unlike the old bulk arrays this sees *every* referrer in the period,
+ * not just those in the all-time top 100.
+ */
+export async function getReferralsForPeriod(
+  period: string,
+  requestedTimeZone: string,
+): Promise<ReferralPeriodData> {
+  const timeZone = isSupportedTimeZone(requestedTimeZone) ? requestedTimeZone : "UTC";
+  const { start, end } = periodRange(period, timeZone);
+
+  const [peopleRows, teamRows] = await Promise.all([
+    prisma.$queryRaw<RawReferrerRow[]>`
+      SELECT owner."id" AS "referrerId",
+             COALESCE(NULLIF(owner."name", ''), owner."email", 'Unknown') AS "referrer",
+             owner."team_id" AS "teamId",
+             owner."country" AS "country",
+             ${REFERRAL_BUCKET_COLUMNS}
+      FROM "ReferralAttribution" attribution
+      INNER JOIN "User" owner ON owner."id" = attribution."user_id_referrer"
+      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
+      WHERE attribution."created_at" >= ${start} AND attribution."created_at" < ${end}
+      GROUP BY owner."id", owner."name", owner."email", owner."team_id", owner."country"
+      ORDER BY "totalReferrals" DESC
+    `,
+    prisma.$queryRaw<RawTeamReferrerRow[]>`
+      SELECT attribution."team_id_referrer" AS "teamId",
+             ${REFERRAL_BUCKET_COLUMNS}
+      FROM "ReferralAttribution" attribution
+      LEFT JOIN "Hackathon" hackathon ON hackathon."id" = attribution."target_id"
+      WHERE attribution."team_id_referrer" IS NOT NULL
+        AND attribution."created_at" >= ${start} AND attribution."created_at" < ${end}
+      GROUP BY attribution."team_id_referrer"
+      ORDER BY "totalReferrals" DESC
+    `,
+  ]);
+
+  return {
+    period,
+    timeZone,
+    people: peopleRows.map(toTopReferrerRow),
+    teams: teamRows.map(toTopTeamReferrerRow),
+  };
 }
