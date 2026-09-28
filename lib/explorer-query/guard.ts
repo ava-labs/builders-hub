@@ -5,7 +5,7 @@
    first (macros.ts), so the gate reads the whole text. A reference
    table's rows are spliced in after this gate (sources.ts). */
 
-import { strayHex } from "./lending";
+import { strayHex, typedLending } from "./lending";
 import { expandMacros } from "./macros";
 import { DEX_TOPICS } from "./protocols";
 import { EVM_TABLES, isFuji, targetOf } from "./target";
@@ -237,7 +237,7 @@ export function guardSql(raw: string, chainId: number): GuardResult {
     if (ident !== m[2] && (target.refs.includes(ident) || target.final.includes(ident))) return { ok: false, error: `write ${ident} without a database name` };
     tables.add(ident as AllowedTable);
   }
-  if (tables.size === 0) return { ok: false, error: `the query reads no table; use ${readable.join(", ")}` };
+  if (tables.size === 0) return { ok: false, error: typedLending(sql, chainId) ?? `the query reads no table; use ${readable.join(", ")}` };
   const shadow = shadowedAlias(sql);
   if (shadow) return { ok: false, error: `the alias ${shadow} hides the column ${shadow}, so its WHERE or ON reads the alias; give the alias another name` };
 

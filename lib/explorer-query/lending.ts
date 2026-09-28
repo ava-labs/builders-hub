@@ -389,6 +389,30 @@ export function strayHex(sql: string, chainId: number): string | null {
     : null;
 }
 
+/** the two sentences a note copies when its answer covers one of two lending protocols */
+export const coverNote = (covered: string, others: readonly string[], kind: string) =>
+  `add both of these sentences to the note, as they are: "This answer covers ${covered} only." and "Ask for ${others.map((o) => `${o}'s`).join(" and ")} ${kind} next."`;
+
+/** why a query that reads no table and names two lending protocols is refused, or null: its figures are typed in from
+    a test's rows (replays of L07 summed each market's figures by hand to answer Aave and Benqi at once). Market and
+    debt figures take one protocol per query; the other shorthands read both with no slug. Mainnet C-Chain only */
+export function typedLending(sql: string, chainId: number): string | null {
+  if (chainId !== LENDING_CHAIN_ID) return null;
+  const text = [...sql.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1].toLowerCase()).join("\n");
+  const named = Object.entries(LENDING_PROTOCOLS)
+    .map(([slug, name]) => ({ slug, name, at: Math.min(...[text.indexOf(slug), text.indexOf(name.toLowerCase())].filter((i) => i >= 0)) }))
+    .filter((p) => Number.isFinite(p.at))
+    .sort((a, b) => a.at - b.at);
+  if (named.length < 2) return null;
+  const typed = "the query reads no table, so its figures are typed in, and a figure copied from a test's rows is stale on every later run";
+  // a column's words, so debt_usd and tvl_usd count
+  const kind = /(?<![a-z])(borrowers?|debts?)(?![a-z])/i.test(sql) ? "debts" : /(?<![a-z])(supplied|tvl|utilization|apy)(?![a-z])/i.test(sql) ? "markets" : null;
+  if (!kind) return `${typed}. $LEND and $LIQUIDATIONS with no slug read both protocols: open the query with one of them and keep protocol as a column`;
+  const [covered, ...others] = named;
+  const shorthand = `$${kind.toUpperCase()}`;
+  return `${typed}. ${shorthand} covers one protocol per query, so answer ${covered.name} alone, with ${shorthand}('${covered.slug}') at the query's start, and ${coverNote(covered.name, others.map((o) => o.name), kind)}`;
+}
+
 const KINDS: readonly PriceKind[] = ["", "usd", "avax", "btc", "eth", "savax", "link", "eurc", "qi"];
 
 /** an asset's decimals and price kind; an asset the list lacks has neither, so a query counts it and never adds it up */

@@ -10,7 +10,7 @@
    the whole WITH. The prompt prints none of it, so the writer has no WITH
    to copy. Mainnet C-Chain only. */
 
-import { debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
+import { coverNote, debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
 import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, type DexFamily } from "./protocols";
 
 const T = DEX_TOPICS;
@@ -125,6 +125,35 @@ const time = (a: string) => (/^'[^']*'$/.test(a) ? `toDateTime(${a})` : a);
 
 export type Expanded = { ok: true; sql: string; macro?: { name: string; size: number } } | { ok: false; error: string };
 
+/** the slug of the shorthand whose name ends at `at`: its last argument, when that is a quoted word */
+function slugAt(sql: string, blank: string, at: number): string | undefined {
+  const open = /^\s*\(/.exec(blank.slice(at));
+  if (!open) return undefined;
+  let from = at + open[0].length;
+  for (let i = from, depth = 1; i < blank.length; i++) {
+    if (blank[i] === "(") depth++;
+    else if (blank[i] === ")" && --depth === 0) return WORD.exec(sql.slice(from, i).trim())?.[1];
+    else if (blank[i] === "," && depth === 1) from = i + 1;
+  }
+  return undefined;
+}
+
+/** why a query has a second shorthand, or one after its start. One shorthand typed for two protocols is answered
+    plainly, since a writer asked about both tries to join them (a replay of L07 spent 4 of its 8 steps so): one that
+    covers a protocol at a time answers the first and names the other next, and one that takes no slug reads them all */
+function onceOnly(sql: string, blank: string, found: RegExpMatchArray[]): string {
+  const names = [...new Set(found.map((m) => m[1]))];
+  const slugs = [...new Set(found.map((m) => slugAt(sql, blank, (m.index ?? 0) + m[0].length)).filter((x): x is string => !!x))];
+  const macro = names.length === 1 ? MACROS[names[0]] : undefined;
+  if (!macro || slugs.length < 2) return `the shorthand stands for the query's WITH, once, at its start: ${USAGE}`;
+  const [name] = names;
+  if (macro.slug !== "required")
+    return `a query takes one shorthand, once, at its start, and $${name} with no slug reads every protocol: open the query once with $${name}(${macro.window ? "start" : ""}) and keep protocol as a column, or filter protocol IN (${quoted(slugs)})`;
+  const title = (slug: string) => LENDING_PROTOCOLS[slug] ?? slug;
+  const [covered, ...others] = slugs;
+  return `$${name} covers one protocol per query, and a query takes one shorthand, so ${slugs.map((o) => `$${name}('${o}')`).join(" and ")} cannot share one: both at once are too long to send. Answer ${title(covered)} alone, with $${name}('${covered}') at the query's start and no other shorthand, and ${coverNote(title(covered), others.map(title), name.toLowerCase())}`;
+}
+
 /** the query with the shorthand it opens with written out. Any other $NAME, a second one, or one after the start is
     refused, and so is a slug the shorthand has no protocol for. Every chain but the mainnet C-Chain gets its query back as it came */
 export function expandMacros(sql: string, chainId: number): Expanded {
@@ -136,7 +165,7 @@ export function expandMacros(sql: string, chainId: number): Expanded {
   const other = found.find((m) => !Object.hasOwn(MACROS, m[1]));
   if (other) return { ok: false, error: `$${other[1]} is no shorthand here: ${USAGE}` };
   const lead = /^\s*(?:WITH\s+)?\$([A-Z]+)\s*\(/i.exec(blank);
-  if (!lead || !Object.hasOwn(MACROS, lead[1]) || found.length > 1) return { ok: false, error: `the shorthand stands for the query's WITH, once, at its start: ${USAGE}` };
+  if (!lead || !Object.hasOwn(MACROS, lead[1]) || found.length > 1) return { ok: false, error: onceOnly(sql, blank, found) };
   const name = lead[1];
   const macro = MACROS[name];
   // the arguments run to the parenthesis that closes the first one, split at its own commas

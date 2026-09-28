@@ -388,6 +388,49 @@ describe('an answer for one of two protocols', () => {
   });
 });
 
+describe('one shorthand typed for two protocols', () => {
+  const refused = (sql: string) => {
+    const g = guardSql(sql, 43114);
+    return g.ok ? '' : g.error;
+  };
+  const q = ['How much is supplied and borrowed on Aave and Benqi, and what is their TVL?'];
+
+  it('is told to answer one protocol and name the other next, with the two sentences to copy', () => {
+    // a replay of L07 spent 4 of its 8 steps on one query for both: WITH aave AS ($MARKETS(…) …), a second $MARKETS in a
+    // WITH of its own, and then figures typed in by hand
+    const say = `$MARKETS covers one protocol per query, and a query takes one shorthand, so $MARKETS('${AAVE_SLUG}') and $MARKETS('${BENQI}') cannot share one: both at once are too long to send. Answer Aave alone, with $MARKETS('${AAVE_SLUG}') at the query's start and no other shorthand, and add both of these sentences to the note, as they are: "This answer covers Aave only." and "Ask for Benqi's markets next."`;
+    for (const sql of [
+      `WITH aave AS ($MARKETS('${AAVE_SLUG}') SELECT sum(supplied_usd) AS supplied_usd FROM markets), benqi AS ($MARKETS('${BENQI}') SELECT sum(supplied_usd) AS supplied_usd FROM markets) SELECT * FROM aave UNION ALL SELECT * FROM benqi`,
+      `$MARKETS('${AAVE_SLUG}'), b AS ($MARKETS('${BENQI}') SELECT sum(supplied_usd) AS supplied_usd FROM markets) SELECT sum(supplied_usd) AS supplied_usd FROM markets UNION ALL SELECT supplied_usd FROM b`,
+    ])
+      expect(refused(sql)).toBe(say);
+    expect(refused(`$DEBTS('${BENQI}'), a AS ($DEBTS('${AAVE_SLUG}') SELECT count() AS n FROM debts) SELECT count() AS n FROM debts`)).toMatch(/^\$DEBTS covers one protocol per query, .* "This answer covers Benqi only\." and "Ask for Aave's debts next\."$/);
+    // the note it asks for is the one the note check passes
+    expect(oneProtocol(`$MARKETS('${AAVE_SLUG}') SELECT sum(supplied_usd) AS supplied_usd FROM markets`, "Aave's supply now. This answer covers Aave only. Ask for Benqi's markets next.", q, 43114)).toBeNull();
+    // a shorthand that takes no slug reads both, and any other second shorthand is refused as before
+    expect(refused(`$LEND(${today}, '${AAVE_SLUG}'), b AS ($LEND(${today}, '${BENQI}') SELECT count() AS n FROM actions) SELECT count() AS n FROM actions`)).toBe(
+      `a query takes one shorthand, once, at its start, and $LEND with no slug reads every protocol: open the query once with $LEND(start) and keep protocol as a column, or filter protocol IN ('${AAVE_SLUG}', '${BENQI}')`,
+    );
+    expect(refused(`$MARKETS('${AAVE_SLUG}'), d AS ($DEBTS('${BENQI}') SELECT count() AS n FROM debts) SELECT count() AS n FROM markets`)).toMatch(/^the shorthand stands for the query's WITH, once, at its start: /);
+    expect(refused(`WITH m AS ($MARKETS('${AAVE_SLUG}') SELECT count() AS n FROM markets) SELECT n FROM m`)).toMatch(/^the shorthand stands for the query's WITH, once, at its start: /);
+  });
+
+  it('typed in by hand from the tests is sent back the same way the first time', () => {
+    // replays of L07 summed each market's figures by hand into a query that reads no table
+    const typed = "the query reads no table, so its figures are typed in, and a figure copied from a test's rows is stale on every later run";
+    expect(refused("SELECT 'Aave' AS protocol, 186289990.94 + 99968525.73 AS supplied_usd, 1200.5 AS tvl_usd UNION ALL SELECT 'Benqi' AS protocol, 101.5 + 2.25 AS supplied_usd, 3.5 AS tvl_usd")).toBe(
+      `${typed}. $MARKETS covers one protocol per query, so answer Aave alone, with $MARKETS('${AAVE_SLUG}') at the query's start, and add both of these sentences to the note, as they are: "This answer covers Aave only." and "Ask for Benqi's markets next."`,
+    );
+    expect(refused(`SELECT '${BENQI}' AS protocol, 12.5 AS debt_usd UNION ALL SELECT '${AAVE_SLUG}', 30.25`)).toMatch(/\$DEBTS covers one protocol per query, so answer Benqi alone, .* "This answer covers Benqi only\." and "Ask for Aave's debts next\."$/);
+    expect(refused("SELECT 'Aave v3' AS protocol, 1200.5 AS deposits_usd UNION ALL SELECT 'Benqi', 300.25")).toBe(`${typed}. $LEND and $LIQUIDATIONS with no slug read both protocols: open the query with one of them and keep protocol as a column`);
+    // one protocol or none, and any chain but the mainnet C-Chain, keep the plain refusal
+    for (const [sql, chainId] of [["SELECT 'Aave' AS protocol, 1200.5 AS supplied_usd", 43114], ['SELECT 1 AS n', 43114], ["SELECT 'Aave' AS a, 'Benqi' AS b, 1.5 AS supplied_usd", 43113]] as const) {
+      const g = guardSql(sql, chainId);
+      expect(g.ok ? '' : g.error, sql).toMatch(/^the query reads no table; use /);
+    }
+  });
+});
+
 describe('a value column', () => {
   it('is named by the unit it holds', () => {
     const d16 = "WITH s AS (SELECT toStartOfHour(block_time) AS hour, 1. AS amount0 FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now())), px AS (SELECT toStartOfHour(block_time) AS hour, 1. AS price FROM raw_logs WHERE chain_id = 43114 AND block_time >= toMonday(now()) GROUP BY hour) SELECT round(sum((amount0 / 1e18) * px.price * 500 / 1e6), 2) AS fees_avax FROM s LEFT JOIN px ON s.hour = px.hour";
