@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('ai', async (importOriginal) => ({ ...(await importOriginal<typeof import('ai')>()), generateText: vi.fn() }));
 
 import { generateText } from 'ai';
-import { designVisual, figures, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
+import { READ_ONLY, designVisual, figures, sharesOf, visualSpecSchema, withShares, writeReading } from '@/lib/explorer-query/visual';
 
 // a model call that hands the reading tool these callouts, as the model would
 type Call = { tools: { reading: { execute: (input: { callouts: string[] }) => Promise<unknown> } } };
@@ -179,6 +179,17 @@ describe('writeReading', () => {
     vi.mocked(generateText).mockImplementationOnce(says([])).mockImplementationOnce(says(['Fees peaked at 9.39 AVAX.']));
     expect(await writeReading(input)).toEqual(['Fees peaked at 9.39 AVAX.']);
     expect(generateText).toHaveBeenCalledTimes(2);
+  });
+
+  // Sonnet 5.5 refuses a forced tool call (a 400): the call runs on auto, and the turn asks for it
+  it('asks Sonnet 5.5 for the call on its turn, at low effort, with no forced tool', async () => {
+    vi.mocked(generateText).mockImplementation(says(['Fees peaked at 9.39 AVAX.']));
+    await writeReading(input);
+    const call = vi.mocked(generateText).mock.calls[0][0] as unknown as { model: { modelId: string }; toolChoice?: unknown; providerOptions?: { anthropic?: { effort?: string } }; messages: { content: string }[] };
+    expect(call.model.modelId).toBe('claude-sonnet-5-5');
+    expect(call.toolChoice).toBe('auto');
+    expect(call.providerOptions?.anthropic?.effort).toBe('low');
+    expect(call.messages.at(-1)?.content.endsWith(`\n${READ_ONLY}`)).toBe(true);
   });
 
   it('asks twice at most, and keeps a first reading', async () => {
