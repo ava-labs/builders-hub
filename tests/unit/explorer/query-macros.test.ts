@@ -217,7 +217,9 @@ describe('the date and the calendar', () => {
   it('tell a DEX question to type the shorthand, take prices from the WITH, and count a token once per swap', () => {
     const dex = systemPrompt({ chainId: 43114, chainName: 'x', symbol: 'AVAX', schema: '', coverage: null, dex: true });
     expect(dex).toContain("Never write it out, or a shorter copy of it: open every such query with $DEX(start), $DEX(start, end), or either with a slug last ($DEX(start, 'slug'), $DEX(start, end, 'slug')), even one that needs no value.");
-    expect(dex).toContain("$DEX(toDateTime('2026-09-26 00:00:00'), toDateTime('2026-09-27 00:00:00'), 'uniswap') is September 26");
+    // a date years from any window a question asks about, so a copy of it never passes as the question's own
+    expect(dex).toContain("$DEX(toDateTime('2022-03-07 00:00:00'), toDateTime('2022-03-08 00:00:00'), 'trader-joe') is Monday March 7, 2022");
+    expect(dex).not.toMatch(/toDateTime\('202[5-9]-/);
     expect(dex).toContain('legs has one row per Swap log (an lb swap that crosses n bins is n rows): pool, block_time, block_number, tx, trader, router, protocol, version, t0, t1, k, r0, r1 and usd, and no chain_id');
     expect(dex).toContain('Never join raw_logs back to legs');
     expect(dex).toContain('Per DEX or per protocol means every protocol: GROUP BY protocol (and the bucket), one row each. Never a column per protocol');
