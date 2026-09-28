@@ -1,12 +1,12 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { saveQuizResponse, getQuizResponse } from '@/utils/quizzes/indexedDB';
 import { parseTextWithLinks } from '../../utils/safeHtml';
-import Image from 'next/image';
-import { cn } from '@/utils/cn';
-import { buttonVariants } from '@/components/ui/button';
 import quizData from './data';
 import type { QuizData, FullQuizData } from './data';
+import { QuizHeader } from './quiz-header';
+import { QUIZ_ROOT_SELECTOR, quizPosition, type QuizPosition } from './quiz-position';
+import { QUIZ_BUTTON_CLASS, QuizFeedback, QuizOption, optionState } from './quiz-question';
 
 const MAX_ATTEMPTS = 3;
 const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -14,6 +14,8 @@ const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 interface QuizProps {
   quizId: string;
   onQuizCompleted?: (quizId: string) => void;
+  /** "Question N of M" when the page has several quizzes (default). The certificate page turns it off: each of its questions sits in its own accordion row. */
+  showPosition?: boolean;
 }
 
 function getVariant(quizId: string, variantIndex: number): QuizData | null {
@@ -35,7 +37,26 @@ function shuffleArray(arr: number[]): number[] {
   return shuffled;
 }
 
-const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
+/** The quiz's position among the page's quiz roots, read from the DOM after mount, so the server markup never carries a count. */
+function useQuizPosition(
+  rootRef: React.RefObject<HTMLDivElement | null>,
+  enabled: boolean,
+  quizId: string,
+): QuizPosition | null {
+  const [position, setPosition] = useState<QuizPosition | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !rootRef.current) return;
+    const roots = Array.from(document.querySelectorAll(QUIZ_ROOT_SELECTOR));
+    setPosition(quizPosition(roots, rootRef.current));
+  }, [rootRef, enabled, quizId]);
+
+  return position;
+}
+
+const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted, showPosition = true }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const position = useQuizPosition(rootRef, showPosition, quizId);
   const [quizInfo, setQuizInfo] = useState<QuizData | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<number[]>([]);
   const [isAnswerChecked, setIsAnswerChecked] = useState<boolean>(false);
@@ -194,161 +215,103 @@ const Quiz: React.FC<QuizProps> = ({ quizId, onQuizCompleted }) => {
   };
 
   const renderAnswerFeedback = () => {
-    if (isAnswerChecked && quizInfo) {
-      if (isCorrect) {
-        return (
-          <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
-            <div className="flex items-center text-green-800 dark:text-green-300 mb-2">
-              <svg className="mr-2" style={{width: '1rem', height: '1rem'}} fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              <span className="font-semibold text-sm">Correct</span>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 m-0">
-              {parseTextWithLinks(quizInfo.explanation)}
-            </p>
-          </div>
-        );
-      } else {
-        return (
-          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
-            <div className="flex items-center text-amber-800 dark:text-amber-300 mb-2">
-              <svg className="mr-2" style={{width: '1rem', height: '1rem'}} fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              <span className="font-semibold text-sm">Not Quite</span>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-gray-300 m-0">
-              <b>Hint:</b> {parseTextWithLinks(quizInfo.hint)}
-            </p>
-          </div>
-        );
-      }
-    }
-    return null;
+    if (!isAnswerChecked || !quizInfo) return null;
+    return (
+      <QuizFeedback correct={isCorrect}>
+        {isCorrect ? (
+          parseTextWithLinks(quizInfo.explanation)
+        ) : (
+          <>
+            <b>Hint:</b> {parseTextWithLinks(quizInfo.hint)}
+          </>
+        )}
+      </QuizFeedback>
+    );
   };
 
   if (!isClient || !quizInfo || shuffledIndices.length === 0) {
-    return <div>Loading...</div>;
+    return <div ref={rootRef} data-quiz-root="">Loading...</div>;
   }
 
+  const multiple = quizInfo.correctAnswers.length !== 1;
+
   return (
-    <div className="dark:bg-black flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-neutral-950 shadow-lg rounded-lg overflow-hidden">
-        <div className="text-center p-4">
-        <div className="mx-auto flex items-center justify-center mb-4 overflow-hidden">
-          <Image
-            src="/wolfie-check.png"
-            alt="Quiz topic"
-            width={60}
-            height={60}
-            className="object-cover"
-            style={{margin: '0em'}}
-          />
+    <div ref={rootRef} data-quiz-root="" className="flex items-center justify-center py-2">
+      <div className="w-full overflow-hidden rounded-xl border border-ac-rule bg-ac-paper">
+        <QuizHeader position={position} />
+        <div className="px-[18px] pb-1.5 pt-[22px]">
+          <div className="mb-4 text-left">
+            <h2 className="mb-[18px] mt-0 text-[18px] font-semibold leading-[1.4] tracking-[-0.01em] text-ac-ink">
+              {parseTextWithLinks(quizInfo.question)}
+            </h2>
+            {attemptCount > 0 && !isCorrect && !isLocked && (
+              <p className="mt-1 text-xs text-ac-ink-3">
+                Attempt {isAnswerChecked ? attemptCount : attemptCount + 1} of {MAX_ATTEMPTS}
+              </p>
+            )}
+          </div>
+          <div className="space-y-3">
+            {shuffledIndices.filter(idx => idx < quizInfo.options.length).map((originalIndex, displayIndex) => (
+              <QuizOption
+                key={`option-${originalIndex}`}
+                state={optionState({
+                  selected: selectedAnswers.includes(originalIndex),
+                  correct: quizInfo.correctAnswers.includes(originalIndex),
+                  checked: isAnswerChecked,
+                  locked: isLocked,
+                })}
+                marker={multiple
+                  ? (selectedAnswers.includes(originalIndex) ? '✓' : '')
+                  : String.fromCharCode(65 + displayIndex)}
+                multiple={multiple}
+                locked={isLocked}
+                onSelect={() => handleAnswerSelect(originalIndex)}
+              >
+                {parseTextWithLinks(quizInfo.options[originalIndex])}
+              </QuizOption>
+            ))}
+          </div>
+          {renderAnswerFeedback()}
         </div>
-        <h4 className="font-normal" style={{marginTop: '0'}}>Time for a Quiz!</h4>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Wolfie wants to test your knowledge. {quizInfo.correctAnswers.length === 1 ? "Select the correct answer." : "Select all correct answers."}
-        </p>
-      </div>
-      <div className="px-6 py-4">
-        <div className="text-center mb-4">
-          <h2 className="text-lg font-medium text-gray-800 dark:text-white" style={{marginTop: '0'}}>
-            {parseTextWithLinks(quizInfo.question)}
-          </h2>
-          {attemptCount > 0 && !isCorrect && !isLocked && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              Attempt {isAnswerChecked ? attemptCount : attemptCount + 1} of {MAX_ATTEMPTS}
-            </p>
+        <div className="flex flex-col items-start gap-2 px-[18px] pb-5 pt-4 empty:px-0 empty:pb-[18px] empty:pt-0">
+          {isLocked ? (
+            <div className="space-y-2">
+              <p className="text-sm text-ac-ink">
+                This quiz is locked{isCoolingDown ? ` for ${formatCooldown(cooldownRemaining)}` : ''}.
+              </p>
+              <p className="text-xs text-ac-ink-3">
+                In the meantime, you can continue working on other courses and quizzes across the Academy. Review the course material for this topic before trying again.
+              </p>
+            </div>
+          ) : !isAnswerChecked ? (
+            <button
+              className={QUIZ_BUTTON_CLASS}
+              onClick={checkAnswer}
+              disabled={selectedAnswers.length === 0}
+            >
+              Check Answer
+            </button>
+          ) : (
+            !isCorrect && (
+              <div className="flex flex-col items-start gap-2">
+                {attemptCount === MAX_ATTEMPTS - 1 && (
+                  <div className="mb-1 rounded-[10px] border border-ac-rule bg-ac-panel p-3">
+                    <p className="text-xs text-ac-ink-2">
+                      <b className="text-ac-ink">Warning:</b> This is your last attempt. If you answer incorrectly, this quiz will be locked for 24 hours.
+                    </p>
+                  </div>
+                )}
+                <button
+                  className={QUIZ_BUTTON_CLASS}
+                  onClick={handleTryAgain}
+                >
+                  Try Again
+                </button>
+              </div>
+            )
           )}
         </div>
-        <div className="space-y-3">
-          {shuffledIndices.filter(idx => idx < quizInfo.options.length).map((originalIndex, displayIndex) => (
-            <div
-              key={`option-${originalIndex}`}
-              className={`flex items-center p-3 rounded-lg border transition-colors cursor-pointer ${
-                isAnswerChecked
-                  ? selectedAnswers.includes(originalIndex)
-                    ? quizInfo.correctAnswers.includes(originalIndex)
-                      ? 'border-avax-green bg-green-50 dark:bg-green-900/30 dark:border-green-700'
-                      : 'border-avax-red bg-red-50 dark:bg-red-900/30 dark:border-red-700'
-                    : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-black'
-                  : selectedAnswers.includes(originalIndex)
-                    ? 'border-avax-red bg-avax-red/10'
-                    : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900'
-              } ${isLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => handleAnswerSelect(originalIndex)}
-            >
-              <span className={`w-6 h-6 shrink-0 flex items-center justify-center ${quizInfo.correctAnswers.length === 1 ? 'rounded-full' : 'rounded-md'} mr-3 text-sm ${
-                isAnswerChecked
-                  ? selectedAnswers.includes(originalIndex)
-                    ? quizInfo.correctAnswers.includes(originalIndex)
-                      ? 'bg-avax-green text-white'
-                      : 'bg-avax-red text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                  : selectedAnswers.includes(originalIndex)
-                    ? 'bg-avax-red text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-              }`}>
-                {quizInfo.correctAnswers.length === 1
-                  ? String.fromCharCode(65 + displayIndex)
-                  : (selectedAnswers.includes(originalIndex) ? '✓' : '')}
-              </span>
-              <span className={`text-sm ${
-                !isAnswerChecked && selectedAnswers.includes(originalIndex)
-                  ? 'text-avax-red font-medium'
-                  : 'text-gray-600 dark:text-gray-300'
-              }`}>
-                {parseTextWithLinks(quizInfo.options[originalIndex])}
-              </span>
-            </div>
-          ))}
-        </div>
-        {renderAnswerFeedback()}
       </div>
-      <div className="px-6 py-4 flex flex-col items-center gap-2">
-        {isLocked ? (
-          <div className="text-center space-y-2">
-            <p className="text-sm text-red-600 dark:text-red-400">
-              This quiz is locked{isCoolingDown ? ` for ${formatCooldown(cooldownRemaining)}` : ''}.
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              In the meantime, you can continue working on other courses and quizzes across the Academy. Review the course material for this topic before trying again.
-            </p>
-          </div>
-        ) : !isAnswerChecked ? (
-          <button
-            className={cn(
-              buttonVariants({ variant: 'default' }),
-            )}
-            onClick={checkAnswer}
-            disabled={selectedAnswers.length === 0}
-          >
-            Check Answer
-          </button>
-        ) : (
-          !isCorrect && (
-            <div className="flex flex-col items-center gap-2">
-              {attemptCount === MAX_ATTEMPTS - 1 && (
-                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg mb-1">
-                  <p className="text-xs text-orange-700 dark:text-orange-300 text-center">
-                    <b>Warning:</b> This is your last attempt. If you answer incorrectly, this quiz will be locked for 24 hours.
-                  </p>
-                </div>
-              )}
-              <button
-                className={cn(
-                  buttonVariants({ variant: 'secondary' }),
-                )}
-                onClick={handleTryAgain}
-              >
-                Try Again
-              </button>
-            </div>
-          )
-        )}
-      </div>
-    </div>
     </div>
   );
 };

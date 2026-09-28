@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, type JSX } from "react";
 import mermaid from "mermaid";
 import { useTheme } from "./theme-observer";
+import { renderWithLightFillLabels } from "./mermaid-light-fills";
 
 type MermaidProps = {
   readonly chart: string;
@@ -35,7 +36,9 @@ const Mermaid = ({ chart }: MermaidProps): JSX.Element => {
       try {
         // Unique ID only used internally by mermaid render
         const renderId = `mmd-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-        const { svg } = await mermaid.render(renderId, chart);
+        // Inside the Academy, the dark theme keeps dark labels on nodes an author filled light.
+        const render = async (source: string): Promise<string> => (await mermaid.render(renderId, source)).svg;
+        const svg = await renderWithLightFillLabels(render, chart, theme, containerRef.current);
         if (!destroyed && containerRef.current) {
           containerRef.current.innerHTML = svg;
         }

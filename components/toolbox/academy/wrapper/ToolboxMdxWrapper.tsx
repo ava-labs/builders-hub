@@ -2,6 +2,7 @@
 
 import { ErrorBoundary } from 'react-error-boundary';
 import { ErrorFallback } from './ErrorFallback';
+import { ConsoleExerciseCaption } from './ConsoleExerciseCaption';
 
 import { EmbeddedConsoleHeader } from '@/components/toolbox/components/console-header/EmbeddedConsoleHeader';
 import { WalletProvider } from '@/components/toolbox/providers/WalletProvider';
@@ -23,8 +24,10 @@ export default function ToolboxMdxWrapper({
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback} onReset={handleReset}>
       <WalletProvider>
+        <ConsoleExerciseCaption />
         <div
-          className="min-h-[500px] max-h-[80vh] w-full max-w-full overflow-hidden my-4 rounded-xl border border-gray-200 dark:border-gray-700 flex flex-col"
+          data-console-frame=""
+          className="min-h-[500px] max-h-[80vh] w-full max-w-full overflow-hidden my-4 rounded-xl border border-ac-rule flex flex-col"
           style={{ '--header-height': 'calc(var(--spacing) * 12)' } as React.CSSProperties}
         >
           <EmbeddedConsoleHeader />

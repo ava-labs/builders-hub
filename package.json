@@ -28,6 +28,7 @@
     "eerc:setup-fuji-auditor": "tsx ./scripts/eerc/setup-fuji-auditor.ts",
     "generate:event-signatures": "tsx ./scripts/generate-event-signatures.mts",
     "generate:course": "tsx ./scripts/generate-course.mts",
+    "generate:course-stats": "tsx ./scripts/academy/generate-course-stats.mts",
     "enrich:chains": "tsx ./scripts/enrich-chains.ts",
     "enrich:chains:prune": "tsx ./scripts/enrich-chains.ts --prune",
     "index-repos": "tsx ./scripts/index-repos.mts",
@@ -35,7 +36,7 @@
     "qa:manifest": "tsx ./scripts/generate-qa-manifest.mts",
     "qa:check-embeds": "tsx ./scripts/check-academy-embeds.mts",
     "qa:summary": "tsx ./e2e/summarize-failures.mts",
-    "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts",
+    "postinstall": "prisma generate && fumadocs-mdx && node ./scripts/update_docker_tags.mjs && tsx ./scripts/generate-event-signatures.mts && tsx ./scripts/academy/generate-course-stats.mts",
     "postbuild": "tsx ./utils/update-index.ts",
     "commitlint": "commitlint --edit",
     "prepare": "husky"
