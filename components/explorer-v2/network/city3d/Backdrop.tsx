@@ -71,6 +71,9 @@ export const SEA_Y = -3400;
 const SEA_R = 13000;
 /** one tile of the clouds on the sea, in plan units */
 const TILE = 5600;
+/** the clouds' drift across the sea, in plan units a second: a tile's width in about seven minutes, slow enough to read as
+    weather under the column (at 3 units a second it did not read as moving at all) */
+const DRIFT: [number, number] = [12, 4.4];
 /** the snow: how many flakes, the box they fall through round the plate, and how fast they fall and drift */
 const FLAKES = 700;
 const SNOW_BOX = { w: 2400, top: 520, bottom: -900 };
@@ -404,12 +407,13 @@ function seaMaterial(tile: Texture | null, night: { value: number }, disc: { val
       }
       void main() {
         vec2 p = vWorld.xz;
-        vec2 drift = vec2( 3.0, 1.1 ) * uTime;
+        vec2 drift = vec2( ${DRIFT[0].toFixed(1)}, ${DRIFT[1].toFixed(1)} ) * uTime;
         // two reads of the tile: the second smaller, turned and slower, mixed by a noise wider than both
         vec2 a = ( p + drift ) / ${TILE.toFixed(1)};
         vec2 b = mat2( 0.799, 0.602, -0.602, 0.799 ) * ( p + drift * 0.55 ) / ${(TILE * 0.61).toFixed(1)} + vec2( 0.37, 0.71 );
         // a narrow blend, so most of the sea reads one sample at full contrast
-        float m = smoothstep( 0.42, 0.58, noise( p / ${(TILE * 1.7).toFixed(1)} + 5.3 ) );
+        // the blend drifts with the clouds, so no still seam shows under them
+        float m = smoothstep( 0.42, 0.58, noise( ( p + drift * 0.8 ) / ${(TILE * 1.7).toFixed(1)} + 5.3 ) );
         vec3 t = cloudsOf( uMap, a, b, m );
         if ( uMix > 0.0 ) t = mix( t, cloudsOf( uNext, a, b, m ), uMix );
         // toned for the theme: its contrast round the tile's mean, its color, its light, a lift into the haze
