@@ -146,17 +146,21 @@ export const packed = (address: string) => Buffer.from(bare(address), "hex").toS
 export const strings = (xs: readonly string[]) => `[${xs.map((x) => `'${x}'`).join(",")}]`;
 const bytes = (s: string) => Buffer.byteLength(s);
 
-/** dex_factories as one SELECT: names once in arrays, a row of their indexes and the packed addresses */
-export function factoriesSql(chainId: number, factories: readonly DexFactory[] = DEX_FACTORIES): string {
+/** a query that reads the positions contracts: by the column's name, or all of a table's columns */
+export const readsPositions = (query: string) => /\bpositions\b|(\bSELECT|,)\s*(\w+\.)?\*/i.test(query);
+
+/** dex_factories as one SELECT: names once in arrays, a row of their indexes and the packed addresses. Without
+    `positions` the column is empty, which gives a query that never reads it back about 360 bytes */
+export function factoriesSql(chainId: number, factories: readonly DexFactory[] = DEX_FACTORIES, positions = true): string {
   const protocols = [...new Set(factories.map((f) => f.protocol))];
   const versions = [...new Set(factories.map((f) => f.version))];
   const families = [...new Set(factories.map((f) => f.family))];
   const rows = factories.map(
-    (f) => `(${protocols.indexOf(f.protocol) + 1},${versions.indexOf(f.version) + 1},${families.indexOf(f.family) + 1},'${packed(f.factory)}',${strings(f.positions.map(packed))})`,
+    (f) => `(${protocols.indexOf(f.protocol) + 1},${versions.indexOf(f.version) + 1},${families.indexOf(f.family) + 1},'${packed(f.factory)}'${positions ? `,${strings(f.positions.map(packed))}` : ""})`,
   );
   return (
     `SELECT toUInt64(${chainId}) AS chain_id, p[tupleElement(r, 1)] AS protocol, v[tupleElement(r, 2)] AS version, f[tupleElement(r, 3)] AS family, ` +
-    `base64Decode(tupleElement(r, 4)) AS factory, CAST(arrayMap(x -> base64Decode(x), tupleElement(r, 5)) AS Array(String)) AS positions ` +
+    `base64Decode(tupleElement(r, 4)) AS factory, ${positions ? "CAST(arrayMap(x -> base64Decode(x), tupleElement(r, 5)) AS Array(String))" : "emptyArrayString()"} AS positions ` +
     `FROM (SELECT ${strings(protocols)} AS p, ${strings(versions)} AS v, ${strings(families)} AS f, arrayJoin([${rows.join(",")}]) AS r)`
   );
 }
@@ -183,10 +187,12 @@ export function fitting<T>(all: readonly T[], named: (x: T) => boolean, build: (
   return { sql: build(all), kept: all };
 }
 
-/** the factories for one query in `room` bytes: those it names by protocol or address, then the registry's order */
+/** the factories for one query in `room` bytes: those it names by protocol or address, then the registry's order with
+    woofi's last, since they create no pools for the DEX WITH to read; their positions only for a query that reads them */
 export function factoriesFor(query: string, room: number, all: readonly DexFactory[] = DEX_FACTORIES) {
   const q = query.toLowerCase();
-  return fitting(all, (f) => q.includes(`'${f.protocol}'`) || q.includes(bare(f.factory)), (xs) => factoriesSql(DEX_CHAIN_ID, xs), room);
+  const order = [...all.filter((f) => f.family !== "woofi"), ...all.filter((f) => f.family === "woofi")];
+  return fitting(order, (f) => q.includes(`'${f.protocol}'`) || q.includes(bare(f.factory)), (xs) => factoriesSql(DEX_CHAIN_ID, xs, readsPositions(query)), room);
 }
 
 /** the tokens for one query in `room` bytes: the quote tokens and those it names, then the list's order */

@@ -5,7 +5,7 @@ vi.mock('@/lib/sourcify', () => ({ getVerifiedContractResolvingProxies: vi.fn(as
 import registry from '@/data/contract-registry.json';
 import { enrichNames, fillDrill } from '@/lib/explorer-query/enrich';
 import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
-import { DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOKENS, DEX_TOPICS, dexContractName, dexFamilies, factoriesFor, factoriesSql, tokensFor, tokensSql, type DexFactory, type DexToken } from '@/lib/explorer-query/protocols';
+import { DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOKENS, DEX_TOPICS, dexContractName, dexFamilies, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql, type DexFactory, type DexToken } from '@/lib/explorer-query/protocols';
 import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
 import { expandMacros, feesRead } from '@/lib/explorer-query/macros';
@@ -120,7 +120,7 @@ describe('DEX tables', () => {
   });
 
   it('keep every factory for a long query that reads both, and trim the tokens first, never the quote tokens', async () => {
-    const whole = Buffer.byteLength(factoriesSql(43114));
+    const whole = Buffer.byteLength(factoriesSql(43114, DEX_FACTORIES, false));
     const all = Buffer.byteLength(tokensSql(43114));
     const quotes = DEX_TOKENS.filter((t) => t.quote !== '');
     const base = `${POOLS} UNION ALL SELECT 'tokens', count() FROM dex_tokens WHERE chain_id = 43114 AND ''`;
@@ -135,6 +135,29 @@ describe('DEX tables', () => {
     expect(tokens.known).toBeLessThan(DEX_TOKENS.length);
     expect(tokens.known).toBeGreaterThanOrEqual(quotes.length);
     expect(Buffer.byteLength(out.sql)).toBeLessThanOrEqual(SQL_BUDGET);
+  });
+
+  it('send the positions contracts only to a query that reads them, and fit the woofi rows last', async () => {
+    const all = DEX_FACTORIES.flatMap((f) => f.positions.map(packed));
+    expect(all.length).toBeGreaterThan(0);
+    const plain = await withSources(POOLS, 43114);
+    expect(plain.sql).toContain('emptyArrayString() AS positions');
+    for (const p of all) expect(plain.sql).not.toContain(p);
+    const lp = await withSources(POOLS.replace('count() AS pools', 'count() AS pools, sum(length(f.positions)) AS contracts'), 43114);
+    for (const p of all) expect(lp.sql).toContain(`'${p}'`);
+    expect(Buffer.byteLength(lp.sql) - Buffer.byteLength(plain.sql)).toBeGreaterThan(300);
+    for (const q of ['SELECT * FROM dex_factories', 'SELECT f.* FROM dex_factories AS f', 'SELECT has(positions, x)']) expect(readsPositions(q), q).toBe(true);
+    // the DEX WITH multiplies and reads no positions, and a count(*) reads no column
+    const fees = expandMacros('$DEX(toStartOfDay(now())) SELECT round(sum(fee_usd), 2) AS fees_usd, sum(fee_in) AS raw FROM legs', 43114);
+    expect(fees.ok).toBe(true);
+    expect(fees.ok && readsPositions(fees.sql)).toBe(false);
+    expect(readsPositions('SELECT count(*) AS n FROM dex_factories')).toBe(false);
+    // woofi's contracts create no pools for the DEX WITH, so a short room leaves them out first, unless the query names them
+    const pooled = DEX_FACTORIES.filter((f) => f.family !== 'woofi');
+    const room = Buffer.byteLength(factoriesSql(43114, pooled, false));
+    expect(factoriesFor(POOLS, room).kept).toEqual(pooled);
+    const woofi = factoriesFor(`${POOLS} AND f.protocol = 'woofi'`, room).kept;
+    expect(woofi.filter((f) => f.family === 'woofi')).toHaveLength(DEX_FACTORIES.length - pooled.length);
   });
 
   it('keep what a long query names when the whole registry does not fit, the quote tokens always', () => {

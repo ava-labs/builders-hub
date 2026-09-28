@@ -6,7 +6,7 @@ import { EXPLORER_API_BASE } from "@/lib/pchain-explorer";
 import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
-import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, tokensFor, tokensSql } from "./protocols";
+import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, readsPositions, tokensFor, tokensSql } from "./protocols";
 import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
@@ -341,7 +341,7 @@ const QUOTES_ROOM = Buffer.byteLength(tokensSql(DEX_CHAIN_ID, DEX_TOKENS.filter(
 function dexRoom(query: string) {
   const free = SQL_BUDGET - Buffer.byteLength(query) - DEX_WRAP;
   if (!reads(query, "dex_tokens")) return { tokens: null, factories: free };
-  const left = free - Buffer.byteLength(factoriesSql(DEX_CHAIN_ID));
+  const left = free - Buffer.byteLength(factoriesSql(DEX_CHAIN_ID, DEX_FACTORIES, readsPositions(query)));
   const tokens = tokensFor(query, Math.min(TOKENS_ROOM, Math.max(left, QUOTES_ROOM)));
   return { tokens, factories: free - Buffer.byteLength(tokens.sql) };
 }
@@ -361,7 +361,7 @@ const factories: Source = {
     const protocols = new Set(DEX_FACTORIES.map((f) => f.protocol)).size;
     const text =
       kept.length < n
-        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order.`
+        ? `Protocols and their pool factories come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)} factories: the ones the query names, then the others in the registry's order, WOOFi's last.`
         : `Protocols and their pool factories come from our contract registry: ${fmt(n)} factories of ${fmt(protocols)} protocols.`;
     return { sql, note: { table: "dex_factories", label: "the contract registry", at: DEX_LISTED_AT, total: n, known: kept.length, text } };
   },
