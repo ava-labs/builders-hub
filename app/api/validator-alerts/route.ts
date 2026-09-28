@@ -11,9 +11,10 @@ import {
 } from '@/server/services/validator-alert-check';
 import { getAllMainnetSubnetIds } from '@/server/services/l1-chain-metadata';
 import { isValidEmail } from "@/lib/email";
+import { EXPLORER_API_BASE } from '@/lib/pchain-explorer';
 
 const NODE_ID_REGEX = /^NodeID-[A-HJ-NP-Za-km-z1-9]{33,}$/;
-const P2P_API_URL = 'https://52.203.183.9.sslip.io/api/validators';
+const P2P_API_URL = `${EXPLORER_API_BASE}/api/mainnet/fleet/validators`;
 const MAX_ALERTS_PER_USER = 20;
 const MAX_CREATES_PER_HOUR = 10;
 
