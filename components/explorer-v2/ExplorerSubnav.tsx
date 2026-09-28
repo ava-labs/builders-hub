@@ -11,7 +11,7 @@ import { L1Chain } from "@/types/stats";
 import { AvalancheLogo } from "@/components/navigation/avalanche-logo";
 import { useLiveValidatorCounts, useIndexedChainIds } from "@/components/explorer-v2/validator-stats";
 import { MAINNET_COUNTERPART, TESTNET_COUNTERPART, isUnindexedChain, wantsTestnet } from "@/lib/explorer-catalog";
-import { ExplorerRangeControl } from "@/components/explorer-v2/time-range";
+import { ExplorerRangeControl, useRangeConsumersPresent } from "@/components/explorer-v2/time-range";
 import { QueryTab } from "@/components/explorer-v2/evm/QueryTab";
 import { queryTarget } from "@/lib/explorer-query/board";
 import { VIEW_SWITCH } from "@/components/explorer-v2/view-switch";
@@ -282,7 +282,29 @@ function ChainSwitcher({
 }
 
 /** query: the tab opens into recent questions and boards on hover */
-type Tab = { label: string; href: string; isActive: (path: string) => boolean; query?: boolean; /** one of the city and 2D explorer toggle's two views */ view?: boolean };
+type Tab = {
+  label: string;
+  /** the name below 1024 px, where the tab's page draws a list and not what its label names */
+  phone?: string;
+  href: string;
+  isActive: (path: string) => boolean;
+  query?: boolean;
+  /** one of the city and 2D explorer toggle's two views */
+  view?: boolean;
+};
+
+/* A tab names what it opens: its page switches form at 1024 px (NetworkChains
+   draws the city from min-width 1024px, the chains list below it), so the label
+   switches at the same width, in CSS, and never names the other form. */
+function tabText(tab: Tab): React.ReactNode {
+  if (!tab.phone) return tab.label;
+  return (
+    <>
+      <span className="lg:hidden">{tab.phone}</span>
+      <span className="hidden lg:inline">{tab.label}</span>
+    </>
+  );
+}
 
 /* ask the chain a question, get a chart with its SQL; boards live under it */
 function queryTab(network: string, chainSlug: string): Tab[] {
@@ -308,7 +330,9 @@ function buildTabs(network: string, chainSlug: string | undefined): Tab[] {
         isActive: (p) => p === NETWORK_HOME || p.startsWith("/stats/overview") || p.startsWith("/stats/network-metrics"),
       },
       {
+        // a phone and a small tablet get the chains list, not the city
         label: "City",
+        phone: "Chains",
         href: NETWORK_CITY,
         view: true,
         // the network map, ICM and validator versions live on the chains tab; message pages light it too
@@ -601,6 +625,11 @@ export function ExplorerSubnav({
     };
   }, [measureRail, tabs]);
   const onRailScroll = measureRail;
+  // phones: the clock and the network leave the pinned rail for a strip under it, which scrolls with the page.
+  // The strip stands from the first render wherever the network control does, so nothing moves when the clock
+  // appears; with neither, there is no strip, and the rail keeps the page's spacing.
+  const clock = useRangeConsumersPresent();
+  const strip = !hideNetwork || clock;
   const railMask = useMemo(() => {
     if (!rail.left && !rail.right) return undefined;
     const mask = `linear-gradient(to right, ${
@@ -616,15 +645,18 @@ export function ExplorerSubnav({
     // content never peeks past its edges; z-[35] clears the page-level
     // sticky bars (z-30) but stays UNDER the global navbar (#nd-nav, z-40)
     // so its dropdown menus paint over this rail, not behind it.
-    // Below sm the rail wraps: the switcher and the tabs take the first
-    // row whole, the clock and the network ride a second one under it.
+    // Below sm only the switcher and the tabs pin: the clock and the network
+    // sit in a strip under the rail (after it, below), which takes the
+    // page's spacing from the rail there.
+    <>
     <div
       className={cn(
         "sticky top-[calc(var(--fd-banner-height,0px)+3.5rem)] z-[35] -mx-5 flex flex-wrap items-stretch justify-between gap-x-4 border-b border-zinc-200 bg-white/85 px-5 backdrop-blur-[12px] md:-mx-6 md:px-6 dark:border-zinc-800 dark:bg-zinc-950/85",
         className,
+        strip && "max-sm:mb-0",
       )}
     >
-      <div className="flex min-w-0 items-stretch gap-x-3 max-sm:w-full sm:gap-x-4 md:gap-x-5">
+      <div className="flex min-w-0 items-stretch gap-x-2.5 max-sm:w-full sm:gap-x-4 md:gap-x-5">
         <ChainSwitcher network={network} chainSlug={chainSlug} chainName={chainName} chainLogoURI={chainLogoURI} />
         {tabs.length > 0 && <div className="my-3.5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-800" />}
         {tabs.length > 0 && (
@@ -633,12 +665,12 @@ export function ExplorerSubnav({
             aria-label="Explorer sections"
             onScroll={onRailScroll}
             style={railMask}
-            className="scrollbar-hide flex items-stretch gap-x-3 overflow-x-auto sm:gap-x-4 md:gap-x-5"
+            className="scrollbar-hide flex items-stretch gap-x-2 overflow-x-auto sm:gap-x-4 md:gap-x-5"
           >
             {tabs.map((tab) => {
               const active = tab.isActive(pathname);
               const cls = cn(
-                "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.12em] transition-colors",
+                "relative flex shrink-0 items-center py-3.5 font-mono text-[11px] font-bold uppercase tracking-[0.08em] transition-colors sm:tracking-[0.12em]",
                 active
                   ? "text-zinc-900 dark:text-zinc-100"
                   : "text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100",
@@ -655,7 +687,7 @@ export function ExplorerSubnav({
                     title="This chain isn't indexed yet"
                     className={cn(cls, "cursor-not-allowed text-zinc-300 dark:text-zinc-700")}
                   >
-                    {tab.label}
+                    {tabText(tab)}
                   </span>
                 );
               }
@@ -683,7 +715,7 @@ export function ExplorerSubnav({
                   aria-current={active ? "page" : undefined}
                   className={cls}
                 >
-                  {tab.label}
+                  {tabText(tab)}
                   {bar}
                 </Link>
               );
@@ -691,12 +723,19 @@ export function ExplorerSubnav({
           </nav>
         )}
       </div>
-      <div className="flex shrink-0 items-stretch gap-x-2 empty:hidden max-sm:w-full max-sm:justify-between max-sm:border-t max-sm:border-zinc-100 max-sm:py-2 sm:gap-x-3 dark:max-sm:border-zinc-900">
+      <div className="hidden shrink-0 items-stretch gap-x-3 sm:flex">
         {/* the page clock: appears only when something below actually
             listens to it, and then drives every stat on the page at once */}
         <ExplorerRangeControl className={rangeClassName} />
         {!hideNetwork && <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
       </div>
     </div>
+    {strip && (
+      <div className={cn("-mx-5 flex items-center justify-between gap-x-2 px-5 py-1.5 empty:hidden sm:hidden", className)}>
+        <ExplorerRangeControl className={rangeClassName} />
+        {!hideNetwork && <NetworkControl network={network} chainSlug={chainSlug} pathname={pathname} />}
+      </div>
+    )}
+    </>
   );
 }
