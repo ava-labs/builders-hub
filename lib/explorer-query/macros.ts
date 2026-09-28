@@ -1,15 +1,16 @@
 /* The shorthand a DEX or lending query opens with, and the WITH it
    stands for. The writer types $DEX(start) or $DEX(start, end), either
    with a slug last, for the DEX WITH (the pools of every family, the
-   window's Swap logs, the WAVAX price of each hour and the value of each
-   swap), or $POOLS() or $POOLS('slug') for its Swap topic names and pools
-   alone; and $LEND, $LIQUIDATIONS, $PRICES, $DEBTS or $MARKETS for a
-   lending WITH (lending.ts). The guard writes it out before it reads the
+   window's Swap logs, the WAVAX price of each hour, the value of each
+   swap, and the fee it paid when the query reads that), or $POOLS() or
+   $POOLS('slug') for its Swap topic names and pools alone; and $LEND,
+   $LIQUIDATIONS, $PRICES, $DEBTS or $MARKETS for a lending WITH
+   (lending.ts). The guard writes it out before it reads the
    query, so what the guard checks, what runs and what the page shows is
    the whole WITH, the one the prompt shows. Mainnet C-Chain only. */
 
 import { debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
-import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, type DexFamily } from "./protocols";
+import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, V2_FEE_PROTOCOLS, type DexFamily } from "./protocols";
 
 const T = DEX_TOPICS;
 export const topic = (t: string) => `unhex('${t}')`;
@@ -47,9 +48,21 @@ function poolsCte(): string {
 
 /** the Swap topics, named once in the WITH */
 const SWAPS_NAMED = `${topic(T.v2Swap)} AS v2_swap, ${topic(T.v3Swap)} AS v3_swap, ${topic(T.lbSwap)} AS lb_swap, ${topic(T.v4Swap)} AS v4_swap`;
+/* What a query reads of a swap's fee sets what the DEX WITH reads for it, since the query service takes 8 KiB of SQL:
+   0 nothing, 1 its rate and its value in dollars (fee_rate, fee_usd), 2 its amount in the token in too (fee_in,
+   token_in). For 1 a Swap log gives the fee rate it carries (fr): an lb swap's totalFees over its amountsIn (both on
+   the side of the token in, so the ratio of the two words is that of the two amounts), and a univ4 swap's fee, its
+   last word, in millionths. For 2 it also gives the side of the token in (tin: token1): a univ2 swap's amount0In or an
+   lb swap's X in is 0, or the sign of amount0, which a univ3 pool counts into the pool and univ4 from the swapper. */
+export type FeeRead = 0 | 1 | 2;
+export const feesRead = (sql: string): FeeRead => (/\b(fee_in|token_in)\b/.test(sql) ? 2 : /\b(fee_usd|fee_rate)\b/.test(sql) ? 1 : 0);
+const FR = `multiIf(topic0 = lb_swap, reinterpretAsUInt256(reverse(substring(data, 129, 32))) / reinterpretAsUInt256(reverse(substring(data, 33, 32))), topic0 = v4_swap, reinterpretAsUInt32(reverse(right(data, 4))) / 1e6, NULL) AS fr`;
+const TIN = `multiIf(topic0 = v2_swap, reinterpretAsUInt256(left(data, 32)) = 0, topic0 = lb_swap, reinterpretAsUInt128(substring(data, 49, 16)) = 0, topic0 = v4_swap, reinterpretAsInt8(data) >= 0, reinterpretAsInt8(data) < 0) AS tin`;
 /** the window's Swap logs by topic0: pool, time, block, transaction, trader, router, and what each moved of token0 (r0) and token1 (r1) */
-const swapsCte = (start: string, end: string) =>
-  `swap_logs AS (SELECT if(topic0 = v4_swap, topic1, address) AS pool, block_time, block_number, transaction_hash AS tx, tx_from AS trader, tx_to AS router, multiIf(topic0 = v2_swap, ${U(0)} + ${U(2)}, topic0 = lb_swap, ${H(49)} + ${H(81)}, abs(${I(0)})) AS r0, multiIf(topic0 = v2_swap, ${U(1)} + ${U(3)}, topic0 = lb_swap, ${H(33)} + ${H(65)}, abs(${I(1)})) AS r1 FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start}${end} AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap))`;
+const swapsCte = (start: string, end: string, fees: FeeRead = 0) =>
+  `swap_logs AS (SELECT if(topic0 = v4_swap, topic1, address) AS pool, block_time, block_number, transaction_hash AS tx, tx_from AS trader, tx_to AS router, multiIf(topic0 = v2_swap, ${U(0)} + ${U(2)}, topic0 = lb_swap, ${H(49)} + ${H(81)}, abs(${I(0)})) AS r0, multiIf(topic0 = v2_swap, ${U(1)} + ${U(3)}, topic0 = lb_swap, ${H(33)} + ${H(65)}, abs(${I(1)})) AS r1${fees ? `, ${FR}` : ""}${fees > 1 ? `, ${TIN}` : ""} FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start}${end} AND topic0 IN (v2_swap, v3_swap, lb_swap, v4_swap))`;
+/** every fee a pool set, by block: FeeAdjustment's new fee is its word 1 and Fee's its word 0, the last word of each */
+const FEES = `fees AS (SELECT substring(address, 1, 20) AS pool, block_number, reinterpretAsUInt32(reverse(right(data, 4))) AS fee FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${FIRST_DAY} AND topic0 IN (${topic(T.feeAdjustment)}, ${topic(T.algebraFee)}))`;
 /** the WAVAX price per hour from the hour before `start`: the median over the hour's swaps in the price pool */
 export const pxCte = (start: string, swap = "v3_swap") =>
   `px AS (SELECT toStartOfHour(block_time) AS hour, quantileExact(0.5)(-${I(1)} / nullIf(${I(0)}, 0) * 1e12) AS price FROM raw_logs WHERE chain_id = ${DEX_CHAIN_ID} AND block_time >= ${start} - INTERVAL 1 HOUR AND topic0 = ${swap} AND address = ${topic(DEX_PRICE_POOL.slice(2))} GROUP BY hour)`;
@@ -58,10 +71,20 @@ export const QUOTES = `q AS (SELECT groupArrayIf(token, quote = 'usd') AS S, gro
 /** a swap's value in USD: its stablecoin leg, else its WAVAX leg at the hour's price, else NULL */
 const USD =
   "multiIf(has(S, p.t0), s.r0 / pow(10, SD[indexOf(S, p.t0)]), has(S, p.t1), s.r1 / pow(10, SD[indexOf(S, p.t1)]), has(A, p.t0) AND x.price > 0, s.r0 / 1e18 * x.price, has(A, p.t1) AND x.price > 0, s.r1 / 1e18 * x.price, NULL)";
-const LEGS = `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.block_number AS block_number, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, s.r0 AS r0, s.r1 AS r1, ${USD} AS usd FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool CROSS JOIN q LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
+/* A swap's fee rate: the one its log carries, else the fee its pool last set before it, else its pool's fee tier
+   (univ3, cl-ramses), else a univ2 pair's fixed 0.3%; NULL for a pool whose fee no log gives. Its fee in dollars and
+   in the token in follow from it. */
+const FEE_RATE = `multiIf(s.fr IS NOT NULL, s.fr, c.block_number > 0, c.fee / 1e6, p.k > 0, p.k / 1e6, p.protocol IN (${V2_FEE_PROTOCOLS.map((x) => `'${x}'`).join(", ")}), 0.003, NULL) AS fee_rate, usd * fee_rate AS fee_usd`;
+const FEE_IN = "if(s.tin, p.t1, p.t0) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in";
+const legsCte = (fees: FeeRead) =>
+  `legs AS (SELECT s.pool AS pool, s.block_time AS block_time, s.block_number AS block_number, s.tx AS tx, s.trader AS trader, s.router AS router, p.protocol AS protocol, p.version AS version, p.t0 AS t0, p.t1 AS t1, p.k AS k, s.r0 AS r0, s.r1 AS r1, ${USD} AS usd${fees ? `, ${FEE_RATE}` : ""}${fees > 1 ? `, ${FEE_IN}` : ""} FROM swap_logs AS s INNER JOIN pools AS p ON s.pool = p.pool${fees ? " ASOF LEFT JOIN fees AS c ON s.pool = c.pool AND s.block_number >= c.block_number" : ""} CROSS JOIN q LEFT JOIN px AS x ON toStartOfHour(s.block_time) = x.hour)`;
 
-/** the DEX WITH with its three slots: the window's start, its end or nothing, and a protocol filter or nothing */
-export const DEX_WITH = `WITH ${SWAPS_NAMED}, ${poolsCte()}, ${swapsCte("$START", "$END")}, ${pxCte("$START")}, ${QUOTES}, ${LEGS}`;
+/** the DEX WITH for what a query reads of the fees, with its three slots: the window's start, its end or nothing, and a
+    protocol filter or nothing */
+const dexWith = (fees: FeeRead) =>
+  `WITH ${SWAPS_NAMED}, ${poolsCte()}, ${swapsCte("$START", "$END", fees)}, ${fees ? `${FEES}, ` : ""}${pxCte("$START")}, ${QUOTES}, ${legsCte(fees)}`;
+export const DEX_WITH = dexWith(0);
+const DEX_WITHS = [DEX_WITH, dexWith(1), dexWith(2)] as const;
 /** its Swap topic names and pools alone */
 const DEX_POOLS = `WITH ${SWAPS_NAMED}, ${poolsCte()}`;
 
@@ -73,14 +96,15 @@ interface Macro {
   slugs: () => readonly string[];
   /** "required": the WITH covers one protocol at a time, so it always takes a slug */
   slug: "none" | "optional" | "required";
-  text: (start: string, end: string | undefined, slug: string | undefined) => string;
+  /** `rest` is the query after the shorthand, for a WITH that depends on what it reads */
+  text: (start: string, end: string | undefined, slug: string | undefined, rest: string) => string;
 }
 const dexSlugs = () => Object.keys(DEX_PROTOCOLS);
 const lendSlugs = () => Object.keys(LENDING_PROTOCOLS);
 const dex = (with_: string, start: string, end: string | undefined, slug: string | undefined) =>
   with_.replaceAll("$START", () => start).replace("$END", () => (end ? ` AND block_time < ${end}` : "")).replace("$PROTOCOL", () => (slug ? `AND protocol = '${slug}'` : ""));
 const MACROS: Record<string, Macro> = {
-  DEX: { window: true, slugs: dexSlugs, slug: "optional", text: (start, end, slug) => dex(DEX_WITH, start, end, slug) },
+  DEX: { window: true, slugs: dexSlugs, slug: "optional", text: (start, end, slug, rest) => dex(DEX_WITHS[feesRead(rest)], start, end, slug) },
   POOLS: { window: false, slugs: dexSlugs, slug: "optional", text: (_s, _e, slug) => dex(DEX_POOLS, "", undefined, slug) },
   LEND: { window: true, slugs: lendSlugs, slug: "optional", text: lendWith },
   LIQUIDATIONS: { window: true, slugs: lendSlugs, slug: "optional", text: liquidationsWith },
@@ -142,10 +166,10 @@ export function expandMacros(sql: string, chainId: number): Expanded {
     return { ok: false, error: macro.slug === "none" ? `$${name} takes no slug: ${USAGE}` : `$${name} takes one slug, last: $${name}(toStartOfDay(now()) - INTERVAL 1 DAY, toStartOfDay(now()), '${some}')` };
   if (slugArg !== undefined && !slugs.includes(slug!)) return { ok: false, error: `${slugArg} is not a protocol's slug; the slugs are ${quoted(slugs)}` };
   if (macro.slug === "required" && !slug) return { ok: false, error: `$${name} covers one protocol at a time: $${name}(${quoted(slugs).replace(/, /g, `) or $${name}(`)})` };
-  const text = macro.text(start ? time(start) : "", end ? time(end) : undefined, slug);
   // a WITH of the query's own goes on after the shorthand's
   const rest = sql.slice(close + 1).replace(/^\s*WITH\b/i, ",");
   if (!/\S/.test(rest)) return { ok: false, error: `$${name}(…) is only the WITH: ${USAGE}` };
+  const text = macro.text(start ? time(start) : "", end ? time(end) : undefined, slug, rest);
   return { ok: true, sql: text + rest, macro: { name, size: text.length } };
 }
 
@@ -158,28 +182,32 @@ export function expandMacros(sql: string, chainId: number): Expanded {
 const MARK = { start: "\u0001start\u0001", end: "\u0001end\u0001" };
 const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-/** each shorthand's WITH, for every slug and with or without an end, as a pattern that finds it at a query's start;
-    the forms with an end come first, since the form without one could read an end as part of the start */
+/** what follows a shorthand, for each form of its WITH: a query that reads no fee, fee_usd, and fee_in */
+const RESTS = [" SELECT 1", " SELECT fee_usd", " SELECT fee_in"];
+
+/** each shorthand's WITH, for every slug, with or without an end and in each form, as a pattern that finds it at a
+    query's start; the forms with an end come first, since the form without one could read an end as part of the start */
 let patterns: { name: string; slug?: string; re: RegExp }[] | undefined;
 function patternsOf() {
   return (patterns ??= Object.entries(MACROS).flatMap(([name, macro]) => {
     const slugs = macro.slug === "none" ? [undefined] : macro.slug === "required" ? [...macro.slugs()] : [undefined, ...macro.slugs()];
     return (macro.window ? [true, false] : [false]).flatMap((end) =>
-      slugs.map((slug) => {
-        const seen = new Set<string>();
-        const text = macro.text(macro.window ? MARK.start : "", end ? MARK.end : undefined, slug);
-        const source = text
-          .split(/(\u0001(?:start|end)\u0001)/)
-          .map((part) => {
-            const arg = part === MARK.start ? "s" : part === MARK.end ? "e" : null;
-            if (!arg) return escaped(part);
-            if (seen.has(arg)) return `\\k<${arg}>`;
-            seen.add(arg);
-            return `(?<${arg}>[\\s\\S]+?)`;
-          })
-          .join("");
-        return { name, slug, re: new RegExp(`^${source}`) };
-      }),
+      slugs.flatMap((slug) =>
+        [...new Set(RESTS.map((rest) => macro.text(macro.window ? MARK.start : "", end ? MARK.end : undefined, slug, rest)))].map((text) => {
+          const seen = new Set<string>();
+          const source = text
+            .split(/(\u0001(?:start|end)\u0001)/)
+            .map((part) => {
+              const arg = part === MARK.start ? "s" : part === MARK.end ? "e" : null;
+              if (!arg) return escaped(part);
+              if (seen.has(arg)) return `\\k<${arg}>`;
+              seen.add(arg);
+              return `(?<${arg}>[\\s\\S]+?)`;
+            })
+            .join("");
+          return { name, slug, re: new RegExp(`^${source}`) };
+        }),
+      ),
     );
   }));
 }

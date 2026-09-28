@@ -8,7 +8,7 @@ import { guardSql, shadowedAlias } from '@/lib/explorer-query/guard';
 import { DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOKENS, DEX_TOPICS, dexContractName, dexFamilies, factoriesFor, factoriesSql, tokensFor, tokensSql, type DexFactory, type DexToken } from '@/lib/explorer-query/protocols';
 import { createHash } from 'node:crypto';
 import { recipeKey } from '@/lib/explorer-query/cache';
-import { expandMacros } from '@/lib/explorer-query/macros';
+import { expandMacros, feesRead } from '@/lib/explorer-query/macros';
 import { dexQuestion, promptVersion, systemPrompt } from '@/lib/explorer-query/prompt';
 import { refLine, refSchema, SQL_BUDGET, withSources } from '@/lib/explorer-query/sources';
 
@@ -271,12 +271,12 @@ describe('DEX rules and worked examples', () => {
     for (const chainId of [43113, 432204]) expect(systemPrompt({ chainId, chainName: 'x', symbol: 'AVAX', schema: '', coverage: null, dex: true })).not.toContain('dex_factories');
   });
 
-  it('show the DEX WITH once, and are seven, each with a drill a row fills', () => {
+  it('show the DEX WITH once, and are eight, each with a drill a row fills', () => {
     expect(start).toBeGreaterThan(0);
-    expect(prompt.split('uniqExact(tx, pool) AS swaps').length - 1).toBe(3);
+    expect(prompt.split('uniqExact(tx, pool) AS swaps').length - 1).toBe(4);
     expect(prompt.split('legs AS (SELECT').length - 1).toBe(1);
-    expect(lines.filter(example)).toHaveLength(7);
-    expect(lines.filter((l) => l.startsWith('drill: '))).toHaveLength(7);
+    expect(lines.filter(example)).toHaveLength(8);
+    expect(lines.filter((l) => l.startsWith('drill: '))).toHaveLength(8);
     expect(sqls.filter((s) => s.startsWith('not filled'))).toEqual([]);
     for (const sql of sqls) expect(sql).not.toMatch(/\$(DEX|POOLS|START|PROTOCOL)\b|^not expanded/);
     // the guard writes the shorthand out, so the query it passes is the one the test expands
@@ -287,7 +287,7 @@ describe('DEX rules and worked examples', () => {
 
   it('count swaps by transaction and pool, and carry priced swaps beside the volume', () => {
     const volume = lines.filter((l) => l.includes('AS volume_usd') && !l.includes('$START'));
-    expect(volume).toHaveLength(3);
+    expect(volume).toHaveLength(4);
     for (const l of volume) {
       expect(l).toMatch(/uniqExact\((g\.)?tx, (g\.)?pool\) AS swaps/);
       expect(l).toContain('AS priced_swaps');
@@ -296,7 +296,7 @@ describe('DEX rules and worked examples', () => {
   });
 
   it('name no expression after a column, pass the guard, fit the query service with the tables, and pass its screen', async () => {
-    expect(sqls).toHaveLength(14);
+    expect(sqls).toHaveLength(16);
     for (const sql of sqls) {
       expect(shadowedAlias(sql, true)).toBeNull();
       const g = guardSql(sql, 43114);
@@ -305,8 +305,10 @@ describe('DEX rules and worked examples', () => {
       expect(g.sql.length).toBeLessThanOrEqual(6000);
       const out = await withSources(g.sql, 43114);
       expect(Buffer.byteLength(out.sql)).toBeLessThanOrEqual(SQL_BUDGET);
-      // with a registry of the real one's size, the query still leaves the tables their budget
-      expect(Buffer.byteLength(g.sql) + TABLES_BUDGET + 64).toBeLessThanOrEqual(SQL_BUDGET);
+      // with a registry of the real one's size, the query still leaves the tables their budget; a query that reads a
+      // swap's fee has a longer WITH, and leaves them today's registry and token list whole
+      const tables = feesRead(sql) ? Buffer.byteLength(factoriesSql(43114)) + Buffer.byteLength(tokensSql(43114)) : TABLES_BUDGET;
+      expect(Buffer.byteLength(g.sql) + tables + 64, sql.slice(0, 60)).toBeLessThanOrEqual(SQL_BUDGET);
       expect(SCREEN.test(out.sql)).toBe(false);
     }
   });

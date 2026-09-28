@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { guardSql, literalWindow, negativeFigure } from '@/lib/explorer-query/guard';
-import { DEX_WITH, expandMacros } from '@/lib/explorer-query/macros';
+import { collapseMacros, DEX_WITH, expandMacros } from '@/lib/explorer-query/macros';
 import { pchainPrompt, systemPrompt, userTurn } from '@/lib/explorer-query/prompt';
-import { DEX_FACTORIES, DEX_PROTOCOLS } from '@/lib/explorer-query/protocols';
+import { DEX_FACTORIES, DEX_PROTOCOLS, V2_FEE_PROTOCOLS } from '@/lib/explorer-query/protocols';
+import { SQL_BUDGET, withSources } from '@/lib/explorer-query/sources';
 
 const today = 'toStartOfDay(now())';
 const OWN = ' SELECT protocol, round(sum(usd), 2) AS volume_usd FROM legs GROUP BY protocol';
@@ -99,6 +100,59 @@ describe('the DEX shorthand', () => {
     const size = DEX_WITH.replaceAll('$START', today).replace('$END', '').replace('$PROTOCOL', '').length;
     expect(long.ok ? '' : long.error).toMatch(new RegExp(`^query too long: \\d+ characters with \\$DEX written out, 6000 at most\\. Its WITH takes ${size}, so what follows it may take ${6000 - size}$`));
     expect((guardSql(`SELECT 1 FROM raw_logs WHERE chain_id = 43114 AND block_time >= now() - INTERVAL 1 HOUR AND ${'1 + '.repeat(1600)}1 = 1`, 43114) as { error: string }).error).toBe('query too long (6000 chars max)');
+  });
+});
+
+describe("a swap's fee", () => {
+  const FEES = ' SELECT protocol, version, uniqExact(tx, pool) AS swaps, uniqExactIf(tx, pool, usd IS NOT NULL) AS priced_swaps, round(sum(usd), 2) AS volume_usd, round(sum(fee_usd), 2) AS fees_usd, uniqExactIf(tx, pool, fee_usd IS NULL) AS swaps_not_counted, round(100 * sum(fee_usd) / nullIf(sum(sum(fee_usd)) OVER (), 0), 2) AS share_pct FROM legs GROUP BY protocol, version ORDER BY fees_usd DESC';
+  const IN = " SELECT lower(concat('0x', hex(token_in))) AS token_address, sum(fee_in) AS fee_raw, round(sum(fee_usd), 2) AS fees_usd FROM legs GROUP BY token_in";
+
+  it('is read only by a query that reads it, and its token only by one that reads that', () => {
+    const plain = expanded(`$DEX(${today})${OWN}`);
+    const fee = expanded(`$DEX(${today})${FEES}`);
+    const tokenIn = expanded(`$DEX(${today})${IN}`);
+    expect(plain).not.toMatch(/fees AS \(|fee_rate|AS tin\b/);
+    expect(fee).toContain('ASOF LEFT JOIN fees AS c ON s.pool = c.pool AND s.block_number >= c.block_number');
+    expect(fee).toContain('AS fee_rate, usd * fee_rate AS fee_usd FROM swap_logs');
+    expect(fee).not.toMatch(/AS tin\b|token_in/);
+    expect(tokenIn).toContain(' AS tin FROM raw_logs');
+    expect(tokenIn).toContain('if(s.tin, p.t1, p.t0) AS token_in, if(s.tin, s.r1, s.r0) * fee_rate AS fee_in FROM swap_logs');
+    // every fee a pool set, from the first day, by the two events that set one
+    expect(fee).toMatch(/fees AS \(SELECT substring\(address, 1, 20\) AS pool, block_number, .* AND block_time >= '2020-09-23' AND topic0 IN \(unhex\('0cba8718[0-9a-f]{56}'\), unhex\('598b9f04[0-9a-f]{56}'\)\)\)/);
+  });
+
+  it("takes its rate from its Swap log, else the fee its pool last set, else its pool's tier, else a univ2 pair's 0.3%", () => {
+    expect(expanded(`$DEX(${today})${FEES}`)).toContain(
+      `multiIf(s.fr IS NOT NULL, s.fr, c.block_number > 0, c.fee / 1e6, p.k > 0, p.k / 1e6, p.protocol IN (${V2_FEE_PROTOCOLS.map((x) => `'${x}'`).join(', ')}), 0.003, NULL) AS fee_rate`,
+    );
+    // a protocol with 0.3% pairs has one univ2 factory, and its others give each pool a tier or each log a rate, so its k = 0 pools are those pairs
+    for (const protocol of V2_FEE_PROTOCOLS) {
+      const own = DEX_FACTORIES.filter((f) => f.protocol === protocol);
+      expect(own.filter((f) => f.family === 'univ2'), protocol).toHaveLength(1);
+      for (const f of own) expect(['univ2', 'univ3', 'cl-ramses', 'lb', 'univ4', 'woofi'], `${protocol} ${f.version}`).toContain(f.family);
+    }
+  });
+
+  it('fits the query service with every factory, for a fees query that carries what its note needs', async () => {
+    for (const sql of [`$DEX(toMonday(now()))${FEES}`, `$DEX(toMonday(now()))${IN}`]) {
+      const g = guardSql(sql, 43114);
+      expect(g.ok ? '' : g.error).toBe('');
+      if (!g.ok) continue;
+      const out = await withSources(g.sql, 43114);
+      expect(Buffer.byteLength(out.sql)).toBeLessThanOrEqual(SQL_BUDGET);
+      const factories = out.sources.find((s) => s.table === 'dex_factories');
+      expect(factories?.known, sql.slice(0, 60)).toBe(DEX_FACTORIES.length);
+    }
+  });
+
+  it('goes back to its shorthand in an earlier turn, in each of its forms', () => {
+    for (const rest of [OWN, FEES, IN]) {
+      for (const call of [`$DEX(${today})`, `$DEX(${today}, now(), '${slug}')`]) {
+        const g = guardSql(call + rest, 43114);
+        expect(g.ok, call + rest).toBe(true);
+        if (g.ok) expect(collapseMacros(g.sql, 43114)).toBe(`${call + rest}\nLIMIT 2000`);
+      }
+    }
   });
 });
 

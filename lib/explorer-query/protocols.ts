@@ -122,7 +122,13 @@ export const DEX_TOPICS = {
   v4Initialize: "dd466e674ea557f56295e2d0218a125ea4b4f0f6f3307b95f85e6110838d6438",
   v4Swap: "40e9cecb9f5f1f1c5b9c97dec2917b7ee92e57ba5563708daca94dd84ad7112f",
   wooSwap: "0e8e403c2d36126272b08c75823e988381d9dc47f2f0a9a080d95f891d95c469",
+  // a pool's new fee: cl-ramses pools and Pharaoh's old univ3 pools write FeeAdjustment(uint24,uint24), algebra pools Fee(uint16)
+  feeAdjustment: "0cba87189055d3b5ab05c96fbd641bc766576c9e7cf0d195bdfb58a0c6a6df24",
+  algebraFee: "598b9f043c813aa6be3426ca60d1c65d17256312890be5118dab55b0775ebe2a",
 } as const;
+
+/** the univ2 protocols whose pairs all charge 0.3% of the amount in, as each pair's swap checks it; Pharaoh's and Arena's pairs set their own */
+export const V2_FEE_PROTOCOLS: readonly string[] = ["trader-joe", "pangolin", "sushi", "uniswap"];
 
 /** the families some of the factories use, in the prompt's order */
 export function dexFamilies(factories: readonly DexFactory[] = DEX_FACTORIES): DexFamily[] {
