@@ -941,7 +941,7 @@ export default function City3D({ data: incoming, versions = null, target = "", s
         <Redraw on={[state, badgeAlpha, traffic, hoverDistrict, hoverRoute, focus, theme, font]} />
         <Shadows until={schedule.until} bump={`${theme}|${model.buildings.length}|${nodes.length}`} />
         <Lighting theme={theme} rich={rich} />
-        <Backdrop theme={theme} liveAt={schedule.liveAt} still={still} />
+        <Backdrop theme={theme} liveAt={schedule.liveAt} still={still} ranges={tier === "high"} />
         <Rig shot={shot} home={home} inset={inset} still={still} onDrag={onDrag} onFlight={onFlight} standsAt={schedule.liveAt} cameraRef={cameraRef} />
         {/* the column, the plate and the city on it, which the opening lifts out of the cloud sea */}
         <Rise>

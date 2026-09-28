@@ -1,4 +1,4 @@
-/* The far ranges' bake (Backdrop.tsx, ?peaks=1): from the massifs' real heights (public/images/city3d/peaks-dem.webp, SRTM at
+/* The far ranges' bake (Backdrop.tsx): from the massifs' real heights (public/images/city3d/peaks-dem.webp, SRTM at
    30 m, built by scripts/city3d-peaks.mts), each range's mesh in the world and its light. The Backdrop runs this function's own
    source in workers, a few ranges to each, so none of it holds the main thread: it must not reach anything outside itself.
 

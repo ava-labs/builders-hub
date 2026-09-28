@@ -66,8 +66,8 @@ import { bakePeaks, type PeaksBakeCell, type PeaksBakeOutput, type PeaksBakeRang
    clouds show through it, so none of them ever sits over the clouds. A
    theme's switch cross-fades them, the sun dimming into the moon. A sparse, slow fall of fine snow may drift across the
    city, left to right; it is off unless asked for, and never shows to a
-   reader who asks for less motion. Behind ?peaks=1 (a look for review, off
-   by default) real Himalayan and Karakoram massifs stand out of the cloud
+   reader who asks for less motion. On the high tier (?peaks=0 turns them
+   off) real Himalayan and Karakoram massifs stand out of the cloud
    sea round the column, K2 whole in the home view: their heights from SRTM
    at 30 m (scripts/city3d-peaks.mts), baked in workers the module starts as
    it loads (peaks-bake.ts: the survey cleaned, the summits sharpened against
@@ -456,7 +456,7 @@ function seaMaterial(tile: Texture | null, night: { value: number }, disc: { val
   });
 }
 
-/* the far ranges (?peaks=1): real Himalayan and Karakoram massifs (SRTM heights, public domain, from AWS Terrain Tiles; see
+/* the far ranges: real Himalayan and Karakoram massifs (SRTM heights, public domain, from AWS Terrain Tiles; see
    scripts/city3d-peaks.mts), one to a range, round the column: each on a bearing from the city's middle (degrees clockwise
    from the home view's forward, -z), at a distance, with the real height the cloud sea stands at for it. K2 stands whole in
    the home view's frame, right of the city and clear of the map key and the sun; the others show as the camera turns */
@@ -537,10 +537,10 @@ self.onmessage = async (e) => {
   return new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
 }
 
-/* with ?peaks=1 the bake starts as this module loads, alongside the city's own data, so it is done before the scene can show:
+/* unless ?peaks=0, the bake starts as this module loads, alongside the city's own data, so it is done before the scene can show:
    the heights come down once, and a few workers (one to two cores, three at most) share the ranges. The canvas never waits
    for it */
-const PEAKS_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("peaks") === "1";
+const PEAKS_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("peaks") !== "0";
 /** each range's key light (PEAK_KEY), toward the light */
 const PEAK_KEYS: [number, number, number][] = PEAKS.map(({ at }) => {
   const sun = MathUtils.radToDeg(Math.atan2(SUN.x, -SUN.z));
@@ -776,12 +776,15 @@ export function Backdrop({
   theme,
   liveAt,
   still,
+  ranges = true,
   snow = false,
 }: {
   theme: Theme;
   /** when the city stands, on the city's clock: the image loads after it */
   liveAt: number;
   still: boolean;
+  /** the far ranges draw: the high tier's alone, as the finish is (City3D) */
+  ranges?: boolean;
   /** a sparse, slow fall of fine snow across the city; never for a reader who asks for less motion */
   snow?: boolean;
 }) {
@@ -817,8 +820,11 @@ export function Backdrop({
     [parts],
   );
   useEffect(() => () => painted?.dispose(), [painted]);
-  // the far ranges: a look behind ?peaks=1 (as City3D reads ?labels=rules); the uniforms they share, read as the scene mounts
-  const look = useMemo(() => (PEAKS_ON ? peaksLook(parts.sea.material as ShaderMaterial, night, disc, whiteTile()) : null), [parts, night, disc]);
+  // the far ranges, on the high tier unless ?peaks=0; the uniforms they share, read as the scene mounts
+  const look = useMemo(
+    () => (PEAKS_ON && ranges ? peaksLook(parts.sea.material as ShaderMaterial, night, disc, whiteTile()) : null),
+    [parts, night, disc, ranges],
+  );
   const [peaks, setPeaks] = useState<Mesh[] | null>(null);
   const peakRise = useRef<{ at: number | null; from: number | null; hurry: number | null; asked: boolean; detail: number | null; stood: boolean }>({ at: null, from: null, hurry: null, asked: false, detail: null, stood: false });
   /* the bake's result, from the workers the module started: each range's mesh, its light's textures and its own material; the
