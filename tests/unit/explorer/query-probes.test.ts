@@ -25,23 +25,24 @@ const FINAL = { title: 'Swaps per hour', note: 'Swaps on the C-Chain.', sql: 'SE
 
 // the SDK's loop around a model that calls run_sql on every step, and render_chart only when the step's tool
 // choice names it: the SDK still runs a tool that activeTools leaves out, as the audits' long loops showed
-type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string };
+type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string; tools: unknown[] };
 type Call = {
   tools: { run_sql: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> }; render_chart: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> } };
   toolChoice: unknown;
   stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[];
-  prepareStep: (o: { stepNumber: number; steps: unknown[]; messages: unknown[] }) => { toolChoice?: { type: string; toolName?: string } } | undefined;
+  prepareStep: (o: { stepNumber: number; steps: unknown[]; messages: unknown[] }) => { toolChoice?: { type: string; toolName?: string }; activeTools?: string[] } | undefined;
   onStepFinish: (s: unknown) => void;
 };
 const runs: Run[] = [];
 const writer = (final: object) =>
   (async (opts: Call) => {
     const steps: unknown[] = [];
-    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description };
+    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description, tools: [] };
     runs.push(run);
     for (let n = 0; ; n++) {
       const p = await opts.prepareStep({ stepNumber: n, steps, messages: [{ role: 'user', content: 'q' }] });
       run.choices.push(p?.toolChoice ?? opts.toolChoice);
+      run.tools.push(p?.activeTools ?? 'all');
       const answers = p?.toolChoice?.toolName === 'render_chart';
       run.results.push(await (answers ? opts.tools.render_chart.execute(final, {}) : opts.tools.run_sql.execute({ sql: 'SELECT t, swaps FROM x' }, {})));
       steps.push({});
@@ -75,8 +76,9 @@ describe('the writer tests a set number of times, then answers', () => {
     expect(runs).toHaveLength(1);
     expect(tests()).toBe(TESTS);
     expect(runs[0].results.slice(0, TESTS).map((r) => (r as { testsLeft?: number }).testsLeft)).toEqual(Array.from({ length: TESTS }, (_, i) => TESTS - 1 - i));
-    // the step after the last test can only answer
+    // the step after the last test can only answer, with the tools every step before had, so it reads the prompt cache
     expect(runs[0].choices).toEqual([...Array(TESTS).fill('required'), forced]);
+    expect(runs[0].tools).toEqual(Array(TESTS + 1).fill('all'));
     expect(answer?.model).toMatchObject({ steps: TESTS + 1, tries: TESTS });
   });
 
@@ -120,6 +122,7 @@ describe('the writer tests a set number of times, then answers', () => {
     // the model tests on every step, as before: the last steps only narrow its list of tools
     expect(tests()).toBe(WRITERS.fast.steps + WRITERS.full.steps);
     expect(runs.flatMap((r) => r.choices).every((c) => c === 'required')).toBe(true);
+    expect(runs[0].tools.slice(-2)).toEqual([['render_chart'], ['render_chart']]);
     expect(runs[0].results.every((r) => !('testsLeft' in (r as object)))).toBe(true);
     expect(error).toMatchObject({ status: 422, error: expect.stringContaining('kept failing on the database') });
   });

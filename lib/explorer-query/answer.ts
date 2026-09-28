@@ -424,9 +424,11 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         const last = m[m.length - 1];
         if (last && last.role !== "system") m[m.length - 1] = { ...last, providerOptions: { ...last.providerOptions, ...CACHE } } as ModelMessage;
         // near the end of the budget, or once the tests are spent, the only move left is to answer. The SDK still
-        // runs a tool that activeTools leaves out when the model calls it, so on mainnet the call itself is forced
+        // runs a tool that activeTools leaves out when the model calls it, so on mainnet the call itself is forced,
+        // with the tools every step before sent: a new tool list misses the prompt cache (D20's final wrote its
+        // 31.8k tokens again), and a new tool choice reads it. Fuji narrows its tools as it did
         if (final || (stepNumber < w.steps - 2 && (fuji || tested < TESTS))) return { messages: m };
-        return { messages: m, activeTools: ["render_chart" as const], ...(fuji ? {} : { toolChoice: { type: "tool" as const, toolName: "render_chart" as const } }) };
+        return fuji ? { messages: m, activeTools: ["render_chart" as const] } : { messages: m, toolChoice: { type: "tool" as const, toolName: "render_chart" as const } };
       },
       onStepFinish: () => {
         steps += 1;
