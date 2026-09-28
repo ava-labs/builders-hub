@@ -73,7 +73,7 @@ export async function proxy(req: NextRequest) {
 
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const isAuthenticated = !!token;
-  const isLoginPage = pathname === "/login";
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
   const isShowCase = pathname.startsWith("/showcase");
   const isSendNotifications = pathname.startsWith("/send-notifications");
   const custom_attributes = token?.custom_attributes as string[] ?? []
@@ -82,7 +82,7 @@ export async function proxy(req: NextRequest) {
 
   // Protect routes: block unauthenticated access to protected paths without redirecting
   // The client-side component (AutoLoginModalTrigger) will detect this and show the login modal
-  if (!isAuthenticated && !isLoginPage && isProtectedPath) {
+  if (!isAuthenticated && !isAuthPage && isProtectedPath) {
     // If it's /events/edit, redirect to home
     if (pathname.startsWith("/hackathons/edit") || pathname.startsWith("/events/edit")) {
       return NextResponse.redirect(new URL("/", req.url));
@@ -95,7 +95,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isAuthenticated) {
-    if (isLoginPage)
+    if (isAuthPage)
       return NextResponse.redirect(new URL("/", req.url));
 
     if (isShowCase && !custom_attributes.includes('showcase'))
@@ -151,6 +151,7 @@ export const config = {
     "/showcase/:path*",
     "/send-notifications/:path*",
     "/login/:path*",
+    "/signup/:path*",
     "/profile/:path*",
     "/academy/:path*/get-certificate",
     "/academy/:path*/certificate",

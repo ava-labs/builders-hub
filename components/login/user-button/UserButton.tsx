@@ -13,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useLoginModalTrigger } from '@/hooks/useLoginModal';
 import { DiceBearAvatar } from '@/components/profile/components/DiceBearAvatar';
 import type { AvatarSeed } from '@/components/profile/components/DiceBearAvatar';
 import { useUserAvatar } from '@/components/context/UserAvatarContext';
@@ -52,7 +51,6 @@ export function UserButton() {
   const [menuOpen, setMenuOpen] = useState(false);
   const avatarContext = useUserAvatar();
   const isAuthenticated = status === 'authenticated';
-  const { openLoginModal } = useLoginModalTrigger();
   const router = useRouter();
 
   const nounAvatarSeed = avatarContext?.nounAvatarSeed ?? localSeed;
@@ -149,22 +147,17 @@ export function UserButton() {
     return <UserRound className={ICON_CLASS} strokeWidth={1.25} />;
   };
 
-  // Unauthenticated — clicking the avatar still opens the login modal,
-  // matching the rest of the public-page UX.
+  // Give new visitors a direct, shareable path to account creation.
   if (!isAuthenticated) {
     return (
-      <button
-        type="button"
-        aria-label="Login"
-        className={WRAPPER_CLASS}
-        onClick={() => {
-          const currentUrl =
-            typeof window !== 'undefined' ? window.location.href : '/';
-          openLoginModal(currentUrl);
-        }}
-      >
-        {renderAvatar()}
-      </button>
+      <div className="flex items-center gap-3 text-sm">
+        <Link href="/login" className="text-zinc-600 hover:text-zinc-950 dark:text-zinc-300 dark:hover:text-white">
+          Log in
+        </Link>
+        <Link href="/signup" className="inline-flex h-8 items-center border border-zinc-900 bg-zinc-900 px-3 font-medium text-white hover:bg-zinc-700 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300">
+          Sign up
+        </Link>
+      </div>
     );
   }
 
