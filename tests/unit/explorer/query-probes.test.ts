@@ -19,6 +19,7 @@ vi.mock('@/lib/explorer-query/examples', () => ({ PCHAIN_EXAMPLES: [], examplesF
 
 import { generateText } from 'ai';
 import { TESTS, WRITERS, answerQuestion, type QueryEvent } from '@/lib/explorer-query/answer';
+import { userTurn } from '@/lib/explorer-query/prompt';
 
 const ROWS = { columns: [{ name: 't', type: 'DateTime' }, { name: 'swaps', type: 'UInt64' }], rows: [{ t: '2026-09-27 00:00:00', swaps: 2 }], rowCount: 1, elapsedMs: 1, rowsRead: 1, truncated: false };
 const FINAL = { title: 'Swaps per hour', note: 'Swaps on the C-Chain.', sql: 'SELECT t, swaps FROM x', chart: { kind: 'bar', x: 't', series: [{ column: 'swaps', label: 'Swaps' }] } };
@@ -126,6 +127,16 @@ describe('the writer tests a set number of times, then answers', () => {
     runs.length = 0;
     await ask(43113);
     expect(runs.map((r) => r.cap)).toEqual([undefined, undefined]);
+  });
+
+  it('tells a question on its own its series default, and not a follow-up, which keeps its chart\'s window', async () => {
+    runQuery.mockResolvedValue(ROWS);
+    vi.mocked(generateText).mockImplementation(writer(FINAL));
+    vi.mocked(userTurn).mockClear();
+    await ask(43114);
+    const history = [{ prompt: 'Swaps per hour today', sql: 'SELECT t, swaps FROM x', title: 'Swaps per hour' }];
+    await answerQuestion({ chainId: 43114, chainName: 'Avalanche C-Chain', symbol: 'AVAX', prompt: 'make it weekly', history, baseUrl: 'http://localhost:3000', emit: () => {} });
+    expect(vi.mocked(userTurn).mock.calls.map((c) => c[3])).toEqual([true, false]);
   });
 
   it('keeps Fuji as it was: no budget, no forced answer, and the old words', async () => {

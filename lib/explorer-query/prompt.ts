@@ -28,13 +28,35 @@ function RECORD(opts: { chainId: number; symbol: string }, since = "now() - INTE
 
 /** what a question's time words mean; the same for every target but Fuji, whose line stays as it was */
 const CALENDAR = `- Calendar words are calendar windows that run to now: "today" starts at toStartOfDay(now()), "this week" at toMonday(now()), "this month" at toStartOfMonth(now()), "this year" at toStartOfYear(now()). A calendar window never starts earlier: this week is never toMonday(now()) - INTERVAL 7 DAY. "The last 30 days" (24 hours, 7 days) is a rolling window from now() - INTERVAL 30 DAY. Write these windows with now(), and in the note in words ("since Monday"), never with today's date or a date written out (not toMonday(toDateTime('2022-03-09'))): a kept answer and its note are shown again on later days. A day or a week the question names runs to the start of the next one, in the year of today's date (the question's first line) unless it names another: the week of Monday March 7, 2022 is block_time >= toDateTime('2022-03-07 00:00:00') AND block_time < toDateTime('2022-03-14 00:00:00').`;
+/** the window of a daily, weekly or monthly series whose question names none, which the writer otherwise picks at
+    random (the whole history, this year, 12 weeks); an EVM chain's, as the P-Chain's worked examples read their own */
+const SERIES = ` A daily, weekly or monthly series whose question names no window never reads the whole history: it reads 30 days of daily buckets from toStartOfDay(now()) - INTERVAL 30 DAY, 8 weeks of weekly ones from toMonday(now()) - INTERVAL 7 WEEK (the current week and the 7 before it), or 12 months of monthly ones from toStartOfMonth(now()) - INTERVAL 11 MONTH (or as far back as the table's limit above allows), and its title and note name that window ("in the last 30 days", "in the last 8 weeks", "in the last 12 months").`;
 const CALENDAR_FUJI = `- Calendar words are calendar windows: "today" starts at toStartOfDay(now()), "this week" at toMonday(now()), "this month" at toStartOfMonth(now()), "this year" at toStartOfYear(now()). "The last 30 days" (24 hours, 7 days) is a rolling window from now() - INTERVAL 30 DAY.`;
-const calendar = (chainId: number) => (isFuji(chainId) ? CALENDAR_FUJI : CALENDAR);
+const calendar = (chainId: number) => (isFuji(chainId) ? CALENDAR_FUJI : targetOf(chainId).kind === "pchain" ? CALENDAR : `${CALENDAR}${SERIES}`);
+
+/** a question's daily, weekly or monthly bucket, and any other time word, which names a window of its own */
+const BUCKET = /\b(?:(?:per|each|every|by)\s+(day|week|month)|(daily|weekly|monthly))\b/gi;
+const TIME_WORD = /\b(?:now|today|tonight|yesterday|hours?|minutes?|days?|weeks?|months?|years?|quarters?|since|until|before|after|during|ago|last|past|previous|prior|recent|latest|current|ever|all[- ]time|history|launch|(?:mon|tues|wednes|thurs|fri|satur|sun)day|weekend|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|ytd|mtd|q[1-4]|\d{4}|\d{1,2}(?:st|nd|rd|th))\b/i;
+const SERIES_TURN: Record<string, string> = {
+  day: "a daily series reads 30 days",
+  week: "a weekly series reads the current week and the 7 before it",
+  month: "a monthly series reads 12 months, or as far back as its table allows",
+};
+/** the series default again, for a question with one bucket and no other time word: the calendar rule alone was
+    read in 1 of 6 first calls (D06 read 12 weeks), and with this line in 6 of 6 */
+function seriesTurn(prompt: string): string {
+  const units = [...prompt.matchAll(BUCKET)].map((m) => (m[1] ?? m[2].replace(/ly$/i, "").replace(/^dai$/i, "day")).toLowerCase());
+  return units.length === 1 && !TIME_WORD.test(prompt.replace(BUCKET, " ")) ? ` The question names no window: ${SERIES_TURN[units[0]]}.` : "";
+}
 
 /** the writer's turn: the question after today's date, so a date it names has a year. The date is in the turn, not
-    the system prompt, so the prompt's version and cache stay the same from day to day. Fuji's turn stays as it was */
-export function userTurn(chainId: number, prompt: string, now = new Date()): string {
-  return isFuji(chainId) ? prompt : `Today is ${now.toISOString().slice(0, 10)} (UTC).\n\n${prompt}`;
+    the system prompt, so the prompt's version and cache stay the same from day to day. On an EVM chain a series
+    question on its own (a follow-up keeps its chart's window) is told its default window there too. Fuji's turn
+    stays as it was */
+export function userTurn(chainId: number, prompt: string, now = new Date(), alone = true): string {
+  if (isFuji(chainId)) return prompt;
+  const series = alone && targetOf(chainId).kind !== "pchain" ? seriesTurn(prompt) : "";
+  return `Today is ${now.toISOString().slice(0, 10)} (UTC).${series}\n\n${prompt}`;
 }
 
 /** how an answer hands back its chart; the same for every target */
