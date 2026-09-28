@@ -12,6 +12,8 @@ import { getRecipe, putRecipe, recipeKey } from "./cache";
 import { versionLines } from "./sources";
 import { basicVisual, codeWords, plainLabel, sqlNames, withoutCode } from "./visual";
 import { cutOf, newestSql, totalsOf } from "./cut";
+import { msOf } from "./edges";
+import { scopeError, sqlWindow, withWindow } from "./scope";
 import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 
 /* A question in, an answer out. A cached recipe answers at once: its SQL
@@ -116,12 +118,14 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       const [names, totals] = await Promise.all([nameRows(a.chainId, result.columns, result.rows, a.baseUrl), totalsOf(sql, result, a.chainId)]);
       // rows that only reach their LIMIT leave nothing out
       if (totals && totals.rows <= result.rowCount) result.truncated = false;
+      // a kept note loses any sentence that names the SQL's parts, and a kept title and note name the window the query reads
+      const words = { title: plainLabel(recipe.title), note: withoutCode(recipe.note, sqlNames(sql)) };
+      const said = isFuji(a.chainId) ? words : withWindow(words, sql, result.rows, recipe.chart.x, run.anchor ? msOf(run.anchor) : Date.now());
       return {
         anchor: run.anchor,
         sources: run.sources,
-        title: plainLabel(recipe.title),
-        // a kept note loses any sentence that names the SQL's parts
-        note: withoutCode(recipe.note, sqlNames(sql)),
+        title: said.title,
+        note: said.note,
         sql,
         chart: recipe.chart,
         drill: recipe.drill,
@@ -187,6 +191,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let wordsOnce = false;
     let negOnce = false;
     let datedOnce = false;
+    let windowOnce = false;
     let tested = 0;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
@@ -285,6 +290,15 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         const q0 = Date.now();
         try {
           const run = await anchored(g.sql, a.chainId);
+          // a title or a note that names a window the query does not read is written again once, before the query runs
+          const now = run.anchor ? msOf(run.anchor) : Date.now();
+          const win = fuji ? null : sqlWindow(g.sql, now);
+          const unnamed = win && win !== "unknown" && !windowOnce ? scopeError(title, note, win, now) : null;
+          if (unnamed) {
+            windowOnce = true;
+            step("final", Date.now() - q0, false, "window words");
+            return { error: unnamed };
+          }
           const result = await runQuery(run.sql);
           ranFine += 1;
           // an empty answer is usually a window that misses the data; ask once
@@ -329,7 +343,10 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
             }
           }
           rows.truncated ||= !!cutOf(kept, rows.rowCount);
-          final = { title: plainLabel(title), note: withoutCode(note, own), sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
+          // what is left of a wrong window's words gives way to the window the query reads, or else its rows cover
+          const words = { title: plainLabel(title), note: withoutCode(note, own) };
+          const said = fuji ? words : withWindow(words, g.sql, rows.rows, chart.x, now);
+          final = { title: said.title, note: said.note, sql: kept, chart: { ...chart, series: chart.series.map((s) => ({ ...s, label: plainLabel(s.label) })) }, drill: drill ?? null, result: rows, names: {}, visual: null, coverage: null, anchor: ran.anchor, sources: ran.sources };
           keptSql = kept;
           step("final", Date.now() - q0, true, `${rows.rowCount} rows`);
           return { ok: true, rows: rows.rowCount };
