@@ -3,7 +3,6 @@ import { type LinkItemType, type BaseLayoutProps } from 'fumadocs-ui/layouts/sha
 import { AvalancheLogo } from '@/components/navigation/avalanche-logo';
 import {
   Sprout,
-  Logs,
   SendHorizontal,
   Computer,
   Hexagon,
@@ -153,12 +152,12 @@ export const ecosystemMenu: LinkItemType = {
 export const explorerMenu: LinkItemType = {
   type: "menu",
   text: "Explorer",
-  url: "/explorer",
+  url: "/explorer/mainnet",
   items: [
     {
       icon: <Search />,
       text: "Block Explorer",
-      url: "/explorer",
+      url: "/explorer/mainnet",
       description:
       "Search any block, tx, address, or node across the P-Chain, C-Chain, and every L1.",
     },
@@ -171,24 +170,17 @@ export const explorerMenu: LinkItemType = {
     },
     {
       icon: <DraftingCompass />,
-      text: "Playground",
-      url: "/stats/playground",
+      text: "Query",
+      url: "/explorer/mainnet/query",
       description:
-      "Create and customize charts with real-time chain metrics.",
-    },
-    {
-      icon: <Logs />,
-      text: "All Networks",
-      url: "/explorer/mainnet",
-      description:
-      "Live activity, ICM, validators, and AVAX across every Avalanche chain.",
+      "Ask a chain a question in plain words and get a chart with its SQL.",
     },
     {
       icon: <Network />,
-      text: "C-Chain Stats",
-      url: "/stats/l1/c-chain",
+      text: "C-Chain",
+      url: "/explorer/mainnet/c-chain",
       description:
-      "The latest metrics for the Avalanche C-Chain.",
+      "Live blocks, transactions, gas and chain stats for the Avalanche C-Chain.",
     },
     {
       icon: <Hexagon />,

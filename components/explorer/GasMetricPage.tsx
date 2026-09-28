@@ -1,64 +1,41 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import {
-  Bar,
-  Brush,
-  ComposedChart,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { cn } from "@/lib/utils";
-import {
-  AXIS_TICK,
-  BRUSH_PROPS,
-  ChartPlate,
-  SheetFrame,
-  SheetGrid,
-  SiblingDoor,
-  dayLabel,
-} from "@/components/explorer-v2/metric-sheet";
-import { Board, BoardHeader, ChartBoard, StatDash } from "@/components/explorer-v2/ui";
-import {
-  RANGE_DAYS,
-  RANGE_LABEL,
-  useExplorerTimeRange,
-  type ExplorerRange,
-} from "@/components/explorer-v2/time-range";
+import { SheetFrame, SiblingDoor, dayLabel } from "@/components/explorer-v2/metric-sheet";
+import { SectionHeader } from "@/components/explorer-v2/ui";
+import { Readout, ReadoutRow } from "@/components/explorer-v2/Readout";
+import { ShareMap } from "@/components/explorer-v2/ShareMap";
+import { RANGE_DAYS, RANGE_LABEL, useExplorerTimeRange, type ExplorerRange } from "@/components/explorer-v2/time-range";
+import { dayLong, dayShort, hourLong } from "@/components/explorer-v2/format";
+import { ColumnsBlock, Instrument, RankBars, TraceBlock, WeekTerrain, DOW, cellName, type Col, type HeatCell } from "@/components/explorer-v2/gas/instruments";
 import {
   BandKey,
-  DOW_LABELS,
   FEE_HISTORY_BLOCKS,
-  FeeBandChart,
-  FeeHeatmap,
-  GasStat,
+  FeeTip,
+  GasReservedBlock,
+  HeliconNote,
   HistoryEmpty,
   ProtocolTable,
-  ProtocolsTreemap,
-  SelectorBars,
-  TipPlate,
-  UtilHistogram,
+  WeekBlock,
+  feeTraceRows,
+  fmtFee,
   fmtGas,
-  useGasHistory,
   fmtNano,
   nanoUnit,
+  protocolShareParts,
+  selectorName,
   useFeeHistory,
+  useGasHistory,
 } from "@/components/explorer/GasMarketPage";
 import { useContractNames } from "@/lib/sourcify-client";
 import { GAS_METRICS, type GasMetricKey } from "@/components/explorer/gas-metrics";
-import type { GasDayPoint, GasHistoryDays, GasMarket } from "@/lib/explorer-clickhouse";
+import type { GasDayPoint, GasHistoryDays, GasHourPoint, GasMarket } from "@/lib/explorer-clickhouse";
 import type { L1Chain } from "@/types/stats";
 
-/* The per-metric detail sheets behind the Gas Market's stat cells: one
-   figure, everything we know about it. The frame (eyebrow, title, blurb,
-   methodology colophon) is shared; each metric composes its own sections
-   from the market's chart idioms. The whole point of the top sheet staying
-   quiet is that these pages don't have to. */
+/* The per-metric detail sheets behind the Gas tab's figures: one figure,
+   everything we know about it. The frame (breadcrumb, title, blurb,
+   methodology colophon) is shared; each sheet leads with its readouts and
+   composes the gas instruments below them, in the Gas tab's own grammar. */
 
 /* ---------------------------------------------------------------- */
 /* data                                                              */
@@ -70,7 +47,6 @@ function useGasMarket(evmChainId: number, rangeDays: number) {
   useEffect(() => {
     if (!Number.isFinite(evmChainId)) return;
     let cancelled = false;
-    setMarket(null);
     setMissing(false);
     fetch(`/api/gas-market/${evmChainId}?range=${rangeDays}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
@@ -84,7 +60,8 @@ function useGasMarket(evmChainId: number, rangeDays: number) {
       cancelled = true;
     };
   }, [evmChainId, rangeDays]);
-  return { market, missing };
+  // a window switch keeps the last payload on screen, dimmed, until the new one lands
+  return { market, missing, stale: market !== null && market.rangeDays !== rangeDays };
 }
 
 /* the clock's window, in the vocabularies this sheet's two feeds accept */
@@ -93,253 +70,46 @@ function historyDays(range: ExplorerRange): GasHistoryDays {
   return d <= 7 ? 7 : d <= 30 ? 30 : d <= 90 ? 90 : 365;
 }
 
+/* complete UTC days only: today's partial day would read as a collapse */
+function completeDays(daily: GasDayPoint[] | null, days: number): GasDayPoint[] {
+  const today = new Date().toISOString().slice(0, 10);
+  return (daily ?? []).filter((d) => d.d < today).slice(-days);
+}
+
+function median(vals: number[]): number {
+  const s = [...vals].sort((a, b) => a - b);
+  return s.length ? s[Math.floor(s.length / 2)] : 0;
+}
+
 /* ---------------------------------------------------------------- */
 /* shared frame                                                      */
 /* ---------------------------------------------------------------- */
 
-/* the sheet chrome and instruments live in the shared metric-sheet module
-   (extracted for the staking sheets); this wrapper keeps the gas registry
-   lookup local so call sites stay one-liner */
-function MetricFrame({
-  base,
-  chainName,
-  metric,
-  children,
-}: {
-  base: string;
-  chainName: string;
-  metric: GasMetricKey;
-  children: React.ReactNode;
-}) {
+function MetricFrame({ base, chainName, metric, children }: { base: string; chainName: string; metric: GasMetricKey; children: React.ReactNode }) {
   const def = GAS_METRICS[metric];
   return (
-    <SheetFrame
-      backHref={`${base}/gas`}
-      backLabel={`Gas Market · ${chainName}`}
-      title={def.title}
-      blurb={def.blurb}
-      methodology={def.methodology}
-    >
+    <SheetFrame backHref={`${base}/gas`} backLabel={`Gas · ${chainName}`} title={def.title} blurb={def.blurb} methodology={def.methodology}>
       {children}
     </SheetFrame>
   );
 }
 
-/* spike premium: how far p95 rides above the median, per bucket — the
-   volatility a single fee line hides. Works on hourly and daily rows. */
-function SpikePremiumChart<T extends { p50: number; p95: number }>({
-  data,
-  unit,
-  labelFor,
-  xTick,
-}: {
-  data: T[];
-  unit: string;
-  labelFor: (d: T) => string;
-  xTick: (d: T) => string;
-}) {
-  const shaped = useMemo(
-    () =>
-      data.map((d) => ({
-        ...d,
-        premiumPct: d.p50 > 0 ? ((d.p95 - d.p50) / d.p50) * 100 : 0,
-        xLabel: xTick(d),
-      })),
-    [data, xTick],
-  );
-  return (
-    <ChartPlate name="spike-premium">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={shaped}>
-          <SheetGrid />
-          <XAxis dataKey="xLabel" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} />
-          <YAxis
-            domain={[0, "dataMax"]}
-            width={48}
-            tickLine={false}
-            axisLine={false}
-            tick={AXIS_TICK}
-            tickFormatter={(v: number) => `+${Math.round(v)}%`}
-          />
-          <RechartsTooltip
-            cursor={{ stroke: "rgba(161,161,170,0.35)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as T & { premiumPct: number };
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{labelFor(d)}</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    +{d.premiumPct.toFixed(0)}% spike premium
-                  </p>
-                  <p className="text-[10px] tabular-nums text-zinc-500">
-                    p95 {d.p95} vs median {d.p50} {unit}
-                  </p>
-                </TipPlate>
-              );
-            }}
-          />
-          <Bar dataKey="premiumPct" fill="#E6212F" fillOpacity={0.55} isAnimationActive={false} />
-          <Brush
-            dataKey="xLabel"
-            height={26}
-            travellerWidth={8}
-            stroke="#A2AFB2"
-            fill="rgba(162, 175, 178, 0.06)"
-            tickFormatter={() => ""}
-          >
-            <LineChart>
-              <Line type="monotone" dataKey="premiumPct" stroke="#E6212F" strokeWidth={1} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </Brush>
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartPlate>
-  );
-}
+const GRID = "grid grid-cols-1 items-start gap-x-6 gap-y-8 lg:grid-cols-2";
 
-/* daily gas volume over the window — demand in absolute units */
-function GasVolumeChart({ data }: { data: GasDayPoint[] }) {
-  return (
-    <ChartPlate name="gas-volume">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} barCategoryGap="18%">
-          <SheetGrid />
-          <XAxis dataKey="d" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dayLabel} />
-          <YAxis
-            domain={[0, "dataMax"]}
-            width={48}
-            tickLine={false}
-            axisLine={false}
-            tick={AXIS_TICK}
-            tickFormatter={(v: number) => fmtGas(v)}
-          />
-          <RechartsTooltip
-            cursor={{ fill: "rgba(161,161,170,0.08)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as GasDayPoint;
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{d.d}</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {fmtGas(d.gas)} gas reserved
-                  </p>
-                  <p className="text-[10px] tabular-nums text-zinc-500">
-                    {d.blocks.toLocaleString("en-US")} blocks
-                  </p>
-                </TipPlate>
-              );
-            }}
-          />
-          <Bar dataKey="gas" fill="#A2AFB2" isAnimationActive={false} />
-          <Brush
-            dataKey="d"
-            height={26}
-            travellerWidth={8}
-            stroke="#A2AFB2"
-            fill="rgba(162, 175, 178, 0.06)"
-            tickFormatter={() => ""}
-          >
-            <LineChart>
-              <Line type="monotone" dataKey="gas" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </Brush>
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartPlate>
-  );
-}
-
-/* median fee per weekday, the week grid's rows collapsed to seven bars */
-function DowProfileChart({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
-  const data = useMemo(() => {
-    return DOW_LABELS.map((label, i) => {
-      const vals = cells
-        .filter((c) => c.dow === i + 1 && c.p50 > 0)
-        .map((c) => c.p50)
-        .sort((a, b) => a - b);
-      return { label, p50: vals.length ? vals[Math.floor(vals.length / 2)] : 0 };
-    });
-  }, [cells]);
-  return (
-    <ChartPlate name="weekday-profile">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} barCategoryGap="24%">
-          <SheetGrid />
-          <XAxis dataKey="label" tickLine={false} axisLine={false} tick={AXIS_TICK} />
-          <YAxis domain={[0, "dataMax"]} width={48} tickLine={false} axisLine={false} tick={AXIS_TICK} />
-          <RechartsTooltip
-            cursor={{ fill: "rgba(161,161,170,0.08)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { label: string; p50: number };
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{d.label} · all hours</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.p50} {unit} median
-                  </p>
-                </TipPlate>
-              );
-            }}
-          />
-          <Bar dataKey="p50" fill="#A2AFB2" isAnimationActive={false} />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartPlate>
-  );
-}
-
-/* the actionable extract of the heatmap: the five cheapest and five
-   priciest hour-of-week cells, as rows someone can schedule against */
-function BestHoursList({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
-  const { cheapest, priciest, weekMedian } = useMemo(() => {
-    const live = cells.filter((c) => c.p50 > 0);
-    const sorted = [...live].sort((a, b) => a.p50 - b.p50);
-    const medians = live.map((c) => c.p50).sort((a, b) => a - b);
+/** how far p95 rides above the median, per bucket: the volatility one fee line hides */
+function spikeCols(rows: (GasDayPoint | GasHourPoint)[]): Col[] {
+  return rows.map((d) => {
+    const hourly = "t" in d;
+    const at = hourly ? d.t : d.d;
     return {
-      cheapest: sorted.slice(0, 5),
-      priciest: sorted.slice(-5).reverse(),
-      weekMedian: medians[Math.floor(medians.length / 2)] ?? 0,
-    };
-  }, [cells]);
-
-  const row = (c: GasMarket["heatmap"][number]) => {
-    const vsPct = weekMedian > 0 ? ((c.p50 - weekMedian) / weekMedian) * 100 : 0;
-    return (
-      <div
-        key={`${c.dow}-${c.hour}`}
-        className="flex items-center justify-between gap-4 px-5 py-2.5 md:px-6"
-      >
-        <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">
-          {DOW_LABELS[c.dow - 1]} {String(c.hour).padStart(2, "0")}:00 UTC
-        </span>
-        <span className="flex items-center gap-3 font-mono text-[12px] tabular-nums">
-          <span className="text-zinc-500 dark:text-zinc-400">
-            {c.p50} {unit}
-          </span>
-          <span className={vsPct > 0 ? "text-[#E6212F]" : "text-zinc-400 dark:text-zinc-500"}>
-            {vsPct > 0 ? "+" : ""}
-            {vsPct.toFixed(0)}%
-          </span>
-        </span>
-      </div>
-    );
-  };
-
-  return (
-    <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-      <Board className="border">
-        <BoardHeader label="Cheapest Hours · vs week median" />
-        {cheapest.map(row)}
-      </Board>
-      <Board className="border">
-        <BoardHeader label="Priciest Hours · vs week median" />
-        {priciest.map(row)}
-      </Board>
-    </div>
-  );
+      key: at,
+      long: hourly ? hourLong(at) : dayLong(at),
+      tick: hourly ? `${dayShort(at)} ${at.slice(11, 13)}:00` : dayShort(at),
+      v: d.p50 > 0 ? ((d.p95 - d.p50) / d.p50) * 100 : 0,
+      p50: d.p50,
+      p95: d.p95,
+    } as Col & { p50: number; p95: number };
+  });
 }
 
 /* ---------------------------------------------------------------- */
@@ -351,185 +121,103 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
   const unit = nanoUnit(catalog.networkToken?.symbol);
   const range = useExplorerTimeRange();
   const fee = useFeeHistory(catalog.rpcUrl);
+  const { daily, missing } = useGasHistory(evmChainId, historyDays(range));
+  const { market, missing: marketMissing, stale } = useGasMarket(evmChainId, Math.min(RANGE_DAYS[range], 90));
 
-  const days = historyDays(range);
-  const { daily, missing } = useGasHistory(evmChainId, days);
-  // the market payload feeds the hourly series (range-independent) and
-  // the seasonality teaser, which follows the clock like everything else
-  const { market, missing: marketMissing } = useGasMarket(evmChainId, Math.min(RANGE_DAYS[range], 90));
-
-  const windowed = useMemo(() => (daily ?? []).slice(-RANGE_DAYS[range]), [daily, range]);
   const isHourly = range === "day";
-  const windowLabel = isHourly
-    ? "last 48 hours"
-    : range === "all"
-      ? `${RANGE_LABEL.year} · longest window`
-      : RANGE_LABEL[range];
+  const windowed = useMemo(() => completeDays(daily, RANGE_DAYS[range]), [daily, range]);
+  const main: (GasDayPoint | GasHourPoint)[] = isHourly ? (market?.hourly ?? []) : windowed;
+  // the other time scale beside the one the clock picked
+  const other: (GasDayPoint | GasHourPoint)[] = isHourly ? completeDays(daily, 7) : (market?.hourly ?? []);
+  const windowLabel = isHourly ? "last 48 hours" : range === "all" ? `${RANGE_LABEL.year}, longest window` : RANGE_LABEL[range];
 
-  // the window's story in three numbers: typical, spike, floor
   const stats = useMemo(() => {
-    const src = windowed;
-    if (!src.length) return null;
-    const medians = src.map((p) => p.p50).sort((a, b) => a - b);
-    const typical = medians[Math.floor(medians.length / 2)];
-    let high = src[0];
-    let low = src[0];
-    for (const p of src) {
+    if (!main.length) return null;
+    let high = main[0];
+    let low = main[0];
+    for (const p of main) {
       if (p.p95 > high.p95) high = p;
       if (p.p50 < low.p50) low = p;
     }
-    return { typical, high, low };
-  }, [windowed]);
+    const when = (p: GasDayPoint | GasHourPoint) => ("t" in p ? hourLong(p.t) : dayLabel(p.d));
+    return { typical: median(main.map((p) => p.p50)), high, low, when };
+  }, [main]);
+
+  const spark = main.map((p) => p.p50);
+  const premium = spikeCols(main);
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="base-fee">
-      <Board divide={false} className="border">
-        <BoardHeader label={`The Fee · ${windowLabel}`} />
-        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-          <GasStat label="Right Now" live>
-            {fee.baseFeeWei !== null ? (
-              <>
-                {fmtNano(fee.baseFeeWei)}
-                <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat label="Typical · median of medians">
-            {stats ? (
-              <>
-                {stats.typical}
-                <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat label="Spike · highest p95" sub={stats ? dayLabel(stats.high.d) : undefined}>
-            {stats ? (
-              <>
-                {stats.high.p95}
-                <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat label="Floor · lowest median" sub={stats ? dayLabel(stats.low.d) : undefined}>
-            {stats ? (
-              <>
-                {stats.low.p50}
-                <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-        </div>
-      </Board>
+      <ReadoutRow cols={4}>
+        <Readout label="Right Now" live value={fee.baseFeeWei !== null ? fmtNano(fee.baseFeeWei) : null} unit={unit} sub="the next block's base fee" />
+        <Readout label="Typical" value={stats ? fmtFee(stats.typical) : null} unit={unit} sub={`median of ${isHourly ? "hourly" : "daily"} medians`} spark={spark} />
+        <Readout label="Spike" value={stats ? fmtFee(stats.high.p95) : null} unit={unit} sub={stats ? `highest p95 · ${stats.when(stats.high)}` : undefined} />
+        <Readout label="Floor" value={stats ? fmtFee(stats.low.p50) : null} unit={unit} sub={stats ? `lowest median · ${stats.when(stats.low)}` : undefined} />
+      </ReadoutRow>
 
-      <ChartBoard label={`Base Fee · ${windowLabel}`} action={<BandKey unit={unit} />}>
-        <ChartPlate name="base-fee">
-          {isHourly ? (
-            market?.hourly.length ? (
-              <FeeBandChart
-                data={market.hourly}
-                unit={unit}
-                labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
-                detailed
-                xTick={(d) => d.t.slice(11)}
-              />
-            ) : (
-              <HistoryEmpty missing={marketMissing} />
-            )
-          ) : windowed.length ? (
-            <FeeBandChart
-              data={windowed}
-              unit={unit}
-              labelFor={(d) => d.d}
-              detailed
-              xTick={(d) => dayLabel(d.d)}
-            />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </ChartPlate>
-      </ChartBoard>
-
-      {/* the complementary time scale beside the volatility it smooths over */}
-      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard
-          label={isHourly ? "Base Fee · last 7 days, daily" : "Base Fee · last 48 hours, hourly"}
-          action={<BandKey unit={unit} />}
-        >
-          <ChartPlate name="base-fee">
-            {isHourly ? (
-              daily?.length ? (
-                <FeeBandChart
-                  data={daily}
-                  unit={unit}
-                  labelFor={(d) => d.d}
-                  detailed
-                  xTick={(d) => dayLabel(d.d)}
-                />
-              ) : (
-                <HistoryEmpty missing={missing} />
-              )
-            ) : market?.hourly.length ? (
-              <FeeBandChart
-                data={market.hourly}
-                unit={unit}
-                labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
-                detailed
-                xTick={(d) => d.t.slice(11)}
-              />
-            ) : (
-              <HistoryEmpty missing={marketMissing} />
-            )}
-          </ChartPlate>
-        </ChartBoard>
-
-        <ChartBoard label={`Spike Premium · p95 over median, ${windowLabel}`}>
-          {isHourly ? (
-            market?.hourly.length ? (
-              <SpikePremiumChart
-                data={market.hourly}
-                unit={unit}
-                labelFor={(d) => d.t.replace("T", " · ") + " UTC"}
-                xTick={(d) => d.t.slice(11)}
-              />
-            ) : (
-              <HistoryEmpty missing={marketMissing} />
-            )
-          ) : windowed.length ? (
-            <SpikePremiumChart
-              data={windowed}
-              unit={unit}
-              labelFor={(d) => d.d}
-              xTick={(d) => dayLabel(d.d)}
-            />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </ChartBoard>
-      </div>
-
-      {/* the fee's weekly rhythm, inline — the card doors to the full sheet */}
-      {market && market.heatmap.length > 0 && (
-        <ChartBoard
-          label="Fee Seasonality · median by hour of week"
-          href={`${base}/gas/fee-seasonality`}
-        >
-          <FeeHeatmap cells={market.heatmap} unit={unit} />
-        </ChartBoard>
+      {main.length ? (
+        <TraceBlock
+          label="Base Fee"
+          note={windowLabel}
+          stale={isHourly && stale}
+          figure={stats ? fmtFee(stats.typical) : "—"}
+          unit={unit}
+          sub="typical · the band holds the middle half of blocks"
+          legend={<BandKey unit={unit} />}
+          rows={feeTraceRows(main)}
+          band
+          height={280}
+          fmt={fmtFee}
+          tip={(r) => <FeeTip r={r} unit={unit} />}
+        />
+      ) : (
+        <HistoryEmpty missing={isHourly ? marketMissing : missing} />
       )}
 
-      <SiblingDoor
-        href={`${base}/gas/utilization`}
-        label="Utilization"
-        sub="the demand these prices respond to, block by block"
-      />
+      <div className={GRID}>
+        {other.length ? (
+          <TraceBlock
+            label="Base Fee"
+            note={isHourly ? "last 7 days, daily" : "last 48 hours, hourly"}
+            legend={<BandKey unit={unit} />}
+            rows={feeTraceRows(other)}
+            band
+            fmt={fmtFee}
+            tip={(r) => <FeeTip r={r} unit={unit} />}
+          />
+        ) : (
+          <HistoryEmpty missing={isHourly ? missing : marketMissing} />
+        )}
+        {premium.length ? (
+          <ColumnsBlock
+            label="Spike Premium"
+            note={windowLabel}
+            figure={`+${median(premium.map((c) => c.v)).toFixed(0)}`}
+            unit="%"
+            sub="typical p95 over the median"
+            cols={premium}
+            fmt={(v) => `+${v.toFixed(0)}%`}
+            tip={(c) => {
+              const d = c as Col & { p50: number; p95: number };
+              return (
+                <>
+                  <p className="font-mono text-[10px] text-zinc-500">{c.long}</p>
+                  <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">+{c.v.toFixed(0)}% spike premium</p>
+                  <p className="font-mono text-[10px] tabular-nums text-zinc-500">
+                    p95 {fmtFee(d.p95)} vs median {fmtFee(d.p50)} {unit}
+                  </p>
+                </>
+              );
+            }}
+          />
+        ) : (
+          <HistoryEmpty missing={isHourly ? marketMissing : missing} />
+        )}
+      </div>
+
+      {market && market.heatmap.length > 0 && <WeekBlock cells={market.heatmap} unit={unit} href={`${base}/gas/fee-seasonality`} stale={stale} />}
+
+      <SiblingDoor href={`${base}/gas/utilization`} label="Utilization" sub="the demand these prices respond to, block by block" />
     </MetricFrame>
   );
 }
@@ -538,95 +226,38 @@ function BaseFeeSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
 /* Utilization                                                       */
 /* ---------------------------------------------------------------- */
 
-function UtilTrendChart({ data }: { data: GasDayPoint[] }) {
+/** the live window's blocks as vessels, the latest in red */
+function LiveBlocks({ utilization, height }: { utilization: number[]; height?: number }) {
+  const pct = utilization.map((u) => u * 100);
+  const avg = pct.length ? pct.reduce((s, v) => s + v, 0) / pct.length : 0;
+  const n = pct.length;
   return (
-    <ChartPlate name="daily-utilization">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <SheetGrid />
-          <XAxis dataKey="d" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS_TICK} tickFormatter={dayLabel} />
-          <YAxis
-            domain={[0, "dataMax"]}
-            width={40}
-            tickLine={false}
-            axisLine={false}
-            tick={AXIS_TICK}
-            tickFormatter={(v: number) => `${Math.round(v)}%`}
-          />
-          <YAxis yAxisId="gas" hide domain={[0, "dataMax"]} />
-          <RechartsTooltip
-            cursor={{ stroke: "rgba(161,161,170,0.35)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as GasDayPoint;
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">{d.d}</p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.utilPct.toFixed(1)}% utilized
-                  </p>
-                  <p className="text-[10px] tabular-nums text-zinc-500">
-                    {fmtGas(d.gas)} gas reserved · {d.blocks.toLocaleString("en-US")} blocks
-                  </p>
-                </TipPlate>
-              );
-            }}
-          />
-          {/* gas volume rides under the utilization line — same demand, two units */}
-          <Bar yAxisId="gas" dataKey="gas" fill="currentColor" fillOpacity={0.1} isAnimationActive={false} />
-          <Line type="monotone" dataKey="utilPct" stroke="currentColor" strokeWidth={2} dot={false} isAnimationActive={false} />
-          <Brush
-            dataKey="d"
-            height={26}
-            travellerWidth={8}
-            stroke="#A2AFB2"
-            fill="rgba(162, 175, 178, 0.06)"
-            tickFormatter={() => ""}
-          >
-            <LineChart>
-              <Line type="monotone" dataKey="utilPct" stroke="#A2AFB2" strokeWidth={1} dot={false} isAnimationActive={false} />
-            </LineChart>
-          </Brush>
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartPlate>
-  );
-}
-
-function LiveUtilBars({ utilization }: { utilization: number[] }) {
-  const data = utilization.map((u, i) => ({ i, pct: u * 100 }));
-  return (
-    <ChartPlate name="live-utilization">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data} barCategoryGap="18%">
-          <SheetGrid />
-          <YAxis
-            domain={[0, 100]}
-            width={40}
-            tickLine={false}
-            axisLine={false}
-            tick={AXIS_TICK}
-            tickFormatter={(v: number) => `${v}%`}
-          />
-          <RechartsTooltip
-            cursor={{ fill: "rgba(161,161,170,0.08)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { i: number; pct: number };
-              return (
-                <TipPlate>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.pct.toFixed(1)}% full
-                  </p>
-                  <p className="text-[10px] text-zinc-500">{data.length - d.i} blocks ago</p>
-                </TipPlate>
-              );
-            }}
-          />
-          <Bar dataKey="pct" fill="currentColor" fillOpacity={0.55} isAnimationActive={false} />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartPlate>
+    <ColumnsBlock
+      label="Block by Block"
+      note={`last ${FEE_HISTORY_BLOCKS} blocks, live`}
+      figure={avg.toFixed(1)}
+      unit="%"
+      sub={`average · the fullest reached ${Math.max(...pct).toFixed(0)}%`}
+      cols={pct.map((v, i) => ({
+        key: String(i),
+        long: i === n - 1 ? "the latest block" : `${n - 1 - i} blocks ago`,
+        tick: i === 0 ? `${n} blocks ago` : i === n - 1 ? "latest" : "",
+        v,
+      }))}
+      ticks={[0, n - 1]}
+      max={100}
+      vessel
+      live
+      height={height}
+      avg={{ v: avg, label: `avg ${avg.toFixed(0)}%` }}
+      fmt={(v) => `${v.toFixed(0)}%`}
+      tip={(c) => (
+        <>
+          <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{c.v.toFixed(1)}% full</p>
+          <p className="font-mono text-[10px] text-zinc-500">{c.long}</p>
+        </>
+      )}
+    />
   );
 }
 
@@ -634,118 +265,104 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
   const evmChainId = Number(catalog.chainId);
   const range = useExplorerTimeRange();
   const fee = useFeeHistory(catalog.rpcUrl);
+  const { daily, missing } = useGasHistory(evmChainId, historyDays(range));
+  // the fullness histogram rides the market's demand window, which caps at 90d
+  const { market, missing: marketMissing, stale } = useGasMarket(evmChainId, Math.min(RANGE_DAYS[range], 90));
 
-  const days = historyDays(range);
-  const { daily, missing } = useGasHistory(evmChainId, days);
-  // the fullness histogram is computed over the market's demand window,
-  // which caps at 90d — the year view reads the quarter's distribution
-  const histDays = Math.min(RANGE_DAYS[range], 90);
-  const { market, missing: marketMissing } = useGasMarket(evmChainId, histDays);
+  // a one-point daily chart says nothing: the day view reads a week, labeled
+  const trend = useMemo(() => completeDays(daily, Math.max(7, RANGE_DAYS[range])), [daily, range]);
+  const trendNote = range === "day" ? RANGE_LABEL.week : RANGE_LABEL[range];
+  const histNote = RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter}, longest computed` : RANGE_LABEL[range];
 
-  const windowed = useMemo(() => (daily ?? []).slice(-RANGE_DAYS[range]), [daily, range]);
-  const windowLabel = RANGE_LABEL[range];
-  const histLabel = RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter} · longest computed` : windowLabel;
-  // a one-point daily chart says nothing: the day view keeps its 7-day
-  // fetch as the trend, labeled as such
-  const trendData = range === "day" ? (daily ?? []) : windowed;
-  const trendLabel = range === "day" ? RANGE_LABEL.week : windowLabel;
-
-  const liveUtil = fee.utilization.length
-    ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100
-    : null;
-
+  const liveUtil = fee.utilization.length ? (fee.utilization.reduce((s, u) => s + u, 0) / fee.utilization.length) * 100 : null;
   const stats = useMemo(() => {
-    if (!windowed.length) return null;
-    const avg = windowed.reduce((s, p) => s + p.utilPct, 0) / windowed.length;
-    let busiest = windowed[0];
-    for (const p of windowed) if (p.utilPct > busiest.utilPct) busiest = p;
-    const totalGas = windowed.reduce((s, p) => s + p.gas, 0);
-    return { avg, busiest, totalGas };
-  }, [windowed]);
+    if (!trend.length) return null;
+    const avg = trend.reduce((s, p) => s + p.utilPct, 0) / trend.length;
+    let busiest = trend[0];
+    for (const p of trend) if (p.utilPct > busiest.utilPct) busiest = p;
+    return { avg, busiest, totalGas: trend.reduce((s, p) => s + p.gas, 0) };
+  }, [trend]);
+
+  const hist = market?.histogram ?? [];
+  const histTotal = hist.reduce((s, b) => s + b.blocks, 0);
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="utilization">
-      <Board divide={false} className="border">
-        <BoardHeader label={`Blockspace · ${windowLabel}`} />
-        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-          <GasStat label="Right Now" live sub={`last ${FEE_HISTORY_BLOCKS} blocks`}>
-            {liveUtil !== null ? (
+      <ReadoutRow cols={4}>
+        <Readout
+          label="Right Now"
+          live
+          value={liveUtil !== null ? liveUtil.toFixed(1) : null}
+          unit="%"
+          sub={`last ${FEE_HISTORY_BLOCKS} blocks`}
+          spark={fee.utilization.length ? fee.utilization.map((u) => u * 100) : undefined}
+        />
+        <Readout label="Average" value={stats ? stats.avg.toFixed(1) : null} unit="%" sub={trendNote} spark={trend.map((p) => p.utilPct)} />
+        <Readout label="Busiest Day" value={stats ? stats.busiest.utilPct.toFixed(1) : null} unit="%" sub={stats ? dayLabel(stats.busiest.d) : undefined} />
+        <Readout label="Gas Reserved" value={stats ? fmtGas(stats.totalGas) : null} sub="the sum of tx gas limits since Helicon" spark={trend.map((p) => p.gas)} />
+      </ReadoutRow>
+
+      <div className={GRID}>
+        {fee.utilization.length ? <LiveBlocks utilization={fee.utilization} height={200} /> : <HistoryEmpty missing={false} />}
+        {trend.length ? (
+          <TraceBlock
+            label="Daily Utilization"
+            note={trendNote}
+            figure={stats ? stats.avg.toFixed(1) : "—"}
+            unit="%"
+            sub="average block, gas against the limit"
+            rows={trend.map((d) => ({ key: d.d, long: dayLong(d.d), tick: dayShort(d.d), mid: d.utilPct }))}
+            height={200}
+            fmt={(v) => `${v.toFixed(1)}%`}
+            tip={(r) => {
+              const d = trend.find((p) => p.d === r.key)!;
+              return (
+                <>
+                  <p className="font-mono text-[10px] text-zinc-500">{r.long}</p>
+                  <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{d.utilPct.toFixed(1)}% utilized</p>
+                  <p className="font-mono text-[10px] tabular-nums text-zinc-500">
+                    {fmtGas(d.gas)} gas reserved · {d.blocks.toLocaleString("en-US")} blocks
+                  </p>
+                </>
+              );
+            }}
+          />
+        ) : (
+          <HistoryEmpty missing={missing} />
+        )}
+      </div>
+
+      <div className={GRID}>
+        {hist.length ? (
+          <ColumnsBlock
+            label="Fullness Distribution"
+            note={histNote}
+            stale={stale}
+            figure={histTotal.toLocaleString("en-US")}
+            unit="blocks"
+            sub="counted by how full they ran"
+            cols={hist.map((b) => ({ key: b.bucket, long: `${b.bucket} full`, tick: b.bucket, v: b.blocks }))}
+            ticks={hist.map((_, i) => i)}
+            fmt={(v) => v.toLocaleString("en-US")}
+            tip={(c) => (
               <>
-                {liveUtil.toFixed(1)}
-                <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
+                <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">{c.long}</p>
+                <p className="font-mono text-[10px] tabular-nums text-zinc-500">
+                  {c.v.toLocaleString("en-US")} blocks · {histTotal ? ((c.v / histTotal) * 100).toFixed(1) : 0}%
+                </p>
               </>
-            ) : (
-              <StatDash />
             )}
-          </GasStat>
-          <GasStat label="Average">
-            {stats ? (
-              <>
-                {stats.avg.toFixed(1)}
-                <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat label="Busiest Day" sub={stats ? dayLabel(stats.busiest.d) : undefined}>
-            {stats ? (
-              <>
-                {stats.busiest.utilPct.toFixed(1)}
-                <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          {/* block headers: since Helicon the gas reserved (sum of tx gas limits) */}
-          <GasStat label="Gas Reserved" sub="sum of tx gas limits since Helicon">{stats ? fmtGas(stats.totalGas) : <StatDash />}</GasStat>
+          />
+        ) : (
+          <HistoryEmpty missing={marketMissing} />
+        )}
+        <div className="flex flex-col gap-3">
+          {trend.length ? <GasReservedBlock rows={trend} note={`${trendNote}, daily`} /> : <HistoryEmpty missing={missing} />}
+          <HeliconNote />
         </div>
-      </Board>
-
-      {/* the live pulse beside its longer record */}
-      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label={`Block by Block · last ${FEE_HISTORY_BLOCKS} blocks, live`}>
-          {fee.utilization.length ? (
-            <LiveUtilBars utilization={fee.utilization} />
-          ) : (
-            <HistoryEmpty missing={false} />
-          )}
-        </ChartBoard>
-
-        <ChartBoard label={`Daily Utilization · ${trendLabel}`}>
-          {trendData.length ? (
-            <UtilTrendChart data={trendData} />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </ChartBoard>
       </div>
 
-      {/* the shape of demand, then its absolute size */}
-      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label={`Block Fullness Distribution · ${histLabel}`}>
-          {market?.histogram.length ? (
-            <UtilHistogram histogram={market.histogram} />
-          ) : (
-            <HistoryEmpty missing={marketMissing} />
-          )}
-        </ChartBoard>
-
-        <ChartBoard label={`Gas Volume · ${trendLabel}, daily`}>
-          {trendData.length ? (
-            <GasVolumeChart data={trendData} />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </ChartBoard>
-      </div>
-
-      <SiblingDoor
-        href={`${base}/gas/base-fee`}
-        label="Base Fee"
-        sub="the price this demand sets, percentile by percentile"
-      />
+      <SiblingDoor href={`${base}/gas/base-fee`} label="Base Fee" sub="the price this demand sets, percentile by percentile" />
     </MetricFrame>
   );
 }
@@ -754,269 +371,126 @@ function UtilizationSheet({ catalog, base }: { catalog: L1Chain; base: string })
 /* Fee Seasonality                                                   */
 /* ---------------------------------------------------------------- */
 
-/* the detail heatmap: same 168 cells as the market sheet's, but each one
-   answers on hover — a reader line pins the cell's story under the grid
-   instead of a floating tooltip, so comparisons don't chase the cursor */
-function HeatmapReader({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
-  const [hovered, setHovered] = useState<{ dow: number; hour: number } | null>(null);
-  const byKey = useMemo(() => new Map(cells.map((c) => [`${c.dow}-${c.hour}`, c.p50])), [cells]);
-  const values = cells.map((c) => c.p50).filter((v) => v > 0);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = Math.max(max - min, 1e-9);
-  const sorted = [...values].sort((a, b) => a - b);
-  const weekMedian = sorted[Math.floor(sorted.length / 2)] ?? 0;
+/** the week collapsed one way: a median per hour of day, or per weekday */
+function profile(cells: HeatCell[], by: "hour" | "dow"): Col[] {
+  const keys = by === "hour" ? Array.from({ length: 24 }, (_, h) => h) : DOW.map((_, i) => i + 1);
+  return keys.map((k) => {
+    const v = median(cells.filter((c) => (by === "hour" ? c.hour === k : c.dow === k) && c.p50 > 0).map((c) => c.p50));
+    const name = by === "hour" ? `${String(k).padStart(2, "0")}:00` : DOW[k - 1];
+    return { key: String(k), long: by === "hour" ? `${name} UTC · all days` : `${name} · all hours`, tick: name, v };
+  });
+}
 
-  const reader = (() => {
-    if (!hovered) return null;
-    const v = byKey.get(`${hovered.dow}-${hovered.hour}`);
-    if (v === undefined) return null;
-    const vsPct = weekMedian > 0 ? ((v - weekMedian) / weekMedian) * 100 : 0;
-    return {
-      label: `${DOW_LABELS[hovered.dow - 1]} ${String(hovered.hour).padStart(2, "0")}:00 UTC`,
-      value: v,
-      vsPct,
-    };
-  })();
-
+/** the hours someone schedules against, cheapest or priciest first */
+function HourList({ label, cells, unit, weekMedian }: { label: string; cells: HeatCell[]; unit: string; weekMedian: number }) {
   return (
-    <div className="flex flex-col gap-3" onMouseLeave={() => setHovered(null)}>
-      <div className="grid grid-cols-[2.5rem_repeat(24,minmax(0,1fr))] gap-px">
-        <span />
-        {Array.from({ length: 24 }, (_, h) => (
-          <span
-            key={`h-${h}`}
-            className="pb-1 text-center font-mono text-[9px] tabular-nums text-zinc-400 dark:text-zinc-500"
-          >
-            {h % 6 === 0 ? h : ""}
-          </span>
-        ))}
-        {DOW_LABELS.map((label, i) => {
-          const dow = i + 1;
+    <Instrument label={label} note="vs the week's median hour" bodyClass="pb-2">
+      <div className="divide-y divide-zinc-100 dark:divide-zinc-900">
+        {cells.map((c) => {
+          const vs = weekMedian > 0 ? ((c.p50 - weekMedian) / weekMedian) * 100 : 0;
           return (
-            <HeatRow key={label} label={label}>
-              {Array.from({ length: 24 }, (_, h) => {
-                const v = byKey.get(`${dow}-${h}`);
-                const t = v === undefined ? null : (v - min) / span;
-                const active = hovered?.dow === dow && hovered?.hour === h;
-                return (
-                  <span
-                    key={h}
-                    onMouseEnter={() => setHovered({ dow, hour: h })}
-                    className="aspect-square min-h-4 cursor-crosshair"
-                    style={{
-                      backgroundColor:
-                        t === null
-                          ? "rgba(161,161,170,0.08)"
-                          : `rgba(230, 33, 47, ${(0.05 + 0.75 * t).toFixed(3)})`,
-                      outline: active ? "1px solid currentColor" : undefined,
-                      outlineOffset: active ? "-1px" : undefined,
-                    }}
-                  />
-                );
-              })}
-            </HeatRow>
+            <div key={`${c.dow}-${c.hour}`} className="flex items-center justify-between gap-4 px-5 py-2.5 md:px-6">
+              <span className="font-mono text-[12px] tabular-nums text-zinc-900 dark:text-zinc-100">{cellName(c)}</span>
+              <span className="flex items-center gap-3 font-mono text-[12px] tabular-nums">
+                <span className="text-zinc-500 dark:text-zinc-400">
+                  {fmtFee(c.p50)} {unit}
+                </span>
+                <span className={vs > 0 ? "w-12 text-right text-[#E6212F]" : "w-12 text-right text-zinc-400 dark:text-zinc-500"}>
+                  {vs > 0 ? "+" : ""}
+                  {vs.toFixed(0)}%
+                </span>
+              </span>
+            </div>
           );
         })}
       </div>
-      {/* the reader line: pinned, so two cells can be compared without memory */}
-      <div className="flex min-h-5 items-center justify-between font-mono text-[11px] tabular-nums">
-        {reader ? (
-          <>
-            <span className="text-zinc-900 dark:text-zinc-100">
-              {reader.label} · median {reader.value} {unit}
-            </span>
-            <span className={reader.vsPct > 0 ? "text-[#E6212F]" : "text-zinc-500 dark:text-zinc-400"}>
-              {reader.vsPct > 0 ? "+" : ""}
-              {reader.vsPct.toFixed(0)}% vs week median
-            </span>
-          </>
-        ) : (
-          <span className="text-zinc-400 dark:text-zinc-500">hover a cell · hours UTC</span>
-        )}
-      </div>
-      <div className="flex items-center justify-end font-mono text-[10px] tabular-nums text-zinc-400 dark:text-zinc-500">
-        <span className="flex items-center gap-2">
-          cheap {min} {unit}
-          <span
-            className="h-2 w-24"
-            style={{
-              background: "linear-gradient(to right, rgba(230,33,47,0.05), rgba(230,33,47,0.8))",
-            }}
-          />
-          {max} {unit} pricey
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function HeatRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <>
-      <span className="flex items-center pr-2 font-mono text-[9px] uppercase text-zinc-400 dark:text-zinc-500">
-        {label}
-      </span>
-      {children}
-    </>
-  );
-}
-
-/* median fee by hour of day, all seven days collapsed — the daily rhythm
-   the week grid hints at, as one line */
-function HourProfileChart({ cells, unit }: { cells: GasMarket["heatmap"]; unit: string }) {
-  const data = useMemo(() => {
-    return Array.from({ length: 24 }, (_, h) => {
-      const vals = cells
-        .filter((c) => c.hour === h && c.p50 > 0)
-        .map((c) => c.p50)
-        .sort((a, b) => a - b);
-      return { h, p50: vals.length ? vals[Math.floor(vals.length / 2)] : 0 };
-    });
-  }, [cells]);
-  return (
-    <ChartPlate name="hour-profile">
-      <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart data={data}>
-          <SheetGrid />
-          <XAxis dataKey="h" tickLine={false} axisLine={false} interval={5} tick={AXIS_TICK} />
-          <YAxis domain={[0, "dataMax"]} width={48} tickLine={false} axisLine={false} tick={AXIS_TICK} />
-          <RechartsTooltip
-            cursor={{ stroke: "rgba(161,161,170,0.35)" }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.[0]) return null;
-              const d = payload[0].payload as { h: number; p50: number };
-              return (
-                <TipPlate>
-                  <p className="text-[10px] text-zinc-500">
-                    {String(d.h).padStart(2, "0")}:00 UTC · all days
-                  </p>
-                  <p className="text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {d.p50} {unit} median
-                  </p>
-                </TipPlate>
-              );
-            }}
-          />
-          <Line type="monotone" dataKey="p50" stroke="currentColor" strokeWidth={2} dot={false} isAnimationActive={false} />
-        </ComposedChart>
-      </ResponsiveContainer>
-    </ChartPlate>
+    </Instrument>
   );
 }
 
 function SeasonalitySheet({ catalog, base }: { catalog: L1Chain; base: string }) {
   const evmChainId = Number(catalog.chainId);
   const unit = nanoUnit(catalog.networkToken?.symbol);
-  // on the page clock like every sheet. The heatmap needs a full week
-  // for its 168 cells and the market fetch caps at a quarter, so the
-  // effective window clamps both ways and the label says so.
+  // the heatmap needs a full week for its 168 cells and the market fetch
+  // caps at a quarter: the window clamps both ways and the label says so
   const range = useExplorerTimeRange();
-  const rangeDays = Math.min(RANGE_DAYS[range], 90);
-  const { market, missing } = useGasMarket(evmChainId, rangeDays);
-  const heatLabel =
-    RANGE_DAYS[range] < 7
-      ? `${RANGE_LABEL.week} · shortest weekly window`
-      : RANGE_DAYS[range] > 90
-        ? `${RANGE_LABEL.quarter} · longest computed`
-        : RANGE_LABEL[range];
+  const { market, missing, stale } = useGasMarket(evmChainId, Math.min(RANGE_DAYS[range], 90));
+  const note = RANGE_DAYS[range] < 7 ? `${RANGE_LABEL.week}, shortest weekly window` : RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter}, longest computed` : RANGE_LABEL[range];
 
+  const cells = useMemo(() => (market?.heatmap ?? []).filter((c) => c.p50 > 0), [market]);
   const stats = useMemo(() => {
-    const cells = (market?.heatmap ?? []).filter((c) => c.p50 > 0);
     if (!cells.length) return null;
-    let cheapest = cells[0];
-    let priciest = cells[0];
-    for (const c of cells) {
-      if (c.p50 < cheapest.p50) cheapest = c;
-      if (c.p50 > priciest.p50) priciest = c;
-    }
-    const median = (vals: number[]) => {
-      const s = [...vals].sort((a, b) => a - b);
-      return s.length ? s[Math.floor(s.length / 2)] : 0;
-    };
+    const sorted = [...cells].sort((a, b) => a.p50 - b.p50);
     const weekday = median(cells.filter((c) => c.dow <= 5).map((c) => c.p50));
     const weekend = median(cells.filter((c) => c.dow >= 6).map((c) => c.p50));
-    const weekendVsWeekday = weekday > 0 ? ((weekend - weekday) / weekday) * 100 : 0;
-    return { cheapest, priciest, weekendVsWeekday };
-  }, [market]);
+    return {
+      cheapest: sorted[0],
+      priciest: sorted[sorted.length - 1],
+      weekMedian: median(cells.map((c) => c.p50)),
+      weekendVsWeekday: weekday > 0 ? ((weekend - weekday) / weekday) * 100 : 0,
+      low5: sorted.slice(0, 5),
+      high5: sorted.slice(-5).reverse(),
+    };
+  }, [cells]);
 
-  const cellLabel = (c: { dow: number; hour: number }) =>
-    `${DOW_LABELS[c.dow - 1]} ${String(c.hour).padStart(2, "0")}:00`;
+  const hours = profile(cells, "hour");
+  const days = profile(cells, "dow");
+  const profileTip = (c: Col) => (
+    <>
+      <p className="font-mono text-[10px] text-zinc-500">{c.long}</p>
+      <p className="font-mono text-[11px] font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+        {fmtFee(c.v)} {unit} median
+      </p>
+    </>
+  );
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="fee-seasonality">
-      <Board divide={false} className="border">
-        <BoardHeader label={`The Weekly Rhythm · ${heatLabel}`} />
-        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-3 lg:divide-y-0 dark:divide-zinc-800">
-          <GasStat label="Cheapest Hour" sub={stats ? `${cellLabel(stats.cheapest)} UTC` : undefined}>
-            {stats ? (
-              <>
-                {stats.cheapest.p50}
-                <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat label="Priciest Hour" sub={stats ? `${cellLabel(stats.priciest)} UTC` : undefined}>
-            {stats ? (
-              <>
-                {stats.priciest.p50}
-                <span className="ml-1.5 text-sm text-zinc-400 dark:text-zinc-500">{unit}</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat label="Weekend vs Weekday" sub="median base fee">
-            {stats ? (
-              <>
-                {stats.weekendVsWeekday > 0 ? "+" : ""}
-                {stats.weekendVsWeekday.toFixed(0)}
-                <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
+      <ReadoutRow cols={3}>
+        <Readout label="Cheapest Hour" value={stats ? fmtFee(stats.cheapest.p50) : null} unit={unit} sub={stats ? cellName(stats.cheapest) : undefined} />
+        <Readout label="Priciest Hour" value={stats ? fmtFee(stats.priciest.p50) : null} unit={unit} sub={stats ? cellName(stats.priciest) : undefined} />
+        <Readout label="Weekend vs Weekday" value={stats ? `${stats.weekendVsWeekday > 0 ? "+" : ""}${stats.weekendVsWeekday.toFixed(0)}` : null} unit="%" sub="median base fee" />
+      </ReadoutRow>
+
+      {/* a phone is too narrow for the terrain: it reads the flat week */}
+      {market?.heatmap.length ? (
+        <div className="sm:hidden">
+          <WeekBlock cells={market.heatmap} unit={unit} note={note} stale={stale} />
         </div>
-      </Board>
+      ) : null}
+      {market?.heatmap.length ? (
+        <div className="hidden sm:block">
+          <WeekTerrain
+            label="The Week"
+            note={note}
+            stale={stale}
+            figure={stats ? cellName(stats.cheapest).replace(" UTC", "") : "—"}
+            unit={stats ? "UTC" : undefined}
+            sub={stats ? `the cheapest hour · each column is an hour, as tall as its median fee and as red as its rank` : undefined}
+            cells={market.heatmap}
+            feeUnit={unit}
+            fmt={fmtFee}
+          />
+        </div>
+      ) : (
+        <HistoryEmpty missing={missing} />
+      )}
 
-      <ChartBoard label="Hour of Week · median base fee">
-        {market?.heatmap.length ? (
-          <HeatmapReader cells={market.heatmap} unit={unit} />
-        ) : (
-          <HistoryEmpty missing={missing} />
-        )}
-      </ChartBoard>
+      {cells.length > 0 && (
+        <div className={GRID}>
+          <ColumnsBlock label="Hour of Day" note="all days collapsed" cols={hours} ticks={[0, 6, 12, 18, 23]} fmt={fmtFee} tip={profileTip} />
+          <ColumnsBlock label="Day of Week" note="all hours collapsed" cols={days} ticks={days.map((_, i) => i)} fmt={fmtFee} tip={profileTip} />
+        </div>
+      )}
 
-      {/* the grid collapsed both ways: by hour, then by weekday */}
-      <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 lg:grid-cols-2">
-        <ChartBoard label="Hour of Day Profile · all days collapsed">
-          {market?.heatmap.length ? (
-            <HourProfileChart cells={market.heatmap} unit={unit} />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </ChartBoard>
+      {stats && (
+        <div className={GRID}>
+          <HourList label="Cheapest Hours" cells={stats.low5} unit={unit} weekMedian={stats.weekMedian} />
+          <HourList label="Priciest Hours" cells={stats.high5} unit={unit} weekMedian={stats.weekMedian} />
+        </div>
+      )}
 
-        <ChartBoard label="Day of Week Profile · all hours collapsed">
-          {market?.heatmap.length ? (
-            <DowProfileChart cells={market.heatmap} unit={unit} />
-          ) : (
-            <HistoryEmpty missing={missing} />
-          )}
-        </ChartBoard>
-      </div>
-
-      {/* the schedule someone actually acts on */}
-      {market && market.heatmap.length > 0 && <BestHoursList cells={market.heatmap} unit={unit} />}
-
-      <SiblingDoor
-        href={`${base}/gas/base-fee`}
-        label="Base Fee"
-        sub="the price this rhythm plays out in, hour by hour"
-      />
+      <SiblingDoor href={`${base}/gas/base-fee`} label="Base Fee" sub="the price this rhythm plays out in, hour by hour" />
     </MetricFrame>
   );
 }
@@ -1031,103 +505,71 @@ function DemandSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
   const range = useExplorerTimeRange();
   // the demand aggregations scan raw_txs, which caps the window at 90d
   const rangeDays = Math.min(RANGE_DAYS[range], 90);
-  const clamped = RANGE_DAYS[range] > 90;
-  const windowLabel = clamped ? `${RANGE_LABEL.quarter} · longest computed` : RANGE_LABEL[range];
-  const { market, missing } = useGasMarket(evmChainId, rangeDays);
+  const windowLabel = RANGE_DAYS[range] > 90 ? `${RANGE_LABEL.quarter}, longest computed` : RANGE_LABEL[range];
+  const { market, missing, stale } = useGasMarket(evmChainId, rangeDays);
 
-  const unknownAddresses = useMemo(
-    () => market?.protocols.flatMap((p) => (p.address ? [p.address] : [])) ?? [],
-    [market],
-  );
-  const names = useContractNames(evmChainId, unknownAddresses);
+  const unknown = useMemo(() => market?.protocols.flatMap((p) => (p.address ? [p.address] : [])) ?? [], [market]);
+  const names = useContractNames(evmChainId, unknown);
+  const parts = protocolShareParts(market?.protocols ?? [], names, base);
 
   const top = market?.protocols[0];
-  const revertedPct =
-    market?.reverted && market.reverted.gas > 0
-      ? (market.reverted.revertedGas / market.reverted.gas) * 100
-      : null;
+  const reverted = market?.reverted;
+  const revertedPct = reverted && reverted.gas > 0 ? (reverted.revertedGas / reverted.gas) * 100 : null;
+  const selTotal = market?.selectors.reduce((s, x) => s + x.gas, 0) ?? 0;
 
   return (
     <MetricFrame base={base} chainName={catalog.chainName} metric="demand">
-      <Board divide={false} className="border">
-        <BoardHeader label={`The Buyers · ${windowLabel}`} />
-        <div className="grid grid-cols-2 divide-x divide-y divide-zinc-200 lg:grid-cols-4 lg:divide-y-0 dark:divide-zinc-800">
-          <GasStat label="Total Gas">
-            {market ? fmtGas(market.rangeTotalGas) : <StatDash />}
-          </GasStat>
-          <GasStat label="Transactions">
-            {market?.reverted ? market.reverted.txs.toLocaleString("en-US") : <StatDash />}
-          </GasStat>
-          <GasStat
-            label="Top Buyer"
-            sub={top ? `${top.sharePct.toFixed(1)}% of the window's gas` : undefined}
-          >
-            {top ? (
-              <span className="min-w-0 truncate">{top.name}</span>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
-          <GasStat
-            label="Reverted"
-            sub={
-              market?.reverted
-                ? `${market.reverted.revertedTxs.toLocaleString("en-US")} txs paid for nothing`
-                : undefined
-            }
-          >
-            {revertedPct !== null ? (
-              <>
-                {revertedPct.toFixed(1)}
-                <span className="ml-1 text-sm text-zinc-400 dark:text-zinc-500">%</span>
-              </>
-            ) : (
-              <StatDash />
-            )}
-          </GasStat>
+      <ReadoutRow cols={4}>
+        <Readout label="Total Gas" value={market ? fmtGas(market.rangeTotalGas) : null} sub={windowLabel} />
+        <Readout label="Transactions" value={reverted ? reverted.txs.toLocaleString("en-US") : null} sub={windowLabel} />
+        <Readout
+          label="Top Buyer"
+          value={top ? (top.address ? (names.get(top.address.toLowerCase()) ?? top.name) : top.name) : null}
+          sub={top ? `${top.sharePct.toFixed(1)}% of the window's gas` : undefined}
+        />
+        <Readout
+          label="Reverted"
+          value={revertedPct !== null ? revertedPct.toFixed(1) : null}
+          unit="%"
+          sub={reverted ? `of gas · ${reverted.revertedTxs.toLocaleString("en-US")} txs paid for nothing` : undefined}
+        />
+      </ReadoutRow>
+
+      {parts.length > 0 ? (
+        <div className={stale ? "opacity-60 transition-opacity" : undefined}>
+          <ShareMap label="Where the gas goes" summary={market ? `${fmtGas(market.rangeTotalGas)} gas · ${windowLabel}` : undefined} parts={parts} fmt={(v) => `${fmtGas(v)} gas`} />
         </div>
-      </Board>
+      ) : (
+        <HistoryEmpty missing={missing} />
+      )}
 
-      {/* the map: tile area = gas share, tiles link to dapp pages/addresses */}
-      <ChartBoard label="Where the Gas Goes · by protocol" bodyClassName="p-2">
-        {market?.protocols.length ? (
-          <ProtocolsTreemap protocols={market.protocols} names={names} base={base} />
-        ) : (
-          <HistoryEmpty missing={missing} />
-        )}
-      </ChartBoard>
+      {market?.protocols.length ? (
+        <section className="flex flex-col gap-3">
+          <SectionHeader label="Every buyer" />
+          <div className="overflow-x-auto">
+            <ProtocolTable protocols={market.protocols} names={names} base={base} symbol={symbol} />
+          </div>
+        </section>
+      ) : null}
 
-      {/* the figures the tiles can't fit */}
-      <Board divide={false} className="border overflow-x-auto">
-        {market?.protocols.length ? (
-          <ProtocolTable protocols={market.protocols} names={names} base={base} symbol={symbol} />
-        ) : (
-          <HistoryEmpty missing={missing} />
-        )}
-      </Board>
+      {market?.selectors.length ? (
+        <RankBars
+          label="By Method"
+          note={windowLabel}
+          stale={stale}
+          figure={selectorName(market.selectors[0].selector, market.selectors[0].name)}
+          sub={`the heaviest call · ${selTotal ? ((market.selectors[0].gas / selTotal) * 100).toFixed(1) : 0}% of this gas`}
+          rows={market.selectors.map((x) => ({
+            key: x.selector,
+            name: selectorName(x.selector, x.name),
+            title: `${x.name ?? x.selector} · ${x.selector}`,
+            value: x.gas,
+            share: `${selTotal ? ((x.gas / selTotal) * 100).toFixed(1) : 0}% · ${fmtGas(x.gas)}`,
+          }))}
+        />
+      ) : null}
 
-      <ChartBoard
-        label="By Method"
-        action={
-          market?.reverted ? (
-            <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">
-              {market.reverted.txs.toLocaleString("en-US")} txs
-            </span>
-          ) : undefined
-        }
-      >
-        {market?.selectors.length ? (
-          <SelectorBars selectors={market.selectors} />
-        ) : (
-          <HistoryEmpty missing={missing} />
-        )}
-      </ChartBoard>
-
-      <SiblingDoor
-        href={`${base}/gas/utilization`}
-        label="Utilization"
-        sub="how full this demand actually runs the blocks"
-      />
+      <SiblingDoor href={`${base}/gas/utilization`} label="Utilization" sub="how full this demand actually runs the blocks" />
     </MetricFrame>
   );
 }
@@ -1136,15 +578,7 @@ function DemandSheet({ catalog, base }: { catalog: L1Chain; base: string }) {
 /* entry                                                             */
 /* ---------------------------------------------------------------- */
 
-export function GasMetricContent({
-  catalog,
-  base,
-  metric,
-}: {
-  catalog: L1Chain;
-  base: string;
-  metric: GasMetricKey;
-}) {
+export function GasMetricContent({ catalog, base, metric }: { catalog: L1Chain; base: string; metric: GasMetricKey }) {
   if (metric === "base-fee") return <BaseFeeSheet catalog={catalog} base={base} />;
   if (metric === "utilization") return <UtilizationSheet catalog={catalog} base={base} />;
   if (metric === "demand") return <DemandSheet catalog={catalog} base={base} />;

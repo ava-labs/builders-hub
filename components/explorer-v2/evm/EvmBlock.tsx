@@ -85,8 +85,12 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
   // they are sealed, so the indexer alone would 404 on every fresh block.
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const fromRpc = useRpcBlock(liveRpc, id);
-  const b = fromRpc.data ?? indexed.data;
-  const loading = !b && (indexed.loading || fromRpc.loading);
+  // every other chain: the indexer first, then the chain's own RPC when the
+  // indexer has not reached the block yet (an L1's indexer can trail by hours)
+  const fallbackRpc = !liveRpc && indexed.error === "not found" ? readRpc(c.chainId, c.rpcUrl) : undefined;
+  const fromFallback = useRpcBlock(fallbackRpc, id, 0);
+  const b = fromRpc.data ?? indexed.data ?? fromFallback.data;
+  const loading = !b && (indexed.loading || fromRpc.loading || fromFallback.loading);
   const error = b || loading ? null : indexed.error ?? (liveRpc ? "not found" : null);
   const retry = indexed.retry;
 

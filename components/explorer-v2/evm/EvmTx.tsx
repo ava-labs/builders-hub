@@ -229,8 +229,11 @@ export function EvmTx({ network, txHash }: { network: string; txHash: string }) 
   // replaces it when it lands, bringing the internal calls with it.
   const liveRpc = CONTINUOUS_EXECUTION_CHAINS.has(String(c.chainId)) ? readRpc(c.chainId, c.rpcUrl) : undefined;
   const fromRpc = useRpcTx(liveRpc, txHash);
-  const t = indexed.data ?? fromRpc.data;
-  const loading = !t && (indexed.loading || fromRpc.loading);
+  // every other chain: the chain's own RPC once the indexer says 404
+  const fallbackRpc = !liveRpc && indexed.error === "not found" ? readRpc(c.chainId, c.rpcUrl) : undefined;
+  const fromFallback = useRpcTx(fallbackRpc, txHash, 0);
+  const t = indexed.data ?? fromRpc.data ?? fromFallback.data;
+  const loading = !t && (indexed.loading || fromRpc.loading || fromFallback.loading);
   const error = t || loading ? null : indexed.error ?? (liveRpc ? "not found" : null);
   const retry = indexed.retry;
 

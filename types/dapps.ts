@@ -38,6 +38,7 @@ export interface DAppStats {
   rank?: number;
   subProtocols?: SubProtocolTVL[];  // TVL breakdown by sub-protocol
   darkInvert?: boolean;
+  address?: string;      // the protocol's main C-Chain contract, when known: the explorer links to it
 }
 
 // Aggregated metrics for the overview page
@@ -107,6 +108,7 @@ export interface DefiLlamaProtocol {
   description: string;
   twitter?: string;
   mcap?: number;
+  address?: string | null; // "avax:0x..." on the C-Chain; a bare 0x is Ethereum
 }
 
 // Category metadata

@@ -1,25 +1,10 @@
-'use client'
+import { permanentRedirect } from "next/navigation";
+import { getRWAProject } from "@/lib/rwa/projects";
 
-import { useParams, notFound } from 'next/navigation'
-import { getRWAProject } from '@/lib/rwa/projects'
-import { RWADashboard } from '@/components/rwa/RWADashboard'
-import { StatsBubbleNav } from '@/components/stats/stats-bubble.config'
-
-export default function RWAProjectPage() {
-  const params = useParams<{ slug: string }>()
-  const slug = params.slug
-  const project = getRWAProject(slug)
-
-  if (!project) {
-    notFound()
-  }
-
-  return (
-    <>
-      <div className="container mx-auto px-4 pt-14 pb-8 space-y-8 max-w-full min-w-0">
-        <RWADashboard slug={slug} />
-      </div>
-      <StatsBubbleNav />
-    </>
-  )
+/* The RWA dashboards are retired. A project opens on its tranche pool, where
+   its loans live; an unknown slug lands on the C-Chain DeFi tab. */
+export default async function RWAProjectPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const pool = getRWAProject(slug)?.addresses.tranchePool;
+  permanentRedirect(pool ? `/explorer/mainnet/c-chain/address/${pool.toLowerCase()}` : "/explorer/mainnet/c-chain/defi");
 }

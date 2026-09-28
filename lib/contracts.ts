@@ -49,6 +49,28 @@ export function getProtocolContracts(protocolName: string): {
   return { name: protocolName, slug, category, contracts };
 }
 
+/* which of a protocol's contracts stands for it: the entry point a user
+   calls first, then the contracts that hold its state, then its token */
+const MAIN_CONTRACT_RANK: ContractInfo['type'][] = ['router', 'controller', 'orderbook', 'factory', 'vault', 'staking', 'pool', 'rewards', 'token', 'other'];
+
+/** a protocol's main C-Chain contract, by its dApp slug; undefined when the registry does not track it */
+export function protocolMainContract(slug: string): string | undefined {
+  const name = SLUG_ALIASES[slug];
+  const contracts = name ? getProtocolContracts(name)?.contracts : undefined;
+  if (!contracts?.length) return undefined;
+  const rank = (c: ContractInfo) => {
+    const i = MAIN_CONTRACT_RANK.indexOf(c.type);
+    return i === -1 ? MAIN_CONTRACT_RANK.length : i;
+  };
+  return [...contracts].sort((a, b) => rank(a) - rank(b))[0].address;
+}
+
+/** DefiLlama's protocol address when it is a C-Chain one ("avax:0x..."); a bare 0x is Ethereum */
+export function cChainAddressOf(llamaAddress: string | null | undefined): string | undefined {
+  const m = /^avax:(0x[0-9a-fA-F]{40})$/.exec(llamaAddress?.trim() ?? '');
+  return m ? m[1].toLowerCase() : undefined;
+}
+
 export function getProtocolNameBySlug(slug: string): string | null {
   return SLUG_ALIASES[slug] ?? null;
 }

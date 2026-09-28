@@ -4,7 +4,9 @@ import { EXPLORER_API_BASE, isPchainNetwork } from "@/lib/pchain-explorer";
 // The chain build-out registry, aggregated server-side: every subnet the
 // P-Chain has ever created (the box's /v1 subnets endpoint, ~6 pages),
 // reduced to the totals, a monthly cumulative creation series, and the
-// newest launches. Creations are slow-moving — cache aggressively.
+// newest launches, each with its active validators so the network map can
+// stand a new L1 up before the catalog knows it. Creations are
+// slow-moving, so cache aggressively.
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +15,10 @@ const FETCH_TIMEOUT_MS = 20_000;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1h in-process
 const CACHE_CONTROL = "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400";
 const PRIMARY_SUBNET_ID = "11111111111111111111111111111111LpoYY";
+const P_CHAIN_RPC: Record<string, string> = {
+  mainnet: "https://api.avax.network/ext/bc/P",
+  fuji: "https://api.avax-test.network/ext/bc/P",
+};
 
 interface RegistryBlockchain {
   blockchainId: string;
@@ -40,6 +46,8 @@ export interface L1Registry {
     isL1: boolean;
     evmChainId?: number;
     createdAt: number;
+    /** active validators at the proposed height; null when the P-Chain did not answer */
+    validators: number | null;
   }[];
   lastUpdated: number;
 }
@@ -65,7 +73,31 @@ async function fetchAllSubnets(network: string): Promise<RegistrySubnet[]> {
   return out;
 }
 
-function buildRegistry(subnets: RegistrySubnet[]): L1Registry {
+/* each subnet's active validators at the proposed height, from one call:
+   a subnet whose set is empty is not running */
+async function fetchValidatorCounts(network: string): Promise<Map<string, number> | null> {
+  try {
+    const res = await fetch(P_CHAIN_RPC[network], {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "platform.getAllValidatorsAt", params: { height: "proposed" } }),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
+    if (!res.ok) return null;
+    const sets = (await res.json())?.result?.validatorSets;
+    if (!sets || typeof sets !== "object") return null;
+    const counts = new Map<string, number>();
+    for (const [subnetId, set] of Object.entries(sets)) {
+      const validators = (set as { validators?: unknown[] })?.validators;
+      counts.set(subnetId, Array.isArray(validators) ? validators.length : 0);
+    }
+    return counts;
+  } catch {
+    return null;
+  }
+}
+
+function buildRegistry(subnets: RegistrySubnet[], counts: Map<string, number> | null): L1Registry {
   const totals = { subnets: 0, l1s: 0, blockchains: 0, evmChains: 0 };
   const allChains: L1Registry["recent"] = [];
 
@@ -84,6 +116,7 @@ function buildRegistry(subnets: RegistrySubnet[]): L1Registry {
           isL1: !!s.isL1,
           evmChainId: b.evmChainId || undefined,
           createdAt: b.createBlockTimestamp,
+          validators: counts ? counts.get(s.subnetId) ?? 0 : null,
         });
       }
     }
@@ -106,7 +139,8 @@ export async function GET(
     return NextResponse.json(hit.data, { headers: { "cache-control": CACHE_CONTROL } });
   }
   try {
-    const data = buildRegistry(await fetchAllSubnets(network));
+    const [subnets, counts] = await Promise.all([fetchAllSubnets(network), fetchValidatorCounts(network)]);
+    const data = buildRegistry(subnets, counts);
     cache.set(network, { data, at: Date.now() });
     return NextResponse.json(data, { headers: { "cache-control": CACHE_CONTROL } });
   } catch {

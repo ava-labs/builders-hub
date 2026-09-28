@@ -1,4 +1,5 @@
 import type { DeploymentTarget, UrgencyOption } from "@/lib/audits/status";
+import { parseStoredAttachments } from "@/lib/audits/attachments";
 import type { AuditAttachment, AuditDraftInput } from "@/types/audits";
 import { QUOTE_DEADLINE_DEFAULT_DAYS } from "@/lib/audits/constants";
 import { parseWholeNumber } from "@/components/audits/shared/format";
@@ -171,16 +172,13 @@ export function parseRepos(value: unknown): { url: string; ref: string }[] {
     .filter((repo) => repo.url !== "");
 }
 
+/**
+ * The wizard's own view of the stored list: it keeps the store URL because it
+ * PATCHes the same list back. Every read-only surface uses toAttachmentLinks
+ * instead, which hands out program paths and no store URL.
+ */
 export function parseAttachments(value: unknown): AuditAttachment[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(
-    (entry): entry is AuditAttachment =>
-      Boolean(entry) &&
-      typeof entry === "object" &&
-      typeof (entry as AuditAttachment).name === "string" &&
-      typeof (entry as AuditAttachment).url === "string" &&
-      typeof (entry as AuditAttachment).size === "number",
-  );
+  return parseStoredAttachments(value);
 }
 
 /** Stored draft row -> form values, for resuming via /audits/new?draft=<id>. */

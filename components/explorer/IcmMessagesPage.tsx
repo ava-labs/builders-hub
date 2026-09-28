@@ -460,7 +460,7 @@ export function IcmMessagesPage({
         <ChartBoard
           label={rangeDays < 7 ? "Daily Messages · 7 days" : "Daily Messages"}
           action={<DirectionKey />}
-          href="/explorer/mainnet/icm"
+          href="/explorer/mainnet/chains"
           className="min-w-0"
         >
           {totals && peak && (

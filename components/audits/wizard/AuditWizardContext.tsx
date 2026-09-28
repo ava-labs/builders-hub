@@ -30,6 +30,10 @@ interface AuditWizardContextValue {
   saveAndExit: () => Promise<void>;
   submit: () => Promise<void>;
   submitting: boolean;
+  /** The draft id, creating the draft first if this is the wizard's first
+      save. Attachments need it: the upload token is minted against a draft
+      the caller owns, so there is nothing to upload to before one exists. */
+  ensureDraftId: () => Promise<string | null>;
   /** Step 4's consent checkbox, read by the shell to arm Submit. Deliberately
       NOT autosaved: consent is given at the moment of sending, so resuming a
       draft asks again. */
@@ -113,6 +117,8 @@ export function AuditWizardProvider({
     router.push("/audits");
   }, [flush, form, initialDraft, router]);
 
+  const ensureDraftId = useCallback(() => flush(true), [flush]);
+
   const submit = useCallback(async () => {
     const valid = await form.trigger(STEP_FIELDS[3]);
     if (!valid) return;
@@ -165,6 +171,7 @@ export function AuditWizardProvider({
       saveAndExit,
       submit,
       submitting,
+      ensureDraftId,
       consent,
       setConsent,
       firms,
@@ -181,6 +188,7 @@ export function AuditWizardProvider({
       saveAndExit,
       submit,
       submitting,
+      ensureDraftId,
       consent,
       firms,
     ],

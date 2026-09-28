@@ -43,9 +43,6 @@ export default async function IcmMessagePage({
   return (
     <NetworkShell
       network={network}
-      title="Interchain Message"
-      eyebrow="Interchain Messaging"
-      intro="One Teleporter message, end to end: where it was sent from, where it landed, and what happened when it arrived."
     >
       <IcmMessageView messageId={id} message={message} />
     </NetworkShell>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowUp, ArrowUpRight, History, Search, Sparkles } from "lucide-react";
-import { EXAMPLE_PROMPTS } from "@/lib/explorer-query/examples";
+import { examplesFor } from "@/lib/explorer-query/examples";
 import { recentQuestions } from "@/lib/explorer-query/recent";
 import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
 import l1ChainsData from "@/constants/l1-chains.json";
@@ -42,7 +42,7 @@ export function EvmSearchBox({
   base,
   chainName,
 }: {
-  /** /explorer/{network}/{chainSlug} — the current chain's route root */
+  /** /explorer/{network}/{chainSlug}: the current chain's route root */
   base: string;
   chainName: string;
 }) {
@@ -53,7 +53,10 @@ export function EvmSearchBox({
   const inputRef = useRef<HTMLInputElement>(null);
   // questions are answered from the indexed tables; chains with an RPC in the catalog
   const slug = base.split("/").pop();
-  const askable = (l1ChainsData as L1Chain[]).some((c) => c.slug === slug && !!c.rpcUrl);
+  const catalog = (l1ChainsData as L1Chain[]).find((c) => c.slug === slug && !!c.rpcUrl);
+  const askable = !!catalog;
+  // an L1 is offered questions that work on any EVM chain
+  const prompts = examplesFor(catalog?.chainId ?? "").flatMap((g) => g.items.map((i) => i.q));
   // an empty, focused box offers the way back to asking: this device's
   // recent questions, a few to start from, and the Query page itself
   const [recent, setRecent] = useState<string[]>([]);
@@ -151,7 +154,7 @@ export function EvmSearchBox({
         <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-[0_16px_40px_-20px_rgba(24,24,27,0.35)] dark:border-zinc-800 dark:bg-zinc-950">
           {[
             { label: "Recent", icon: History, items: recent },
-            { label: "Ask", icon: Sparkles, items: EXAMPLE_PROMPTS.filter((q) => !recent.includes(q)).slice(0, recent.length ? 3 : 5) },
+            { label: "Ask", icon: Sparkles, items: prompts.filter((q) => !recent.includes(q)).slice(0, recent.length ? 3 : 5) },
           ]
             .filter((g) => g.items.length)
             .map((g) => (

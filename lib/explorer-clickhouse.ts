@@ -760,6 +760,8 @@ export interface GasProtocol {
   slug: string | null;
   /** the contract address when the entry is a single unregistered contract */
   address: string | null;
+  /** the group's busiest contract in the window, where a click on the protocol lands */
+  topContract: string | null;
   gas: number;
   txs: number;
   senders: number;
@@ -1057,6 +1059,8 @@ function aggregateProtocols(
         category: info?.category ?? null,
         slug: info ? (PROTOCOL_SLUGS[info.protocol] ?? null) : null,
         address: info ? null : c.address,
+        // rows arrive busiest first, so the first contract seen leads the group
+        topContract: c.address,
         gas: c.gas,
         txs: c.txs,
         senders: c.senders,
@@ -1077,6 +1081,7 @@ function aggregateProtocols(
       category: null,
       slug: null,
       address: null,
+      topContract: null,
       gas: tail.reduce((s, p) => s + p.gas, 0),
       txs: tail.reduce((s, p) => s + p.txs, 0),
       senders: tail.reduce((s, p) => s + p.senders, 0),

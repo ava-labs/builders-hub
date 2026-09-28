@@ -55,6 +55,12 @@ export async function PATCH(request: NextRequest, context: Context) {
 
   try {
     const result = await patchDraft(caller.userId, id, parsed.data);
+    if (!result.success && result.code === "foreign_attachment") {
+      return NextResponse.json(
+        { success: false, message: "That attachment does not belong to this request." },
+        { status: 400 },
+      );
+    }
     if (!result.success) {
       return NextResponse.json(
         { success: false, message: "Draft not found or no longer editable." },

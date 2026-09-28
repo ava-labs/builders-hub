@@ -7,7 +7,7 @@ import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickh
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
 import { pchainPrompt, systemPrompt } from "./prompt";
-import { targetOf } from "./target";
+import { isCChain, targetOf } from "./target";
 import { getRecipe, putRecipe, recipeKey } from "./cache";
 import { basicVisual } from "./visual";
 
@@ -109,6 +109,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     return null;
   }
   const cover = await coverage(a.chainId);
+  // only the C-Chain and the P-Chain send a question to each other; an L1 answers or says why not
+  const canRoute = targetOf(a.chainId).kind === "pchain" || isCChain(a.chainId);
   const coverLine = cover ? coverageText(a.chainId, cover) : null;
   const system =
     targetOf(a.chainId).kind === "pchain"
@@ -182,7 +184,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
       }),
       execute: async ({ title, note, sql, chart, drill, route }) => {
         if (chart.kind === "none") {
-          final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null, ...(route ? { route } : {}) };
+          final = { title, note, sql: "", chart, drill: null, result: null, names: {}, visual: null, coverage: null, ...(route && canRoute ? { route } : {}) };
           step("final", 0, true, "no chart");
           return { ok: true };
         }

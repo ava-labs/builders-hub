@@ -144,7 +144,7 @@ const BAND_H = 40;
 /** where a series ends inside the band, as a share of the band's height:
  *  the block's right face fills to this level so the trace reads as a
  *  solid passing through the box, not a picture on its front */
-function bandLevel(values: number[] | undefined): number | null {
+export function bandLevel(values: number[] | undefined): number | null {
   if (!values || values.length < 2) return null;
   const pts = bucket(values, SPARK_MAX_POINTS);
   const min = Math.min(...pts);
@@ -156,7 +156,7 @@ function bandLevel(values: number[] | undefined): number | null {
  *  the tape's block gray, one flat tone, a crisp top edge, the level
  *  carried onto the shaded right face. The same vessel the block tape
  *  draws, poured to a curve instead of a line. */
-function SparkBand({ values }: { values: number[] }) {
+export function SparkBand({ values }: { values: number[] }) {
   const pts = bucket(values, SPARK_MAX_POINTS);
   if (pts.length < 2) return null;
   const W = 100;
@@ -227,7 +227,7 @@ export function ReadoutBlock({
 }
 
 /** the trace's end level carried onto the right face */
-function SideLevel({ level }: { level: number | null }) {
+export function SideLevel({ level }: { level: number | null }) {
   if (level === null) return null;
   return (
     <span
@@ -238,12 +238,12 @@ function SideLevel({ level }: { level: number | null }) {
 }
 
 /* the readings' shared voices */
-const LABEL = "font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400";
-const FIGURE =
+export const LABEL = "font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-400";
+export const FIGURE =
   "text-[22px] font-bold leading-none tracking-[-0.02em] tabular-nums text-zinc-900 [font-family:Aeonik,var(--font-sans),sans-serif] dark:text-zinc-50";
-const FIG_UNIT = "ml-1 font-mono text-[12px] font-normal tracking-normal text-zinc-400 dark:text-zinc-500";
-const SUB = "font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
-const BLOCK_FACE = "items-start gap-3 px-5 pb-12 pt-3 md:px-6";
+export const FIG_UNIT = "ml-1 font-mono text-[12px] font-normal tracking-normal text-zinc-400 dark:text-zinc-500";
+export const SUB = "font-mono text-[10px] tracking-[0.04em] text-zinc-400 dark:text-zinc-500";
+export const BLOCK_FACE = "items-start gap-3 px-5 pb-12 pt-3 md:px-6";
 
 /* The live readout: what is true this second, as a row of blocks. It
    sits between the search and the live boards, so the page reads:

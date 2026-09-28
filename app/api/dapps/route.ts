@@ -7,7 +7,7 @@ import type {
   DAppsApiResponse
 } from '@/types/dapps';
 import { mapDefiLlamaCategory } from '@/types/dapps';
-import { SLUG_ALIASES, PROTOCOL_SLUGS, CONTRACT_REGISTRY, getProtocolContracts } from '@/lib/contracts';
+import { SLUG_ALIASES, PROTOCOL_SLUGS, CONTRACT_REGISTRY, getProtocolContracts, protocolMainContract, cChainAddressOf } from '@/lib/contracts';
 import { getAllRWAProjects } from '@/lib/rwa/projects';
 
 const DEFILLAMA_API = 'https://api.llama.fi';
@@ -141,6 +141,7 @@ export async function GET() {
         url: p.url,
         twitter: p.twitter,
         description: p.description,
+        address: cChainAddressOf(p.address),
       };
     });
 
@@ -239,6 +240,8 @@ export async function GET() {
           change_7d: null,
           description: project.description,
           darkInvert: project.darkInvert ?? true,
+          // the tranche pool is where an RWA project's loans live
+          address: project.addresses.tranchePool.toLowerCase(),
         });
         existingSlugs.add(project.slug);
       }
@@ -286,6 +289,13 @@ export async function GET() {
     }));
 
     dapps.push(...localOnlyWithRank);
+
+    // the explorer links a protocol to its contract: the registry's main one first, then DefiLlama's C-Chain address
+    for (const d of dapps) {
+      // an RWA project keeps its tranche pool
+      const main = protocolMainContract(d.slug);
+      if (main && !(d.id.startsWith("local-") && d.address)) d.address = main;
+    }
 
     // Calculate category breakdown
     const categoryBreakdown = dapps.reduce((acc, p) => {
