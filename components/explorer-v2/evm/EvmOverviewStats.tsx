@@ -441,7 +441,8 @@ export function EvmOverviewStats({
       <SectionHeader
         label="Chain Stats"
         action={<span className="shrink-0 font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">{windowLabel}
-            {span && <span className="font-normal tracking-[0.08em]"> · {span}</span>}
+            {/* the dates would push the label out on a phone; the window's name is enough there */}
+            {span && <span className="hidden font-normal tracking-[0.08em] sm:inline"> · {span}</span>}
           </span>}
       />
       <div className="grid grid-cols-2 gap-x-4 gap-y-5 pr-2 pt-2 lg:grid-cols-4">

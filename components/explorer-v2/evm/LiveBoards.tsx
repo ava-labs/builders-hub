@@ -151,6 +151,9 @@ export function PhaseTrack({
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const ROWS = 10;
+/** a phone row is two or three lines, so the boards stop short there:
+ *  "View all" is one tap away and the page is not a feed */
+const PHONE_ROWS = 6;
 /** row pitch: the 44 px row plus its 1 px rule */
 export const ROW_H = 45;
 
@@ -158,8 +161,9 @@ export function Belt({ children, rows = ROWS }: { children: React.ReactNode; row
   return (
     // one row past the window exists for the slide-out; on small screens
     // rows are two lines tall and the window cannot be fixed, so the
-    // caller hides the extra row itself
-    <div className="relative md:overflow-hidden" style={{ ["--belt-h" as string]: `${rows * ROW_H}px` }}>
+    // caller hides the extra row itself. The clip stays on phones: a
+    // newcomer slides in from above and must not cross the header
+    <div className="relative overflow-hidden" style={{ ["--belt-h" as string]: `${rows * ROW_H}px` }}>
       <div className="md:h-(--belt-h)">{children}</div>
     </div>
   );
@@ -337,10 +341,14 @@ export function LatestBlocksBoard({
         {loading && rows.length === 0 && <RowSkeleton n={ROWS} />}
         <Belt>
           {rows.map((b, i) => (
-            <MotionRow key={b.number} animateIn overflow={i >= ROWS}>
+            <MotionRow key={b.number} animateIn overflow={i >= PHONE_ROWS}>
               <Link href={`${base}/block/${b.number}`} className={cn(ROW, cols)}>
                 <Height value={b.number} />
-                <span className={cn(INK, "md:text-right")}>{b.txCount}</span>
+                {/* phones drop the header row, so the count names its unit */}
+                <span className={cn(INK, "text-right")}>
+                  {b.txCount}
+                  <span className="text-zinc-400 md:hidden dark:text-zinc-500"> tx</span>
+                </span>
                 <span className="col-span-2 md:col-span-1">
                   <GasBar used={b.gasUsed} limit={b.gasLimit} />
                 </span>
@@ -493,19 +501,22 @@ export function LatestTxsBoard({
           const m = method(t);
           const value = Number(t.value);
           return (
-            <MotionRow key={t.hash} animateIn={streaming} overflow={i >= ROWS}>
+            <MotionRow key={t.hash} animateIn={streaming} overflow={i >= PHONE_ROWS}>
             <RowDoor href={`${base}/tx/${t.hash}`} className={cn(ROW, cols)}>
-              {/* status: a red X only when it reverted, the row stays quiet otherwise */}
-              <span className="flex h-3 w-3 items-center justify-center">
+              {/* status: a red X only when it reverted, the row stays quiet otherwise.
+                  Phones stack the row as hash and method, the parties across,
+                  then value and fee; the X rides the hash there */}
+              <span className="flex h-3 w-3 items-center justify-center max-md:hidden">
                 {!t.success && <X className="h-3 w-3 text-[#E6212F]" strokeWidth={2.5} aria-label="reverted" />}
               </span>
-              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "truncate hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
-                {truncate(t.hash, 6)}
+              <Link href={`${base}/tx/${t.hash}`} className={cn(INK, idInk, "flex min-w-0 items-center gap-1.5 hover:text-[#E6212F]")} onClick={(e) => e.stopPropagation()}>
+                {!t.success && <X className="h-3 w-3 shrink-0 text-[#E6212F] md:hidden" strokeWidth={2.5} aria-label="reverted" />}
+                <span className="truncate">{truncate(t.hash, 6)}</span>
               </Link>
-              <span className={cn("truncate font-mono text-[12px]", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
+              <span className={cn("truncate font-mono text-[12px] max-md:text-right", m.named ? fnInk : "text-zinc-400 dark:text-zinc-500")} title={t.methodId || undefined}>
                 {m.label}
               </span>
-              <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 dark:text-zinc-400">
+              <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] text-zinc-500 max-md:col-span-2 dark:text-zinc-400">
                 <Party addr={t.from} name={null} href={`${base}/address/${t.from}`} />
                 <span className="shrink-0 text-zinc-300 dark:text-zinc-700">→</span>
                 {t.to ? (
@@ -534,7 +545,7 @@ export function LatestTxsBoard({
                   <span className="text-zinc-300 dark:text-zinc-700">—</span>
                 )}
               </span>
-              <span className={cn("font-mono text-[12.5px] tabular-nums md:text-right", feeInk)}>
+              <span className={cn("font-mono text-[12.5px] tabular-nums text-right", feeInk)}>
                 {t.feeWei !== null ? (
                   <>
                     {(t.feeWei / 1e18).toFixed(6)} <span className="text-[11px] text-zinc-400 dark:text-zinc-500">{symbol}</span>

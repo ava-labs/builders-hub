@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { SubnetStats } from "@/types/validator-stats";
+import { compareVersions } from "@/components/stats/VersionBreakdown";
+import type { VersionMix } from "@/components/explorer-v2/network/icm-map";
 
 /* The P-Chain liveness feed, shared by every explorer surface that asks
    "which sets have stake-backed validators right now": the chain switcher,
@@ -41,6 +43,23 @@ export function liveValidatorCounts(subnets: SubnetStats[]): Map<string, number>
     if (nodes > 0) live.set(s.id, nodes);
   }
   return live;
+}
+
+/* a set's nodes split by where they stand against the target minor line:
+   what the city's windows are lit by, and the phones' versions board */
+export function mixOf(byVersion: Record<string, { nodes: number }>, target: string): VersionMix {
+  const t = /^(\d+)\.(\d+)/.exec(target);
+  const m: VersionMix = { on: 0, near: 0, stale: 0, unknown: 0 };
+  for (const [v, d] of Object.entries(byVersion)) {
+    if (v === "Unknown") m.unknown += d.nodes;
+    else if (compareVersions(v, target) >= 0) m.on += d.nodes;
+    else {
+      const x = /^(\d+)\.(\d+)/.exec(v);
+      if (x && t && x[1] === t[1] && Number(x[2]) === Number(t[2]) - 1) m.near += d.nodes;
+      else m.stale += d.nodes;
+    }
+  }
+  return m;
 }
 
 /* `enabled` keeps the lazy callers lazy: the switcher fetches on first

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { PRIMARY_NETWORK_ID, useValidatorStats } from "@/components/explorer-v2/validator-stats";
-import { compareVersions, defaultVersionTarget, sortVersionsDesc } from "@/components/stats/VersionBreakdown";
+import { PRIMARY_NETWORK_ID, mixOf, useValidatorStats } from "@/components/explorer-v2/validator-stats";
+import { defaultVersionTarget, sortVersionsDesc } from "@/components/stats/VersionBreakdown";
 import { ViewSwitchFade } from "@/components/explorer-v2/view-switch";
 import { ExplorerSubnav } from "@/components/explorer-v2/ExplorerSubnav";
 import { useCityData, type SizeBy, type VersionMix } from "@/components/explorer-v2/network/icm-map";
@@ -19,22 +19,6 @@ import type { L1Chain } from "@/types/stats";
    too, and the subnav spans the same width; phones get the district
    browser in the page's column. The rest of the explorer stays one click
    away in the subnav. */
-
-/* a set's nodes split by where they stand against the target minor line */
-function mixOf(byVersion: Record<string, { nodes: number }>, target: string): VersionMix {
-  const t = /^(\d+)\.(\d+)/.exec(target);
-  const m: VersionMix = { on: 0, near: 0, stale: 0, unknown: 0 };
-  for (const [v, d] of Object.entries(byVersion)) {
-    if (v === "Unknown") m.unknown += d.nodes;
-    else if (compareVersions(v, target) >= 0) m.on += d.nodes;
-    else {
-      const x = /^(\d+)\.(\d+)/.exec(v);
-      if (x && t && x[1] === t[1] && Number(x[2]) === Number(t[2]) - 1) m.near += d.nodes;
-      else m.stale += d.nodes;
-    }
-  }
-  return m;
-}
 
 /* the city shows one day: its streets carry the last 24 hours of ICM, and
    its figures count the same day. The explorer's clock does not drive it */
