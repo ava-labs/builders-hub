@@ -76,6 +76,16 @@ describe('the flow and finite-value rules', () => {
     for (const p of [prompt(43113), prompt(432204)]) expect(p).not.toContain('- Flows:');
   });
 
+  it("give the active-address note to an answer that counts them, and leave Fuji's rule as it was", () => {
+    // a replay of L02 (Aave's largest borrowers) ended its note on active addresses
+    for (const p of [prompt(43114), prompt(43114, true), prompt(432204)]) {
+      expect(p).toContain('An answer whose query counts active addresses (this uniqExactArray over raw_txs) says in its note');
+      expect(p).toContain('An answer about other addresses (borrowers, depositors, holders, senders of a token) never says it.');
+    }
+    expect(prompt(43113)).toContain('An answer about active addresses says in its note that they are the senders and recipients of transactions');
+    expect(prompt(43113)).not.toContain('borrowers, depositors');
+  });
+
   it('guard every division on each EVM chain but Fuji, whose prompt stays as it was, and say so once', () => {
     for (const p of [prompt(43114), prompt(43114, true), prompt(432204)]) expect(p.split(FINITE)).toHaveLength(2);
     expect(prompt(43113)).not.toContain('nullIf(x, 0)');

@@ -257,6 +257,11 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
     opts.chainId === DEX_CHAIN_ID
       ? "\n- Flows: when the question asks where value went, from whom or to whom, or how it moved between addresses, contracts or protocols, return one row per sender and receiver pair, largest first, at most 200 pairs: from_address, to_address and the amount in token units summed over the pair, with its transfers beside it. The page draws the pairs as a flow from sender to receiver. A question about one side alone (who received the most) stays a ranking of that side."
       : "";
+  // the active-address note belongs to an answer that counts them; Fuji's prompt stays as it was
+  const activeNote =
+    c && opts.chainId !== DEX_CHAIN_ID
+      ? "An answer about active addresses says in its note that they are the senders and recipients of transactions, and that the explorer's own charts count more roles, so their figure is higher."
+      : "An answer whose query counts active addresses (this uniqExactArray over raw_txs) says in its note that they are the senders and recipients of transactions, and that the explorer's own charts count more roles, so their figure is higher. An answer about other addresses (borrowers, depositors, holders, senders of a token) never says it.";
   // the query service cannot send an inf or a nan; Fuji's prompt stays as it was
   const finite = c && opts.chainId !== DEX_CHAIN_ID ? "" : " Divide by nullIf(x, 0), and wrap a ratio or a quantile in ifNotFinite(x, NULL): an inf or a nan in the rows fails the whole answer.";
   const sym = opts.symbol.toLowerCase();
@@ -283,7 +288,7 @@ ${known}`
     : `This chain's token contracts are not listed here: find them in raw_logs (group by address), and never assume a C-Chain token address. Token decimals are not in the tables; unless the question names them, count transfers rather than sum amounts.`
 }
 - Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
-- Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). An answer about active addresses says in its note that they are the senders and recipients of transactions, and that the explorer's own charts count more roles, so their figure is higher.
+- Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). ${activeNote}
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
 ${dex ? dexRules() : ""}${lending ? lendingRules() : ""}
 ## Query rules
