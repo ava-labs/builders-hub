@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowUp, ArrowUpRight, Clock, History, Search, Sparkles, X } from "lucide-react";
 import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";

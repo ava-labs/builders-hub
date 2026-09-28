@@ -136,6 +136,13 @@ function toHead(h: RpcHeader): Head {
    the whole poll and froze the live boards for the length of the burst. */
 const BATCH_MAX = 40;
 
+/* An L1 whose public RPC refuses the browser (no CORS headers) is read
+   through a same-origin relay instead: a stream registers the relay for its
+   URL, and the first fetch that fails at the network level moves every
+   later read of that URL there for the page's life */
+const RELAYS = new Map<string, string>();
+const MOVED = new Set<string>();
+
 export async function rpcBatch<T>(
   rpcUrl: string,
   calls: { method: string; params: unknown[] }[],
@@ -146,12 +153,21 @@ export async function rpcBatch<T>(
     for (let i = 0; i < calls.length; i += BATCH_MAX) parts.push(rpcBatch<T>(rpcUrl, calls.slice(i, i + BATCH_MAX), signal));
     return (await Promise.all(parts)).flat();
   }
-  const res = await fetch(rpcUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(calls.map((c, id) => ({ jsonrpc: "2.0", id, ...c }))),
-    signal,
-  });
+  const body = JSON.stringify(calls.map((c, id) => ({ jsonrpc: "2.0", id, ...c })));
+  const post = (url: string) => fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body, signal });
+  const relay = RELAYS.get(rpcUrl);
+  let res: Response;
+  if (relay && MOVED.has(rpcUrl)) res = await post(relay);
+  else {
+    try {
+      res = await post(rpcUrl);
+    } catch (e) {
+      // a CORS refusal or a dead host throws a TypeError; an abort does not
+      if (!relay || !(e instanceof TypeError)) throw e;
+      MOVED.add(rpcUrl);
+      res = await post(relay);
+    }
+  }
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const out = (await res.json()) as { id: number; result?: T | null }[];
   const byId = new Map(out.map((r) => [r.id, r.result ?? null]));
@@ -206,12 +222,17 @@ export function useHeadStream(
     seed?: number;
     /** executed transactions to retain for the receipts feed */
     keepTxs?: number;
+    /** blocks whose receipts one poll pulls once the feed has opened */
+    pull?: number;
+    /** a same-origin relay for an RPC that refuses the browser: reads move there after a network-level failure */
+    relay?: string;
   },
 ): HeadStream {
   const intervalMs = opts?.intervalMs ?? 1_000;
   const keep = opts?.keep ?? 64;
   const seed = opts?.seed ?? 20;
   const keepTxs = opts?.keepTxs ?? 48;
+  const pull = opts?.pull ?? 3;
   const [stream, setStream] = useState<HeadStream>(EMPTY);
   const headsRef = useRef<Head[]>([]);
   const txsRef = useRef<StreamTx[]>([]);
@@ -219,11 +240,13 @@ export function useHeadStream(
   const executedDone = useRef(new Set<number>());
   const executedHeightRef = useRef<number | null>(null);
 
+  const relay = opts?.relay;
   useEffect(() => {
     if (!rpcUrl) {
       setStream(EMPTY);
       return;
     }
+    if (relay && relay !== rpcUrl) RELAYS.set(rpcUrl, relay);
     headsRef.current = [];
     txsRef.current = [];
     executedDone.current = new Set();
@@ -256,7 +279,7 @@ export function useHeadStream(
 
     /* Execution: every head not yet pulled gives up its receipts. A fresh
        page seeds from the three newest heads so the feed opens populated;
-       after that the newest unseen heads go first, three per poll. A block
+       after that the newest unseen heads go first, `pull` per poll. A block
        whose receipts are not all there yet is left for the next poll. */
     const pullExecuted = async () => {
       // a caller that keeps no transactions (the blocks tab) skips the
@@ -267,7 +290,7 @@ export function useHeadStream(
       const frontier = (executedHeightRef.current ?? headsRef.current[0]?.number ?? 0) - 2;
       const want = headsRef.current
         .filter((h) => h.number >= frontier && !executedDone.current.has(h.number))
-        .slice(0, 3)
+        .slice(0, executedDone.current.size ? pull : 3)
         .map((h) => h.number);
       if (!want.length) return;
       // one block's failed pull leaves it for the next poll; it never fails the others
@@ -354,7 +377,7 @@ export function useHeadStream(
       document.removeEventListener("visibilitychange", onVisible);
       if (timer) clearTimeout(timer);
     };
-  }, [rpcUrl, intervalMs, keep, seed, keepTxs]);
+  }, [rpcUrl, relay, intervalMs, keep, seed, keepTxs, pull]);
 
   return stream;
 }

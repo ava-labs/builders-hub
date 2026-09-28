@@ -163,18 +163,27 @@ export function useChainMetrics(chainId: string, range: number, metricKeys: stri
 
   useEffect(() => {
     let cancelled = false;
+    let again: ReturnType<typeof setTimeout> | undefined;
     setMetrics(null);
     setFailed(false);
-    fetch(`/api/chain-stats/${chainId}?metrics=${metricKeys}&timeRange=${timeRange}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-      .then((data: Metrics) => {
-        if (!cancelled) setMetrics(data);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    const load = (first: boolean) =>
+      fetch(`/api/chain-stats/${chainId}?metrics=${metricKeys}&timeRange=${timeRange}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = (await res.json()) as Metrics;
+          if (cancelled) return;
+          setMetrics(data);
+          // a metric the stats API did not answer in time comes back missing, and the server keeps nothing: ask once more
+          if (first && res.headers.get("X-Partial-Metrics")) again = setTimeout(() => void load(false), 10_000);
+        })
+        .catch(() => {
+          // a second ask that fails leaves the first answer standing
+          if (!cancelled && first) setFailed(true);
+        });
+    void load(true);
     return () => {
       cancelled = true;
+      if (again) clearTimeout(again);
     };
   }, [chainId, timeRange, metricKeys]);
 

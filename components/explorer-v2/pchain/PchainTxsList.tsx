@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ExplorerShell } from "@/components/explorer-v2/ExplorerShell";
 import { Board, CellLabel, SectionHeader, TxTypePill, TypeFilterRail, idInk, HEAD, ROW, LoadMore, RowSkeleton } from "@/components/explorer-v2/ui";
-import { ageOrDate, formatNumber, timeAgo, truncate, ageShort } from "@/components/explorer-v2/format";
+import { formatNumber, truncate, ageShort } from "@/components/explorer-v2/format";
 import { usePchainData, LIVE_REFRESH_MS } from "./hooks";
 import { txTypeLabel, type TxSummary } from "@/lib/pchain-explorer";
 

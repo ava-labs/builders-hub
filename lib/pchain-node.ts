@@ -195,6 +195,8 @@ export interface L1ValidatorInfo {
   weight?: string | number;
   /** nAVAX prepaid toward the continuous fee */
   balance?: string | number;
+  /** the P-Chain height the node read the seat at */
+  height?: string | number;
 }
 
 /** Resolves an ACP-77 validationID to the seat's live nodeID/subnetID.
@@ -213,6 +215,17 @@ export interface ValidatorFeeState {
   /** nAVAX per second per seat */
   price: number;
   timestamp: string;
+}
+
+/** Unix seconds of the P-Chain block at `height`: the chain time its state
+ *  was settled at. */
+export async function getBlockTime(network: string, height: string | number): Promise<number | null> {
+  const r = await rpc<{ block?: { time?: number | string } }>(network, "platform.getBlockByHeight", {
+    height: String(height),
+    encoding: "json",
+  });
+  const t = Number(r?.block?.time);
+  return Number.isFinite(t) && t > 0 ? t : null;
 }
 
 export async function getValidatorFeeState(network: string): Promise<ValidatorFeeState | null> {

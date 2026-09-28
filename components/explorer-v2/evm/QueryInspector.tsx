@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Download, Table2, X } from "lucide-react";
+import { Check, ChevronLeft, Copy, Download, Table2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fnInk } from "@/components/explorer-v2/ui";
 import { formatNumber, truncate } from "@/components/explorer-v2/format";
@@ -116,6 +116,7 @@ export function RankList({
   base,
   sym,
   onOpen,
+  onHover,
   step = 60,
 }: {
   rows: Row[];
@@ -125,6 +126,8 @@ export function RankList({
   base: string;
   sym: string;
   onOpen?: (row: Row) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHover?: (row: Row | null) => void;
   step?: number;
 }) {
   const [shown, setShown] = useState(step);
@@ -164,7 +167,7 @@ export function RankList({
         );
         const cls = "flex w-full flex-col gap-1.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-zinc-100/80 focus-visible:bg-zinc-100/80 focus-visible:outline-none dark:hover:bg-zinc-900 dark:focus-visible:bg-zinc-900";
         return (
-          <li key={`${String(raw)}-${i}`}>
+          <li key={`${String(raw)}-${i}`} onMouseEnter={onHover && (() => onHover(r))} onMouseLeave={onHover && (() => onHover(null))}>
             {onOpen ? (
               <button type="button" onClick={() => onOpen(r)} className={cls}>
                 {body}
@@ -195,6 +198,7 @@ export function RowsBody({
   base,
   sym,
   onOpen,
+  onHover,
   table = false,
 }: {
   columns: ColumnMeta[];
@@ -204,12 +208,14 @@ export function RowsBody({
   base: string;
   sym: string;
   onOpen?: (row: Row) => void;
+  /** the row under the pointer, and null when it leaves */
+  onHover?: (row: Row | null) => void;
   table?: boolean;
 }) {
   if (!rows.length) return <p className="px-3 py-6 font-mono text-[12px] text-zinc-400 dark:text-zinc-500">No rows in this selection.</p>;
   const shape = shapeOf(columns, rows, visual);
   if (!table && shape.kind === "tx") return <TxCards rows={rows} names={names} visual={visual} base={base} sym={sym} />;
-  if (!table && shape.kind === "rank") return <RankList rows={rows} shape={shape} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} />;
+  if (!table && shape.kind === "rank") return <RankList rows={rows} shape={shape} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} onHover={onHover} />;
   return (
     <div className="-mx-1 [&_a]:outline-offset-2">
       <ResultTable
@@ -222,6 +228,7 @@ export function RowsBody({
         span="other"
         picked={null}
         onPick={onOpen ? (r) => onOpen(r) : undefined}
+        onHoverRow={onHover}
         step={100}
         hist
       />
@@ -259,6 +266,11 @@ export function QueryInspector({
   base,
   sym,
   onOpen,
+  busy = false,
+  error = null,
+  onBack,
+  hint = "Esc closes · R toggles",
+  sql,
 }: {
   open: boolean;
   onClose: () => void;
@@ -276,15 +288,27 @@ export function QueryInspector({
   base: string;
   sym: string;
   onOpen?: (row: Row) => void;
+  /** the rows are on their way */
+  busy?: boolean;
+  /** the rows could not be read */
+  error?: string | null;
+  /** back to the level the sheet was opened from */
+  onBack?: () => void;
+  /** the keys, in the footer */
+  hint?: string;
+  /** the query these rows came from, to copy and check */
+  sql?: string;
 }) {
   const desk = useDesktop();
+  const [copied, setCopied] = useState(false);
   const still = useReducedMotion();
   const [table, setTable] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
   const titleId = useId();
   const shape = shapeOf(columns, rows, visual);
-  const wide = table || shape.kind === "table";
+  // records on their way read as a list: the sheet keeps its width when they land
+  const wide = !busy && (table || shape.kind === "table");
 
   // open: hold the page still, focus the sheet; close: hand focus back
   useEffect(() => {
@@ -300,8 +324,13 @@ export function QueryInspector({
     };
   }, [open]);
 
-  // tab stays inside the sheet while it is open
+  // tab stays inside the sheet while it is open; Escape closes it
   const trap = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+      return;
+    }
     if (e.key !== "Tab" || !panel.current) return;
     const els = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null);
     if (!els.length) return;
@@ -354,19 +383,31 @@ export function QueryInspector({
         >
           {!desk && <span aria-hidden className="mx-auto mt-2.5 h-1 w-9 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-700" />}
           <div className="flex items-start gap-3 px-5 pb-3 pt-4">
+            {onBack && (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Back"
+                className="-ml-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <h2 id={titleId} className="flex items-baseline gap-2 text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                 Rows
-                <span className="font-mono text-[12px] font-normal tabular-nums text-zinc-400 dark:text-zinc-500">
-                  {rows.length === total ? formatNumber(total) : `${formatNumber(rows.length)} of ${formatNumber(total)}`}
-                </span>
+                {!busy && !error && (
+                  <span className="font-mono text-[12px] font-normal tabular-nums text-zinc-400 dark:text-zinc-500">
+                    {rows.length === total ? formatNumber(total) : `${formatNumber(rows.length)} of ${formatNumber(total)}`}
+                  </span>
+                )}
               </h2>
-              <p className="truncate text-[12.5px] text-zinc-500 dark:text-zinc-400" title={sub ?? title}>
+              <p className="line-clamp-2 text-[12.5px] text-zinc-500 dark:text-zinc-400" title={sub ?? title}>
                 {sub ?? title}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              {shape.kind !== "table" && (
+              {!busy && shape.kind !== "table" && (
                 <button
                   type="button"
                   onClick={() => setTable((v) => !v)}
@@ -380,10 +421,25 @@ export function QueryInspector({
                   <Table2 className="h-3.5 w-3.5" /> Table
                 </button>
               )}
+              {sql && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void navigator.clipboard?.writeText(sql).then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1400);
+                    })
+                  }
+                  title="Copy the SQL these rows came from"
+                  className="flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />} SQL
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => downloadCsv({ title, columns, rows, names })}
-                disabled={!rows.length}
+                onClick={() => downloadCsv({ title: sub ?? title, columns, rows, names })}
+                disabled={busy || !rows.length}
                 title="Download these rows as CSV"
                 className="flex h-8 items-center gap-1.5 rounded-full px-2.5 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-30 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
               >
@@ -401,11 +457,20 @@ export function QueryInspector({
             </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-8">
-            <RowsBody columns={columns} rows={rows} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} table={table} />
+            {error ? (
+              <p className="px-3 py-6 font-mono text-[12px] text-[#E6212F]">{error}</p>
+            ) : busy ? (
+              <div aria-busy="true" aria-label="Loading the rows" className="flex flex-col gap-2 px-3 py-2">
+                {[0, 1, 2, 3, 4, 5].map((k) => (
+                  <span key={k} className="h-12 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" style={{ animationDelay: `${k * 70}ms` }} />
+                ))}
+              </div>
+            ) : (
+              <RowsBody columns={columns} rows={rows} names={names} visual={visual} base={base} sym={sym} onOpen={onOpen} table={table} />
+            )}
           </div>
-          <p className="shrink-0 px-5 py-2.5 font-mono text-[10px] text-zinc-400 dark:text-zinc-600">
-            Esc closes · R toggles
-          </p>
+          {/* keys mean nothing on a phone */}
+          <p className="hidden shrink-0 px-5 py-2.5 font-mono text-[10px] text-zinc-400 md:block dark:text-zinc-600">{hint}</p>
         </motion.div>
       )}
     </AnimatePresence>

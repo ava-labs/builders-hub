@@ -9,7 +9,6 @@ import { BlockTape, BlockTapeSkeleton, type TapeBlock } from "@/components/explo
 const SHOW_TAPE = false;
 import { Board } from "@/components/explorer-v2/ui";
 import { formatNumber, timeAgo } from "@/components/explorer-v2/format";
-import { formatGwei } from "./format";
 import { EvmOverviewStats, LiveReadout } from "./EvmOverviewStats";
 import { CchainActivityChart, TxHistoryChart } from "./EvmActivity";
 import { ChainRecord } from "./ChainRecord";

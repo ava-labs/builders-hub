@@ -5,7 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { EvmShell } from "@/components/explorer-v2/EvmShell";
-import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, INK, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
+import { Board, CellLabel, DetailSkeleton, HashChip, SectionHeader, SpecLine, SpecSheet, SubjectHeadline, HEAD, ROW, UNIT, idInk, fnInk, feeInk, RowDoor } from "@/components/explorer-v2/ui";
 import { formatNumber, formatTime, timeAgo, truncate } from "@/components/explorer-v2/format";
 import { formatEther, formatNano } from "./format";
 import { FeedDown, useMethodNames } from "./bits";
@@ -244,7 +244,7 @@ export function EvmBlock({ network, id }: { network: string; id: string }) {
                     {life.ready ? (
                       <span className="flex items-center gap-2.5">
                         <PhaseTrack phase={life.phase} label={false} />
-                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">pending</span>}
+                        {life.settledBy ? `#${formatNumber(life.settledBy)}` : <span className="text-zinc-400 dark:text-zinc-500">executing</span>}
                       </span>
                     ) : (
                       "…"

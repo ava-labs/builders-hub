@@ -12,7 +12,6 @@ import {
   VersionBarChart,
   VersionLabels,
   calculateVersionStats,
-  compareVersions,
   type VersionBreakdownData,
   defaultVersionTarget,
 } from "@/components/stats/VersionBreakdown";

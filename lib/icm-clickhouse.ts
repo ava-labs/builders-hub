@@ -9,6 +9,8 @@ import { wrapFetchWithPayment } from "@x402/fetch";
 import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { toClientEvmSigner } from "@x402/evm";
 import { statsApi } from "@/lib/stats-api";
+import { runQuery } from "@/lib/explorer-query/clickhouse";
+import { DEDICATED_METRICS_CHAINS } from "@/lib/dedicated-stats";
 
 type L1ChainEntry = {
   chainId: string;
@@ -140,7 +142,13 @@ interface ChainInfo {
   chainName: string;
   chainLogoURI: string;
   color: string;
+  isTestnet: boolean;
 }
+
+/** the network a flow feed answers for: a message never crosses from one to the other */
+export type IcmNetwork = "mainnet" | "fuji";
+
+const onNetwork = (c: ChainInfo, network: IcmNetwork) => c.isTestnet === (network === "fuji");
 
 function generateColor(name: string): string {
   let hash = 0;
@@ -163,6 +171,7 @@ for (const c of l1ChainsData) {
     chainName: typed.chainName,
     chainLogoURI: typed.chainLogoURI || "",
     color: typed.color || generateColor(typed.chainName),
+    isTestnet: typed.isTestnet === true,
   });
 }
 
@@ -601,14 +610,17 @@ interface ICMFlowData {
   messageCount: number;
 }
 
-export async function getICMFlowData(days: number): Promise<ICMFlowData[]> {
+/* The flows of one network. The index holds Fuji's chains beside mainnet's,
+   so each flow keeps only when both its ends are catalog chains of the
+   network asked for. */
+export async function getICMFlowData(days: number, network: IcmNetwork = "mainnet"): Promise<ICMFlowData[]> {
   const crossChainFlows = await fetchCrossChainFlows(days);
 
   const flows: ICMFlowData[] = [];
   for (const row of crossChainFlows) {
     const src = lookupChain(row.source_chain_id);
     const dst = lookupChain(row.dest_chain_id);
-    if (!src || !dst) continue;
+    if (!src || !dst || !onNetwork(src, network) || !onNetwork(dst, network)) continue;
 
     flows.push({
       sourceChain: src.chainName,
@@ -625,6 +637,94 @@ export async function getICMFlowData(days: number): Promise<ICMFlowData[]> {
 
   flows.sort((a, b) => b.messageCount - a.messageCount);
   return flows;
+}
+
+/* The flows both ways, as the city draws them: each direction counted once,
+   as the larger of its sends, on a sender the index holds, and its
+   deliveries, on a receiver it holds. With the sender's logs whole its sends
+   are the larger, the messages still in flight among them; with its logs
+   behind (Blaze's stopped on Sep 22 while it went on sending), its
+   deliveries stand in. The sends are one ad-hoc query beside the flows' own;
+   when it cannot be read, the deliveries come back alone and say so. */
+export interface ICMFlowBothSides extends ICMFlowData {
+  countedAs: "sent" | "delivered";
+}
+
+// the index's chain IDs where they differ from the catalog's: KiteAI's catalog entry carries its blockchain ID
+const catalogIdOfStats = new Map(
+  Object.entries(DEDICATED_METRICS_CHAINS)
+    .filter(([catalogId, statsId]) => catalogId !== statsId)
+    .map(([catalogId, statsId]) => [statsId, catalogId])
+);
+const catalogIdOf = (statsId: string | number) => catalogIdOfStats.get(String(statsId)) ?? String(statsId);
+
+// the index's chain IDs for a network's senders: the catalog's EVM IDs, KiteAI's by its stats ID
+function senderChainIds(network: IcmNetwork): number[] {
+  const ids = new Set<number>();
+  for (const c of l1ChainsData as L1ChainEntry[]) {
+    if ((c.isTestnet === true) !== (network === "fuji")) continue;
+    const id = Number(DEDICATED_METRICS_CHAINS[c.chainId] ?? c.chainId);
+    if (Number.isSafeInteger(id)) ids.add(id);
+  }
+  return [...ids];
+}
+
+// SendCrossChainMessage: chain_id = the sender, topic2 = destinationBlockchainID; the senders are the network's own
+async function fetchSentFlows(days: number, network: IcmNetwork): Promise<{ from: string; to: string; n: number }[]> {
+  const r = await runQuery(
+    `SELECT chain_id AS src, hex(topic2) AS dest, count() AS n
+FROM raw_logs
+PREWHERE block_time >= now() - INTERVAL ${Math.ceil(days)} DAY AND chain_id IN (${senderChainIds(network).join(", ")})
+WHERE topic0 = unhex('${SEND_CROSS_CHAIN_MSG_TOPIC0}')
+GROUP BY src, dest`
+  );
+  const out: { from: string; to: string; n: number }[] = [];
+  for (const row of r.rows) {
+    const to = blockchainHexToChainId.get(String(row.dest).toUpperCase());
+    if (to !== undefined) out.push({ from: catalogIdOf(String(row.src)), to, n: Number(row.n) || 0 });
+  }
+  return out;
+}
+
+export async function getICMFlowDataBothSides(days: number, network: IcmNetwork = "mainnet"): Promise<{ flows: ICMFlowBothSides[]; complete: boolean }> {
+  const [delivered, sent] = await Promise.all([
+    fetchCrossChainFlows(days),
+    fetchSentFlows(days, network).catch((err) => {
+      console.warn("[icm-clickhouse] sent flows unavailable; deliveries alone:", err);
+      return null;
+    }),
+  ]);
+  const best = new Map<string, { from: string; to: string; n: number; side: "sent" | "delivered" }>();
+  for (const f of delivered) {
+    const to = catalogIdOf(f.dest_chain_id);
+    best.set(`${f.source_chain_id}>${to}`, { from: f.source_chain_id, to, n: Number(f.msg_count), side: "delivered" });
+  }
+  for (const f of sent ?? []) {
+    const k = `${f.from}>${f.to}`;
+    // a tie goes to the sender's side
+    if (f.n >= (best.get(k)?.n ?? 0)) best.set(k, { ...f, side: "sent" });
+  }
+  const flows: ICMFlowBothSides[] = [];
+  for (const f of best.values()) {
+    const src = lookupChain(f.from);
+    const dst = lookupChain(f.to);
+    // both ends on the network asked for: the deliveries hold Fuji's receivers too
+    if (!src || !dst || !onNetwork(src, network) || !onNetwork(dst, network) || !(f.n > 0)) continue;
+    flows.push({
+      sourceChain: src.chainName,
+      sourceChainId: src.chainId,
+      sourceLogo: src.chainLogoURI,
+      sourceColor: src.color,
+      targetChain: dst.chainName,
+      targetChainId: dst.chainId,
+      targetLogo: dst.chainLogoURI,
+      targetColor: dst.color,
+      messageCount: f.n,
+      countedAs: f.side,
+    });
+  }
+  flows.sort((a, b) => b.messageCount - a.messageCount);
+  return { flows, complete: sent !== null };
 }
 
 interface DailyFeeData {
