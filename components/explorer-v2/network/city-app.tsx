@@ -16,7 +16,7 @@ import { canAskPhrase, looksLikeQuestion } from "@/lib/explorer-query/ask";
 import { classifyLocally } from "@/lib/pchain-explorer";
 import { ViewSwitch } from "@/components/explorer-v2/network/icm-parts";
 import { DISTRICT_GLASS, GroundKey, Logo, TONE, Tower, mixTotal, pctInk, type CameraHandle, type CityData, type Inset, type Node, type VersionMix } from "@/components/explorer-v2/network/icm-map";
-import { DISTRICTS, districtAbout, districtLabel, type District } from "@/components/explorer-v2/network/districts";
+import { DISTRICTS, LIST_ORDER, districtAbout, districtLabel, type District } from "@/components/explorer-v2/network/districts";
 import { NEW_DAYS } from "@/components/explorer-v2/network/newcomers";
 import { RANGE_DAYS, type ExplorerRange } from "@/components/explorer-v2/time-range";
 import { useChainPulse } from "@/components/explorer-v2/network/chain-pulse";
@@ -115,7 +115,7 @@ const SORTS: { v: Sort; label: string }[] = [
   { v: "name", label: "Name" },
 ];
 
-const districtRank = (d: District | null) => (d === null ? -1 : DISTRICTS.findIndex((x) => x.key === d));
+const districtRank = (d: District | null) => (d === null ? -1 : LIST_ORDER.indexOf(d));
 const pctOf = (m: VersionMix | null) => {
   const known = m ? m.on + m.near + m.stale : 0;
   return m && known > 0 ? Math.round((m.on / mixTotal(m)) * 100) : null;
@@ -1995,7 +1995,7 @@ export function CityApp({
   /* ---------------------------------------------------------------- */
   if (!wide) {
     const phoneGroups = net === "testnet" ? [{ key: "fuji", district: null as District | null, rows }] : groups.length && grouped ? groups : [{ key: "all", district: null, rows }];
-    const chips = net === "mainnet" ? DISTRICTS.filter((d) => cityRows.some((r) => r.district === d.key)) : [];
+    const chips = net === "mainnet" ? DISTRICTS.filter((d) => cityRows.some((r) => r.district === d.key)).sort((a, b) => districtRank(a.key) - districtRank(b.key)) : [];
     const routes = [...data.routes].sort((a, b) => b.messages - a.messages).slice(0, 12);
     const topRoute = routes[0]?.messages ?? 1;
     return (

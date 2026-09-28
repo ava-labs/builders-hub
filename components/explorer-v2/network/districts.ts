@@ -18,6 +18,9 @@ export const DISTRICTS: { key: District; label: string; about: string }[] = [
   { key: "frontier", label: "Frontier", about: "L1s the directory does not describe yet, and the week's new L1s" },
 ];
 
+/** the order the list and the phone's browser show the districts in, finance first; the city's plan keeps DISTRICTS' order */
+export const LIST_ORDER: District[] = ["finance", "enterprise", "ai", "gaming", "culture", "infrastructure", "frontier"];
+
 /** the district that faces the viewer */
 export const FRONT: District = "finance";
 
