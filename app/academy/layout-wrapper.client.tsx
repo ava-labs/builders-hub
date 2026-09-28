@@ -8,8 +8,9 @@ import { NavbarDropdownInjector } from '@/components/navigation/navbar-dropdown-
 import { ForceMobileSidebar } from '@/components/navigation/force-mobile-sidebar';
 import { DocsNavbarToggle } from '@/components/navigation/docs-navbar-toggle';
 import { AcademyLayoutClient } from './layout.client';
-import { AcademyBubbleNav } from '@/components/academy/shared/academy-bubble-nav';
 import { DecorativeGrid } from '@/components/ui/decorative-grid';
+import { withModuleNumbers } from '@/components/academy/sidebar/module-numbers';
+import { RevealActiveSidebarItem } from '@/components/academy/sidebar/reveal-active-sidebar-item';
 
 type Tree = DocsLayoutProps['tree'];
 
@@ -50,7 +51,7 @@ export function AcademyDocsLayoutWrapper({
 
     const academyOptions: DocsLayoutProps = useMemo(
         () => ({
-            tree: activeTree,
+            tree: withModuleNumbers(activeTree),
             nav: {
                 enabled: false,
             },
@@ -62,12 +63,12 @@ export function AcademyDocsLayoutWrapper({
     );
 
     return (
-        <div data-route-layout="academy">
+        <div data-route-layout="academy" data-academy="docs">
             <NavbarDropdownInjector />
             <ForceMobileSidebar />
             <AcademyLayoutClient />
             <DocsNavbarToggle />
-            <AcademyBubbleNav />
+            <RevealActiveSidebarItem />
             <DocsLayout {...academyOptions}>
                 {/*<span
                     className="absolute inset-0 z-[-1] h-[64rem] max-h-screen overflow-hidden"

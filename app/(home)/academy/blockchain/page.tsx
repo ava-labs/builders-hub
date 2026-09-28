@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createMetadata } from "@/utils/metadata";
 import { AcademyLayout } from "@/components/academy/shared/academy-layout";
+import { COURSE_STATS } from "@/lib/academy/course-stats.generated";
 import { blockchainAcademyLandingPageConfig } from "./config";
 import { Suspense } from "react";
 
@@ -28,9 +29,10 @@ export const metadata: Metadata = createMetadata({
 });
 
 export default function BlockchainAcademyPage(): React.ReactElement {
+  const courseStats = COURSE_STATS["blockchain"];
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="text-zinc-600 dark:text-zinc-400">Loading...</div></div>}>
-      <AcademyLayout config={blockchainAcademyLandingPageConfig} />
+      <AcademyLayout config={blockchainAcademyLandingPageConfig} courseStats={courseStats} />
     </Suspense>
   );
 }
