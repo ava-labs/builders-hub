@@ -15,6 +15,7 @@
    in the rows says otherwise. */
 
 import { pchainRows, toHexBytes } from "./pchain-ids";
+import { LENDING_PROTOCOLS } from "./lending";
 import { DEX_CHAIN_ID, DEX_PROTOCOLS, dexContractName } from "./protocols";
 import { subnetNames } from "./sources";
 import { targetOf } from "./target";
@@ -139,11 +140,12 @@ export async function enrichNames(chainId: number, columns: ColumnMeta[], rows: 
   const names: Names = {};
   if (rows.length === 0) return names;
 
-  // a DEX protocol's slug, as dex_factories carries it, reads as the protocol's name
+  // a DEX or lending protocol's slug, as dex_factories or the lending shorthand carries it, reads as the protocol's name
   if (chainId === DEX_CHAIN_ID) {
+    const protocols: Record<string, string> = { ...DEX_PROTOCOLS, ...LENDING_PROTOCOLS };
     for (const col of columns) {
       const slugs = rows.map((r) => r[col.name]).filter((v): v is string => typeof v === "string");
-      if (slugs.length && slugs.every((v) => Object.hasOwn(DEX_PROTOCOLS, v))) names[col.name] = Object.fromEntries([...new Set(slugs)].map((v) => [v, DEX_PROTOCOLS[v]]));
+      if (slugs.length && slugs.every((v) => Object.hasOwn(protocols, v))) names[col.name] = Object.fromEntries([...new Set(slugs)].map((v) => [v, protocols[v]]));
     }
   }
 

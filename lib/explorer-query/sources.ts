@@ -7,6 +7,7 @@ import { PRIMARY_SUBNET_ID } from "@/lib/pchain-node";
 import { fetchAllSubnets } from "@/lib/pchain-subnets";
 import type { SubnetStats } from "@/types/validator-stats";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_LISTED_AT, DEX_TOKENS, factoriesFor, factoriesSql, tokensFor, tokensSql } from "./protocols";
+import { AAVE_ASSETS, LENDING_CHAIN_ID, LENDING_LISTED_AT, LENDING_MARKETS, LENDING_PROTOCOLS, lendingTokensFor, marketsFor, namesIn } from "./lending";
 import { PCHAIN_IDS, targetOf } from "./target";
 import type { SourceNote } from "./types";
 
@@ -385,11 +386,83 @@ const tokens: Source = {
 };
 
 /* ------------------------------------------------------------------ */
+/* lending_markets, lending_tokens                                     */
 
-const SOURCES: Record<string, Source> = { p_validator_versions: versions, p_avax_supply: supply, dex_factories: factories, dex_tokens: tokens };
+/* The C-Chain's lending protocols (lending.ts): Benqi's markets with the
+   asset each lends, and the decimals and price kind of each asset Aave or
+   Benqi lends. Aave's Pool names its reserve in each event, so an Aave
+   query needs only the tokens. Mainnet only. The two share what the query
+   leaves of the budget, each keeping the entries the query names: the
+   markets first, since without one a market loses its asset, and without
+   a token only its decimals. */
 
-/** the tables the DEX chapter of a DEX question's prompt describes itself, so every other prompt stays as it was */
-const OWN_CHAPTER = new Set(["dex_factories", "dex_tokens"]);
+/** the WITH around the two tables, in bytes */
+const LENDING_WRAP = 64;
+
+function lendingRoom(query: string) {
+  // the names the server defines for the query share the budget too
+  const free = SQL_BUDGET - Buffer.byteLength(query) - LENDING_WRAP - Buffer.byteLength(namesIn(query).join(", "));
+  const markets = reads(query, "lending_markets") ? marketsFor(query, free) : null;
+  return { markets, tokens: lendingTokensFor(query, free - Buffer.byteLength(markets?.sql ?? "")) };
+}
+
+const markets: Source = {
+  columns: [
+    ["chain_id", "UInt64"],
+    ["protocol", "String"],
+    ["version", "String"],
+    ["market", "String"],
+    ["asset", "String"],
+    ["decimals", "UInt8"],
+    ["price", "String"],
+  ],
+  async build(_chainId, query) {
+    const { sql, kept } = lendingRoom(query).markets ?? marketsFor(query, SQL_BUDGET);
+    const versions = new Set(kept.map((m) => m.version));
+    // a query that keeps one version gets that version's markets only
+    const pool = LENDING_MARKETS.filter((m) => versions.has(m.version));
+    const n = pool.length;
+    const names = [...new Set(kept.map((m) => LENDING_PROTOCOLS[m.protocol] ?? m.protocol))].join(" and ");
+    const which = versions.size === 1 ? ` ${[...versions][0]}` : "";
+    const text =
+      kept.length < n
+        ? `Lending markets and the assets they lend come from our contract registry. This table holds ${fmt(kept.length)} of its ${fmt(n)}${which} markets: the ones the query names, then the others in the registry's order.`
+        : `Lending markets and the assets they lend come from our contract registry: ${fmt(n)} ${names}${which} markets.`;
+    return { sql, note: { table: "lending_markets", label: "the contract registry", at: LENDING_LISTED_AT, total: n, known: kept.length, text } };
+  },
+};
+
+const lendingTokens: Source = {
+  columns: [
+    ["chain_id", "UInt64"],
+    ["token", "String"],
+    ["decimals", "UInt8"],
+    ["price", "String"],
+  ],
+  async build(_chainId, query) {
+    const { sql, kept } = lendingRoom(query).tokens;
+    const n = AAVE_ASSETS.length;
+    const text =
+      kept.length < n
+        ? `Token decimals and price sources come from our list of the assets Aave lends. This table holds ${fmt(kept.length)} of its ${fmt(n)} tokens: the ones the query names, then the rest.`
+        : `Token decimals and price sources come from our list of the ${fmt(n)} assets Aave lends.`;
+    return { sql, note: { table: "lending_tokens", label: "token decimals", at: LENDING_LISTED_AT, total: n, known: kept.length, text } };
+  },
+};
+
+/* ------------------------------------------------------------------ */
+
+const SOURCES: Record<string, Source> = {
+  p_validator_versions: versions,
+  p_avax_supply: supply,
+  dex_factories: factories,
+  dex_tokens: tokens,
+  lending_markets: markets,
+  lending_tokens: lendingTokens,
+};
+
+/** the tables a chapter of the prompt describes itself (a DEX or a lending question's), so every other prompt stays as it was */
+const OWN_CHAPTER = new Set(["dex_factories", "dex_tokens", "lending_markets", "lending_tokens"]);
 
 /** a reference table's line: its name and typed columns */
 export function refLine(table: string): string {
@@ -417,16 +490,19 @@ export function refsIn(sql: string, chainId: number): string[] {
 export async function withSources(sql: string, chainId: number): Promise<{ sql: string; sources: SourceNote[] }> {
   const used = refsIn(sql, chainId);
   const dedup = targetOf(chainId).final.filter((t) => reads(sql, t));
-  if (used.length === 0 && dedup.length === 0) return { sql, sources: [] };
+  // the lending names the query reads (lending.ts), on the C-Chain the registry describes
+  const names = chainId === LENDING_CHAIN_ID ? namesIn(sql) : [];
+  if (used.length === 0 && dedup.length === 0 && names.length === 0) return { sql, sources: [] };
   const built = await Promise.all(used.map((r) => SOURCES[r].build(chainId, sql)));
   // the inner name is the table itself: a WITH does not see its own names
-  const defs = [...dedup.map((t) => `${t} AS (SELECT * FROM ${t} FINAL)`), ...used.map((r, i) => `${r} AS (${built[i].sql})`)];
+  const defs = [...names, ...dedup.map((t) => `${t} AS (SELECT * FROM ${t} FINAL)`), ...used.map((r, i) => `${r} AS (${built[i].sql})`)];
   // wrapped, not merged into the query's own WITH: every branch of a UNION sees the tables
   const out = `WITH ${defs.join(", ")} SELECT * FROM (\n${sql}\n)`;
   const bytes = Buffer.byteLength(out);
   if (bytes > SQL_BUDGET) {
     const own = Buffer.byteLength(sql);
-    throw new Error(`the query is too long to send with ${used.join(" and ")}: the table takes ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
+    const what = [...used, ...(names.length ? ["the lending names"] : [])].join(" and ");
+    throw new Error(`the query is too long to send with ${what}: the table takes ${bytes - own} of the ${SQL_BUDGET} bytes the query service accepts, so the query may use ${SQL_BUDGET - (bytes - own)} and it uses ${own}. Write a shorter query.`);
   }
   return { sql: out, sources: built.map((b) => b.note) };
 }

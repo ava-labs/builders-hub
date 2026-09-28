@@ -1,12 +1,14 @@
-/* The shorthand a DEX query opens with, and the WITH it stands for. The
-   writer types $DEX(start) or $DEX(start, end), either with a slug last,
-   for the DEX WITH (the pools of every family, the window's Swap logs, the
-   WAVAX price of each hour and the value of each swap), or $POOLS() or
-   $POOLS('slug') for its
-   Swap topic names and pools alone. The guard writes it out before it
-   reads the query, so what the guard checks, what runs and what the page
-   shows is the whole WITH, the one the prompt shows. Mainnet C-Chain only. */
+/* The shorthand a DEX or lending query opens with, and the WITH it
+   stands for. The writer types $DEX(start) or $DEX(start, end), either
+   with a slug last, for the DEX WITH (the pools of every family, the
+   window's Swap logs, the WAVAX price of each hour and the value of each
+   swap), or $POOLS() or $POOLS('slug') for its Swap topic names and pools
+   alone; and $LEND, $LIQUIDATIONS, $PRICES, $DEBTS or $MARKETS for a
+   lending WITH (lending.ts). The guard writes it out before it reads the
+   query, so what the guard checks, what runs and what the page shows is
+   the whole WITH, the one the prompt shows. Mainnet C-Chain only. */
 
+import { debtsWith, LENDING_PROTOCOLS, lendWith, liquidationsWith, marketsWith, pricesWith } from "./lending";
 import { DEX_CHAIN_ID, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, type DexFamily } from "./protocols";
 
 const T = DEX_TOPICS;
@@ -72,14 +74,22 @@ interface Macro {
   text: (start: string, end: string | undefined, slug: string | undefined) => string;
 }
 const dexSlugs = () => Object.keys(DEX_PROTOCOLS);
+const lendSlugs = () => Object.keys(LENDING_PROTOCOLS);
 const dex = (with_: string, start: string, end: string | undefined, slug: string | undefined) =>
   with_.replaceAll("$START", () => start).replace("$END", () => (end ? ` AND block_time < ${end}` : "")).replace("$PROTOCOL", () => (slug ? `AND protocol = '${slug}'` : ""));
 const MACROS: Record<string, Macro> = {
   DEX: { window: true, slugs: dexSlugs, slug: "optional", text: (start, end, slug) => dex(DEX_WITH, start, end, slug) },
   POOLS: { window: false, slugs: dexSlugs, slug: "optional", text: (_s, _e, slug) => dex(DEX_POOLS, "", undefined, slug) },
+  LEND: { window: true, slugs: lendSlugs, slug: "optional", text: lendWith },
+  LIQUIDATIONS: { window: true, slugs: lendSlugs, slug: "optional", text: liquidationsWith },
+  PRICES: { window: true, slugs: () => [], slug: "none", text: (start, end) => pricesWith(start, end) },
+  // one protocol's debts or markets take most of the 8 KiB the query service accepts, so one at a time
+  DEBTS: { window: false, slugs: lendSlugs, slug: "required", text: (_s, _e, slug) => debtsWith(slug!) },
+  MARKETS: { window: false, slugs: lendSlugs, slug: "required", text: (_s, _e, slug) => marketsWith(slug) },
 };
 
-const USAGE = "open the query with $DEX(start), $DEX(start, end) or either with a slug last, or $POOLS() or $POOLS('slug'), then SELECT or , name AS (…)";
+const USAGE =
+  "open the query with one shorthand: $DEX, $LEND or $LIQUIDATIONS with the window's start, then its end if it has one, then a slug for one protocol, as in $DEX(start, end, 'slug'); $PRICES(start) or $PRICES(start, end); $POOLS() or $POOLS('slug'); $DEBTS('slug') or $MARKETS('slug'). Then SELECT, or , name AS (…)";
 const quoted = (xs: readonly string[]) => xs.map((s) => `'${s}'`).join(", ");
 /** a quoted word, as a slug is; a quoted date is a DateTime */
 const WORD = /^'([a-z][\w-]*)'$/i;
@@ -126,7 +136,8 @@ export function expandMacros(sql: string, chainId: number): Expanded {
   if (args.length > most || times.length > (macro.window ? 2 : 0))
     return { ok: false, error: `$${name} takes at most ${[...(macro.window ? ["the window's start", "its end"] : []), ...(macro.slug === "none" ? [] : ["a slug"])].join(", ").replace(/, ([^,]*)$/, " and $1")}: ${USAGE}` };
   if (macro.window && (!start || WORD.test(start))) return { ok: false, error: `$${name} takes the window's start first${macro.slug === "none" ? "" : ", then the slug"}: ${example}` };
-  if (end !== undefined && WORD.test(end)) return { ok: false, error: `$${name} takes one slug, last: $${name}(toStartOfDay(now()) - INTERVAL 1 DAY, toStartOfDay(now()), '${some}')` };
+  if (end !== undefined && WORD.test(end))
+    return { ok: false, error: macro.slug === "none" ? `$${name} takes no slug: ${USAGE}` : `$${name} takes one slug, last: $${name}(toStartOfDay(now()) - INTERVAL 1 DAY, toStartOfDay(now()), '${some}')` };
   if (slugArg !== undefined && !slugs.includes(slug!)) return { ok: false, error: `${slugArg} is not a protocol's slug; the slugs are ${quoted(slugs)}` };
   if (macro.slug === "required" && !slug) return { ok: false, error: `$${name} covers one protocol at a time: $${name}(${quoted(slugs).replace(/, /g, `) or $${name}(`)})` };
   const text = macro.text(start ? time(start) : "", end ? time(end) : undefined, slug);
@@ -134,4 +145,54 @@ export function expandMacros(sql: string, chainId: number): Expanded {
   const rest = sql.slice(close + 1).replace(/^\s*WITH\b/i, ",");
   if (!/\S/.test(rest)) return { ok: false, error: `$${name}(…) is only the WITH: ${USAGE}` };
   return { ok: true, sql: text + rest, macro: { name, size: text.length } };
+}
+
+/* ------------------------------------------------------------------ */
+/* An earlier turn comes back from the page with its shorthand written
+   out, and the writer reads only the first 3,000 characters of it, so
+   the SELECT after a long WITH is cut off. The shorthand goes back in
+   its place, as the writer typed it. */
+
+const MARK = { start: "\u0001start\u0001", end: "\u0001end\u0001" };
+const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** each shorthand's WITH, for every slug and with or without an end, as a pattern that finds it at a query's start;
+    the forms with an end come first, since the form without one could read an end as part of the start */
+let patterns: { name: string; slug?: string; re: RegExp }[] | undefined;
+function patternsOf() {
+  return (patterns ??= Object.entries(MACROS).flatMap(([name, macro]) => {
+    const slugs = macro.slug === "none" ? [undefined] : macro.slug === "required" ? [...macro.slugs()] : [undefined, ...macro.slugs()];
+    return (macro.window ? [true, false] : [false]).flatMap((end) =>
+      slugs.map((slug) => {
+        const seen = new Set<string>();
+        const text = macro.text(macro.window ? MARK.start : "", end ? MARK.end : undefined, slug);
+        const source = text
+          .split(/(\u0001(?:start|end)\u0001)/)
+          .map((part) => {
+            const arg = part === MARK.start ? "s" : part === MARK.end ? "e" : null;
+            if (!arg) return escaped(part);
+            if (seen.has(arg)) return `\\k<${arg}>`;
+            seen.add(arg);
+            return `(?<${arg}>[\\s\\S]+?)`;
+          })
+          .join("");
+        return { name, slug, re: new RegExp(`^${source}`) };
+      }),
+    );
+  }));
+}
+
+/** a query whose WITH a shorthand wrote, with the shorthand back in its place; any other query as it came. A form is
+    kept only when it writes out to the same query again */
+export function collapseMacros(sql: string, chainId: number): string {
+  if (chainId !== DEX_CHAIN_ID) return sql;
+  for (const p of patternsOf()) {
+    const m = p.re.exec(sql);
+    if (!m) continue;
+    const args = [m.groups?.s, m.groups?.e, p.slug === undefined ? undefined : `'${p.slug}'`].filter((a): a is string => a !== undefined);
+    const short = `$${p.name}(${args.join(", ")})${sql.slice(m[0].length)}`;
+    const back = expandMacros(short, chainId);
+    if (back.ok && back.sql === sql) return short;
+  }
+  return sql;
 }

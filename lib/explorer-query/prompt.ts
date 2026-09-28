@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { MAX_ROWS } from "./guard";
 import { CREATED, DEX_WITH, FIRST_DAY, QUOTES, U, pxCte, topic } from "./macros";
 import { DEX_CHAIN_ID, DEX_FACTORIES, DEX_PRICE_POOL, DEX_PROTOCOLS, DEX_TOPICS, dexFamilies, type DexFamily } from "./protocols";
+import { AAVE_ASSETS, AAVE_SLUG, LENDING_CHAIN_ID, LENDING_MARKETS, LENDING_PROTOCOLS } from "./lending";
 import { knownLines, refLine, refSchema } from "./sources";
 import { isCChain, isFuji, PCHAIN_IDS, targetOf } from "./target";
 
@@ -101,6 +102,8 @@ ${dexFamilies()
 - Amounts: toFloat64 first, then divide by pow(10, decimals) from dex_tokens. A token that is not in dex_tokens has no decimals here: never add up its raw amounts; count its swaps or transfers instead.
 - Volume, in USD: the value of a swap is its stablecoin leg (1 token = 1 USD). With no stablecoin leg it is its WAVAX or native AVAX leg at the WAVAX price of that hour; with neither, it has no value. The WAVAX price of an hour is the median, over the swaps of that hour in the Uniswap v3 WAVAX/USDC 0.05% pool ${DEX_PRICE_POOL} (token0 WAVAX, token1 USDC), of -amount1 / amount0 * 1e12. Rows carry swaps, priced_swaps (the swaps with a value) and volume_usd. The note says that the volume counts the stablecoin leg of each swap, or its WAVAX leg at the price of that hour in the Uniswap v3 WAVAX/USDC pool, and leaves out swaps between other tokens.
 - Prices and values come from the DEX WITH: a swap's value is usd in legs, and the WAVAX price of an hour is price in px. Never price a swap again in a query of your own. A price the question asks for itself (the WAVAX price on each DEX) is the ratio of a swap's amounts r0 and r1 in legs, each over its decimals.
+- A token amount in a row is in the token's units: r0 / pow(10, d) with d from dex_tokens, never a raw r0 or r1. For a token dex_tokens lacks, show usd alone.
+- Name a value column by its unit, and make it hold that unit: _usd for dollars, _avax for AVAX. A value made from usd or price is in dollars.
 - Tokens: a question about tokens (which tokens have the most volume or swaps) is answered per token, never per pair. Each swap counts once for each of its two tokens, and native AVAX (the zero address, a univ4 pool's t0) counts as WAVAX: FROM legs ARRAY JOIN [if(t0 = unhex('0000000000000000000000000000000000000000'), unhex('b31f66aa3c1e785363f0875a1b74e27b85fd66c7'), t0), t1] AS token.
 - A trader is the sender of the transaction (tx_from); a router is the contract it called (tx_to). The new pools of a period are the creation logs of the factories in that period. The fees of a univ3 or cl-ramses pool are the value of each swap times its fee: sum(usd * k / 1e6) over its legs.
 - Liquidity providers, one pool at a time, each as its worked example shows. First read the pool's own Mint and Burn logs (a rare topic by one address is fast), then only the blocks and transactions they name (block_number IN, since raw_logs sorts by topic0 and block_number): a read of a positions contract's or a pool token's logs over their whole history is too slow. univ3, cl-ramses and algebra: the positions contract's logs of those transactions, valued at the current tick. univ2 and solidly: the deposits less the withdrawals of each sender (a withdrawal can pay a router), as shares of the pool's reserves at its last Sync; the pool token's own Transfer logs are too many to read for an old pool. lb: the deposits less the withdrawals of each sender. Value only the stablecoin and WAVAX sides, at the latest WAVAX price, and the note says so.
@@ -175,7 +178,71 @@ export function dexQuestion(chainId: number, prompt: string, history: { prompt?:
   return about(prompt) || history.some((t) => about(t.prompt ?? "") || /\bdex_(factories|tokens)\b/.test(t.sql ?? ""));
 }
 
-export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean }): string {
+/* ------------------------------------------------------------------ */
+/* The C-Chain's lending protocols (lending.ts), mainnet only, in the
+   prompt of a question about them (lendingQuestion): every other
+   question's prompt is the one it was. The writer types the shorthand
+   (macros.ts) and reads the one table each ends in; the chapter says
+   what each table's columns hold, since the WITHs are the server's. */
+
+const CORE_MARKETS = LENDING_MARKETS.filter((m) => m.version === "core").length;
+const BENQI_SLUG = Object.keys(LENDING_PROTOCOLS).find((s) => s !== AAVE_SLUG) ?? "benqi";
+
+function lendingRules(): string {
+  const slugs = Object.entries(LENDING_PROTOCOLS)
+    .map(([slug, name]) => `'${slug}' (${name})`)
+    .join(" or ");
+  return `
+## Lending
+Aave v3 and Benqi Core (a Compound v2 fork) on this chain, from our contract registry. protocol is a slug: ${slugs}. Aave has one Pool for every reserve; Benqi has one market, a qiToken, for each asset.
+Our server sends two small tables with a query that reads them, and defines the names of the protocols' topics and contracts (below) in front of it:
+- ${refLine("lending_markets")}: Benqi's ${CORE_MARKETS} core markets. market is the qiToken; asset is the token it lends, the zero address for qiAVAX, which holds native AVAX. decimals and price are the asset's.
+- ${refLine("lending_tokens")}: the ${AAVE_ASSETS.length} assets Aave lends, with their decimals and price.
+- price is the kind of USD price an asset has: 'usd' for a stablecoin (1 token = 1 USD); 'avax', 'btc', 'eth', 'link', 'eurc', 'qi' or 'savax' for a price our server reads from swaps; '' for none.
+- market, asset and token are raw bytes, like raw_logs.address: compare them directly, never as text.
+- The shorthand. Never write a lending WITH out, or a shorter copy of it: open the query with one of these, and our server writes it in place. Each ends in one table:
+  - $LEND(start), $LEND(start, end), or either with a slug last: actions, one row for each supply, withdrawal, borrow and repayment in the window. Columns: t, protocol, action ('supply', 'withdraw', 'borrow' or 'repay'), asset, who (the account the action is for: on Aave the onBehalfOf of a supply or a borrow and the user of a withdrawal or a repayment; on Benqi the minter, the redeemer or the borrower), amount (in the asset's units), usd (at the hour's price; sAVAX at its stake rate in AVAX), tx.
+  - $LIQUIDATIONS(start), $LIQUIDATIONS(start, end), or either with a slug last: liquidations, one row for each liquidation in the window. Columns: t, protocol, borrower, liquidator, debt_asset, debt_amount, debt_usd (the debt repaid), collateral_asset, collateral_amount, collateral_usd (the collateral the borrower lost), received_usd (what the liquidator got: all of the collateral on Aave, 97% of it on Benqi, whose market keeps 3% as reserves), tx. Prices are the hour's.
+  - $DEBTS('slug'): debts, one row for each borrower and asset now. Columns: protocol, borrower, asset, amount, usd.
+  - $MARKETS('slug'): markets, one row for each market now. Columns: protocol, asset, supplied, borrowed, reserves (Benqi), supplied_usd, borrowed_usd, utilization_pct (borrowed over supplied), tvl_usd (supplied less borrowed), supply_apy_pct and borrow_apy_pct (Aave).
+  - $PRICES(start) or $PRICES(start, end): lpx, one row for each day of the window: d, and px, a map of the USD price by price kind (px['avax'], or px[k.price] for an asset). Use it for a question the others do not cover.
+- A question that names one protocol takes its slug. $DEBTS and $MARKETS take one protocol, since both at once are too long to send: a question about both is answered for the one it names first (Aave when it names none), and the note says the answer covers that protocol only and suggests the other as the next question ("Ask for Benqi's markets next."). start and end are DateTimes, as for $DEX: a window with no end runs to now. After the shorthand comes SELECT, or , name AS (…) for a WITH of your own.
+- Take every USD figure from the shorthand's table: never price an amount again. usd is NULL for an asset with no price: every sum of usd comes with countIf(usd IS NULL) AS unpriced, so the reading can say how many events have no value. A deposit is a supply; a borrower is who on a borrow. Deposits, withdrawals, borrows and repayments are rows of actions, never transactions to the Pool counted by method. Name a value column by its unit (_usd for dollars), as the examples do. Deposits (or borrows) over a window are a series: a row per hour, or per day past 7 days, with the count, the USD value and unpriced. The largest or top deposits are the events themselves, largest first.
+- The events, for a query the shorthand does not cover (word k of data is substring(data, 1 + 32 * k, 32), and an address is the last 20 bytes of its word or topic). Aave's Pool is aave_pool: Supply supply_t (reserve topic1, onBehalfOf topic2; user word 0, amount word 1), Withdraw withdraw_t (reserve topic1, user topic2, to topic3; amount word 0), Borrow borrow_t (reserve topic1, onBehalfOf topic2; user word 0, amount word 1), Repay repay_t (reserve topic1, user topic2, repayer topic3; amount word 0), LiquidationCall liquidation_t (collateral topic1, debt topic2, user topic3; debt word 0, collateral word 1, liquidator word 2), FlashLoan flash_loan_t (target topic1, asset topic2; initiator word 0, amount word 1, premium word 3), ReserveDataUpdated reserve_data_t (reserve topic1; liquidity rate, stable and variable borrow rates, liquidity index and variable borrow index in words 0 to 4, in rays of 1e27). Benqi's events index nothing, so each argument is a data word in order: Mint qi_mint_t (minter, amount, qiTokens), Redeem qi_redeem_t (redeemer, amount, qiTokens), Borrow qi_borrow_t (borrower, amount, account borrows, total borrows), RepayBorrow qi_repay_t (payer, borrower, amount, account borrows, total borrows), LiquidateBorrow qi_liquidate_t (liquidator, borrower, amount, collateral market, seized qiTokens), AccrueInterest accrue_t (cash, interest, borrow index, total borrows). qiTokens have 8 decimals; every amount is in the asset's units.
+- Benqi's Mint has the topic0 of a Uniswap v2 Mint: filter every Benqi log on a market's address, address IN (SELECT market FROM lending_markets WHERE chain_id = ${LENDING_CHAIN_ID}).
+`;
+}
+
+function lendingExamples(): string {
+  const week = "toMonday(now())";
+  const hex = (c: string) => `lower(concat('0x', hex(${c})))`;
+  const fee = (w: number) => `toFloat64(reinterpretAsUInt256(reverse(substring(f.data, ${w}, 32)))) / pow(10, k.decimals)`;
+  return [
+    `Each protocol's deposits and borrows per day this week, in USD; drill into one day's actions:
+$LEND(${week}) SELECT toDate(t) AS day, protocol, round(sumIf(usd, action = 'supply')) AS deposits_usd, round(sumIf(usd, action = 'borrow')) AS borrows_usd, countIf(action = 'supply') AS deposits, countIf(action = 'borrow') AS borrows, countIf(usd IS NULL) AS unpriced FROM actions WHERE action IN ('supply', 'borrow') GROUP BY day, protocol ORDER BY day, protocol
+drill: $LEND(${week}) SELECT t, action, ${hex("asset")} AS token, ${hex("who")} AS account, amount, round(usd, 2) AS value_usd, concat('0x', hex(tx)) AS tx_hash FROM actions WHERE toDate(t) = {{day}} AND protocol = {{protocol}} AND action IN ('supply', 'borrow') ORDER BY usd DESC LIMIT 50`,
+    `Aave deposits per hour in the last 24 hours: their count, their USD value and the deposits with no price; drill into one hour's deposits:
+$LEND(now() - INTERVAL 24 HOUR, '${AAVE_SLUG}') SELECT toStartOfHour(t) AS hour, count() AS deposits, round(sum(usd)) AS value_usd, countIf(usd IS NULL) AS unpriced FROM actions WHERE action = 'supply' GROUP BY hour ORDER BY hour
+drill: $LEND(now() - INTERVAL 24 HOUR, '${AAVE_SLUG}') SELECT t, ${hex("asset")} AS token, amount, round(usd, 2) AS value_usd, ${hex("who")} AS depositor, concat('0x', hex(tx)) AS tx_hash FROM actions WHERE action = 'supply' AND toStartOfHour(t) = {{hour}} ORDER BY usd DESC LIMIT 50`,
+    `The 20 largest Aave deposits of the last 24 hours, each with its asset, amount, value, depositor and transaction, with the count and value of every deposit of the window and each asset's share of that value; the rows are deposits, so no drill:
+$LEND(now() - INTERVAL 24 HOUR, '${AAVE_SLUG}') SELECT t, ${hex("asset")} AS token, amount, round(usd, 2) AS value_usd, ${hex("who")} AS depositor, concat('0x', hex(tx)) AS tx_hash, count() OVER () AS deposits, round(sum(usd) OVER ()) AS total_usd, round(100 * sum(usd) OVER (PARTITION BY asset) / nullIf(sum(usd) OVER (), 0), 1) AS token_share_pct, countIf(usd IS NULL) OVER () AS unpriced FROM actions WHERE action = 'supply' ORDER BY usd DESC LIMIT 20`,
+    `The 15 largest borrowers on Aave now, with their share of all its debt; drill into one borrower's debts:
+$DEBTS('${AAVE_SLUG}') SELECT ${hex("borrower")} AS borrower_address, round(sum(usd)) AS debt_usd, count() AS debts, round(100 * sum(usd) / nullIf(sum(sum(usd)) OVER (), 0), 2) AS share_pct, count() OVER () AS of_total FROM debts GROUP BY borrower ORDER BY debt_usd DESC LIMIT 15
+drill: $DEBTS('${AAVE_SLUG}') SELECT ${hex("asset")} AS token, amount, round(usd, 2) AS value_usd FROM debts WHERE borrower = {{borrower_address:bytes}} ORDER BY usd DESC LIMIT 50`,
+    `The largest liquidations this week, each with its borrower, debt, collateral and liquidator; the rows are liquidations, so no drill:
+$LIQUIDATIONS(${week}) SELECT t, protocol, ${hex("borrower")} AS borrower_address, ${hex("debt_asset")} AS debt_token, round(debt_amount, 4) AS debt, round(debt_usd) AS debt_repaid_usd, ${hex("collateral_asset")} AS collateral_token, round(collateral_usd) AS collateral_seized_usd, ${hex("liquidator")} AS liquidator_address, concat('0x', hex(tx)) AS tx_hash, count() OVER () AS of_total FROM liquidations ORDER BY debt_usd DESC LIMIT 15`,
+    `Each Benqi market now: supplied, borrowed, utilization and TVL; drill into the market's actions this week:
+$MARKETS('${BENQI_SLUG}') SELECT ${hex("asset")} AS token, round(supplied, 2) AS supplied_units, round(supplied_usd) AS supplied_value_usd, round(borrowed_usd) AS borrowed_value_usd, utilization_pct, round(tvl_usd) AS tvl_value_usd FROM markets ORDER BY supplied_usd DESC
+drill: $LEND(${week}, '${BENQI_SLUG}') SELECT t, action, ${hex("who")} AS account, amount, round(usd, 2) AS value_usd, concat('0x', hex(tx)) AS tx_hash FROM actions WHERE asset = {{token:bytes}} ORDER BY t DESC LIMIT 50`,
+    `Aave's flash loans this week per asset, with their fees; drill into one asset's loans:
+$PRICES(${week}), fl AS (SELECT f.block_time AS t, substring(f.topic2, 13, 20) AS asset, substring(f.data, 13, 20) AS initiator, ${fee(33)} AS amount, ${fee(97)} AS premium, k.price AS kind FROM raw_logs AS f LEFT JOIN (SELECT token, decimals, price FROM lending_tokens WHERE chain_id = ${LENDING_CHAIN_ID}) AS k ON substring(f.topic2, 13, 20) = k.token WHERE f.chain_id = ${LENDING_CHAIN_ID} AND f.block_time >= ${week} AND f.address = aave_pool AND f.topic0 = flash_loan_t) SELECT ${hex("fl.asset")} AS token, count() AS loans, uniqExact(fl.initiator) AS initiators, round(sum(fl.amount), 4) AS borrowed, round(sum(fl.amount * nullIf(x.px[fl.kind], 0))) AS volume_usd, round(sum(fl.premium * nullIf(x.px[fl.kind], 0)), 2) AS fees_usd FROM fl LEFT JOIN lpx AS x ON toDate(fl.t) = x.d GROUP BY token ORDER BY volume_usd DESC
+drill: SELECT l.block_time AS t, concat('0x', hex(l.transaction_hash)) AS tx_hash, ${hex("substring(l.data, 13, 20)")} AS initiator_address FROM raw_logs AS l WHERE l.chain_id = ${LENDING_CHAIN_ID} AND l.block_time >= ${week} AND l.address = aave_pool AND l.topic0 = flash_loan_t AND substring(l.topic2, 13, 20) = {{token:bytes}} ORDER BY l.block_time DESC LIMIT 50`,
+  ]
+    .map((b) => `${b}\n\n`)
+    .join("");
+}
+
+export function systemPrompt(opts: { chainId: number; chainName: string; symbol: string; schema: string; coverage: string | null; dex?: boolean; lending?: boolean }): string {
   const known = Object.entries(KNOWN_ADDRESSES)
     .map(([a, n]) => `- ${n}: ${a}`)
     .join("\n");
@@ -183,6 +250,8 @@ export function systemPrompt(opts: { chainId: number; chainName: string; symbol:
   const c = isCChain(opts.chainId);
   // the DEX tables and rules: a DEX question's (dexQuestion), on the mainnet C-Chain only
   const dex = !!opts.dex && opts.chainId === DEX_CHAIN_ID && DEX_FACTORIES.length > 0;
+  // the lending tables and rules: a lending question's (lendingQuestion), on the mainnet C-Chain only
+  const lending = !!opts.lending && opts.chainId === LENDING_CHAIN_ID && LENDING_MARKETS.length > 0;
   // the rows the flow panel draws, on the mainnet C-Chain, where the contract registry names senders and receivers
   const flows =
     opts.chainId === DEX_CHAIN_ID
@@ -216,7 +285,7 @@ ${known}`
 - Log data is bytes: read a 32-byte word with substring(data, 1 + 32*k, 32), and reverse() before reinterpretAsUInt256.
 - Active addresses: the distinct addresses that sent or received a transaction, uniqExactArray([\`from\`, \`to\`]) AS active_addresses over raw_txs. Never add uniqExact(\`from\`) and uniqExact(\`to\`) (an address on both sides counts twice), and never arrayJoin them (it repeats every row, so every other figure in the query doubles). An answer about active addresses says in its note that they are the senders and recipients of transactions, and that the explorer's own charts count more roles, so their figure is higher.
 - ICM (Teleporter) messages: the messenger is unhex('253b2784c75e510dd0ff1da844684a1ac0aa5fcf') on every chain. Its logs by topic0: SendCrossChainMessage unhex('2a211ad4a59ab9d003852404f9c57c690704ee755f3c79d2c2812ad32da99df8') is a message this chain sent (topic1 = message ID, topic2 = destination blockchain ID); ReceiveCrossChainMessage unhex('292ee90bbaf70b5d4936025e09d56ba08f3e421156b6a568cf3c2840d9343e34') is a message it received (topic1 = message ID, topic2 = source blockchain ID); MessageExecuted unhex('34795cc6b122b9a0ae684946319f1e14a577b4e8f9b3dda9ac94c21a54d3188c') and MessageExecutionFailed unhex('4619adc1017b82e02eaefac01a43d50d6d8de4460774bc370c3ff0210d40c985') say how a received message ran. Return a blockchain ID as lower(concat('0x', hex(topic2))).
-${dex ? dexRules() : ""}
+${dex ? dexRules() : ""}${lending ? lendingRules() : ""}
 ## Query rules
 - One SELECT (a WITH is fine). No FORMAT, no SETTINGS, no semicolons, no comments. The server sets format, timeouts and memory.
 - At most ${MAX_ROWS} rows come back, and a longer series is cut. Pick the bucket from the window: toStartOfMinute or toStartOfFiveMinutes for windows up to 6 hours, toStartOfHour up to 7 days, toDate beyond, toMonday for weeks. A question that names a bucket but no window reads 6 hours of 5-minute buckets, 24 hours of hourly ones, 30 days of daily ones. Windows over raw_logs and raw_traces: 90 days at most. raw_txs: 365 days at most.
@@ -283,7 +352,7 @@ SELECT block_time AS t, block_number, concat('0x', hex(transaction_hash)) AS tx_
 
 `
     : ""
-}${dex ? dexExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
+}${dex ? dexExamples() : ""}${lending ? lendingExamples() : ""}The 15 token contracts with the most transfers, with transactions, senders and share (the server names the tokens it knows):
 SELECT lower(concat('0x', hex(raw_logs.address))) AS token, count() AS transfers, uniqExact(transaction_hash) AS txs, uniqExact(tx_from) AS senders, round(100 * count() / sum(count()) OVER (), 2) AS share_pct, count() OVER () AS of_total FROM raw_logs WHERE chain_id = ${opts.chainId} AND block_time >= now() - INTERVAL ${c ? "1 DAY" : "7 DAY"} AND topic0 = unhex('ddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef') GROUP BY raw_logs.address ORDER BY transfers DESC LIMIT 15
 
 Active addresses per day, each address once:
@@ -451,14 +520,14 @@ const versions = new Map<string, string>();
     recipe keys (cache.ts), so a fixed question is written again instead of
     served its old SQL. Per chain: the C-Chain, an L1 and the P-Chain are
     told different things. */
-export function promptVersion(chainId: number, dex = false): string {
-  const key = `${chainId}:${dex ? "dex" : ""}`;
+export function promptVersion(chainId: number, dex = false, lending = false): string {
+  const key = `${chainId}:${dex ? "dex" : ""}:${lending ? "lending" : ""}`;
   let v = versions.get(key);
   if (!v) {
     const text =
       targetOf(chainId).kind === "pchain"
         ? pchainPrompt({ chainId, network: "", schema: "", coverage: null, lines: null })
-        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex });
+        : systemPrompt({ chainId, chainName: "", symbol: "", schema: "", coverage: null, dex, lending });
     v = createHash("sha256").update(`${text}\n${refSchema(chainId).join("\n")}`).digest("hex").slice(0, 12);
     versions.set(key, v);
   }

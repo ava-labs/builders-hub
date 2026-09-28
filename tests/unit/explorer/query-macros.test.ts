@@ -56,7 +56,7 @@ describe('the DEX shorthand', () => {
   });
 
   it('refuses any other name, a second shorthand, one after the start, a slug no protocol has, and a WITH with nothing after it', () => {
-    expect(refused(`$LEND(${today})${OWN}`)).toMatch(/^\$LEND is no shorthand here: open the query with \$DEX\(start\)/);
+    expect(refused(`$SWAPS(${today})${OWN}`)).toMatch(/^\$SWAPS is no shorthand here: open the query with one shorthand: \$DEX, \$LEND or \$LIQUIDATIONS with the window's start/);
     expect(refused(`$DEX($START)${OWN}`)).toMatch(/^\$START is no shorthand here/);
     expect(refused(`$DEX(${today}), p AS ($POOLS()) SELECT 1`)).toMatch(/^the shorthand stands for the query's WITH, once, at its start/);
     expect(refused(`SELECT * FROM ($DEX(${today})${OWN})`)).toMatch(/^the shorthand stands for the query's WITH, once, at its start/);

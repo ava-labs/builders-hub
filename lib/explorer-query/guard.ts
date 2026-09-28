@@ -151,8 +151,8 @@ export function guardSql(raw: string, chainId: number): GuardResult {
   if (taken) return { ok: false, error: `${taken} is a table here; give the WITH another name` };
   const readable = [...target.tables, ...target.refs];
   const tables = new Set<AllowedTable>();
-  // ORDER BY t WITH FILL FROM <expr> names a value, not a table
-  const refs = sql.matchAll(/(?<!\bFILL\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi);
+  // ORDER BY t WITH FILL FROM <expr> names a value, not a table, and so does ARRAY JOIN <array>
+  const refs = sql.matchAll(/(?<!\bFILL\s+)(?<!\bARRAY\s+)\b(?:FROM|JOIN)\s+(?!\()([`"]?)([A-Za-z_][\w.]*)\1/gi);
   for (const m of refs) {
     const ident = m[2].replace(/^default\./i, "");
     if (ctes.has(ident.toLowerCase())) continue;

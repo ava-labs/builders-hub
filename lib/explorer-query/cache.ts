@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { createClient } from "redis";
+import { lendingQuestion } from "./lending";
 import { dexQuestion, promptVersion } from "./prompt";
 import type { ChartSpec, Drill, Turn } from "./types";
 import type { VisualSpec } from "./visual";
@@ -56,11 +57,11 @@ async function redis() {
   return connecting;
 }
 
-/** the same question on the same chain, however it was typed, against the same prompt: a DEX question's names the DEX variant */
+/** the same question on the same chain, however it was typed, against the same prompt: a DEX or a lending question's names its variant */
 export function recipeKey(chainId: number, prompt: string, history: Turn[] = []): string {
   const norm = prompt.toLowerCase().replace(/\s+/g, " ").replace(/[?.!\s]+$/, "").trim();
   const past = history.map((t) => t.sql).join("\n");
-  const version = promptVersion(chainId, dexQuestion(chainId, prompt, history));
+  const version = promptVersion(chainId, dexQuestion(chainId, prompt, history), lendingQuestion(chainId, prompt, history));
   return createHash("sha256").update(`${chainId}\n${version}\n${norm}\n${past}`).digest("hex").slice(0, 32);
 }
 

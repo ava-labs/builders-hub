@@ -3,6 +3,9 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { generateText, tool, stepCountIs, type ModelMessage } from "ai";
 import { z } from "zod";
 import { MAX_ROWS, guardSql, literalWindow, negativeFigure } from "./guard";
+import { oneProtocol, protocolScope, unitName } from "./checks";
+import { lendingQuestion } from "./lending";
+import { collapseMacros } from "./macros";
 import { runQuery, schemaCard, coverage, coverageText, anchored } from "./clickhouse";
 import { chartSpecSchema, drillSchema, type QueryAnswer, type StepTiming, type Turn } from "./types";
 import { fillDrill, nameRows } from "./enrich";
@@ -158,14 +161,15 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   const system =
     targetOf(a.chainId).kind === "pchain"
       ? pchainPrompt({ chainId: a.chainId, network: a.chainId === 5 ? "Fuji" : "Mainnet", schema, coverage: coverLine, lines: await versionLines(a.chainId) })
-      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history) });
+      : systemPrompt({ chainId: a.chainId, chainName: a.chainName, symbol: a.symbol, schema, coverage: coverLine, dex: dexQuestion(a.chainId, a.prompt, a.history), lending: lendingQuestion(a.chainId, a.prompt, a.history) });
 
   // earlier turns, so "make it weekly" refines the last chart
   const messages: ModelMessage[] = [];
   for (const t of a.history.slice(-4)) {
     if (!t?.prompt || !t?.sql) continue;
     messages.push({ role: "user", content: String(t.prompt).slice(0, 1500) });
-    messages.push({ role: "assistant", content: `Chart "${String(t.title).slice(0, 120)}" from:\n${String(t.sql).slice(0, 3000)}` });
+    // the shorthand in place of the WITH it wrote, so the SELECT after it stays in view
+    messages.push({ role: "assistant", content: `Chart "${String(t.title).slice(0, 120)}" from:\n${collapseMacros(String(t.sql), a.chainId).slice(0, 3000)}` });
   }
   messages.push({ role: "user", content: userTurn(a.chainId, a.prompt) });
 
@@ -192,6 +196,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     let negOnce = false;
     let datedOnce = false;
     let windowOnce = false;
+    let scopeOnce = false;
+    let coverOnce = false;
+    let unitOnce = false;
     let tested = 0;
     // the model's own time on a step is the gap since the last tool finished
     let mark = Date.now();
@@ -286,6 +293,25 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
         if (dated) {
           datedOnce = true;
           return fail(dated, 0);
+        }
+        // a question that names a protocol the registry lists is answered from that protocol's contracts: ask once
+        const questions = [a.prompt, ...a.history.map((t) => String(t?.prompt ?? "")).reverse()];
+        const unscoped = scopeOnce ? null : protocolScope(sql, questions, a.chainId);
+        if (unscoped) {
+          scopeOnce = true;
+          return fail(unscoped, 0);
+        }
+        // an answer for one of the protocols a question names says so in its note: ask once
+        const partial = coverOnce ? null : oneProtocol(sql, note, questions, a.chainId);
+        if (partial) {
+          coverOnce = true;
+          return fail(partial, 0);
+        }
+        // a value column holds the unit its name says: ask once
+        const misnamed = unitOnce ? null : unitName(sql, a.chainId);
+        if (misnamed) {
+          unitOnce = true;
+          return fail(misnamed, 0);
         }
         const q0 = Date.now();
         try {

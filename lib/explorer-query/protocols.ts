@@ -134,10 +134,10 @@ export function dexFamilies(factories: readonly DexFactory[] = DEX_FACTORIES): D
 export const DEX_LISTED_AT = Date.UTC(2026, 8, 27);
 
 const QUOTES: readonly Quote[] = ["", "usd", "avax"];
-const bare = (address: string) => address.slice(2).toLowerCase();
+export const bare = (address: string) => address.slice(2).toLowerCase();
 /** an address in 28 characters, not 40: the query service takes 8 KiB of SQL */
-const packed = (address: string) => Buffer.from(bare(address), "hex").toString("base64");
-const strings = (xs: readonly string[]) => `[${xs.map((x) => `'${x}'`).join(",")}]`;
+export const packed = (address: string) => Buffer.from(bare(address), "hex").toString("base64");
+export const strings = (xs: readonly string[]) => `[${xs.map((x) => `'${x}'`).join(",")}]`;
 const bytes = (s: string) => Buffer.byteLength(s);
 
 /** dex_factories as one SELECT: names once in arrays, a row of their indexes and the packed addresses */
@@ -166,7 +166,7 @@ export function tokensSql(chainId: number, tokens: readonly DexToken[] = DEX_TOK
 
 /** the most of a list whose table fits in `room` bytes: the entries the query names first, then the list's order.
     Nothing fitting keeps the whole list, so the send fails with the query's own size in its error */
-function fitting<T>(all: readonly T[], named: (x: T) => boolean, build: (xs: readonly T[]) => string, room: number): { sql: string; kept: readonly T[] } {
+export function fitting<T>(all: readonly T[], named: (x: T) => boolean, build: (xs: readonly T[]) => string, room: number): { sql: string; kept: readonly T[] } {
   const order = [...all.filter(named), ...all.filter((x) => !named(x))];
   for (let n = order.length; n > 0; n--) {
     const keep = new Set(order.slice(0, n));
