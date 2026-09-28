@@ -25,10 +25,11 @@ const FINAL = { title: 'Swaps per hour', note: 'Swaps on the C-Chain.', sql: 'SE
 
 // the SDK's loop around a model that calls run_sql on every step, and render_chart only when the step's tool
 // choice names it: the SDK still runs a tool that activeTools leaves out, as the audits' long loops showed
-type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string; tools: unknown[] };
+type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string; tools: unknown[]; cap?: number };
 type Call = {
   tools: { run_sql: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> }; render_chart: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> } };
   toolChoice: unknown;
+  maxOutputTokens?: number;
   stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[];
   prepareStep: (o: { stepNumber: number; steps: unknown[]; messages: unknown[] }) => { toolChoice?: { type: string; toolName?: string }; activeTools?: string[] } | undefined;
   onStepFinish: (s: unknown) => void;
@@ -37,7 +38,7 @@ const runs: Run[] = [];
 const writer = (final: object) =>
   (async (opts: Call) => {
     const steps: unknown[] = [];
-    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description, tools: [] };
+    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description, tools: [], cap: opts.maxOutputTokens };
     runs.push(run);
     for (let n = 0; ; n++) {
       const p = await opts.prepareStep({ stepNumber: n, steps, messages: [{ role: 'user', content: 'q' }] });
@@ -112,6 +113,19 @@ describe('the writer tests a set number of times, then answers', () => {
     await ask(43113);
     expect(runs[0].description).toBe('Test a query you are unsure of: the first rows and column types, or the database error. Skip it when a worked example fits.');
     expect(runs[0].chart).toBe('Hand back the final query and the chart spec. The server runs the query in full and tests the drill. Returns ok, or the error to fix.');
+  });
+
+  it('gives every writer an output cap of its own, and sends it with each mainnet call', async () => {
+    // the SDK gives a model it does not know 4096 tokens: a writer without a cap of its own fails here
+    for (const w of Object.values(WRITERS)) expect(w.maxOutputTokens, w.id).toBeGreaterThan(4096);
+    runQuery.mockResolvedValue(ROWS);
+    // a final that never passes runs both writers
+    vi.mocked(generateText).mockImplementation(writer({ ...FINAL, chart: { ...FINAL.chart, x: 'hour' } }));
+    await ask(43114);
+    expect(runs.map((r) => r.cap)).toEqual([WRITERS.fast.maxOutputTokens, WRITERS.full.maxOutputTokens]);
+    runs.length = 0;
+    await ask(43113);
+    expect(runs.map((r) => r.cap)).toEqual([undefined, undefined]);
   });
 
   it('keeps Fuji as it was: no budget, no forced answer, and the old words', async () => {

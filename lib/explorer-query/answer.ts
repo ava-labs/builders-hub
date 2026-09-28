@@ -29,9 +29,12 @@ import { PCHAIN_EXAMPLES, examplesFor } from "./examples";
 
 const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+/** the writers, each with its own output cap. The SDK sends a model's cap only for the models it knows, and gave
+    claude-sonnet-5 4096 tokens, which a written-out query with its drill can pass: a cut call is lost. 16k is five
+    times the longest call the traces saw (2,835 tokens, D20's final with its WITH written out) */
 export const WRITERS = {
-  fast: { id: "claude-haiku-4-5-20251001", label: "Haiku 4.5", steps: 8 },
-  full: { id: "claude-sonnet-5", label: "Sonnet 5", steps: 14 },
+  fast: { id: "claude-haiku-4-5-20251001", label: "Haiku 4.5", steps: 8, maxOutputTokens: 16_000 },
+  full: { id: "claude-sonnet-5", label: "Sonnet 5", steps: 14, maxOutputTokens: 16_000 },
 } as const;
 type Writer = keyof typeof WRITERS;
 
@@ -416,6 +419,8 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
 
     const out = await generateText({
       model: anthropic(w.id),
+      // the writer's own cap on mainnet; Fuji keeps the SDK's
+      ...(fuji ? {} : { maxOutputTokens: w.maxOutputTokens }),
       // the prompt and the tools are the same on every step and every
       // question; the cache mark lets each step after the first skip them
       system: { role: "system", content: system, providerOptions: CACHE },
