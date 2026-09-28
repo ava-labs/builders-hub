@@ -188,6 +188,9 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
   let dbFailed = 0;
   // Fuji keeps the loop it had: no test budget, and every step may test
   const fuji = isFuji(a.chainId);
+  // the server writes out the WITH a C-Chain shorthand stands for. A writer that writes it out itself spends about
+  // 2,300 more output tokens, 25 s a call (D20's final); asked for the shorthand, 6 of 6 replays of that final kept it
+  const shorthand = isCChain(a.chainId) && !fuji;
 
   const loop = async (writer: Writer): Promise<QueryAnswer | null> => {
     const w = WRITERS[writer];
@@ -216,7 +219,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     };
 
     const run_sql = tool({
-      description: "Test a query you are unsure of: the first rows and column types, or the database error. Skip it when a worked example fits.",
+      description: `Test a query you are unsure of: the first rows and column types, or the database error. Skip it when a worked example fits.${shorthand ? " Write a shorthand ($DEX, $LEND, $LIQUIDATIONS) as it stands, never the WITH it stands for: the server writes its WITH out." : ""}`,
       inputSchema: z.object({ sql: z.string() }),
       execute: async ({ sql }) => {
         // a writer past its tests answers from what they showed: a test it still calls runs nothing
@@ -252,7 +255,7 @@ export async function answerQuestion(a: Ask): Promise<QueryAnswer | null> {
     });
 
     const render_chart = tool({
-      description: "Hand back the final query and the chart spec. The server runs the query in full and tests the drill. Returns ok, or the error to fix.",
+      description: `Hand back the final query and the chart spec. The server runs the query in full and tests the drill. Returns ok, or the error to fix.${shorthand ? " Write sql and drill.sql with the shorthand your tests used ($DEX, $LEND, $LIQUIDATIONS): the server writes its WITH out." : ""}`,
       inputSchema: z.object({
         title: z.string(),
         note: z.string(),

@@ -25,9 +25,9 @@ const FINAL = { title: 'Swaps per hour', note: 'Swaps on the C-Chain.', sql: 'SE
 
 // the SDK's loop around a model that calls run_sql on every step, and render_chart only when the step's tool
 // choice names it: the SDK still runs a tool that activeTools leaves out, as the audits' long loops showed
-type Run = { choices: unknown[]; results: unknown[]; description?: string };
+type Run = { choices: unknown[]; results: unknown[]; description?: string; chart?: string };
 type Call = {
-  tools: { run_sql: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> }; render_chart: { execute: (input: unknown, o: unknown) => Promise<unknown> } };
+  tools: { run_sql: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> }; render_chart: { description?: string; execute: (input: unknown, o: unknown) => Promise<unknown> } };
   toolChoice: unknown;
   stopWhen: ((o: { steps: unknown[] }) => boolean | PromiseLike<boolean>)[];
   prepareStep: (o: { stepNumber: number; steps: unknown[]; messages: unknown[] }) => { toolChoice?: { type: string; toolName?: string } } | undefined;
@@ -37,7 +37,7 @@ const runs: Run[] = [];
 const writer = (final: object) =>
   (async (opts: Call) => {
     const steps: unknown[] = [];
-    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description };
+    const run: Run = { choices: [], results: [], description: opts.tools.run_sql.description, chart: opts.tools.render_chart.description };
     runs.push(run);
     for (let n = 0; ; n++) {
       const p = await opts.prepareStep({ stepNumber: n, steps, messages: [{ role: 'user', content: 'q' }] });
@@ -98,6 +98,18 @@ describe('the writer tests a set number of times, then answers', () => {
     vi.mocked(generateText).mockImplementation(writer(FINAL));
     const { error } = await ask(43114);
     expect(error).toMatchObject({ status: 422, error: expect.stringContaining('kept failing on the database') });
+  });
+
+  it('asks a C-Chain writer for the shorthand in both tools, and leaves Fuji\'s tools as they were', async () => {
+    runQuery.mockResolvedValue(ROWS);
+    vi.mocked(generateText).mockImplementation(writer(FINAL));
+    await ask(43114);
+    expect(runs[0].description).toMatch(/ Write a shorthand \(\$DEX, \$LEND, \$LIQUIDATIONS\) as it stands, never the WITH it stands for: the server writes its WITH out\.$/);
+    expect(runs[0].chart).toMatch(/ Write sql and drill\.sql with the shorthand your tests used \(\$DEX, \$LEND, \$LIQUIDATIONS\): the server writes its WITH out\.$/);
+    runs.length = 0;
+    await ask(43113);
+    expect(runs[0].description).toBe('Test a query you are unsure of: the first rows and column types, or the database error. Skip it when a worked example fits.');
+    expect(runs[0].chart).toBe('Hand back the final query and the chart spec. The server runs the query in full and tests the drill. Returns ok, or the error to fix.');
   });
 
   it('keeps Fuji as it was: no budget, no forced answer, and the old words', async () => {
